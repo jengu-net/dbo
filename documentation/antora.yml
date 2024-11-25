@@ -1,0 +1,5 @@
+name: dbo-architecture
+title: DBO Technical Documentation
+version: 0.1
+nav:
+  - modules/ROOT/nav.adoc
