@@ -1,0 +1,4 @@
+= Medications Module
+
+Based on FHIR https://hl7.org/fhir/medications-module.html[Medications Module]
+
