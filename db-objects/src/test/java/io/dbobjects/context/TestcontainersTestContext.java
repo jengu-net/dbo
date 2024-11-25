@@ -1,7 +1,5 @@
 package io.dbobjects.context;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import io.dbo.eventing.SimpleEventConfiguration;
 import io.dbo.eventing.kafka.KafkaEventingFactory;
 import io.dbobjects.ApplicationState;
@@ -26,7 +24,7 @@ import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -53,11 +51,11 @@ public class TestcontainersTestContext implements AutoCloseable {
         'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
         't', 'u', 'v', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
-    private PostgreSQLContainer DB_CONTAINER;
+    private JdbcDatabaseContainer DB_CONTAINER;
     private RedpandaContainer EVENTING_CONTAINER;
 
     @Getter
-    private EventingFactory eventingFactory = null;
+    private EventingFactory eventingFactory;
     static String DB_USER = "test";
     static String DB_PASSWORD = "test";
     public String DB_SCHEMA = "test_schema";
@@ -81,7 +79,7 @@ public class TestcontainersTestContext implements AutoCloseable {
     private final QueryRunner qr = new QueryRunner();
     private final Mappers mappers = new Mappers(objectMapper);
 
-    private StateUpdater testStateUpdater = new TestContextFakeStateUpdater();
+    private final StateUpdater testStateUpdater = new TestContextFakeStateUpdater();
 
     private static String randomAlpha(int length) {
         return randomNanoId(DEFAULT_NUMBER_GENERATOR, alphabet, length);
