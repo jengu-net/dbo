@@ -17,7 +17,7 @@ dependencyResolutionManagement {
             // for routing liquibase logging to slf4j
             library("liquibase-sessionlock", "com.github.blagerweij", "liquibase-sessionlock").version("1.6.4")
             // for using non-blocking locks
-            plugin("owasp-dependencycheck", "org.owasp.dependencycheck").version("8.4.0")
+            plugin("owasp-dependencycheck", "org.owasp.dependencycheck").version("11.1.0")
 
         }
     }
