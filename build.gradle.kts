@@ -13,7 +13,7 @@ antora {
 subprojects {
 
     afterEvaluate { // Ensure plugins are applied before checking
-        if (plugins.hasPlugin("java-library")) {
+        if (plugins.hasPlugin("java-library") or plugins.hasPlugin("application")) {
 
             // Apply configurations specific to java-library projects
             println("Applying common configuration to Java Library project: $name")
@@ -29,7 +29,7 @@ subprojects {
 
             dependencies {
                 // Utils
-                add("api", mn.slf4j.api)
+                add("implementation", mn.slf4j.api)
                 add("annotationProcessor", mn.lombok)
                 add("compileOnly", mn.lombok)
                 add("testAnnotationProcessor", mn.lombok)

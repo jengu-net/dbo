@@ -1,0 +1,5 @@
+micronaut:
+  application:
+    name: db-objects-micronaut-petstore
+  server:
+    port: 8011
