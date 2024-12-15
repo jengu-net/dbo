@@ -1,0 +1,9 @@
+logger:
+  levels:
+    io.micronaut.http.server.netty: DEBUG
+    io.micronaut.web.router: INFO #TRACE shows up all built http routes
+    io.micronaut.security: INFO #TRACE
+    io.micronaut.context.condition: INFO #TRACE displays conditions of not loaded beans
+    io.micronaut: INFO
+    org.thymeleaf: INFO
+    org.thymeleaf.templateresolver: TRACE

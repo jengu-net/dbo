@@ -1,7 +1,5 @@
 plugins {
     `java-library`
-    alias(dbo.plugins.owasp.dependencycheck)
-    checkstyle
 }
 
 dependencies {
