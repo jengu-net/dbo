@@ -26,6 +26,7 @@ subprojects {
             apply(plugin = "idea")
             apply(plugin = "checkstyle")
             apply(plugin = "jvm-test-suite")
+            apply(plugin = "maven-publish")
 
             group = "io.dbo"
             version = "1.0.0-SNAPSHOT"
