@@ -27,6 +27,9 @@ subprojects {
             apply(plugin = "checkstyle")
             apply(plugin = "jvm-test-suite")
 
+            group = "io.dbo"
+            version = "1.0.0-SNAPSHOT"
+
             dependencies {
                 // Utils
                 add("implementation", mn.slf4j.api)
