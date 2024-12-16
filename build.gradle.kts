@@ -59,8 +59,8 @@ subprojects {
             }
 
             extensions.configure<JavaPluginExtension> {
-                sourceCompatibility = JavaVersion.toVersion("21")
-                targetCompatibility = JavaVersion.toVersion("21")
+                //sourceCompatibility = JavaVersion.toVersion("19")
+                //targetCompatibility = JavaVersion.toVersion("19")
             }
 
             tasks.withType<JavaCompile> {

@@ -1,7 +1,5 @@
 package io.dbobjects.context;
 
-import io.dbo.eventing.SimpleEventConfiguration;
-import io.dbo.eventing.kafka.KafkaEventingFactory;
 import io.dbobjects.ApplicationState;
 import io.dbobjects.DBOApplicationConfig;
 import io.dbobjects.DBOApplicationContext;
@@ -11,7 +9,6 @@ import io.dbobjects.ObjectMapper;
 import io.dbobjects.application.StateUpdater;
 import io.dbobjects.db.postgres.Mappers;
 import io.dbobjects.db.postgres.QueryRunner;
-import io.dbobjects.eventing.EventingFactory;
 import io.dbobjects.nodesync.SyncedNodeState;
 import io.dbobjects.nodesync.postgres.NodeSyncQueue;
 import io.dbobjects.parallel.NodeState;
@@ -22,17 +19,14 @@ import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.redpanda.RedpandaContainer;
 
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -52,10 +46,10 @@ public class TestcontainersTestContext implements AutoCloseable {
             't', 'u', 'v', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
     private JdbcDatabaseContainer DB_CONTAINER;
-    private RedpandaContainer EVENTING_CONTAINER;
+//    private RedpandaContainer EVENTING_CONTAINER;
 
-    @Getter
-    private EventingFactory eventingFactory;
+//    @Getter
+//    private EventingFactory eventingFactory;
     static String DB_USER = "test";
     static String DB_PASSWORD = "test";
     public String DB_SCHEMA = "test_schema";
@@ -65,7 +59,7 @@ public class TestcontainersTestContext implements AutoCloseable {
     public int DB_PORT;
     public String DB = "test_db";
     String DB_JDBC_URL;
-    String REDPANDA_HOST;
+//    String REDPANDA_HOST;
 
     private final Pool SQL_POOL;
 
@@ -161,14 +155,15 @@ public class TestcontainersTestContext implements AutoCloseable {
         var mnEnvironments = System.getenv("MICRONAUT_ENVIRONMENTS");
         boolean useTestContainers = mnEnvironments == null || !mnEnvironments.contains("realdbtest");
         if (useTestContainers) {
+/*
             EVENTING_CONTAINER = new RedpandaContainer("docker.redpanda.com/vectorized/redpanda:v22.2.1");
             EVENTING_CONTAINER.withNetwork(network);
             EVENTING_CONTAINER.waitingFor(Wait.forListeningPort());
             EVENTING_CONTAINER.start();
             log.info("redpanda servers: {}", EVENTING_CONTAINER.getBootstrapServers());
             REDPANDA_HOST = EVENTING_CONTAINER.getBootstrapServers();
-
-            DB_CONTAINER = new PostgreSQLContainer("postgres:14.2-alpine").withDatabaseName(DB)
+*/
+            DB_CONTAINER = new PostgreSQLContainer("postgres:17-alpine").withDatabaseName(DB)
                 .withUsername(DB_USER).withPassword(DB_PASSWORD);
             DB_CONTAINER.withNetwork(network);
             DB_CONTAINER.waitingFor(Wait.forListeningPort());
@@ -190,13 +185,13 @@ public class TestcontainersTestContext implements AutoCloseable {
             DB_PASSWORD = getRequiredSystemProperty("POSTGRES_PASSWORD");
             DB = getRequiredSystemProperty("POSTGRES_DB");
             DB_JDBC_URL = String.join("","jdbc:postgresql://",DB_HOST,":","" + DB_PORT, "/", DB, "?loggerLevel=OFF");
-            REDPANDA_HOST = getRequiredSystemProperty("REDPANDA_HOSTS");
+//            REDPANDA_HOST = getRequiredSystemProperty("REDPANDA_HOSTS");
             // PLAINTEXT://localhost:53476
         }
 
-        this.eventingFactory = new KafkaEventingFactory(new SimpleEventConfiguration()
-            .setHosts(List.of(REDPANDA_HOST))
-            .setGlobalErrorTopic("io.dbo-test.global-errors.updated"));
+//        this.eventingFactory = new KafkaEventingFactory(new SimpleEventConfiguration()
+//            .setHosts(List.of(REDPANDA_HOST))
+//            .setGlobalErrorTopic("io.dbo-test.global-errors.updated"));
 
         PgConnectOptions connectOptions =
                 new PgConnectOptions().setPort(DB_PORT)
@@ -222,7 +217,7 @@ public class TestcontainersTestContext implements AutoCloseable {
 
         this.nodeSyncqueue = new NodeSyncQueue(connectOptions, objectMapper, Optional.of(vertx));
 
-        this.applicationContext = new DBOApplicationContext(PostgresTestDatabase::new, this.eventingFactory)
+        this.applicationContext = new DBOApplicationContext(PostgresTestDatabase::new)
                 .setDomainMessageQueue(nodeSyncqueue)
                 .setObjectMapper(objectMapper)
                 .setDbConnectionPool(SQL_POOL)
@@ -247,9 +242,11 @@ public class TestcontainersTestContext implements AutoCloseable {
         nodeSyncqueue.close();
         SQL_POOL.close();
         sleepFor(500);
+/*
         if (EVENTING_CONTAINER != null) {
             EVENTING_CONTAINER.close();
         }
+*/
         if (DB_CONTAINER != null) {
             DB_CONTAINER.close();
         }
