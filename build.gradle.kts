@@ -84,6 +84,17 @@ subprojects {
                 useJUnitPlatform()
             }
 
+            tasks.withType<PublishToMavenRepository> {
+                repositories.add(
+                    project.repositories.maven {
+                        name = "GitHubPackages"
+                        url = uri("https://maven.pkg.github.com/jengu-net/dbo")
+                        credentials {
+                            username = System.getenv("GITHUB_ACTOR")
+                            password = System.getenv("GITHUB_TOKEN")
+                        }
+                    })
+            }
         }
     }
 }
