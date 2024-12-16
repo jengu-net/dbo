@@ -2,13 +2,11 @@ package io.dbobjects;
 
 import io.dbobjects.application.StateUpdater;
 import io.dbobjects.db.Database;
-import io.dbobjects.eventing.EventingFactory;
 import io.dbobjects.nodesync.DomainMessageQueue;
 import io.dbobjects.nodesync.DomainMessenger;
 import io.dbobjects.parallel.NodeContext;
 import io.vertx.sqlclient.Pool;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 import java.util.Optional;
@@ -21,7 +19,7 @@ import java.util.function.BiFunction;
 public class DBOApplicationContext {
     @Getter
     private BiFunction<NodeContext, StateUpdater, Database> databaseBuilder;
-    private final EventingFactory eventingFactory;
+    //private final EventingFactory eventingFactory;
     private DomainMessenger domainMessenger;
     private DomainMessageQueue domainMessageQueue;
 
@@ -30,9 +28,8 @@ public class DBOApplicationContext {
     @Getter
     private Pool dbConnectionPool;
 
-    public DBOApplicationContext(BiFunction<NodeContext, StateUpdater, Database> databaseBuilder, EventingFactory eventingFactory) {
+    public DBOApplicationContext(BiFunction<NodeContext, StateUpdater, Database> databaseBuilder) {
         this.databaseBuilder = databaseBuilder;
-        this.eventingFactory = eventingFactory;
     }
 
     public Optional<DomainMessenger> getDomainMessenger() {
