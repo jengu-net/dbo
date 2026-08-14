@@ -63,6 +63,9 @@ yet implemented.
    identity artifacts as records in the tenant's own store, store surface
    accepts only the tenant's own tokens. dbo REST stays private — process
    surfaces are the public API; dbo.jengu.cloud is retired, not deferred
+3. **Personal-data isolation (Slice E)** — [#21](https://github.com/jengu-net/dbo/issues/21)
+   (groomed against §14): person vault + crypto-shredding + blind
+   operations; deliberately BEFORE real PHI lands
 2. **Slice B infra PR** — MERGED as
    [jengu-infra#18](https://github.com/jengu-net/jengu-infra/pull/18):
    cloud-init `dbo_provisioner` role, standing `samerole` pg_hba rule for
