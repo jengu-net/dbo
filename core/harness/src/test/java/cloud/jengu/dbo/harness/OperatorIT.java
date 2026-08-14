@@ -180,6 +180,13 @@ class OperatorIT {
             assertEquals("tenant_opitenant", rs.getString(1));
         }
 
+        // hba's samerole scope: every provisioned role is enrolled in `tenants`
+        assertEquals(1, countIn("""
+                SELECT count(*) FROM pg_auth_members m
+                JOIN pg_roles g ON g.oid = m.roleid
+                JOIN pg_roles r ON r.oid = m.member
+                WHERE g.rolname = 'tenants' AND r.rolname = 'tenant_opitenant'"""));
+
         // R3 applied by this provisioner too
         assertEquals(1, countIn("""
                 SELECT count(*) FROM pg_db_role_setting s

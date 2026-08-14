@@ -166,6 +166,13 @@ public final class TenantOperator implements AutoCloseable {
                     DUPLICATE_OBJECT);
             exec(c, "ALTER ROLE " + role + " PASSWORD " + quoteLiteral(password));
             execIgnoring(c, "GRANT " + role + " TO " + quoteIdent(adminUser), DUPLICATE_OBJECT);
+            // the `tenants` NOLOGIN group scopes pg_hba's samerole rule to
+            // operator-provisioned roles only — a bare `samerole all` would
+            // also admit the superuser remotely. Operator-owned: creating it
+            // here (PG16 auto-ADMIN for the creator) keeps the grant below
+            // working without any bootstrap coupling.
+            execIgnoring(c, "CREATE ROLE tenants NOLOGIN", DUPLICATE_OBJECT);
+            execIgnoring(c, "GRANT tenants TO " + role, DUPLICATE_OBJECT);
             execIgnoring(c, "CREATE DATABASE " + role + " OWNER " + role, DUPLICATE_DATABASE);
             // dbo#18 R3, mirrored from the local provisioner: worst-case feed
             // delay becomes the timeout, by construction
