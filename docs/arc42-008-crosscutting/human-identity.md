@@ -1,0 +1,96 @@
+# Human identity and authorization (§16)
+
+Humans join the §13 tenant authority without a parallel user database: **the
+clinical organization model is the authorization model.** The records the
+tenant already keeps — who works here, in what role, in which part of the
+organization, since and until when — are read as grants, not mirrored into
+a second system that drifts.
+
+## 16.1 The org model is the auth model
+
+- **Practitioner** is the human subject. Their national identifier lives in
+  identifying elements — under §14 that is the vault's HMAC index, so
+  subject resolution after authentication is an exact-match vault lookup:
+  encrypted at rest, shredding-aware, no plaintext registry of people.
+- **PractitionerRole is the grant**: this practitioner, at this
+  organization, in these role codes, over this period. An access right is
+  granted by creating one and revoked by ending its period — a versioned,
+  audited, feed-visible clinical record. HR reality and access reality are
+  one artifact.
+- **Organization.partOf is the scope tree** — the attachment point for
+  compartment rules ("own department only") in a later phase; grants carry
+  their organization from day one so scoping needs no re-modelling.
+- Two small sibling-model records complete the picture:
+  **RoleGrant** (role code → SMART scope set — the tenant-administered
+  mapping, itself a regular record: auditable, exported, feed-visible) and
+  **LocalCredential** (dev/demo password linkage — production
+  authentication is federated and stores no secrets for humans).
+
+## 16.2 Federated authentication, local authorization
+
+The authority's human flow is OIDC **authorization code + PKCE**:
+`/t/<code>/oidc/authorize` sends the person to the configured upstream
+identity broker (the Estonian eeID/TARA reality); the verified national
+identifier comes back; the authority resolves the Practitioner via the
+vault index, evaluates the ACTIVE PractitionerRoles through the tenant's
+RoleGrants, and mints tokens. dbo authenticates nobody in production — it
+federates authentication and OWNS authorization. LocalCredential is the
+embedded/dev fallback, beside the local provisioner in spirit.
+
+## 16.3 SMART shape, pseudonymous tokens
+
+Human tokens speak SMART on FHIR: `fhirUser: Practitioner/<id>`,
+`user/<Type>.read|write` scopes (the same grammar §13 gave services), the
+same per-tenant issuer and keys. Tokens are **pseudonymous by
+construction** — subject is the practitioner's record id; no name, no
+national code. A captured token identifies no one; user interfaces fetch
+display names through authorized reads. The §15 audit actor becomes the
+practitioner pseudonym plus the acting client — exact accountability with
+no personal data in the trail.
+
+Embedded appliances (the platform's SMART-launch direction) and the future
+open read surface use this same authority and grammar — one trust root per
+tenant, every consumer shape.
+
+## 16.4 Acting in the name of a human
+
+Automated processes operate ON BEHALF OF practitioners, never as them and
+never as anonymous system accounts:
+
+- **Live delegation** is RFC 8693 token exchange: a service holding the
+  user's token exchanges it for a delegated token — `sub` stays the
+  practitioner, an `act` claim names the acting client, and the scopes
+  attenuate (delegated ⊆ the user's ∩ the requested). The §15 audit actor
+  becomes the chain: the client, on behalf of the practitioner pseudonym.
+- **Durable delegation** is a record, because workflow steps outlive any
+  token: when a human initiates a process, the engine writes a
+  **Delegation** (practitioner pseudonym, acting client, process/workflow
+  id, attenuated scope set, validity period or until-completion) while the
+  user's token is live. Later steps exchange against the RECORD, not the
+  expired token. As a regular record it is auditable, feed-visible,
+  revocable by ending its period, exported with the tenant — and it is the
+  token-side twin of FHIR Provenance's `agent.onBehalfOf`.
+
+A delegated token can never exceed what the human could do, and every
+mutation it performs is attributable to both the process and the person.
+
+## 16.5 How the jengu application fits
+
+jengu-cloud becomes an **OIDC relying party of the tenant authorities**:
+login resolves the org code to the tenant, redirects to that tenant's
+`/authorize`, and wraps the returned tokens in its own session; the
+platform's TenantContext derives from token claims as it does today.
+Platform administrators authenticate against the SYSTEM tenant's authority
+— the jengu system database is a tenant like any other, §13 applied to
+ourselves. The Medplum OIDC dependency and the separately-planned
+authorization server both retire into this: the per-tenant authorities ARE
+the authorization server, which also dissolves the hardest part of the
+Medplum exit (the tenancy/identity triad).
+
+## 16.6 What stays outside
+
+Compartment/attribute rules beyond role→scopes (the Organization tree is
+recorded and waiting); consent/veto participation in token decisions
+(ADR 0016 attaches to these seams); the platform's login UI and session
+management (jengu-cloud's, as the relying party); edge PIN auth
+unification (the edge caches Practitioners already — grants join later).
