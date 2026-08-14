@@ -10,7 +10,7 @@ tasks.jar {
             "Bundle-SymbolicName" to "cloud.jengu.dbo.core",
             "Bundle-Version" to "0.1.0",
             "Export-Package" to
-                "cloud.jengu.dbo.core.api;version=\"0.1.0\",cloud.jengu.dbo.core;version=\"0.1.0\"",
+                "cloud.jengu.dbo.core.api;version=\"0.1.0\",cloud.jengu.dbo.core.api.feed;version=\"0.1.0\",cloud.jengu.dbo.core;version=\"0.1.0\"",
         )
     }
 }

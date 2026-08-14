@@ -326,6 +326,76 @@ public final class PgObjectStore implements ObjectStore {
         });
     }
 
+    @Override
+    public cloud.jengu.dbo.core.api.feed.FeedChunk<StoredObject> page(Criteria criteria, String cursor) {
+        TypeRegistration type = registry.require(criteria.typeName());
+        String d = type.domain();
+        Criteria.Sort s = criteria.sort();
+
+        StringBuilder sql = new StringBuilder("""
+                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, %s AS sort_key
+                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted"""
+                .formatted(s == null ? "d.last_updated" : Sql.typedPathExpression(s.path(), s.kind()), d));
+        List<Object> params = new ArrayList<>();
+        params.add(criteria.typeName());
+
+        if (!criteria.equalsPredicates().isEmpty()) {
+            sql.append(" AND d.envelope @> ?::jsonb");
+            params.add(JsonbCodec.containmentJson(criteria.equalsPredicates()));
+        }
+        for (Criteria.Referencing ref : criteria.referencingPredicates()) {
+            sql.append(" AND EXISTS (SELECT 1 FROM state.%s_reference r WHERE r.owner_id = d.id".formatted(d));
+            sql.append(" AND r.ref_type = ? AND r.target_type = ? AND r.target_id = ?)");
+            params.add(ref.refType());
+            params.add(ref.targetType());
+            params.add(ref.targetId());
+        }
+        String sortExpr = s == null ? "d.last_updated" : Sql.typedPathExpression(s.path(), s.kind());
+        if (cursor != null) {
+            String[] keyset = Cursors.decodeKeyset(cursor);
+            sql.append(" AND (").append(sortExpr).append(", d.id) > (?, ?)");
+            params.add(sortParam(s, keyset[0]));
+            params.add(UUID.fromString(keyset[1]));
+        }
+        // keyset requires a total order: sort expr then id tiebreak, ascending
+        sql.append(" ORDER BY ").append(sortExpr).append(", d.id LIMIT ?");
+        params.add(criteria.limitValue());
+
+        List<StoredObject> items = new ArrayList<>();
+        String[] lastKey = new String[2];
+        withConnection(c -> {
+            try (PreparedStatement ps = c.prepareStatement(sql.toString())) {
+                for (int i = 0; i < params.size(); i++) {
+                    ps.setObject(i + 1, params.get(i));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        items.add(read(rs));
+                        Object sortKey = rs.getObject(7);
+                        lastKey[0] = sortKey instanceof Timestamp ts
+                                ? ts.toInstant().toString() : String.valueOf(sortKey);
+                        lastKey[1] = rs.getObject(1).toString();
+                    }
+                }
+            }
+            return null;
+        });
+        String next = items.isEmpty() ? null : Cursors.encodeKeyset(lastKey[0], lastKey[1]);
+        return new cloud.jengu.dbo.core.api.feed.FeedChunk<>(
+                items, next, items.size() < criteria.limitValue());
+    }
+
+    private Object sortParam(Criteria.Sort s, String sortValue) {
+        if (s == null) {
+            return Timestamp.from(Instant.parse(sortValue));
+        }
+        return switch (s.kind()) {
+            case NUMBER -> new java.math.BigDecimal(sortValue);
+            case DATE -> Timestamp.from(Instant.parse(sortValue));
+            case STRING, TOKEN, REFERENCE -> sortValue;
+        };
+    }
+
     // --------------------------------------------------------------- delete
 
     @Override

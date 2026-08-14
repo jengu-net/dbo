@@ -36,6 +36,15 @@ public interface ObjectStore {
     List<StoredObject> select(Criteria criteria);
 
     /**
+     * Keyset pagination over a selection (REQ-DBO-FEED-KEYSET-CURSORS): the
+     * chunk's cursor continues after the last row's (sort value, id) — stable
+     * under concurrent writes, never an offset. Chunk size is the criteria
+     * limit. §10 caveat applies: a row updated after the cursor passed it
+     * will not reappear; never-miss consumers belong on the change feed.
+     */
+    cloud.jengu.dbo.core.api.feed.FeedChunk<StoredObject> page(Criteria criteria, String cursor);
+
+    /**
      * Recompute envelopes, identifiers and references for a type from stored
      * payloads and (re)apply declared indexes. Payloads are never touched
      * (REQ-DBO-CORE-REINDEX-IS-AN-OPERATION).
