@@ -9,6 +9,7 @@ plugins {
 
 dependencies {
     api(project(":core:dbo-core"))
+    api(project(":core:dbo-rest"))
 }
 
 tasks.jar {

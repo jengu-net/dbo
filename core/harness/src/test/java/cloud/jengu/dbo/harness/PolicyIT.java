@@ -151,9 +151,31 @@ class PolicyIT {
         store.delete("Task", task.id(), null);
     }
 
+    /** §15.1 (Slice G): the trail is open upward, closed downward. */
+    @Test
+    @Order(5)
+    void customEventsAreStampedAndTheTrailIsUntouchable() {
+        Caller.set("visits-engine");
+        String entryId = store.recordCustom("report-released", "DocumentReference", "doc-1",
+                Map.of("channel", "portal"));
+        Caller.clear();
+        String entry = new String(store.get("AuditEntry", entryId).orElseThrow().payload(),
+                StandardCharsets.UTF_8);
+        assertTrue(entry.contains("\"actor\":\"visits-engine\"")
+                && entry.contains("\"code\":\"report-released\"")
+                && entry.contains("\"channel\":\"portal\""), entry);
+
+        // closed downward: no direct writes, no deletes — under ANY discipline
+        assertThrows(PolicyViolationException.class, () -> store.put(PutRequest.create(
+                "AuditEntry", entry.getBytes(StandardCharsets.UTF_8))));
+        PolicyViolationException refusal = assertThrows(PolicyViolationException.class,
+                () -> store.delete("AuditEntry", entryId, null));
+        assertTrue(refusal.getMessage().contains("unconditionally append-only"));
+    }
+
     /** §15.3: expired objects leave state AND history; the removal is audited, the data is not retained. */
     @Test
-    @Order(4)
+    @Order(6)
     void retentionRemovesExpiredObjectsAndAuditsTheRemoval() throws Exception {
         PutResult old = store.put(PutRequest.create("Observation", observation("Vana")));
         backdate(old.id(), "45 days");

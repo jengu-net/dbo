@@ -264,6 +264,51 @@ class AuthorityIT {
                 "the create must be audited with the token's client as actor");
     }
 
+    /** Slice G over REST: the trail as AuditEvent — readable, contributable,
+     *  impersonation-proof, and never deletable. */
+    @Test
+    @Order(9)
+    void theTrailIsServedAsAuditEventAndCannotBeForged() throws Exception {
+        String token = token("neli", null);
+        // the create from the append-only test is in the trail as action C
+        String bundle = get(fhir("neli") + "/AuditEvent", token).body();
+        assertTrue(bundle.contains("\"resourceType\":\"AuditEvent\"")
+                && bundle.contains("\"action\":\"C\"")
+                && bundle.contains("tenant-bootstrap"), bundle);
+
+        // a posted event claiming another agent and an old recorded time is
+        // re-stamped by the machinery — enrichable, never impersonable
+        HttpResponse<String> posted = post(fhir("neli") + "/AuditEvent", token, """
+                {"resourceType":"AuditEvent",
+                 "type":{"system":"urn:example","code":"report-released"},
+                 "recorded":"1999-01-01T00:00:00Z",
+                 "agent":[{"who":{"display":"evil-impostor"},"requestor":true}],
+                 "entity":[{"what":{"reference":"DocumentReference/doc-9"}}]}""");
+        assertEquals(201, posted.statusCode(), posted.body());
+        assertTrue(posted.body().contains("\"code\":\"report-released\"")
+                && posted.body().contains("tenant-bootstrap")
+                && posted.body().contains("DocumentReference/doc-9"), posted.body());
+        assertFalse(posted.body().contains("evil-impostor"), "claimed agent must be ignored");
+        assertFalse(posted.body().contains("1999-01-01"), "claimed time must be ignored");
+
+        // the trail cannot be deleted, under any discipline
+        String id = posted.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+        assertEquals(200, get(fhir("neli") + "/AuditEvent/" + id, token).statusCode());
+        HttpResponse<String> refused = http.send(HttpRequest.newBuilder(
+                        URI.create(fhir("neli") + "/AuditEvent/" + id))
+                        .header("Authorization", "Bearer " + token)
+                        .DELETE().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(409, refused.statusCode());
+        assertTrue(refused.body().contains("append-only"), refused.body());
+
+        // scope gating: read-only tokens read but cannot contribute
+        String readOnly = token("neli", "system/*.read");
+        assertEquals(200, get(fhir("neli") + "/AuditEvent", readOnly).statusCode());
+        assertEquals(403, post(fhir("neli") + "/AuditEvent", readOnly,
+                "{\"resourceType\":\"AuditEvent\"}").statusCode());
+    }
+
     /** Identity artifacts are records, not FHIR surface types — unreachable via REST. */
     @Test
     @Order(6)

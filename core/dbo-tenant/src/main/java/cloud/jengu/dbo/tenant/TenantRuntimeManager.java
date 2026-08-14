@@ -177,16 +177,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
             FhirStoreFacade store = new R4Store(engine, personality, base);
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R4Personality.DOMAIN),
-                    withPolicyNote(new FhirHttpServer(sharedServer, store, null,
-                            "/t/" + spec.code() + "/fhir", guard), spec));
+                    withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store, null,
+                            "/t/" + spec.code() + "/fhir", guard), spec), spec, engine));
         } else {
             R5Personality personality = new R5Personality(spec.types());
             ObjectStore engine = policyWrapped(spec, db, personality.registrations(), R5Personality.DOMAIN);
             FhirStoreFacade store = new R5Store(engine, personality, base);
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R5Personality.DOMAIN),
-                    withPolicyNote(new FhirHttpServer(sharedServer, store, null,
-                            "/t/" + spec.code() + "/fhir", guard), spec));
+                    withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store, null,
+                            "/t/" + spec.code() + "/fhir", guard), spec), spec, engine));
         }
         runtimes.put(spec.code(), runtime);
         listener.tenantUp(runtime);
@@ -244,6 +244,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     private static FhirHttpServer withPolicyNote(FhirHttpServer server, TenantSpec spec) {
         server.policyNote = spec.policies().describe();
+        return server;
+    }
+
+    private static FhirHttpServer withAuditSurface(FhirHttpServer server, TenantSpec spec,
+            ObjectStore engine) {
+        if (engine instanceof cloud.jengu.dbo.policy.PolicyObjectStore policyStore) {
+            server.auditSurface = new cloud.jengu.dbo.policy.FhirAuditProjection(
+                    policyStore, spec.fhirVersion());
+        }
         return server;
     }
 

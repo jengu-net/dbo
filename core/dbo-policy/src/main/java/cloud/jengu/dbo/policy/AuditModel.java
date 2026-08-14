@@ -31,6 +31,12 @@ public final class AuditModel {
             e.value("actor", EnvelopeValue.of(Json.str(n, "actor")));
             e.value("interaction", EnvelopeValue.of(Json.str(n, "interaction")));
             e.value("targetType", EnvelopeValue.of(Json.str(n, "targetType")));
+            if (((java.util.Map<?, ?>) n).get("targetId") != null) {
+                e.value("targetId", EnvelopeValue.of(Json.str(n, "targetId")));
+            }
+            if (((java.util.Map<?, ?>) n).get("code") != null) {
+                e.value("code", EnvelopeValue.of(Json.str(n, "code")));
+            }
             return e;
         };
         return List.of(new TypeRegistration("AuditEntry", DOMAIN, IdentityClass.INTERNAL,
@@ -39,12 +45,43 @@ public final class AuditModel {
 
     public static byte[] entry(String actor, String interaction, String targetType,
             String targetId, String outcome, String rule) {
-        return ("{\"actor\":\"" + actor + "\",\"interaction\":\"" + interaction + "\""
-                + ",\"targetType\":\"" + targetType + "\""
-                + (targetId != null ? ",\"targetId\":\"" + targetId + "\"" : "")
-                + ",\"outcome\":\"" + outcome + "\""
-                + (rule != null ? ",\"rule\":\"" + rule + "\"" : "")
-                + ",\"at\":\"" + java.time.Instant.now() + "\"}")
-                .getBytes(StandardCharsets.UTF_8);
+        return entry(actor, interaction, targetType, targetId, outcome, rule, null, java.util.Map.of());
+    }
+
+    /**
+     * §15.1 custom events: the caller contributes code + coded detail; the
+     * ACTOR and TIME are always the machinery's — never parameters here by
+     * accident: actor comes from the caller seam upstream.
+     */
+    public static byte[] entry(String actor, String interaction, String targetType,
+            String targetId, String outcome, String rule, String code,
+            java.util.Map<String, String> detail) {
+        StringBuilder sb = new StringBuilder("{\"actor\":\"").append(actor)
+                .append("\",\"interaction\":\"").append(interaction).append("\"")
+                .append(",\"targetType\":\"").append(targetType).append("\"");
+        if (targetId != null) {
+            sb.append(",\"targetId\":\"").append(targetId).append("\"");
+        }
+        if (code != null) {
+            sb.append(",\"code\":\"").append(code).append("\"");
+        }
+        sb.append(",\"outcome\":\"").append(outcome).append("\"");
+        if (rule != null) {
+            sb.append(",\"rule\":\"").append(rule).append("\"");
+        }
+        if (!detail.isEmpty()) {
+            sb.append(",\"detail\":{");
+            boolean first = true;
+            for (java.util.Map.Entry<String, String> e : detail.entrySet()) {
+                if (!first) {
+                    sb.append(',');
+                }
+                first = false;
+                sb.append("\"").append(e.getKey()).append("\":\"").append(e.getValue()).append("\"");
+            }
+            sb.append('}');
+        }
+        return sb.append(",\"at\":\"").append(java.time.Instant.now()).append("\"}")
+                .toString().getBytes(StandardCharsets.UTF_8);
     }
 }
