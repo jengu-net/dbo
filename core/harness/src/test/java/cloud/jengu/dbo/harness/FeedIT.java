@@ -162,13 +162,13 @@ class FeedIT {
         }
 
         Set<String> delivered = new HashSet<>();
-        long lastSeq = 0;
         long deadline = System.currentTimeMillis() + 90_000;
         while (System.currentTimeMillis() < deadline) {
             FeedChunk<FeedItem> chunk = feed.readFor(consumer, 17);
             for (FeedItem item : chunk.items()) {
-                assertTrue(item.seq() > lastSeq, "seq went backwards or repeated");
-                lastSeq = item.seq();
+                // dbo#25: delivery order is (xact_id, seq)-major — commit
+                // fencing outranks strict seq order; the PROMISE is
+                // exactly-once, asserted via the delivered set below
                 assertTrue(delivered.add(item.objectId() + "@" + item.versionId()),
                         "duplicate delivery of " + item.objectId());
             }
