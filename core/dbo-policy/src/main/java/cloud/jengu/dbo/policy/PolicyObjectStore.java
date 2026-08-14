@@ -43,6 +43,7 @@ public final class PolicyObjectStore implements ObjectStore {
 
     @Override
     public PutResult put(PutRequest request) {
+        refuseDirectAuditWrites(request.typeName());
         PutResult result = inner.put(request);
         auditWrite(result.created() ? "create" : "update", request.typeName(), result.id());
         return result;
@@ -50,6 +51,7 @@ public final class PolicyObjectStore implements ObjectStore {
 
     @Override
     public PutResult putIfAbsent(IdentityRef identity, PutRequest request) {
+        refuseDirectAuditWrites(request.typeName());
         PutResult result = inner.putIfAbsent(identity, request);
         if (result.created()) {
             auditWrite("create", request.typeName(), result.id());
@@ -59,6 +61,7 @@ public final class PolicyObjectStore implements ObjectStore {
 
     @Override
     public PutResult putConditional(IdentityRef identity, PutRequest request) {
+        refuseDirectAuditWrites(request.typeName());
         PutResult result = inner.putConditional(identity, request);
         auditWrite(result.created() ? "create" : "update", request.typeName(), result.id());
         return result;
@@ -66,6 +69,11 @@ public final class PolicyObjectStore implements ObjectStore {
 
     @Override
     public void delete(String typeName, String id, Long expectedVersion) {
+        if ("AuditEntry".equals(typeName)) {
+            // §15.1: the trail is exempt from the tenant's chosen discipline
+            throw new PolicyViolationException(
+                    "the audit trail is unconditionally append-only — retention is the only removal");
+        }
         if (policies.disciplineFor(typeName) == TenantPolicies.Discipline.APPEND_ONLY) {
             throw new PolicyViolationException(
                     "append-only write discipline forbids deleting " + typeName
@@ -139,5 +147,28 @@ public final class PolicyObjectStore implements ObjectStore {
     void record(String interaction, String typeName, String targetId, String rule) {
         inner.put(PutRequest.create("AuditEntry",
                 AuditModel.entry(Caller.current(), interaction, typeName, targetId, "ok", rule)));
+    }
+
+    /**
+     * §15.1 open upward: applications contribute business-level events. The
+     * caller supplies WHAT happened (code, target, coded detail — ids and
+     * codes, never names); the machinery asserts WHO and WHEN.
+     *
+     * @return the created entry's id
+     */
+    public String recordCustom(String code, String targetType, String targetId,
+            java.util.Map<String, String> detail) {
+        return inner.put(PutRequest.create("AuditEntry",
+                AuditModel.entry(Caller.current(), "custom",
+                        targetType != null ? targetType : "none",
+                        targetId, "ok", null, code, detail != null ? detail : java.util.Map.of())))
+                .id();
+    }
+
+    private static void refuseDirectAuditWrites(String typeName) {
+        if ("AuditEntry".equals(typeName)) {
+            throw new PolicyViolationException(
+                    "the audit trail is written by the machinery — contribute via the audit recorder");
+        }
     }
 }

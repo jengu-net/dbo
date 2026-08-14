@@ -89,10 +89,17 @@ public final class Activator implements BundleActivator {
                         Hashtable<String, Object> props = new Hashtable<>();
                         props.put("tenant", runtime.spec().code());
                         props.put("fhir.version", runtime.spec().fhirVersion());
-                        tenantRegistrations.put(runtime.spec().code(), List.of(
+                        java.util.List<ServiceRegistration<?>> regs = new java.util.ArrayList<>(List.of(
                                 ctx.registerService(ObjectStore.class, runtime.engine(), props),
                                 ctx.registerService(FhirStoreFacade.class, runtime.store(), props),
                                 ctx.registerService(ChangeFeed.class, runtime.feed(), props)));
+                        if (runtime.engine() instanceof cloud.jengu.dbo.policy.PolicyObjectStore p) {
+                            // §15.1: module engines contribute custom audit
+                            // events through this per-tenant recorder surface
+                            regs.add(ctx.registerService(
+                                    cloud.jengu.dbo.policy.PolicyObjectStore.class, p, props));
+                        }
+                        tenantRegistrations.put(runtime.spec().code(), regs);
                     }
 
                     @Override

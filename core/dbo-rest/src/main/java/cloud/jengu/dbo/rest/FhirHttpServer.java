@@ -39,6 +39,8 @@ public final class FhirHttpServer implements AutoCloseable {
     private final RequestAuthenticator authenticator;
     /** §15.4: the tenant's declared policies, named in the capability statement. */
     public volatile String policyNote;
+    /** §15.1: when set, /AuditEvent is served as a projection of the trail. */
+    public volatile AuditSurface auditSurface;
 
     public FhirHttpServer(FhirStoreFacade store, TerminologyFacade terminology,
             String host, int port, String basePath) {
@@ -187,6 +189,32 @@ public final class FhirHttpServer implements AutoCloseable {
                 return;
             }
         }
+        // §15.1 audit surface: read renders the trail, POST maps into a
+        // native custom entry, update/delete never exist
+        if (auditSurface != null && segments.length >= 1 && "AuditEvent".equals(segments[0])) {
+            switch (method) {
+                case "GET" -> {
+                    if (segments.length == 1) {
+                        respond(exchange, 200, auditSurface.search(query, baseUrl()));
+                    } else {
+                        var rendered = auditSurface.read(segments[1]);
+                        if (rendered.isPresent()) {
+                            respond(exchange, 200, rendered.get());
+                        } else {
+                            respond(exchange, 404, store.operationOutcome("not-found",
+                                    "no such AuditEvent"));
+                        }
+                    }
+                }
+                case "POST" -> respond(exchange, 201, auditSurface.create(
+                        new String(exchange.getRequestBody().readAllBytes(),
+                                java.nio.charset.StandardCharsets.UTF_8)));
+                default -> throw new cloud.jengu.dbo.core.api.PolicyViolationException(
+                        "the audit trail is unconditionally append-only");
+            }
+            return;
+        }
+
         // terminology operations
         if (terminology != null && segments.length == 2 && segments[1].startsWith("$")) {
             switch (segments[0] + "/" + segments[1]) {
