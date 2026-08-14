@@ -164,6 +164,39 @@ Consequences to design for:
 - Legacy's broker-agnostic `Eventing` SPI (compaction keys, tombstones,
   dead-letter) is a good shape for the internal interface.
 
+### Canonical content dependencies — streamed zone→tenant copies
+
+Shared canonical content (CodeSystems, ConceptMaps, ValueSets, profiles…)
+published by an upper-chain tenant (zone) is **streamed as read-only copies**
+into each dependent lower-chain tenant's own database. This is DBO's
+replacement for Medplum's `Project.link[]` — materialization-time instead of
+resolution-time — and it is forced by a hard fact: tenants live in different
+databases, and **indexing must be local** (searches, `$expand`, validation all
+hit tenant-local envelope indexes; there are no cross-database joins).
+
+- **Declarative and minimal.** The synchronized set must be as small as
+  possible: each tenant *declares* its content dependencies — which
+  CodeSystems/ConceptMaps/artifact sets it needs from which upstream tenant.
+  The declaration is config (git, like everything else); DBOS-based
+  cross-tenant synchronization processes derive the sync work automatically
+  from it. Tooling can *propose* declarations by detecting references to
+  canonicals absent locally — but nothing syncs undeclared.
+- **Mechanics**: a dependency is a standing, platform-coordinated stream
+  (the §7.4 hop model — no direct tenant-to-tenant connection): source outbox
+  → filtered feed → apply into the dependent store. Copies are
+  provenance-tagged (source tenant, source version) and **immutable locally**;
+  updates, retirements and deletions propagate through the same feed.
+  Audit rides at the *stream* level (dependency established/changed/removed),
+  not per replicated object — this content is terminology, not PHI.
+- **Override by shadowing.** If the tenant has its *own* object with the same
+  canonical identity (url — identifiers/version rules per artifact type), the
+  tenant's copy wins: resolution order is local > streamed. The streamed copy
+  stays current underneath, so removing the local override falls back to the
+  live zone version.
+- Chains compose: zone-of-zones flows top-down along the declared chain, each
+  hop with the same semantics; a tenant only ever declares against its direct
+  upstream.
+
 ## 7. Open questions / known risks
 
 1. **DBOS Java + OSGi interplay.** DBOS's Java library (`dev.dbos:transact`) is

@@ -25,7 +25,7 @@ just equivalent.
 | Project-per-tenant, `$init` | Tenant = dedicated database + OSGi service set (R3/R5); registration via the k8s operator |
 | ClientApplication + creds in `Project.setting[]` | Credential-blind provisioning — secrets in k8s, never in the store or the management plane |
 | Roles on `ProjectMembership.identifier[]` | jengu's own identity plane (Spring Authorization Server workstream) |
-| `Project.link[]` zone chains | Zone content replicated into the tenant store by git→store sync — git is already the source of truth, so linking was only ever a runtime shortcut; a layered canonical-resolution chain stays as fallback for very large artifacts |
+| `Project.link[]` zone chains | Declarative content dependencies: each tenant declares which canonical artifacts it needs from which upstream tenant; DBOS-based cross-tenant sync streams read-only, provenance-tagged copies into the tenant store (local override by shadowing). See concepts.md §6 |
 | Validation-on-write + ADR 0042 silent-disarm trap | Personality validation (HAPI) with *specified* profile-resolution semantics; the unversioned-canonical rule survives, the trap does not |
 | `CodeSystem/$import` (pg param-cap workaround) | Native bulk load (Postgres `COPY`) — the workaround dissolves |
 | Same-project `$expand` constraint | Tier-1 `$expand` against the tenant store's replicated terminology |
