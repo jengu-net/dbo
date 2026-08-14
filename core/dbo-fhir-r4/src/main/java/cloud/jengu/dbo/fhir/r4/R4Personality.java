@@ -609,6 +609,11 @@ public final class R4Personality {
         return searchParamName.replace('-', '_');
     }
 
+    /** Same-package internal access; never crosses the public boundary. */
+    FhirContext ctxInternal() {
+        return ctx();
+    }
+
     private synchronized FhirContext ctx() {
         if (ctx == null) {
             ctx = withTccl(FhirContext::forR4);
