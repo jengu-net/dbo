@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
  */
 public final class Paths {
 
-    private static final Pattern VALID = Pattern.compile("[A-Za-z][A-Za-z0-9_]{0,63}");
+    private static final Pattern VALID = Pattern.compile("[A-Za-z_][A-Za-z0-9_]{0,63}");
 
     private Paths() {}
 
