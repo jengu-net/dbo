@@ -53,9 +53,11 @@ yet implemented.
 
 ## Next fronts (unordered candidates, groom before starting)
 
-1. **jengu-infra follow-on PR** — cloud-init `dbo_provisioner` role +
-   `pg_hba` `tenant_%` admission from the pod CIDR; operator Deployment/RBAC
-   into the hetzner-prod overlay
+1. **jengu-infra follow-on PR** — OPEN as
+   [jengu-infra#18](https://github.com/jengu-net/jengu-infra/pull/18):
+   cloud-init `dbo_provisioner` role, standing `samerole` pg_hba rule for
+   tenant roles, operator Deployment/RBAC in the hetzner-prod overlay
+   (image built by `build-dbo-operator.yml` → LAN zot / repo.jengu.cloud)
 2. **Vault rotation integration** — rotate tenant-role passwords through the
    parked dev-mode Vault; Secrets updated in place, pools recycled
 3. **Zone/instance placement** — when zones multiply the databases past the
