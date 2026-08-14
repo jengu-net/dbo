@@ -1,0 +1,211 @@
+package cloud.jengu.dbo.fhir.r4;
+
+import cloud.jengu.dbo.core.api.Identifier;
+import cloud.jengu.dbo.core.api.ObjectStore;
+import cloud.jengu.dbo.core.api.PutResult;
+import cloud.jengu.dbo.core.api.StoredObject;
+import cloud.jengu.dbo.terminology.Compose;
+import cloud.jengu.dbo.terminology.Concept;
+import cloud.jengu.dbo.terminology.TerminologyStore;
+import org.hl7.fhir.r4.model.BooleanType;
+import org.hl7.fhir.r4.model.CodeSystem;
+import org.hl7.fhir.r4.model.Parameters;
+import org.hl7.fhir.r4.model.StringType;
+import org.hl7.fhir.r4.model.ValueSet;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * The R4 face of the normalized terminology store (§6): CodeSystem metadata
+ * SHELLS go through the object engine (identity, history, feed), concepts go
+ * native; the resource form is a projection reassembled on demand — the
+ * declared truth-form inversion (REQ-DBO-CORE-DECLARED-TRUTH-FORM).
+ * Public surface: JSON in, JSON out (§7.3).
+ */
+public final class R4Terminology {
+
+    /** Preserves the original CodeSystem.content across the shell round-trip. */
+    static final String ORIGINAL_CONTENT_EXT = "https://dbo.dev/fhir/ext/original-content";
+
+    private final ObjectStore store;
+    private final R4Personality personality;
+    private final TerminologyStore terminology;
+
+    public R4Terminology(ObjectStore store, R4Personality personality, TerminologyStore terminology) {
+        this.store = store;
+        this.personality = personality;
+        this.terminology = terminology;
+    }
+
+    // --------------------------------------------------------------- ingest
+
+    /** Shell through the engine, concepts through COPY. Returns (engine result, concept count). */
+    public IngestResult ingestCodeSystem(String codeSystemJson) {
+        CodeSystem cs = (CodeSystem) personality.ctxInternal().newJsonParser()
+                .parseResource(codeSystemJson);
+        String url = cs.getUrl();
+
+        List<Concept> flat = new ArrayList<>();
+        flatten(cs.getConcept(), null, flat);
+
+        CodeSystem shell = cs.copy();
+        shell.setConcept(List.of());
+        shell.setCount(flat.size());
+        // the shell honestly declares its concepts live elsewhere; the original
+        // content mode rides an extension for faithful reassembly
+        if (cs.hasContent()) {
+            shell.addExtension(ORIGINAL_CONTENT_EXT, new StringType(cs.getContent().toCode()));
+        }
+        shell.setContent(CodeSystem.CodeSystemContentMode.NOTPRESENT);
+        String shellJson = personality.ctxInternal().newJsonParser().encodeResourceToString(shell);
+
+        PutResult engineResult = new R4Store(store, personality, "").putCanonical(shellJson);
+        long imported = terminology.importSystem(url, cs.getVersion(), flat.iterator());
+        return new IngestResult(engineResult.id(), engineResult.versionId(), imported);
+    }
+
+    public record IngestResult(String id, long versionId, long conceptCount) {}
+
+    public PutResult ingestValueSet(String valueSetJson) {
+        ValueSet vs = (ValueSet) personality.ctxInternal().newJsonParser().parseResource(valueSetJson);
+        PutResult result = new R4Store(store, personality, "").putCanonical(valueSetJson);
+
+        List<Compose.Include> includes = new ArrayList<>();
+        for (ValueSet.ConceptSetComponent inc : vs.getCompose().getInclude()) {
+            String isA = null;
+            for (ValueSet.ConceptSetFilterComponent f : inc.getFilter()) {
+                if ("concept".equals(f.getProperty())
+                        && f.getOp() == ValueSet.FilterOperator.ISA) {
+                    isA = f.getValue();
+                }
+            }
+            includes.add(new Compose.Include(inc.getSystem(),
+                    inc.getConcept().stream().map(ValueSet.ConceptReferenceComponent::getCode).toList(),
+                    isA));
+        }
+        List<Compose.Exclude> excludes = new ArrayList<>();
+        for (ValueSet.ConceptSetComponent ex : vs.getCompose().getExclude()) {
+            excludes.add(new Compose.Exclude(ex.getSystem(),
+                    ex.getConcept().stream().map(ValueSet.ConceptReferenceComponent::getCode).toList()));
+        }
+        terminology.putValueSet(vs.getUrl(), vs.getVersion(), new Compose(includes, excludes));
+        return result;
+    }
+
+    private void flatten(List<CodeSystem.ConceptDefinitionComponent> concepts, String parent,
+            List<Concept> out) {
+        for (CodeSystem.ConceptDefinitionComponent c : concepts) {
+            Map<String, String> designations = new LinkedHashMap<>();
+            for (CodeSystem.ConceptDefinitionDesignationComponent d : c.getDesignation()) {
+                if (d.hasLanguage() && d.hasValue()) {
+                    designations.put(d.getLanguage(), d.getValue());
+                }
+            }
+            Map<String, String> properties = new LinkedHashMap<>();
+            for (CodeSystem.ConceptPropertyComponent prop : c.getProperty()) {
+                if (prop.hasCode() && prop.getValue() != null) {
+                    properties.put(prop.getCode(), prop.getValue().primitiveValue());
+                }
+            }
+            out.add(new Concept(c.getCode(), c.getDisplay(), parent, designations, properties));
+            if (!c.getConcept().isEmpty()) {
+                flatten(c.getConcept(), c.getCode(), out);
+            }
+        }
+    }
+
+    // ----------------------------------------------------------- projection
+
+    /** The resource form, reassembled: engine shell + native concept tree. */
+    public Optional<String> codeSystemResource(String url) {
+        List<StoredObject> shells = store.getByIdentifier("CodeSystem",
+                List.of(new Identifier(Identifier.CANONICAL_SYSTEM, url)));
+        if (shells.isEmpty()) {
+            return Optional.empty();
+        }
+        CodeSystem shell = (CodeSystem) personality.ctxInternal().newJsonParser()
+                .parseResource(new String(shells.get(0).payload(), StandardCharsets.UTF_8));
+        var originalContent = shell.getExtensionByUrl(ORIGINAL_CONTENT_EXT);
+        if (originalContent != null) {
+            shell.setContent(CodeSystem.CodeSystemContentMode
+                    .fromCode(originalContent.getValue().primitiveValue()));
+            shell.getExtension().removeIf(e -> ORIGINAL_CONTENT_EXT.equals(e.getUrl()));
+        }
+
+        Map<String, CodeSystem.ConceptDefinitionComponent> byCode = new LinkedHashMap<>();
+        List<Concept> all = terminology.allConcepts(url);
+        for (Concept c : all) {
+            CodeSystem.ConceptDefinitionComponent def = new CodeSystem.ConceptDefinitionComponent();
+            def.setCode(c.code());
+            def.setDisplay(c.display());
+            c.designations().forEach((lang, value) -> def.addDesignation()
+                    .setLanguage(lang).setValue(value));
+            c.properties().forEach((code, value) -> def.addProperty()
+                    .setCode(code).setValue(new StringType(value)));
+            byCode.put(c.code(), def);
+        }
+        for (Concept c : all) {
+            CodeSystem.ConceptDefinitionComponent def = byCode.get(c.code());
+            if (c.parentCode() != null && byCode.containsKey(c.parentCode())) {
+                byCode.get(c.parentCode()).getConcept().add(def);
+            } else {
+                shell.getConcept().add(def);
+            }
+        }
+        return Optional.of(personality.ctxInternal().newJsonParser().encodeResourceToString(shell));
+    }
+
+    // ----------------------------------------------------------- operations
+
+    /** CodeSystem/$lookup → Parameters JSON. */
+    public Optional<String> lookup(String system, String code) {
+        return terminology.lookup(system, code).map(c -> {
+            Parameters p = new Parameters();
+            p.addParameter("name", new StringType(system));
+            p.addParameter("display", new StringType(c.display() == null ? "" : c.display()));
+            c.designations().forEach((lang, value) -> {
+                Parameters.ParametersParameterComponent d = p.addParameter().setName("designation");
+                d.addPart().setName("language").setValue(new StringType(lang));
+                d.addPart().setName("value").setValue(new StringType(value));
+            });
+            c.properties().forEach((propertyCode, value) -> {
+                Parameters.ParametersParameterComponent prop = p.addParameter().setName("property");
+                prop.addPart().setName("code").setValue(new StringType(propertyCode));
+                prop.addPart().setName("value").setValue(new StringType(value));
+            });
+            return personality.ctxInternal().newJsonParser().encodeResourceToString(p);
+        });
+    }
+
+    /** $validate-code → Parameters JSON with result + display. */
+    public String validateCode(String system, String code) {
+        Optional<Concept> concept = terminology.lookup(system, code);
+        Parameters p = new Parameters();
+        p.addParameter("result", new BooleanType(concept.isPresent()));
+        concept.ifPresent(c -> p.addParameter("display",
+                new StringType(c.display() == null ? "" : c.display())));
+        return personality.ctxInternal().newJsonParser().encodeResourceToString(p);
+    }
+
+    /** ValueSet/$expand → ValueSet JSON with expansion.contains. */
+    public Optional<String> expand(String valueSetUrl, String filter, int offset, int count) {
+        return terminology.valueSetCompose(valueSetUrl).map(compose -> {
+            TerminologyStore.Expansion expansion = terminology.expand(compose, filter, offset, count);
+            ValueSet vs = new ValueSet();
+            vs.setUrl(valueSetUrl);
+            vs.setStatus(org.hl7.fhir.r4.model.Enumerations.PublicationStatus.ACTIVE);
+            ValueSet.ValueSetExpansionComponent exp = vs.getExpansion();
+            exp.setTotal((int) expansion.total());
+            exp.setOffset(offset);
+            for (TerminologyStore.ExpandedConcept c : expansion.contains()) {
+                exp.addContains().setSystem(c.system()).setCode(c.code()).setDisplay(c.display());
+            }
+            return personality.ctxInternal().newJsonParser().encodeResourceToString(vs);
+        });
+    }
+}

@@ -4,6 +4,7 @@ dependencies {
     testImplementation(project(":core:dbo-test-model"))
     testImplementation(project(":core:dbo-fhir-r4"))
     testImplementation(project(":core:dbo-subscriptions"))
+    testImplementation(project(":core:dbo-terminology"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
@@ -23,6 +24,11 @@ tasks.test {
     systemProperty(
         "dbo.postgres.jar",
         project(":core:dbo-postgres").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
+    )
+    dependsOn(":core:dbo-terminology:jar")
+    systemProperty(
+        "dbo.terminology.jar",
+        project(":core:dbo-terminology").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
     )
     systemProperty(
         "dbo.fhir.r4.jar",

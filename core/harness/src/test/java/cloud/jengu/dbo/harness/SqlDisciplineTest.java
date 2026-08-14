@@ -25,8 +25,14 @@ class SqlDisciplineTest {
 
     @Test
     void noClassInDboPostgresUsesRawStatements() throws Exception {
-        Path jar = Path.of(System.getProperty("dbo.postgres.jar"));
         List<String> offenders = new ArrayList<>();
+        for (String prop : List.of("dbo.postgres.jar", "dbo.terminology.jar")) {
+            scanJar(Path.of(System.getProperty(prop)), offenders);
+        }
+        assertEquals(List.of(), offenders, "raw Statement usage detected");
+    }
+
+    private static void scanJar(Path jar, List<String> offenders) throws Exception {
         try (JarFile jf = new JarFile(jar.toFile())) {
             Enumeration<JarEntry> entries = jf.entries();
             while (entries.hasMoreElements()) {
@@ -40,7 +46,6 @@ class SqlDisciplineTest {
                 }
             }
         }
-        assertEquals(List.of(), offenders, "raw Statement usage detected");
     }
 
     /** dbo-core stays framework-free: its jar must not reference SQL, JSON libs, or frameworks at all. */
