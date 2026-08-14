@@ -24,6 +24,7 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-CORE-DECLARED-IDENTITY | Every type in every personality declares exactly one primary identity class — canonical url, designated identifiers, or internal — and the contract fails closed at registration without it. (§12) |
 | REQ-DBO-CORE-IDENTITY-SURVIVES-CONVERSION | Conversion between FHIR versions or object shapes never changes identity; canonical urls and identity-bearing identifiers are preserved bit-exact and verified after every conversion. (§12) |
 | REQ-DBO-CORE-NO-IMPLICIT-MERGE | Two objects claiming the same identity-bearing identifier are a conflict surfaced to the owner, never an implicit merge. (§12) |
+| REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS | Conditional writes are accepted only when keyed on the type's primary identity; a conditional write on any other criterion is rejected. (§12) |
 
 ## CONT — container & embedding
 
