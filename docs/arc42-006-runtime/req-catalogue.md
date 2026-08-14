@@ -21,6 +21,9 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-CORE-UPGRADE-ON-READ | Old payload versions are upgraded lazily by registered converters; a schema-version transition never requires a big-bang rewrite. (§2) |
 | REQ-DBO-CORE-PARAMETERIZED-SQL | No value is ever concatenated into SQL text. (D2) |
 | REQ-DBO-CORE-SIBLING-MODELS | Non-FHIR object models ride the same engine as FHIR resources, not beside it. (R6) |
+| REQ-DBO-CORE-DECLARED-IDENTITY | Every type in every personality declares exactly one primary identity class — canonical url, designated identifiers, or internal — and the contract fails closed at registration without it. (§12) |
+| REQ-DBO-CORE-IDENTITY-SURVIVES-CONVERSION | Conversion between FHIR versions or object shapes never changes identity; canonical urls and identity-bearing identifiers are preserved bit-exact and verified after every conversion. (§12) |
+| REQ-DBO-CORE-NO-IMPLICIT-MERGE | Two objects claiming the same identity-bearing identifier are a conflict surfaced to the owner, never an implicit merge. (§12) |
 
 ## CONT — container & embedding
 
@@ -123,7 +126,7 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-SYNC-ANY-TYPE | Any resource type can be declared as a cross-tenant dependency; each type defines its grain — for terminology, the CodeSystem together with its related ValueSets. (§6) |
 | REQ-DBO-SYNC-CONVERT-ON-APPLY | Streamed objects are converted at apply into the receiving tenant's FHIR version and object shape by the registered converter chains; an unconvertible object dead-letters visibly and degrades the dependency, never silently skips. (§6, §2) |
 | REQ-DBO-SYNC-PROVENANCE-COPIES | Streamed copies are read-only and provenance-tagged with source tenant and version; updates and retirements propagate through the same stream. (§6) |
-| REQ-DBO-SYNC-LOCAL-SHADOWING | A tenant's own object with the same canonical identity overrides the streamed copy; removing the override falls back to the live upstream version. (§6) |
+| REQ-DBO-SYNC-LOCAL-SHADOWING | A tenant's own object with the same base identity overrides the streamed copy — version-neutrally, across FHIR versions and business versions; removing the override falls back to the live upstream version. (§6, §12) |
 | REQ-DBO-SYNC-DIRECT-UPSTREAM-ONLY | A tenant declares dependencies only against its direct upstream; chains compose hop by hop. (§6) |
 
 ## PROC — process catalogue & map
