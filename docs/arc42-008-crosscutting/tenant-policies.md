@@ -28,6 +28,24 @@ The patient-facing transparency view (who accessed my data — the platform's
 portal direction) reads from this stream through the tenant's authority;
 dbo provides the queryable source, the platform provides the presentation.
 
+The audit stream is OPEN UPWARD and CLOSED DOWNWARD:
+
+- **Custom events.** Applications contribute business-level events (a report
+  released, a consent overridden, a login refused) through an audit-recorder
+  surface — engine-level for process engines, `POST AuditEvent` (mapped, not
+  stored raw) for FHIR-speaking services. The trust rule: callers contribute
+  the WHAT (event code, targets, coded detail); the machinery asserts the
+  WHO and WHEN from the validated token and its own clock, overriding
+  anything the caller claims. Detail values follow the §14 discipline —
+  targets by id, context as codes, never names.
+- **Unconditional append-only.** Audit entries are exempt from the tenant's
+  chosen write discipline: no update, no tombstone, under any policy.
+  Retention's sweep is the only removal.
+- **FHIR projection.** On a FHIR tenant the stream is served as read-mostly
+  `AuditEvent` — the native records are the truth form, rendered per
+  personality on read (the terminology pattern); IHE BALP alignment is the
+  projection's follow-up. Non-FHIR tenants read the native stream.
+
 ## 15.2 Write discipline
 
 History is immutable by construction (§2); write discipline governs the

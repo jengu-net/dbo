@@ -83,6 +83,9 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-POL-DECLARATIVE-RETENTION | Retention is declared per tenant and type as a floor and a ceiling — keepAtLeast (append-only holds even against policy) and removeAfter (the engine must remove) — composing with write discipline without conflict. (§15) |
 | REQ-DBO-POL-RETENTION-SWEEP | A durable scheduled sweep executes removal as the one sanctioned mutation of history, and every removal is audited without retaining the removed data. (§15) |
 | REQ-DBO-POL-POLICY-REPLAY-ON-RESTORE | Before a restored tenant serves, the machinery re-applies the shred ledger and the retention sweep — an archive cannot resurrect what policy required gone; archives carry removeAfter themselves. (§15, §14, §11) |
+| REQ-DBO-POL-CUSTOM-AUDIT-EVENTS | Applications contribute business-level audit events; the machinery stamps actor and time from the validated token and its own clock, overriding caller claims — the trail can be enriched, never impersonated or backdated. (§15) |
+| REQ-DBO-POL-AUDIT-UNCONDITIONALLY-APPEND-ONLY | Audit entries are exempt from the tenant's write discipline: no update, no tombstone under any policy; retention's sweep is the only removal. (§15) |
+| REQ-DBO-POL-FHIR-AUDIT-PROJECTION | On a FHIR tenant the audit stream is served as AuditEvent — native records as the truth form, rendered per personality on read, contribution via mapped POST; write access is scope-gated. (§15, §9) |
 
 ## VER — version plurality (personalities)
 
