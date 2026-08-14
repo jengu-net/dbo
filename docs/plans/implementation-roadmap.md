@@ -67,7 +67,11 @@ yet implemented.
 3. **Enable PDI for real tenants** — flip `"pdi": true` in registrations
    (greenfield: hogwarts' pre-PDI plaintext records need recreate-or-accept;
    decide before real PHI)
-4. **Durable retention sweep** — promote the in-process periodic sweep to
+4. **Audit surface (Slice G)** — [#23](https://github.com/jengu-net/dbo/issues/23)
+   (groomed): custom audit events (caller contributes the WHAT, machinery
+   stamps WHO/WHEN), unconditional append-only for the trail, FHIR
+   AuditEvent projection (truth-form native, rendered per personality)
+5. **Durable retention sweep** — promote the in-process periodic sweep to
    a DBOS scheduled workflow when per-tenant DBOS wiring lands (the sweep
    is idempotent, so the in-process form is correct, just not durable)
 2. **Slice B infra PR** — MERGED as
