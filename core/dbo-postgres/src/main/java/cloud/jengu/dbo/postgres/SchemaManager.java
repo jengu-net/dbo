@@ -118,8 +118,13 @@ public final class SchemaManager {
                 CREATE TABLE IF NOT EXISTS state.%s_consumer (
                   name text PRIMARY KEY,
                   seq bigint NOT NULL,
+                  cursor_xid xid8 NOT NULL DEFAULT '0',
                   updated_at timestamptz NOT NULL DEFAULT now()
                 )""".formatted(d));
+                execute(c, "ALTER TABLE state.%s_consumer ADD COLUMN IF NOT EXISTS cursor_xid xid8 NOT NULL DEFAULT '0'".formatted(d));
+                // dbo#25 fence: the feed orders by (xact_id, seq) — xid-major,
+                // so no commit can ever land behind the cursor
+                execute(c, "CREATE INDEX IF NOT EXISTS %s_outbox_xid_seq ON state.%s_outbox (xact_id, seq)".formatted(d, d));
         execute(c, """
                 CREATE TABLE IF NOT EXISTS history.%s_history (
                   id uuid NOT NULL,

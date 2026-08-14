@@ -11,6 +11,27 @@ final class Cursors {
 
     private Cursors() {}
 
+    /** dbo#25: feed cursors are (xact_id, seq) — xid-major commit fencing. */
+    record FeedCursor(long xid, long seq) {}
+
+    static String encodeFeed(long xid, long seq) {
+        return java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(("x" + xid + ":" + seq).getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+    }
+
+    static FeedCursor decodeFeed(String cursor) {
+        String raw = new String(java.util.Base64.getUrlDecoder().decode(cursor),
+                java.nio.charset.StandardCharsets.US_ASCII);
+        if (raw.startsWith("x") && raw.contains(":")) {
+            int colon = raw.indexOf(':');
+            return new FeedCursor(Long.parseLong(raw, 1, colon, 10),
+                    Long.parseLong(raw.substring(colon + 1)));
+        }
+        // a pre-dbo#25 cursor carried only the seq: resume from xid 0 —
+        // at-least-once redelivery, never loss
+        return new FeedCursor(0, decodeSeq(cursor));
+    }
+
     static String encodeSeq(long seq) {
         return encode("v1|s|" + seq);
     }

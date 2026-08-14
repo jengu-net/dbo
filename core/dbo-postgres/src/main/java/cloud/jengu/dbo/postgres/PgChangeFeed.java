@@ -66,27 +66,33 @@ public final class PgChangeFeed implements ChangeFeed {
 
     @Override
     public FeedChunk<FeedItem> read(String cursor, int limit) {
-        long after = cursor == null ? 0 : Cursors.decodeSeq(cursor);
+        Cursors.FeedCursor after = cursor == null
+                ? new Cursors.FeedCursor(0, 0) : Cursors.decodeFeed(cursor);
         return readAfter(after, limit);
     }
 
     @Override
     public FeedChunk<FeedItem> readFor(String consumer, int limit) {
         requireConsumer(consumer);
-        return readAfter(consumerSeq(consumer), limit);
+        return readAfter(consumerCursor(consumer), limit);
     }
 
     @Override
     public void ack(String consumer, String cursor) {
         requireConsumer(consumer);
-        long seq = Cursors.decodeSeq(cursor);
+        Cursors.FeedCursor at = Cursors.decodeFeed(cursor);
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     INSERT INTO state.%s_consumer (name, seq, updated_at) VALUES (?, ?, now())
-                     ON CONFLICT (name) DO UPDATE SET seq = EXCLUDED.seq, updated_at = now()
-                     WHERE %s_consumer.seq < EXCLUDED.seq""".formatted(domain, domain))) {
+                     INSERT INTO state.%s_consumer (name, seq, cursor_xid, updated_at)
+                     VALUES (?, ?, ?::text::xid8, now())
+                     ON CONFLICT (name) DO UPDATE
+                     SET seq = EXCLUDED.seq, cursor_xid = EXCLUDED.cursor_xid, updated_at = now()
+                     WHERE (%s_consumer.cursor_xid, %s_consumer.seq)
+                         < (EXCLUDED.cursor_xid, EXCLUDED.seq)"""
+                     .formatted(domain, domain, domain))) {
             ps.setString(1, consumer);
-            ps.setLong(2, seq);
+            ps.setLong(2, at.seq());
+            ps.setString(3, Long.toString(at.xid()));
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new IllegalStateException("ack failed", e);
@@ -96,14 +102,18 @@ public final class PgChangeFeed implements ChangeFeed {
     @Override
     public void resetConsumer(String consumer, String cursor) {
         requireConsumer(consumer);
-        long seq = cursor == null ? 0 : Cursors.decodeSeq(cursor);
+        Cursors.FeedCursor at = cursor == null
+                ? new Cursors.FeedCursor(0, 0) : Cursors.decodeFeed(cursor);
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     INSERT INTO state.%s_consumer (name, seq, updated_at) VALUES (?, ?, now())
-                     ON CONFLICT (name) DO UPDATE SET seq = EXCLUDED.seq, updated_at = now()"""
+                     INSERT INTO state.%s_consumer (name, seq, cursor_xid, updated_at)
+                     VALUES (?, ?, ?::text::xid8, now())
+                     ON CONFLICT (name) DO UPDATE
+                     SET seq = EXCLUDED.seq, cursor_xid = EXCLUDED.cursor_xid, updated_at = now()"""
                      .formatted(domain))) {
             ps.setString(1, consumer);
-            ps.setLong(2, seq);
+            ps.setLong(2, at.seq());
+            ps.setString(3, Long.toString(at.xid()));
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new IllegalStateException("reset failed", e);
@@ -113,20 +123,23 @@ public final class PgChangeFeed implements ChangeFeed {
     @Override
     public String cursorOf(String consumer) {
         requireConsumer(consumer);
-        long seq = consumerSeq(consumer);
-        return seq == 0 ? null : Cursors.encodeSeq(seq);
+        Cursors.FeedCursor at = consumerCursor(consumer);
+        return at.xid() == 0 && at.seq() == 0 ? null : Cursors.encodeFeed(at.xid(), at.seq());
     }
 
     @Override
     public long lag(String consumer) {
         requireConsumer(consumer);
+        Cursors.FeedCursor at = consumerCursor(consumer);
         try (Connection c = ds.getConnection()) {
             String horizon = localHorizon(c);
             try (PreparedStatement ps = c.prepareStatement("""
                     SELECT count(*) FROM state.%s_outbox o
-                    WHERE o.seq > ? AND %s""".formatted(domain, BARRIER))) {
-                ps.setLong(1, consumerSeq(consumer));
-                ps.setString(2, horizon);
+                    WHERE (o.xact_id, o.seq) > (?::text::xid8, ?) AND %s"""
+                    .formatted(domain, BARRIER))) {
+                ps.setString(1, Long.toString(at.xid()));
+                ps.setLong(2, at.seq());
+                ps.setString(3, horizon);
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
                     return rs.getLong(1);
@@ -137,24 +150,35 @@ public final class PgChangeFeed implements ChangeFeed {
         }
     }
 
-    private FeedChunk<FeedItem> readAfter(long after, int limit) {
+    /**
+     * dbo#25 fence: xid-major order. seq alone cannot fence — the outbox seq
+     * is drawn BEFORE the transaction's xid is assigned, so xid order and
+     * seq order interleave across backends, and a seq-ordered cursor could
+     * pass a not-yet-visible lower seq (permanent loss, caught by FeedIT in
+     * CI). Ordered by (xact_id, seq), every future commit carries an xid at
+     * or above the barrier and lands AFTER the cursor by construction.
+     */
+    private FeedChunk<FeedItem> readAfter(Cursors.FeedCursor after, int limit) {
         if (limit < 1 || limit > 10_000) {
             throw new IllegalArgumentException("limit out of range: " + limit);
         }
         String sql = """
                 SELECT o.seq, o.object_id, o.type, o.version_id, o.kind, o.committed_at,
-                       h.payload, h.deleted, h.payload_version
+                       h.payload, h.deleted, h.payload_version, o.xact_id::text
                 FROM state.%s_outbox o
                 JOIN history.%s_history h ON h.id = o.object_id AND h.version_id = o.version_id
-                WHERE o.seq > ? AND %s
-                ORDER BY o.seq LIMIT ?""".formatted(domain, domain, BARRIER);
+                WHERE (o.xact_id, o.seq) > (?::text::xid8, ?) AND %s
+                ORDER BY o.xact_id, o.seq LIMIT ?""".formatted(domain, domain, BARRIER);
         try (Connection c = ds.getConnection()) {
             String horizon = localHorizon(c); // BEFORE the read snapshot
             try (PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setLong(1, after);
-            ps.setString(2, horizon);
-            ps.setInt(3, limit);
+            ps.setString(1, Long.toString(after.xid()));
+            ps.setLong(2, after.seq());
+            ps.setString(3, horizon);
+            ps.setInt(4, limit);
             List<FeedItem> items = new ArrayList<>();
+            long lastXid = after.xid();
+            long lastSeq = after.seq();
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     items.add(new FeedItem(
@@ -167,9 +191,11 @@ public final class PgChangeFeed implements ChangeFeed {
                             rs.getBytes(7),
                             rs.getBoolean(8),
                             rs.getString(9)));
+                    lastXid = Long.parseLong(rs.getString(10));
+                    lastSeq = rs.getLong(1);
                 }
             }
-            String next = items.isEmpty() ? null : Cursors.encodeSeq(items.get(items.size() - 1).seq());
+            String next = items.isEmpty() ? null : Cursors.encodeFeed(lastXid, lastSeq);
             return new FeedChunk<>(items, next, items.size() < limit);
             }
         } catch (SQLException e) {
@@ -186,13 +212,16 @@ public final class PgChangeFeed implements ChangeFeed {
         }
     }
 
-    private long consumerSeq(String consumer) {
+    private Cursors.FeedCursor consumerCursor(String consumer) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT seq FROM state.%s_consumer WHERE name = ?".formatted(domain))) {
+                     "SELECT cursor_xid::text, seq FROM state.%s_consumer WHERE name = ?"
+                             .formatted(domain))) {
             ps.setString(1, consumer);
             try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getLong(1) : 0;
+                return rs.next()
+                        ? new Cursors.FeedCursor(Long.parseLong(rs.getString(1)), rs.getLong(2))
+                        : new Cursors.FeedCursor(0, 0);
             }
         } catch (SQLException e) {
             throw new IllegalStateException("consumer lookup failed", e);
