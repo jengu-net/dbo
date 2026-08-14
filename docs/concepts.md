@@ -451,6 +451,18 @@ rather than staying application-side:
   vocabulary. Any DBO-hosted application — jengu modules, future services —
   declares its processes the same way, and the catalogue projections are
   generated, never hand-edited.
+- **Every process and step carries a process-domain code** — a free string
+  (`clinical.lab`, `identity`, `ops.retention`, …) declaring what sphere the
+  work belongs to. It is *not* a taxonomy the model enforces; it acts purely
+  as a **filter**: the process map, monitoring views and catalogue projections
+  filter by it, so DBOS housekeeping (sync sweeps, retention) never
+  masquerades as clinical work in a clinical view, while still being fully
+  visible in an operational one. jengu's canon rule — the FHIR-native
+  catalogue governs domain work, not operational machinery — becomes a
+  default filter rather than a structural boundary: everything on the network
+  is declared and scannable; which slice you look at is a query. (Naming
+  note: "process domain" is deliberately distinct from the storage **Domain**
+  of §2/§3 — the physical table-group knob. Two different words in the code.)
 - **A system scanner builds the live process map.** The container scans
   installed bundles' process annotations and publishes each node's *known*
   catalogue (declared processes/steps) and *running* state (active DBOS
