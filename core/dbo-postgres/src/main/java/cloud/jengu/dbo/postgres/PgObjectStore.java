@@ -293,26 +293,8 @@ public final class PgObjectStore implements ObjectStore {
                 FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d));
         List<Object> params = new ArrayList<>();
         params.add(criteria.typeName());
-
-        if (!criteria.equalsPredicates().isEmpty()) {
-            sql.append(" AND d.envelope @> ?::jsonb");
-            params.add(JsonbCodec.containmentJson(criteria.equalsPredicates()));
-        }
-        for (Criteria.Referencing ref : criteria.referencingPredicates()) {
-            sql.append(" AND EXISTS (SELECT 1 FROM state.%s_reference r WHERE r.owner_id = d.id"
-                    .formatted(d));
-            sql.append(" AND r.ref_type = ? AND r.target_type = ? AND r.target_id = ?)");
-            params.add(ref.refType());
-            params.add(ref.targetType());
-            params.add(ref.targetId());
-        }
-        if (criteria.sort() != null) {
-            Criteria.Sort s = criteria.sort();
-            sql.append(" ORDER BY ").append(Sql.typedPathExpression(s.path(), s.kind()));
-            sql.append(s.ascending() ? " ASC" : " DESC").append(" NULLS LAST, d.id");
-        } else {
-            sql.append(" ORDER BY d.last_updated, d.id");
-        }
+        appendWhere(criteria, d, sql, params);
+        appendOrder(criteria, sql, true);
         sql.append(" LIMIT ?");
         params.add(criteria.limitValue());
 
@@ -327,21 +309,58 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     @Override
-    public cloud.jengu.dbo.core.api.feed.FeedChunk<StoredObject> page(Criteria criteria, String cursor) {
+    public long count(Criteria criteria) {
         TypeRegistration type = registry.require(criteria.typeName());
         String d = type.domain();
-        Criteria.Sort s = criteria.sort();
-
-        StringBuilder sql = new StringBuilder("""
-                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, %s AS sort_key
-                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted"""
-                .formatted(s == null ? "d.last_updated" : Sql.typedPathExpression(s.path(), s.kind()), d));
+        StringBuilder sql = new StringBuilder(
+                "SELECT count(*) FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted".formatted(d));
         List<Object> params = new ArrayList<>();
         params.add(criteria.typeName());
+        appendWhere(criteria, d, sql, params);
+        return withConnection(c -> {
+            try (PreparedStatement ps = c.prepareStatement(sql.toString())) {
+                for (int i = 0; i < params.size(); i++) {
+                    ps.setObject(i + 1, params.get(i));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    return rs.getLong(1);
+                }
+            }
+        });
+    }
 
+    /** All non-sort predicates, shared by select/page/count. Values are always bound. */
+    private void appendWhere(Criteria criteria, String d, StringBuilder sql, List<Object> params) {
         if (!criteria.equalsPredicates().isEmpty()) {
             sql.append(" AND d.envelope @> ?::jsonb");
             params.add(JsonbCodec.containmentJson(criteria.equalsPredicates()));
+        }
+        for (Criteria.NotEq ne : criteria.notEqualsPredicates()) {
+            sql.append(" AND NOT (d.envelope @> ?::jsonb)");
+            params.add(JsonbCodec.containmentJson(
+                    List.of(new Criteria.Eq(ne.path(), ne.value()))));
+        }
+        for (Criteria.StartsWith sw : criteria.startsWithPredicates()) {
+            sql.append(" AND EXISTS (SELECT 1 FROM jsonb_array_elements(d.envelope -> ?) e")
+               .append(" WHERE e->>'v' LIKE ? ESCAPE '\\')");
+            params.add(sw.path());
+            params.add(likePrefix(sw.prefix()));
+        }
+        for (Criteria.Missing m : criteria.missingPredicates()) {
+            sql.append(m.missing() ? " AND NOT jsonb_exists(d.envelope, ?)"
+                    : " AND jsonb_exists(d.envelope, ?)");
+            params.add(m.path());
+        }
+        for (Criteria.Range r : criteria.rangePredicates()) {
+            sql.append(" AND ").append(Sql.typedPathExpression(r.path(), r.kind()))
+               .append(' ').append(rangeOp(r.op())).append(" ?");
+            params.add(r.kind() == cloud.jengu.dbo.core.api.ValueKind.NUMBER
+                    ? new java.math.BigDecimal(r.value()) : r.value());
+        }
+        for (Criteria.LastUpdatedRange lu : criteria.lastUpdatedPredicates()) {
+            sql.append(" AND d.last_updated ").append(rangeOp(lu.op())).append(" ?");
+            params.add(Timestamp.from(lu.value()));
         }
         for (Criteria.Referencing ref : criteria.referencingPredicates()) {
             sql.append(" AND EXISTS (SELECT 1 FROM state.%s_reference r WHERE r.owner_id = d.id".formatted(d));
@@ -350,8 +369,88 @@ public final class PgObjectStore implements ObjectStore {
             params.add(ref.targetType());
             params.add(ref.targetId());
         }
+        for (Criteria.RefMissing rm : criteria.refMissingPredicates()) {
+            sql.append(rm.missing() ? " AND NOT EXISTS" : " AND EXISTS")
+               .append(" (SELECT 1 FROM state.%s_reference r WHERE r.owner_id = d.id AND r.ref_type = ?)"
+                       .formatted(d));
+            params.add(rm.refType());
+        }
+        for (Criteria.Chained ch : criteria.chainedPredicates()) {
+            String td = registry.require(ch.targetType()).domain();
+            switch (ch.target()) {
+                case Criteria.ChainTarget.ByIdentifier bi -> {
+                    sql.append(" AND EXISTS (SELECT 1 FROM state.%s_reference r".formatted(d))
+                       .append(" JOIN state.%s_identifier ti ON ti.object_id::text = r.target_id".formatted(td))
+                       .append(" AND ti.type = r.target_type WHERE r.owner_id = d.id")
+                       .append(" AND r.ref_type = ? AND r.target_type = ?");
+                    params.add(ch.refPath());
+                    params.add(ch.targetType());
+                    if (bi.system() != null) {
+                        sql.append(" AND ti.system = ?");
+                        params.add(bi.system());
+                    }
+                    if (bi.value() != null) {
+                        sql.append(" AND ti.value = ?");
+                        params.add(bi.value());
+                    }
+                    sql.append(')');
+                }
+                case Criteria.ChainTarget.ByEq be -> {
+                    sql.append(" AND EXISTS (SELECT 1 FROM state.%s_reference r".formatted(d))
+                       .append(" JOIN state.%s_data td ON td.id::text = r.target_id AND NOT td.deleted".formatted(td))
+                       .append(" WHERE r.owner_id = d.id AND r.ref_type = ? AND r.target_type = ?")
+                       .append(" AND td.envelope @> ?::jsonb)");
+                    params.add(ch.refPath());
+                    params.add(ch.targetType());
+                    params.add(JsonbCodec.containmentJson(
+                            List.of(new Criteria.Eq(be.path(), be.value()))));
+                }
+            }
+        }
+    }
+
+    private void appendOrder(Criteria criteria, StringBuilder sql, boolean withDefault) {
+        if (criteria.sort() != null) {
+            Criteria.Sort s = criteria.sort();
+            sql.append(" ORDER BY ").append(Sql.typedPathExpression(s.path(), s.kind()));
+            sql.append(s.ascending() ? " ASC" : " DESC").append(" NULLS LAST, d.id");
+        } else if (criteria.sortLastUpdatedAscending() != null) {
+            String dir = criteria.sortLastUpdatedAscending() ? "" : " DESC";
+            sql.append(" ORDER BY d.last_updated").append(dir).append(", d.id").append(dir);
+        } else if (withDefault) {
+            sql.append(" ORDER BY d.last_updated, d.id");
+        }
+    }
+
+    private static String likePrefix(String prefix) {
+        return prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+    }
+
+    private static String rangeOp(Criteria.RangeOp op) {
+        return switch (op) {
+            case GT -> ">";
+            case LT -> "<";
+            case GE -> ">=";
+            case LE -> "<=";
+        };
+    }
+
+    @Override
+    public cloud.jengu.dbo.core.api.feed.FeedChunk<StoredObject> page(Criteria criteria, String cursor) {
+        TypeRegistration type = registry.require(criteria.typeName());
+        String d = type.domain();
+        Criteria.Sort s = criteria.sort();
+        boolean ascending = s != null ? s.ascending()
+                : criteria.sortLastUpdatedAscending() == null || criteria.sortLastUpdatedAscending();
         String sortExpr = s == null ? "d.last_updated" : Sql.typedPathExpression(s.path(), s.kind());
-        boolean ascending = s == null || s.ascending();
+
+        StringBuilder sql = new StringBuilder("""
+                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, %s AS sort_key
+                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(sortExpr, d));
+        List<Object> params = new ArrayList<>();
+        params.add(criteria.typeName());
+        appendWhere(criteria, d, sql, params);
+
         if (cursor != null) {
             String[] keyset = Cursors.decodeKeyset(cursor);
             sql.append(" AND (").append(sortExpr).append(", d.id) ")
@@ -359,7 +458,6 @@ public final class PgObjectStore implements ObjectStore {
             params.add(sortParam(s, keyset[0]));
             params.add(UUID.fromString(keyset[1]));
         }
-        // keyset requires a total order: sort expr then id tiebreak, same direction
         String dir = ascending ? "" : " DESC";
         sql.append(" ORDER BY ").append(sortExpr).append(dir).append(", d.id").append(dir)
                 .append(" LIMIT ?");

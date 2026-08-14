@@ -3,8 +3,7 @@ package cloud.jengu.dbo.postgres;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
 
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
+import cloud.jengu.dbo.core.api.DateKeys;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,14 +15,6 @@ import java.util.Map;
  * (REQ-DBO-CORE-PARAMETERIZED-SQL).
  */
 final class JsonbCodec {
-
-    /**
-     * Dates are stored as FIXED-WIDTH UTC ISO strings so that lexicographic
-     * order equals chronological order — text can be indexed IMMUTABLY
-     * (a ::timestamptz cast cannot; it is only STABLE).
-     */
-    static final DateTimeFormatter DATE_KEY =
-            DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC);
 
     private JsonbCodec() {}
 
@@ -65,11 +56,16 @@ final class JsonbCodec {
                 sb.append("{\"t\":\"num\",\"v\":").append(n.value().toPlainString()).append('}');
             case EnvelopeValue.Date d -> {
                 sb.append("{\"t\":\"date\",\"v\":");
-                string(sb, DATE_KEY.format(d.value()));
+                string(sb, DateKeys.of(d.value()));
                 sb.append('}');
             }
             case EnvelopeValue.Token t -> {
-                if (t.system() == null) {
+                if (t.code() == null) {
+                    // system-only form: FHIR "sys|" matches any value in system
+                    sb.append("{\"t\":\"toks\",\"v\":");
+                    string(sb, t.system());
+                    sb.append('}');
+                } else if (t.system() == null) {
                     // bare-code token form: FHIR "code=x" matches any system
                     sb.append("{\"t\":\"tokc\",\"v\":");
                     string(sb, t.code());

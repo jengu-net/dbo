@@ -9,6 +9,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ResultSeverityEnum;
 import ca.uhn.fhir.validation.ValidationResult;
 import cloud.jengu.dbo.core.api.Criteria;
+import cloud.jengu.dbo.core.api.DateKeys;
 import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.EnvelopeExtractor;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
@@ -105,8 +106,15 @@ public final class R4Personality {
                     case TOKEN -> addToken(e, path, hit);
                     case STRING -> {
                         if (hit instanceof IPrimitiveType<?> p && p.getValueAsString() != null) {
-                            // FHIR string search is case-insensitive; stored lowercase
+                            // FHIR string search is case-insensitive starts-with: the
+                            // base path stores lowercase; :exact matches the _xct path
                             e.value(path, EnvelopeValue.of(p.getValueAsString().toLowerCase()));
+                            e.value(path + "_xct", EnvelopeValue.of(p.getValueAsString()));
+                        }
+                    }
+                    case URI -> {
+                        if (hit instanceof IPrimitiveType<?> p && p.getValueAsString() != null) {
+                            e.value(path, EnvelopeValue.of(p.getValueAsString())); // uris are case-sensitive
                         }
                     }
                     case DATE -> addDate(e, path, hit);
@@ -116,9 +124,16 @@ public final class R4Personality {
                         }
                     }
                     case REFERENCE -> {
-                        if (hit instanceof Reference r && r.getReferenceElement().hasResourceType()) {
-                            e.reference(path, r.getReferenceElement().getResourceType(),
-                                    r.getReferenceElement().getIdPart());
+                        if (hit instanceof Reference r) {
+                            if (r.getReferenceElement().hasResourceType()) {
+                                e.reference(path, r.getReferenceElement().getResourceType(),
+                                        r.getReferenceElement().getIdPart());
+                            }
+                            if (r.hasIdentifier() && r.getIdentifier().hasSystem()) {
+                                // logical reference: the :identifier modifier's target
+                                tokenPair(e, path + "_identifier",
+                                        r.getIdentifier().getSystem(), r.getIdentifier().getValue());
+                            }
                         }
                     }
                     default -> { /* composite/quantity/special: later slices */ }
@@ -134,6 +149,16 @@ public final class R4Personality {
                 e.identifier(ident.getSystem(), ident.getValue());
             }
         }
+        // engine-level meta search dimensions: _tag (tokens), _profile (uris)
+        if (resource instanceof Resource r4res && r4res.hasMeta()) {
+            for (Coding tag : r4res.getMeta().getTag()) {
+                tokenPair(e, "_tag", tag.getSystem(), tag.getCode());
+            }
+            for (IPrimitiveType<String> profile : r4res.getMeta().getProfile()) {
+                e.value("_profile", EnvelopeValue.of(profile.getValueAsString()));
+            }
+        }
+
         // canonical identity: the url element
         R4TypeConfig cfg = types.get(typeName);
         if (cfg != null && cfg.identityClass() == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL) {
@@ -161,6 +186,7 @@ public final class R4Personality {
         }
         if (system != null) {
             e.value(path, EnvelopeValue.token(system, code));
+            e.value(path, new EnvelopeValue.Token(system, null)); // system-only ("sys|") form
         }
         e.value(path, new EnvelopeValue.Token(null, code)); // bare-code form
     }
@@ -178,67 +204,260 @@ public final class R4Personality {
 
     // --------------------------------------------------------------- search
 
+    /** The compiled form of a FHIR query: engine criteria plus result-shaping directives. */
+    public record CompiledSearch(
+            Criteria criteria,
+            boolean countOnly,
+            List<String> elements,
+            List<String> includeRefParams,
+            String byId) {}
+
     /**
-     * FHIR query parameters → engine criteria. Strict: any parameter that is
-     * not a supported search parameter of the type is rejected.
+     * FHIR query parameters → engine criteria + directives. Strict
+     * (REQ-DBO-SRCH-STRICT-BY-DEFAULT): anything unsupported is rejected.
      */
-    public Criteria compileSearch(String typeName, Map<String, String> params) {
+    public CompiledSearch compileSearch(String typeName, Map<String, String> params) {
         requireType(typeName);
         Criteria criteria = Criteria.of(typeName);
+        boolean countOnly = false;
+        List<String> elements = null;
+        List<String> includes = new ArrayList<>();
+        String byId = null;
+
         Map<String, RuntimeSearchParam> known = new LinkedHashMap<>();
         for (RuntimeSearchParam sp : searchParams(typeName)) {
             known.put(sp.getName(), sp);
         }
+
         for (Map.Entry<String, String> p : params.entrySet()) {
             String name = p.getKey();
             String value = p.getValue();
             switch (name) {
                 case "_count" -> criteria.limit(Integer.parseInt(value));
-                case "_sort" -> {
-                    boolean descending = value.startsWith("-");
-                    String sortParam = descending ? value.substring(1) : value;
-                    RuntimeSearchParam sp = known.get(sortParam);
-                    if (sp == null) {
-                        throw new UnknownSearchParameterException(typeName, "_sort=" + value);
+                case "_sort" -> compileSort(criteria, typeName, known, value);
+                case "_summary" -> {
+                    if (!"count".equals(value)) {
+                        throw new UnknownSearchParameterException(typeName, "_summary=" + value);
                     }
-                    criteria.sortBy(pathName(sortParam), sortKind(sp), !descending);
+                    countOnly = true;
                 }
-                default -> {
-                    RuntimeSearchParam sp = known.get(name);
-                    if (sp == null) {
-                        throw new UnknownSearchParameterException(typeName, name);
-                    }
-                    compileParam(criteria, typeName, sp, value);
-                }
+                case "_elements" -> elements = List.of(value.split(","));
+                case "_include" -> includes.add(compileInclude(typeName, known, value));
+                case "_id" -> byId = value;
+                case "_lastUpdated" -> criteria.lastUpdated(prefixOp(typeName, name, value),
+                        java.time.Instant.parse(stripPrefix(value)));
+                case "_tag" -> compileToken(criteria, "_tag", value, false);
+                case "_tag:not" -> compileToken(criteria, "_tag", value, true);
+                case "_profile" -> criteria.eq("_profile", EnvelopeValue.of(value));
+                case "_offset" -> throw new UnknownSearchParameterException(typeName,
+                        "_offset (DBO paginates by cursor: follow Bundle.link[next])");
+                default -> compileNamed(criteria, typeName, known, name, value);
             }
         }
-        return criteria;
+        return new CompiledSearch(criteria, countOnly, elements, includes, byId);
     }
 
-    private void compileParam(Criteria criteria, String typeName, RuntimeSearchParam sp, String value) {
-        String path = pathName(sp.getName());
+    private void compileSort(Criteria criteria, String typeName,
+            Map<String, RuntimeSearchParam> known, String value) {
+        boolean descending = value.startsWith("-");
+        String sortParam = descending ? value.substring(1) : value;
+        if ("_lastUpdated".equals(sortParam)) {
+            criteria.sortByLastUpdated(!descending);
+            return;
+        }
+        RuntimeSearchParam sp = known.get(sortParam);
+        if (sp == null) {
+            throw new UnknownSearchParameterException(typeName, "_sort=" + value);
+        }
+        criteria.sortBy(pathName(sortParam), sortKind(sp), !descending);
+    }
+
+    private String compileInclude(String typeName, Map<String, RuntimeSearchParam> known, String value) {
+        String[] parts = value.split(":");
+        if (parts.length != 2 || !typeName.equals(parts[0])) {
+            throw new UnknownSearchParameterException(typeName, "_include=" + value);
+        }
+        RuntimeSearchParam sp = known.get(parts[1]);
+        if (sp == null || sp.getParamType() != ca.uhn.fhir.rest.api.RestSearchParameterTypeEnum.REFERENCE) {
+            throw new UnknownSearchParameterException(typeName, "_include=" + value);
+        }
+        return parts[1];
+    }
+
+    private void compileNamed(Criteria criteria, String typeName,
+            Map<String, RuntimeSearchParam> known, String name, String value) {
+        // one-level chain: refParam.targetParam
+        int dot = name.indexOf('.');
+        if (dot > 0) {
+            compileChain(criteria, typeName, known, name.substring(0, dot), name.substring(dot + 1), value);
+            return;
+        }
+        // modifier: name:modifier
+        int colon = name.indexOf(':');
+        String base = colon > 0 ? name.substring(0, colon) : name;
+        String modifier = colon > 0 ? name.substring(colon + 1) : null;
+        RuntimeSearchParam sp = known.get(base);
+        if (sp == null) {
+            throw new UnknownSearchParameterException(typeName, name);
+        }
+        String path = pathName(base);
+
+        if (modifier != null) {
+            switch (modifier) {
+                case "missing" -> {
+                    boolean isMissing = Boolean.parseBoolean(value);
+                    if (sp.getParamType() == ca.uhn.fhir.rest.api.RestSearchParameterTypeEnum.REFERENCE) {
+                        criteria.refMissing(path, isMissing);
+                    } else {
+                        criteria.missing(path, isMissing);
+                    }
+                }
+                case "exact" -> {
+                    requireParamType(typeName, sp, ca.uhn.fhir.rest.api.RestSearchParameterTypeEnum.STRING, name);
+                    criteria.eq(path + "_xct", EnvelopeValue.of(value));
+                }
+                case "not" -> {
+                    requireParamType(typeName, sp, ca.uhn.fhir.rest.api.RestSearchParameterTypeEnum.TOKEN, name);
+                    compileToken(criteria, path, value, true);
+                }
+                case "identifier" -> {
+                    requireParamType(typeName, sp, ca.uhn.fhir.rest.api.RestSearchParameterTypeEnum.REFERENCE, name);
+                    compileToken(criteria, path + "_identifier", value, false);
+                }
+                default -> throw new UnknownSearchParameterException(typeName, name);
+            }
+            return;
+        }
+
         switch (sp.getParamType()) {
-            case TOKEN -> {
-                int pipe = value.indexOf('|');
-                if (pipe >= 0) {
-                    criteria.eq(path, EnvelopeValue.token(value.substring(0, pipe), value.substring(pipe + 1)));
+            case TOKEN -> compileToken(criteria, path, value, false);
+            case STRING -> criteria.startsWith(path, value.toLowerCase());
+            case URI -> criteria.eq(path, EnvelopeValue.of(value));
+            case NUMBER -> {
+                Criteria.RangeOp op = tryPrefixOp(value);
+                if (op != null) {
+                    criteria.range(path, ValueKind.NUMBER, op, stripPrefix(value));
                 } else {
-                    criteria.eq(path, new EnvelopeValue.Token(null, value));
+                    criteria.eq(path, EnvelopeValue.of(new BigDecimal(value)));
                 }
             }
-            case STRING -> criteria.eq(path, EnvelopeValue.of(value.toLowerCase()));
-            case NUMBER -> criteria.eq(path, EnvelopeValue.of(new BigDecimal(value)));
+            case DATE -> {
+                Criteria.RangeOp op = tryPrefixOp(value);
+                if (op == null) {
+                    throw new UnknownSearchParameterException(typeName,
+                            base + "=" + value + " (date search requires a gt/lt/ge/le prefix in this slice)");
+                }
+                criteria.range(path, ValueKind.DATE, op, DateKeys.ofSearchValue(stripPrefix(value)));
+            }
             case REFERENCE -> {
                 int slash = value.indexOf('/');
                 if (slash < 0) {
                     throw new UnknownSearchParameterException(typeName,
-                            sp.getName() + "=" + value + " (typed reference Type/id required)");
+                            base + "=" + value + " (typed reference Type/id required)");
                 }
                 criteria.referencing(path, value.substring(0, slash), value.substring(slash + 1));
             }
             default -> throw new UnknownSearchParameterException(typeName,
-                    sp.getName() + " (" + sp.getParamType() + " not supported in this slice)");
+                    base + " (" + sp.getParamType() + " not supported in tier 1)");
         }
+    }
+
+    private void compileChain(Criteria criteria, String typeName,
+            Map<String, RuntimeSearchParam> known, String refName, String targetParam, String value) {
+        RuntimeSearchParam refSp = known.get(refName);
+        if (refSp == null || refSp.getParamType() != ca.uhn.fhir.rest.api.RestSearchParameterTypeEnum.REFERENCE) {
+            throw new UnknownSearchParameterException(typeName, refName + "." + targetParam);
+        }
+        List<String> targets = refSp.getTargets().stream().sorted().toList();
+        if (targets.size() != 1) {
+            throw new UnknownSearchParameterException(typeName,
+                    refName + "." + targetParam + " (ambiguous chain target: " + targets + ")");
+        }
+        String targetType = targets.get(0);
+        String refPath = pathName(refName);
+
+        if ("identifier".equals(targetParam)) {
+            int pipe = value.indexOf('|');
+            Criteria.ChainTarget.ByIdentifier target;
+            if (pipe < 0) {
+                target = new Criteria.ChainTarget.ByIdentifier(null, value);
+            } else if (pipe == value.length() - 1) {
+                target = new Criteria.ChainTarget.ByIdentifier(value.substring(0, pipe), null);
+            } else {
+                target = new Criteria.ChainTarget.ByIdentifier(
+                        value.substring(0, pipe), value.substring(pipe + 1));
+            }
+            criteria.chained(refPath, targetType, target);
+            return;
+        }
+        // chain into the target's envelope: token or string equality
+        requireType(targetType);
+        RuntimeSearchParam targetSp = searchParams(targetType).stream()
+                .filter(x -> x.getName().equals(targetParam)).findFirst()
+                .orElseThrow(() -> new UnknownSearchParameterException(typeName, refName + "." + targetParam));
+        EnvelopeValue targetValue = switch (targetSp.getParamType()) {
+            case TOKEN -> {
+                int pipe = value.indexOf('|');
+                yield pipe >= 0
+                        ? EnvelopeValue.token(value.substring(0, pipe), value.substring(pipe + 1))
+                        : new EnvelopeValue.Token(null, value);
+            }
+            case STRING -> EnvelopeValue.of(value.toLowerCase());
+            default -> throw new UnknownSearchParameterException(typeName,
+                    refName + "." + targetParam + " (" + targetSp.getParamType() + " chain not supported)");
+        };
+        criteria.chained(refPath, targetType,
+                new Criteria.ChainTarget.ByEq(pathName(targetParam), targetValue));
+    }
+
+    private void compileToken(Criteria criteria, String path, String value, boolean negate) {
+        EnvelopeValue token;
+        int pipe = value.indexOf('|');
+        if (pipe < 0) {
+            token = new EnvelopeValue.Token(null, value);
+        } else if (pipe == value.length() - 1) {
+            token = new EnvelopeValue.Token(value.substring(0, pipe), null); // sys| any-value form
+        } else {
+            token = EnvelopeValue.token(value.substring(0, pipe), value.substring(pipe + 1));
+        }
+        if (negate) {
+            criteria.notEq(path, token);
+        } else {
+            criteria.eq(path, token);
+        }
+    }
+
+    private void requireParamType(String typeName, RuntimeSearchParam sp,
+            ca.uhn.fhir.rest.api.RestSearchParameterTypeEnum expected, String display) {
+        if (sp.getParamType() != expected) {
+            throw new UnknownSearchParameterException(typeName, display);
+        }
+    }
+
+    private Criteria.RangeOp prefixOp(String typeName, String name, String value) {
+        Criteria.RangeOp op = tryPrefixOp(value);
+        if (op == null) {
+            throw new UnknownSearchParameterException(typeName,
+                    name + "=" + value + " (gt/lt/ge/le prefix required)");
+        }
+        return op;
+    }
+
+    private static Criteria.RangeOp tryPrefixOp(String value) {
+        if (value.length() < 2) {
+            return null;
+        }
+        return switch (value.substring(0, 2)) {
+            case "gt" -> Criteria.RangeOp.GT;
+            case "lt" -> Criteria.RangeOp.LT;
+            case "ge" -> Criteria.RangeOp.GE;
+            case "le" -> Criteria.RangeOp.LE;
+            default -> null;
+        };
+    }
+
+    private static String stripPrefix(String value) {
+        return value.substring(2);
     }
 
     private ValueKind sortKind(RuntimeSearchParam sp) {
@@ -269,10 +488,13 @@ public final class R4Personality {
 
     /**
      * A searchset Bundle over one page; when the chunk continues, link[next]
-     * carries the opaque keyset cursor as {@code _cursor}.
+     * carries the opaque keyset cursor as {@code _cursor}. Included resources
+     * ride with {@code search.mode=include}; {@code _elements} trims encoded
+     * entry resources (id and meta always kept).
      */
     public String toSearchBundle(FeedChunk<StoredObject> chunk, String baseUrl, String typeName,
-            Map<String, String> originalParams) {
+            Map<String, String> originalParams, List<StoredObject> includedTargets,
+            List<String> elements) {
         return withTccl(() -> {
             Bundle bundle = new Bundle();
             bundle.setType(Bundle.BundleType.SEARCHSET);
@@ -282,7 +504,18 @@ public final class R4Personality {
                 resource.setId(o.id());
                 resource.getMeta().setVersionId(Long.toString(o.versionId()));
                 bundle.addEntry().setResource(resource)
-                        .setFullUrl(baseUrl + "/" + typeName + "/" + o.id());
+                        .setFullUrl(baseUrl + "/" + typeName + "/" + o.id())
+                        .getSearch().setMode(Bundle.SearchEntryMode.MATCH);
+            }
+            if (includedTargets != null) {
+                for (StoredObject o : includedTargets) {
+                    Resource resource = (Resource) ctx().newJsonParser()
+                            .parseResource(new String(o.payload(), StandardCharsets.UTF_8));
+                    resource.setId(o.id());
+                    bundle.addEntry().setResource(resource)
+                            .setFullUrl(baseUrl + "/" + o.typeName() + "/" + o.id())
+                            .getSearch().setMode(Bundle.SearchEntryMode.INCLUDE);
+                }
             }
             if (!chunk.drained() && chunk.nextCursor() != null) {
                 StringBuilder qs = new StringBuilder();
@@ -291,7 +524,48 @@ public final class R4Personality {
                 bundle.addLink().setRelation("next")
                         .setUrl(baseUrl + "/" + typeName + "?" + qs);
             }
+            var parser = ctx().newJsonParser();
+            if (elements != null) {
+                java.util.Set<String> encode = new java.util.LinkedHashSet<>();
+                encode.add(typeName + ".id");
+                encode.add(typeName + ".meta");
+                for (String el : elements) {
+                    encode.add(typeName + "." + el.trim());
+                }
+                parser.setEncodeElements(encode);
+                parser.setEncodeElementsAppliesToChildResourcesOnly(true);
+            }
+            return parser.encodeResourceToString(bundle);
+        });
+    }
+
+    /** A count-only searchset Bundle ({@code _summary=count}). */
+    public String countBundle(long total) {
+        return withTccl(() -> {
+            Bundle bundle = new Bundle();
+            bundle.setType(Bundle.BundleType.SEARCHSET);
+            bundle.setTotal((int) total);
             return ctx().newJsonParser().encodeResourceToString(bundle);
+        });
+    }
+
+    /** (targetType, targetId) pairs referenced by the resource at a reference search param. */
+    public List<String[]> referencedTargets(String resourceJson, String refParamName) {
+        return withTccl(() -> {
+            IBaseResource resource = ctx().newJsonParser().parseResource(resourceJson);
+            RuntimeSearchParam sp = ctx().getResourceDefinition(resource.fhirType())
+                    .getSearchParam(refParamName);
+            if (sp == null) {
+                return List.of();
+            }
+            List<String[]> out = new ArrayList<>();
+            for (Reference r : ctx().newFhirPath().evaluate(resource, sp.getPath(), Reference.class)) {
+                if (r.getReferenceElement().hasResourceType()) {
+                    out.add(new String[] {r.getReferenceElement().getResourceType(),
+                            r.getReferenceElement().getIdPart()});
+                }
+            }
+            return out;
         });
     }
 

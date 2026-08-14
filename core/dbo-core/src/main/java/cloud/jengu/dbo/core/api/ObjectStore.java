@@ -35,6 +35,9 @@ public interface ObjectStore {
 
     List<StoredObject> select(Criteria criteria);
 
+    /** Matching-object count for the criteria (serves _summary=count). */
+    long count(Criteria criteria);
+
     /**
      * Keyset pagination over a selection (REQ-DBO-FEED-KEYSET-CURSORS): the
      * chunk's cursor continues after the last row's (sort value, id) — stable
