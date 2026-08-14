@@ -351,14 +351,18 @@ public final class PgObjectStore implements ObjectStore {
             params.add(ref.targetId());
         }
         String sortExpr = s == null ? "d.last_updated" : Sql.typedPathExpression(s.path(), s.kind());
+        boolean ascending = s == null || s.ascending();
         if (cursor != null) {
             String[] keyset = Cursors.decodeKeyset(cursor);
-            sql.append(" AND (").append(sortExpr).append(", d.id) > (?, ?)");
+            sql.append(" AND (").append(sortExpr).append(", d.id) ")
+                    .append(ascending ? ">" : "<").append(" (?, ?)");
             params.add(sortParam(s, keyset[0]));
             params.add(UUID.fromString(keyset[1]));
         }
-        // keyset requires a total order: sort expr then id tiebreak, ascending
-        sql.append(" ORDER BY ").append(sortExpr).append(", d.id LIMIT ?");
+        // keyset requires a total order: sort expr then id tiebreak, same direction
+        String dir = ascending ? "" : " DESC";
+        sql.append(" ORDER BY ").append(sortExpr).append(dir).append(", d.id").append(dir)
+                .append(" LIMIT ?");
         params.add(criteria.limitValue());
 
         List<StoredObject> items = new ArrayList<>();
@@ -391,8 +395,7 @@ public final class PgObjectStore implements ObjectStore {
         }
         return switch (s.kind()) {
             case NUMBER -> new java.math.BigDecimal(sortValue);
-            case DATE -> Timestamp.from(Instant.parse(sortValue));
-            case STRING, TOKEN, REFERENCE -> sortValue;
+            case DATE, STRING, TOKEN, REFERENCE -> sortValue; // date keys are fixed-width text
         };
     }
 

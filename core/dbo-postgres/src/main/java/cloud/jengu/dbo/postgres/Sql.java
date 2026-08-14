@@ -16,7 +16,9 @@ final class Sql {
         String raw = "envelope #>> '{%s,0,v}'".formatted(path);
         return switch (kind) {
             case NUMBER -> "(" + raw + ")::numeric";
-            case DATE -> "(" + raw + ")::timestamptz";
+            // fixed-width UTC ISO text (JsonbCodec.DATE_KEY): lexicographic ==
+            // chronological; COLLATE "C" pins byte order and stays IMMUTABLE
+            case DATE -> "((" + raw + ") COLLATE \"C\")";
             case STRING, TOKEN, REFERENCE -> "(" + raw + ")";
         };
     }
