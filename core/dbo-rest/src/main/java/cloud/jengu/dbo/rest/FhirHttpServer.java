@@ -35,20 +35,42 @@ public final class FhirHttpServer implements AutoCloseable {
     private final TerminologyFacade terminology;
     private final HttpServer server;
     private final String basePath;
+    private final boolean ownsServer;
 
     public FhirHttpServer(FhirStoreFacade store, TerminologyFacade terminology,
             String host, int port, String basePath) {
         this.store = store;
         this.terminology = terminology;
-        this.basePath = basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath;
+        this.basePath = normalize(basePath);
         try {
             this.server = HttpServer.create(new InetSocketAddress(host, port), 0);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+        this.ownsServer = true;
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
         server.createContext(this.basePath.isEmpty() ? "/" : this.basePath, this::handle);
         server.start();
+    }
+
+    /**
+     * Attached mode (dbo#17): mounts onto an EXISTING shared server under the
+     * base path — the multi-tenant interim (`/t/<code>/fhir`) until the
+     * routing layer. {@link #close()} detaches the context, never stops the
+     * shared server.
+     */
+    public FhirHttpServer(HttpServer sharedServer, FhirStoreFacade store,
+            TerminologyFacade terminology, String basePath) {
+        this.store = store;
+        this.terminology = terminology;
+        this.basePath = normalize(basePath);
+        this.server = sharedServer;
+        this.ownsServer = false;
+        server.createContext(this.basePath.isEmpty() ? "/" : this.basePath, this::handle);
+    }
+
+    private static String normalize(String basePath) {
+        return basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath;
     }
 
     public int port() {
@@ -61,7 +83,11 @@ public final class FhirHttpServer implements AutoCloseable {
 
     @Override
     public void close() {
-        server.stop(0);
+        if (ownsServer) {
+            server.stop(0);
+        } else {
+            server.removeContext(basePath.isEmpty() ? "/" : basePath);
+        }
     }
 
     // ------------------------------------------------------------- routing
