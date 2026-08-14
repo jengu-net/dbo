@@ -15,7 +15,7 @@ tasks.jar {
             "Bundle-Version" to "0.1.0",
             "Export-Package" to "cloud.jengu.dbo.postgres;version=\"0.1.0\"",
             "Import-Package" to
-                "cloud.jengu.dbo.core.api;version=\"[0.1,1)\",cloud.jengu.dbo.core;version=\"[0.1,1)\",javax.sql",
+                "cloud.jengu.dbo.core.api;version=\"[0.1,1)\",cloud.jengu.dbo.core.api.feed;version=\"[0.1,1)\",cloud.jengu.dbo.core;version=\"[0.1,1)\",javax.sql",
         )
     }
 }

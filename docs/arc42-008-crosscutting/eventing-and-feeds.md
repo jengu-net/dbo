@@ -130,3 +130,15 @@ correct semantic for paging (and what clients already assume); consumers that
 need to *never miss an update* are outbox consumers by definition — the model
 makes reaching for the right feed a type decision instead of a folklore rule.
 
+
+### Implementation note: gap-free outbox reads (dbo#5)
+
+`seq > cursor` alone is not a safe outbox read: sequence values are assigned
+at insert but transactions commit in any order, so a slow transaction's rows
+become visible *behind* a reader that already passed their position — silently
+skipped events. DBO's outbox therefore records the writing transaction id
+(`xact_id xid8 DEFAULT pg_current_xact_id()`), and readers deliver only rows
+with `xact_id < pg_snapshot_xmin(pg_current_snapshot())`: every transaction
+below the snapshot's xmin has finished, so any still-invisible row must sort
+*after* the reader's frontier. Delivery is gap-free and in commit order with
+no extra coordination — the barrier is one predicate.

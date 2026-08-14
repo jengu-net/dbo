@@ -98,6 +98,11 @@ public final class SchemaManager {
                 )""".formatted(d));
         execute(c, "CREATE INDEX IF NOT EXISTS %s_reference_target_ix ON state.%s_reference (target_type, target_id)"
                 .formatted(d, d));
+        // xact_id is the gap-free-read barrier (dbo#5): seq is assigned at
+        // insert but commits interleave; a reader that trusts "seq > cursor"
+        // alone can skip a slow transaction's rows. Readers only deliver rows
+        // whose xact_id is below the current snapshot's xmin — everything
+        // there is finished, so delivery is gap-free in seq order.
         execute(c, """
                 CREATE TABLE IF NOT EXISTS state.%s_outbox (
                   seq bigserial PRIMARY KEY,
@@ -105,7 +110,14 @@ public final class SchemaManager {
                   type text NOT NULL,
                   version_id bigint NOT NULL,
                   kind text NOT NULL,
-                  committed_at timestamptz NOT NULL DEFAULT now()
+                  committed_at timestamptz NOT NULL DEFAULT now(),
+                  xact_id xid8 NOT NULL DEFAULT pg_current_xact_id()
+                )""".formatted(d));
+        execute(c, """
+                CREATE TABLE IF NOT EXISTS state.%s_consumer (
+                  name text PRIMARY KEY,
+                  seq bigint NOT NULL,
+                  updated_at timestamptz NOT NULL DEFAULT now()
                 )""".formatted(d));
         execute(c, """
                 CREATE TABLE IF NOT EXISTS history.%s_history (
