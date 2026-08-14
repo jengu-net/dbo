@@ -57,9 +57,11 @@ yet implemented.
    [jengu-infra#19](https://github.com/jengu-net/jengu-infra/pull/19):
    dbo-server Deployment (CM mount, secrets-only RBAC), ClusterIP-ONLY —
    the public ingress was withdrawn in review (no auth layer yet)
-2. **Auth for the serving surface** — [#20](https://github.com/jengu-net/dbo/issues/20),
-   the standing gate for ANY public route to dbo-server; groom before
-   exposing anything
+2. **Service-plane auth** — [#20](https://github.com/jengu-net/dbo/issues/20)
+   (groomed, re-scoped): dbo REST is a STORE API and is never publicly
+   routed — public interaction goes through jengu's process-based surfaces;
+   the slice adds M2M bearer auth + NetworkPolicy for the in-cluster plane.
+   The dbo.jengu.cloud idea is retired, not deferred
 2. **Slice B infra PR** — MERGED as
    [jengu-infra#18](https://github.com/jengu-net/jengu-infra/pull/18):
    cloud-init `dbo_provisioner` role, standing `samerole` pg_hba rule for
