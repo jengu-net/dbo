@@ -151,12 +151,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         TenantDatabaseProvisioner.TenantDatabase db = provisioner.provision(spec);
         String base = baseUrl(spec.code());
         cloud.jengu.dbo.rest.RequestAuthenticator guard = null;
+        cloud.jengu.dbo.auth.TenantAuthority tenantAuthority = null;
         if (authorityConfig != null) {
             String issuerBase = authorityConfig.issuerBase() != null
                     ? authorityConfig.issuerBase()
                     : "http://" + host + ":" + port();
             String oidcPath = "/t/" + spec.code() + "/oidc";
-            cloud.jengu.dbo.auth.TenantAuthority authority = new cloud.jengu.dbo.auth.TenantAuthority(
+            cloud.jengu.dbo.auth.TenantAuthority authority = tenantAuthority = new cloud.jengu.dbo.auth.TenantAuthority(
                     new PgObjectStore(db.dataSource(), cloud.jengu.dbo.auth.IdentityModel.registrations()),
                     issuerBase + oidcPath,
                     new cloud.jengu.dbo.auth.KeyProtector(authorityConfig.kek()));
@@ -170,10 +171,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
             authorityContexts.put(spec.code(), oidcPath);
             guard = new cloud.jengu.dbo.auth.AuthorityAuthenticator(authority);
         }
+        final cloud.jengu.dbo.auth.TenantAuthority authority = tenantAuthority;
         TenantRuntime runtime;
         if ("r4".equals(spec.fhirVersion())) {
             R4Personality personality = new R4Personality(spec.types());
             ObjectStore engine = policyWrapped(spec, db, personality.registrations(), R4Personality.DOMAIN);
+            if (authority != null) {
+                authority.attachSubjects(engine); // §16.1: subjects are the tenant's records
+            }
             FhirStoreFacade store = new R4Store(engine, personality, base);
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R4Personality.DOMAIN),
@@ -182,6 +187,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         } else {
             R5Personality personality = new R5Personality(spec.types());
             ObjectStore engine = policyWrapped(spec, db, personality.registrations(), R5Personality.DOMAIN);
+            if (authority != null) {
+                authority.attachSubjects(engine);
+            }
             FhirStoreFacade store = new R5Store(engine, personality, base);
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R5Personality.DOMAIN),

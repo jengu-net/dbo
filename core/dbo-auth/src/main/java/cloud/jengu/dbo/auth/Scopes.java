@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
  */
 public final class Scopes {
 
-    private static final Pattern SCOPE = Pattern.compile("system/(\\*|[A-Za-z][A-Za-z0-9]*)\\.(read|write)");
+    private static final Pattern SCOPE = Pattern.compile("(system|user)/(\\*|[A-Za-z][A-Za-z0-9]*)\\.(read|write)");
 
     private Scopes() {
     }
@@ -24,7 +24,12 @@ public final class Scopes {
 
     public static boolean allows(List<String> granted, String resourceType, boolean mutation) {
         String action = mutation ? "write" : "read";
-        return granted.contains("system/*." + action)
-                || (resourceType != null && granted.contains("system/" + resourceType + "." + action));
+        for (String plane : new String[] {"system", "user"}) {
+            if (granted.contains(plane + "/*." + action)
+                    || (resourceType != null && granted.contains(plane + "/" + resourceType + "." + action))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

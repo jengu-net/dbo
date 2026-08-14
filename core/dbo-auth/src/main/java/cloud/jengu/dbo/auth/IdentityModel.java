@@ -20,6 +20,8 @@ public final class IdentityModel {
     public static final String DOMAIN = "identity";
     public static final String CLIENT_ID_SYSTEM = "urn:dbo:auth:client-id";
     public static final String KID_SYSTEM = "urn:dbo:auth:kid";
+    public static final String ROLE_CODE_SYSTEM = "urn:dbo:auth:role-code";
+    public static final String LOGIN_SYSTEM = "urn:dbo:auth:login";
 
     private IdentityModel() {
     }
@@ -39,10 +41,28 @@ public final class IdentityModel {
             e.value("status", EnvelopeValue.of(Json.str(n, "status")));
             return e;
         };
+        EnvelopeExtractor roleGrant = (type, payload) -> {
+            Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
+            Envelope e = new Envelope();
+            e.identifier(ROLE_CODE_SYSTEM, Json.str(n, "roleCode"));
+            e.value("status", EnvelopeValue.of(Json.str(n, "status")));
+            return e;
+        };
+        EnvelopeExtractor credential = (type, payload) -> {
+            Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
+            Envelope e = new Envelope();
+            e.identifier(LOGIN_SYSTEM, Json.str(n, "login"));
+            e.value("status", EnvelopeValue.of(Json.str(n, "status")));
+            return e;
+        };
         return List.of(
                 new TypeRegistration("ClientApplication", DOMAIN, IdentityClass.IDENTIFIER,
                         java.util.Set.of(CLIENT_ID_SYSTEM), client, List.of()),
                 new TypeRegistration("SigningKey", DOMAIN, IdentityClass.IDENTIFIER,
-                        java.util.Set.of(KID_SYSTEM), key, List.of()));
+                        java.util.Set.of(KID_SYSTEM), key, List.of()),
+                new TypeRegistration("RoleGrant", DOMAIN, IdentityClass.IDENTIFIER,
+                        java.util.Set.of(ROLE_CODE_SYSTEM), roleGrant, List.of()),
+                new TypeRegistration("LocalCredential", DOMAIN, IdentityClass.IDENTIFIER,
+                        java.util.Set.of(LOGIN_SYSTEM), credential, List.of()));
     }
 }
