@@ -360,7 +360,21 @@ Consequences to design for:
    equivalents or retirement — `_project` (obsolete: tenancy is structural in
    DBO), `_compartment` (one Subscription criteria), `CodeSystem/$import`,
    `Project/$init`, `$expunge` (becomes erasure-by-drop, §7.4), `$meta-add`.
-6. **Migration path off Medplum.** Not designed here yet — but R6's
-   version-agnostic core means jengu's R4 data can load as an R4 personality
-   tenant and upgrade-on-read toward R5/R6 later. Deserves its own concept doc
-   once the engine shape settles.
+6. **Migration path off Medplum — resolved.** Full inventory of every Medplum
+   dependency dimension in
+   [medplum-usage-inventory.md](medplum-usage-inventory.md); the path itself in
+   [medplum-migration.md](medplum-migration.md). Central finding: the hard
+   coupling is not storage (search/CRUD/conditional writes sit inside DBO
+   tier 1, behind a clean client seam) but **identity and tenancy expressed in
+   Medplum's proprietary vocabulary** — Project-per-tenant, roles on
+   `ProjectMembership`, credentials in `Project.setting[]`, and `Project.link[]`
+   zone chains (no FHIR equivalent). Hence: identity-first, storage-second.
+   Phases: (0) the already-planned Spring Authorization Server workstream
+   extracts identity while still on Medplum; (1) DBO reaches tier-1 parity
+   behind the per-tenant base-URL seam, starting with the embedded in-JVM
+   store replacing the Medplum testcontainer in dev/test; (2) tenant-by-tenant
+   greenfield flip (recreate from git; R4 NDJSON export→ingest only where
+   clinical data must survive; R5/R6 via upgrade-on-read later); (3) edge
+   drops Medplum+Redis, hosting DBO bundles in the edge JVM; (4) decommission.
+   No dual-write, no live-sync, no compat layer beyond the FHIR surface jengu
+   actually uses.
