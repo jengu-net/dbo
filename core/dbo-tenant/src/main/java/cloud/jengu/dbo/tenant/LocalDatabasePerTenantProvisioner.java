@@ -45,6 +45,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             }
             // already provisioned: attach (idempotent)
         }
+        applyTimeouts(dbName);
         DataSource pool = pools.computeIfAbsent(spec.code(), code -> {
             HikariConfig config = new HikariConfig();
             config.setJdbcUrl(tenantUrl(dbName));
@@ -80,6 +81,31 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
         } catch (SQLException e) {
             throw new IllegalStateException("deprovision failed for " + tenantCode, e);
         }
+    }
+
+    /**
+     * dbo#18 R3: worst-case feed delay becomes the timeout, by construction —
+     * idle-in-transaction and runaway transactions are capped per tenant
+     * database; the admin role is exempted (fidelity restores may run long).
+     */
+    private void applyTimeouts(String dbName) {
+        try (Connection c = DriverManager.getConnection(adminUrl, user, password)) {
+            for (String ddl : new String[] {
+                    "ALTER DATABASE " + dbName + " SET idle_in_transaction_session_timeout = '60s'",
+                    "ALTER DATABASE " + dbName + " SET transaction_timeout = '300s'",
+                    "ALTER ROLE " + quoteIdent(user) + " SET transaction_timeout = '0'",
+            }) {
+                try (PreparedStatement ps = c.prepareStatement(ddl)) {
+                    ps.execute();
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("timeout settings failed for " + dbName, e);
+        }
+    }
+
+    private static String quoteIdent(String ident) {
+        return "\"" + ident.replace("\"", "\"\"") + "\"";
     }
 
     private String tenantUrl(String dbName) {

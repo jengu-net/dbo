@@ -601,38 +601,63 @@ public final class PgObjectStore implements ObjectStore {
 
     @Override
     public int rebuildEnvelopes(String typeName) {
+        return rebuildEnvelopes(typeName, 500);
+    }
+
+    /**
+     * Chunked reindex (dbo#18 R2): each batch is its own SHORT transaction —
+     * a large reindex never pins the instance's xmin for its whole duration
+     * (the barrier-liveness lesson of dbo#16 applied to our own worst case).
+     * Idempotent per object, so interruption just means re-running.
+     */
+    public int rebuildEnvelopes(String typeName, int batchSize) {
         TypeRegistration type = registry.require(typeName);
         schema.applyIndexes(registry);
         String d = type.domain();
-        return inTx(c -> {
-            int count = 0;
-            try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT id, payload, payload_version FROM state.%s_data WHERE type = ? AND NOT deleted"
-                            .formatted(d))) {
-                ps.setString(1, typeName);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        UUID id = (UUID) rs.getObject(1);
-                        byte[] payload = rs.getBytes(2);
-                        String storedVersion = rs.getString(3);
-                        // extract from the CONVERTED view; the stored payload is not rewritten
-                        byte[] current = upgraded(type, new StoredObject(id.toString(), typeName,
-                                0, Instant.EPOCH, payload, false, storedVersion)).payload();
-                        Envelope envelope = type.extractor().extract(typeName, current);
-                        try (PreparedStatement up = c.prepareStatement(
-                                "UPDATE state.%s_data SET envelope = ?::jsonb WHERE id = ?".formatted(d))) {
-                            up.setString(1, JsonbCodec.envelopeJson(envelope.paths()));
-                            up.setObject(2, id);
-                            up.executeUpdate();
+        int total = 0;
+        UUID after = null;
+        while (true) {
+            final UUID cursor = after;
+            record Row(UUID id, byte[] payload, String storedVersion) {}
+            List<Row> batch = inTx(c -> {
+                List<Row> rows = new ArrayList<>();
+                String sql = cursor == null
+                        ? "SELECT id, payload, payload_version FROM state.%s_data WHERE type = ? AND NOT deleted ORDER BY id LIMIT ?"
+                        : "SELECT id, payload, payload_version FROM state.%s_data WHERE type = ? AND NOT deleted AND id > ? ORDER BY id LIMIT ?";
+                try (PreparedStatement ps = c.prepareStatement(sql.formatted(d))) {
+                    int p = 1;
+                    ps.setString(p++, typeName);
+                    if (cursor != null) {
+                        ps.setObject(p++, cursor);
+                    }
+                    ps.setInt(p, batchSize);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            rows.add(new Row((UUID) rs.getObject(1), rs.getBytes(2), rs.getString(3)));
                         }
-                        replaceIdentifiers(c, type, id, envelope.identifiers());
-                        replaceReferences(c, d, id, envelope.references());
-                        count++;
                     }
                 }
+                for (Row row : rows) {
+                    byte[] current = upgraded(type, new StoredObject(row.id().toString(), typeName,
+                            0, Instant.EPOCH, row.payload(), false, row.storedVersion())).payload();
+                    Envelope envelope = type.extractor().extract(typeName, current);
+                    try (PreparedStatement up = c.prepareStatement(
+                            "UPDATE state.%s_data SET envelope = ?::jsonb WHERE id = ?".formatted(d))) {
+                        up.setString(1, JsonbCodec.envelopeJson(envelope.paths()));
+                        up.setObject(2, row.id());
+                        up.executeUpdate();
+                    }
+                    replaceIdentifiers(c, type, row.id(), envelope.identifiers());
+                    replaceReferences(c, d, row.id(), envelope.references());
+                }
+                return rows;
+            });
+            total += batch.size();
+            if (batch.size() < batchSize) {
+                return total;
             }
-            return count;
-        });
+            after = batch.get(batch.size() - 1).id();
+        }
     }
 
     // -------------------------------------------------------------- helpers

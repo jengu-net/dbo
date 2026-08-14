@@ -265,6 +265,18 @@ class CoreEngineIT {
         assertEquals(versionBefore, after.versionId());
     }
 
+    /** dbo#18 R2: reindex runs in chunked short transactions across many objects. */
+    @Test
+    void reindexChunksAcrossManyObjects() {
+        for (int i = 0; i < 1100; i++) {
+            store.put(PutRequest.create("Reading",
+                    ("{\"metric\":\"bulk\",\"value\":" + i + ",\"gadget\":\"g\"}")
+                            .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        }
+        int rebuilt = store.rebuildEnvelopes("Reading", 500); // 3 chunked transactions
+        assertTrue(rebuilt >= 1100, "all objects reindexed across chunks, got " + rebuilt);
+    }
+
     /** UUIDv7 ids: version nibble 7, RFC variant, time-ordered across sequential writes. */
     @Test
     void generatedIdsAreTimeOrderedUuidV7() throws Exception {
