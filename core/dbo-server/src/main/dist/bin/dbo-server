@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# dbo serving distribution entrypoint: env -> system properties, then the
+# standard Felix launcher. Exactly one provisioner mode should be set:
+#   DBO_K8S_NAMESPACE            in-cluster (secrets-backed provisioner)
+#   DBO_ADMIN_JDBC_URL/USER/PASSWORD  local default (database-per-tenant)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+exec java \
+  -Ddbo.tenant.dir="${DBO_TENANT_DIR:?DBO_TENANT_DIR must point at the spec directory}" \
+  -Ddbo.tenant.http.host="${DBO_HTTP_HOST:-0.0.0.0}" \
+  -Ddbo.tenant.http.port="${DBO_HTTP_PORT:-8090}" \
+  ${DBO_K8S_NAMESPACE:+-Ddbo.tenant.k8s.namespace="${DBO_K8S_NAMESPACE}"} \
+  ${DBO_ADMIN_JDBC_URL:+-Ddbo.tenant.admin.url="${DBO_ADMIN_JDBC_URL}"} \
+  ${DBO_ADMIN_USER:+-Ddbo.tenant.admin.user="${DBO_ADMIN_USER}"} \
+  ${DBO_ADMIN_PASSWORD:+-Ddbo.tenant.admin.password="${DBO_ADMIN_PASSWORD}"} \
+  ${DBO_JAVA_OPTS:-} \
+  -jar bin/felix.jar

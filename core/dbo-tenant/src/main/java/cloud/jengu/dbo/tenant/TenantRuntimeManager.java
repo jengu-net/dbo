@@ -111,7 +111,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                 bringUp(spec);
                             }
                         } catch (Exception e) {
-                            // a malformed spec provisions nothing; visible via absence
+                            // a malformed spec provisions nothing — but the
+                            // failure must be diagnosable from the process
+                            // output, not only via absence
+                            System.err.println("dbo-tenant: bring-up failed for " + f.getFileName());
+                            e.printStackTrace();
                         }
                     });
         } catch (IOException e) {
