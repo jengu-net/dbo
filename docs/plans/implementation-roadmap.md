@@ -6,7 +6,7 @@ Updated at the close of every slice. The spec lives in the arc42 tree
 proof live on its GitHub issue.
 
 **State as of 2026-08-14: spec phase complete, 14 implementation slices closed,
-121 behaviour-named tests, CI green on every commit.**
+126 behaviour-named tests, CI green on every commit.**
 
 ## Spikes (all closed, verdicts in [arc42-009](../arc42-009-architecture-decisions/README.md))
 
@@ -37,6 +37,7 @@ proof live on its GitHub issue.
 | [#19](https://github.com/jengu-net/dbo/issues/19) Serving deployment (Slice C) | `dbo-tenant-k8s` fat bundle (fabric8 private; `KubernetesSecretProvisioner` as the mandatory service when `dbo.tenant.k8s.namespace` set; serving-pod RBAC = `secrets: get` only — deprovision unrepresentable) + `dbo-server` dist: the STANDARD Felix launcher (`org.apache.felix.main`, auto-deploy over `bundle/`, zero launcher code; bin/felix.jar layout is load-bearing — Felix homes on the jar's parent) + image via the platform registry pattern. Barrier CORRECTED: the R1 in-statement liveness check raced (writer committing between snapshot and stat scan = event lost); now a local horizon (snapshot xmax when write-quiet, taken BEFORE the read snapshot) with cluster-xmin fallback. Cold start measured: ~5.0s dist-boot → first 200 on a current schema | **CONT-FAST-COLD-START** (measured), completes TEN serving story |
 | [#20](https://github.com/jengu-net/dbo/issues/20) Tenant authority (Slice D) | `dbo-auth` (zero-dep JDK crypto: JWS RS256, JWK/JWKS, PBKDF2 secret hashing, SMART system-scope grammar) + the identity sibling model (`ClientApplication`/`SigningKey` as REGULAR RECORDS in the tenant's own store, domain `identity`); per-tenant OIDC authority at `/t/<code>/oidc` (discovery, JWKS, client_credentials); store surface accepts ONLY the tenant's own tokens — cross-tenant dies at signature verification; key rotation via records (retired keys verify until removed); bootstrap client secret rides the tenant k8s Secret; dist refuses to boot without an authority (exit 78 naming the REQ) | **AUTH-TENANT-SCOPED-ISSUER**, **AUTH-IDENTITY-AS-RECORDS**, **AUTH-DENY-BY-DEFAULT**, **AUTH-BEARER-LOCAL-VALIDATION**, **AUTH-SMART-SHAPED-SCOPES**, **AUTH-PORTABLE-AUTHORITY** |
 | [#21](https://github.com/jengu-net/dbo/issues/21) Personal-data isolation (Slice E) | `dbo-pdi`: identifying elements encrypted IN the payload (`__pdiEnc`, per-person AES-GCM keys) — one atomic engine write; history/envelopes/feed/archives/sync carry ciphertext BY CONSTRUCTION; vault holds only wrapped keys + HMAC identifier index + restriction flag + shred ledger; person-type identity moves vault-side (no-implicit-merge survives); crypto-shredding = destroy the key (unfindable via index-row deletion); restore MERGES the ledger (never replaces) and replays it — a pre-shred archive cannot resurrect; opt-in per tenant (`"pdi": true`, requires the authority's KEK); grep-the-bytes proof: plaintext nowhere | **PDI-*** (all 6) |
+| [#22](https://github.com/jengu-net/dbo/issues/22) Tenant policies (Slice F) | `dbo-policy`: audit entries as REGULAR RECORDS in the tenant's own `audit` domain (own outbox — subscriptions can watch access; actor from the `Caller` seam set by token validation); append-only discipline rejects tombstones with a policy-naming error (409 OperationOutcome over REST; per-type overrides); declarative retention (keepAtLeast ≤ removeAfter validated at parse; sweep removes expired objects from state AND history as the one sanctioned mutation, itself audited without retaining data; bring-up sweep = a restored pre-sweep archive comes up already swept); posture declared in the capability statement; CRD schema + operator re-emit carry `pdi`+policy blocks (closing the Slice E structural-pruning gap) | **POL-*** (all 8) |
 | [#12](https://github.com/jengu-net/dbo/issues/12) REST surface | `dbo-rest` (JDK HttpServer, virtual threads, zero deps) over `FhirStoreFacade`: full CRUD w/ ETag/If-Match/If-None-Exist, absolute link[next] paging, OperationOutcome errors (400/409/412/422), `_history`, `$expand`/`$lookup`/`$validate-code`, generated `/metadata`; version-generic (R4+R5 servers) | **SRCH-HONEST-CAPABILITY** |
 
 ## REQ coverage summary
@@ -66,9 +67,9 @@ yet implemented.
 3. **Enable PDI for real tenants** — flip `"pdi": true` in registrations
    (greenfield: hogwarts' pre-PDI plaintext records need recreate-or-accept;
    decide before real PHI)
-4. **Tenant policies (Slice F)** — [#22](https://github.com/jengu-net/dbo/issues/22)
-   (groomed against §15): audit level + write discipline declared per
-   tenant next to fhirVersion; engine-enforced; after Slice D
+4. **Durable retention sweep** — promote the in-process periodic sweep to
+   a DBOS scheduled workflow when per-tenant DBOS wiring lands (the sweep
+   is idempotent, so the in-process form is correct, just not durable)
 2. **Slice B infra PR** — MERGED as
    [jengu-infra#18](https://github.com/jengu-net/jengu-infra/pull/18):
    cloud-init `dbo_provisioner` role, standing `samerole` pg_hba rule for

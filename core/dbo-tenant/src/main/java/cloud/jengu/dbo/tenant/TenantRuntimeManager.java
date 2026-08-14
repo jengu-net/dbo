@@ -58,6 +58,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, TenantRuntime> runtimes = new ConcurrentHashMap<>();
     private final AuthorityConfig authorityConfig;
     private final Map<String, String> authorityContexts = new ConcurrentHashMap<>();
+    private final Map<String, cloud.jengu.dbo.policy.RetentionSweep> sweeps = new ConcurrentHashMap<>();
+    private volatile long lastSweepMillis;
     private volatile Thread scanner;
     private volatile boolean running;
 
@@ -171,18 +173,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
         TenantRuntime runtime;
         if ("r4".equals(spec.fhirVersion())) {
             R4Personality personality = new R4Personality(spec.types());
-            ObjectStore engine = pdiWrapped(spec, db, personality.registrations());
+            ObjectStore engine = policyWrapped(spec, db, personality.registrations(), R4Personality.DOMAIN);
             FhirStoreFacade store = new R4Store(engine, personality, base);
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R4Personality.DOMAIN),
-                    new FhirHttpServer(sharedServer, store, null, "/t/" + spec.code() + "/fhir", guard));
+                    withPolicyNote(new FhirHttpServer(sharedServer, store, null,
+                            "/t/" + spec.code() + "/fhir", guard), spec));
         } else {
             R5Personality personality = new R5Personality(spec.types());
-            ObjectStore engine = pdiWrapped(spec, db, personality.registrations());
+            ObjectStore engine = policyWrapped(spec, db, personality.registrations(), R5Personality.DOMAIN);
             FhirStoreFacade store = new R5Store(engine, personality, base);
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R5Personality.DOMAIN),
-                    new FhirHttpServer(sharedServer, store, null, "/t/" + spec.code() + "/fhir", guard));
+                    withPolicyNote(new FhirHttpServer(sharedServer, store, null,
+                            "/t/" + spec.code() + "/fhir", guard), spec));
         }
         runtimes.put(spec.code(), runtime);
         listener.tenantUp(runtime);
@@ -212,6 +216,37 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 pdiSpec);
     }
 
+    /**
+     * §15: the policy decorator is OUTERMOST (audit sees interactions after
+     * authorization, never content); the AuditEntry model joins the engine's
+     * registrations so entries are regular records in the tenant's store;
+     * retention sweeps at bring-up (a restored pre-sweep archive comes up
+     * already swept) and periodically from the scan loop.
+     */
+    private ObjectStore policyWrapped(TenantSpec spec,
+            TenantDatabaseProvisioner.TenantDatabase db,
+            java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> registrations,
+            String domain) {
+        java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> all =
+                new java.util.ArrayList<>(registrations);
+        all.addAll(cloud.jengu.dbo.policy.AuditModel.registrations());
+        ObjectStore engine = pdiWrapped(spec, db, all);
+        cloud.jengu.dbo.policy.PolicyObjectStore policyStore =
+                new cloud.jengu.dbo.policy.PolicyObjectStore(engine, spec.policies());
+        if (!spec.policies().retention().isEmpty()) {
+            cloud.jengu.dbo.policy.RetentionSweep sweep = new cloud.jengu.dbo.policy.RetentionSweep(
+                    db.dataSource(), domain, spec.policies(), policyStore);
+            sweep.sweepOnce();
+            sweeps.put(spec.code(), sweep);
+        }
+        return policyStore;
+    }
+
+    private static FhirHttpServer withPolicyNote(FhirHttpServer server, TenantSpec spec) {
+        server.policyNote = spec.policies().describe();
+        return server;
+    }
+
     private void takeDown(String code) {
         TenantRuntime runtime = runtimes.remove(code);
         if (runtime == null) {
@@ -219,6 +254,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         listener.tenantDown(code);
         runtime.endpoint().close();
+        sweeps.remove(code);
         String oidcPath = authorityContexts.remove(code);
         if (oidcPath != null) {
             sharedServer.removeContext(oidcPath);
@@ -236,6 +272,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
             while (running) {
                 try {
                     scanOnce();
+                    if (System.currentTimeMillis() - lastSweepMillis > 3_600_000) {
+                        lastSweepMillis = System.currentTimeMillis();
+                        sweeps.values().forEach(cloud.jengu.dbo.policy.RetentionSweep::sweepOnce);
+                    }
                     Thread.sleep(pollMillis);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();

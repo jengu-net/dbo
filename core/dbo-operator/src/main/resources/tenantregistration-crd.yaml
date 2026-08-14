@@ -32,6 +32,37 @@ spec:
                   type: string
                   enum: [Retain, Delete]
                   default: Retain
+                pdi:
+                  type: boolean
+                audit:
+                  type: object
+                  properties:
+                    level:
+                      type: string
+                      enum: [none, writes, full]
+                writeDiscipline:
+                  type: object
+                  properties:
+                    default:
+                      type: string
+                      enum: [standard, append-only]
+                    perType:
+                      type: object
+                      additionalProperties:
+                        type: string
+                        enum: [standard, append-only]
+                retention:
+                  type: object
+                  properties:
+                    perType:
+                      type: object
+                      additionalProperties:
+                        type: object
+                        properties:
+                          keepAtLeast:
+                            type: string
+                          removeAfter:
+                            type: string
                 types:
                   type: array
                   minItems: 1
