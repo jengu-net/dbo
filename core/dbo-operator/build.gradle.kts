@@ -5,7 +5,30 @@
 // side: KubernetesSecretProvisioner (the dbo#17 seam backed by tenant
 // Secrets) and SpecDirSync (ConfigMap -> the manager's spec directory).
 
+plugins {
+    application
+}
+
+application {
+    mainClass = "cloud.jengu.dbo.operator.Main"
+}
+
+// The operator process does plain JDBC + the k8s API. dbo-tenant's serving
+// stack (personalities with private HAPI, REST, engine) reaches this
+// module's runtime classpath transitively but is only exercised by
+// TenantRuntimeManager — which runs in the SERVING process, never in the
+// operator pod. Excluding it keeps the image ~30MB instead of ~500MB.
+configurations.runtimeClasspath {
+    exclude(group = "cloud.jengu.dbo", module = "dbo-fhir-r4")
+    exclude(group = "cloud.jengu.dbo", module = "dbo-fhir-r5")
+    exclude(group = "cloud.jengu.dbo", module = "dbo-rest")
+    exclude(group = "cloud.jengu.dbo", module = "dbo-postgres")
+}
+
 dependencies {
+    // the JDBC driver must be on the runtime classpath — the operator is a
+    // standalone process, nothing else supplies it
+    runtimeOnly("org.postgresql:postgresql:42.7.11")
     api(project(":core:dbo-tenant"))
     api("io.fabric8:kubernetes-client:7.3.1")
     // dbo-tenant embeds Hikari privately (bundle pattern); as a plain jar we
