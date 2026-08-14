@@ -5,8 +5,8 @@ no R5/R6 roadmap, while Estonia's national base FHIR is already R5 and jengu's d
 strength is significantly upgraded in R5/R6. DBO is the specification of an "ideal"
 FHIR storage for jengu's actual needs.
 
-These are the founding requirements. Each will later decompose into precise,
-testable REQs; at this stage they fix direction.
+These are the founding requirements; they fix direction. Their distillation
+into stable, testable REQ IDs lives in [req-catalogue.md](req-catalogue.md).
 
 ## R1 — Java
 
