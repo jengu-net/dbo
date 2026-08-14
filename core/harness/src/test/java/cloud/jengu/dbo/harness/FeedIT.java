@@ -185,8 +185,33 @@ class FeedIT {
         assertTrue(done.await(10, TimeUnit.SECONDS));
         assertEquals(List.of(), writerFailures.stream().map(Throwable::toString).toList(),
                 "writer threads must not fail");
+        // the xmin barrier is CLUSTER-GLOBAL: a long transaction in ANY
+        // database of the instance delays delivery (liveness, not loss).
+        // On shortfall, name the pinner so the next occurrence is a diagnosis.
         assertEquals((long) writers * perWriter, delivered.size(),
-                "every committed write must be delivered exactly once");
+                "every committed write must be delivered exactly once; open transactions: "
+                        + activeTransactions());
+    }
+
+    private String activeTransactions() {
+        try (var c = ds.getConnection();
+             var ps = c.prepareStatement("""
+                     SELECT datname, state, now() - xact_start AS age, left(query, 120)
+                     FROM pg_stat_activity
+                     WHERE backend_xid IS NOT NULL OR backend_xmin IS NOT NULL
+                     ORDER BY xact_start""");
+             var rs = ps.executeQuery()) {
+            StringBuilder sb = new StringBuilder();
+            while (rs.next()) {
+                sb.append("[db=").append(rs.getString(1))
+                  .append(" state=").append(rs.getString(2))
+                  .append(" age=").append(rs.getString(3))
+                  .append(" q=").append(rs.getString(4)).append("] ");
+            }
+            return sb.isEmpty() ? "none" : sb.toString();
+        } catch (Exception e) {
+            return "unavailable: " + e.getMessage();
+        }
     }
 
     /** REQ-DBO-FEED-KEYSET-CURSORS: pages advance strictly, no duplicates, stable under mid-pagination writes. */
