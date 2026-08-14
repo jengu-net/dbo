@@ -10,6 +10,7 @@ configurations.implementation.get().extendsFrom(embedded)
 dependencies {
     api(project(":core:dbo-core"))
     api(project(":core:dbo-fhir-common"))
+    api(project(":core:dbo-subscriptions"))
     embedded("ca.uhn.hapi.fhir:hapi-fhir-structures-r5:8.10.1")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-validation:8.10.1")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r5:8.10.1")
@@ -33,6 +34,7 @@ tasks.jar {
                     "cloud.jengu.dbo.core.api.feed;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.core;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.fhir.common;version=\"[0.1,1)\"",
+                    "cloud.jengu.dbo.subscriptions;version=\"[0.1,1)\"",
                     "javax.naming;resolution:=optional",
                     "javax.naming.spi;resolution:=optional",
                     "javax.management;resolution:=optional",

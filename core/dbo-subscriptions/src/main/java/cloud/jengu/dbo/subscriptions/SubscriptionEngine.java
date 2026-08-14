@@ -21,8 +21,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -58,6 +60,9 @@ public final class SubscriptionEngine implements AutoCloseable {
     private final DBOS dbos;
     private final DeliveryWorkflows deliveryProxy;
     private final List<BiConsumer<SubscriptionSpec, String>> localListeners = new CopyOnWriteArrayList<>();
+    private volatile TopicSubscriptionSource topicSource;
+    private volatile NotificationComposer notificationComposer;
+    private volatile BiFunction<String, Map<String, String>, Criteria> filterCompiler;
     private volatile Thread dispatcherThread;
     private volatile boolean running;
 
@@ -124,8 +129,9 @@ public final class SubscriptionEngine implements AutoCloseable {
         }
         List<SubscriptionSpec> active = source.active();
         for (FeedItem item : chunk.items()) {
+            dispatchTopics(item); // topic path sees every kind incl. deletes
             if (item.kind() == ChangeKind.DELETED) {
-                continue; // rest-hook notifies on create/update in this slice
+                continue; // criteria-string rest-hooks notify on create/update
             }
             for (SubscriptionSpec sub : active) {
                 if (!matches(sub, item)) {
@@ -156,6 +162,88 @@ public final class SubscriptionEngine implements AutoCloseable {
             return false;
         }
         return store.count(criteria.idEquals(item.objectId())) > 0;
+    }
+
+    /**
+     * Enables the topic-based path (dbo#15): topics + subscriptions from the
+     * personality source, notifications shaped by the composer, filters
+     * compiled through the personality's strict search compiler.
+     */
+    public SubscriptionEngine withTopics(TopicSubscriptionSource source,
+            NotificationComposer composer,
+            BiFunction<String, Map<String, String>, Criteria> filterCompiler) {
+        this.topicSource = source;
+        this.notificationComposer = composer;
+        this.filterCompiler = filterCompiler;
+        ensureTopicCounterTable();
+        return this;
+    }
+
+    private void dispatchTopics(FeedItem item) {
+        TopicSubscriptionSource source = topicSource;
+        if (source == null) {
+            return;
+        }
+        Map<String, TopicSpec> topicsByUrl = new java.util.LinkedHashMap<>();
+        for (TopicSpec topic : source.topics()) {
+            topicsByUrl.put(topic.url(), topic);
+        }
+        for (TopicSubscription sub : source.activeTopicSubscriptions()) {
+            TopicSpec topic = topicsByUrl.get(sub.topicUrl());
+            if (topic == null
+                    || !topic.resourceType().equals(item.typeName())
+                    || !topic.interactions().contains(item.kind())) {
+                continue;
+            }
+            // strictness at the source: filters must lie within canFilterBy
+            if (!topic.allowedFilterParams().containsAll(sub.filters().keySet())) {
+                continue; // nonconforming subscription delivers nothing
+            }
+            // DELETE events match on type+interaction only: the tombstoned
+            // envelope cannot answer filters (queryCriteria.previous = follow-up)
+            if (item.kind() != ChangeKind.DELETED && !sub.filters().isEmpty()) {
+                Criteria criteria = filterCompiler.apply(topic.resourceType(), sub.filters());
+                if (store.count(criteria.idEquals(item.objectId())) == 0) {
+                    continue;
+                }
+            }
+            long eventNumber = nextEventNumber(sub.id());
+            String notification = notificationComposer.compose(sub, topic, item, eventNumber);
+            String workflowId = sub.id() + ":" + item.seq();
+            dbos.startWorkflow(
+                    () -> deliveryProxy.deliver(sub.id(), sub.endpoint(), notification, item.seq()),
+                    new StartWorkflowOptions(workflowId).withQueue(QUEUE));
+        }
+    }
+
+    private long nextEventNumber(String subscriptionId) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     INSERT INTO state.%s_topic_counter (subscription_id, events)
+                     VALUES (?, 1)
+                     ON CONFLICT (subscription_id) DO UPDATE SET events = %s_topic_counter.events + 1
+                     RETURNING events""".formatted(domain, domain))) {
+            ps.setString(1, subscriptionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("event counter failed", e);
+        }
+    }
+
+    private void ensureTopicCounterTable() {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     CREATE TABLE IF NOT EXISTS state.%s_topic_counter (
+                       subscription_id text PRIMARY KEY,
+                       events bigint NOT NULL
+                     )""".formatted(domain))) {
+            ps.execute();
+        } catch (SQLException e) {
+            throw new IllegalStateException("counter setup failed", e);
+        }
     }
 
     /** In-process surface: same matching, direct callback (REQ-DBO-EVT-IN-PROCESS-SURFACE). */

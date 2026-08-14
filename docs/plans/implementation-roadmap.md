@@ -5,8 +5,8 @@ Updated at the close of every slice. The spec lives in the arc42 tree
 ([index](../README.md)); each slice's full Definition of Ready and closing
 proof live on its GitHub issue.
 
-**State as of 2026-08-14: spec phase complete, 11 implementation slices closed,
-82 behaviour-named tests, CI green on every commit.**
+**State as of 2026-08-14: spec phase complete, 12 implementation slices closed,
+87 behaviour-named tests, CI green on every commit.**
 
 ## Spikes (all closed, verdicts in [arc42-009](../arc42-009-architecture-decisions/README.md))
 
@@ -28,6 +28,7 @@ proof live on its GitHub issue.
 | [#9](https://github.com/jengu-net/dbo/issues/9) Terminology native form | `dbo-terminology`: concept-per-row, 40k-concept COPY in 534ms, is-a expand, $lookup/$validate-code/$expand; shell honesty (content=not-present) | TERM-* (3), CORE-DECLARED-TRUTH-FORM |
 | [#10](https://github.com/jengu-net/dbo/issues/10) R5 personality | `dbo-fhir-common` + `dbo-fhir-r5`; R4+R5 concurrent over one DB, **zero core diffs** | **VER-CONCURRENT-VERSIONS**, VER-VERSION-AGNOSTIC-CORE |
 | [#11](https://github.com/jengu-net/dbo/issues/11) Upgrade-on-read | `payload_version` + PayloadConverter chain on reads (history exempt); `R4ToR5Converter`; converter+reindex transition of a live domain | **CORE-UPGRADE-ON-READ**, VER-TRANSITION-BY-CONVERTERS |
+| [#15](https://github.com/jengu-net/dbo/issues/15) SubscriptionTopic delivery | Topic-based subscriptions in the same engine: `TopicSpec`/`TopicSubscription` + composer SPI; R5-native (stored SubscriptionTopic + R5 Subscription → subscription-notification Bundle with SubscriptionStatus, event numbering, id-only/full content); R4 backport (configured topics, criteria=url + filter extension → history Bundle + Parameters status); canFilterBy strictness; delete interactions | **EVT-FHIR-SUBSCRIPTIONS** (complete) |
 | [#14](https://github.com/jengu-net/dbo/issues/14) Sync streams | `dbo-sync`: declared content dependencies over the feed — provenance-tagged copies (source id kept), conflict-driven shadowing with live fallback via `reconcile()`, convert-at-apply (R4 zone → R5 leaf), dead-letter + degraded, chains hop-by-hop through each store's own outbox; `FeedItem` now carries `payloadVersion` | **SYNC-*** (all 6) |
 | [#13](https://github.com/jengu-net/dbo/issues/13) OSGi packaging | All modules are real bundles: personalities embed private HAPI, subscriptions embeds private DBOS (`lib/` nested jars, DBO-only exports); `EmbeddedContainerIT` boots 8 production bundles + driver in in-JVM Felix and serves a live FHIR flow over HTTP | **CONT-EMBEDDED-IN-JVM**, **CONT-PRIVATE-DEPENDENCIES** |
 | [#12](https://github.com/jengu-net/dbo/issues/12) REST surface | `dbo-rest` (JDK HttpServer, virtual threads, zero deps) over `FhirStoreFacade`: full CRUD w/ ETag/If-Match/If-None-Exist, absolute link[next] paging, OperationOutcome errors (400/409/412/422), `_history`, `$expand`/`$lookup`/`$validate-code`, generated `/metadata`; version-generic (R4+R5 servers) | **SRCH-HONEST-CAPABILITY** |
@@ -37,8 +38,7 @@ proof live on its GitHub issue.
 Claimed and test-proven: **CORE** complete (incl. truth-form, identity rules,
 upgrade-on-read) · **VER** complete except R6 (no ballot personality yet) ·
 **SRCH** tier-1 complete (tiers 2/3 deliberately unclaimed) · **FEED** complete
-except LEAN-WIRE-OPTION (needs a wire) · **EVT** complete except full R5/R6
-SubscriptionTopic model · **TERM** complete · **CONT** complete except
+except LEAN-WIRE-OPTION (needs a wire) · **EVT** complete · **TERM** complete · **CONT** complete except
 FAST-COLD-START measurement (embedded + private-deps proven; container
 wiring = tenant provisioner is TEN work) ·
 **SYNC** complete at the
@@ -48,10 +48,9 @@ implemented.
 
 ## Next fronts (unordered candidates, groom before starting)
 
-1. **SubscriptionTopic delivery** — completes EVT-FHIR-SUBSCRIPTIONS
-2. **Tenant provisioning operator + planes** (TEN/WF beyond the schemas) —
+1. **Tenant provisioning operator + planes** (TEN/WF beyond the schemas) —
    needs a k8s environment decision
-3. **Maintenance export/import** (MNT) — backup=export over the feed fence
+2. **Maintenance export/import** (MNT) — backup=export over the feed fence
 
 Later horizons: routing layer (SCAL), process catalogue (PROC), R6 ballot
 personality, shared-RLS tier, blob storage (OPS).
