@@ -114,15 +114,14 @@ application code: registry lookup by tenant id — uses the pool,
 - Assignment maps tenants → pods: a pod serves one or more tenants; a big tenant
   spans multiple pods. The assignment itself is durable state (DBOS) with
   version-driven takeover semantics inherited from the legacy election design.
-- **dOSGi (OSGi Remote Services)** is the candidate mechanism for routing: a
-  tenant's `ObjectStore` service is local on its serving pods and a remote proxy
-  everywhere else, so callers do a plain registry lookup and the topology is
-  invisible. This is application-level, tenant-smart routing; Kubernetes only runs
-  instances and enforces the security layer.
-- Fallback if dOSGi RSA implementations (Aries RSA, ECF) prove too rusty: same
-  routing model over a thin gRPC/HTTP layer with the OSGi registry still holding
-  the routing table — the *concept* (registry-driven tenant routing) survives the
-  transport choice.
+- Routing is **dOSGi-like**: a tenant's `ObjectStore` service is local on its
+  serving pods and a remote proxy everywhere else, so callers do a plain registry
+  lookup and the topology is invisible. This is application-level, tenant-smart
+  routing; Kubernetes only runs instances and enforces the security layer.
+- The layer is **our own**, purpose-built (see §7.2): registry programming model
+  and remote proxies as in OSGi Remote Services, but discovery driven by the
+  durable tenant→pod assignment and a single controlled transport — not a full
+  RSA implementation (Aries RSA / ECF serve as prior art only).
 
 ### Two-hop routing: locality first, tenancy second
 
@@ -183,8 +182,21 @@ Consequences to design for:
    proxying/reflection under a bundle classloader) rather than architecture.
    Worst case remains: implement the DBOS *patterns* (Postgres queues, exactly-
    once steps) natively in dbo-core behind the same whiteboard interfaces.
-2. **dOSGi maturity.** Aries RSA / ECF activity is low. §5's fallback keeps the
-   concept independent of the implementation. Needs an early spike with a verdict.
+2. **dOSGi layer — build our own.** Aries RSA / ECF activity is low, and the
+   full Remote Services spec solves a general problem we don't have. Current
+   thinking: a **purpose-built dOSGi-like layer** shaped by our actual needs —
+   remote proxies for a *known, small* set of DBO-owned service interfaces;
+   discovery from the durable tenant→pod assignment (DBOS state) instead of
+   generic topology gossip; tenant id + locality + serving-role as first-class
+   routing properties rather than opaque service filters; one transport we
+   control (gRPC or plain HTTP/2) with mTLS inside the mesh. The OSGi service
+   registry stays the programming model (consumers look up `ObjectStore` for a
+   tenant and may get a local instance or a remote proxy — indistinguishable);
+   we just don't buy the spec's generality: no dynamic interface export, no
+   pluggable discovery providers, no config-admin ceremony. Aries RSA/ECF
+   remain reference material for proxy/classloader mechanics. The spike now
+   sizes our own layer (proxy generation over a fixed interface set is small)
+   rather than auditing someone else's.
 3. **HAPI as personality dependency?** HAPI structures per FHIR version inside
    separate bundles would give parsing/validation for free and OSGi would isolate
    the version conflicts that make multi-version HAPI impossible in one flat
