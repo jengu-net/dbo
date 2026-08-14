@@ -25,7 +25,15 @@ class ApiBoundaryTest {
 
     @Test
     void noPublicApiOfTheR4PersonalityExposesHapiTypes() throws Exception {
-        Path jar = Path.of(System.getProperty("dbo.fhir.r4.jar"));
+        scanPersonalityJar(Path.of(System.getProperty("dbo.fhir.r4.jar")));
+    }
+
+    @Test
+    void noPublicApiOfTheR5PersonalityExposesHapiTypes() throws Exception {
+        scanPersonalityJar(Path.of(System.getProperty("dbo.fhir.r5.jar")));
+    }
+
+    private void scanPersonalityJar(Path jar) throws Exception {
         List<String> classNames = new ArrayList<>();
         try (JarFile jf = new JarFile(jar.toFile())) {
             Enumeration<JarEntry> entries = jf.entries();
@@ -36,7 +44,7 @@ class ApiBoundaryTest {
                 }
             }
         }
-        assertTrue(classNames.size() >= 4, "expected the personality classes in the jar");
+        assertTrue(classNames.size() >= 2, "expected the personality classes in the jar");
 
         List<String> leaks = new ArrayList<>();
         for (String name : classNames) {

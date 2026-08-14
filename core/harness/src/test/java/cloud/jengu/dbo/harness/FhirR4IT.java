@@ -5,9 +5,9 @@ import cloud.jengu.dbo.core.api.IdentityConflictException;
 import cloud.jengu.dbo.core.api.PutResult;
 import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.fhir.r4.R4Store;
-import cloud.jengu.dbo.fhir.r4.R4TypeConfig;
-import cloud.jengu.dbo.fhir.r4.UnknownSearchParameterException;
-import cloud.jengu.dbo.fhir.r4.ValidationFailedException;
+import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
+import cloud.jengu.dbo.fhir.common.UnknownSearchParameterException;
+import cloud.jengu.dbo.fhir.common.ValidationFailedException;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
@@ -51,9 +51,9 @@ class FhirR4IT {
         DataSource ds = pg;
 
         R4Personality personality = new R4Personality(List.of(
-                R4TypeConfig.identifier("Patient", EID),
-                R4TypeConfig.internal("Observation"),
-                R4TypeConfig.canonical("ValueSet")));
+                FhirTypeConfig.identifier("Patient", EID),
+                FhirTypeConfig.internal("Observation"),
+                FhirTypeConfig.canonical("ValueSet")));
         engine = new PgObjectStore(ds, personality.registrations());
         fhir = new R4Store(engine, personality, "https://dbo.test/fhir");
     }

@@ -3,6 +3,7 @@ dependencies {
     testImplementation(project(":core:dbo-postgres"))
     testImplementation(project(":core:dbo-test-model"))
     testImplementation(project(":core:dbo-fhir-r4"))
+    testImplementation(project(":core:dbo-fhir-r5"))
     testImplementation(project(":core:dbo-subscriptions"))
     testImplementation(project(":core:dbo-terminology"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
@@ -25,7 +26,11 @@ tasks.test {
         "dbo.postgres.jar",
         project(":core:dbo-postgres").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
     )
-    dependsOn(":core:dbo-terminology:jar")
+    dependsOn(":core:dbo-terminology:jar", ":core:dbo-fhir-r5:jar")
+    systemProperty(
+        "dbo.fhir.r5.jar",
+        project(":core:dbo-fhir-r5").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
+    )
     systemProperty(
         "dbo.terminology.jar",
         project(":core:dbo-terminology").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
