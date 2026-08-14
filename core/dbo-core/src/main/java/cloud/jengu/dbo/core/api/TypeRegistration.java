@@ -18,7 +18,14 @@ public record TypeRegistration(
         IdentityClass identityClass,
         Set<String> identitySystems,
         EnvelopeExtractor extractor,
-        List<IndexSpec> indexes) {
+        List<IndexSpec> indexes,
+        String payloadVersion) {
+
+    /** Without an explicit payload version: "1" (models that never migrate need not care). */
+    public TypeRegistration(String typeName, String domain, IdentityClass identityClass,
+            Set<String> identitySystems, EnvelopeExtractor extractor, List<IndexSpec> indexes) {
+        this(typeName, domain, identityClass, identitySystems, extractor, indexes, "1");
+    }
 
     private static final Pattern NAME = Pattern.compile("[A-Za-z][A-Za-z0-9]{0,63}");
     private static final Pattern DOMAIN = Pattern.compile("[a-z][a-z0-9_]{0,31}");
@@ -59,5 +66,6 @@ public record TypeRegistration(
         for (IndexSpec ix : indexes) {
             Paths.requireValid(ix.path());
         }
+        Objects.requireNonNull(payloadVersion, "payloadVersion");
     }
 }

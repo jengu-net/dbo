@@ -56,6 +56,9 @@ public final class R5Personality {
 
     public static final String DOMAIN = "r5";
 
+    /** The payload schema version this personality writes. */
+    public static final String PAYLOAD_VERSION = "5.0";
+
     private final Map<String, FhirTypeConfig> types = new LinkedHashMap<>();
     private volatile FhirContext ctx;
     private volatile FhirValidator validator;
@@ -69,12 +72,17 @@ public final class R5Personality {
     // -------------------------------------------------------- registrations
 
     public List<TypeRegistration> registrations() {
+        return registrations(DOMAIN);
+    }
+
+    /** Registrations over an explicit domain — the re-binding seam for version transitions (dbo#11). */
+    public List<TypeRegistration> registrations(String domain) {
         List<TypeRegistration> out = new ArrayList<>();
         for (FhirTypeConfig t : types.values()) {
             EnvelopeExtractor extractor = (typeName, payload) -> withTccl(() -> extract(typeName, payload));
             List<IndexSpec> indexes = defaultIndexes(t.typeName());
-            out.add(new TypeRegistration(t.typeName(), DOMAIN, t.identityClass(),
-                    t.identitySystems(), extractor, indexes));
+            out.add(new TypeRegistration(t.typeName(), domain, t.identityClass(),
+                    t.identitySystems(), extractor, indexes, PAYLOAD_VERSION));
         }
         return out;
     }

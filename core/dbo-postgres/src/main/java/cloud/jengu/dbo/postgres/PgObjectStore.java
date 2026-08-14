@@ -8,6 +8,7 @@ import cloud.jengu.dbo.core.api.Identifier;
 import cloud.jengu.dbo.core.api.IdentityConflictException;
 import cloud.jengu.dbo.core.api.IdentityRef;
 import cloud.jengu.dbo.core.api.ObjectStore;
+import cloud.jengu.dbo.core.api.PayloadConverter;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.PutResult;
 import cloud.jengu.dbo.core.api.StoredObject;
@@ -39,12 +40,51 @@ public final class PgObjectStore implements ObjectStore {
     private final DataSource ds;
     private final TypeRegistry registry;
     private final SchemaManager schema;
+    private final java.util.Map<String, PayloadConverter> convertersByFrom = new java.util.LinkedHashMap<>();
 
     public PgObjectStore(DataSource dataSource, List<TypeRegistration> registrations) {
+        this(dataSource, registrations, List.of());
+    }
+
+    public PgObjectStore(DataSource dataSource, List<TypeRegistration> registrations,
+            List<PayloadConverter> converters) {
         this.ds = dataSource;
         this.registry = new TypeRegistry(registrations);
         this.schema = new SchemaManager(dataSource);
+        for (PayloadConverter converter : converters) {
+            if (convertersByFrom.put(converter.fromVersion(), converter) != null) {
+                throw new IllegalArgumentException(
+                        "duplicate converter from version " + converter.fromVersion());
+            }
+        }
         schema.ensureSchema(registry);
+    }
+
+    /**
+     * Lazy upgrade on read (REQ-DBO-CORE-UPGRADE-ON-READ): walk the converter
+     * chain from the stored version to the registration's current version.
+     * Stored bytes are never rewritten.
+     */
+    private StoredObject upgraded(TypeRegistration type, StoredObject stored) {
+        if (stored.payloadVersion().equals(type.payloadVersion())) {
+            return stored;
+        }
+        byte[] payload = stored.payload();
+        String version = stored.payloadVersion();
+        for (int hops = 0; hops < 8 && !version.equals(type.payloadVersion()); hops++) {
+            PayloadConverter converter = convertersByFrom.get(version);
+            if (converter == null) {
+                throw new IllegalStateException("no converter from payload version " + version
+                        + " toward " + type.payloadVersion() + " for " + type.typeName());
+            }
+            payload = converter.convert(type.typeName(), payload);
+            version = converter.toVersion();
+        }
+        if (!version.equals(type.payloadVersion())) {
+            throw new IllegalStateException("converter chain did not reach " + type.payloadVersion());
+        }
+        return new StoredObject(stored.id(), stored.typeName(), stored.versionId(),
+                stored.lastUpdated(), payload, stored.deleted(), version);
     }
 
     // ------------------------------------------------------------------ put
@@ -102,26 +142,28 @@ public final class PgObjectStore implements ObjectStore {
         String envelopeJson = JsonbCodec.envelopeJson(envelope.paths());
 
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.%s_data (id, type, version_id, last_updated, envelope, payload, deleted)
-                VALUES (?, ?, ?, ?, ?::jsonb, ?, false)
+                INSERT INTO state.%s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version)
+                VALUES (?, ?, ?, ?, ?::jsonb, ?, false, ?)
                 ON CONFLICT (id) DO UPDATE SET
                   version_id = EXCLUDED.version_id,
                   last_updated = EXCLUDED.last_updated,
                   envelope = EXCLUDED.envelope,
                   payload = EXCLUDED.payload,
-                  deleted = false""".formatted(d))) {
+                  deleted = false,
+                  payload_version = EXCLUDED.payload_version""".formatted(d))) {
             ps.setObject(1, uuid);
             ps.setString(2, type.typeName());
             ps.setLong(3, newVersion);
             ps.setTimestamp(4, Timestamp.from(now));
             ps.setString(5, envelopeJson);
             ps.setBytes(6, request.payload());
+            ps.setString(7, type.payloadVersion());
             ps.executeUpdate();
         }
 
         replaceIdentifiers(c, type, uuid, envelope.identifiers());
         replaceReferences(c, d, uuid, envelope.references());
-        insertHistory(c, d, uuid, type.typeName(), newVersion, now, request.payload(), false);
+        insertHistory(c, d, uuid, type.typeName(), newVersion, now, request.payload(), false, type.payloadVersion());
         insertOutbox(c, d, uuid, type.typeName(), newVersion, created ? "C" : "U");
 
         return new PutResult(id, newVersion, created);
@@ -197,16 +239,17 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     private void insertHistory(Connection c, String d, UUID id, String type, long version,
-            Instant at, byte[] payload, boolean deleted) throws SQLException {
+            Instant at, byte[] payload, boolean deleted, String payloadVersion) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO history.%s_history (id, version_id, type, last_updated, payload, deleted)
-                VALUES (?, ?, ?, ?, ?, ?)""".formatted(d))) {
+                INSERT INTO history.%s_history (id, version_id, type, last_updated, payload, deleted, payload_version)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""".formatted(d))) {
             ps.setObject(1, id);
             ps.setLong(2, version);
             ps.setString(3, type);
             ps.setTimestamp(4, Timestamp.from(at));
             ps.setBytes(5, payload);
             ps.setBoolean(6, deleted);
+            ps.setString(7, payloadVersion);
             ps.executeUpdate();
         }
     }
@@ -231,12 +274,12 @@ public final class PgObjectStore implements ObjectStore {
         TypeRegistration type = registry.require(typeName);
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT id, type, version_id, last_updated, payload, deleted
+                    SELECT id, type, version_id, last_updated, payload, deleted, payload_version
                     FROM state.%s_data WHERE id = ? AND type = ? AND NOT deleted""".formatted(type.domain()))) {
                 ps.setObject(1, UUID.fromString(id));
                 ps.setString(2, typeName);
                 try (ResultSet rs = ps.executeQuery()) {
-                    return rs.next() ? Optional.of(read(rs)) : Optional.empty();
+                    return rs.next() ? Optional.of(upgraded(type, read(rs))) : Optional.empty();
                 }
             }
         });
@@ -254,7 +297,7 @@ public final class PgObjectStore implements ObjectStore {
             or.append("(i.system = ? AND i.value = ?)");
         }
         String sql = """
-                SELECT DISTINCT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted
+                SELECT DISTINCT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version
                 FROM state.%s_data d
                 JOIN state.%s_identifier i ON i.object_id = d.id
                 WHERE d.type = ? AND NOT d.deleted AND (%s)""".formatted(type.domain(), type.domain(), or);
@@ -266,7 +309,7 @@ public final class PgObjectStore implements ObjectStore {
                     ps.setString(p++, ident.system());
                     ps.setString(p++, ident.value());
                 }
-                return readAll(ps);
+                return readAll(ps).stream().map(o -> upgraded(type, o)).toList();
             }
         });
     }
@@ -276,7 +319,7 @@ public final class PgObjectStore implements ObjectStore {
         TypeRegistration type = registry.require(typeName);
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT id, type, version_id, last_updated, payload, deleted
+                    SELECT id, type, version_id, last_updated, payload, deleted, payload_version
                     FROM history.%s_history WHERE id = ? ORDER BY version_id""".formatted(type.domain()))) {
                 ps.setObject(1, UUID.fromString(id));
                 return readAll(ps);
@@ -289,7 +332,7 @@ public final class PgObjectStore implements ObjectStore {
         TypeRegistration type = registry.require(criteria.typeName());
         String d = type.domain();
         StringBuilder sql = new StringBuilder("""
-                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted
+                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version
                 FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d));
         List<Object> params = new ArrayList<>();
         params.add(criteria.typeName());
@@ -303,7 +346,7 @@ public final class PgObjectStore implements ObjectStore {
                 for (int i = 0; i < params.size(); i++) {
                     ps.setObject(i + 1, params.get(i));
                 }
-                return readAll(ps);
+                return readAll(ps).stream().map(o -> upgraded(type, o)).toList();
             }
         });
     }
@@ -449,7 +492,7 @@ public final class PgObjectStore implements ObjectStore {
         String sortExpr = s == null ? "d.last_updated" : Sql.typedPathExpression(s.path(), s.kind());
 
         StringBuilder sql = new StringBuilder("""
-                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, %s AS sort_key
+                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version, %s AS sort_key
                 FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(sortExpr, d));
         List<Object> params = new ArrayList<>();
         params.add(criteria.typeName());
@@ -477,7 +520,7 @@ public final class PgObjectStore implements ObjectStore {
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         items.add(read(rs));
-                        Object sortKey = rs.getObject(7);
+                        Object sortKey = rs.getObject(8);
                         lastKey[0] = sortKey instanceof Timestamp ts
                                 ? ts.toInstant().toString() : String.valueOf(sortKey);
                         lastKey[1] = rs.getObject(1).toString();
@@ -488,7 +531,8 @@ public final class PgObjectStore implements ObjectStore {
         });
         String next = items.isEmpty() ? null : Cursors.encodeKeyset(lastKey[0], lastKey[1]);
         return new cloud.jengu.dbo.core.api.feed.FeedChunk<>(
-                items, next, items.size() < criteria.limitValue());
+                items.stream().map(o -> upgraded(type, o)).toList(), next,
+                items.size() < criteria.limitValue());
     }
 
     private Object sortParam(Criteria.Sort s, String sortValue) {
@@ -519,12 +563,14 @@ public final class PgObjectStore implements ObjectStore {
             long newVersion = current + 1;
             Instant now = Instant.now();
             byte[] lastPayload;
+            String lastPayloadVersion;
             try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT payload FROM state.%s_data WHERE id = ?".formatted(d))) {
+                    "SELECT payload, payload_version FROM state.%s_data WHERE id = ?".formatted(d))) {
                 ps.setObject(1, uuid);
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
                     lastPayload = rs.getBytes(1);
+                    lastPayloadVersion = rs.getString(2);
                 }
             }
             try (PreparedStatement ps = c.prepareStatement("""
@@ -545,7 +591,7 @@ public final class PgObjectStore implements ObjectStore {
                 ps.setObject(1, uuid);
                 ps.executeUpdate();
             }
-            insertHistory(c, d, uuid, typeName, newVersion, now, lastPayload, true);
+            insertHistory(c, d, uuid, typeName, newVersion, now, lastPayload, true, lastPayloadVersion);
             insertOutbox(c, d, uuid, typeName, newVersion, "D");
             return null;
         });
@@ -561,13 +607,18 @@ public final class PgObjectStore implements ObjectStore {
         return inTx(c -> {
             int count = 0;
             try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT id, payload FROM state.%s_data WHERE type = ? AND NOT deleted".formatted(d))) {
+                    "SELECT id, payload, payload_version FROM state.%s_data WHERE type = ? AND NOT deleted"
+                            .formatted(d))) {
                 ps.setString(1, typeName);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         UUID id = (UUID) rs.getObject(1);
                         byte[] payload = rs.getBytes(2);
-                        Envelope envelope = type.extractor().extract(typeName, payload);
+                        String storedVersion = rs.getString(3);
+                        // extract from the CONVERTED view; the stored payload is not rewritten
+                        byte[] current = upgraded(type, new StoredObject(id.toString(), typeName,
+                                0, Instant.EPOCH, payload, false, storedVersion)).payload();
+                        Envelope envelope = type.extractor().extract(typeName, current);
                         try (PreparedStatement up = c.prepareStatement(
                                 "UPDATE state.%s_data SET envelope = ?::jsonb WHERE id = ?".formatted(d))) {
                             up.setString(1, JsonbCodec.envelopeJson(envelope.paths()));
@@ -623,7 +674,8 @@ public final class PgObjectStore implements ObjectStore {
                 rs.getLong(3),
                 rs.getTimestamp(4).toInstant(),
                 rs.getBytes(5),
-                rs.getBoolean(6));
+                rs.getBoolean(6),
+                rs.getString(7));
     }
 
     private List<StoredObject> readAll(PreparedStatement ps) throws SQLException {

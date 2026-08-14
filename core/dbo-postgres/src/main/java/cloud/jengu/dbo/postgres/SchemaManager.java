@@ -68,7 +68,8 @@ public final class SchemaManager {
                   last_updated timestamptz NOT NULL,
                   envelope jsonb NOT NULL,
                   payload bytea NOT NULL,
-                  deleted boolean NOT NULL DEFAULT false
+                  deleted boolean NOT NULL DEFAULT false,
+                  payload_version text NOT NULL DEFAULT '1'
                 )""".formatted(d));
         execute(c, "CREATE INDEX IF NOT EXISTS %s_data_type_ix ON state.%s_data (type, last_updated, id)"
                 .formatted(d, d));
@@ -127,6 +128,7 @@ public final class SchemaManager {
                   last_updated timestamptz NOT NULL,
                   payload bytea NOT NULL,
                   deleted boolean NOT NULL,
+                  payload_version text NOT NULL DEFAULT '1',
                   PRIMARY KEY (id, version_id)
                 )""".formatted(d));
     }
