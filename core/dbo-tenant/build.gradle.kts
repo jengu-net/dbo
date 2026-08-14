@@ -15,7 +15,7 @@ dependencies {
     implementation(project(":core:dbo-rest"))
     compileOnly("org.osgi:osgi.core:8.0.0")
     embedded("com.zaxxer:HikariCP:7.1.0")
-    embedded("org.slf4j:slf4j-nop:2.0.18")
+    embedded("org.slf4j:slf4j-simple:2.0.18")
 }
 
 tasks.jar {

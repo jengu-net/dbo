@@ -12,7 +12,7 @@ dependencies {
     compileOnly("org.osgi:osgi.core:8.0.0")
     embedded("io.fabric8:kubernetes-client:7.3.1")
     embedded("com.zaxxer:HikariCP:7.1.0")
-    embedded("org.slf4j:slf4j-nop:2.0.18")
+    embedded("org.slf4j:slf4j-simple:2.0.18")
 }
 
 tasks.jar {

@@ -12,6 +12,7 @@ dependencies {
     api(project(":core:dbo-fhir-common"))
     api(project(":core:dbo-subscriptions"))
     embedded("ca.uhn.hapi.fhir:hapi-fhir-structures-r5:8.10.1")
+    embedded("org.slf4j:slf4j-simple:2.0.18")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-validation:8.10.1")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r5:8.10.1")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-caching-caffeine:8.10.1")

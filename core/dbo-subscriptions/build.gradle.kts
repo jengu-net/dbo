@@ -10,6 +10,7 @@ configurations.implementation.get().extendsFrom(embedded)
 dependencies {
     api(project(":core:dbo-core"))
     embedded("dev.dbos:transact:1.0.0")
+    embedded("org.slf4j:slf4j-simple:2.0.18")
 }
 
 tasks.jar {
