@@ -76,9 +76,34 @@ mutation it performs is attributable to both the process and the person.
 
 ## 16.5 How the jengu application fits
 
-jengu-cloud becomes an **OIDC relying party of the tenant authorities**:
-login resolves the org code to the tenant, redirects to that tenant's
-`/authorize`, and wraps the returned tokens in its own session; the
+jengu-cloud becomes an **OIDC relying party of the tenant authorities** —
+it keeps Spring Security's full OAuth2-client machinery (sessions, token
+storage, login flow) and loses only the authorization-SERVER role it never
+had. Three practicalities settled here:
+
+- **The authority surface is published; the store surface is not.** The
+  authorization-code flow requires browsers to reach
+  `/t/<code>/oidc/*` — and that surface is BUILT for hostile networks:
+  discovery, keys, a login redirect, a token endpoint, no clinical data.
+  The ingress routes authority paths only (an auth hostname or a
+  path-regexp on `/t/+/oidc/`); `/t/<code>/fhir` stays unrouted and
+  network-scoped. REQ-DBO-AUTH-PRIVATE-SURFACE is about the store, and it
+  stands.
+- **Dynamic relying-party registrations.** Spring's property-file client
+  registrations are boot-time — but `ClientRegistrationRepository` is an
+  SPI. The platform implements a tenant-code-keyed repository that builds
+  registrations on demand from the tenant registry (issuer = the tenant's
+  authority URL, credentials from per-tenant custody) — the same shape as
+  the existing per-tenant Medplum client registry. A tenant created at
+  14:00 is loginable at 14:00.
+- **Who registers the RP at each authority:** the operator, with the
+  bootstrap-client custody pattern — a `jengu-cloud` ClientApplication
+  (confidential, declared redirect URIs) whose secret lands in a
+  platform-readable Secret. Third-party apps (SMART appliances) get the
+  STANDARD later: RFC 7591 dynamic client registration.
+
+Login resolves the org code to the tenant, redirects to that tenant's
+`/authorize`, and wraps the returned tokens in the platform session; the
 platform's TenantContext derives from token claims as it does today.
 Platform administrators authenticate against the SYSTEM tenant's authority
 — the jengu system database is a tenant like any other, §13 applied to
