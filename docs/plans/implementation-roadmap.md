@@ -68,10 +68,20 @@ yet implemented.
 3. **Enable PDI for real tenants** — flip `"pdi": true` in registrations
    (greenfield: hogwarts' pre-PDI plaintext records need recreate-or-accept;
    decide before real PHI)
-4. **IHE BALP alignment** — profile the AuditEvent projection's rendering
+4. **Human identity (Slice H)** — [#24](https://github.com/jengu-net/dbo/issues/24)
+   (groomed against §16): the org model IS the auth model; auth-code+PKCE,
+   SMART user scopes, pseudonymous tokens; federation seam (eeID = own
+   follow-up slice)
+5. **On-behalf-of (Slice I)** — [#25](https://github.com/jengu-net/dbo/issues/25)
+   (groomed): RFC 8693 token exchange + act chains + Delegation records
+   for workflows that outlive tokens; after H
+6. **jengu-cloud as relying party** — platform-epic follow-up: login via
+   the tenant authorities, platform admins via the system tenant;
+   Medplum OIDC + the separately-planned auth server retire into §16
+7. **IHE BALP alignment** — profile the AuditEvent projection's rendering
    against Basic Audit Log Patterns once a consumer (the portal
    transparency view) exists to validate against
-5. **Durable retention sweep** — promote the in-process periodic sweep to
+8. **Durable retention sweep** — promote the in-process periodic sweep to
    a DBOS scheduled workflow when per-tenant DBOS wiring lands (the sweep
    is idempotent, so the in-process form is correct, just not durable)
 2. **Slice B infra PR** — MERGED as
