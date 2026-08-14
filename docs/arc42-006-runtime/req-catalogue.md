@@ -71,6 +71,16 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-PDI-SHRED-LEDGER | Erasures are recorded without personal data and re-applied on every restore before serving resumes — an old archive cannot silently resurrect an erased person. (§14) |
 | REQ-DBO-PDI-RIGHTS-AS-OPERATIONS | Access, portability and restriction are standard machinery operations over the vault join, not per-request projects. (§14) |
 
+## POL — tenant policies (audit & write discipline)
+
+| REQ | Promise |
+|---|---|
+| REQ-DBO-POL-DECLARED-AT-CONFIGURATION | Audit level and write discipline are declared in the tenant's configuration next to its FHIR version, validated at registration, and visible in the capability statement. (§15) |
+| REQ-DBO-POL-AUDIT-AS-RECORDS | Audit entries are regular, pseudonymous records in the tenant's own store — feed-visible, exported and restored with the tenant, re-identifiable only through the vault. (§15, §14) |
+| REQ-DBO-POL-ACTOR-FROM-AUTHORITY | Every audit entry names its actor from the tenant authority's token (client and subject) — no anonymous mutations under any audited policy. (§15, §13) |
+| REQ-DBO-POL-APPEND-ONLY-DISCIPLINE | Under append-only discipline the engine rejects tombstones (and per-type in-place updates where declared); correction is supersession or entered-in-error, never removal. (§15) |
+| REQ-DBO-POL-ERASURE-COMPATIBLE | Append-only discipline and the right to erasure coexist: shredding never rewrites a record — the record remains, the person evaporates. (§15, §14) |
+
 ## VER — version plurality (personalities)
 
 | REQ | Promise |
