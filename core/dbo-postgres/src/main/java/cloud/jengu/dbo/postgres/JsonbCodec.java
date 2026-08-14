@@ -3,6 +3,7 @@ package cloud.jengu.dbo.postgres;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
 
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,6 +16,14 @@ import java.util.Map;
  * (REQ-DBO-CORE-PARAMETERIZED-SQL).
  */
 final class JsonbCodec {
+
+    /**
+     * Dates are stored as FIXED-WIDTH UTC ISO strings so that lexicographic
+     * order equals chronological order — text can be indexed IMMUTABLY
+     * (a ::timestamptz cast cannot; it is only STABLE).
+     */
+    static final DateTimeFormatter DATE_KEY =
+            DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC);
 
     private JsonbCodec() {}
 
@@ -56,15 +65,22 @@ final class JsonbCodec {
                 sb.append("{\"t\":\"num\",\"v\":").append(n.value().toPlainString()).append('}');
             case EnvelopeValue.Date d -> {
                 sb.append("{\"t\":\"date\",\"v\":");
-                string(sb, DateTimeFormatter.ISO_INSTANT.format(d.value()));
+                string(sb, DATE_KEY.format(d.value()));
                 sb.append('}');
             }
             case EnvelopeValue.Token t -> {
-                sb.append("{\"t\":\"tok\",\"s\":");
-                string(sb, t.system());
-                sb.append(",\"v\":");
-                string(sb, t.code());
-                sb.append('}');
+                if (t.system() == null) {
+                    // bare-code token form: FHIR "code=x" matches any system
+                    sb.append("{\"t\":\"tokc\",\"v\":");
+                    string(sb, t.code());
+                    sb.append('}');
+                } else {
+                    sb.append("{\"t\":\"tok\",\"s\":");
+                    string(sb, t.system());
+                    sb.append(",\"v\":");
+                    string(sb, t.code());
+                    sb.append('}');
+                }
             }
             case EnvelopeValue.Ref r -> {
                 sb.append("{\"t\":\"ref\",\"tt\":");
