@@ -1,0 +1,21 @@
+plugins {
+    id("biz.aQute.bnd.builder")
+}
+
+// Declared content dependencies over the feed (dbo#14, §6): the Project.link[]
+// replacement — read-only, provenance-tagged, converted-at-apply copies
+// streamed into the dependent tenant's own database.
+// bnd computes Import-Package from bytecode.
+
+dependencies {
+    api(project(":core:dbo-core"))
+}
+
+tasks.jar {
+    bundle {
+        bnd(mapOf(
+            "Bundle-SymbolicName" to "cloud.jengu.dbo.sync",
+            "Export-Package" to "cloud.jengu.dbo.sync;version=0.1.0",
+        ))
+    }
+}

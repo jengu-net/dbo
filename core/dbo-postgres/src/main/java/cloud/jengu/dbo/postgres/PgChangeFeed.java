@@ -113,7 +113,7 @@ public final class PgChangeFeed implements ChangeFeed {
         }
         String sql = """
                 SELECT o.seq, o.object_id, o.type, o.version_id, o.kind, o.committed_at,
-                       h.payload, h.deleted
+                       h.payload, h.deleted, h.payload_version
                 FROM state.%s_outbox o
                 JOIN history.%s_history h ON h.id = o.object_id AND h.version_id = o.version_id
                 WHERE o.seq > ? AND o.xact_id < pg_snapshot_xmin(pg_current_snapshot())
@@ -133,7 +133,8 @@ public final class PgChangeFeed implements ChangeFeed {
                             ChangeKind.fromCode(rs.getString(5)),
                             rs.getTimestamp(6).toInstant(),
                             rs.getBytes(7),
-                            rs.getBoolean(8)));
+                            rs.getBoolean(8),
+                            rs.getString(9)));
                 }
             }
             String next = items.isEmpty() ? null : Cursors.encodeSeq(items.get(items.size() - 1).seq());
