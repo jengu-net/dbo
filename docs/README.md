@@ -17,7 +17,8 @@ docs conventions.
   [eventing & feeds](arc42-008-crosscutting/eventing-and-feeds.md) (§6, §10),
   [process catalogue](arc42-008-crosscutting/process-catalogue.md) (§8),
   [Medplum lessons](arc42-008-crosscutting/medplum-lessons.md) (§9),
-  [maintenance](arc42-008-crosscutting/maintenance.md) (§11)
+  [maintenance](arc42-008-crosscutting/maintenance.md) (§11),
+  [identity rules](arc42-008-crosscutting/identity-rules.md) (§12)
 - [arc42-009-architecture-decisions](arc42-009-architecture-decisions/README.md) —
   resolved questions & risks (§7)
 - [evidence/](evidence/) — usage inventories grounding the spec
