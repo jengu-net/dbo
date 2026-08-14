@@ -15,9 +15,11 @@
 
 ### Canonical content dependencies — streamed zone→tenant copies
 
-Shared canonical content (CodeSystems, ConceptMaps, ValueSets, profiles…)
-published by an upper-chain tenant (zone) is **streamed as read-only copies**
-into each dependent lower-chain tenant's own database. This is DBO's
+Shared content published by an upper-chain tenant (zone) is **streamed as
+read-only copies** into each dependent lower-chain tenant's own database.
+Canonical artifacts (CodeSystems, ConceptMaps, ValueSets, profiles…) are the
+motivating case, but **any resource type can be declared as a dependency** —
+the mechanism is type-generic; only the grain rules are type-specific. This is DBO's
 replacement for Medplum's `Project.link[]` — materialization-time instead of
 resolution-time — and it is forced by a hard fact: tenants live in different
 databases, and **indexing must be local** (searches, `$expand`, validation all
@@ -37,16 +39,28 @@ hit tenant-local envelope indexes; there are no cross-database joins).
   updates, retirements and deletions propagate through the same feed.
   Audit rides at the *stream* level (dependency established/changed/removed),
   not per replicated object — this content is terminology, not PHI.
+- **The synchronizer converts at apply.** Sender and receiver need not run the
+  same versions — neither the same **FHIR version** (a zone publishing R5
+  content to an R4 tenant, or vice versa) nor the same **tenant object shape**
+  (jengu-style shape versioning, the stamp riding `meta.extension`). The
+  stream carries objects in the sender's form; at apply, the receiver's
+  converter chains — the same registered converters that power
+  upgrade-on-read (§2) and version transitions — bring the copy into the
+  *receiving* tenant's declared FHIR version and shape before it is stored
+  and indexed. Provenance keeps the original version alongside the source
+  tenant. An object the chain cannot convert **dead-letters visibly** and
+  marks the dependency degraded; it is never silently skipped.
 - **Override by shadowing.** If the tenant has its *own* object with the same
   canonical identity (url — identifiers/version rules per artifact type), the
   tenant's copy wins: resolution order is local > streamed. The streamed copy
   stays current underneath, so removing the local override falls back to the
   live zone version.
-- **Granularity: the CodeSystem is the unit.** Dependency declarations (and
-  migration rules) are written at CodeSystem level, and a declaration pulls
-  the whole CodeSystem *plus its related ValueSets*. No subset streaming —
-  the generic rule stays simple, and minimality comes from declaring few
-  CodeSystems, not from slicing inside one.
+- **Granularity is a per-type grain rule.** For terminology the CodeSystem is
+  the unit: declarations (and migration rules) are written at CodeSystem
+  level, and a declaration pulls the whole CodeSystem *plus its related
+  ValueSets*. No subset streaming — the generic rule stays simple, and
+  minimality comes from declaring few units, not from slicing inside one.
+  Other types define their own natural grain the same way.
 - Chains compose: zone-of-zones flows top-down along the declared chain, each
   hop with the same semantics; a tenant only ever declares against its direct
   upstream.
