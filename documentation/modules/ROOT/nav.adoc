@@ -1,3 +1,0 @@
-* xref:ROOT:index.adoc[]
-* xref:ROOT:references.adoc[]
-* xref:ROOT:working-in-cluster.adoc[]
