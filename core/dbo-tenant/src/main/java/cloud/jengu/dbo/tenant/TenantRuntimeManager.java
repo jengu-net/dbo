@@ -171,14 +171,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         TenantRuntime runtime;
         if ("r4".equals(spec.fhirVersion())) {
             R4Personality personality = new R4Personality(spec.types());
-            PgObjectStore engine = new PgObjectStore(db.dataSource(), personality.registrations());
+            ObjectStore engine = pdiWrapped(spec, db, personality.registrations());
             FhirStoreFacade store = new R4Store(engine, personality, base);
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R4Personality.DOMAIN),
                     new FhirHttpServer(sharedServer, store, null, "/t/" + spec.code() + "/fhir", guard));
         } else {
             R5Personality personality = new R5Personality(spec.types());
-            PgObjectStore engine = new PgObjectStore(db.dataSource(), personality.registrations());
+            ObjectStore engine = pdiWrapped(spec, db, personality.registrations());
             FhirStoreFacade store = new R5Store(engine, personality, base);
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R5Personality.DOMAIN),
@@ -186,6 +186,30 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         runtimes.put(spec.code(), runtime);
         listener.tenantUp(runtime);
+    }
+
+    /**
+     * §14: under PDI the engine is the isolation decorator — identifying
+     * elements encrypted in place per person, identity vault-side. The
+     * working key derives from the authority KEK (machinery custody); PDI
+     * therefore requires the authority to be configured.
+     */
+    private ObjectStore pdiWrapped(TenantSpec spec,
+            TenantDatabaseProvisioner.TenantDatabase db,
+            java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> registrations) {
+        if (!spec.pdi()) {
+            return new PgObjectStore(db.dataSource(), registrations);
+        }
+        if (authorityConfig == null) {
+            throw new IllegalStateException(spec.code()
+                    + ": pdi requires the tenant authority (the working key derives from its KEK)");
+        }
+        cloud.jengu.dbo.pdi.PdiSpec pdiSpec = cloud.jengu.dbo.pdi.PdiSpec.fhir();
+        PgObjectStore inner = new PgObjectStore(db.dataSource(),
+                cloud.jengu.dbo.pdi.PdiSetup.transform(registrations, pdiSpec));
+        return new cloud.jengu.dbo.pdi.PdiObjectStore(inner,
+                new cloud.jengu.dbo.pdi.PersonVault(db.dataSource(), authorityConfig.kek()),
+                pdiSpec);
     }
 
     private void takeDown(String code) {

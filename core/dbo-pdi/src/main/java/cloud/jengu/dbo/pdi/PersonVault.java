@@ -1,0 +1,331 @@
+package cloud.jengu.dbo.pdi;
+
+import javax.crypto.Cipher;
+import javax.crypto.Mac;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import javax.sql.DataSource;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * The tenant's person vault (§14.3): per-person data keys wrapped by the
+ * tenant working key, an HMAC identifier index (exact-match lookup with no
+ * plaintext at rest), the restriction flag, and the shred ledger. The
+ * identifying DATA never lives here — it rides encrypted inside the
+ * payloads; this vault holds only what unlocks or finds it.
+ *
+ * <p>Shredding (§14.1) nulls the wrapped key, drops the person's index
+ * rows and writes the ledger — every ciphertext copy anywhere (state,
+ * history, archives) becomes garbage at once, and the person is
+ * unfindable, not merely unreadable.
+ */
+public final class PersonVault {
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private final DataSource ds;
+    private final SecretKeySpec workingKey;
+    private final SecretKeySpec indexKey;
+
+    public PersonVault(DataSource dataSource, byte[] workingKey) {
+        if (workingKey == null || workingKey.length != 32) {
+            throw new IllegalArgumentException("working key must be 32 bytes");
+        }
+        this.ds = dataSource;
+        this.workingKey = new SecretKeySpec(workingKey, "AES");
+        this.indexKey = new SecretKeySpec(hmac(new SecretKeySpec(workingKey, "HmacSHA256"),
+                "dbo-pdi-identifier-index".getBytes(StandardCharsets.UTF_8)), "HmacSHA256");
+        ensureSchema();
+    }
+
+    private void ensureSchema() {
+        try (Connection c = ds.getConnection()) {
+            for (String ddl : new String[] {
+                    "CREATE SCHEMA IF NOT EXISTS pdi",
+                    """
+                    CREATE TABLE IF NOT EXISTS pdi.person (
+                        id uuid PRIMARY KEY,
+                        wrapped_key bytea,
+                        restricted boolean NOT NULL DEFAULT false,
+                        shredded_at timestamptz,
+                        created_at timestamptz NOT NULL DEFAULT now())""",
+                    """
+                    CREATE TABLE IF NOT EXISTS pdi.identifier (
+                        person_id uuid NOT NULL,
+                        system text NOT NULL,
+                        value_hmac bytea NOT NULL,
+                        PRIMARY KEY (person_id, system, value_hmac))""",
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS pdi_identifier_claim
+                        ON pdi.identifier (system, value_hmac)""",
+                    """
+                    CREATE TABLE IF NOT EXISTS pdi.shred_ledger (
+                        person_id uuid PRIMARY KEY,
+                        key_fingerprint text NOT NULL,
+                        shredded_at timestamptz NOT NULL DEFAULT now())""",
+            }) {
+                try (PreparedStatement ps = c.prepareStatement(ddl)) {
+                    ps.execute();
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault schema setup failed", e);
+        }
+    }
+
+    // ------------------------------------------------------------- keys
+
+    /** The person's data key — created on first use; empty once shredded. */
+    public Optional<byte[]> keyFor(String personId, boolean createIfAbsent) {
+        try (Connection c = ds.getConnection()) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT wrapped_key, shredded_at FROM pdi.person WHERE id = ?::uuid")) {
+                ps.setString(1, personId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        byte[] wrapped = rs.getBytes(1);
+                        return wrapped == null ? Optional.empty()
+                                : Optional.of(unwrap(wrapped));
+                    }
+                }
+            }
+            if (!createIfAbsent) {
+                return Optional.empty();
+            }
+            byte[] key = new byte[32];
+            RANDOM.nextBytes(key);
+            try (PreparedStatement ps = c.prepareStatement("""
+                    INSERT INTO pdi.person (id, wrapped_key) VALUES (?::uuid, ?)
+                    ON CONFLICT (id) DO NOTHING""")) {
+                ps.setString(1, personId);
+                ps.setBytes(2, wrap(key));
+                ps.executeUpdate();
+            }
+            // concurrent creator may have won — read back the authoritative key
+            return keyFor(personId, false);
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault key access failed", e);
+        }
+    }
+
+    public boolean restricted(String personId) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT restricted FROM pdi.person WHERE id = ?::uuid")) {
+            ps.setString(1, personId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getBoolean(1);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault lookup failed", e);
+        }
+    }
+
+    /** GDPR restriction of processing (§14.5): the serving path returns pseudonymous reads. */
+    public void restrict(String personId, boolean restricted) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "UPDATE pdi.person SET restricted = ? WHERE id = ?::uuid")) {
+            ps.setBoolean(1, restricted);
+            ps.setString(2, personId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault restrict failed", e);
+        }
+    }
+
+    // ------------------------------------------------------------- identifiers
+
+    /** Claims identifiers for a person; a foreign claim surfaces the owner. */
+    public Optional<String> claim(String personId, List<String[]> systemValues) {
+        try (Connection c = ds.getConnection()) {
+            for (String[] sv : systemValues) {
+                Optional<String> owner = ownerOf(c, sv[0], sv[1]);
+                if (owner.isPresent() && !owner.get().equals(personId)) {
+                    return owner;
+                }
+                try (PreparedStatement ps = c.prepareStatement("""
+                        INSERT INTO pdi.identifier (person_id, system, value_hmac)
+                        VALUES (?::uuid, ?, ?) ON CONFLICT DO NOTHING""")) {
+                    ps.setString(1, personId);
+                    ps.setString(2, sv[0]);
+                    ps.setBytes(3, valueHmac(sv[1]));
+                    ps.executeUpdate();
+                }
+            }
+            return Optional.empty();
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault claim failed", e);
+        }
+    }
+
+    public Optional<String> findByIdentifier(String system, String value) {
+        try (Connection c = ds.getConnection()) {
+            return ownerOf(c, system, value);
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault lookup failed", e);
+        }
+    }
+
+    private Optional<String> ownerOf(Connection c, String system, String value) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT person_id FROM pdi.identifier WHERE system = ? AND value_hmac = ?")) {
+            ps.setString(1, system);
+            ps.setBytes(2, valueHmac(value));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.of(rs.getString(1)) : Optional.empty();
+            }
+        }
+    }
+
+    // ------------------------------------------------------------- shredding
+
+    /** §14.1: destroy the key, drop the index, remember only the fact. */
+    public void shred(String personId) {
+        try (Connection c = ds.getConnection()) {
+            String fingerprint;
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT wrapped_key FROM pdi.person WHERE id = ?::uuid")) {
+                ps.setString(1, personId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    byte[] wrapped = rs.next() ? rs.getBytes(1) : null;
+                    fingerprint = wrapped == null ? "absent" : fingerprint(wrapped);
+                }
+            }
+            try (PreparedStatement ps = c.prepareStatement(
+                    "UPDATE pdi.person SET wrapped_key = NULL, shredded_at = now() WHERE id = ?::uuid")) {
+                ps.setString(1, personId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = c.prepareStatement(
+                    "DELETE FROM pdi.identifier WHERE person_id = ?::uuid")) {
+                ps.setString(1, personId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = c.prepareStatement("""
+                    INSERT INTO pdi.shred_ledger (person_id, key_fingerprint)
+                    VALUES (?::uuid, ?) ON CONFLICT (person_id) DO NOTHING""")) {
+                ps.setString(1, personId);
+                ps.setString(2, fingerprint);
+                ps.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("shred failed", e);
+        }
+    }
+
+    /**
+     * §14.4 policy replay: re-applies every ledger entry — a restore cannot
+     * resurrect an erased person. Idempotent.
+     */
+    public int replayLedger() {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     UPDATE pdi.person p SET wrapped_key = NULL,
+                            shredded_at = COALESCE(p.shredded_at, l.shredded_at)
+                     FROM pdi.shred_ledger l
+                     WHERE p.id = l.person_id AND p.wrapped_key IS NOT NULL""");
+             PreparedStatement psi = c.prepareStatement("""
+                     DELETE FROM pdi.identifier i USING pdi.shred_ledger l
+                     WHERE i.person_id = l.person_id""")) {
+            int replayed = ps.executeUpdate();
+            psi.executeUpdate();
+            return replayed;
+        } catch (SQLException e) {
+            throw new IllegalStateException("ledger replay failed", e);
+        }
+    }
+
+    // ------------------------------------------------------------- crypto
+
+    public byte[] encrypt(byte[] personKey, byte[] plain) {
+        try {
+            byte[] iv = new byte[12];
+            RANDOM.nextBytes(iv);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(personKey, "AES"),
+                    new GCMParameterSpec(128, iv));
+            byte[] sealed = cipher.doFinal(plain);
+            byte[] out = new byte[12 + sealed.length];
+            System.arraycopy(iv, 0, out, 0, 12);
+            System.arraycopy(sealed, 0, out, 12, sealed.length);
+            return out;
+        } catch (Exception e) {
+            throw new IllegalStateException("pdi encrypt failed", e);
+        }
+    }
+
+    public byte[] decrypt(byte[] personKey, byte[] sealed) {
+        try {
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(personKey, "AES"),
+                    new GCMParameterSpec(128, sealed, 0, 12));
+            return cipher.doFinal(sealed, 12, sealed.length - 12);
+        } catch (Exception e) {
+            throw new IllegalStateException("pdi decrypt failed", e);
+        }
+    }
+
+    private byte[] wrap(byte[] key) {
+        return sealWith(workingKey, key, Cipher.ENCRYPT_MODE);
+    }
+
+    private byte[] unwrap(byte[] wrapped) {
+        return sealWith(workingKey, wrapped, Cipher.DECRYPT_MODE);
+    }
+
+    private static byte[] sealWith(SecretKeySpec kek, byte[] data, int mode) {
+        try {
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            if (mode == Cipher.ENCRYPT_MODE) {
+                byte[] iv = new byte[12];
+                RANDOM.nextBytes(iv);
+                cipher.init(mode, kek, new GCMParameterSpec(128, iv));
+                byte[] sealed = cipher.doFinal(data);
+                byte[] out = new byte[12 + sealed.length];
+                System.arraycopy(iv, 0, out, 0, 12);
+                System.arraycopy(sealed, 0, out, 12, sealed.length);
+                return out;
+            }
+            cipher.init(mode, kek, new GCMParameterSpec(128, data, 0, 12));
+            return cipher.doFinal(data, 12, data.length - 12);
+        } catch (Exception e) {
+            throw new IllegalStateException("working-key operation failed — wrong key?", e);
+        }
+    }
+
+    private byte[] valueHmac(String value) {
+        return hmac(indexKey, value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static byte[] hmac(SecretKeySpec key, byte[] data) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(key);
+            return mac.doFinal(data);
+        } catch (Exception e) {
+            throw new IllegalStateException("HMAC unavailable", e);
+        }
+    }
+
+    private static String fingerprint(byte[] wrapped) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(wrapped);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 8; i++) {
+                sb.append(String.format("%02x", digest[i]));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return "unknown";
+        }
+    }
+}

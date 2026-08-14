@@ -29,6 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -183,6 +184,41 @@ class AuthorityIT {
         String after = token("yks", null);
         assertEquals(200, get(fhir("yks") + "/Patient?_summary=count", after).statusCode(),
                 "post-rotation token must verify via unknown-kid refresh");
+    }
+
+    /** §14 wired end-to-end: a pdi tenant serves reassembled resources over REST
+     *  while the stored payload is ciphertext. */
+    @Test
+    @Order(7)
+    void aPdiTenantServesReassembledResourcesOverCiphertextStorage() throws Exception {
+        java.nio.file.Files.writeString(dir.resolve("kolm.json"), """
+                {"code":"kolm","fhirVersion":"r4","pdi":true,"types":[
+                  {"name":"Patient","identity":"identifier","systems":["%s"]}]}""".formatted(
+                "https://eesti.ee/isikukood"));
+        manager.scanOnce();
+        String token = token("kolm", null);
+        HttpResponse<String> created = post(fhir("kolm") + "/Patient", token, """
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"https://eesti.ee/isikukood","value":"49001010062"}],
+                 "name":[{"family":"Peidetud"}]}""");
+        assertEquals(201, created.statusCode(), created.body());
+        // authorized read: fully reassembled (id from the Location header)
+        String location = created.headers().firstValue("Location").orElseThrow();
+        String id = location.replaceAll(".*/Patient/([^/]+).*", "$1");
+        String read = get(fhir("kolm") + "/Patient/" + id, token).body();
+        assertTrue(read.contains("Peidetud") && read.contains("49001010062"));
+        assertFalse(read.contains("__pdiEnc"));
+        // storage: ciphertext only
+        try (java.sql.Connection c = provisioner.provision(cloud.jengu.dbo.tenant.TenantSpec.parse(
+                        java.nio.file.Files.readString(dir.resolve("kolm.json")))).dataSource().getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                     "SELECT count(*) FROM state.r4_data WHERE convert_from(payload,'UTF8') LIKE ?")) {
+            ps.setString(1, "%Peidetud%");
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                assertEquals(0, rs.getLong(1), "plaintext name must not reach storage");
+            }
+        }
     }
 
     /** Identity artifacts are records, not FHIR surface types — unreachable via REST. */
