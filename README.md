@@ -19,7 +19,9 @@ boot inside the application JVM in development and test.
 
 ## Status
 
-**Specification phase.** No production code on `main` yet.
+**Implementation underway** — engine, feeds, R4+R5 personalities, tier-1
+search, subscriptions and terminology are built and CI-green. The living
+status page: [docs/plans/implementation-roadmap.md](docs/plans/implementation-roadmap.md).
 
 - [docs/arc42-001-introduction](docs/arc42-001-introduction/README.md) — goals and founding requirements
 - [docs/README.md](docs/README.md) — the arc42 documentation index
