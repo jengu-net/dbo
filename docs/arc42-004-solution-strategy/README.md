@@ -1,0 +1,26 @@
+# Solution strategy
+
+The bets, each elaborated in its own section:
+
+1. **Version-agnostic core + personality bundles** — the engine knows objects
+   (payload, envelope, identifiers, references); FHIR-version meaning lives in
+   per-version OSGi bundles with private HAPI stacks
+   ([§1](../arc42-005-building-blocks/README.md), §7.3).
+2. **Payload/envelope split** — opaque payload as truth, derived searchable
+   projection, reindex as an operation
+   ([§2–§3](../arc42-008-crosscutting/object-model.md)).
+3. **Single-writer tenancy** — durable tenant→pod assignment makes caches and
+   subscription state local; Redis-class shared state is designed away
+   ([§5](../arc42-007-deployment/README.md),
+   [§9](../arc42-008-crosscutting/medplum-lessons.md)).
+4. **DBOS/Postgres as the only substrate** — durable work in two planes split
+   by content; cross-boundary hops platform-coordinated and audited (§7.4).
+5. **One feed primitive** — keyset cursors underneath pagination,
+   subscriptions, content streams, edge sync and incremental export
+   ([§6, §10](../arc42-008-crosscutting/eventing-and-feeds.md)).
+6. **Credential-blind provisioning** — operator + secrets; the management
+   plane can never read tenant data or credentials
+   ([§4](../arc42-007-deployment/tenant-provisioning.md)).
+7. **Identity-first Medplum exit** — auth extraction precedes the store swap;
+   parity proven behind the existing client seam
+   ([plan](../plans/medplum-migration.md)).

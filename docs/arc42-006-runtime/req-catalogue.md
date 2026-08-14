@@ -1,7 +1,7 @@
 # DBO requirement catalogue
 
-The founding requirements ([requirements.md](requirements.md)) and concepts
-([concepts.md](concepts.md)) distilled into stable REQ-style IDs, grouped by
+The founding requirements ([founding-requirements.md](../arc42-001-introduction/founding-requirements.md)) and concepts
+(the §-numbered sections, see [the docs index](../README.md)) distilled into stable REQ-style IDs, grouped by
 capability area. Each REQ is a business-readable promise; the parenthesized
 source at its end traces it back. Tier-2/3 search features and
 migration-program exit criteria
@@ -58,7 +58,7 @@ deliberately have no REQs yet — they get them when scheduled.
 
 | REQ | Promise |
 |---|---|
-| REQ-DBO-SRCH-TIER1-PARITY | Every search feature jengu uses in production today works identically ([inventory](search-usage-inventory.md)). (§7.5) |
+| REQ-DBO-SRCH-TIER1-PARITY | Every search feature jengu uses in production today works identically ([inventory](../evidence/search-usage-inventory.md)). (§7.5) |
 | REQ-DBO-SRCH-STRICT-BY-DEFAULT | An unsupported search parameter is rejected, never silently ignored. (§7.5) |
 | REQ-DBO-SRCH-HONEST-CAPABILITY | Each personality's CapabilityStatement is generated from what is actually implemented. (§7.5) |
 | REQ-DBO-SRCH-TYPED-ORDERING | Sorting and range filtering are typed — numeric, date and token semantics are correct, with matching indexes. (D3) |

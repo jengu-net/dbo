@@ -3,7 +3,7 @@
 Snapshot 2026-08-14: every non-search dependency on Medplum across jengu-platform,
 lab, VA and jengu-infra. (Search shapes are catalogued separately in
 [search-usage-inventory.md](search-usage-inventory.md).) This is the evidence base
-for [medplum-migration.md](medplum-migration.md).
+for [medplum-migration.md](../plans/medplum-migration.md).
 
 Headline: there is **no Medplum SDK anywhere** — all integration is hand-rolled
 HTTP against Medplum's REST surface, concentrated in `MedplumClient` +

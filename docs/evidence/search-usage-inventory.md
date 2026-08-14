@@ -3,7 +3,7 @@
 Snapshot 2026-08-14: every FHIR search interaction the jengu codebases
 (jengu-platform, lab, jengu/VA) actually issue against Medplum — ~206 call sites
 in production code. This is the empirical basis for the tier structure in
-[concepts.md §7.5](concepts.md). All searches go through hand-rolled REST clients
+[§7.5](../arc42-009-architecture-decisions/README.md). All searches go through hand-rolled REST clients
 taking raw query strings; there is no Medplum SDK, no GraphQL, and no batch
 search-entry usage.
 

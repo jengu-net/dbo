@@ -1,9 +1,9 @@
 # Migration path off Medplum
 
 How jengu moves from Medplum to DBO. Evidence base:
-[medplum-usage-inventory.md](medplum-usage-inventory.md) (all dependency
+[medplum-usage-inventory.md](../evidence/medplum-usage-inventory.md) (all dependency
 dimensions, ranked by replacement difficulty) and
-[search-usage-inventory.md](search-usage-inventory.md) (the search surface,
+[search-usage-inventory.md](../evidence/search-usage-inventory.md) (the search surface,
 already fully inside DBO tier 1).
 
 ## The central finding
@@ -25,7 +25,7 @@ just equivalent.
 | Project-per-tenant, `$init` | Tenant = dedicated database + OSGi service set (R3/R5); registration via the k8s operator |
 | ClientApplication + creds in `Project.setting[]` | Credential-blind provisioning — secrets in k8s, never in the store or the management plane |
 | Roles on `ProjectMembership.identifier[]` | jengu's own identity plane (Spring Authorization Server workstream) |
-| `Project.link[]` zone chains | Declarative content dependencies: each tenant declares which canonical artifacts it needs from which upstream tenant; DBOS-based cross-tenant sync streams read-only, provenance-tagged copies into the tenant store (local override by shadowing). See concepts.md §6 |
+| `Project.link[]` zone chains | Declarative content dependencies: each tenant declares which canonical artifacts it needs from which upstream tenant; DBOS-based cross-tenant sync streams read-only, provenance-tagged copies into the tenant store (local override by shadowing). See [§6](../arc42-008-crosscutting/eventing-and-feeds.md) |
 | Validation-on-write + ADR 0042 silent-disarm trap | Personality validation (HAPI) with *specified* profile-resolution semantics; the unversioned-canonical rule survives, the trap does not |
 | `CodeSystem/$import` (pg param-cap workaround) | Native bulk load (Postgres `COPY`) — the workaround dissolves |
 | Same-project `$expand` constraint | Tier-1 `$expand` against the tenant store's replicated terminology |

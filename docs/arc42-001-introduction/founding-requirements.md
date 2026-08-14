@@ -6,7 +6,7 @@ strength is significantly upgraded in R5/R6. DBO is the specification of an "ide
 FHIR storage for jengu's actual needs.
 
 These are the founding requirements; they fix direction. Their distillation
-into stable, testable REQ IDs lives in [req-catalogue.md](req-catalogue.md).
+into stable, testable REQ IDs lives in [req-catalogue.md](../arc42-006-runtime/req-catalogue.md).
 
 ## R1 — Java
 

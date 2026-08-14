@@ -21,9 +21,9 @@ boot inside the application JVM in development and test.
 
 **Specification phase.** No production code on `main` yet.
 
-- [docs/requirements.md](docs/requirements.md) — the main requirements
-- [docs/concepts.md](docs/concepts.md) — conceptual solution sketch
-- [docs/legacy-concept-inventory.md](docs/legacy-concept-inventory.md) — what the
+- [docs/arc42-001-introduction](docs/arc42-001-introduction/README.md) — goals and founding requirements
+- [docs/README.md](docs/README.md) — the arc42 documentation index
+- [docs/evidence/legacy-concept-inventory.md](docs/evidence/legacy-concept-inventory.md) — what the
   previous db-objects codebase got right (and wrong)
 
 ## History
