@@ -51,7 +51,7 @@ public final class R4Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
         if (!issues.isEmpty()) {
             throw new ValidationFailedException(type, issues);
         }
-        return store.put(PutRequest.update(type, id, expectedVersion,
+        return store.put(new PutRequest(type, id, expectedVersion,
                 resourceJson.getBytes(StandardCharsets.UTF_8)));
     }
 

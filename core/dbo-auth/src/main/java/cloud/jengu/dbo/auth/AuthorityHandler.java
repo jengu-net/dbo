@@ -39,7 +39,14 @@ public final class AuthorityHandler implements HttpHandler {
                 case "token" -> token(exchange);
                 case "authorize" -> authorize(exchange);
                 case "authorize/login" -> authorizeLogin(exchange);
-                default -> respond(exchange, 404, "{\"error\":\"not_found\"}");
+                case "delegation" -> delegation(exchange);
+                default -> {
+                    if (relative.startsWith("delegation/") && "DELETE".equals(exchange.getRequestMethod())) {
+                        endDelegation(exchange, relative.substring("delegation/".length()));
+                    } else {
+                        respond(exchange, 404, "{\"error\":\"not_found\"}");
+                    }
+                }
             }
         } catch (RuntimeException e) {
             respond(exchange, 500, "{\"error\":\"server_error\"}");
@@ -73,6 +80,12 @@ public final class AuthorityHandler implements HttpHandler {
             case "authorization_code" -> authority.exchangeCode(form.get("code"),
                     form.get("redirect_uri"), clientId, clientSecret, form.get("code_verifier"));
             case "refresh_token" -> authority.refresh(form.get("refresh_token"));
+            case "urn:ietf:params:oauth:grant-type:token-exchange" ->
+                    form.get("delegation_id") != null
+                            ? authority.exchangeDelegation(form.get("delegation_id"),
+                                    clientId, clientSecret, form.get("scope"))
+                            : authority.exchangeToken(form.get("subject_token"),
+                                    clientId, clientSecret, form.get("scope"));
             default -> new TenantAuthority.TokenResult.Rejected("unsupported_grant_type",
                     "unknown grant type");
         };
@@ -162,6 +175,49 @@ public final class AuthorityHandler implements HttpHandler {
 
     private static String emptyToNull(String value) {
         return value == null || value.isBlank() ? null : value;
+    }
+
+    /**
+     * §16.4 durable delegation, created while the human's token is live:
+     * POST {client_id, process_ref?, scope, valid_until} with the human's
+     * Bearer token → {delegation_id}.
+     */
+    private void delegation(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            respond(exchange, 405, "{\"error\":\"invalid_request\"}");
+            return;
+        }
+        String bearer = bearerOf(exchange);
+        Map<String, String> form = parseForm(new String(
+                exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        if (bearer == null || form.get("client_id") == null
+                || form.get("scope") == null || form.get("valid_until") == null) {
+            respond(exchange, 400, "{\"error\":\"invalid_request\"}");
+            return;
+        }
+        var created = authority.createDelegation(bearer, form.get("client_id"),
+                form.get("process_ref"),
+                java.util.List.of(form.get("scope").trim().split("\\s+")),
+                Long.parseLong(form.get("valid_until")));
+        if (created.isEmpty()) {
+            respond(exchange, 403, "{\"error\":\"access_denied\"}");
+        } else {
+            respond(exchange, 201, "{\"delegation_id\":\"" + created.get() + "\"}");
+        }
+    }
+
+    private void endDelegation(HttpExchange exchange, String delegationId) throws IOException {
+        String bearer = bearerOf(exchange);
+        if (bearer == null || !authority.endDelegation(delegationId, bearer)) {
+            respond(exchange, 403, "{\"error\":\"access_denied\"}");
+        } else {
+            respond(exchange, 200, "{\"status\":\"ended\"}");
+        }
+    }
+
+    private static String bearerOf(HttpExchange exchange) {
+        String header = exchange.getRequestHeaders().getFirst("Authorization");
+        return header != null && header.startsWith("Bearer ") ? header.substring(7).trim() : null;
     }
 
     private static Map<String, String> parseForm(String body) {
