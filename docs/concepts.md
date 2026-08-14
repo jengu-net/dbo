@@ -197,6 +197,20 @@ Consequences to design for:
    remain reference material for proxy/classloader mechanics. The spike now
    sizes our own layer (proxy generation over a fixed interface set is small)
    rather than auditing someone else's.
+
+   **Evaluate first: the Karaf ecosystem.** Apache Karaf's dOSGi story
+   (**Karaf Cellar**, `cellar-dosgi` feature) is notably more alive than Aries
+   RSA — last Cellar release 2025-09, and a full refactoring toward a new major
+   Cellar release has started; Karaf itself ships steadily (4.4.x through
+   2026). The spike should assess Cellar before we build: does its dOSGi give
+   us the registry-proxy model with acceptable control over routing
+   properties? The known structural caveat: Cellar rides **Hazelcast** as its
+   cluster substrate (discovery, distributed maps, eventing) — a second
+   coordination substrate beside DBOS/Postgres, which R4's "database is the
+   coordination substrate" direction argues against. Possible middle path:
+   adopt Karaf as the container distribution (features, shell, provisioning)
+   and Cellar's proxy mechanics as prior art, while keeping discovery on our
+   DBOS assignment state.
 3. **HAPI as personality dependency?** HAPI structures per FHIR version inside
    separate bundles would give parsing/validation for free and OSGi would isolate
    the version conflicts that make multi-version HAPI impossible in one flat
