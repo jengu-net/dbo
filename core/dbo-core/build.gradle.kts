@@ -3,15 +3,20 @@
 // verifyZeroRuntimeDeps task wired into check. The jar carries OSGi metadata
 // but has no OSGi dependency.
 
+plugins {
+    id("biz.aQute.bnd.builder")
+}
+
+// bnd COMPUTES Import-Package from bytecode — imports can never drift from
+// code (dbo#13 review). Fat embedding bundles (personalities, subscriptions)
+// stay hand-curated: bnd would analyze their embedded stacks into noise.
 tasks.jar {
-    manifest {
-        attributes(
-            "Bundle-ManifestVersion" to "2",
+    bundle {
+        bnd(mapOf(
             "Bundle-SymbolicName" to "cloud.jengu.dbo.core",
             "Bundle-Version" to "0.1.0",
-            "Export-Package" to
-                "cloud.jengu.dbo.core.api;version=\"0.1.0\",cloud.jengu.dbo.core.api.feed;version=\"0.1.0\",cloud.jengu.dbo.core;version=\"0.1.0\"",
-        )
+            "Export-Package" to "cloud.jengu.dbo.core.api.*;version=0.1.0,cloud.jengu.dbo.core;version=0.1.0",
+        ))
     }
 }
 
