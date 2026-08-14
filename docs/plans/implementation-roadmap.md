@@ -66,6 +66,9 @@ yet implemented.
 3. **Personal-data isolation (Slice E)** — [#21](https://github.com/jengu-net/dbo/issues/21)
    (groomed against §14): person vault + crypto-shredding + blind
    operations; deliberately BEFORE real PHI lands
+4. **Tenant policies (Slice F)** — [#22](https://github.com/jengu-net/dbo/issues/22)
+   (groomed against §15): audit level + write discipline declared per
+   tenant next to fhirVersion; engine-enforced; after Slice D
 2. **Slice B infra PR** — MERGED as
    [jengu-infra#18](https://github.com/jengu-net/jengu-infra/pull/18):
    cloud-init `dbo_provisioner` role, standing `samerole` pg_hba rule for
