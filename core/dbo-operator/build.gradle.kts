@@ -30,8 +30,8 @@ dependencies {
     // standalone process, nothing else supplies it
     runtimeOnly("org.postgresql:postgresql:42.7.11")
     api(project(":core:dbo-tenant"))
+    // the k8s naming contract + secret-backed provisioner live in the
+    // tenant-k8s bundle module; as a plain jar we use its classes directly
+    api(project(":core:dbo-tenant-k8s"))
     api("io.fabric8:kubernetes-client:7.3.1")
-    // dbo-tenant embeds Hikari privately (bundle pattern); as a plain jar we
-    // depend on it directly
-    implementation("com.zaxxer:HikariCP:7.1.0")
 }

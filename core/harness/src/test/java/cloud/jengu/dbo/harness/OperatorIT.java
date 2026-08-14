@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.harness;
 
-import cloud.jengu.dbo.operator.KubernetesSecretProvisioner;
-import cloud.jengu.dbo.operator.SpecDirSync;
+import cloud.jengu.dbo.tenant.k8s.KubernetesSecretProvisioner;
+import cloud.jengu.dbo.tenant.k8s.SpecDirSync;
 import cloud.jengu.dbo.operator.TenantOperator;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResource;

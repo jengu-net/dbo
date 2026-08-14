@@ -7,6 +7,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.apiextensions.v1.CustomResourceDefinition;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import cloud.jengu.dbo.tenant.k8s.TenantK8sContract;
 import io.fabric8.kubernetes.client.dsl.base.ResourceDefinitionContext;
 
 import java.io.InputStream;
@@ -42,17 +43,10 @@ import java.util.Map;
  */
 public final class TenantOperator implements AutoCloseable {
 
-    public static final ResourceDefinitionContext CRD_CONTEXT = new ResourceDefinitionContext.Builder()
-            .withGroup("jengu.cloud")
-            .withVersion("v1alpha1")
-            .withKind("TenantRegistration")
-            .withPlural("tenantregistrations")
-            .withNamespaced(true)
-            .build();
-
-    public static final String CONFIGMAP = "dbo-tenants";
+    public static final ResourceDefinitionContext CRD_CONTEXT = TenantK8sContract.CRD_CONTEXT;
+    public static final String CONFIGMAP = TenantK8sContract.CONFIGMAP;
     public static final String FINALIZER = "jengu.cloud/tenant-protection";
-    public static final String TENANT_LABEL = "jengu.cloud/tenant";
+    public static final String TENANT_LABEL = TenantK8sContract.TENANT_LABEL;
 
     private static final String DUPLICATE_OBJECT = "42710";
     private static final String DUPLICATE_DATABASE = "42P04";
@@ -219,7 +213,7 @@ public final class TenantOperator implements AutoCloseable {
     // --- k8s pieces ---
 
     public static String secretName(String code) {
-        return "tenant-" + code + "-db";
+        return TenantK8sContract.secretName(code);
     }
 
     private java.util.Optional<String> existingPassword(String secretName) {

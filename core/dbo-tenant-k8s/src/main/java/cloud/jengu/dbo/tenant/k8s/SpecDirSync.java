@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.operator;
+package cloud.jengu.dbo.tenant.k8s;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -37,7 +37,7 @@ public final class SpecDirSync implements AutoCloseable {
     /** One sync: directory becomes exactly the ConfigMap. Returns keys present. */
     public Set<String> syncOnce() {
         ConfigMap cm = k8s.configMaps().inNamespace(namespace)
-                .withName(TenantOperator.CONFIGMAP).get();
+                .withName(TenantK8sContract.CONFIGMAP).get();
         Map<String, String> data = cm == null || cm.getData() == null ? Map.of() : cm.getData();
         try {
             for (Map.Entry<String, String> e : data.entrySet()) {

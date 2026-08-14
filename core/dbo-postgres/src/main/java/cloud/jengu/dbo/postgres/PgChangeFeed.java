@@ -26,18 +26,32 @@ public final class PgChangeFeed implements ChangeFeed {
     private static final Pattern CONSUMER = Pattern.compile("[A-Za-z][A-Za-z0-9_.-]{0,63}");
 
     /**
-     * The delivery barrier (dbo#5 + dbo#18 R1). Conservative path: the row's
-     * transaction lies below the snapshot's xmin — decided cluster-wide. Fast
-     * path: when THIS database has no write-transaction in flight, every
-     * visible committed row is decidable regardless of foreign databases —
-     * a long transaction elsewhere in the instance (the dbo#16 finding) no
-     * longer delays a quiet tenant's feed.
+     * The delivery barrier (dbo#5 + dbo#18 R1, corrected in dbo#19).
+     * Delivered rows must satisfy {@code xact_id < H} where H is the local
+     * horizon taken BEFORE the read snapshot:
+     *
+     * <p>If this database had no write-transaction in flight at horizon
+     * time, H = the horizon snapshot's xmax — every same-database
+     * transaction below it has already finished, so its rows are visible to
+     * the (later) read snapshot and no commit can land behind the cursor. A
+     * long transaction in a FOREIGN database (the dbo#16 finding) no longer
+     * delays the feed. If a local write IS in flight, H = null and the read
+     * falls back to the conservative cluster-wide xmin barrier.
+     *
+     * <p>The order is load-bearing: evaluating liveness inside the read
+     * statement (the first R1 attempt) races — a writer that commits
+     * between the statement's snapshot and its pg_stat_activity scan is
+     * visible in neither, and its event is skipped forever.
      */
-    private static final String BARRIER = """
-            (o.xact_id < pg_snapshot_xmin(pg_current_snapshot())
-             OR NOT EXISTS (SELECT 1 FROM pg_stat_activity
-                            WHERE datname = current_database()
-                              AND backend_xid IS NOT NULL))""";
+    private static final String LOCAL_HORIZON = """
+            SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_stat_activity
+                                     WHERE datname = current_database()
+                                       AND backend_xid IS NOT NULL)
+                        THEN NULL
+                        ELSE pg_snapshot_xmax(pg_current_snapshot())::text END""";
+
+    private static final String BARRIER =
+            "o.xact_id < COALESCE(?::xid8, pg_snapshot_xmin(pg_current_snapshot()))";
 
     private final DataSource ds;
     private final String domain;
@@ -106,14 +120,17 @@ public final class PgChangeFeed implements ChangeFeed {
     @Override
     public long lag(String consumer) {
         requireConsumer(consumer);
-        try (Connection c = ds.getConnection();
-             PreparedStatement ps = c.prepareStatement("""
-                     SELECT count(*) FROM state.%s_outbox o
-                     WHERE o.seq > ? AND %s""".formatted(domain, BARRIER))) {
-            ps.setLong(1, consumerSeq(consumer));
-            try (ResultSet rs = ps.executeQuery()) {
-                rs.next();
-                return rs.getLong(1);
+        try (Connection c = ds.getConnection()) {
+            String horizon = localHorizon(c);
+            try (PreparedStatement ps = c.prepareStatement("""
+                    SELECT count(*) FROM state.%s_outbox o
+                    WHERE o.seq > ? AND %s""".formatted(domain, BARRIER))) {
+                ps.setLong(1, consumerSeq(consumer));
+                ps.setString(2, horizon);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    return rs.getLong(1);
+                }
             }
         } catch (SQLException e) {
             throw new IllegalStateException("lag query failed", e);
@@ -131,10 +148,12 @@ public final class PgChangeFeed implements ChangeFeed {
                 JOIN history.%s_history h ON h.id = o.object_id AND h.version_id = o.version_id
                 WHERE o.seq > ? AND %s
                 ORDER BY o.seq LIMIT ?""".formatted(domain, domain, BARRIER);
-        try (Connection c = ds.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = ds.getConnection()) {
+            String horizon = localHorizon(c); // BEFORE the read snapshot
+            try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, after);
-            ps.setInt(2, limit);
+            ps.setString(2, horizon);
+            ps.setInt(3, limit);
             List<FeedItem> items = new ArrayList<>();
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -152,8 +171,18 @@ public final class PgChangeFeed implements ChangeFeed {
             }
             String next = items.isEmpty() ? null : Cursors.encodeSeq(items.get(items.size() - 1).seq());
             return new FeedChunk<>(items, next, items.size() < limit);
+            }
         } catch (SQLException e) {
             throw new IllegalStateException("feed read failed", e);
+        }
+    }
+
+    /** The dbo#19 horizon: xmax when this database is write-quiet, else null. */
+    private String localHorizon(Connection c) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(LOCAL_HORIZON);
+             ResultSet rs = ps.executeQuery()) {
+            rs.next();
+            return rs.getString(1);
         }
     }
 

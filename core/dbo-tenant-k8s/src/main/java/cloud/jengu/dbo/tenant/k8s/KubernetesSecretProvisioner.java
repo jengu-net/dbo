@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.operator;
+package cloud.jengu.dbo.tenant.k8s;
 
 import cloud.jengu.dbo.tenant.TenantDatabaseProvisioner;
 import cloud.jengu.dbo.tenant.TenantSpec;
@@ -42,9 +42,13 @@ public final class KubernetesSecretProvisioner implements TenantDatabaseProvisio
 
     @Override
     public TenantDatabase provision(TenantSpec spec) {
-        Secret secret = awaitSecret(TenantOperator.secretName(spec.code()));
+        Secret secret = awaitSecret(TenantK8sContract.secretName(spec.code()));
         HikariDataSource pool = pools.computeIfAbsent(spec.code(), code -> {
             HikariConfig config = new HikariConfig();
+            // spike #1 landmine: in OSGi, DriverManager cannot see the driver
+            // bundle's registration from this bundle's Hikari — name the class
+            // so Hikari loads it through our wiring (org.postgresql imported)
+            config.setDriverClassName("org.postgresql.Driver");
             config.setJdbcUrl(decode(secret, "url"));
             config.setUsername(decode(secret, "user"));
             config.setPassword(decode(secret, "password"));
@@ -66,7 +70,7 @@ public final class KubernetesSecretProvisioner implements TenantDatabaseProvisio
     @Override
     public void deprovision(String tenantCode) {
         release(tenantCode);
-        k8s.genericKubernetesResources(TenantOperator.CRD_CONTEXT)
+        k8s.genericKubernetesResources(TenantK8sContract.CRD_CONTEXT)
                 .inNamespace(namespace).withName(tenantCode).delete();
     }
 

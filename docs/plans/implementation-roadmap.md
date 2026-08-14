@@ -6,7 +6,7 @@ Updated at the close of every slice. The spec lives in the arc42 tree
 proof live on its GitHub issue.
 
 **State as of 2026-08-14: spec phase complete, 14 implementation slices closed,
-104 behaviour-named tests, CI green on every commit.**
+107 behaviour-named tests, CI green on every commit.**
 
 ## Spikes (all closed, verdicts in [arc42-009](../arc42-009-architecture-decisions/README.md))
 
@@ -34,6 +34,7 @@ proof live on its GitHub issue.
 | [#14](https://github.com/jengu-net/dbo/issues/14) Sync streams | `dbo-sync`: declared content dependencies over the feed — provenance-tagged copies (source id kept), conflict-driven shadowing with live fallback via `reconcile()`, convert-at-apply (R4 zone → R5 leaf), dead-letter + degraded, chains hop-by-hop through each store's own outbox; `FeedItem` now carries `payloadVersion` | **SYNC-*** (all 6) |
 | [#13](https://github.com/jengu-net/dbo/issues/13) OSGi packaging | All modules are real bundles: personalities embed private HAPI, subscriptions embeds private DBOS (`lib/` nested jars, DBO-only exports); `EmbeddedContainerIT` boots 8 production bundles + driver in in-JVM Felix and serves a live FHIR flow over HTTP | **CONT-EMBEDDED-IN-JVM**, **CONT-PRIVATE-DEPENDENCIES** |
 | [#18](https://github.com/jengu-net/dbo/issues/18) Provisioning operator (Slice B) | `dbo-operator` (plain jar, own pod): `TenantRegistration` CRD (`jengu.cloud/v1alpha1`) + poll reconciler with a **scoped** `dbo_provisioner` role (CREATEDB CREATEROLE, never superuser) → role + database + Secret `tenant-<code>-db` + `dbo-tenants` ConfigMap entry; finalizer deletion policies (Retain = stop serving, keep everything; Delete = erasure-by-drop); `KubernetesSecretProvisioner` (#17 seam from tenant Secrets — pools ride the tenant role's own creds) + `SpecDirSync`; e2e on real k3s with PG outside the cluster (Hetzner topology). Riders: per-database feed-barrier fast path (foreign-db pinner no longer stalls a quiet tenant), chunked `rebuildEnvelopes`, per-database timeouts in BOTH provisioners | **TEN-CREDENTIAL-BLIND-PROVISIONING**, **TEN-DEDICATED-DATABASE-TIER**, TEN-ERASURE-BY-DROP (operational) |
+| [#19](https://github.com/jengu-net/dbo/issues/19) Serving deployment (Slice C) | `dbo-tenant-k8s` fat bundle (fabric8 private; `KubernetesSecretProvisioner` as the mandatory service when `dbo.tenant.k8s.namespace` set; serving-pod RBAC = `secrets: get` only — deprovision unrepresentable) + `dbo-server` dist: the STANDARD Felix launcher (`org.apache.felix.main`, auto-deploy over `bundle/`, zero launcher code; bin/felix.jar layout is load-bearing — Felix homes on the jar's parent) + image via the platform registry pattern. Barrier CORRECTED: the R1 in-statement liveness check raced (writer committing between snapshot and stat scan = event lost); now a local horizon (snapshot xmax when write-quiet, taken BEFORE the read snapshot) with cluster-xmin fallback. Cold start measured: ~5.0s dist-boot → first 200 on a current schema | **CONT-FAST-COLD-START** (measured), completes TEN serving story |
 | [#12](https://github.com/jengu-net/dbo/issues/12) REST surface | `dbo-rest` (JDK HttpServer, virtual threads, zero deps) over `FhirStoreFacade`: full CRUD w/ ETag/If-Match/If-None-Exist, absolute link[next] paging, OperationOutcome errors (400/409/412/422), `_history`, `$expand`/`$lookup`/`$validate-code`, generated `/metadata`; version-generic (R4+R5 servers) | **SRCH-HONEST-CAPABILITY** |
 
 ## REQ coverage summary
@@ -41,8 +42,7 @@ proof live on its GitHub issue.
 Claimed and test-proven: **CORE** complete (incl. truth-form, identity rules,
 upgrade-on-read) · **VER** complete except R6 (no ballot personality yet) ·
 **SRCH** tier-1 complete (tiers 2/3 deliberately unclaimed) · **FEED** complete
-except LEAN-WIRE-OPTION (needs a wire) · **EVT** complete · **TERM** complete · **CONT** complete except
-FAST-COLD-START measurement ·
+except LEAN-WIRE-OPTION (needs a wire) · **EVT** complete · **TERM** complete · **CONT** complete ·
 **SYNC** complete at the
 stream-mechanics level (platform-plane orchestration + terminology grain hook
 pending) · **MNT** complete (blob element
