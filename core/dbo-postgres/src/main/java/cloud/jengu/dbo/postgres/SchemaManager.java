@@ -1,0 +1,138 @@
+package cloud.jengu.dbo.postgres;
+
+import cloud.jengu.dbo.core.TypeRegistry;
+import cloud.jengu.dbo.core.api.IndexSpec;
+import cloud.jengu.dbo.core.api.TypeRegistration;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+/**
+ * Idempotent schema setup under a Postgres advisory lock (cluster-safe: a
+ * concurrent node waits, then finds the DDL already applied). Schemas are
+ * split state / history per §11 so the maintenance export can dump history by
+ * schema; the dbos schema is reserved for the durable-work slice.
+ *
+ * <p>Identifier interpolation note: domain and type names are validated
+ * against strict patterns at registration ({@link TypeRegistration}), and
+ * envelope paths at construction — the only strings composed into DDL are
+ * these validated identifiers; every value is a bound parameter.
+ */
+public final class SchemaManager {
+
+    private static final long LOCK_KEY = 0x64626F5F636F7265L; // "dbo_core"
+
+    private final DataSource dataSource;
+
+    public SchemaManager(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    public void ensureSchema(TypeRegistry registry) {
+        try (Connection c = dataSource.getConnection()) {
+            c.setAutoCommit(true);
+            try {
+                execute(c, "SELECT pg_advisory_lock(" + LOCK_KEY + ")");
+                execute(c, "CREATE SCHEMA IF NOT EXISTS state");
+                execute(c, "CREATE SCHEMA IF NOT EXISTS history");
+                execute(c, "CREATE SCHEMA IF NOT EXISTS dbos");
+                for (String domain : registry.domains()) {
+                    createDomainTables(c, domain);
+                }
+                applyIndexes(c, registry);
+            } finally {
+                execute(c, "SELECT pg_advisory_unlock(" + LOCK_KEY + ")");
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("schema setup failed", e);
+        }
+    }
+
+    public void applyIndexes(TypeRegistry registry) {
+        try (Connection c = dataSource.getConnection()) {
+            c.setAutoCommit(true);
+            applyIndexes(c, registry);
+        } catch (SQLException e) {
+            throw new IllegalStateException("index setup failed", e);
+        }
+    }
+
+    private void createDomainTables(Connection c, String d) throws SQLException {
+        execute(c, """
+                CREATE TABLE IF NOT EXISTS state.%s_data (
+                  id uuid PRIMARY KEY,
+                  type text NOT NULL,
+                  version_id bigint NOT NULL,
+                  last_updated timestamptz NOT NULL,
+                  envelope jsonb NOT NULL,
+                  payload bytea NOT NULL,
+                  deleted boolean NOT NULL DEFAULT false
+                )""".formatted(d));
+        execute(c, "CREATE INDEX IF NOT EXISTS %s_data_type_ix ON state.%s_data (type, last_updated, id)"
+                .formatted(d, d));
+        execute(c, "CREATE INDEX IF NOT EXISTS %s_data_env_gin ON state.%s_data USING gin (envelope jsonb_path_ops)"
+                .formatted(d, d));
+        execute(c, """
+                CREATE TABLE IF NOT EXISTS state.%s_identifier (
+                  type text NOT NULL,
+                  system text NOT NULL,
+                  value text NOT NULL,
+                  object_id uuid NOT NULL,
+                  identity boolean NOT NULL,
+                  PRIMARY KEY (type, system, value, object_id)
+                )""".formatted(d));
+        // the no-implicit-merge rule, enforced at the database:
+        execute(c, ("CREATE UNIQUE INDEX IF NOT EXISTS %s_identity_claim ON state.%s_identifier "
+                + "(type, system, value) WHERE identity").formatted(d, d));
+        execute(c, "CREATE INDEX IF NOT EXISTS %s_identifier_obj_ix ON state.%s_identifier (object_id)"
+                .formatted(d, d));
+        execute(c, """
+                CREATE TABLE IF NOT EXISTS state.%s_reference (
+                  owner_id uuid NOT NULL,
+                  ref_type text NOT NULL,
+                  target_type text NOT NULL,
+                  target_id text NOT NULL,
+                  PRIMARY KEY (owner_id, ref_type, target_type, target_id)
+                )""".formatted(d));
+        execute(c, "CREATE INDEX IF NOT EXISTS %s_reference_target_ix ON state.%s_reference (target_type, target_id)"
+                .formatted(d, d));
+        execute(c, """
+                CREATE TABLE IF NOT EXISTS state.%s_outbox (
+                  seq bigserial PRIMARY KEY,
+                  object_id uuid NOT NULL,
+                  type text NOT NULL,
+                  version_id bigint NOT NULL,
+                  kind text NOT NULL,
+                  committed_at timestamptz NOT NULL DEFAULT now()
+                )""".formatted(d));
+        execute(c, """
+                CREATE TABLE IF NOT EXISTS history.%s_history (
+                  id uuid NOT NULL,
+                  version_id bigint NOT NULL,
+                  type text NOT NULL,
+                  last_updated timestamptz NOT NULL,
+                  payload bytea NOT NULL,
+                  deleted boolean NOT NULL,
+                  PRIMARY KEY (id, version_id)
+                )""".formatted(d));
+    }
+
+    private void applyIndexes(Connection c, TypeRegistry registry) throws SQLException {
+        for (TypeRegistration t : registry.all()) {
+            for (IndexSpec ix : t.indexes()) {
+                String expr = Sql.typedPathExpression(ix.path(), ix.kind());
+                String name = "%s_%s_%s_ix".formatted(t.domain(), t.typeName().toLowerCase(), ix.path().toLowerCase());
+                execute(c, "CREATE INDEX IF NOT EXISTS %s ON state.%s_data ((%s)) WHERE type = '%s'"
+                        .formatted(name, t.domain(), expr, t.typeName()));
+            }
+        }
+    }
+
+    private void execute(Connection c, String ddl) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(ddl)) {
+            ps.execute();
+        }
+    }
+}
