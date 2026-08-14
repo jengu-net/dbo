@@ -59,6 +59,11 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-AUTH-BEARER-LOCAL-VALIDATION | The serving surface accepts OAuth2 bearer JWTs validated locally against the tenant's own cached key set — no per-request dependency on any other service. (§13) |
 | REQ-DBO-AUTH-SMART-SHAPED-SCOPES | Authorization vocabulary is the SMART system-scope grammar, so finer service permissions and the future read-only public capability need no new language. (§13) |
 | REQ-DBO-AUTH-PORTABLE-AUTHORITY | The issuer string is per-tenant configuration and the key material lives in the tenant database — a tenant can move deployments or present a custom domain without re-keying. (§13) |
+| REQ-DBO-AUTH-ORG-MODEL-IS-THE-AUTH-MODEL | Human authorization derives from the tenant's own records — Practitioner is the subject, an active PractitionerRole is the grant, the Organization tree is the scope structure; there is no parallel user database to drift. (§16) |
+| REQ-DBO-AUTH-FEDERATED-HUMANS | Human authentication is federated to the configured identity broker; the authority resolves the verified national identifier to a Practitioner through the vault index and owns authorization only. Local credentials are an embedded/dev fallback, never the production path. (§16, §14) |
+| REQ-DBO-AUTH-ROLE-GRANTS-AS-RECORDS | The role-to-scope mapping is tenant-administered regular records — auditable, feed-visible, exported; changing who may do what is a recorded act. (§16) |
+| REQ-DBO-AUTH-PSEUDONYMOUS-TOKENS | Human tokens carry the practitioner's record id and SMART user scopes — no name, no national code; a captured token identifies no one. (§16, §14) |
+| REQ-DBO-AUTH-ON-BEHALF-OF | Automated processes act in the name of a human via token exchange — subject stays the practitioner, an act claim names the client, scopes attenuate; durable workflows delegate through Delegation records that outlive tokens and are revocable by ending their period. Every delegated mutation is attributable to both the process and the person. (§16, §15) |
 
 ## PDI — personal-data isolation
 
