@@ -137,6 +137,25 @@ public final class TenantExport {
         zip.write(csv.toString().getBytes(StandardCharsets.UTF_8));
         zip.closeEntry();
 
+        // ---- §14 vault (present only under PDI): wrapped keys, HMAC index,
+        // shred ledger — ciphertext and key material only, blind to the
+        // operator by construction; the identifying data itself rides
+        // encrypted inside the payload dumps above
+        for (String pdiTable : List.of("person", "identifier", "shred_ledger")) {
+            if (!tableExists(c, "pdi", pdiTable)) {
+                continue;
+            }
+            zip.putNextEntry(new ZipEntry("fidelity/pdi." + pdiTable + ".csv"));
+            StringWriter pdiCsv = new StringWriter();
+            try {
+                copy.copyOut("COPY pdi.%s TO STDOUT WITH (FORMAT csv)".formatted(pdiTable), pdiCsv);
+            } catch (SQLException e) {
+                throw new IllegalStateException("fidelity dump failed for pdi." + pdiTable, e);
+            }
+            zip.write(pdiCsv.toString().getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
+        }
+
         // ---- manifest
         zip.putNextEntry(new ZipEntry("manifest.json"));
         StringBuilder manifest = new StringBuilder();
@@ -155,5 +174,19 @@ public final class TenantExport {
         zip.closeEntry();
 
         return new ExportResult(total, fence);
+    }
+
+    private static boolean tableExists(Connection c, String schema, String table) {
+        try (PreparedStatement ps = c.prepareStatement("""
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = ? AND table_name = ?""")) {
+            ps.setString(1, schema);
+            ps.setString(2, table);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("table existence check failed", e);
+        }
     }
 }
