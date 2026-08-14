@@ -27,7 +27,22 @@ tasks.test {
         "dbo.postgres.jar",
         project(":core:dbo-postgres").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
     )
-    dependsOn(":core:dbo-terminology:jar", ":core:dbo-fhir-r5:jar")
+    dependsOn(":core:dbo-terminology:jar", ":core:dbo-fhir-r5:jar",
+        ":core:dbo-fhir-common:jar", ":core:dbo-subscriptions:jar", ":core:dbo-rest:jar")
+    for ((prop, module) in mapOf(
+        "dbo.fhir.common.jar" to "dbo-fhir-common",
+        "dbo.subscriptions.jar" to "dbo-subscriptions",
+        "dbo.rest.jar" to "dbo-rest",
+    )) {
+        systemProperty(
+            prop,
+            project(":core:$module").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
+        )
+    }
+    doFirst {
+        systemProperty("pg.driver.jar", configurations.testRuntimeClasspath.get()
+            .files.first { it.name.startsWith("postgresql-") }.absolutePath)
+    }
     systemProperty(
         "dbo.fhir.r5.jar",
         project(":core:dbo-fhir-r5").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,

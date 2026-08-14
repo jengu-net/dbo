@@ -4,7 +4,41 @@
 // database's dbos schema (§7.4). OSGi private-embedding of DBOS is the
 // packaging task; the dbo#1 spike proved it.
 
+val embedded: Configuration by configurations.creating
+configurations.implementation.get().extendsFrom(embedded)
+
 dependencies {
     api(project(":core:dbo-core"))
-    implementation("dev.dbos:transact:1.0.0")
+    embedded("dev.dbos:transact:1.0.0")
+}
+
+tasks.jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    into("lib") { from(embedded) }
+    doFirst {
+        val libs = embedded.resolve().joinToString(",") { "lib/${it.name}" }
+        manifest {
+            attributes(
+                "Bundle-ManifestVersion" to "2",
+                "Bundle-SymbolicName" to "cloud.jengu.dbo.subscriptions",
+                "Bundle-Version" to "0.1.0",
+                "Bundle-ClassPath" to ".,$libs",
+                "Export-Package" to "cloud.jengu.dbo.subscriptions;version=\"0.1.0\"",
+                "Import-Package" to listOf(
+                    "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
+                    "cloud.jengu.dbo.core.api.feed;version=\"[0.1,1)\"",
+                    "javax.sql",
+                    "javax.naming;resolution:=optional",
+                    "javax.net.ssl;resolution:=optional",
+                    "javax.crypto;resolution:=optional",
+                    "javax.crypto.spec;resolution:=optional",
+                    "javax.security.auth;resolution:=optional",
+                    "javax.security.auth.callback;resolution:=optional",
+                    "javax.security.auth.x500;resolution:=optional",
+                    "javax.management;resolution:=optional",
+                    "org.ietf.jgss;resolution:=optional",
+                ).joinToString(","),
+            )
+        }
+    }
 }
