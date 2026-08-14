@@ -27,7 +27,7 @@ import java.util.Optional;
  * declared truth-form inversion (REQ-DBO-CORE-DECLARED-TRUTH-FORM).
  * Public surface: JSON in, JSON out (§7.3).
  */
-public final class R4Terminology {
+public final class R4Terminology implements cloud.jengu.dbo.fhir.common.TerminologyFacade {
 
     /** Preserves the original CodeSystem.content across the shell round-trip. */
     static final String ORIGINAL_CONTENT_EXT = "https://dbo.dev/fhir/ext/original-content";
@@ -163,6 +163,7 @@ public final class R4Terminology {
     // ----------------------------------------------------------- operations
 
     /** CodeSystem/$lookup → Parameters JSON. */
+    @Override
     public Optional<String> lookup(String system, String code) {
         return terminology.lookup(system, code).map(c -> {
             Parameters p = new Parameters();
@@ -183,6 +184,7 @@ public final class R4Terminology {
     }
 
     /** $validate-code → Parameters JSON with result + display. */
+    @Override
     public String validateCode(String system, String code) {
         Optional<Concept> concept = terminology.lookup(system, code);
         Parameters p = new Parameters();
@@ -193,6 +195,7 @@ public final class R4Terminology {
     }
 
     /** ValueSet/$expand → ValueSet JSON with expansion.contains. */
+    @Override
     public Optional<String> expand(String valueSetUrl, String filter, int offset, int count) {
         return terminology.valueSetCompose(valueSetUrl).map(compose -> {
             TerminologyStore.Expansion expansion = terminology.expand(compose, filter, offset, count);

@@ -5,8 +5,8 @@ Updated at the close of every slice. The spec lives in the arc42 tree
 ([index](../README.md)); each slice's full Definition of Ready and closing
 proof live on its GitHub issue.
 
-**State as of 2026-08-14: spec phase complete, 8 implementation slices closed,
-65 behaviour-named tests, CI green on every commit.**
+**State as of 2026-08-14: spec phase complete, 9 implementation slices closed,
+73 behaviour-named tests, CI green on every commit.**
 
 ## Spikes (all closed, verdicts in [arc42-009](../arc42-009-architecture-decisions/README.md))
 
@@ -28,6 +28,7 @@ proof live on its GitHub issue.
 | [#9](https://github.com/jengu-net/dbo/issues/9) Terminology native form | `dbo-terminology`: concept-per-row, 40k-concept COPY in 534ms, is-a expand, $lookup/$validate-code/$expand; shell honesty (content=not-present) | TERM-* (3), CORE-DECLARED-TRUTH-FORM |
 | [#10](https://github.com/jengu-net/dbo/issues/10) R5 personality | `dbo-fhir-common` + `dbo-fhir-r5`; R4+R5 concurrent over one DB, **zero core diffs** | **VER-CONCURRENT-VERSIONS**, VER-VERSION-AGNOSTIC-CORE |
 | [#11](https://github.com/jengu-net/dbo/issues/11) Upgrade-on-read | `payload_version` + PayloadConverter chain on reads (history exempt); `R4ToR5Converter`; converter+reindex transition of a live domain | **CORE-UPGRADE-ON-READ**, VER-TRANSITION-BY-CONVERTERS |
+| [#12](https://github.com/jengu-net/dbo/issues/12) REST surface | `dbo-rest` (JDK HttpServer, virtual threads, zero deps) over `FhirStoreFacade`: full CRUD w/ ETag/If-Match/If-None-Exist, absolute link[next] paging, OperationOutcome errors (400/409/412/422), `_history`, `$expand`/`$lookup`/`$validate-code`, generated `/metadata`; version-generic (R4+R5 servers) | **SRCH-HONEST-CAPABILITY** |
 
 ## REQ coverage summary
 
@@ -41,16 +42,14 @@ packaging-validity proven; container wiring pending) ·
 
 ## Next fronts (unordered candidates, groom before starting)
 
-1. **REST surface** — first FHIR-client-facing endpoint; unlocks multimap
-   query params; the strangler seam of the [Medplum migration](medplum-migration.md) phase 1
-2. **OSGi packaging task** — personality/engine bundles with private stacks
+1. **OSGi packaging task** — personality/engine bundles with private stacks
    (spike-proven patterns); enables the embedded in-JVM mode for jengu dev/test
 3. **§6 sync streams** — declared content dependencies over the feed; the
    converters from #11 supply SYNC-CONVERT-ON-APPLY
-4. **SubscriptionTopic delivery** — completes EVT-FHIR-SUBSCRIPTIONS
-5. **Tenant provisioning operator + planes** (TEN/WF beyond the schemas) —
+3. **SubscriptionTopic delivery** — completes EVT-FHIR-SUBSCRIPTIONS
+4. **Tenant provisioning operator + planes** (TEN/WF beyond the schemas) —
    needs a k8s environment decision
-6. **Maintenance export/import** (MNT) — backup=export over the feed fence
+5. **Maintenance export/import** (MNT) — backup=export over the feed fence
 
 Later horizons: routing layer (SCAL), process catalogue (PROC), R6 ballot
 personality, shared-RLS tier, blob storage (OPS).

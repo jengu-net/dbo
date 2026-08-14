@@ -4,6 +4,7 @@ dependencies {
     testImplementation(project(":core:dbo-test-model"))
     testImplementation(project(":core:dbo-fhir-r4"))
     testImplementation(project(":core:dbo-fhir-r5"))
+    testImplementation(project(":core:dbo-rest"))
     testImplementation(project(":core:dbo-subscriptions"))
     testImplementation(project(":core:dbo-terminology"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")

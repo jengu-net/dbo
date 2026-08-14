@@ -20,7 +20,7 @@ import java.util.Map;
  * strict search returning searchset Bundles, conditional canonical upserts.
  * JSON in, JSON out — the personality boundary (§7.3).
  */
-public final class R5Store {
+public final class R5Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacade {
 
     private final ObjectStore store;
     private final R5Personality personality;
@@ -33,6 +33,7 @@ public final class R5Store {
     }
 
     /** Validate then create; returns after the single-transaction commit. */
+    @Override
     public PutResult create(String resourceJson) {
         String type = personality.resourceTypeOf(resourceJson);
         List<String> issues = personality.validate(resourceJson);
@@ -42,8 +43,9 @@ public final class R5Store {
         return store.put(PutRequest.create(type, resourceJson.getBytes(StandardCharsets.UTF_8)));
     }
 
-    /** Validated update with optimistic version check. */
-    public PutResult update(String id, long expectedVersion, String resourceJson) {
+    /** Validated update; null expectedVersion = unconditional. */
+    @Override
+    public PutResult update(String id, Long expectedVersion, String resourceJson) {
         String type = personality.resourceTypeOf(resourceJson);
         List<String> issues = personality.validate(resourceJson);
         if (!issues.isEmpty()) {
@@ -66,6 +68,7 @@ public final class R5Store {
     }
 
     /** Strict FHIR search over one type; returns a searchset Bundle with link[next]. */
+    @Override
     public String search(String typeName, Map<String, String> params, String cursor) {
         R5Personality.CompiledSearch compiled = personality.compileSearch(typeName, params);
 
@@ -104,6 +107,7 @@ public final class R5Store {
      * REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS the condition must be the
      * type's primary identity: {@code identifier=sys|value} or {@code url=…}.
      */
+    @Override
     public PutResult conditionalCreate(String resourceJson, Map<String, String> condition) {
         String type = personality.resourceTypeOf(resourceJson);
         List<String> issues = personality.validate(resourceJson);
@@ -134,10 +138,37 @@ public final class R5Store {
                 resourceJson.getBytes(StandardCharsets.UTF_8)));
     }
 
+    @Override
     public String read(String typeName, String id) {
         return store.get(typeName, id)
                 .map(o -> new String(o.payload(), StandardCharsets.UTF_8))
                 .orElse(null);
+    }
+
+
+    @Override
+    public void delete(String typeName, String id, Long expectedVersion) {
+        store.delete(typeName, id, expectedVersion);
+    }
+
+    @Override
+    public String historyBundle(String typeName, String id) {
+        return personality.toHistoryBundle(store.history(typeName, id), baseUrl, typeName);
+    }
+
+    @Override
+    public String capabilityStatement(String base) {
+        return personality.capabilityStatement(base);
+    }
+
+    @Override
+    public String operationOutcome(String issueCode, String diagnostics) {
+        return personality.operationOutcome(issueCode, diagnostics);
+    }
+
+    @Override
+    public boolean knowsType(String typeName) {
+        return personality.knowsType(typeName);
     }
 
 }

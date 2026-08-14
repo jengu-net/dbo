@@ -580,6 +580,90 @@ public final class R5Personality {
         });
     }
 
+
+    /** History Bundle (type=history), oldest first. */
+    public String toHistoryBundle(java.util.List<StoredObject> versions, String baseUrl, String typeName) {
+        return withTccl(() -> {
+            Bundle bundle = new Bundle();
+            bundle.setType(Bundle.BundleType.HISTORY);
+            bundle.setTotal(versions.size());
+            for (StoredObject o : versions) {
+                Resource resource = (Resource) ctx().newJsonParser()
+                        .parseResource(new String(o.payload(), StandardCharsets.UTF_8));
+                resource.setId(o.id());
+                resource.getMeta().setVersionId(Long.toString(o.versionId()));
+                bundle.addEntry().setResource(resource)
+                        .setFullUrl(baseUrl + "/" + typeName + "/" + o.id());
+            }
+            return ctx().newJsonParser().encodeResourceToString(bundle);
+        });
+    }
+
+    /**
+     * REQ-DBO-SRCH-HONEST-CAPABILITY: generated from the configured types and
+     * their actually-supported search parameters — never hand-maintained.
+     */
+    public String capabilityStatement(String baseUrl) {
+        return withTccl(() -> {
+            var cs = new org.hl7.fhir.r5.model.CapabilityStatement();
+            cs.setStatus(org.hl7.fhir.r5.model.Enumerations.PublicationStatus.ACTIVE);
+            cs.setKind(org.hl7.fhir.r5.model.Enumerations.CapabilityStatementKind.INSTANCE);
+            cs.setDate(new java.util.Date());
+            cs.setFhirVersion(org.hl7.fhir.r5.model.Enumerations.FHIRVersion
+                    .fromCode(ctx().getVersion().getVersion().getFhirVersionString()));
+            cs.addFormat("application/fhir+json");
+            var rest = cs.addRest();
+            rest.setMode(org.hl7.fhir.r5.model.CapabilityStatement.RestfulCapabilityMode.SERVER);
+            for (String typeName : types.keySet()) {
+                var resource = rest.addResource();
+                resource.setType(typeName);
+                for (var interaction : java.util.List.of("read", "create", "update", "delete",
+                        "search-type", "history-instance")) {
+                    resource.addInteraction().setCode(
+                            org.hl7.fhir.r5.model.CapabilityStatement.TypeRestfulInteraction
+                                    .fromCode(interaction));
+                }
+                for (RuntimeSearchParam sp : searchParams(typeName)) {
+                    var supported = switch (sp.getParamType()) {
+                        case TOKEN, STRING, DATE, NUMBER, REFERENCE, URI -> true;
+                        default -> false;
+                    };
+                    if (supported) {
+                        resource.addSearchParam().setName(sp.getName()).setType(
+                                org.hl7.fhir.r5.model.Enumerations.SearchParamType
+                                        .fromCode(sp.getParamType().getCode()));
+                    }
+                }
+                resource.addSearchParam().setName("_tag").setType(
+                        org.hl7.fhir.r5.model.Enumerations.SearchParamType.TOKEN);
+                resource.addSearchParam().setName("_profile").setType(
+                        org.hl7.fhir.r5.model.Enumerations.SearchParamType.URI);
+                resource.addSearchParam().setName("_lastUpdated").setType(
+                        org.hl7.fhir.r5.model.Enumerations.SearchParamType.DATE);
+                resource.addSearchParam().setName("_id").setType(
+                        org.hl7.fhir.r5.model.Enumerations.SearchParamType.TOKEN);
+            }
+            return ctx().newJsonParser().encodeResourceToString(cs);
+        });
+    }
+
+    /** An OperationOutcome document for error responses. */
+    public String operationOutcome(String issueCode, String diagnostics) {
+        return withTccl(() -> {
+            var outcome = new org.hl7.fhir.r5.model.OperationOutcome();
+            var issue = outcome.addIssue();
+            issue.setSeverity(org.hl7.fhir.r5.model.OperationOutcome.IssueSeverity.ERROR);
+            issue.setCode(org.hl7.fhir.r5.model.OperationOutcome.IssueType.fromCode(issueCode));
+            issue.setDiagnostics(diagnostics);
+            return ctx().newJsonParser().encodeResourceToString(outcome);
+        });
+    }
+
+    /** True when the type is configured in this personality. */
+    public boolean knowsType(String typeName) {
+        return types.containsKey(typeName);
+    }
+
     /** The resource type of a raw resource JSON (for generic write endpoints). */
     public String resourceTypeOf(String resourceJson) {
         return withTccl(() -> ctx().newJsonParser().parseResource(resourceJson)
