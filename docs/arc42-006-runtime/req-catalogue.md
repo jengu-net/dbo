@@ -48,6 +48,18 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-TEN-SHARED-TIER-ISOLATION | Tenants on the shared tier are isolated by tenant-keyed schemas and row-level security with the same API surface as the dedicated tier. (§3) |
 | REQ-DBO-TEN-FAIRNESS-QUOTAS | Per-tenant quotas and rate limits are first-class configuration, enforced at the serving pod. (§9) |
 
+## AUTH — tenant authority & surface protection
+
+| REQ | Promise |
+|---|---|
+| REQ-DBO-AUTH-TENANT-SCOPED-ISSUER | Every tenant is its own OIDC authority with its own issuer URL, discovery document, key set and token endpoint; relying parties trust exactly one tenant's authority, never the store's. A token from any other tenant fails signature verification before any claim is read. (§13) |
+| REQ-DBO-AUTH-IDENTITY-AS-RECORDS | Client applications, grants and signing keys are regular records in the tenant's own store — versioned, provenance-stamped, visible to feeds, and carried by the maintenance export: restoring a tenant restores who may access it. (§13, §11) |
+| REQ-DBO-AUTH-PRIVATE-SURFACE | The raw store surface is never publicly routed; public interaction with dbo-held data goes through process-based surfaces. The authority exists so authorized services reach the private surface with tenant-rooted trust. (§13) |
+| REQ-DBO-AUTH-DENY-BY-DEFAULT | A serving deployment without a working authority refuses to serve tenant endpoints; disabling auth is an explicit embedded/test flag, never a default. (§13) |
+| REQ-DBO-AUTH-BEARER-LOCAL-VALIDATION | The serving surface accepts OAuth2 bearer JWTs validated locally against the tenant's own cached key set — no per-request dependency on any other service. (§13) |
+| REQ-DBO-AUTH-SMART-SHAPED-SCOPES | Authorization vocabulary is the SMART system-scope grammar, so finer service permissions and the future read-only public capability need no new language. (§13) |
+| REQ-DBO-AUTH-PORTABLE-AUTHORITY | The issuer string is per-tenant configuration and the key material lives in the tenant database — a tenant can move deployments or present a custom domain without re-keying. (§13) |
+
 ## VER — version plurality (personalities)
 
 | REQ | Promise |
