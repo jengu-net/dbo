@@ -15,7 +15,6 @@ tasks.jar {
     bundle {
         bnd(mapOf(
             "Bundle-SymbolicName" to "cloud.jengu.dbo.rest",
-            "Bundle-Version" to "0.1.0",
             "Export-Package" to "cloud.jengu.dbo.rest;version=0.1.0",
         ))
     }

@@ -16,7 +16,6 @@ tasks.jar {
     bundle {
         bnd(mapOf(
             "Bundle-SymbolicName" to "cloud.jengu.dbo.postgres",
-            "Bundle-Version" to "0.1.0",
             "Export-Package" to "cloud.jengu.dbo.postgres;version=0.1.0",
         ))
     }
