@@ -32,6 +32,11 @@ final class Json {
         return array(node, field).stream().map(String::valueOf).toList();
     }
 
+    static String strOpt(Object node, String field) {
+        Object value = ((Map<?, ?>) node).get(field);
+        return value == null ? null : String.valueOf(value);
+    }
+
     static long num(Object node, String field) {
         Object value = ((Map<?, ?>) node).get(field);
         if (!(value instanceof Number n)) {

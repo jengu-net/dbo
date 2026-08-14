@@ -6,7 +6,7 @@ Updated at the close of every slice. The spec lives in the arc42 tree
 proof live on its GitHub issue.
 
 **State as of 2026-08-14: spec phase complete, 14 implementation slices closed,
-128 behaviour-named tests, CI green on every commit.**
+133 behaviour-named tests, CI green on every commit.**
 
 ## Spikes (all closed, verdicts in [arc42-009](../arc42-009-architecture-decisions/README.md))
 
@@ -39,6 +39,7 @@ proof live on its GitHub issue.
 | [#21](https://github.com/jengu-net/dbo/issues/21) Personal-data isolation (Slice E) | `dbo-pdi`: identifying elements encrypted IN the payload (`__pdiEnc`, per-person AES-GCM keys) — one atomic engine write; history/envelopes/feed/archives/sync carry ciphertext BY CONSTRUCTION; vault holds only wrapped keys + HMAC identifier index + restriction flag + shred ledger; person-type identity moves vault-side (no-implicit-merge survives); crypto-shredding = destroy the key (unfindable via index-row deletion); restore MERGES the ledger (never replaces) and replays it — a pre-shred archive cannot resurrect; opt-in per tenant (`"pdi": true`, requires the authority's KEK); grep-the-bytes proof: plaintext nowhere | **PDI-*** (all 6) |
 | [#22](https://github.com/jengu-net/dbo/issues/22) Tenant policies (Slice F) | `dbo-policy`: audit entries as REGULAR RECORDS in the tenant's own `audit` domain (own outbox — subscriptions can watch access; actor from the `Caller` seam set by token validation); append-only discipline rejects tombstones with a policy-naming error (409 OperationOutcome over REST; per-type overrides); declarative retention (keepAtLeast ≤ removeAfter validated at parse; sweep removes expired objects from state AND history as the one sanctioned mutation, itself audited without retaining data; bring-up sweep = a restored pre-sweep archive comes up already swept); posture declared in the capability statement; CRD schema + operator re-emit carry `pdi`+policy blocks (closing the Slice E structural-pruning gap) | **POL-*** (all 8) |
 | [#23](https://github.com/jengu-net/dbo/issues/23) Audit surface (Slice G) | The trail is OPEN UPWARD, CLOSED DOWNWARD: `recordCustom` (per-tenant recorder service in the registry) + `POST AuditEvent` (mapped into a native entry, NEVER stored raw) let applications contribute the WHAT; the machinery stamps WHO/WHEN from the token and its clock — a posted event claiming another agent and a 1999 timestamp lands carrying the token's client and now (proven). `AuditEntry` unconditionally append-only (no direct writes, no deletes, under ANY discipline). FHIR projection: `GET /AuditEvent` renders the native truth form per personality (R4 type/subtype vs R5 category/code shapes), search by agent/entity/action/date; scope-gated; BALP alignment = follow-up | **POL-CUSTOM-AUDIT-EVENTS**, **POL-AUDIT-UNCONDITIONALLY-APPEND-ONLY**, **POL-FHIR-AUDIT-PROJECTION** |
+| [#24](https://github.com/jengu-net/dbo/issues/24) Human identity (Slice H) | The org model IS the auth model: active `PractitionerRole` → role codes → `RoleGrant` records → SMART `user/*` scopes; revocation = ending a period on a clinical record (refresh RE-EVALUATES grants — proven). Authorization-code + PKCE (S256) on the tenant authority with a dev-local `LocalCredential` form behind the pluggable `HumanAuthenticator` seam (federated eeID = its own slice); redirect URIs validated against the `ClientApplication` record (grown: `clientType`, `redirectUris`; never redirect to unregistered targets); refresh tokens rejected at the store surface. Tokens pseudonymous: `fhirUser: Practitioner/<id>`, no name, no national code. Subject resolution = the SAME `getByIdentifier` call under PDI (vault HMAC) and without (envelope) — proven both ways. The §15 audit actor becomes the human's pseudonym | **AUTH-ORG-MODEL-IS-THE-AUTH-MODEL**, **AUTH-FEDERATED-HUMANS** (seam + dev fallback), **AUTH-ROLE-GRANTS-AS-RECORDS**, **AUTH-PSEUDONYMOUS-TOKENS** |
 | [#12](https://github.com/jengu-net/dbo/issues/12) REST surface | `dbo-rest` (JDK HttpServer, virtual threads, zero deps) over `FhirStoreFacade`: full CRUD w/ ETag/If-Match/If-None-Exist, absolute link[next] paging, OperationOutcome errors (400/409/412/422), `_history`, `$expand`/`$lookup`/`$validate-code`, generated `/metadata`; version-generic (R4+R5 servers) | **SRCH-HONEST-CAPABILITY** |
 
 ## REQ coverage summary
@@ -68,10 +69,8 @@ yet implemented.
 3. **Enable PDI for real tenants** — flip `"pdi": true` in registrations
    (greenfield: hogwarts' pre-PDI plaintext records need recreate-or-accept;
    decide before real PHI)
-4. **Human identity (Slice H)** — [#24](https://github.com/jengu-net/dbo/issues/24)
-   (groomed against §16): the org model IS the auth model; auth-code+PKCE,
-   SMART user scopes, pseudonymous tokens; federation seam (eeID = own
-   follow-up slice)
+4. **eeID/TARA federation** — implement the HumanAuthenticator seam
+   against the live broker (needs external registration)
 5. **On-behalf-of (Slice I)** — [#25](https://github.com/jengu-net/dbo/issues/25)
    (groomed): RFC 8693 token exchange + act chains + Delegation records
    for workflows that outlive tokens; after H

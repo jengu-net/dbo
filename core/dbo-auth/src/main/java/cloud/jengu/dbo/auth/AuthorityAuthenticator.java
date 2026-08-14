@@ -33,7 +33,8 @@ public final class AuthorityAuthenticator implements RequestAuthenticator {
             return new Denial(403, null, "insufficient scope for "
                     + (mutation ? "writing " : "reading ") + resourceType);
         }
-        cloud.jengu.dbo.core.api.Caller.set(context.get().clientId());
+        cloud.jengu.dbo.core.api.Caller.set(context.get().fhirUser() != null
+                ? context.get().fhirUser() : context.get().clientId());
         return null;
     }
 }
