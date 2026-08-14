@@ -120,10 +120,40 @@
    personality begins life on ballot-snapshot artifacts — exactly the
    fast-moving dependency the bundle isolation is for.
 
-   Remaining spike items: per-personality footprint (structures + validator
-   jars are tens of MB each) and startup cost (`FhirContext` is expensive —
-   one per personality, created once, ideally lazily); whether we depend on
-   full HAPI or only the leaner `org.hl7.fhir.core` stack per version.
+   **VERDICT (spike, 2026-08-14): CONFIRMED — HAPI per personality works.**
+   All scenarios pass (`spike/hapi-felix/`, HAPI 8.10.1, Felix 7 in-JVM):
+   R4 parse + FHIRPath (incl. identifier-extraction expressions), R5
+   coexisting with genuine divergence (R4 rejects `SubscriptionTopic`),
+   R4 profile validation flags structural errors, and the boundary rule held
+   — JSON in/out, zero HAPI types crossed the api.
+
+   Measured: personality bundle sizes R4 **145MB** / R5 **163MB** (all-in,
+   validation included); `FhirContext` init ~0.4s (R4) / ~0.8s (R5), lazy.
+
+   Landmine log:
+   1. **TCCL** — HAPI's cache-provider discovery (`HAPI-2200`) is
+      ServiceLoader/TCCL-based; every personality entry point must run with
+      the bundle classloader as TCCL (a `withTccl` wrapper).
+   2. **R5 FHIRPath eagerly builds `DefaultProfileValidationSupport`** — pure
+      path evaluation drags `hapi-fhir-validation` +
+      `hapi-fhir-validation-resources-r5` (the base-profile npm package)
+      into the bundle. Footprint and memory follow.
+   3. **Memory**: loading the R5 core-profile package OOMs a 512MB heap;
+      2GB is comfortable. Personality memory budgets are real numbers, not
+      rounding errors.
+   4. **Parse-time vs validate-time errors**: HAPI's parser rejects invalid
+      required-binding codes at *parse* time (`HAPI-1821`) before any
+      validator runs — the REQ-DBO-VER-SPECIFIED-VALIDATION semantics must
+      define which errors surface at which stage.
+   5. **Finding**: the HL7 validator core is internally R5-based, so the R4
+      stack legitimately contains `org.hl7.fhir.r5` model classes. Isolation
+      therefore means *separate private copies* (verified by classloader
+      identity per bundle; the host sees nothing) — not absence.
+
+   Still open (non-blocking): whether a leaner `org.hl7.fhir.core`-only
+   dependency (skipping the `ca.uhn` layer) is worth it per personality —
+   revisit when the R6 ballot personality is built, since that one starts
+   from the core stack anyway.
 4. **Per-tenant DBOS state — two planes.** Resolution: split by *what the
    workflow state contains*, not by who runs it.
 
