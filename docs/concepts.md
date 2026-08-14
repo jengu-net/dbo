@@ -279,6 +279,33 @@ Consequences to design for:
    because only a tenant's *serving* pods attach its DBOS instance (assignment
    decides attachment, §5).
 
+   **Cross-boundary hops.** Every workflow *step* declares its plane at
+   definition time — platform or tenant — and both kinds coexist inside one
+   bigger process. A **hop** is where the executing plane changes:
+   tenant → tenant, tenant → platform, or platform → tenant. Hops are special
+   and **always coordinated by the platform**, never a direct tenant-to-tenant
+   connection (which would break isolation — tenant A must never reach tenant
+   B's database or hold its credentials). The bigger process *is* a
+   platform-plane workflow anyway; it invokes tenant-plane sub-workflows in
+   each tenant's own DBOS and carries only references between them.
+
+   - **Content routing under the no-content rule**: the platform-plane parent
+     passes references; actual resource content moves tenant-plane to
+     tenant-plane over the routing layer (§5) — e.g. the sender's tenant-plane
+     step delivers to the receiver's ingress, under a platform-issued,
+     process-scoped grant. Platform checkpoints stay content-free.
+   - **Hops are audit events by definition** — they are boundary crossings.
+     Three records per hop: the sender tenant logs egress and the receiver
+     logs ingress (full-fidelity, as `AuditEvent`/`Provenance` in each
+     tenant's own store, linked to the process instance), while the platform
+     logs the hop coordination itself (metadata, participants, process id,
+     content hashes — never content).
+   - Motivating cases: a healthcare provider communicating through the
+     national API provided by the zone tenant; provider ↔ insurer exchange.
+     These are exactly the flows that must be auditable at the boundary
+     regardless — the hop model makes the audit structural instead of
+     per-integration.
+
    Spike item (feeds §7.1): whether `dev.dbos:transact` supports multiple
    launched runtimes against different system databases in one JVM — the
    standard model is one runtime per process. If not: per-tenant instantiation
