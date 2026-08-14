@@ -211,11 +211,47 @@ Consequences to design for:
    adopt Karaf as the container distribution (features, shell, provisioning)
    and Cellar's proxy mechanics as prior art, while keeping discovery on our
    DBOS assignment state.
-3. **HAPI as personality dependency?** HAPI structures per FHIR version inside
-   separate bundles would give parsing/validation for free and OSGi would isolate
-   the version conflicts that make multi-version HAPI impossible in one flat
-   classpath — this is one of the strongest arguments *for* OSGi here. Size/startup
-   cost to be measured.
+3. **HAPI as personality dependency.** Direction: yes — each personality bundle
+   embeds the HAPI stack for its FHIR version as *private* packages (same
+   pattern as the DBOS embedding bundle, §7.1; HAPI jars carry no OSGi
+   metadata, so bnd-wrapping is needed either way). It gives parsing,
+   validation, and — decisively — a **FHIRPath engine** per version, which
+   SearchParameter → envelope extraction requires; hand-building that per
+   version is not a realistic alternative.
+
+   Corrected premise: multi-version HAPI is *not* impossible on a flat
+   classpath — it is designed for it (distinct `org.hl7.fhir.r4/.r5` model
+   packages, `FhirContext.forR4()`/`forR5()` coexisting, one structure jar per
+   version). What OSGi isolation actually buys is subtler and still real:
+
+   - **Version-skew freedom.** On a flat classpath, all structure jars share
+     one `hapi-fhir-base` + `org.hl7.fhir.utilities`/validator core, so every
+     personality upgrades in lockstep, and cross-contamination exists (e.g.
+     R4 profile snapshot generation historically pulling in R5 structures).
+     Private packaging lets the R6-draft personality track fast-moving ballot
+     snapshots while R4/R5 tenants stay on pinned, boring versions.
+   - **A clean boundary rule**: HAPI types never cross the bundle boundary.
+     The personality API toward dbo-core speaks payload bytes + typed envelope
+     values + validation outcomes only.
+
+   That boundary rule has a consequence to decide deliberately: the jengu
+   platform's canon is "the typed HAPI R4 object *is* the domain model". In
+   embedded mode the host's own HAPI and the personality's private HAPI are
+   different classloaders even at the same version — so the host↔DBO surface
+   is canonical JSON, not shared HAPI objects. Either we accept re-parse at
+   that edge (cheap enough for dev/test; measure), or a personality may
+   *optionally export* its model packages for a host that wants to share them.
+
+   R6 status: no released `hapi-fhir-structures-r6`; R6 normative ballot
+   started 2026-01, final publication 2027 at the earliest; draft R6 model
+   code lives in the `org.hl7.fhir.core` validator stack. So the R6
+   personality begins life on ballot-snapshot artifacts — exactly the
+   fast-moving dependency the bundle isolation is for.
+
+   Remaining spike items: per-personality footprint (structures + validator
+   jars are tens of MB each) and startup cost (`FhirContext` is expensive —
+   one per personality, created once, ideally lazily); whether we depend on
+   full HAPI or only the leaner `org.hl7.fhir.core` stack per version.
 4. **Per-tenant DBOS state.** Does durable-workflow state live in the tenant DB
    (perfect isolation, N schedulers) or platform DB (one scheduler, weaker
    isolation)? Likely tiered like storage itself.
