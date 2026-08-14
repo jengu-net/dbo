@@ -80,5 +80,8 @@ tasks.test {
     )
     testLogging {
         events("passed", "failed", "skipped")
+        // a failed assertion's MESSAGE is the diagnosis (FeedIT names the
+        // pinning transactions in it) — a bare line number is not
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }
