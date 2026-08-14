@@ -70,19 +70,41 @@
    sizes our own layer (proxy generation over a fixed interface set is small)
    rather than auditing someone else's.
 
-   **Evaluate first: the Karaf ecosystem.** Apache Karaf's dOSGi story
-   (**Karaf Cellar**, `cellar-dosgi` feature) is notably more alive than Aries
-   RSA — last Cellar release 2025-09, and a full refactoring toward a new major
-   Cellar release has started; Karaf itself ships steadily (4.4.x through
-   2026). The spike should assess Cellar before we build: does its dOSGi give
-   us the registry-proxy model with acceptable control over routing
-   properties? The known structural caveat: Cellar rides **Hazelcast** as its
-   cluster substrate (discovery, distributed maps, eventing) — a second
-   coordination substrate beside DBOS/Postgres, which R4's "database is the
-   coordination substrate" direction argues against. Possible middle path:
-   adopt Karaf as the container distribution (features, shell, provisioning)
-   and Cellar's proxy mechanics as prior art, while keeping discovery on our
-   DBOS assignment state.
+   **VERDICT (Cellar evaluation, 2026-08-14): REJECT Cellar — build our own,
+   as planned.** Source-level review of `cellar-dosgi` at `apache/karaf-cellar`
+   main:
+
+   - **Activity, corrected.** The earlier "more alive" impression does not
+     survive contact: the 2025-08/09 flurry was a maintenance release (4.4.8,
+     "cleanup and update to support Karaf 4.4.x"), essentially one maintainer
+     plus dependabot; nothing since 2025-09. No refactoring toward a new
+     major is visible on main. Cellar still pins **Hazelcast 3.12** — a
+     long-EOL major — which alone disqualifies it for a medical platform.
+   - **Mechanics, measured.** The whole dosgi module is ~13 small classes.
+     A remote call is a Java-serialized
+     `RemoteServiceCall{endpointId, methodName, args}` pushed through
+     Cellar's generic Hazelcast command-execution context; the caller gets a
+     `Map<Node, Result>` and **returns the first entry of an arbitrary map
+     iteration**. Dispatch is by method *name* (overloads ambiguous),
+     serialization is Java serialization (schema coupling + a deserialization
+     attack surface), there is no property-based routing, no locality, no
+     partitioning, no streaming, no transport control. Every dimension DBO
+     routing needs (tenant id, locality, serving-role, mTLS, lean frames —
+     §5, §10) is absent.
+   - **Prior-art value**: genuinely useful but small — the
+     `RemoteServiceFindHook` + proxy + endpoint-map *shape* confirms a
+     purpose-built layer is a modest build, which the own-layer plan already
+     assumed. Nothing worth importing as a dependency.
+   - **Karaf-the-container** (features model, shell, provisioning) remains a
+     separate, open option — Karaf itself ships steadily (4.4.x through
+     2026) — to be decided when packaging/distribution becomes real work.
+     The embedded in-JVM mode runs on plain Felix regardless (proven by both
+     spikes).
+
+   With this, all §7 spike questions are closed: DBOS adopt (§7.1), own
+   routing layer with Cellar rejected (§7.2), HAPI personalities confirmed
+   (§7.3), planes resolved (§7.4), search tiers evidence-based (§7.5),
+   migration path set (§7.6).
 3. **HAPI as personality dependency.** Direction: yes — each personality bundle
    embeds the HAPI stack for its FHIR version as *private* packages (same
    pattern as the DBOS embedding bundle, §7.1; HAPI jars carry no OSGi
