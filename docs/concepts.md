@@ -552,3 +552,50 @@ Any-instance-serves-anything statelessness (replaced by assignment-based
 locality); validation silently disarmed by versioned canonicals (ADR 0042);
 offset paging with duplicate windows; Login-invalidation-under-valid-token
 semantics; configuration and credentials stored inside the FHIR store.
+
+## 10. The feed primitive — pagination and synchronization unified
+
+Pagination is not a search feature; it is a special case of a more general
+primitive that also underlies cloud↔edge synchronization, subscription
+delivery and the zone→tenant content streams (§6). DBO defines it once.
+
+**A feed is an ordered, replayable sequence with an opaque, durable cursor.**
+The one contract: `(source, cursor) → bounded chunk + next cursor`. Everything
+else is a choice of source and transport:
+
+| Source | Ordering | Serves |
+|---|---|---|
+| Search result set | keyset over envelope sort keys + id tiebreak | FHIR search pagination |
+| History | version sequence | `_history`, diff/tracing views (§8) |
+| Outbox | commit sequence per tenant/domain | subscriptions, edge sync, §6 content streams, CDC |
+
+- **Cursors are keyset positions, never offsets.** Opaque to the consumer,
+  stable under concurrent writes — the duplicate-window problem that Medplum's
+  offset paging forced onto ~100 jengu call sites (dedupe on type+id,
+  defensive page cursors) is designed out, not worked around.
+- **Pull and push are transports over the same cursor semantics.** Pull: the
+  consumer requests the next chunk (HTTP paging). Push: the producer streams
+  chunks over WS and the consumer's **ack carries the cursor** — which is
+  exactly the shape jengu's edge sync already converged on (ascending
+  `_lastUpdated` cursor, wipe gated on the push-confirmed cursor). A dropped
+  connection resumes from the last acked cursor; at-least-once delivery +
+  idempotent apply (identity + version) is the delivery contract.
+- **The FHIR projections ride on top.** `Bundle.link[next]` encodes the opaque
+  cursor (FHIR permits fully opaque continuation links); history bundles and
+  R5/R6 topic-based subscription notification bundles are framings of the same
+  chunks. For pure streaming the base shape is leaner than FHIR: framed
+  objects with batched acks, no per-page Bundle envelope — the Bundle, like
+  the ValueSet (§6), is a **wire form**, assembled at the FHIR surface only
+  when a FHIR client is on the other end. Edge↔cloud sync between two
+  DBO-speaking parties uses the lean frames.
+- **One consumer-state model.** Durable named consumers (edge device, zone
+  content dependency, rest-hook subscription, migration sweep) each hold a
+  cursor in the store; progress, lag and replay are uniformly observable —
+  and the §8 process map can show any consumer's position the same way.
+
+Search pagination gains one honest caveat: a keyset cursor into a *search
+result* is stable only relative to its sort keys; a resource updated after
+the cursor passed it will not reappear in the remaining pages. That is the
+correct semantic for paging (and what clients already assume); consumers that
+need to *never miss an update* are outbox consumers by definition — the model
+makes reaching for the right feed a type decision instead of a folklore rule.
