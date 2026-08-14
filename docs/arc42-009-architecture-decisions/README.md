@@ -18,6 +18,42 @@
    proxying/reflection under a bundle classloader) rather than architecture.
    Worst case remains: implement the DBOS *patterns* (Postgres queues, exactly-
    once steps) natively in dbo-core behind the same whiteboard interfaces.
+
+   **VERDICT (spike dbo#1, 2026-08-14): ADOPT.** All scenarios pass
+   (`spike/dbos-felix/`, Felix 7 in-JVM, Postgres via Testcontainers):
+
+   - *A — runtime in a bundle*: `dev.dbos:transact` 1.0.0 launches inside a
+     bundle with all deps private (Bundle-ClassPath nested jars); schema
+     migration loads its resources from the nested jar; step checkpointing
+     and same-workflow-id idempotency work.
+   - *B — crash/relaunch/resume*: shut the engine down mid-workflow, new
+     `DBOS` instance over the same system DB, `resumeWorkflow` — completed
+     with the pre-crash step **not** re-executed. Checkpoint replay works
+     with workflow classes from a foreign bundle classloader.
+   - *C — whiteboard*: the workflow implementation lives in a contributor
+     bundle importing only the api + `dev.dbos.transact.workflow`
+     (annotations); steps cross the boundary through a DBO-owned
+     `StepRunner`; `registerProxy` accepts the cross-classloader impl.
+   - *D — multiple runtimes, one JVM*: **`DBOS` is an instantiable class,
+     not a singleton** — two runtimes over two system databases in one JVM,
+     workflows isolated (neither sees the other's ids). The §7.4 per-tenant-
+     plane model needs no workaround.
+
+   Facts that de-risked everything: core `transact` has **no Spring
+   dependency** (deps: jspecify, kotlin-stdlib, cron-utils, HikariCP,
+   Jackson 3, postgresql, slf4j) — Spring-adjacency is only in the starter,
+   which DBO does not use.
+
+   Landmine log (one entry): JDBC `DriverManager` does not discover drivers
+   on a bundle classpath — `Class.forName("org.postgresql.Driver")` through
+   the bundle classloader before first pool creation; caller-visibility then
+   passes since Hikari shares the classloader. No TCCL fixes, no ServiceLoader
+   issues, no logging clashes were needed.
+
+   Production notes carried out of the spike: export only the annotations
+   package (later replaced by dbo-process's own annotations); the
+   `StepRunner`-style DBO-owned boundary held with zero DBOS types leaking;
+   one embedding-bundle copy serves N runtimes.
 2. **dOSGi layer — build our own.** Aries RSA / ECF activity is low, and the
    full Remote Services spec solves a general problem we don't have. Current
    thinking: a **purpose-built dOSGi-like layer** shaped by our actual needs —
@@ -142,12 +178,10 @@
      regardless — the hop model makes the audit structural instead of
      per-integration.
 
-   Spike item (feeds §7.1): whether `dev.dbos:transact` supports multiple
-   launched runtimes against different system databases in one JVM — the
-   standard model is one runtime per process. If not: per-tenant instantiation
-   inside the embedding bundle's own classloader, or the native-patterns
-   fallback — behind the same whiteboard interfaces either way, so consumers
-   never know.
+   Spike item — ANSWERED by dbo#1 (see §7.1 verdict): `DBOS` is an
+   instantiable class, and multiple launched runtimes against different
+   system databases coexist in one JVM with isolated workflow state. The
+   per-tenant plane needs no workaround.
 5. **Search completeness — tiered, evidence-based.** Resolved by measuring
    instead of guessing: an inventory of all ~206 production FHIR search call
    sites across jengu-platform, lab and VA
