@@ -15,7 +15,7 @@ dependencies {
     listOf(
         ":core:dbo-core", ":core:dbo-fhir-common", ":core:dbo-postgres",
         ":core:dbo-terminology", ":core:dbo-subscriptions", ":core:dbo-fhir-r4",
-        ":core:dbo-fhir-r5", ":core:dbo-rest", ":core:dbo-auth", ":core:dbo-pdi", ":core:dbo-tenant", ":core:dbo-tenant-k8s",
+        ":core:dbo-fhir-r5", ":core:dbo-rest", ":core:dbo-auth", ":core:dbo-pdi", ":core:dbo-policy", ":core:dbo-tenant", ":core:dbo-tenant-k8s",
     ).forEach { bundles(project(it)) { isTransitive = false } }
     // the JDBC driver is itself an OSGi bundle
     bundles("org.postgresql:postgresql:42.7.11") { isTransitive = false }

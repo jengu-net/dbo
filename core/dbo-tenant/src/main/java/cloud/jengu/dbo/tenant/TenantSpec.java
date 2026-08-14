@@ -12,10 +12,15 @@ import java.util.regex.Pattern;
  * In production these specs come from configuration (git / operator-managed
  * mounts); the manager watches them as files.
  */
-public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types, boolean pdi) {
+public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
+        boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies) {
 
     public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types) {
-        this(code, fhirVersion, types, false);
+        this(code, fhirVersion, types, false, cloud.jengu.dbo.policy.TenantPolicies.defaults());
+    }
+
+    public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types, boolean pdi) {
+        this(code, fhirVersion, types, pdi, cloud.jengu.dbo.policy.TenantPolicies.defaults());
     }
 
     private static final Pattern CODE = Pattern.compile("[a-z][a-z0-9_]{0,15}");
@@ -50,6 +55,7 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
                         code + "/" + name + ": unknown identity class " + identity);
             };
         }).toList();
-        return new TenantSpec(code, fhirVersion, types, Json.bool(root, "pdi"));
+        return new TenantSpec(code, fhirVersion, types, Json.bool(root, "pdi"),
+                cloud.jengu.dbo.policy.TenantPolicies.parse(root));
     }
 }

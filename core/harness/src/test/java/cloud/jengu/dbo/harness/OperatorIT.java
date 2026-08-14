@@ -202,6 +202,34 @@ class OperatorIT {
         assertEquals("Ready", status);
         assertTrue(client.configMaps().inNamespace(NS).withName(TenantOperator.CONFIGMAP)
                 .get().getData().containsKey("opitenant.json"));
+
+        // §14/§15 blocks survive the CRD schema AND the re-emit (the slice E
+        // pruning gap) — proven on a dedicated registration
+        GenericKubernetesResource poliis = new GenericKubernetesResource();
+        poliis.setApiVersion("jengu.cloud/v1alpha1");
+        poliis.setKind("TenantRegistration");
+        poliis.setMetadata(new ObjectMetaBuilder().withName("poliis").withNamespace(NS).build());
+        poliis.setAdditionalProperty("spec", Map.of(
+                "code", "poliis", "fhirVersion", "r4", "deletionPolicy", "Delete",
+                "pdi", true,
+                "audit", Map.of("level", "writes"),
+                "writeDiscipline", Map.of("default", "append-only"),
+                "retention", Map.of("perType", Map.of("Observation", Map.of("removeAfter", "P30D"))),
+                "types", List.of(Map.of("name", "Patient", "identity", "internal"))));
+        client.genericKubernetesResources(TenantOperator.CRD_CONTEXT).inNamespace(NS)
+                .resource(poliis).create();
+        operator.reconcileOnce();
+        String specJson = client.configMaps().inNamespace(NS).withName(TenantOperator.CONFIGMAP)
+                .get().getData().get("poliis.json");
+        assertTrue(specJson.contains("\"pdi\":true")
+                && specJson.contains("\"audit\"") && specJson.contains("\"writes\"")
+                && specJson.contains("\"append-only\"") && specJson.contains("\"P30D\""), specJson);
+        cloud.jengu.dbo.tenant.TenantSpec parsed = cloud.jengu.dbo.tenant.TenantSpec.parse(specJson);
+        assertTrue(parsed.pdi() && parsed.policies().auditsWrites());
+        // retract it so later serving tests see only opitenant
+        client.genericKubernetesResources(TenantOperator.CRD_CONTEXT)
+                .inNamespace(NS).withName("poliis").delete();
+        operator.reconcileOnce();
     }
 
     /** Full chain: ConfigMap → SpecDirSync → #17 manager + secret-backed pool → live endpoint. */

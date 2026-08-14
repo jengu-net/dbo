@@ -283,8 +283,17 @@ public final class TenantOperator implements AutoCloseable {
     static String specJson(GenericKubernetesResource cr) {
         Map<String, Object> spec = (Map<String, Object>) cr.getAdditionalProperties().get("spec");
         StringBuilder sb = new StringBuilder("{\"code\":").append(jsonString((String) spec.get("code")))
-                .append(",\"fhirVersion\":").append(jsonString((String) spec.get("fhirVersion")))
-                .append(",\"types\":[");
+                .append(",\"fhirVersion\":").append(jsonString((String) spec.get("fhirVersion")));
+        // §14/§15 blocks pass through verbatim — the CRD schema validated them
+        if (Boolean.TRUE.equals(spec.get("pdi"))) {
+            sb.append(",\"pdi\":true");
+        }
+        for (String block : java.util.List.of("audit", "writeDiscipline", "retention")) {
+            if (spec.get(block) instanceof Map<?, ?> value) {
+                sb.append(",\"").append(block).append("\":").append(genericJson(value));
+            }
+        }
+        sb.append(",\"types\":[");
         List<Map<String, Object>> types = (List<Map<String, Object>>) spec.get("types");
         for (int i = 0; i < types.size(); i++) {
             Map<String, Object> t = types.get(i);
@@ -307,6 +316,36 @@ public final class TenantOperator implements AutoCloseable {
             sb.append('}');
         }
         return sb.append("]}").toString();
+    }
+
+    private static String genericJson(Object node) {
+        if (node instanceof Map<?, ?> map) {
+            StringBuilder sb = new StringBuilder("{");
+            boolean first = true;
+            for (Map.Entry<?, ?> e : map.entrySet()) {
+                if (!first) {
+                    sb.append(',');
+                }
+                first = false;
+                sb.append(jsonString(String.valueOf(e.getKey()))).append(':')
+                        .append(genericJson(e.getValue()));
+            }
+            return sb.append('}').toString();
+        }
+        if (node instanceof java.util.List<?> list) {
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < list.size(); i++) {
+                if (i > 0) {
+                    sb.append(',');
+                }
+                sb.append(genericJson(list.get(i)));
+            }
+            return sb.append(']').toString();
+        }
+        if (node instanceof Boolean || node instanceof Number) {
+            return String.valueOf(node);
+        }
+        return jsonString(String.valueOf(node));
     }
 
     private static String jsonString(String s) {

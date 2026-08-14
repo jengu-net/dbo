@@ -221,6 +221,49 @@ class AuthorityIT {
         }
     }
 
+    /** §15 over REST: an append-only tenant answers DELETE with a policy-naming
+     *  OperationOutcome; the capability statement names the declared posture. */
+    @Test
+    @Order(8)
+    void appendOnlyTenantRefusesDeleteOverRest() throws Exception {
+        java.nio.file.Files.writeString(dir.resolve("neli.json"), """
+                {"code":"neli","fhirVersion":"r4",
+                 "audit":{"level":"writes"},
+                 "writeDiscipline":{"default":"append-only"},
+                 "types":[{"name":"Patient","identity":"internal"}]}""");
+        manager.scanOnce();
+        String token = token("neli", null);
+        HttpResponse<String> created = post(fhir("neli") + "/Patient", token,
+                "{\"resourceType\":\"Patient\"}");
+        assertEquals(201, created.statusCode());
+        String id = created.headers().firstValue("Location").orElseThrow()
+                .replaceAll(".*/Patient/([^/]+).*", "$1");
+
+        HttpResponse<String> refused = http.send(HttpRequest.newBuilder(
+                        URI.create(fhir("neli") + "/Patient/" + id))
+                        .header("Authorization", "Bearer " + token)
+                        .DELETE().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(409, refused.statusCode());
+        assertTrue(refused.body().contains("append-only"), refused.body());
+
+        assertTrue(get(fhir("neli") + "/metadata", null).body()
+                .contains("writeDiscipline=append-only"), "capability declares the posture");
+
+        // and the delete ATTEMPT's create was audited with the token's client
+        // (audit domain rides the same store; check via the engine service? REST
+        // doesn't serve AuditEntry — assert through the feed instead)
+        assertTrue(new cloud.jengu.dbo.postgres.PgChangeFeed(
+                        provisioner.provision(cloud.jengu.dbo.tenant.TenantSpec.parse(
+                                java.nio.file.Files.readString(dir.resolve("neli.json")))).dataSource(),
+                        cloud.jengu.dbo.policy.AuditModel.DOMAIN)
+                .read(null, 10).items().stream()
+                .map(i -> new String(i.payload(), java.nio.charset.StandardCharsets.UTF_8))
+                .anyMatch(e -> e.contains("\"actor\":\"tenant-bootstrap\"")
+                        && e.contains("\"interaction\":\"create\"")),
+                "the create must be audited with the token's client as actor");
+    }
+
     /** Identity artifacts are records, not FHIR surface types — unreachable via REST. */
     @Test
     @Order(6)

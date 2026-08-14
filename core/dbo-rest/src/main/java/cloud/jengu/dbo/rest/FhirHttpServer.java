@@ -37,6 +37,8 @@ public final class FhirHttpServer implements AutoCloseable {
     private final String basePath;
     private final boolean ownsServer;
     private final RequestAuthenticator authenticator;
+    /** §15.4: the tenant's declared policies, named in the capability statement. */
+    public volatile String policyNote;
 
     public FhirHttpServer(FhirStoreFacade store, TerminologyFacade terminology,
             String host, int port, String basePath) {
@@ -99,7 +101,8 @@ public final class FhirHttpServer implements AutoCloseable {
         String security = "\"security\":{\"service\":[{\"coding\":[{"
                 + "\"system\":\"http://terminology.hl7.org/CodeSystem/restful-security-service\","
                 + "\"code\":\"OAuth\"}]}],"
-                + "\"description\":\"Bearer JWT from this tenant's own authority (/oidc)\"},";
+                + "\"description\":\"Bearer JWT from this tenant's own authority (/oidc)"
+                + (policyNote != null ? "; " + policyNote : "") + "\"},";
         return capabilityJson.substring(0, at + marker.length()) + security
                 + capabilityJson.substring(at + marker.length());
     }
@@ -138,11 +141,14 @@ public final class FhirHttpServer implements AutoCloseable {
             respond(exchange, 412, store.operationOutcome("conflict", e.getMessage()));
         } catch (IdentityConflictException e) {
             respond(exchange, 409, store.operationOutcome("duplicate", e.getMessage()));
+        } catch (cloud.jengu.dbo.core.api.PolicyViolationException e) {
+            respond(exchange, 409, store.operationOutcome("business-rule", e.getMessage()));
         } catch (IllegalArgumentException e) {
             respond(exchange, 400, store.operationOutcome("invalid", String.valueOf(e.getMessage())));
         } catch (Exception e) {
             respond(exchange, 500, store.operationOutcome("exception", String.valueOf(e.getMessage())));
         } finally {
+            cloud.jengu.dbo.core.api.Caller.clear();
             exchange.close();
         }
     }
