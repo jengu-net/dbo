@@ -27,5 +27,5 @@ docs conventions.
 - [plans/](plans/) — [Medplum migration](plans/medplum-migration.md)
 
 **§-numbering note:** the spec grew as one `concepts.md`; its section numbers
-(§1–§11) are preserved in the titles above, so cross-references like "(§7.4)"
+(§1–§12) are preserved in the titles above, so cross-references like "(§7.4)"
 remain stable. §7.4 = the two-planes/hops decision in arc42-009.
