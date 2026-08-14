@@ -112,6 +112,24 @@ class TenantRuntimeIT {
         assertTrue(get(manager.baseUrl("aiakas") + "/metadata").body().contains("\"4.0.1\""));
     }
 
+    /** dbo#18 R3: provisioned databases carry the liveness timeouts. */
+    @Test
+    @Order(2)
+    void provisionedDatabasesCarryTimeouts() throws Exception {
+        try (Connection c = DriverManager.getConnection(
+                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+             PreparedStatement ps = c.prepareStatement("""
+                     SELECT s.setconfig FROM pg_db_role_setting s
+                     JOIN pg_database d ON d.oid = s.setdatabase
+                     WHERE d.datname = 'tenant_aiakas' AND s.setrole = 0""");
+             ResultSet rs = ps.executeQuery()) {
+            assertTrue(rs.next(), "per-database settings expected");
+            String config = java.util.Arrays.toString((String[]) rs.getArray(1).getArray());
+            assertTrue(config.contains("idle_in_transaction_session_timeout=60s"), config);
+            assertTrue(config.contains("transaction_timeout=300s"), config);
+        }
+    }
+
     /** Retract ≠ erase: spec removal takes the endpoint down; re-adding finds the data intact. */
     @Test
     @Order(3)

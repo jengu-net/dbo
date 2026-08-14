@@ -25,6 +25,20 @@ public final class PgChangeFeed implements ChangeFeed {
     private static final Pattern DOMAIN = Pattern.compile("[a-z][a-z0-9_]{0,31}");
     private static final Pattern CONSUMER = Pattern.compile("[A-Za-z][A-Za-z0-9_.-]{0,63}");
 
+    /**
+     * The delivery barrier (dbo#5 + dbo#18 R1). Conservative path: the row's
+     * transaction lies below the snapshot's xmin — decided cluster-wide. Fast
+     * path: when THIS database has no write-transaction in flight, every
+     * visible committed row is decidable regardless of foreign databases —
+     * a long transaction elsewhere in the instance (the dbo#16 finding) no
+     * longer delays a quiet tenant's feed.
+     */
+    private static final String BARRIER = """
+            (o.xact_id < pg_snapshot_xmin(pg_current_snapshot())
+             OR NOT EXISTS (SELECT 1 FROM pg_stat_activity
+                            WHERE datname = current_database()
+                              AND backend_xid IS NOT NULL))""";
+
     private final DataSource ds;
     private final String domain;
 
@@ -94,9 +108,8 @@ public final class PgChangeFeed implements ChangeFeed {
         requireConsumer(consumer);
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     SELECT count(*) FROM state.%s_outbox
-                     WHERE seq > ? AND xact_id < pg_snapshot_xmin(pg_current_snapshot())"""
-                     .formatted(domain))) {
+                     SELECT count(*) FROM state.%s_outbox o
+                     WHERE o.seq > ? AND %s""".formatted(domain, BARRIER))) {
             ps.setLong(1, consumerSeq(consumer));
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
@@ -116,8 +129,8 @@ public final class PgChangeFeed implements ChangeFeed {
                        h.payload, h.deleted, h.payload_version
                 FROM state.%s_outbox o
                 JOIN history.%s_history h ON h.id = o.object_id AND h.version_id = o.version_id
-                WHERE o.seq > ? AND o.xact_id < pg_snapshot_xmin(pg_current_snapshot())
-                ORDER BY o.seq LIMIT ?""".formatted(domain, domain);
+                WHERE o.seq > ? AND %s
+                ORDER BY o.seq LIMIT ?""".formatted(domain, domain, BARRIER);
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, after);
