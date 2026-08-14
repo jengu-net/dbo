@@ -53,7 +53,11 @@ yet implemented.
 
 ## Next fronts (unordered candidates, groom before starting)
 
-1. **jengu-infra follow-on PR** — OPEN as
+1. **Serving infra PR** — OPEN as
+   [jengu-infra#19](https://github.com/jengu-net/jengu-infra/pull/19):
+   dbo-server Deployment (CM mount, secrets-only RBAC), dbo.jengu.cloud
+   ingress; blocked only on the DNS record
+2. **Slice B infra PR** — MERGED as
    [jengu-infra#18](https://github.com/jengu-net/jengu-infra/pull/18):
    cloud-init `dbo_provisioner` role, standing `samerole` pg_hba rule for
    tenant roles, operator Deployment/RBAC in the hetzner-prod overlay
