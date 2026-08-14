@@ -168,9 +168,21 @@ Consequences to design for:
 ## 7. Open questions / known risks
 
 1. **DBOS Java + OSGi interplay.** DBOS's Java library (`dev.dbos:transact`) is
-   Spring-adjacent in packaging; running it inside Felix, per-tenant, needs a
-   spike. Worst case we implement the DBOS *patterns* (Postgres queues, exactly-
-   once steps) natively in dbo-core rather than depending on the library.
+   Spring-adjacent in packaging. Planned approach: an **embedding bundle** —
+   `dbo-dbos` packs DBOS and its Spring-adjacent dependencies as *private*
+   (non-exported) packages, so nothing Spring leaks into the container's wiring;
+   the bundle's only exports are DBO-owned interfaces. DBOS capability is then
+   served by the **whiteboard pattern**: the bundle registers DBOS *client*
+   services in the OSGi registry (per tenant and/or per domain, with service
+   properties carrying parallel-scaling info — queue partitions, executor
+   concurrency, serving-pod role), and consumers — storages, subscription
+   feeds, the tenant assigner — simply look them up; conversely, workflow/step
+   implementations register *themselves* into the whiteboard and the embedding
+   bundle enrolls them with DBOS. Tenant arrival/departure becomes plain OSGi
+   service dynamics. The spike then only has to verify classloading (DBOS's
+   proxying/reflection under a bundle classloader) rather than architecture.
+   Worst case remains: implement the DBOS *patterns* (Postgres queues, exactly-
+   once steps) natively in dbo-core behind the same whiteboard interfaces.
 2. **dOSGi maturity.** Aries RSA / ECF activity is low. §5's fallback keeps the
    concept independent of the implementation. Needs an early spike with a verdict.
 3. **HAPI as personality dependency?** HAPI structures per FHIR version inside
