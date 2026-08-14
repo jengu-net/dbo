@@ -60,6 +60,17 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-AUTH-SMART-SHAPED-SCOPES | Authorization vocabulary is the SMART system-scope grammar, so finer service permissions and the future read-only public capability need no new language. (§13) |
 | REQ-DBO-AUTH-PORTABLE-AUTHORITY | The issuer string is per-tenant configuration and the key material lives in the tenant database — a tenant can move deployments or present a custom domain without re-keying. (§13) |
 
+## PDI — personal-data isolation
+
+| REQ | Promise |
+|---|---|
+| REQ-DBO-PDI-STRUCTURAL-VAULT | Identifying elements, declared per type/element, live encrypted in the tenant's person vault; the main store holds pseudonymous records and the engine reassembles full resources for authorized reads — isolation is beneath the API, not a caller discipline. (§14) |
+| REQ-DBO-PDI-CRYPTO-SHREDDING | Erasure destroys the person's key: history stays byte-immutable, existing archives stay valid as files, and the person's data is cryptographically gone from live store, history, envelopes and archives at once. (§14) |
+| REQ-DBO-PDI-UNFINDABLE-AFTER-ERASURE | Search indexes derived from personal elements are vault-scoped or rebuilt on shred — an erased person is unfindable, not merely unreadable. (§14) |
+| REQ-DBO-PDI-BLIND-OPERATIONS | Backup and restore are machinery-driven end to end over ciphertext; the operator can run the whole lifecycle without the ability to read personal data, and opening an archive outside the running system is an owner-only act. (§14, §11) |
+| REQ-DBO-PDI-SHRED-LEDGER | Erasures are recorded without personal data and re-applied on every restore before serving resumes — an old archive cannot silently resurrect an erased person. (§14) |
+| REQ-DBO-PDI-RIGHTS-AS-OPERATIONS | Access, portability and restriction are standard machinery operations over the vault join, not per-request projects. (§14) |
+
 ## VER — version plurality (personalities)
 
 | REQ | Promise |
