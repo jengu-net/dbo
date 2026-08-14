@@ -80,6 +80,9 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-POL-ACTOR-FROM-AUTHORITY | Every audit entry names its actor from the tenant authority's token (client and subject) — no anonymous mutations under any audited policy. (§15, §13) |
 | REQ-DBO-POL-APPEND-ONLY-DISCIPLINE | Under append-only discipline the engine rejects tombstones (and per-type in-place updates where declared); correction is supersession or entered-in-error, never removal. (§15) |
 | REQ-DBO-POL-ERASURE-COMPATIBLE | Append-only discipline and the right to erasure coexist: shredding never rewrites a record — the record remains, the person evaporates. (§15, §14) |
+| REQ-DBO-POL-DECLARATIVE-RETENTION | Retention is declared per tenant and type as a floor and a ceiling — keepAtLeast (append-only holds even against policy) and removeAfter (the engine must remove) — composing with write discipline without conflict. (§15) |
+| REQ-DBO-POL-RETENTION-SWEEP | A durable scheduled sweep executes removal as the one sanctioned mutation of history, and every removal is audited without retaining the removed data. (§15) |
+| REQ-DBO-POL-POLICY-REPLAY-ON-RESTORE | Before a restored tenant serves, the machinery re-applies the shred ledger and the retention sweep — an archive cannot resurrect what policy required gone; archives carry removeAfter themselves. (§15, §14, §11) |
 
 ## VER — version plurality (personalities)
 

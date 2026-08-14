@@ -43,7 +43,33 @@ Append-only and the §14 right to erasure coexist deliberately: shredding
 never rewrites a record — the record remains, the person evaporates.
 Medico-legal retention and GDPR stop being in tension.
 
-## 15.3 Declaration and enforcement
+## 15.3 Retention — the declarative removal timeframe
+
+Storage limitation (GDPR Art. 5(1)(e)) is the third declared policy: not
+whether data may be unwritten, but WHEN it must be. Retention is two-sided:
+
+- `keepAtLeast` — the medico-legal floor: until it passes, the append-only
+  discipline holds even against policy;
+- `removeAfter` — the ceiling: past it, the engine MUST remove.
+
+The two compose with §15.2 without conflict: append-only rejects CALLER
+deletes; retention removal is POLICY execution — a record can be
+undeletable for ten years and un-keepable after thirty, both declared,
+both enforced.
+
+Removal is the one sanctioned mutation of history: a scheduled sweeper
+(durable workflow, checkpointed) removes expired versions from state and
+history, and the removal is itself audited — what was removed, when, under
+which declared rule — without retaining the data. Outbox rows are already
+content-free; the payload disappears with history.
+
+Restores replay policy, symmetric with the §14 shred ledger: before a
+restored tenant serves, the machinery re-applies the shred ledger AND the
+retention sweep, so an old archive cannot resurrect what the law required
+gone. Archives themselves carry a `removeAfter` so the file layer obeys
+the same declaration.
+
+## 15.4 Declaration and enforcement
 
 The tenant spec (and its TenantRegistration projection) carries:
 
@@ -51,7 +77,9 @@ The tenant spec (and its TenantRegistration projection) carries:
 {
   "code": "...", "fhirVersion": "r4",
   "audit": { "level": "writes" },
-  "writeDiscipline": { "default": "append-only", "perType": { "Task": "standard" } }
+  "writeDiscipline": { "default": "append-only", "perType": { "Task": "standard" } },
+  "retention": { "perType": { "Encounter": { "keepAtLeast": "P10Y", "removeAfter": "P30Y" },
+                              "AuditEntry": { "removeAfter": "P5Y" } } }
 }
 ```
 
@@ -59,8 +87,8 @@ Validated at registration, enforced by the engine (a rejected tombstone is
 a 4xx with an OperationOutcome naming the policy), declared in
 `/metadata`. Policy changes are themselves auditable configuration events.
 
-## 15.4 What stays outside
+## 15.5 What stays outside
 
-Retention TTLs and anonymisation schedules are platform policy riding this
-machinery later; the audit UI/transparency presentation is the platform's;
-legal-hold semantics wait for a concrete requirement.
+Anonymisation schedules (deriving statistics before removal) are platform
+policy riding this machinery; the audit UI/transparency presentation is the
+platform's; legal-hold semantics wait for a concrete requirement.
