@@ -56,11 +56,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final HttpServer sharedServer;
     private final String host;
     private final Map<String, TenantRuntime> runtimes = new ConcurrentHashMap<>();
+    private final AuthorityConfig authorityConfig;
+    private final Map<String, String> authorityContexts = new ConcurrentHashMap<>();
     private volatile Thread scanner;
     private volatile boolean running;
 
+    /**
+     * §13 authority wiring: when present, every tenant gets its own OIDC
+     * authority at {@code /t/<code>/oidc} and the store surface accepts only
+     * that authority's tokens. issuerBase null → derived from the serving
+     * address (deployment config, like the REST baseUrl).
+     */
+    public record AuthorityConfig(byte[] kek, String issuerBase) {}
+
     public TenantRuntimeManager(Path directory, TenantDatabaseProvisioner provisioner,
             String host, int port, Listener listener) {
+        this(directory, provisioner, host, port, listener, null);
+    }
+
+    public TenantRuntimeManager(Path directory, TenantDatabaseProvisioner provisioner,
+            String host, int port, Listener listener, AuthorityConfig authorityConfig) {
+        this.authorityConfig = authorityConfig;
         this.directory = directory;
         this.provisioner = provisioner;
         this.host = host;
@@ -132,6 +148,26 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private void bringUp(TenantSpec spec) {
         TenantDatabaseProvisioner.TenantDatabase db = provisioner.provision(spec);
         String base = baseUrl(spec.code());
+        cloud.jengu.dbo.rest.RequestAuthenticator guard = null;
+        if (authorityConfig != null) {
+            String issuerBase = authorityConfig.issuerBase() != null
+                    ? authorityConfig.issuerBase()
+                    : "http://" + host + ":" + port();
+            String oidcPath = "/t/" + spec.code() + "/oidc";
+            cloud.jengu.dbo.auth.TenantAuthority authority = new cloud.jengu.dbo.auth.TenantAuthority(
+                    new PgObjectStore(db.dataSource(), cloud.jengu.dbo.auth.IdentityModel.registrations()),
+                    issuerBase + oidcPath,
+                    new cloud.jengu.dbo.auth.KeyProtector(authorityConfig.kek()));
+            authority.ensureSigningKey();
+            if (db.bootstrapClientSecret() != null) {
+                authority.ensureClient("tenant-bootstrap", db.bootstrapClientSecret(),
+                        java.util.List.of("system/*.read", "system/*.write"));
+            }
+            sharedServer.createContext(oidcPath,
+                    new cloud.jengu.dbo.auth.AuthorityHandler(authority, oidcPath));
+            authorityContexts.put(spec.code(), oidcPath);
+            guard = new cloud.jengu.dbo.auth.AuthorityAuthenticator(authority);
+        }
         TenantRuntime runtime;
         if ("r4".equals(spec.fhirVersion())) {
             R4Personality personality = new R4Personality(spec.types());
@@ -139,14 +175,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
             FhirStoreFacade store = new R4Store(engine, personality, base);
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R4Personality.DOMAIN),
-                    new FhirHttpServer(sharedServer, store, null, "/t/" + spec.code() + "/fhir"));
+                    new FhirHttpServer(sharedServer, store, null, "/t/" + spec.code() + "/fhir", guard));
         } else {
             R5Personality personality = new R5Personality(spec.types());
             PgObjectStore engine = new PgObjectStore(db.dataSource(), personality.registrations());
             FhirStoreFacade store = new R5Store(engine, personality, base);
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R5Personality.DOMAIN),
-                    new FhirHttpServer(sharedServer, store, null, "/t/" + spec.code() + "/fhir"));
+                    new FhirHttpServer(sharedServer, store, null, "/t/" + spec.code() + "/fhir", guard));
         }
         runtimes.put(spec.code(), runtime);
         listener.tenantUp(runtime);
@@ -159,6 +195,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         listener.tenantDown(code);
         runtime.endpoint().close();
+        String oidcPath = authorityContexts.remove(code);
+        if (oidcPath != null) {
+            sharedServer.removeContext(oidcPath);
+        }
         provisioner.release(code);
     }
 

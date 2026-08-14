@@ -16,6 +16,7 @@ on:
     paths:
       - "core/dbo-server/**"
       - "core/dbo-tenant-k8s/**"
+      - "core/dbo-auth/**"
       - "core/dbo-tenant/**"
       - "core/dbo-core/**"
       - "core/dbo-postgres/**"
@@ -33,6 +34,7 @@ on:
     paths:
       - "core/dbo-server/**"
       - "core/dbo-tenant-k8s/**"
+      - "core/dbo-auth/**"
       - "core/dbo-tenant/**"
       - "core/dbo-core/**"
       - "core/dbo-postgres/**"

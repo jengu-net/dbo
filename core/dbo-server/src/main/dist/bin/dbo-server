@@ -6,6 +6,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# REQ-DBO-AUTH-DENY-BY-DEFAULT: the deployment artifact refuses to serve
+# without a working authority; disabling is an explicit embedded/test flag.
+if [ -z "${DBO_AUTH_KEK:-}" ] && [ "${DBO_AUTH_DISABLED:-}" != "true" ]; then
+  echo "dbo-server: refusing to serve tenants without an authority (REQ-DBO-AUTH-DENY-BY-DEFAULT)." >&2
+  echo "Set DBO_AUTH_KEK (base64, 32 bytes) or explicitly DBO_AUTH_DISABLED=true (embedded/test only)." >&2
+  exit 78
+fi
+
 exec java \
   -Dorg.slf4j.simpleLogger.defaultLogLevel="${DBO_LOG_LEVEL:-warn}" \
   -Dorg.slf4j.simpleLogger.showDateTime=true \
@@ -17,5 +25,7 @@ exec java \
   ${DBO_ADMIN_JDBC_URL:+-Ddbo.tenant.admin.url="${DBO_ADMIN_JDBC_URL}"} \
   ${DBO_ADMIN_USER:+-Ddbo.tenant.admin.user="${DBO_ADMIN_USER}"} \
   ${DBO_ADMIN_PASSWORD:+-Ddbo.tenant.admin.password="${DBO_ADMIN_PASSWORD}"} \
+  ${DBO_AUTH_KEK:+-Ddbo.tenant.auth.kek="${DBO_AUTH_KEK}"} \
+  ${DBO_AUTH_ISSUER_BASE:+-Ddbo.tenant.auth.issuer.base="${DBO_AUTH_ISSUER_BASE}"} \
   ${DBO_JAVA_OPTS:-} \
   -jar bin/felix.jar

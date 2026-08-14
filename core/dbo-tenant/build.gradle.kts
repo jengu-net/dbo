@@ -13,6 +13,7 @@ dependencies {
     implementation(project(":core:dbo-fhir-r4"))
     implementation(project(":core:dbo-fhir-r5"))
     implementation(project(":core:dbo-rest"))
+    implementation(project(":core:dbo-auth"))
     compileOnly("org.osgi:osgi.core:8.0.0")
     embedded("com.zaxxer:HikariCP:7.1.0")
     embedded("org.slf4j:slf4j-simple:2.0.18")
@@ -41,6 +42,7 @@ tasks.jar {
                     "cloud.jengu.dbo.fhir.r5;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.postgres;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.rest;version=\"[0.1,1)\"",
+                    "cloud.jengu.dbo.auth;version=\"[0.1,1)\"",
                     "com.sun.net.httpserver",
                     "javax.sql",
                     "javax.naming;resolution:=optional",

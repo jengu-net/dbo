@@ -77,6 +77,11 @@ public final class Activator implements BundleActivator {
         int port = ctx.getProperty("dbo.tenant.http.port") != null
                 ? Integer.parseInt(ctx.getProperty("dbo.tenant.http.port")) : 0;
 
+        String kekB64 = ctx.getProperty("dbo.tenant.auth.kek");
+        TenantRuntimeManager.AuthorityConfig authority = kekB64 == null ? null
+                : new TenantRuntimeManager.AuthorityConfig(
+                        java.util.Base64.getDecoder().decode(kekB64),
+                        ctx.getProperty("dbo.tenant.auth.issuer.base"));
         manager = new TenantRuntimeManager(dir, provisioner, host, port,
                 new TenantRuntimeManager.Listener() {
                     @Override
@@ -97,7 +102,7 @@ public final class Activator implements BundleActivator {
                             registrations.forEach(ServiceRegistration::unregister);
                         }
                     }
-                });
+                }, authority);
         manager.start(2_000);
     }
 

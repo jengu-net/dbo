@@ -56,7 +56,9 @@ public final class KubernetesSecretProvisioner implements TenantDatabaseProvisio
             config.setPoolName("dbo-tenant-" + code);
             return new HikariDataSource(config);
         });
-        return new TenantDatabase(pool);
+        String clientSecret = secret.getData().containsKey("client_secret")
+                ? decode(secret, "client_secret") : null;
+        return new TenantDatabase(pool, clientSecret);
     }
 
     @Override

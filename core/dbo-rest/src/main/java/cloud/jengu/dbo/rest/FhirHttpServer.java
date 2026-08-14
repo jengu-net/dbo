@@ -36,11 +36,18 @@ public final class FhirHttpServer implements AutoCloseable {
     private final HttpServer server;
     private final String basePath;
     private final boolean ownsServer;
+    private final RequestAuthenticator authenticator;
 
     public FhirHttpServer(FhirStoreFacade store, TerminologyFacade terminology,
             String host, int port, String basePath) {
+        this(store, terminology, host, port, basePath, null);
+    }
+
+    public FhirHttpServer(FhirStoreFacade store, TerminologyFacade terminology,
+            String host, int port, String basePath, RequestAuthenticator authenticator) {
         this.store = store;
         this.terminology = terminology;
+        this.authenticator = authenticator;
         this.basePath = normalize(basePath);
         try {
             this.server = HttpServer.create(new InetSocketAddress(host, port), 0);
@@ -61,12 +68,40 @@ public final class FhirHttpServer implements AutoCloseable {
      */
     public FhirHttpServer(HttpServer sharedServer, FhirStoreFacade store,
             TerminologyFacade terminology, String basePath) {
+        this(sharedServer, store, terminology, basePath, null);
+    }
+
+    public FhirHttpServer(HttpServer sharedServer, FhirStoreFacade store,
+            TerminologyFacade terminology, String basePath, RequestAuthenticator authenticator) {
         this.store = store;
         this.terminology = terminology;
+        this.authenticator = authenticator;
         this.basePath = normalize(basePath);
         this.server = sharedServer;
         this.ownsServer = false;
         server.createContext(this.basePath.isEmpty() ? "/" : this.basePath, this::handle);
+    }
+
+    /**
+     * Injects rest.security into the generated CapabilityStatement when the
+     * surface is guarded — the capability document is a generated projection,
+     * and this is part of the generation.
+     */
+    private String securityDeclared(String capabilityJson) {
+        if (authenticator == null) {
+            return capabilityJson;
+        }
+        String marker = "\"rest\":[{";
+        int at = capabilityJson.indexOf(marker);
+        if (at < 0) {
+            return capabilityJson;
+        }
+        String security = "\"security\":{\"service\":[{\"coding\":[{"
+                + "\"system\":\"http://terminology.hl7.org/CodeSystem/restful-security-service\","
+                + "\"code\":\"OAuth\"}]}],"
+                + "\"description\":\"Bearer JWT from this tenant's own authority (/oidc)\"},";
+        return capabilityJson.substring(0, at + marker.length()) + security
+                + capabilityJson.substring(at + marker.length());
     }
 
     private static String normalize(String basePath) {
@@ -123,8 +158,28 @@ public final class FhirHttpServer implements AutoCloseable {
         Map<String, String> query = parseQuery(exchange.getRequestURI().getRawQuery());
 
         if (segments.length == 1 && "metadata".equals(segments[0]) && "GET".equals(method)) {
-            respond(exchange, 200, store.capabilityStatement(baseUrl()));
+            // anonymous by REQ-DBO-AUTH-OPEN-CAPABILITY; declares the auth mode
+            respond(exchange, 200, securityDeclared(store.capabilityStatement(baseUrl())));
             return;
+        }
+        if (authenticator != null) {
+            boolean mutation = switch (method) {
+                case "PUT", "DELETE", "PATCH" -> true;
+                case "POST" -> segments.length == 0 || !segments[segments.length - 1].startsWith("$");
+                default -> false;
+            };
+            String resourceType = segments.length > 0 && !segments[0].startsWith("$")
+                    && !segments[0].startsWith("_") ? segments[0] : null;
+            RequestAuthenticator.Denial denial = authenticator.check(
+                    exchange.getRequestHeaders().getFirst("Authorization"), mutation, resourceType);
+            if (denial != null) {
+                if (denial.wwwAuthenticate() != null) {
+                    exchange.getResponseHeaders().set("WWW-Authenticate", denial.wwwAuthenticate());
+                }
+                respond(exchange, denial.status(),
+                        store.operationOutcome("security", denial.diagnostics()));
+                return;
+            }
         }
         // terminology operations
         if (terminology != null && segments.length == 2 && segments[1].startsWith("$")) {

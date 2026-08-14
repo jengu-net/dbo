@@ -28,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.nio.charset.StandardCharsets;
 import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,8 @@ class ServerDistIT {
     static Path serverLog;
     static int httpPort;
     static Process server;
+    static String kekB64;
+    static String clientSecret;
     static final HttpClient http = HttpClient.newHttpClient();
 
     @BeforeAll
@@ -91,6 +94,9 @@ class ServerDistIT {
 
         specDir = Files.createTempDirectory("dbo-dist-specs");
         serverLog = Files.createTempFile("dbo-dist", ".log");
+        byte[] kek = new byte[32];
+        new java.security.SecureRandom().nextBytes(kek);
+        kekB64 = java.util.Base64.getEncoder().encodeToString(kek);
         try (var socket = new java.net.ServerSocket(0)) {
             httpPort = socket.getLocalPort();
         }
@@ -114,8 +120,15 @@ class ServerDistIT {
     }
 
     private void startServer() throws Exception {
+        startServer(true);
+    }
+
+    private void startServer(boolean withAuthority) throws Exception {
         Path dist = Path.of(System.getProperty("dbo.server.dist"));
         ProcessBuilder pb = new ProcessBuilder(dist.resolve("bin/dbo-server").toString());
+        if (withAuthority) {
+            pb.environment().put("DBO_AUTH_KEK", kekB64);
+        }
         pb.environment().put("DBO_TENANT_DIR", specDir.toString());
         pb.environment().put("DBO_HTTP_HOST", "127.0.0.1");
         pb.environment().put("DBO_HTTP_PORT", String.valueOf(httpPort));
@@ -195,7 +208,16 @@ class ServerDistIT {
         startServer();
         awaitStatus(base() + "/metadata", 200, 180_000);
 
+        // §13 in the dist: the k8s Secret's bootstrap client mints the token
+        clientSecret = new String(java.util.Base64.getDecoder().decode(
+                client.secrets().inNamespace(NS).withName("tenant-" + CODE + "-db").get()
+                        .getData().get("client_secret")), StandardCharsets.UTF_8);
+        assertEquals(401, statusOf(base() + "/Patient?_summary=count"),
+                "the guarded surface must refuse anonymous reads");
+        String token = obtainToken();
+
         HttpResponse<String> created = http.send(HttpRequest.newBuilder(URI.create(base() + "/Patient"))
+                        .header("Authorization", "Bearer " + token)
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString("""
                                 {"resourceType":"Patient",
@@ -204,8 +226,24 @@ class ServerDistIT {
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
         assertEquals(201, created.statusCode());
-        assertTrue(http.send(HttpRequest.newBuilder(URI.create(base() + "/Patient?family=distanet")).GET().build(),
+        assertTrue(http.send(HttpRequest.newBuilder(URI.create(base() + "/Patient?family=distanet"))
+                        .header("Authorization", "Bearer " + token).GET().build(),
                 HttpResponse.BodyHandlers.ofString()).body().contains("Distanet"));
+    }
+
+    private String obtainToken() throws Exception {
+        String form = "grant_type=client_credentials&client_id=tenant-bootstrap&client_secret="
+                + java.net.URLEncoder.encode(clientSecret, StandardCharsets.UTF_8);
+        HttpResponse<String> response = http.send(HttpRequest.newBuilder(
+                        URI.create("http://127.0.0.1:" + httpPort + "/t/" + CODE + "/oidc/token"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode(), response.body());
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"access_token\":\"([^\"]+)\"")
+                .matcher(response.body());
+        assertTrue(m.find());
+        return m.group(1);
     }
 
     /** Spec removal retracts the endpoint LIVE — no restart. */
@@ -238,8 +276,25 @@ class ServerDistIT {
         assertTrue(coldStartMillis < 30_000,
                 "cold start took " + coldStartMillis + "ms — beyond the embedded-use budget");
 
-        // and the data written before the restart is still there
-        assertTrue(http.send(HttpRequest.newBuilder(URI.create(base() + "/Patient?family=distanet")).GET().build(),
+        // and the data written before the restart is still there — via a
+        // token from the RESTARTED authority (keys persisted, KEK unwraps)
+        assertTrue(http.send(HttpRequest.newBuilder(URI.create(base() + "/Patient?family=distanet"))
+                        .header("Authorization", "Bearer " + obtainToken()).GET().build(),
                 HttpResponse.BodyHandlers.ofString()).body().contains("Distanet"));
+    }
+
+    /** REQ-DBO-AUTH-DENY-BY-DEFAULT: no authority, no explicit flag → no serving. */
+    @Test
+    @Order(4)
+    @Timeout(120)
+    void theDistRefusesToBootWithoutAnAuthority() throws Exception {
+        stopServer();
+        startServer(false);
+        assertTrue(server.waitFor(30, java.util.concurrent.TimeUnit.SECONDS),
+                "the dist must exit, not serve");
+        assertEquals(78, server.exitValue());
+        server = null;
+        String log = Files.readString(serverLog);
+        assertTrue(log.contains("REQ-DBO-AUTH-DENY-BY-DEFAULT"), "refusal must name the rule");
     }
 }
