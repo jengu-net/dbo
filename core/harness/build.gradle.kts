@@ -14,6 +14,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation(project(":core:dbo-operator"))
     testImplementation(project(":core:dbo-tenant-k8s"))
+    testImplementation(project(":core:dbo-auth"))
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
     testImplementation("org.testcontainers:testcontainers-k3s:2.0.5")
     testImplementation("org.postgresql:postgresql:42.7.11")
@@ -36,7 +37,7 @@ tasks.test {
     dependsOn(":core:dbo-terminology:jar", ":core:dbo-fhir-r5:jar",
         ":core:dbo-fhir-common:jar", ":core:dbo-subscriptions:jar", ":core:dbo-rest:jar",
         ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar",
-        ":core:dbo-tenant-k8s:jar", ":core:dbo-server:installDist")
+        ":core:dbo-tenant-k8s:jar", ":core:dbo-auth:jar", ":core:dbo-server:installDist")
     systemProperty(
         "dbo.server.dist",
         project(":core:dbo-server").layout.buildDirectory.dir("install/dbo-server").get().asFile.absolutePath,
@@ -49,6 +50,7 @@ tasks.test {
         "dbo.maintenance.jar" to "dbo-maintenance",
         "dbo.tenant.jar" to "dbo-tenant",
         "dbo.tenant.k8s.jar" to "dbo-tenant-k8s",
+        "dbo.auth.jar" to "dbo-auth",
     )) {
         systemProperty(
             prop,

@@ -26,6 +26,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     private final String user;
     private final String password;
     private final Map<String, HikariDataSource> pools = new ConcurrentHashMap<>();
+    private final Map<String, String> bootstrapSecrets = new ConcurrentHashMap<>();
 
     public LocalDatabasePerTenantProvisioner(String adminUrl, String user, String password) {
         this.adminUrl = adminUrl;
@@ -55,7 +56,17 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             config.setPoolName("dbo-tenant-" + code);
             return new HikariDataSource(config);
         });
-        return new TenantDatabase(pool);
+        return new TenantDatabase(pool, bootstrapSecrets.computeIfAbsent(spec.code(),
+                code -> {
+                    byte[] bytes = new byte[24];
+                    new java.security.SecureRandom().nextBytes(bytes);
+                    return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+                }));
+    }
+
+    /** Dev/test convenience: the generated bootstrap-client secret (§13). */
+    public String bootstrapClientSecret(String tenantCode) {
+        return bootstrapSecrets.get(tenantCode);
     }
 
     /** Closes the pool WITHOUT dropping data — spec retraction, not erasure. */

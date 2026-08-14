@@ -172,6 +172,9 @@ class OperatorIT {
         Secret secret = client.secrets().inNamespace(NS).withName("tenant-opitenant-db").get();
         assertNotNull(secret);
         assertEquals("opitenant", secret.getMetadata().getLabels().get(TenantOperator.TENANT_LABEL));
+        // §13 bootstrap client custody rides the same Secret
+        assertEquals("tenant-bootstrap", decode(secret, "client_id"));
+        assertTrue(decode(secret, "client_secret").length() >= 24);
         try (Connection c = DriverManager.getConnection(
                 decode(secret, "url"), decode(secret, "user"), decode(secret, "password"));
              PreparedStatement ps = c.prepareStatement("SELECT current_user");

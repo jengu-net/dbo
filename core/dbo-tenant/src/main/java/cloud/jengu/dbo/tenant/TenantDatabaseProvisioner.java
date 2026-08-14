@@ -32,5 +32,15 @@ public interface TenantDatabaseProvisioner {
     default void release(String tenantCode) {
     }
 
-    record TenantDatabase(DataSource dataSource) {}
+    /**
+     * @param bootstrapClientSecret secret for the tenant's bootstrap
+     *                              ClientApplication (§13; the provisioner's
+     *                              custody is authoritative), or null when
+     *                              the deployment runs without an authority
+     */
+    record TenantDatabase(DataSource dataSource, String bootstrapClientSecret) {
+        public TenantDatabase(DataSource dataSource) {
+            this(dataSource, null);
+        }
+    }
 }

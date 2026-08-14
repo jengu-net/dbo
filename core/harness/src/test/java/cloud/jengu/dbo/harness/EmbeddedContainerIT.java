@@ -157,7 +157,13 @@ class EmbeddedContainerIT {
         Object store = storeCtor.newInstance(engine, personality, base);
 
         Class<?> serverClass = bundles.get("dbo.rest").loadClass("cloud.jengu.dbo.rest.FhirHttpServer");
-        Constructor<?> serverCtor = serverClass.getConstructors()[0];
+        // pick the standalone 5-arg ctor by SHAPE, not by declaration order —
+        // dbo#20 added authenticated overloads
+        Constructor<?> serverCtor = java.util.Arrays.stream(serverClass.getConstructors())
+                .filter(c -> c.getParameterCount() == 5
+                        && c.getParameterTypes()[2] == String.class
+                        && c.getParameterTypes()[3] == int.class)
+                .findFirst().orElseThrow();
         server = (AutoCloseable) serverCtor.newInstance(store, null, "127.0.0.1", port, "/fhir");
 
         // now: a completely ordinary FHIR client from the host

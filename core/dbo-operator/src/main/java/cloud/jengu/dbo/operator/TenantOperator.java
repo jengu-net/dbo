@@ -152,6 +152,7 @@ public final class TenantOperator implements AutoCloseable {
         String role = "tenant_" + code;
         String secretName = secretName(code);
         String password = existingPassword(secretName).orElseGet(this::newPassword);
+        String clientSecret = existingSecretField(secretName, "client_secret").orElseGet(this::newPassword);
 
         try (Connection c = DriverManager.getConnection(adminUrl, adminUser, adminPassword)) {
             // role first; membership lets the scoped provisioner act as the
@@ -183,6 +184,10 @@ public final class TenantOperator implements AutoCloseable {
                 .addToStringData("url", tenantUrlBase + role)
                 .addToStringData("user", role)
                 .addToStringData("password", password)
+                // \u00a713 bootstrap ClientApplication: the serving side ensures
+                // the record; this custody is authoritative for its secret
+                .addToStringData("client_id", "tenant-bootstrap")
+                .addToStringData("client_secret", clientSecret)
                 .build();
         k8s.secrets().inNamespace(namespace).resource(secret).serverSideApply();
 
@@ -217,13 +222,17 @@ public final class TenantOperator implements AutoCloseable {
     }
 
     private java.util.Optional<String> existingPassword(String secretName) {
+        return existingSecretField(secretName, "password");
+    }
+
+    private java.util.Optional<String> existingSecretField(String secretName, String key) {
         Secret existing = k8s.secrets().inNamespace(namespace).withName(secretName).get();
         if (existing == null || existing.getData() == null
-                || !existing.getData().containsKey("password")) {
+                || !existing.getData().containsKey(key)) {
             return java.util.Optional.empty();
         }
         return java.util.Optional.of(new String(
-                Base64.getDecoder().decode(existing.getData().get("password")),
+                Base64.getDecoder().decode(existing.getData().get(key)),
                 StandardCharsets.UTF_8));
     }
 
