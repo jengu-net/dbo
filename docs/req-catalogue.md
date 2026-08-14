@@ -139,3 +139,13 @@ deliberately have no REQs yet — they get them when scheduled.
 |---|---|---|
 | REQ-OPS-TENANT-BLOB-STORAGE | Binary content lives in per-tenant blob storage provisioned credential-blind; erasure-by-drop extends to it; small deployments fall back to Postgres behind the same interface. | §9 |
 | REQ-OPS-MIGRATION-AS-DEPLOYMENT | Schema and engine upgrades ride rolling deployment: the highest-version node leads, migrates, and older nodes passivate. | D5 |
+
+## MNT — maintenance
+
+| REQ | Promise | Source |
+|---|---|---|
+| REQ-MNT-BACKUP-IS-EXPORT | Backup and export are one mechanism, restore and import another single one; every backup is restorable by the everyday import path. | §11 |
+| REQ-MNT-PORTABLE-STATE-EXPORT | The latest-state export is idempotent, store-independent FHIR (with blob content, hash-verified) — importable into a fresh tenant, the same tenant, or any other FHIR store. | §11 |
+| REQ-MNT-HISTORY-BY-SCHEMA | Version history, audit and consumer state live in their own database schemas, so the high-fidelity history element is a schema-scoped dump, restorable byte-exact. | §11 |
+| REQ-MNT-OWNER-KEY-ENCRYPTION | An export bundle is encrypted so that only the tenant owner's master key can open it; the platform operates backups it cannot read, and restore requires the owner. | §11 |
+| REQ-MNT-SNAPSHOT-CONSISTENT | The state element is cut at a single consistent snapshot; incremental export is the feed from that snapshot's cursor. | §11, §10 |
