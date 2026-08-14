@@ -1,0 +1,66 @@
+# Tenant policies — audit and write discipline (§15)
+
+A tenant declares its regulatory posture at configuration time, next to its
+FHIR version: what is remembered about every action (**audit policy**) and
+what may never be unwritten (**write discipline**). Both are engine-enforced
+policies, not caller conventions.
+
+## 15.1 Audit policy
+
+Every interaction the policy covers produces an audit record: actor (the
+§13 token's client and subject — authority and audit meet here), tenant,
+interaction, type, target pseudonym, timestamp, outcome. Levels:
+
+- `none` — no auditing (dev/demo tenants)
+- `writes` — every mutation audited
+- `full` — reads and searches audited too
+
+Audit records are **regular records in the tenant's own store**:
+
+- they ride the outbox, so subscriptions can watch access patterns;
+- they are exported and restored by the maintenance machinery — the
+  accountability record travels with the tenant;
+- they are **pseudonymous by §14 construction**: an audit trail that named
+  people would be a personal-data copy outside the vault. Re-identification
+  of an audit line requires the vault, like everything else.
+
+The patient-facing transparency view (who accessed my data — the platform's
+portal direction) reads from this stream through the tenant's authority;
+dbo provides the queryable source, the platform provides the presentation.
+
+## 15.2 Write discipline
+
+History is immutable by construction (§2); write discipline governs the
+STATE surface:
+
+- `standard` — updates and tombstoning deletes as today
+- `append-only` — tombstones rejected; correction happens the FHIR way
+  (supersede, status `entered-in-error`); optional per-type update
+  prohibition for artifacts that must never change in place (signed
+  documents, issued reports)
+
+Append-only and the §14 right to erasure coexist deliberately: shredding
+never rewrites a record — the record remains, the person evaporates.
+Medico-legal retention and GDPR stop being in tension.
+
+## 15.3 Declaration and enforcement
+
+The tenant spec (and its TenantRegistration projection) carries:
+
+```json
+{
+  "code": "...", "fhirVersion": "r4",
+  "audit": { "level": "writes" },
+  "writeDiscipline": { "default": "append-only", "perType": { "Task": "standard" } }
+}
+```
+
+Validated at registration, enforced by the engine (a rejected tombstone is
+a 4xx with an OperationOutcome naming the policy), declared in
+`/metadata`. Policy changes are themselves auditable configuration events.
+
+## 15.4 What stays outside
+
+Retention TTLs and anonymisation schedules are platform policy riding this
+machinery later; the audit UI/transparency presentation is the platform's;
+legal-hold semantics wait for a concrete requirement.
