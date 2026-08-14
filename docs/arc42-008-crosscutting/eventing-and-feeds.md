@@ -142,3 +142,11 @@ with `xact_id < pg_snapshot_xmin(pg_current_snapshot())`: every transaction
 below the snapshot's xmin has finished, so any still-invisible row must sort
 *after* the reader's frontier. Delivery is gap-free and in commit order with
 no extra coordination — the barrier is one predicate.
+
+Liveness caveat (dbo#16 finding): `xmin` is CLUSTER-GLOBAL, so a long-running
+transaction in *any* database of the Postgres instance delays feed delivery
+everywhere — a delay, never a loss. Dedicated-tier tenants on dedicated
+instances are unaffected by neighbours; shared-cluster deployments should
+monitor for idle-in-transaction sessions. A per-database barrier
+(`pg_stat_activity.backend_xid` floor) is a possible refinement if shared
+clusters make the coupling bite.
