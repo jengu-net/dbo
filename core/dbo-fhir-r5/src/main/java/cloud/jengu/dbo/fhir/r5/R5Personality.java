@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.fhir.r4;
+package cloud.jengu.dbo.fhir.r5;
 
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.common.UnknownSearchParameterException;
@@ -29,12 +29,12 @@ import org.hl7.fhir.common.hapi.validation.validator.FhirInstanceValidator;
 import org.hl7.fhir.instance.model.api.IBase;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
-import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.CodeableConcept;
-import org.hl7.fhir.r4.model.Coding;
-import org.hl7.fhir.r4.model.Period;
-import org.hl7.fhir.r4.model.Reference;
-import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r5.model.Bundle;
+import org.hl7.fhir.r5.model.CodeableConcept;
+import org.hl7.fhir.r5.model.Coding;
+import org.hl7.fhir.r5.model.Period;
+import org.hl7.fhir.r5.model.Reference;
+import org.hl7.fhir.r5.model.Resource;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -46,21 +46,21 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 /**
- * The R4 personality (REQ-DBO-VER-PERSONALITY-OWNS-MEANING): envelope
- * extraction driven by HAPI's built-in R4 search-parameter definitions,
+ * The R5 personality (REQ-DBO-VER-PERSONALITY-OWNS-MEANING): envelope
+ * extraction driven by HAPI's built-in R5 search-parameter definitions,
  * strict search compilation to engine {@link Criteria}, validation on write,
  * and Bundle framing over the feed primitive. The public surface speaks JSON
  * strings and core api types only — no HAPI type crosses (§7.3).
  */
-public final class R4Personality {
+public final class R5Personality {
 
-    public static final String DOMAIN = "r4";
+    public static final String DOMAIN = "r5";
 
     private final Map<String, FhirTypeConfig> types = new LinkedHashMap<>();
     private volatile FhirContext ctx;
     private volatile FhirValidator validator;
 
-    public R4Personality(List<FhirTypeConfig> typeConfigs) {
+    public R5Personality(List<FhirTypeConfig> typeConfigs) {
         for (FhirTypeConfig t : typeConfigs) {
             types.put(t.typeName(), t);
         }
@@ -146,8 +146,8 @@ public final class R4Personality {
 
         // every Identifier element becomes an engine identifier (searchable;
         // identity-bearing per the type's designated systems)
-        for (org.hl7.fhir.r4.model.Identifier ident : fhirPath.evaluate(
-                resource, typeName + ".identifier", org.hl7.fhir.r4.model.Identifier.class)) {
+        for (org.hl7.fhir.r5.model.Identifier ident : fhirPath.evaluate(
+                resource, typeName + ".identifier", org.hl7.fhir.r5.model.Identifier.class)) {
             if (ident.hasSystem() && ident.hasValue()) {
                 e.identifier(ident.getSystem(), ident.getValue());
             }
@@ -177,7 +177,7 @@ public final class R4Personality {
         switch (hit) {
             case Coding c -> tokenPair(e, path, c.getSystem(), c.getCode());
             case CodeableConcept cc -> cc.getCoding().forEach(c -> tokenPair(e, path, c.getSystem(), c.getCode()));
-            case org.hl7.fhir.r4.model.Identifier id -> tokenPair(e, path, id.getSystem(), id.getValue());
+            case org.hl7.fhir.r5.model.Identifier id -> tokenPair(e, path, id.getSystem(), id.getValue());
             case IPrimitiveType<?> p -> tokenPair(e, path, null, p.getValueAsString());
             default -> { }
         }
@@ -196,7 +196,7 @@ public final class R4Personality {
 
     private void addDate(Envelope e, String path, IBase hit) {
         Date value = switch (hit) {
-            case org.hl7.fhir.r4.model.BaseDateTimeType d -> d.getValue();
+            case org.hl7.fhir.r5.model.BaseDateTimeType d -> d.getValue();
             case Period p -> p.getStart();
             default -> null;
         };
@@ -524,7 +524,7 @@ public final class R4Personality {
                 StringBuilder qs = new StringBuilder();
                 originalParams.forEach((k, v) -> qs.append(qs.isEmpty() ? "" : "&").append(k).append('=').append(v));
                 qs.append(qs.isEmpty() ? "" : "&").append("_cursor=").append(chunk.nextCursor());
-                bundle.addLink().setRelation("next")
+                bundle.addLink().setRelation(org.hl7.fhir.r5.model.Bundle.LinkRelationTypes.NEXT)
                         .setUrl(baseUrl + "/" + typeName + "?" + qs);
             }
             var parser = ctx().newJsonParser();
@@ -619,7 +619,7 @@ public final class R4Personality {
 
     private synchronized FhirContext ctx() {
         if (ctx == null) {
-            ctx = withTccl(FhirContext::forR4);
+            ctx = withTccl(FhirContext::forR5);
         }
         return ctx;
     }
@@ -644,7 +644,7 @@ public final class R4Personality {
     private <T> T withTccl(Supplier<T> body) {
         Thread t = Thread.currentThread();
         ClassLoader old = t.getContextClassLoader();
-        t.setContextClassLoader(R4Personality.class.getClassLoader());
+        t.setContextClassLoader(R5Personality.class.getClassLoader());
         try {
             return body.get();
         } finally {

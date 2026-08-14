@@ -6,6 +6,7 @@
 
 dependencies {
     api(project(":core:dbo-core"))
+    api(project(":core:dbo-fhir-common"))
     api(project(":core:dbo-subscriptions"))
     api(project(":core:dbo-terminology"))
     implementation("ca.uhn.hapi.fhir:hapi-fhir-structures-r4:8.10.1")

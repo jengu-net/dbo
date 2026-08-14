@@ -4,7 +4,7 @@ import cloud.jengu.dbo.core.api.PutResult;
 import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.fhir.r4.R4Store;
 import cloud.jengu.dbo.fhir.r4.R4Subscriptions;
-import cloud.jengu.dbo.fhir.r4.R4TypeConfig;
+import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.subscriptions.RestHookTransport;
@@ -58,8 +58,8 @@ class SubscriptionsIT {
         pg.setPassword(postgres.getPassword());
 
         R4Personality personality = new R4Personality(List.of(
-                R4TypeConfig.internal("Observation"),
-                R4TypeConfig.internal("Subscription")));
+                FhirTypeConfig.internal("Observation"),
+                FhirTypeConfig.internal("Subscription")));
         PgObjectStore store = new PgObjectStore(pg, personality.registrations());
         fhir = new R4Store(store, personality, "https://dbo.test/fhir");
         feed = new PgChangeFeed(pg, R4Personality.DOMAIN);

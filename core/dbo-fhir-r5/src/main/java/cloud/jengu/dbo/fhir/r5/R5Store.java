@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.fhir.r4;
+package cloud.jengu.dbo.fhir.r5;
 
 import cloud.jengu.dbo.fhir.common.ValidationFailedException;
 
@@ -20,13 +20,13 @@ import java.util.Map;
  * strict search returning searchset Bundles, conditional canonical upserts.
  * JSON in, JSON out — the personality boundary (§7.3).
  */
-public final class R4Store {
+public final class R5Store {
 
     private final ObjectStore store;
-    private final R4Personality personality;
+    private final R5Personality personality;
     private final String baseUrl;
 
-    public R4Store(ObjectStore store, R4Personality personality, String baseUrl) {
+    public R5Store(ObjectStore store, R5Personality personality, String baseUrl) {
         this.store = store;
         this.personality = personality;
         this.baseUrl = baseUrl;
@@ -67,7 +67,7 @@ public final class R4Store {
 
     /** Strict FHIR search over one type; returns a searchset Bundle with link[next]. */
     public String search(String typeName, Map<String, String> params, String cursor) {
-        R4Personality.CompiledSearch compiled = personality.compileSearch(typeName, params);
+        R5Personality.CompiledSearch compiled = personality.compileSearch(typeName, params);
 
         if (compiled.byId() != null) {
             var hit = store.get(typeName, compiled.byId());

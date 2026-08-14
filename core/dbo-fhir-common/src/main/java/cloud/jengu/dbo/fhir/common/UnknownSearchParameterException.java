@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.fhir.r4;
+package cloud.jengu.dbo.fhir.common;
 
 /**
  * Strict search (REQ-DBO-SRCH-STRICT-BY-DEFAULT): an unsupported parameter is

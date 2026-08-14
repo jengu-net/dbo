@@ -2,7 +2,7 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.fhir.r4.R4Terminology;
-import cloud.jengu.dbo.fhir.r4.R4TypeConfig;
+import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.terminology.TerminologyStore;
 import org.junit.jupiter.api.BeforeAll;
@@ -41,8 +41,8 @@ class TerminologyIT {
         pg.setPassword(postgres.getPassword());
 
         R4Personality personality = new R4Personality(List.of(
-                R4TypeConfig.canonical("CodeSystem"),
-                R4TypeConfig.canonical("ValueSet")));
+                FhirTypeConfig.canonical("CodeSystem"),
+                FhirTypeConfig.canonical("ValueSet")));
         store = new PgObjectStore(pg, personality.registrations());
         nativeStore = new TerminologyStore(pg);
         terminology = new R4Terminology(store, personality, nativeStore);

@@ -3,8 +3,8 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.dbo.core.api.PutResult;
 import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.fhir.r4.R4Store;
-import cloud.jengu.dbo.fhir.r4.R4TypeConfig;
-import cloud.jengu.dbo.fhir.r4.UnknownSearchParameterException;
+import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
+import cloud.jengu.dbo.fhir.common.UnknownSearchParameterException;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
@@ -50,12 +50,12 @@ class Tier1SearchIT {
         pg.setPassword(postgres.getPassword());
 
         R4Personality personality = new R4Personality(List.of(
-                R4TypeConfig.identifier("Patient", EID),
-                R4TypeConfig.internal("Observation"),
-                R4TypeConfig.internal("ServiceRequest"),
-                R4TypeConfig.internal("Specimen"),
-                R4TypeConfig.internal("Organization"),
-                R4TypeConfig.canonical("ValueSet")));
+                FhirTypeConfig.identifier("Patient", EID),
+                FhirTypeConfig.internal("Observation"),
+                FhirTypeConfig.internal("ServiceRequest"),
+                FhirTypeConfig.internal("Specimen"),
+                FhirTypeConfig.internal("Organization"),
+                FhirTypeConfig.canonical("ValueSet")));
         fhir = new R4Store(new PgObjectStore(pg, personality.registrations()),
                 personality, "https://dbo.test/fhir");
     }

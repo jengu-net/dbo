@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.fhir.r4;
+package cloud.jengu.dbo.fhir.common;
 
 import java.util.List;
 
