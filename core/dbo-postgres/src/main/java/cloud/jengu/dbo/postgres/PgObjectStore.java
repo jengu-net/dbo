@@ -332,6 +332,10 @@ public final class PgObjectStore implements ObjectStore {
 
     /** All non-sort predicates, shared by select/page/count. Values are always bound. */
     private void appendWhere(Criteria criteria, String d, StringBuilder sql, List<Object> params) {
+        if (criteria.idEqualsValue() != null) {
+            sql.append(" AND d.id = ?");
+            params.add(UUID.fromString(criteria.idEqualsValue()));
+        }
         if (!criteria.equalsPredicates().isEmpty()) {
             sql.append(" AND d.envelope @> ?::jsonb");
             params.add(JsonbCodec.containmentJson(criteria.equalsPredicates()));

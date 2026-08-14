@@ -61,6 +61,7 @@ public final class Criteria {
     private final List<Chained> chained = new ArrayList<>();
     private Sort sort;
     private Boolean sortLastUpdatedAscending;
+    private String idEquals;
     private int limit = 100;
 
     private Criteria(String typeName) {
@@ -134,6 +135,11 @@ public final class Criteria {
         return this;
     }
 
+    public Criteria idEquals(String id) {
+        this.idEquals = id;
+        return this;
+    }
+
     public Criteria limit(int limit) {
         if (limit < 1 || limit > 10_000) {
             throw new IllegalArgumentException("limit out of range: " + limit);
@@ -166,6 +172,9 @@ public final class Criteria {
 
     /** Null when no explicit last-updated sort was requested. */
     public Boolean sortLastUpdatedAscending() { return sortLastUpdatedAscending; }
+
+    /** Null unless the selection is pinned to one object id. */
+    public String idEqualsValue() { return idEquals; }
 
     public int limitValue() { return limit; }
 }

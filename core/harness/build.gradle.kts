@@ -3,6 +3,7 @@ dependencies {
     testImplementation(project(":core:dbo-postgres"))
     testImplementation(project(":core:dbo-test-model"))
     testImplementation(project(":core:dbo-fhir-r4"))
+    testImplementation(project(":core:dbo-subscriptions"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")

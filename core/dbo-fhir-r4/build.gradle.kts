@@ -6,6 +6,7 @@
 
 dependencies {
     api(project(":core:dbo-core"))
+    api(project(":core:dbo-subscriptions"))
     implementation("ca.uhn.hapi.fhir:hapi-fhir-structures-r4:8.10.1")
     implementation("ca.uhn.hapi.fhir:hapi-fhir-validation:8.10.1")
     implementation("ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:8.10.1")
