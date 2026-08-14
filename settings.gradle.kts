@@ -10,7 +10,7 @@ pluginManagement {
 
 rootProject.name = "dbo"
 
-include("core:dbo-core", "core:dbo-postgres", "core:dbo-fhir-common", "core:dbo-fhir-r4", "core:dbo-fhir-r5", "core:dbo-rest", "core:dbo-subscriptions", "core:dbo-sync", "core:dbo-maintenance", "core:dbo-terminology", "core:dbo-test-model", "core:harness")
+include("core:dbo-core", "core:dbo-postgres", "core:dbo-fhir-common", "core:dbo-fhir-r4", "core:dbo-fhir-r5", "core:dbo-rest", "core:dbo-subscriptions", "core:dbo-sync", "core:dbo-maintenance", "core:dbo-tenant", "core:dbo-terminology", "core:dbo-test-model", "core:harness")
 
 dependencyResolutionManagement {
     repositories {

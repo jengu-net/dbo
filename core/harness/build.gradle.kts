@@ -7,6 +7,7 @@ dependencies {
     testImplementation(project(":core:dbo-rest"))
     testImplementation(project(":core:dbo-sync"))
     testImplementation(project(":core:dbo-maintenance"))
+    testImplementation(project(":core:dbo-tenant"))
     testImplementation(project(":core:dbo-subscriptions"))
     testImplementation(project(":core:dbo-terminology"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
@@ -31,13 +32,14 @@ tasks.test {
     )
     dependsOn(":core:dbo-terminology:jar", ":core:dbo-fhir-r5:jar",
         ":core:dbo-fhir-common:jar", ":core:dbo-subscriptions:jar", ":core:dbo-rest:jar",
-        ":core:dbo-sync:jar", ":core:dbo-maintenance:jar")
+        ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar")
     for ((prop, module) in mapOf(
         "dbo.fhir.common.jar" to "dbo-fhir-common",
         "dbo.subscriptions.jar" to "dbo-subscriptions",
         "dbo.rest.jar" to "dbo-rest",
         "dbo.sync.jar" to "dbo-sync",
         "dbo.maintenance.jar" to "dbo-maintenance",
+        "dbo.tenant.jar" to "dbo-tenant",
     )) {
         systemProperty(
             prop,
