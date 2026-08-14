@@ -33,8 +33,14 @@ public final class AuthorityAuthenticator implements RequestAuthenticator {
             return new Denial(403, null, "insufficient scope for "
                     + (mutation ? "writing " : "reading ") + resourceType);
         }
-        cloud.jengu.dbo.core.api.Caller.set(context.get().fhirUser() != null
-                ? context.get().fhirUser() : context.get().clientId());
+        if (context.get().actClient() != null) {
+            // §16.4: a process acting in the name of a human — record both
+            cloud.jengu.dbo.core.api.Caller.setChain(
+                    context.get().actClient(), context.get().fhirUser());
+        } else {
+            cloud.jengu.dbo.core.api.Caller.set(context.get().fhirUser() != null
+                    ? context.get().fhirUser() : context.get().clientId());
+        }
         return null;
     }
 }

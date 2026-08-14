@@ -65,6 +65,10 @@ public final class AuditModel {
         if (code != null) {
             sb.append(",\"code\":\"").append(code).append("\"");
         }
+        String onBehalfOf = cloud.jengu.dbo.core.api.Caller.onBehalfOf();
+        if (onBehalfOf != null) {
+            sb.append(",\"onBehalfOf\":\"").append(onBehalfOf).append("\"");
+        }
         sb.append(",\"outcome\":\"").append(outcome).append("\"");
         if (rule != null) {
             sb.append(",\"rule\":\"").append(rule).append("\"");

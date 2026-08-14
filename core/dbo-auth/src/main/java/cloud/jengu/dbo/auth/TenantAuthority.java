@@ -397,6 +397,130 @@ public final class TenantAuthority {
         return humanTokens(practitionerId, Json.str(claims, "client_id"), String.join(" ", scopes));
     }
 
+    // -------------------------------------------------- on-behalf-of (§16.4)
+
+    /**
+     * RFC 8693 live delegation: a service holding the user's token exchanges
+     * it — subject stays the practitioner, {@code act} names the client, and
+     * the scopes attenuate to subject ∩ requested.
+     */
+    public TokenResult exchangeToken(String subjectToken, String clientId, String clientSecret,
+            String requestedScope) {
+        if (!clientAuthenticated(clientId, clientSecret)) {
+            return new TokenResult.Rejected("invalid_client", "client authentication failed");
+        }
+        Optional<AuthContext> subject = validate(subjectToken);
+        if (subject.isEmpty() || subject.get().fhirUser() == null) {
+            return new TokenResult.Rejected("invalid_grant", "subject token invalid or not a human's");
+        }
+        List<String> scopes = attenuate(subject.get().scopes(), requestedScope);
+        if (scopes.isEmpty()) {
+            return new TokenResult.Rejected("access_denied", "no delegable scope remains");
+        }
+        return actToken(subject.get().clientId(), clientId, scopes);
+    }
+
+    /**
+     * §16.4 durable delegation: recorded while the human's token is live,
+     * exchanged against AFTER it expired. Revocable by ending it; the
+     * exchange re-evaluates the human's CURRENT grants and intersects with
+     * the recorded scopes — a delegation can neither outlive a revocation
+     * nor widen with a later grant.
+     */
+    public Optional<String> createDelegation(String subjectToken, String clientId,
+            String processRef, List<String> scopes, long validUntilEpochSeconds) {
+        Optional<AuthContext> subject = validate(subjectToken);
+        if (subject.isEmpty() || subject.get().fhirUser() == null
+                || !subject.get().scopes().containsAll(scopes)) {
+            return Optional.empty();
+        }
+        String payload = "{\"practitionerId\":\"" + subject.get().clientId() + "\""
+                + ",\"clientId\":\"" + clientId + "\""
+                + (processRef != null ? ",\"processRef\":\"" + processRef + "\"" : "")
+                + ",\"scopes\":[" + scopes.stream().map(x -> "\"" + x + "\"")
+                        .collect(Collectors.joining(",")) + "]"
+                + ",\"validUntil\":" + validUntilEpochSeconds
+                + ",\"status\":\"active\"}";
+        return Optional.of(store.put(PutRequest.create("Delegation",
+                payload.getBytes(StandardCharsets.UTF_8))).id());
+    }
+
+    /** @return true when the caller (the delegation's subject) could end it */
+    public boolean endDelegation(String delegationId, String subjectToken) {
+        Optional<AuthContext> subject = validate(subjectToken);
+        Optional<StoredObject> delegation = store.get("Delegation", delegationId);
+        if (subject.isEmpty() || delegation.isEmpty()
+                || !field(delegation.get(), "practitionerId").equals(subject.get().clientId())) {
+            return false;
+        }
+        String payload = new String(delegation.get().payload(), StandardCharsets.UTF_8)
+                .replace("\"status\":\"active\"", "\"status\":\"ended\"");
+        store.put(PutRequest.update("Delegation", delegationId,
+                delegation.get().versionId(), payload.getBytes(StandardCharsets.UTF_8)));
+        return true;
+    }
+
+    public TokenResult exchangeDelegation(String delegationId, String clientId,
+            String clientSecret, String requestedScope) {
+        if (!clientAuthenticated(clientId, clientSecret)) {
+            return new TokenResult.Rejected("invalid_client", "client authentication failed");
+        }
+        Optional<StoredObject> delegation = store.get("Delegation", delegationId);
+        if (delegation.isEmpty()
+                || !"active".equals(field(delegation.get(), "status"))
+                || !clientId.equals(field(delegation.get(), "clientId"))) {
+            return new TokenResult.Rejected("invalid_grant", "delegation invalid or ended");
+        }
+        Object payload = Json.parse(new String(delegation.get().payload(), StandardCharsets.UTF_8));
+        if (Json.num(payload, "validUntil") < System.currentTimeMillis() / 1000) {
+            return new TokenResult.Rejected("invalid_grant", "delegation expired");
+        }
+        String practitionerId = Json.str(payload, "practitionerId");
+        // recorded scopes ∩ the human's CURRENT grants ∩ the request
+        List<String> current = evaluateGrants(practitionerId);
+        List<String> scopes = attenuate(Json.strings(payload, "scopes"), requestedScope).stream()
+                .filter(current::contains)
+                .toList();
+        if (scopes.isEmpty()) {
+            return new TokenResult.Rejected("access_denied", "no delegable scope remains");
+        }
+        return actToken(practitionerId, clientId, scopes);
+    }
+
+    private boolean clientAuthenticated(String clientId, String clientSecret) {
+        Optional<StoredObject> client = findClient(clientId);
+        if (client.isEmpty() || !"active".equals(field(client.get(), "status"))) {
+            return false;
+        }
+        String hash = Json.strOpt(
+                Json.parse(new String(client.get().payload(), StandardCharsets.UTF_8)), "secretHash");
+        return hash != null && clientSecret != null && SecretHash.verify(clientSecret, hash);
+    }
+
+    private static List<String> attenuate(List<String> granted, String requestedScope) {
+        if (requestedScope == null || requestedScope.isBlank()) {
+            return granted;
+        }
+        return List.of(requestedScope.trim().split("\\s+")).stream()
+                .filter(granted::contains)
+                .toList();
+    }
+
+    private TokenResult actToken(String practitionerId, String actingClientId, List<String> scopes) {
+        StoredObject key = activeKey().orElseThrow(() -> new IllegalStateException("no active signing key"));
+        long now = System.currentTimeMillis() / 1000;
+        String claims = "{\"iss\":\"" + issuer + "\",\"sub\":\"" + practitionerId + "\""
+                + ",\"aud\":\"" + issuer + "\",\"client_id\":\"" + actingClientId + "\""
+                + ",\"fhirUser\":\"Practitioner/" + practitionerId + "\""
+                + ",\"act\":{\"sub\":\"" + actingClientId + "\"}"
+                + ",\"scope\":\"" + String.join(" ", scopes) + "\""
+                + ",\"jti\":\"" + UuidV7.newId() + "\""
+                + ",\"iat\":" + now + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + "}";
+        return new TokenResult.Issued(
+                Jws.sign(field(key, "kid"), claims, privateKey(key)), TOKEN_TTL_SECONDS,
+                String.join(" ", scopes));
+    }
+
     private TokenResult humanTokens(String practitionerId, String clientId, String scope) {
         StoredObject key = activeKey().orElseThrow(() -> new IllegalStateException("no active signing key"));
         long now = System.currentTimeMillis() / 1000;
@@ -466,7 +590,9 @@ public final class TenantAuthority {
 
     // ------------------------------------------------------------ validation
 
-    public record AuthContext(String clientId, String fhirUser, List<String> scopes) {}
+    /** For delegated tokens {@code actClient} names the acting service (§16.4). */
+    public record AuthContext(String clientId, String fhirUser, String actClient,
+            List<String> scopes) {}
 
     /** Local validation (§13.5): the tenant's own cached keys, refresh on unknown kid. */
     public Optional<AuthContext> validate(String token) {
@@ -490,8 +616,12 @@ public final class TenantAuthority {
             if ("refresh".equals(Json.strOpt(claims, "typ"))) {
                 return Optional.empty(); // refresh tokens never touch the surface
             }
+            String actClient = null;
+            if (((Map<?, ?>) claims).get("act") instanceof Map<?, ?> act) {
+                actClient = String.valueOf(act.get("sub"));
+            }
             return Optional.of(new AuthContext(Json.str(claims, "sub"),
-                    Json.strOpt(claims, "fhirUser"),
+                    Json.strOpt(claims, "fhirUser"), actClient,
                     List.of(Json.str(claims, "scope").split(" "))));
         } catch (RuntimeException invalid) {
             return Optional.empty();

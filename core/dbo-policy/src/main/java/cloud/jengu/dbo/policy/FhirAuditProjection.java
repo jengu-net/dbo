@@ -174,7 +174,13 @@ public final class FhirAuditProjection implements AuditSurface {
                     .append(",\"outcome\":\"0\"");
         }
         sb.append(",\"agent\":[{\"who\":{\"identifier\":{\"system\":\"urn:dbo:auth:client-id\"")
-                .append(",\"value\":\"").append(n.get("actor")).append("\"}},\"requestor\":true}]");
+                .append(",\"value\":\"").append(n.get("actor")).append("\"}},\"requestor\":true}");
+        if (n.get("onBehalfOf") != null) {
+            // §16.4: the human the process acted for — the Provenance twin
+            sb.append(",{\"who\":{\"reference\":\"").append(n.get("onBehalfOf"))
+                    .append("\"},\"requestor\":false}");
+        }
+        sb.append(']');
         sb.append(",\"source\":{\"observer\":{\"display\":\"dbo\"}}");
         if (n.get("targetId") != null) {
             sb.append(",\"entity\":[{\"what\":{\"reference\":\"")

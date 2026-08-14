@@ -142,6 +142,24 @@ class RestSurfaceIT {
     }
 
     /** If-None-Exist: 201 then 200, same id (bootstrap workhorse over HTTP). */
+    /** PUT without If-Match is an unconditional update, never a 500 (dbo#24 finding). */
+    @Test
+    void updateWithoutIfMatchIsUnconditional() throws Exception {
+        HttpResponse<String> created = send(req(base + "/Patient")
+                .header("Content-Type", "application/fhir+json")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(
+                        patient("36606060666", "Tingimusteta"))).build());
+        assertEquals(201, created.statusCode());
+        String location = created.headers().firstValue("Location").orElseThrow();
+
+        HttpResponse<String> updated = send(req(location)
+                .header("Content-Type", "application/fhir+json")
+                .PUT(java.net.http.HttpRequest.BodyPublishers.ofString(
+                        patient("36606060666", "Tingimusteta-Uus"))).build());
+        assertEquals(200, updated.statusCode(), updated.body());
+        assertEquals("W/\"2\"", updated.headers().firstValue("ETag").orElse(null));
+    }
+
     @Test
     void conditionalCreateViaIfNoneExist() throws Exception {
         String condition = "identifier=" + EID + "|47101010101";

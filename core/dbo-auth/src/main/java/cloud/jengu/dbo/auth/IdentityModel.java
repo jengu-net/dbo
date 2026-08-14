@@ -63,6 +63,14 @@ public final class IdentityModel {
                 new TypeRegistration("RoleGrant", DOMAIN, IdentityClass.IDENTIFIER,
                         java.util.Set.of(ROLE_CODE_SYSTEM), roleGrant, List.of()),
                 new TypeRegistration("LocalCredential", DOMAIN, IdentityClass.IDENTIFIER,
-                        java.util.Set.of(LOGIN_SYSTEM), credential, List.of()));
+                        java.util.Set.of(LOGIN_SYSTEM), credential, List.of()),
+                new TypeRegistration("Delegation", DOMAIN, IdentityClass.INTERNAL,
+                        java.util.Set.of(), (type, payload) -> {
+                            Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
+                            Envelope e = new Envelope();
+                            e.value("status", EnvelopeValue.of(Json.str(n, "status")));
+                            e.value("clientId", EnvelopeValue.of(Json.str(n, "clientId")));
+                            return e;
+                        }, List.of()));
     }
 }

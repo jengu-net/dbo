@@ -9,12 +9,25 @@ package cloud.jengu.dbo.core.api;
 public final class Caller {
 
     private static final ThreadLocal<String> CURRENT = new ThreadLocal<>();
+    private static final ThreadLocal<String> ON_BEHALF_OF = new ThreadLocal<>();
 
     private Caller() {
     }
 
     public static void set(String actor) {
         CURRENT.set(actor);
+        ON_BEHALF_OF.remove();
+    }
+
+    /** §16.4: a process acting in the name of a human — both are recorded. */
+    public static void setChain(String actor, String onBehalfOf) {
+        CURRENT.set(actor);
+        ON_BEHALF_OF.set(onBehalfOf);
+    }
+
+    /** The human a process acts for, or null when the actor acts as itself. */
+    public static String onBehalfOf() {
+        return ON_BEHALF_OF.get();
     }
 
     /** Never null: outside an authenticated request the actor is "system". */
@@ -25,5 +38,6 @@ public final class Caller {
 
     public static void clear() {
         CURRENT.remove();
+        ON_BEHALF_OF.remove();
     }
 }
