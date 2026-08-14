@@ -44,7 +44,7 @@ packaging-validity proven; container wiring pending) ·
 
 1. **OSGi packaging task** — personality/engine bundles with private stacks
    (spike-proven patterns); enables the embedded in-JVM mode for jengu dev/test
-3. **§6 sync streams** — declared content dependencies over the feed; the
+2. **§6 sync streams** — declared content dependencies over the feed; the
    converters from #11 supply SYNC-CONVERT-ON-APPLY
 3. **SubscriptionTopic delivery** — completes EVT-FHIR-SUBSCRIPTIONS
 4. **Tenant provisioning operator + planes** (TEN/WF beyond the schemas) —
