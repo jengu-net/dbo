@@ -78,9 +78,9 @@ Sketch, per domain (a physical table-group knob kept from legacy):
   parameters — indexing is part of the personality contract, not an afterthought.
 - In a shared-tier database, the same layout gains a `tenant_id` column in every
   PK + RLS policies; the dedicated tier stays the design anchor (R5).
-- DBOS runs in a dedicated schema of the *platform* database for cross-instance
-  coordination; per-tenant durable work runs on the tenant's own database where
-  isolation demands it. (Open question §7.)
+- DBOS state splits into two planes — platform DB for coordination that carries
+  no resource content, the tenant's own DB for durable work whose checkpoints
+  do (resolved in §7.4).
 
 ## 4. Tenant lifecycle — credential-blind provisioning
 
@@ -252,9 +252,39 @@ Consequences to design for:
    jars are tens of MB each) and startup cost (`FhirContext` is expensive —
    one per personality, created once, ideally lazily); whether we depend on
    full HAPI or only the leaner `org.hl7.fhir.core` stack per version.
-4. **Per-tenant DBOS state.** Does durable-workflow state live in the tenant DB
-   (perfect isolation, N schedulers) or platform DB (one scheduler, weaker
-   isolation)? Likely tiered like storage itself.
+4. **Per-tenant DBOS state — two planes.** Resolution: split by *what the
+   workflow state contains*, not by who runs it.
+
+   - **Platform plane** (platform DB): tenant→pod assignment, entry-role
+     coordination, election, provisioning workflows. These carry no resource
+     content. Hard rule inherited from R5: platform-plane workflow parameters
+     and step outputs must never contain tenant credentials or resource
+     content — the provisioning workflow tracks *status and references*; the
+     operator and mounted secrets carry the actual credentials past it.
+   - **Tenant plane** (the tenant's own DB, `dbos` schema): subscription
+     delivery, retention sweeps, imports/exports, converter/reindex jobs —
+     anything whose checkpoints inevitably contain resource content. This is
+     DBOS's own "co-locate workflow state with the data" argument, and it buys
+     three things at once: isolation holds (workflow checkpoints are tenant
+     data and live behind the tenant's credentials); **erasure-by-drop** (drop
+     the tenant DB and its entire durable history goes with it — clean GDPR
+     story, and export includes in-flight state); and for a big tenant served
+     by multiple pods, the tenant's own DB *is* the coordination substrate
+     among exactly its serving pods — queues partition per tenant for free.
+   - **Shared-RLS tier**: tenants in a shared database share one DBOS instance
+     with tenant-scoped queue/topic naming; the dedicated tier stays the
+     anchor.
+
+   Costs accepted: N recovery/scheduler loops and poller connections — bounded
+   because only a tenant's *serving* pods attach its DBOS instance (assignment
+   decides attachment, §5).
+
+   Spike item (feeds §7.1): whether `dev.dbos:transact` supports multiple
+   launched runtimes against different system databases in one JVM — the
+   standard model is one runtime per process. If not: per-tenant instantiation
+   inside the embedding bundle's own classloader, or the native-patterns
+   fallback — behind the same whiteboard interfaces either way, so consumers
+   never know.
 5. **Search completeness.** Full FHIR search (chained params, `_include`,
    modifiers, `_filter`) is a large surface; define the supported subset per
    milestone explicitly rather than implying completeness.
