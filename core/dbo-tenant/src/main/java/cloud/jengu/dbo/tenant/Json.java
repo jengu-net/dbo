@@ -28,6 +28,11 @@ final class Json {
         return value instanceof List<?> list ? (List<Object>) list : List.of();
     }
 
+    static String strOpt(Object node, String field) {
+        Object value = ((Map<?, ?>) node).get(field);
+        return value == null ? null : String.valueOf(value);
+    }
+
     static boolean bool(Object node, String field) {
         Object value = ((Map<?, ?>) node).get(field);
         return Boolean.TRUE.equals(value);

@@ -67,6 +67,21 @@ public final class Activator implements BundleActivator {
         tracker.open();
     }
 
+    /** "tara=secret1,eeid=secret2" — custody by broker code (§17.1). */
+    private static java.util.Map<String, String> parseBrokerSecrets(String csv) {
+        if (csv == null || csv.isBlank()) {
+            return java.util.Map.of();
+        }
+        java.util.Map<String, String> out = new java.util.HashMap<>();
+        for (String pair : csv.split(",")) {
+            int eq = pair.indexOf('=');
+            if (eq > 0) {
+                out.put(pair.substring(0, eq).trim(), pair.substring(eq + 1).trim());
+            }
+        }
+        return java.util.Map.copyOf(out);
+    }
+
     private synchronized void startManager(BundleContext ctx, TenantDatabaseProvisioner provisioner) {
         if (manager != null) {
             return; // exactly one manager; first provisioner wins
@@ -89,7 +104,8 @@ public final class Activator implements BundleActivator {
                         java.util.Base64.getDecoder().decode(kekB64),
                         ctx.getProperty("dbo.tenant.auth.issuer.base"),
                         upstream,
-                        ctx.getProperty("dbo.tenant.auth.subject.system"));
+                        ctx.getProperty("dbo.tenant.auth.subject.system"),
+                        parseBrokerSecrets(ctx.getProperty("dbo.tenant.auth.broker.secrets")));
         manager = new TenantRuntimeManager(dir, provisioner, host, port,
                 new TenantRuntimeManager.Listener() {
                     @Override

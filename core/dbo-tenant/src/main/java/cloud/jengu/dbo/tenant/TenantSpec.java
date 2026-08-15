@@ -13,7 +13,13 @@ import java.util.regex.Pattern;
  * mounts); the manager watches them as files.
  */
 public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
-        boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies) {
+        boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+        String zone, String broker, List<String> acceptedBrokers) {
+
+    public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies) {
+        this(code, fhirVersion, types, pdi, policies, null, null, List.of());
+    }
 
     public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types) {
         this(code, fhirVersion, types, false, cloud.jengu.dbo.policy.TenantPolicies.defaults());
@@ -56,6 +62,8 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
             };
         }).toList();
         return new TenantSpec(code, fhirVersion, types, Json.bool(root, "pdi"),
-                cloud.jengu.dbo.policy.TenantPolicies.parse(root));
+                cloud.jengu.dbo.policy.TenantPolicies.parse(root),
+                Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),
+                Json.strings(root, "acceptedBrokers"));
     }
 }

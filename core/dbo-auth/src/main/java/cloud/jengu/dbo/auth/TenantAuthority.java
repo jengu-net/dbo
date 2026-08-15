@@ -62,9 +62,16 @@ public final class TenantAuthority {
     }
 
     /** §16.2 federated mode: humans authenticate at the deployment's hub. */
+    /** §17: broker = the tenant's contracted choice; accepted = its policy. */
     public record Federation(String hubAuthorizeUrl,
             java.util.function.Supplier<java.security.interfaces.RSAPublicKey> hubKey,
-            String hubIssuer) {}
+            String hubIssuer, String broker, List<String> acceptedBrokers) {
+        public Federation(String hubAuthorizeUrl,
+                java.util.function.Supplier<java.security.interfaces.RSAPublicKey> hubKey,
+                String hubIssuer) {
+            this(hubAuthorizeUrl, hubKey, hubIssuer, null, List.of());
+        }
+    }
 
     private volatile Federation federation;
     private final Map<String, PendingFrontChannel> pendingFederated = new ConcurrentHashMap<>();
@@ -88,7 +95,10 @@ public final class TenantAuthority {
                 codeChallenge, rpState, System.currentTimeMillis() + 300_000));
         return federation.hubAuthorizeUrl()
                 + "?cb=" + java.net.URLEncoder.encode(issuer + "/federated", StandardCharsets.UTF_8)
-                + "&state=" + stateId;
+                + "&state=" + stateId
+                + (federation.broker() != null ? "&broker=" + federation.broker() : "")
+                + (federation.acceptedBrokers().isEmpty() ? "" : "&accepted="
+                        + String.join(",", federation.acceptedBrokers()));
     }
 
     public sealed interface FederatedOutcome {
@@ -117,6 +127,12 @@ public final class TenantAuthority {
                 || !federation.hubIssuer().equals(Json.str(claims, "iss"))
                 || !issuer.equals(Json.str(claims, "aud"))
                 || Json.num(claims, "exp") < System.currentTimeMillis() / 1000) {
+            return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
+        }
+        // §17.3 defence in depth: the hub enforced acceptance; re-verify here
+        if (!federation.acceptedBrokers().isEmpty()
+                && Json.strings(claims, "amr").stream()
+                        .noneMatch(federation.acceptedBrokers()::contains)) {
             return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
         }
         Optional<String> practitioner = resolveByNationalId(
