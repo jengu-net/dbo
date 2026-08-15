@@ -24,7 +24,7 @@ tasks.jar {
             attributes(
                 "Bundle-ManifestVersion" to "2",
                 "Bundle-SymbolicName" to "cloud.jengu.dbo.tenant.k8s",
-                "Bundle-Version" to "0.1.0",
+                "Bundle-Version" to project.version.toString().replace("-", "."),
                 "Bundle-Activator" to "cloud.jengu.dbo.tenant.k8s.Activator",
                 "Bundle-ClassPath" to ".,$libs",
                 "Export-Package" to "cloud.jengu.dbo.tenant.k8s;version=\"0.1.0\"",
