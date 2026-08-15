@@ -63,6 +63,7 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-AUTH-FEDERATED-HUMANS | Human authentication is federated to the configured identity broker; the authority resolves the verified national identifier to a Practitioner through the vault index and owns authorization only. Local credentials are an embedded/dev fallback, never the production path. (§16, §14) |
 | REQ-DBO-AUTH-ROLE-GRANTS-AS-RECORDS | The role-to-scope mapping is tenant-administered regular records — auditable, feed-visible, exported; changing who may do what is a recorded act. (§16) |
 | REQ-DBO-AUTH-PSEUDONYMOUS-TOKENS | Human tokens carry the practitioner's record id and SMART user scopes — no name, no national code; a captured token identifies no one. (§16, §14) |
+| REQ-DBO-AUTH-ONE-CEREMONY-MANY-TENANTS | One national authentication serves every tenant authority in the deployment through the identity hub's session — the upstream broker is invoked once per session, not per tenant; authorization remains strictly per-tenant. (§16.2) |
 | REQ-DBO-AUTH-ON-BEHALF-OF | Automated processes act in the name of a human via token exchange — subject stays the practitioner, an act claim names the client, scopes attenuate; durable workflows delegate through Delegation records that outlive tokens and are revocable by ending their period. Every delegated mutation is attributable to both the process and the person. (§16, §15) |
 
 ## PDI — personal-data isolation

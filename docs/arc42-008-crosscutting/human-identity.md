@@ -37,6 +37,25 @@ RoleGrants, and mints tokens. dbo authenticates nobody in production — it
 federates authentication and OWNS authorization. LocalCredential is the
 embedded/dev fallback, beside the local provisioner in spirit.
 
+**The identity hub — one national authentication, many tenants.** National
+authentication is billed per ceremony and clinicians work across
+organizations, so a deployment runs ONE identity hub beside its tenant
+authorities. A tenant's `/authorize` redirects to the hub; the hub either
+holds a SESSION (a signed cookie carrying only the verified national
+identifier and auth time — no names, short TTL, dead on pod restart) and
+immediately returns an identity assertion, or it round-trips to the
+upstream broker once and then asserts. The assertion is a short-lived JWT
+saying only WHO this is; the receiving tenant authority verifies it
+against the hub's keys, resolves the Practitioner through its OWN store,
+evaluates its OWN grants, and mints its OWN tokens. Authentication is
+shared across the deployment; authorization never is — a doctor with
+roles at two clinics authenticates once and works at both, while a tenant
+where no active PractitionerRole exists answers access_denied to the same
+valid identity. Identifier systems are ZONE configuration (the Estonian
+zone takes the official system URIs from the national terminology — the
+patient-identifier-domain ValueSet at TEHIK); dbo carries none of them in
+code.
+
 ## 16.3 SMART shape, pseudonymous tokens
 
 Human tokens speak SMART on FHIR: `fhirUser: Practitioner/<id>`,
