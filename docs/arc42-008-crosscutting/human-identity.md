@@ -129,6 +129,14 @@ had. Three practicalities settled here:
   (confidential, declared redirect URIs) whose secret lands in a
   platform-readable Secret. Third-party apps (SMART appliances) get the
   STANDARD later: RFC 7591 dynamic client registration.
+- **Provisioning is REST, same path everywhere.** The tenant-bootstrap
+  M2M client writes RoleGrant defaults (sourced from the git config
+  repo) and dev-only LocalCredentials through the authority's
+  `admin/role-grants` + `admin/credentials` endpoints — guarded by an
+  explicit system-plane write scope (a human's `user/*.write` never
+  reaches it). Practitioners and PractitionerRoles ride the ordinary
+  FHIR surface with the same token. One provisioning path serves the
+  embedded local-dev container and the k8s dbo-server identically.
 - **The RP builds its principal from an id_token.** The auth-code exchange
   returns an OIDC id_token beside the access token — audience is the
   CLIENT (the access token's stays the issuer), the RP's `nonce` echoes,
