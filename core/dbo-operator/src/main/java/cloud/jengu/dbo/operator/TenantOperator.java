@@ -213,7 +213,8 @@ public final class TenantOperator implements AutoCloseable {
                     .addToLabels(TENANT_LABEL, code).endMetadata()
                     .addToStringData("client_id", "jengu-cloud")
                     .addToStringData("client_secret", rpSecret)
-                    .addToStringData("redirect_uris", String.join(",", rpRedirectUris))
+                    .addToStringData("redirect_uris", String.join(",", rpRedirectUris)
+                            .replace("{code}", code))
                     .addToStringData("issuer", rpIssuerBase.replaceAll("/$", "")
                             + "/t/" + code + "/oidc")
                     .build();

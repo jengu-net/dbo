@@ -62,7 +62,8 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
                 code -> generatedSecret()),
                 rpRedirectUris.isEmpty() ? null
                         : rpSecrets.computeIfAbsent(spec.code(), code -> generatedSecret()),
-                rpRedirectUris);
+                rpRedirectUris.stream()
+                        .map(uri -> uri.replace("{code}", spec.code())).toList());
     }
 
     /** Dev: redirect URIs for the per-tenant jengu-cloud RP client. */

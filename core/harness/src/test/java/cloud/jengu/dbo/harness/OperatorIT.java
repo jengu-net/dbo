@@ -97,7 +97,7 @@ class OperatorIT {
         operator = new TenantOperator(client, NS,
                 provisionerUrl, "dbo_provisioner", "prov-secret",
                 provisionerUrl.substring(0, provisionerUrl.lastIndexOf('/') + 1));
-        operator.rpConfig(java.util.List.of("https://jengu.example/login/oauth2/code/opitenant"),
+        operator.rpConfig(java.util.List.of("https://jengu.example/login/oauth2/code/{code}"),
                 "http://dbo-server.jengu.svc.cluster.local:8090");
         operator.ensureCrd();
 
@@ -182,7 +182,8 @@ class OperatorIT {
         Secret rp = client.secrets().inNamespace(NS).withName("tenant-opitenant-rp").get();
         assertNotNull(rp, "the RP Secret must exist");
         assertEquals("jengu-cloud", decode(rp, "client_id"));
-        assertTrue(decode(rp, "redirect_uris").contains("jengu.example"));
+        assertEquals("https://jengu.example/login/oauth2/code/opitenant",
+                decode(rp, "redirect_uris"));
         assertEquals("http://dbo-server.jengu.svc.cluster.local:8090/t/opitenant/oidc",
                 decode(rp, "issuer"));
         try (Connection c = DriverManager.getConnection(
