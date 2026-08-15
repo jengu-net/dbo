@@ -2,7 +2,9 @@ subprojects {
     apply(plugin = "java-library")
     the<JavaPluginExtension>().toolchain.languageVersion.set(JavaLanguageVersion.of(21))
     group = "cloud.jengu.dbo"
-    version = "0.1.0-SNAPSHOT"
+    // Snapshots on main; a release build passes -Pdbo.version=X.Y.Z (the
+    // CI derives it from the v-tag) — fixed numbering for bundles AND images.
+    version = (findProperty("dbo.version") as String?) ?: "0.1.0-SNAPSHOT"
 
     // Publish every library module to the self-hosted repository (the same
     // storage the platform libraries use — anonymous reads, no quota

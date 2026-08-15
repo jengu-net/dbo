@@ -1,10 +1,27 @@
 name: build
 
+# THE dbo pipeline — one workflow, two modes (Alan's consolidation):
+#
+#   main push / PR   suite → (push only) snapshot jars → images :main-<sha>
+#   release tag v*   suite → RELEASE jars (fixed version from the tag,
+#                    Bundle-Version included) → images :X.Y.Z
+#
+# Snapshot jars are what embedded-Felix consumers (platform local-dev,
+# edge runtimes) resolve; releases pin everything to one number. Nothing
+# publishes and no image ships unless the full suite is green on exactly
+# that commit.
+
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -16,18 +33,25 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v4
+      - name: Resolve version
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" && "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "gradle_args=-Pdbo.version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            echo "image_tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "gradle_args=" >> "$GITHUB_OUTPUT"
+            echo "image_tag=main-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Build and test core
-        run: ./gradlew build
+        run: ./gradlew build ${{ steps.version.outputs.gradle_args }}
+    outputs:
+      gradle_args: ${{ steps.version.outputs.gradle_args }}
+      image_tag: ${{ steps.version.outputs.image_tag }}
 
-  # Publishing is the LAST step of the build: a snapshot only reaches
-  # consumers (platform local-dev embedding, edge runtimes) after the full
-  # suite is green on the same commit. Library modules go to
-  # repo.jengu.cloud as 0.1.0-SNAPSHOT (anonymous reads; the platform
-  # libraries' pattern). Re-runnable via the workflow's re-run for
-  # registry-unreachable moments.
   publish:
     needs: build
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +61,68 @@ jobs:
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v4
       - name: Publish library modules
+        # SNAPSHOT → maven-snapshots, fixed version → maven-releases
+        # (the repository URL switches on the version suffix)
         env:
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-        run: ./gradlew publish --no-daemon
+        run: ./gradlew publish --no-daemon ${{ needs.build.outputs.gradle_args }}
+
+  images:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: self-hosted
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        include:
+          - image: dbo-operator
+            dist: ":core:dbo-operator:installDist"
+            context: core/dbo-operator
+          - image: dbo-server
+            dist: ":core:dbo-server:installDist"
+            context: core/dbo-server
+    env:
+      REGISTRY: 192.168.1.14:5050
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Stop leftover Gradle daemons
+        run: ./gradlew --stop || true
+      - name: Build distribution
+        run: ./gradlew ${{ matrix.dist }} --no-daemon ${{ needs.build.outputs.gradle_args }}
+      - name: Authenticate to the LAN registry
+        env:
+          REG_USER: ${{ secrets.NEXUS_USERNAME }}
+          REG_PASS: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.docker
+          AUTH=$(printf '%s:%s' "$REG_USER" "$REG_PASS" | base64 | tr -d '\n')
+          printf '{"auths":{"%s":{"auth":"%s"}}}' "${{ env.REGISTRY }}" "$AUTH" > ~/.docker/config.json
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          config-inline: |
+            [registry."192.168.1.14:5050"]
+              http = true
+      - name: Build and push image (multi-arch amd64 + arm64)
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ matrix.image }}:${{ needs.build.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ matrix.image }}:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/jengu-net/dbo
+            org.opencontainers.image.revision=${{ github.sha }}
