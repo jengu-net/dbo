@@ -29,12 +29,17 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
         this(code, fhirVersion, types, pdi, cloud.jengu.dbo.policy.TenantPolicies.defaults());
     }
 
-    private static final Pattern CODE = Pattern.compile("[a-z][a-z0-9_]{0,15}");
+    // The platform's tenant-code contract: DNS-label-shaped, up to 63
+    // chars (jengu-platform#848 — story tenants carry story+timestamp+nonce
+    // for attributability). Underscores stay accepted for existing specs.
+    private static final Pattern CODE = Pattern.compile("[a-z][a-z0-9_-]{0,62}");
 
     public TenantSpec {
         if (code == null || !CODE.matcher(code).matches()) {
             throw new IllegalArgumentException("invalid tenant code: " + code);
         }
+        // (databaseName() below derives a Postgres-safe name; the code
+        // itself only has to be URL- and file-name-safe)
         if (!"r4".equals(fhirVersion) && !"r5".equals(fhirVersion)) {
             throw new IllegalArgumentException(code + ": unsupported fhirVersion " + fhirVersion);
         }
@@ -65,5 +70,35 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
                 cloud.jengu.dbo.policy.TenantPolicies.parse(root),
                 Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),
                 Json.strings(root, "acceptedBrokers"));
+    }
+
+    /**
+     * The Postgres database name for a tenant code: {@code tenant_<code>}
+     * with hyphens folded to underscores, and — when that would exceed
+     * Postgres' 63-byte identifier limit (which TRUNCATES silently, so two
+     * long codes sharing a prefix would collide) — truncated with a
+     * deterministic hash suffix. Pure function of the code: every
+     * provisioner and every restart derives the same name.
+     */
+    public static String databaseName(String code) {
+        String name = "tenant_" + code.replace('-', '_');
+        if (name.length() <= 63) {
+            return name;
+        }
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(code.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hash = new StringBuilder();
+            for (int i = 0; i < 6; i++) {
+                hash.append(String.format("%02x", digest[i]));
+            }
+            return name.substring(0, 50) + "_" + hash;
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    public String databaseName() {
+        return databaseName(code);
     }
 }
