@@ -5,7 +5,6 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Map;
@@ -39,7 +38,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     @Override
     public TenantDatabase provision(TenantSpec spec) {
         String dbName = "tenant_" + spec.code(); // code already validated
-        try (Connection c = DriverManager.getConnection(adminUrl, user, password);
+        try (Connection c = adminConnection();
              PreparedStatement ps = c.prepareStatement("CREATE DATABASE " + dbName)) {
             ps.execute();
         } catch (SQLException e) {
@@ -51,6 +50,9 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
         applyTimeouts(dbName);
         DataSource pool = pools.computeIfAbsent(spec.code(), code -> {
             HikariConfig config = new HikariConfig();
+            // in-container the driver resolves through OUR wiring
+            // (org.postgresql imported), never DriverManager discovery
+            config.setDriverClassName("org.postgresql.Driver");
             config.setJdbcUrl(tenantUrl(dbName));
             config.setUsername(user);
             config.setPassword(password);
@@ -81,6 +83,28 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
         return bootstrapSecrets.get(tenantCode);
     }
 
+    /**
+     * DriverManager discovery is boot-classloader-blind inside OSGi — the
+     * driver bundle's classes are invisible to it. Ask the driver directly
+     * through this bundle's own wiring instead (the dbo#19 landmine, hit
+     * again by the embedded platform container: jengu-platform#847).
+     */
+    private Connection adminConnection() throws SQLException {
+        java.util.Properties props = new java.util.Properties();
+        if (user != null) {
+            props.setProperty("user", user);
+        }
+        if (password != null) {
+            props.setProperty("password", password);
+        }
+        java.sql.Driver driver = new org.postgresql.Driver();
+        Connection connection = driver.connect(adminUrl, props);
+        if (connection == null) {
+            throw new SQLException("driver refused url " + adminUrl);
+        }
+        return connection;
+    }
+
     private static String generatedSecret() {
         byte[] bytes = new byte[24];
         new java.security.SecureRandom().nextBytes(bytes);
@@ -103,7 +127,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
         if (!tenantCode.matches("[a-z][a-z0-9_]{0,15}")) {
             throw new IllegalArgumentException("invalid tenant code: " + tenantCode);
         }
-        try (Connection c = DriverManager.getConnection(adminUrl, user, password);
+        try (Connection c = adminConnection();
              PreparedStatement ps = c.prepareStatement(
                      "DROP DATABASE IF EXISTS " + dbName + " WITH (FORCE)")) {
             ps.execute();
@@ -118,7 +142,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
      * database; the admin role is exempted (fidelity restores may run long).
      */
     private void applyTimeouts(String dbName) {
-        try (Connection c = DriverManager.getConnection(adminUrl, user, password)) {
+        try (Connection c = adminConnection()) {
             for (String ddl : new String[] {
                     "ALTER DATABASE " + dbName + " SET idle_in_transaction_session_timeout = '60s'",
                     "ALTER DATABASE " + dbName + " SET transaction_timeout = '300s'",
