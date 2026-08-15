@@ -91,6 +91,24 @@ class TenantRuntimeIT {
         assertTrue(get(base + "/Patient?family=aiakas").body().contains("Aiakas"));
     }
 
+    /** The platform's code contract: DNS-label-shaped up to 63 chars — a
+     * long hyphenated code (the story-e2e shape) becomes a live tenant with
+     * a Postgres-safe, deterministically hash-suffixed database name. */
+    @Test
+    @Order(9)
+    void aLongHyphenatedCodeBecomesALiveTenant() throws Exception {
+        String code = "e2e-us-xapi-distributor-onboards-customer-20260815-233454-8knsh";
+        Files.writeString(dir.resolve(code + ".json"), """
+                {"code":"%s","fhirVersion":"r4","types":[
+                  {"name":"Patient","identity":"internal"}]}""".formatted(code));
+        assertTrue(manager.scanOnce().contains(code));
+        assertEquals(200, get(manager.baseUrl(code) + "/metadata").statusCode());
+        assertTrue(cloud.jengu.dbo.tenant.TenantSpec.databaseName(code).length() <= 63);
+        // deterministic: same code, same name, every derivation
+        assertEquals(cloud.jengu.dbo.tenant.TenantSpec.databaseName(code),
+                cloud.jengu.dbo.tenant.TenantSpec.databaseName(code));
+    }
+
     /** Two tenants, two FHIR versions, one port — fully isolated. */
     @Test
     @Order(2)

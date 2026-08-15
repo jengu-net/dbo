@@ -37,7 +37,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
 
     @Override
     public TenantDatabase provision(TenantSpec spec) {
-        String dbName = "tenant_" + spec.code(); // code already validated
+        String dbName = spec.databaseName(); // Postgres-safe, collision-free
         try (Connection c = adminConnection();
              PreparedStatement ps = c.prepareStatement("CREATE DATABASE " + dbName)) {
             ps.execute();
@@ -123,7 +123,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     @Override
     public void deprovision(String tenantCode) {
         release(tenantCode);
-        String dbName = "tenant_" + tenantCode;
+        String dbName = TenantSpec.databaseName(tenantCode);
         if (!tenantCode.matches("[a-z][a-z0-9_]{0,15}")) {
             throw new IllegalArgumentException("invalid tenant code: " + tenantCode);
         }
