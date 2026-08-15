@@ -93,6 +93,15 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-POL-AUDIT-UNCONDITIONALLY-APPEND-ONLY | Audit entries are exempt from the tenant's write discipline: no update, no tombstone under any policy; retention's sweep is the only removal. (§15) |
 | REQ-DBO-POL-FHIR-AUDIT-PROJECTION | On a FHIR tenant the audit stream is served as AuditEvent — native records as the truth form, rendered per personality on read, contribution via mapped POST; write access is scope-gated. (§15, §9) |
 
+## ZONE — jurisdiction overlay
+
+| REQ | Promise |
+|---|---|
+| REQ-DBO-ZONE-DECLARATIONS-AS-RECORDS | A zone is a tenant whose declarations — identity brokers, identifier domains — are regular records: versioned, audited, exported, and streamable down the same chains as any content. Secrets are never in a record. (§17) |
+| REQ-DBO-ZONE-BROKER-CHOICE | The broker set is jurisdictional, the choice organizational: the zone declares the available national brokers; a tenant selects its contracted one and may restrict what it accepts. (§17) |
+| REQ-DBO-ZONE-SESSIONS-ACCUMULATE | The per-zone hub's session records which broker performed each ceremony and accumulates ceremonies; cross-broker reuse is the default, tenant acceptance policy the restriction — the strictest tenant is satisfied without invalidating anyone else's session. (§17, §16.2) |
+| REQ-DBO-ZONE-SUBJECT-DOMAINS | Subject-resolution identifier systems come from the zone's declared domains — the official national terminology — never from dbo code. (§17, §16.1) |
+
 ## VER — version plurality (personalities)
 
 | REQ | Promise |

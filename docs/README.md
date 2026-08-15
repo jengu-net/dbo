@@ -22,7 +22,8 @@ docs conventions.
   [tenant authority](arc42-008-crosscutting/tenant-authority.md) (§13),
   [personal-data isolation](arc42-008-crosscutting/personal-data-isolation.md) (§14),
   [tenant policies](arc42-008-crosscutting/tenant-policies.md) (§15),
-  [human identity](arc42-008-crosscutting/human-identity.md) (§16)
+  [human identity](arc42-008-crosscutting/human-identity.md) (§16),
+  [zone overlay](arc42-008-crosscutting/zone-overlay.md) (§17)
 - [arc42-009-architecture-decisions](arc42-009-architecture-decisions/README.md) —
   resolved questions & risks (§7)
 - [evidence/](evidence/) — usage inventories grounding the spec
