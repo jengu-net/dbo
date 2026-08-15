@@ -104,6 +104,8 @@ public final class AuthorityHandler implements HttpHandler {
                     "{\"access_token\":\"" + issued.accessToken() + "\",\"token_type\":\"Bearer\""
                             + ",\"expires_in\":" + issued.expiresIn()
                             + ",\"scope\":\"" + issued.scope() + "\""
+                            + (issued.idToken() == null ? ""
+                                    : ",\"id_token\":\"" + issued.idToken() + "\"")
                             + ",\"refresh_token\":\"" + issued.refreshToken() + "\"}");
             case TenantAuthority.TokenResult.Rejected rejected -> respond(exchange,
                     "invalid_client".equals(rejected.error()) ? 401 : 400,
@@ -129,7 +131,8 @@ public final class AuthorityHandler implements HttpHandler {
                 // §16.2: humans authenticate at the deployment's hub
                 exchange.getResponseHeaders().set("Location", authority.beginFederated(
                         q.get("client_id"), q.get("redirect_uri"),
-                        q.get("code_challenge"), q.getOrDefault("state", "")));
+                        q.get("code_challenge"), q.getOrDefault("state", ""),
+                        q.getOrDefault("nonce", "")));
                 exchange.getResponseHeaders().set("Cache-Control", "no-store");
                 exchange.sendResponseHeaders(302, -1);
             }
@@ -140,6 +143,7 @@ public final class AuthorityHandler implements HttpHandler {
                         + hidden("redirect_uri", q.get("redirect_uri"))
                         + hidden("state", q.getOrDefault("state", ""))
                         + hidden("code_challenge", q.getOrDefault("code_challenge", ""))
+                        + hidden("nonce", q.getOrDefault("nonce", ""))
                         + "<input name=\"login\" autocomplete=\"username\">"
                         + "<input name=\"password\" type=\"password\" autocomplete=\"current-password\">"
                         + "<button type=\"submit\">Sign in</button></form></body></html>";
@@ -166,7 +170,8 @@ public final class AuthorityHandler implements HttpHandler {
         Map<String, String> form = parseForm(new String(
                 exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
         switch (authority.completeLogin(form.get("client_id"), form.get("redirect_uri"),
-                emptyToNull(form.get("code_challenge")), form.get("login"), form.get("password"))) {
+                emptyToNull(form.get("code_challenge")), form.getOrDefault("nonce", ""),
+                form.get("login"), form.get("password"))) {
             case TenantAuthority.LoginResult.Denied denied ->
                     respond(exchange, 401, "{\"error\":\"" + denied.error() + "\"}");
             case TenantAuthority.LoginResult.Redirect redirect -> {

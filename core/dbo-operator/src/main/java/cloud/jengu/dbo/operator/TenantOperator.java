@@ -57,6 +57,8 @@ public final class TenantOperator implements AutoCloseable {
     private final String adminUser;
     private final String adminPassword;
     private final String tenantUrlBase;
+    /** §16.5: redirect URIs for the per-tenant jengu-cloud RP client (null = no RP provisioning). */
+    private volatile java.util.List<String> rpRedirectUris;
     private final SecureRandom random = new SecureRandom();
     private volatile Thread loop;
     private volatile boolean running;
@@ -77,6 +79,14 @@ public final class TenantOperator implements AutoCloseable {
         this.adminUser = adminUser;
         this.adminPassword = adminPassword;
         this.tenantUrlBase = tenantJdbcUrlBase.endsWith("/") ? tenantJdbcUrlBase : tenantJdbcUrlBase + "/";
+    }
+
+    private volatile String rpIssuerBase;
+
+    /** @param issuerBase the SERVING base pods/browsers reach (not the JDBC one) */
+    public void rpConfig(java.util.List<String> redirectUris, String issuerBase) {
+        this.rpRedirectUris = redirectUris;
+        this.rpIssuerBase = issuerBase;
     }
 
     /** Idempotently installs the CRD and waits until the API serves it. */
@@ -191,6 +201,24 @@ public final class TenantOperator implements AutoCloseable {
                 .build();
         k8s.secrets().inNamespace(namespace).resource(secret).serverSideApply();
 
+        if (rpRedirectUris != null && !rpRedirectUris.isEmpty()) {
+            // the jengu-cloud RP client's custody (jengu-platform#844): a
+            // PLATFORM-readable Secret; the serving side ensures the
+            // ClientApplication record from it, so record and Secret never drift
+            String rpSecretName = "tenant-" + code + "-rp";
+            String rpSecret = existingSecretField(rpSecretName, "client_secret")
+                    .orElseGet(this::newPassword);
+            Secret rp = new SecretBuilder()
+                    .withNewMetadata().withName(rpSecretName).withNamespace(namespace)
+                    .addToLabels(TENANT_LABEL, code).endMetadata()
+                    .addToStringData("client_id", "jengu-cloud")
+                    .addToStringData("client_secret", rpSecret)
+                    .addToStringData("redirect_uris", String.join(",", rpRedirectUris))
+                    .addToStringData("issuer", rpIssuerBase.replaceAll("/$", "")
+                            + "/t/" + code + "/oidc")
+                    .build();
+            k8s.secrets().inNamespace(namespace).resource(rp).serverSideApply();
+        }
         upsertConfigMapEntry(code + ".json", specJson(cr));
         setStatus(cr, "Ready", null);
     }

@@ -75,6 +75,7 @@ class HumanAuthIT {
         dir = Files.createTempDirectory("dbo-human");
         provisioner = new LocalDatabasePerTenantProvisioner(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        provisioner.rpRedirectUris(List.of(REDIRECT));
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("arst.json"), """
@@ -207,6 +208,7 @@ class HumanAuthIT {
 
         String claims = claimsOf(accessToken);
         assertTrue(claims.contains("\"fhirUser\":\"Practitioner/" + practitionerId + "\""), claims);
+        assertTrue(claims.contains("\"roles\":[\"doctor\"]"), claims);
         assertTrue(claims.contains("user/*.read") && claims.contains("user/Encounter.write"), claims);
         // pseudonymous: no name, no national code, anywhere in the token
         assertFalse(claims.contains("Albus") || claims.contains("37001010021"), claims);
@@ -301,9 +303,62 @@ class HumanAuthIT {
         assertTrue(refused.body().contains("access_denied"), refused.body());
     }
 
-    /** §16.1: subject resolution works identically under PDI — through the vault. */
+    /** Slice L: the operator-custody RP client (confidential) completes the code flow. */
     @Test
     @Order(5)
+    void theProvisionedRpClientCompletesAConfidentialFlow() throws Exception {
+        // fresh grant: the earlier revocation test ended the role — restore access
+        String service = serviceToken("arst");
+        assertEquals(201, http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/fhir/PractitionerRole"))
+                        .header("Authorization", "Bearer " + service)
+                        .header("Content-Type", "application/fhir+json")
+                        .POST(HttpRequest.BodyPublishers.ofString("""
+                                {"resourceType":"PractitionerRole",
+                                 "practitioner":{"reference":"Practitioner/%s"},
+                                 "code":[{"coding":[{"system":"urn:jengu:role","code":"doctor"}]}]}"""
+                                .formatted(practitionerId))).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode());
+
+        HttpResponse<String> login = http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/authorize/login"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "client_id=jengu-cloud&redirect_uri="
+                                        + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
+                                        + "&nonce=n-0xSpr1ng&login=albus&password=kaljuke9")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(302, login.statusCode(), login.body());
+        String code = login.headers().firstValue("Location").orElseThrow()
+                .replaceAll(".*code=([^&]+).*", "$1");
+        HttpResponse<String> tokens = http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/token"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "grant_type=authorization_code&client_id=jengu-cloud&code=" + code
+                                        + "&redirect_uri=" + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
+                                        + "&client_secret=" + URLEncoder.encode(
+                                                provisioner.rpClientSecret("arst"), StandardCharsets.UTF_8)))
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, tokens.statusCode(), tokens.body());
+        String claims = claimsOf(tokens.body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1"));
+        assertTrue(claims.contains("\"roles\":[\"doctor\"]")
+                && claims.contains("\"client_id\":\"jengu-cloud\""), claims);
+
+        // OIDC proper: the id_token is what the RP builds its principal from —
+        // audience is the CLIENT, the nonce echoes, roles + fhirUser ride along
+        assertTrue(tokens.body().contains("\"id_token\""), tokens.body());
+        String idClaims = claimsOf(tokens.body().replaceAll(".*\"id_token\":\"([^\"]+)\".*", "$1"));
+        assertTrue(idClaims.contains("\"aud\":\"jengu-cloud\"")
+                && idClaims.contains("\"nonce\":\"n-0xSpr1ng\"")
+                && idClaims.contains("\"roles\":[\"doctor\"]")
+                && idClaims.contains("\"fhirUser\":\"Practitioner/" + practitionerId + "\""), idClaims);
+    }
+
+    /** §16.1: subject resolution works identically under PDI — through the vault. */
+    @Test
+    @Order(6)
     void nationalIdResolvesThePractitionerUnderPdiAndWithout() throws Exception {
         // plain tenant: envelope identifier
         R4Personality plain = new R4Personality(TenantSpec.parse(

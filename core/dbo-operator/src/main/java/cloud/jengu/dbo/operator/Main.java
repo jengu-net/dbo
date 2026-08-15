@@ -25,6 +25,12 @@ public final class Main {
         KubernetesClient client = new KubernetesClientBuilder().build(); // in-cluster config
         try (TenantOperator operator = new TenantOperator(client, namespace,
                 adminUrl, adminUser, adminPassword, tenantUrlBase)) {
+            String rpRedirects = System.getenv("DBO_RP_REDIRECT_URIS");
+            String rpIssuerBase = System.getenv("DBO_RP_ISSUER_BASE");
+            if (rpRedirects != null && !rpRedirects.isBlank()
+                    && rpIssuerBase != null && !rpIssuerBase.isBlank()) {
+                operator.rpConfig(java.util.List.of(rpRedirects.split(",")), rpIssuerBase);
+            }
             operator.ensureCrd();
             operator.start(intervalMillis);
             System.out.println("dbo-operator reconciling TenantRegistrations in namespace "
