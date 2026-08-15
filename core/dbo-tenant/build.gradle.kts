@@ -18,6 +18,8 @@ dependencies {
     api(project(":core:dbo-policy"))
     compileOnly("org.osgi:osgi.core:8.0.0")
     embedded("com.zaxxer:HikariCP:7.1.0")
+    // the PG driver comes from the DRIVER BUNDLE at runtime — compile-only
+    compileOnly("org.postgresql:postgresql:42.7.11")
     embedded("org.slf4j:slf4j-simple:2.0.18")
 }
 
@@ -49,6 +51,7 @@ tasks.jar {
                     "cloud.jengu.dbo.policy;version=\"[0.1,1)\"",
                     "com.sun.net.httpserver",
                     "javax.sql",
+                    "org.postgresql",
                     "javax.naming;resolution:=optional",
                     "javax.management;resolution:=optional",
                     "javax.net.ssl;resolution:=optional",
