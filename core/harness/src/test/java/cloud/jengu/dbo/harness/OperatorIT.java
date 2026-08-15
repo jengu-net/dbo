@@ -218,18 +218,33 @@ class OperatorIT {
                 "types", List.of(Map.of("name", "Patient", "identity", "internal"))));
         client.genericKubernetesResources(TenantOperator.CRD_CONTEXT).inNamespace(NS)
                 .resource(poliis).create();
-        operator.reconcileOnce();
-        String specJson = client.configMaps().inNamespace(NS).withName(TenantOperator.CONFIGMAP)
-                .get().getData().get("poliis.json");
+        // poll-until-condition: a just-created CR may miss the next list on
+        // a slow API server — reconcile until the ConfigMap carries the key
+        String specJson = null;
+        long deadline = System.currentTimeMillis() + 30_000;
+        while (specJson == null && System.currentTimeMillis() < deadline) {
+            operator.reconcileOnce();
+            specJson = client.configMaps().inNamespace(NS).withName(TenantOperator.CONFIGMAP)
+                    .get().getData().get("poliis.json");
+            if (specJson == null) {
+                Thread.sleep(250);
+            }
+        }
         assertTrue(specJson.contains("\"pdi\":true")
                 && specJson.contains("\"audit\"") && specJson.contains("\"writes\"")
                 && specJson.contains("\"append-only\"") && specJson.contains("\"P30D\""), specJson);
         cloud.jengu.dbo.tenant.TenantSpec parsed = cloud.jengu.dbo.tenant.TenantSpec.parse(specJson);
         assertTrue(parsed.pdi() && parsed.policies().auditsWrites());
-        // retract it so later serving tests see only opitenant
+        // retract it so later serving tests see only opitenant — poll the
+        // retraction for the same reason as the creation
         client.genericKubernetesResources(TenantOperator.CRD_CONTEXT)
                 .inNamespace(NS).withName("poliis").delete();
-        operator.reconcileOnce();
+        deadline = System.currentTimeMillis() + 30_000;
+        while (System.currentTimeMillis() < deadline && client.configMaps().inNamespace(NS)
+                .withName(TenantOperator.CONFIGMAP).get().getData().containsKey("poliis.json")) {
+            operator.reconcileOnce();
+            Thread.sleep(250);
+        }
     }
 
     /** Full chain: ConfigMap → SpecDirSync → #17 manager + secret-backed pool → live endpoint. */
