@@ -129,6 +129,13 @@ had. Three practicalities settled here:
   (confidential, declared redirect URIs) whose secret lands in a
   platform-readable Secret. Third-party apps (SMART appliances) get the
   STANDARD later: RFC 7591 dynamic client registration.
+- **The RP builds its principal from an id_token.** The auth-code exchange
+  returns an OIDC id_token beside the access token — audience is the
+  CLIENT (the access token's stays the issuer), the RP's `nonce` echoes,
+  and `fhirUser` + `roles` ride along, so a standard OIDC client never
+  parses the access token at all. Refresh responses carry no id_token;
+  the RP already holds its principal. Client authentication at the token
+  endpoint accepts both `client_secret_basic` and `client_secret_post`.
 
 Login resolves the org code to the tenant, redirects to that tenant's
 `/authorize`, and wraps the returned tokens in the platform session; the

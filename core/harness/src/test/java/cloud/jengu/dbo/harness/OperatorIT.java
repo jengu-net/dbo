@@ -97,6 +97,8 @@ class OperatorIT {
         operator = new TenantOperator(client, NS,
                 provisionerUrl, "dbo_provisioner", "prov-secret",
                 provisionerUrl.substring(0, provisionerUrl.lastIndexOf('/') + 1));
+        operator.rpConfig(java.util.List.of("https://jengu.example/login/oauth2/code/opitenant"),
+                "http://dbo-server.jengu.svc.cluster.local:8090");
         operator.ensureCrd();
 
         dir = Files.createTempDirectory("dbo-operator-specs");
@@ -175,6 +177,14 @@ class OperatorIT {
         // §13 bootstrap client custody rides the same Secret
         assertEquals("tenant-bootstrap", decode(secret, "client_id"));
         assertTrue(decode(secret, "client_secret").length() >= 24);
+
+        // Slice L: the jengu-cloud RP client's platform-readable custody
+        Secret rp = client.secrets().inNamespace(NS).withName("tenant-opitenant-rp").get();
+        assertNotNull(rp, "the RP Secret must exist");
+        assertEquals("jengu-cloud", decode(rp, "client_id"));
+        assertTrue(decode(rp, "redirect_uris").contains("jengu.example"));
+        assertEquals("http://dbo-server.jengu.svc.cluster.local:8090/t/opitenant/oidc",
+                decode(rp, "issuer"));
         try (Connection c = DriverManager.getConnection(
                 decode(secret, "url"), decode(secret, "user"), decode(secret, "password"));
              PreparedStatement ps = c.prepareStatement("SELECT current_user");

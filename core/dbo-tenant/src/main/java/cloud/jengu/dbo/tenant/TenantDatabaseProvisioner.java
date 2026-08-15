@@ -38,9 +38,14 @@ public interface TenantDatabaseProvisioner {
      *                              custody is authoritative), or null when
      *                              the deployment runs without an authority
      */
-    record TenantDatabase(DataSource dataSource, String bootstrapClientSecret) {
+    record TenantDatabase(DataSource dataSource, String bootstrapClientSecret,
+            String rpClientSecret, java.util.List<String> rpRedirectUris) {
         public TenantDatabase(DataSource dataSource) {
-            this(dataSource, null);
+            this(dataSource, null, null, java.util.List.of());
+        }
+
+        public TenantDatabase(DataSource dataSource, String bootstrapClientSecret) {
+            this(dataSource, bootstrapClientSecret, null, java.util.List.of());
         }
     }
 }

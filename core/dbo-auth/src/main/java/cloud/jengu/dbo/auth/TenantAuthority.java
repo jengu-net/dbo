@@ -77,6 +77,7 @@ public final class TenantAuthority {
     private final Map<String, PendingFrontChannel> pendingFederated = new ConcurrentHashMap<>();
 
     record PendingFrontChannel(String clientId, String redirectUri, String codeChallenge,
+            String nonce,
             String rpState, long expiresAt) {}
 
     public void federation(Federation federation) {
@@ -89,10 +90,11 @@ public final class TenantAuthority {
 
     /** Front-channel start under federation: park the RP request, return the hub redirect. */
     public String beginFederated(String clientId, String redirectUri, String codeChallenge,
-            String rpState) {
+            String rpState, String nonce) {
         String stateId = UuidV7.newId();
         pendingFederated.put(stateId, new PendingFrontChannel(clientId, redirectUri,
-                codeChallenge, rpState, System.currentTimeMillis() + 300_000));
+                codeChallenge, nonce == null ? "" : nonce,
+                rpState, System.currentTimeMillis() + 300_000));
         return federation.hubAuthorizeUrl()
                 + "?cb=" + java.net.URLEncoder.encode(issuer + "/federated", StandardCharsets.UTF_8)
                 + "&state=" + stateId
@@ -137,8 +139,9 @@ public final class TenantAuthority {
         }
         Optional<String> practitioner = resolveByNationalId(
                 Json.str(claims, "sys"), Json.str(claims, "val"));
-        List<String> scopes = practitioner.isEmpty()
-                ? List.of() : evaluateGrants(practitioner.get());
+        Grants grants = practitioner.isEmpty()
+                ? new Grants(List.of(), List.of()) : evaluateGrants(practitioner.get());
+        List<String> scopes = grants.scopes();
         if (scopes.isEmpty()) {
             // valid national identity, but THIS tenant grants nothing — the
             // §16.2 promise: authentication shared, authorization never
@@ -147,7 +150,8 @@ public final class TenantAuthority {
         String code = UuidV7.newId() + UuidV7.newId().substring(0, 8);
         pendingCodes.put(code, new PendingAuthorization(parked.clientId(), parked.redirectUri(),
                 parked.codeChallenge(), practitioner.get(),
-                String.join(" ", scopes), System.currentTimeMillis() + 60_000));
+                String.join(" ", scopes), String.join(",", grants.roles()),
+                parked.nonce(), System.currentTimeMillis() + 60_000));
         return new FederatedOutcome.Success(parked.redirectUri(), parked.rpState(), code);
     }
 
@@ -319,9 +323,13 @@ public final class TenantAuthority {
                 .map(StoredObject::id).findFirst();
     }
 
-    /** Active PractitionerRoles → role codes → RoleGrants → the scope set. */
-    public List<String> evaluateGrants(String practitionerId) {
+    /** The evaluated authorization: SMART scopes AND the role codes behind them. */
+    public record Grants(List<String> scopes, List<String> roles) {}
+
+    /** Active PractitionerRoles → role codes → RoleGrants → scopes + roles. */
+    public Grants evaluateGrants(String practitionerId) {
         java.util.Set<String> scopes = new java.util.LinkedHashSet<>();
+        java.util.Set<String> roles = new java.util.LinkedHashSet<>();
         for (StoredObject role : subjectStore.select(
                 cloud.jengu.dbo.core.api.Criteria.of("PractitionerRole")
                         .referencing("practitioner", "Practitioner", practitionerId))) {
@@ -337,13 +345,16 @@ public final class TenantAuthority {
                                         IdentityModel.ROLE_CODE_SYSTEM, roleCode))).stream()
                                 .filter(g -> "active".equals(field(g, "status")))
                                 .findFirst()
-                                .ifPresent(g -> scopes.addAll(Json.strings(Json.parse(
-                                        new String(g.payload(), StandardCharsets.UTF_8)), "scopes")));
+                                .ifPresent(g -> {
+                                    roles.add(roleCode);
+                                    scopes.addAll(Json.strings(Json.parse(
+                                            new String(g.payload(), StandardCharsets.UTF_8)), "scopes"));
+                                });
                     }
                 }
             }
         }
-        return List.copyOf(scopes);
+        return new Grants(List.copyOf(scopes), List.copyOf(roles));
     }
 
     private static boolean periodActive(Object practitionerRolePayload) {
@@ -361,7 +372,7 @@ public final class TenantAuthority {
     // -------------------------------------------------- authorization code
 
     record PendingAuthorization(String clientId, String redirectUri, String codeChallenge,
-            String practitionerId, String scope, long expiresAt) {}
+            String practitionerId, String scope, String roles, String nonce, long expiresAt) {}
 
     public sealed interface AuthorizeResult {
         record LoginRequired(String clientId, String redirectUri) implements AuthorizeResult {}
@@ -394,6 +405,7 @@ public final class TenantAuthority {
 
     /** Authenticates (via the seam), evaluates grants, mints the one-time code. */
     public LoginResult completeLogin(String clientId, String redirectUri, String codeChallenge,
+            String nonce,
             String login, String secret) {
         if (beginAuthorization(clientId, redirectUri, codeChallenge)
                 instanceof AuthorizeResult.Rejected rejected) {
@@ -403,13 +415,14 @@ public final class TenantAuthority {
         if (practitioner.isEmpty()) {
             return new LoginResult.Denied("access_denied");
         }
-        List<String> scopes = evaluateGrants(practitioner.get());
-        if (scopes.isEmpty()) {
+        Grants grants = evaluateGrants(practitioner.get());
+        if (grants.scopes().isEmpty()) {
             return new LoginResult.Denied("access_denied");
         }
         String code = UuidV7.newId() + UuidV7.newId().substring(0, 8);
         pendingCodes.put(code, new PendingAuthorization(clientId, redirectUri, codeChallenge,
-                practitioner.get(), String.join(" ", scopes),
+                practitioner.get(), String.join(" ", grants.scopes()),
+                String.join(",", grants.roles()), nonce == null ? "" : nonce,
                 System.currentTimeMillis() + 60_000));
         return new LoginResult.Redirect(code);
     }
@@ -454,7 +467,8 @@ public final class TenantAuthority {
         if (!pkceMatches(pending.codeChallenge(), codeVerifier)) {
             return new TokenResult.Rejected("invalid_grant", "PKCE verification failed");
         }
-        return humanTokens(pending.practitionerId(), clientId, pending.scope());
+        return humanTokens(pending.practitionerId(), clientId, pending.scope(), pending.roles(),
+                pending.nonce());
     }
 
     /** Refresh RE-EVALUATES grants — yesterday's revocation is today's denial. */
@@ -480,11 +494,12 @@ public final class TenantAuthority {
             return new TokenResult.Rejected("invalid_grant", "refresh token invalid");
         }
         String practitionerId = Json.str(claims, "sub");
-        List<String> scopes = evaluateGrants(practitionerId);
-        if (scopes.isEmpty()) {
+        Grants grants = evaluateGrants(practitionerId);
+        if (grants.scopes().isEmpty()) {
             return new TokenResult.Rejected("access_denied", "no active grants");
         }
-        return humanTokens(practitionerId, Json.str(claims, "client_id"), String.join(" ", scopes));
+        return humanTokens(practitionerId, Json.str(claims, "client_id"),
+                String.join(" ", grants.scopes()), String.join(",", grants.roles()));
     }
 
     // -------------------------------------------------- on-behalf-of (§16.4)
@@ -507,7 +522,8 @@ public final class TenantAuthority {
         if (scopes.isEmpty()) {
             return new TokenResult.Rejected("access_denied", "no delegable scope remains");
         }
-        return actToken(subject.get().clientId(), clientId, scopes);
+        List<String> roles = Json.strings(Json.parse(Jws.parse(subjectToken).claimsJson()), "roles");
+        return actToken(subject.get().clientId(), clientId, scopes, roles);
     }
 
     /**
@@ -567,14 +583,14 @@ public final class TenantAuthority {
         }
         String practitionerId = Json.str(payload, "practitionerId");
         // recorded scopes ∩ the human's CURRENT grants ∩ the request
-        List<String> current = evaluateGrants(practitionerId);
+        Grants current = evaluateGrants(practitionerId);
         List<String> scopes = attenuate(Json.strings(payload, "scopes"), requestedScope).stream()
-                .filter(current::contains)
+                .filter(current.scopes()::contains)
                 .toList();
         if (scopes.isEmpty()) {
             return new TokenResult.Rejected("access_denied", "no delegable scope remains");
         }
-        return actToken(practitionerId, clientId, scopes);
+        return actToken(practitionerId, clientId, scopes, current.roles());
     }
 
     private boolean clientAuthenticated(String clientId, String clientSecret) {
@@ -596,12 +612,16 @@ public final class TenantAuthority {
                 .toList();
     }
 
-    private TokenResult actToken(String practitionerId, String actingClientId, List<String> scopes) {
+    private TokenResult actToken(String practitionerId, String actingClientId,
+            List<String> scopes, List<String> roles) {
         StoredObject key = activeKey().orElseThrow(() -> new IllegalStateException("no active signing key"));
         long now = System.currentTimeMillis() / 1000;
+        String rolesJson = roles.isEmpty() ? "[]"
+                : "[\"" + String.join("\",\"", roles) + "\"]";
         String claims = "{\"iss\":\"" + issuer + "\",\"sub\":\"" + practitionerId + "\""
                 + ",\"aud\":\"" + issuer + "\",\"client_id\":\"" + actingClientId + "\""
                 + ",\"fhirUser\":\"Practitioner/" + practitionerId + "\""
+                + ",\"roles\":" + rolesJson
                 + ",\"act\":{\"sub\":\"" + actingClientId + "\"}"
                 + ",\"scope\":\"" + String.join(" ", scopes) + "\""
                 + ",\"jti\":\"" + UuidV7.newId() + "\""
@@ -611,21 +631,46 @@ public final class TenantAuthority {
                 String.join(" ", scopes));
     }
 
-    private TokenResult humanTokens(String practitionerId, String clientId, String scope) {
+    private TokenResult humanTokens(String practitionerId, String clientId, String scope,
+            String rolesCsv) {
+        return humanTokens(practitionerId, clientId, scope, rolesCsv, null);
+    }
+
+    /**
+     * OIDC: the auth-code exchange carries an id_token (aud = the CLIENT, unlike
+     * the access token's aud = issuer) so standard RPs — Spring oauth2Login —
+     * can build a principal without touching the access token. {@code nonce}
+     * null = refresh (no id_token); empty = code flow without a nonce.
+     */
+    private TokenResult humanTokens(String practitionerId, String clientId, String scope,
+            String rolesCsv, String nonce) {
         StoredObject key = activeKey().orElseThrow(() -> new IllegalStateException("no active signing key"));
         long now = System.currentTimeMillis() / 1000;
+        String rolesJson = rolesCsv == null || rolesCsv.isEmpty() ? "[]"
+                : "[\"" + rolesCsv.replace(",", "\",\"") + "\"]";
         String base = "\"iss\":\"" + issuer + "\",\"sub\":\"" + practitionerId + "\""
                 + ",\"aud\":\"" + issuer + "\",\"client_id\":\"" + clientId + "\""
                 + ",\"fhirUser\":\"Practitioner/" + practitionerId + "\""
+                + ",\"roles\":" + rolesJson
                 + ",\"scope\":\"" + scope + "\",\"iat\":" + now;
         String access = "{" + base + ",\"jti\":\"" + UuidV7.newId() + "\""
                 + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + "}";
         String refresh = "{" + base + ",\"jti\":\"" + UuidV7.newId() + "\",\"typ\":\"refresh\""
                 + ",\"exp\":" + (now + 43_200) + "}";
         String kid = field(key, "kid");
+        String idToken = null;
+        if (nonce != null) {
+            idToken = Jws.sign(kid, "{\"iss\":\"" + issuer + "\",\"sub\":\"" + practitionerId + "\""
+                    + ",\"aud\":\"" + clientId + "\""
+                    + ",\"fhirUser\":\"Practitioner/" + practitionerId + "\""
+                    + ",\"roles\":" + rolesJson
+                    + (nonce.isEmpty() ? "" : ",\"nonce\":\"" + nonce + "\"")
+                    + ",\"iat\":" + now + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + "}",
+                    privateKey(key));
+        }
         return new TokenResult.IssuedHuman(
                 Jws.sign(kid, access, privateKey(key)), TOKEN_TTL_SECONDS, scope,
-                Jws.sign(kid, refresh, privateKey(key)));
+                Jws.sign(kid, refresh, privateKey(key)), idToken);
     }
 
     private Optional<StoredObject> findClient(String clientId) {
@@ -638,7 +683,8 @@ public final class TenantAuthority {
     public sealed interface TokenResult {
         record Issued(String accessToken, long expiresIn, String scope) implements TokenResult {}
         record IssuedHuman(String accessToken, long expiresIn, String scope,
-                String refreshToken) implements TokenResult {}
+                // idToken null on refresh — RPs already hold their principal
+                String refreshToken, String idToken) implements TokenResult {}
         record Rejected(String error, String description) implements TokenResult {}
     }
 
@@ -739,7 +785,10 @@ public final class TenantAuthority {
                 + ",\"grant_types_supported\":[\"client_credentials\",\"authorization_code\",\"refresh_token\"]"
                 + ",\"code_challenge_methods_supported\":[\"S256\"]"
                 + ",\"token_endpoint_auth_methods_supported\":[\"client_secret_post\",\"client_secret_basic\",\"none\"]"
-                + ",\"response_types_supported\":[\"code\",\"token\"]}";
+                + ",\"response_types_supported\":[\"code\",\"token\"]"
+                + ",\"subject_types_supported\":[\"public\"]"
+                + ",\"scopes_supported\":[\"openid\"]"
+                + ",\"id_token_signing_alg_values_supported\":[\"RS256\"]}";
     }
 
     public String jwksJson() {

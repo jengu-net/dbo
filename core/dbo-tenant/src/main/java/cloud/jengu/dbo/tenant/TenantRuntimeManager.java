@@ -201,6 +201,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 authority.ensureClient("tenant-bootstrap", db.bootstrapClientSecret(),
                         java.util.List.of("system/*.read", "system/*.write"));
             }
+            if (db.rpClientSecret() != null) {
+                // the jengu-cloud relying party (jengu-platform#844): record
+                // ensured from custody, so Secret and record never drift
+                authority.ensureClient("jengu-cloud", db.rpClientSecret(),
+                        java.util.List.of("user/*.read", "user/*.write"),
+                        "confidential", db.rpRedirectUris());
+            }
             sharedServer.createContext(oidcPath,
                     new cloud.jengu.dbo.auth.AuthorityHandler(authority, oidcPath));
             authorityContexts.put(spec.code(), oidcPath);

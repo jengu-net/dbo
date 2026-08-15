@@ -27,6 +27,8 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     private final String password;
     private final Map<String, HikariDataSource> pools = new ConcurrentHashMap<>();
     private final Map<String, String> bootstrapSecrets = new ConcurrentHashMap<>();
+    private final Map<String, String> rpSecrets = new ConcurrentHashMap<>();
+    private volatile java.util.List<String> rpRedirectUris = java.util.List.of();
 
     public LocalDatabasePerTenantProvisioner(String adminUrl, String user, String password) {
         this.adminUrl = adminUrl;
@@ -57,16 +59,31 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             return new HikariDataSource(config);
         });
         return new TenantDatabase(pool, bootstrapSecrets.computeIfAbsent(spec.code(),
-                code -> {
-                    byte[] bytes = new byte[24];
-                    new java.security.SecureRandom().nextBytes(bytes);
-                    return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-                }));
+                code -> generatedSecret()),
+                rpRedirectUris.isEmpty() ? null
+                        : rpSecrets.computeIfAbsent(spec.code(), code -> generatedSecret()),
+                rpRedirectUris);
+    }
+
+    /** Dev: redirect URIs for the per-tenant jengu-cloud RP client. */
+    public void rpRedirectUris(java.util.List<String> uris) {
+        this.rpRedirectUris = java.util.List.copyOf(uris);
+    }
+
+    /** Dev/test convenience: the generated jengu-cloud RP client secret. */
+    public String rpClientSecret(String tenantCode) {
+        return rpSecrets.get(tenantCode);
     }
 
     /** Dev/test convenience: the generated bootstrap-client secret (§13). */
     public String bootstrapClientSecret(String tenantCode) {
         return bootstrapSecrets.get(tenantCode);
+    }
+
+    private static String generatedSecret() {
+        byte[] bytes = new byte[24];
+        new java.security.SecureRandom().nextBytes(bytes);
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     /** Closes the pool WITHOUT dropping data — spec retraction, not erasure. */
