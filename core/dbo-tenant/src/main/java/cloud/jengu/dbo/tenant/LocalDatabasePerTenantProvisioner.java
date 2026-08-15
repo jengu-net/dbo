@@ -150,6 +150,15 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             }) {
                 try (PreparedStatement ps = c.prepareStatement(ddl)) {
                     ps.execute();
+                } catch (SQLException e) {
+                    if ("42704".equals(e.getSQLState())) {
+                        // transaction_timeout arrived in PG17. An embedding
+                        // host (jengu-platform#847 runs the platform's own
+                        // PG16) keeps the timeouts its major supports —
+                        // never a bring-up failure.
+                        continue;
+                    }
+                    throw e;
                 }
             }
         } catch (SQLException e) {
