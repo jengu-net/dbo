@@ -44,7 +44,16 @@ authorities. A tenant's `/authorize` redirects to the hub; the hub either
 holds a SESSION (a signed cookie carrying only the verified national
 identifier and auth time — no names, short TTL, dead on pod restart) and
 immediately returns an identity assertion, or it round-trips to the
-upstream broker once and then asserts. The assertion is a short-lived JWT
+upstream broker once and then asserts. A zone may declare SEVERAL national
+brokers (Estonia: TARA for government and official municipal healthcare,
+eeID for the private sector) — the broker set is jurisdictional, the
+broker CHOICE is organizational (the tenant declares its broker; the
+authentication contract is org-level). The session records which broker
+performed the ceremony; a tenant may restrict accepted brokers or
+assurance levels, and an unsatisfying session triggers the required
+broker's ceremony, accumulating onto the same session — the strictest
+tenant is satisfied without invalidating the rest. The zone overlay
+(§17) carries the broker declarations as records. The assertion is a short-lived JWT
 saying only WHO this is; the receiving tenant authority verifies it
 against the hub's keys, resolves the Practitioner through its OWN store,
 evaluates its OWN grants, and mints its OWN tokens. Authentication is
