@@ -41,6 +41,12 @@ public final class Activator implements BundleActivator {
             localProvisioner = new LocalDatabasePerTenantProvisioner(adminUrl,
                     ctx.getProperty("dbo.tenant.admin.user"),
                     ctx.getProperty("dbo.tenant.admin.password"));
+            String rpRedirects = ctx.getProperty("dbo.tenant.rp.redirect.uris");
+            if (rpRedirects != null && !rpRedirects.isBlank()) {
+                // embedded/local RP custody (jengu-platform#847): {code}
+                // resolves per tenant at provision time
+                localProvisioner.rpRedirectUris(java.util.List.of(rpRedirects.split(",")));
+            }
             defaultProvisioner = ctx.registerService(TenantDatabaseProvisioner.class,
                     localProvisioner, null);
         }

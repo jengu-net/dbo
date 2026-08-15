@@ -356,9 +356,83 @@ class HumanAuthIT {
                 && idClaims.contains("\"fhirUser\":\"Practitioner/" + practitionerId + "\""), idClaims);
     }
 
+    /** #847: the provisioning surface — bootstrap writes grants and credentials over REST. */
+    @Test
+    @Order(7)
+    void theAdminSurfaceProvisionsGrantsAndCredentialsOverRest() throws Exception {
+        String service = serviceToken("arst");
+
+        // a brand-new role + a credential for the existing practitioner
+        assertEquals(200, http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/admin/role-grants"))
+                        .header("Authorization", "Bearer " + service)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"role\":\"nurse\",\"scopes\":[\"user/*.read\"]}")).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertEquals(200, http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/admin/credentials"))
+                        .header("Authorization", "Bearer " + service)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"login\":\"poppy\",\"secret\":\"pomfrey8\",\"practitionerId\":\""
+                                        + practitionerId + "\"}")).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode());
+
+        // the provisioned credential signs in through the front channel
+        HttpResponse<String> login = http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/authorize/login"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "client_id=jengu-cloud&redirect_uri="
+                                        + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
+                                        + "&login=poppy&password=pomfrey8")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(302, login.statusCode(), login.body());
+
+        // anonymous 401; a HUMAN token (user plane) is refused 403
+        assertEquals(401, http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/admin/role-grants"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"role\":\"x\",\"scopes\":[\"user/*.read\"]}")).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode());
+        String humanToken = codeFlowAccessToken();
+        assertEquals(403, http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/admin/role-grants"))
+                        .header("Authorization", "Bearer " + humanToken)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"role\":\"x\",\"scopes\":[\"user/*.read\"]}")).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode());
+    }
+
+    private String codeFlowAccessToken() throws Exception {
+        HttpResponse<String> login = http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/authorize/login"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "client_id=jengu-cloud&redirect_uri="
+                                        + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
+                                        + "&login=albus&password=kaljuke9")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        String code = login.headers().firstValue("Location").orElseThrow()
+                .replaceAll(".*code=([^&]+).*", "$1");
+        String body = http.send(HttpRequest.newBuilder(URI.create(base("arst") + "/oidc/token"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "grant_type=authorization_code&client_id=jengu-cloud&code=" + code
+                                        + "&redirect_uri=" + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
+                                        + "&client_secret=" + URLEncoder.encode(
+                                                provisioner.rpClientSecret("arst"), StandardCharsets.UTF_8)))
+                        .build(),
+                HttpResponse.BodyHandlers.ofString()).body();
+        return body.replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+    }
+
     /** §16.1: subject resolution works identically under PDI — through the vault. */
     @Test
-    @Order(6)
+    @Order(8)
     void nationalIdResolvesThePractitionerUnderPdiAndWithout() throws Exception {
         // plain tenant: envelope identifier
         R4Personality plain = new R4Personality(TenantSpec.parse(

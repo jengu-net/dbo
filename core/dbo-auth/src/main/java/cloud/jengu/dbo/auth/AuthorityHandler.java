@@ -41,6 +41,8 @@ public final class AuthorityHandler implements HttpHandler {
                 case "authorize/login" -> authorizeLogin(exchange);
                 case "delegation" -> delegation(exchange);
                 case "federated" -> federated(exchange);
+                case "admin/role-grants" -> adminRoleGrants(exchange);
+                case "admin/credentials" -> adminCredentials(exchange);
                 default -> {
                     if (relative.startsWith("delegation/") && "DELETE".equals(exchange.getRequestMethod())) {
                         endDelegation(exchange, relative.substring("delegation/".length()));
@@ -247,6 +249,67 @@ public final class AuthorityHandler implements HttpHandler {
         } else {
             respond(exchange, 201, "{\"delegation_id\":\"" + created.get() + "\"}");
         }
+    }
+
+    /**
+     * §16.3 provisioning surface: the tenant-bootstrap M2M client writes
+     * RoleGrant defaults (from the git config repo) and dev LocalCredentials
+     * over the SAME authenticated REST path in every deployment shape —
+     * embedded local-dev and the k8s dbo-server alike (jengu-platform#847).
+     * Guarded by a system-plane write scope of this authority's own tokens.
+     */
+    private void adminRoleGrants(HttpExchange exchange) throws IOException {
+        if (!systemWrite(exchange)) {
+            return;
+        }
+        Object body = Json.parse(new String(
+                exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        String role = Json.strOpt(body, "role");
+        java.util.List<String> scopes = Json.strings(body, "scopes");
+        if (role == null || role.isBlank() || scopes.isEmpty()) {
+            respond(exchange, 400, "{\"error\":\"invalid_request\"}");
+            return;
+        }
+        authority.ensureRoleGrant(role, scopes);
+        respond(exchange, 200, "{\"status\":\"ensured\",\"role\":\"" + role + "\"}");
+    }
+
+    private void adminCredentials(HttpExchange exchange) throws IOException {
+        if (!systemWrite(exchange)) {
+            return;
+        }
+        Object body = Json.parse(new String(
+                exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        String login = Json.strOpt(body, "login");
+        String secret = Json.strOpt(body, "secret");
+        String practitionerId = Json.strOpt(body, "practitionerId");
+        if (login == null || secret == null || practitionerId == null) {
+            respond(exchange, 400, "{\"error\":\"invalid_request\"}");
+            return;
+        }
+        authority.ensureLocalCredential(login, secret, practitionerId);
+        respond(exchange, 200, "{\"status\":\"ensured\",\"login\":\"" + login + "\"}");
+    }
+
+    private boolean systemWrite(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            respond(exchange, 405, "{\"error\":\"invalid_request\"}");
+            return false;
+        }
+        String bearer = bearerOf(exchange);
+        var context = bearer == null ? java.util.Optional.<TenantAuthority.AuthContext>empty()
+                : authority.validate(bearer);
+        // provisioning is system-plane ONLY: a human's user/*.write must
+        // never reach it, so the check is explicit, not Scopes.allows
+        boolean systemPlane = context.isPresent()
+                && (context.get().scopes().contains("system/*.write")
+                        || context.get().scopes().contains("system/Identity.write"));
+        if (!systemPlane) {
+            exchange.getResponseHeaders().set("WWW-Authenticate", "Bearer");
+            respond(exchange, context.isEmpty() ? 401 : 403, "{\"error\":\"access_denied\"}");
+            return false;
+        }
+        return true;
     }
 
     private void endDelegation(HttpExchange exchange, String delegationId) throws IOException {
