@@ -18,3 +18,26 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Build and test core
         run: ./gradlew build
+
+  # Publishing is the LAST step of the build: a snapshot only reaches
+  # consumers (platform local-dev embedding, edge runtimes) after the full
+  # suite is green on the same commit. Library modules go to
+  # repo.jengu.cloud as 0.1.0-SNAPSHOT (anonymous reads; the platform
+  # libraries' pattern). Re-runnable via the workflow's re-run for
+  # registry-unreachable moments.
+  publish:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Publish library modules
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: ./gradlew publish --no-daemon
