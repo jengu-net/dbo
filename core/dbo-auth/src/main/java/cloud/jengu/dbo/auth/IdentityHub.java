@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPublicKey;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,7 +36,8 @@ public final class IdentityHub implements HttpHandler {
 
     public static final String COOKIE = "dbo_hub";
 
-    private final Upstream upstream;
+    private final Map<String, Upstream> upstreams;
+    private final String defaultBroker;
     private final String subjectSystem;
     private final String baseUrl;
     private final String basePath;
@@ -44,14 +46,22 @@ public final class IdentityHub implements HttpHandler {
     private final String kid;
     private final Map<String, Pending> pending = new ConcurrentHashMap<>();
     private final java.net.http.HttpClient http = java.net.http.HttpClient.newHttpClient();
-    private volatile Map<String, Object> discovery;
-    private volatile Map<String, RSAPublicKey> upstreamKeys = Map.of();
+    private final Map<String, Map<String, Object>> discoveries = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, RSAPublicKey>> upstreamKeysByBroker = new ConcurrentHashMap<>();
 
-    private record Pending(String callback, String tenantState, long expiresAt) {}
+    private record Pending(String callback, String tenantState, String broker, long expiresAt) {}
 
+    /** §16.2 single-broker deployments (env-configured, zone-less). */
     public IdentityHub(Upstream upstream, String subjectSystem, String baseUrl,
             String basePath, long sessionTtlSeconds) {
-        this.upstream = upstream;
+        this(Map.of("default", upstream), "default", subjectSystem, baseUrl, basePath, sessionTtlSeconds);
+    }
+
+    /** §17.3: one hub per zone, N declared brokers, sessions accumulate. */
+    public IdentityHub(Map<String, Upstream> upstreams, String defaultBroker, String subjectSystem,
+            String baseUrl, String basePath, long sessionTtlSeconds) {
+        this.upstreams = Map.copyOf(upstreams);
+        this.defaultBroker = defaultBroker;
         this.subjectSystem = subjectSystem;
         this.baseUrl = baseUrl;
         this.basePath = basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath;
@@ -96,27 +106,39 @@ public final class IdentityHub implements HttpHandler {
         }
     }
 
-    /** A tenant authority sends the browser here; session → assert, else → the broker. */
+    /**
+     * A tenant authority sends the browser here. §17.3 acceptance: a session
+     * whose ceremonies satisfy the tenant's accepted set asserts immediately
+     * — no broker, no fee; otherwise the REQUIRED broker's ceremony runs and
+     * ACCUMULATES onto the session.
+     */
     private void authorize(HttpExchange exchange) throws IOException {
         Map<String, String> q = query(exchange);
         String callback = q.get("cb");
         String tenantState = q.getOrDefault("state", "");
-        if (callback == null) {
+        String requestedBroker = q.getOrDefault("broker", defaultBroker);
+        java.util.Set<String> accepted = q.get("accepted") == null || q.get("accepted").isBlank()
+                ? java.util.Set.of()
+                : java.util.Set.of(q.get("accepted").split(","));
+        if (callback == null || !upstreams.containsKey(requestedBroker)) {
             respond(exchange, 400, "{\"error\":\"invalid_request\"}");
             return;
         }
         Optional<Session> session = sessionOf(exchange);
-        if (session.isPresent()) {
-            // §16.2: the ceremony already happened — no broker, no fee
+        if (session.isPresent() && (accepted.isEmpty()
+                || session.get().amr().stream().anyMatch(accepted::contains))) {
             redirect(exchange, callback + "?assertion="
                     + URLEncoder.encode(assertion(session.get(), callback), StandardCharsets.UTF_8)
                     + "&state=" + URLEncoder.encode(tenantState, StandardCharsets.UTF_8));
             return;
         }
+        String ceremonyBroker = accepted.isEmpty() || accepted.contains(requestedBroker)
+                ? requestedBroker : accepted.iterator().next();
+        Upstream upstream = upstreams.get(ceremonyBroker);
         String nonce = cloud.jengu.dbo.core.UuidV7.newId();
-        pending.put(nonce, new Pending(callback, tenantState,
+        pending.put(nonce, new Pending(callback, tenantState, ceremonyBroker,
                 System.currentTimeMillis() + 300_000));
-        redirect(exchange, String.valueOf(discovery().get("authorization_endpoint"))
+        redirect(exchange, String.valueOf(discovery(ceremonyBroker).get("authorization_endpoint"))
                 + "?response_type=code&scope=openid"
                 + "&client_id=" + URLEncoder.encode(upstream.clientId(), StandardCharsets.UTF_8)
                 + "&redirect_uri=" + URLEncoder.encode(baseUrl + basePath + "/callback", StandardCharsets.UTF_8)
@@ -132,9 +154,10 @@ public final class IdentityHub implements HttpHandler {
             respond(exchange, 400, "{\"error\":\"invalid_request\"}");
             return;
         }
-        String idToken = fetchIdToken(q.get("code"));
+        Upstream upstream = upstreams.get(request.broker());
+        String idToken = fetchIdToken(request.broker(), q.get("code"));
         Jws.Parts parts = Jws.parse(idToken);
-        RSAPublicKey signer = upstreamKey(parts.kid());
+        RSAPublicKey signer = upstreamKey(request.broker(), parts.kid());
         Object claims = Json.parse(parts.claimsJson());
         if (signer == null || !Jws.verify(parts, signer)
                 || !upstream.clientId().equals(Json.strOpt(claims, "aud"))
@@ -147,7 +170,15 @@ public final class IdentityHub implements HttpHandler {
                 && subject.startsWith(upstream.subjectStripPrefix())) {
             subject = subject.substring(upstream.subjectStripPrefix().length());
         }
-        Session session = new Session(subjectSystem, subject,
+        // §17.3 accumulation: same person → the ceremony joins the session;
+        // a DIFFERENT person on this browser replaces it
+        java.util.List<String> amr = new java.util.ArrayList<>(java.util.List.of(request.broker()));
+        Optional<Session> existing = sessionOf(exchange);
+        if (existing.isPresent() && existing.get().value().equals(subject)
+                && existing.get().system().equals(subjectSystem)) {
+            existing.get().amr().stream().filter(a -> !amr.contains(a)).forEach(amr::add);
+        }
+        Session session = new Session(subjectSystem, subject, List.copyOf(amr),
                 System.currentTimeMillis() / 1000,
                 System.currentTimeMillis() / 1000 + sessionTtlSeconds);
         exchange.getResponseHeaders().add("Set-Cookie", COOKIE + "="
@@ -159,11 +190,14 @@ public final class IdentityHub implements HttpHandler {
 
     // ------------------------------------------------------------- sessions
 
-    record Session(String system, String value, long authTime, long expiresAt) {}
+    record Session(String system, String value, java.util.List<String> amr,
+            long authTime, long expiresAt) {}
 
     private String sessionToken(Session session) {
         String claims = "{\"iss\":\"" + issuer() + "\",\"typ\":\"session\""
                 + ",\"sys\":\"" + session.system() + "\",\"val\":\"" + session.value() + "\""
+                + ",\"amr\":[" + session.amr().stream().map(a -> "\"" + a + "\"")
+                        .reduce((a, b) -> a + "," + b).orElse("") + "]"
                 + ",\"auth_time\":" + session.authTime() + ",\"exp\":" + session.expiresAt() + "}";
         return Jws.sign(kid, claims, key.getPrivate());
     }
@@ -184,7 +218,7 @@ public final class IdentityHub implements HttpHandler {
                             return Optional.empty();
                         }
                         return Optional.of(new Session(Json.str(claims, "sys"),
-                                Json.str(claims, "val"),
+                                Json.str(claims, "val"), Json.strings(claims, "amr"),
                                 Json.num(claims, "auth_time"), Json.num(claims, "exp")));
                     } catch (RuntimeException invalid) {
                         return Optional.empty();
@@ -204,28 +238,29 @@ public final class IdentityHub implements HttpHandler {
         String claims = "{\"iss\":\"" + issuer() + "\",\"aud\":\"" + audience + "\""
                 + ",\"typ\":\"identity-assertion\""
                 + ",\"sys\":\"" + session.system() + "\",\"val\":\"" + session.value() + "\""
-                + ",\"auth_time\":" + session.authTime() + ",\"amr\":[\"eeid\"]"
+                + ",\"auth_time\":" + session.authTime()
+                + ",\"amr\":[" + session.amr().stream().map(a -> "\"" + a + "\"")
+                        .reduce((a, b) -> a + "," + b).orElse("") + "]"
                 + ",\"iat\":" + now + ",\"exp\":" + (now + 60) + "}";
         return Jws.sign(kid, claims, key.getPrivate());
     }
 
     // ------------------------------------------------------------- upstream
 
-    private Map<String, Object> discovery() {
-        if (discovery == null) {
-            discovery = fetchJson(upstream.issuer() + "/.well-known/openid-configuration");
-        }
-        return discovery;
+    private Map<String, Object> discovery(String broker) {
+        return discoveries.computeIfAbsent(broker, b ->
+                fetchJson(upstreams.get(b).issuer() + "/.well-known/openid-configuration"));
     }
 
-    private String fetchIdToken(String code) {
+    private String fetchIdToken(String broker, String code) {
         try {
+            Upstream upstream = upstreams.get(broker);
             String form = "grant_type=authorization_code&code=" + URLEncoder.encode(code, StandardCharsets.UTF_8)
                     + "&redirect_uri=" + URLEncoder.encode(baseUrl + basePath + "/callback", StandardCharsets.UTF_8)
                     + "&client_id=" + URLEncoder.encode(upstream.clientId(), StandardCharsets.UTF_8)
                     + "&client_secret=" + URLEncoder.encode(upstream.clientSecret(), StandardCharsets.UTF_8);
             var response = http.send(java.net.http.HttpRequest.newBuilder(
-                            URI.create(String.valueOf(discovery().get("token_endpoint"))))
+                            URI.create(String.valueOf(discovery(broker).get("token_endpoint"))))
                             .header("Content-Type", "application/x-www-form-urlencoded")
                             .POST(java.net.http.HttpRequest.BodyPublishers.ofString(form)).build(),
                     java.net.http.HttpResponse.BodyHandlers.ofString());
@@ -236,12 +271,12 @@ public final class IdentityHub implements HttpHandler {
     }
 
     @SuppressWarnings("unchecked")
-    private RSAPublicKey upstreamKey(String kidWanted) {
-        RSAPublicKey cached = upstreamKeys.get(kidWanted);
-        if (cached != null) {
-            return cached;
+    private RSAPublicKey upstreamKey(String broker, String kidWanted) {
+        Map<String, RSAPublicKey> cached = upstreamKeysByBroker.get(broker);
+        if (cached != null && cached.containsKey(kidWanted)) {
+            return cached.get(kidWanted);
         }
-        Map<String, Object> jwks = fetchJson(String.valueOf(discovery().get("jwks_uri")));
+        Map<String, Object> jwks = fetchJson(String.valueOf(discovery(broker).get("jwks_uri")));
         Map<String, RSAPublicKey> keys = new java.util.HashMap<>();
         for (Object entry : (java.util.List<Object>) jwks.getOrDefault("keys", java.util.List.of())) {
             Map<String, Object> jwk = (Map<String, Object>) entry;
@@ -249,8 +284,8 @@ public final class IdentityHub implements HttpHandler {
                 keys.put(String.valueOf(jwk.get("kid")), Jwk.parse(Json.render(jwk)));
             }
         }
-        upstreamKeys = Map.copyOf(keys);
-        return upstreamKeys.get(kidWanted);
+        upstreamKeysByBroker.put(broker, Map.copyOf(keys));
+        return keys.get(kidWanted);
     }
 
     @SuppressWarnings("unchecked")

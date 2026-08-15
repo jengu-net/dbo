@@ -59,6 +59,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final AuthorityConfig authorityConfig;
     private final Map<String, String> authorityContexts = new ConcurrentHashMap<>();
     private volatile cloud.jengu.dbo.auth.IdentityHub identityHub;
+    private final Map<String, javax.sql.DataSource> tenantDataSources = new ConcurrentHashMap<>();
+    private final Map<String, cloud.jengu.dbo.auth.IdentityHub> zoneHubs = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.policy.RetentionSweep> sweeps = new ConcurrentHashMap<>();
     private volatile long lastSweepMillis;
     private volatile Thread scanner;
@@ -76,9 +78,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * promotes their source without changing this shape).
      */
     public record AuthorityConfig(byte[] kek, String issuerBase,
-            cloud.jengu.dbo.auth.IdentityHub.Upstream upstream, String subjectSystem) {
+            cloud.jengu.dbo.auth.IdentityHub.Upstream upstream, String subjectSystem,
+            Map<String, String> brokerSecrets) {
         public AuthorityConfig(byte[] kek, String issuerBase) {
-            this(kek, issuerBase, null, null);
+            this(kek, issuerBase, null, null, Map.of());
+        }
+
+        public AuthorityConfig(byte[] kek, String issuerBase,
+                cloud.jengu.dbo.auth.IdentityHub.Upstream upstream, String subjectSystem) {
+            this(kek, issuerBase, upstream, subjectSystem, Map.of());
         }
     }
 
@@ -168,6 +176,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     private void bringUp(TenantSpec spec) {
         TenantDatabaseProvisioner.TenantDatabase db = provisioner.provision(spec);
+        tenantDataSources.put(spec.code(), db.dataSource());
         String base = baseUrl(spec.code());
         cloud.jengu.dbo.rest.RequestAuthenticator guard = null;
         cloud.jengu.dbo.auth.TenantAuthority tenantAuthority = null;
@@ -181,10 +190,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     issuerBase + oidcPath,
                     new cloud.jengu.dbo.auth.KeyProtector(authorityConfig.kek()));
             authority.ensureSigningKey();
-            if (identityHub != null) {
+            cloud.jengu.dbo.auth.IdentityHub hub = spec.zone() != null
+                    ? zoneHub(spec) : identityHub;
+            if (hub != null) {
                 authority.federation(new cloud.jengu.dbo.auth.TenantAuthority.Federation(
-                        identityHub.issuer() + "/authorize",
-                        identityHub::assertionKey, identityHub.issuer()));
+                        hub.issuer() + "/authorize", hub::assertionKey, hub.issuer(),
+                        spec.broker(), spec.acceptedBrokers()));
             }
             if (db.bootstrapClientSecret() != null) {
                 authority.ensureClient("tenant-bootstrap", db.bootstrapClientSecret(),
@@ -286,6 +297,68 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     policyStore, spec.fhirVersion());
         }
         return server;
+    }
+
+    /**
+     * §17: the zone's declarations are records in the ZONE tenant. The zone
+     * must be up first — a dependent arriving earlier fails bring-up loudly
+     * and the scan loop retries. One hub per zone, brokers from records,
+     * secrets from custody by broker code.
+     */
+    private cloud.jengu.dbo.auth.IdentityHub zoneHub(TenantSpec spec) {
+        return zoneHubs.computeIfAbsent(spec.zone(), zone -> {
+            javax.sql.DataSource zoneDs = tenantDataSources.get(zone);
+            if (zoneDs == null) {
+                throw new IllegalStateException(spec.code() + ": zone '" + zone
+                        + "' is not up yet — retrying on the next scan");
+            }
+            cloud.jengu.dbo.core.api.ObjectStore zoneStore =
+                    new PgObjectStore(zoneDs, cloud.jengu.dbo.auth.ZoneModel.registrations());
+            java.util.Map<String, cloud.jengu.dbo.auth.IdentityHub.Upstream> upstreams =
+                    new java.util.LinkedHashMap<>();
+            String defaultBroker = null;
+            for (cloud.jengu.dbo.core.api.StoredObject record : zoneStore.select(
+                    cloud.jengu.dbo.core.api.Criteria.of("ZoneBroker"))) {
+                cloud.jengu.dbo.auth.ZoneModel.Broker broker =
+                        cloud.jengu.dbo.auth.ZoneModel.Broker.parse(record.payload());
+                String secret = authorityConfig.brokerSecrets().get(broker.code());
+                if (secret == null) {
+                    throw new IllegalStateException("zone '" + zone + "' broker '"
+                            + broker.code() + "': no secret in custody");
+                }
+                upstreams.put(broker.code(), new cloud.jengu.dbo.auth.IdentityHub.Upstream(
+                        broker.issuer(), broker.clientId(), secret, broker.subjectStripPrefix()));
+                if (defaultBroker == null) {
+                    defaultBroker = broker.code();
+                }
+            }
+            if (upstreams.isEmpty()) {
+                throw new IllegalStateException("zone '" + zone + "' declares no brokers");
+            }
+            String subjectSystem = zoneSubjectSystem(zoneStore);
+            String hubBase = authorityConfig.issuerBase() != null
+                    ? authorityConfig.issuerBase() : "http://" + host + ":" + port();
+            String path = "/z/" + zone + "/hub";
+            cloud.jengu.dbo.auth.IdentityHub hub = new cloud.jengu.dbo.auth.IdentityHub(
+                    upstreams, defaultBroker, subjectSystem, hubBase, path, 28_800);
+            sharedServer.createContext(path, hub);
+            return hub;
+        });
+    }
+
+    /** §17.1: the subject-resolution system comes from the zone's declared domains. */
+    private String zoneSubjectSystem(cloud.jengu.dbo.core.api.ObjectStore zoneStore) {
+        return zoneStore.getByIdentifier("ZoneIdentifierDomain",
+                        java.util.List.of(new cloud.jengu.dbo.core.api.Identifier(
+                                cloud.jengu.dbo.auth.ZoneModel.IDENTIFIER_USE_SYSTEM,
+                                cloud.jengu.dbo.auth.ZoneModel.USE_PERSON_PRIMARY))).stream()
+                .findFirst()
+                .map(record -> {
+                    String payload = new String(record.payload(),
+                            java.nio.charset.StandardCharsets.UTF_8);
+                    return payload.replaceAll(".*\"system\":\"([^\"]+)\".*", "$1");
+                })
+                .orElse(authorityConfig.subjectSystem());
     }
 
     private void takeDown(String code) {
