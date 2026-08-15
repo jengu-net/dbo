@@ -61,6 +61,80 @@ public final class TenantAuthority {
         this.humanAuthenticator = authenticator;
     }
 
+    /** §16.2 federated mode: humans authenticate at the deployment's hub. */
+    public record Federation(String hubAuthorizeUrl,
+            java.util.function.Supplier<java.security.interfaces.RSAPublicKey> hubKey,
+            String hubIssuer) {}
+
+    private volatile Federation federation;
+    private final Map<String, PendingFrontChannel> pendingFederated = new ConcurrentHashMap<>();
+
+    record PendingFrontChannel(String clientId, String redirectUri, String codeChallenge,
+            String rpState, long expiresAt) {}
+
+    public void federation(Federation federation) {
+        this.federation = federation;
+    }
+
+    public Federation federation() {
+        return federation;
+    }
+
+    /** Front-channel start under federation: park the RP request, return the hub redirect. */
+    public String beginFederated(String clientId, String redirectUri, String codeChallenge,
+            String rpState) {
+        String stateId = UuidV7.newId();
+        pendingFederated.put(stateId, new PendingFrontChannel(clientId, redirectUri,
+                codeChallenge, rpState, System.currentTimeMillis() + 300_000));
+        return federation.hubAuthorizeUrl()
+                + "?cb=" + java.net.URLEncoder.encode(issuer + "/federated", StandardCharsets.UTF_8)
+                + "&state=" + stateId;
+    }
+
+    public sealed interface FederatedOutcome {
+        record Success(String redirectUri, String rpState, String code) implements FederatedOutcome {}
+        record Denied(String redirectUri, String rpState, String error) implements FederatedOutcome {}
+        record Invalid() implements FederatedOutcome {}
+    }
+
+    /** The hub's assertion arrives: verify, resolve, evaluate, mint the code. */
+    public FederatedOutcome completeFederated(String assertionJwt, String stateId) {
+        PendingFrontChannel parked = pendingFederated.remove(stateId);
+        if (parked == null || parked.expiresAt() < System.currentTimeMillis()) {
+            return new FederatedOutcome.Invalid();
+        }
+        Object claims;
+        try {
+            Jws.Parts parts = Jws.parse(assertionJwt);
+            if (!Jws.verify(parts, federation.hubKey().get())) {
+                return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
+            }
+            claims = Json.parse(parts.claimsJson());
+        } catch (RuntimeException invalid) {
+            return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
+        }
+        if (!"identity-assertion".equals(Json.strOpt(claims, "typ"))
+                || !federation.hubIssuer().equals(Json.str(claims, "iss"))
+                || !issuer.equals(Json.str(claims, "aud"))
+                || Json.num(claims, "exp") < System.currentTimeMillis() / 1000) {
+            return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
+        }
+        Optional<String> practitioner = resolveByNationalId(
+                Json.str(claims, "sys"), Json.str(claims, "val"));
+        List<String> scopes = practitioner.isEmpty()
+                ? List.of() : evaluateGrants(practitioner.get());
+        if (scopes.isEmpty()) {
+            // valid national identity, but THIS tenant grants nothing — the
+            // §16.2 promise: authentication shared, authorization never
+            return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
+        }
+        String code = UuidV7.newId() + UuidV7.newId().substring(0, 8);
+        pendingCodes.put(code, new PendingAuthorization(parked.clientId(), parked.redirectUri(),
+                parked.codeChallenge(), practitioner.get(),
+                String.join(" ", scopes), System.currentTimeMillis() + 60_000));
+        return new FederatedOutcome.Success(parked.redirectUri(), parked.rpState(), code);
+    }
+
     // ------------------------------------------------------------ keys
 
     /** Idempotent: ensures the tenant has an active signing key. */

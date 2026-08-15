@@ -78,10 +78,18 @@ public final class Activator implements BundleActivator {
                 ? Integer.parseInt(ctx.getProperty("dbo.tenant.http.port")) : 0;
 
         String kekB64 = ctx.getProperty("dbo.tenant.auth.kek");
+        String brokerIssuer = ctx.getProperty("dbo.tenant.auth.broker.issuer");
+        cloud.jengu.dbo.auth.IdentityHub.Upstream upstream = brokerIssuer == null ? null
+                : new cloud.jengu.dbo.auth.IdentityHub.Upstream(brokerIssuer,
+                        ctx.getProperty("dbo.tenant.auth.broker.client.id"),
+                        ctx.getProperty("dbo.tenant.auth.broker.client.secret"),
+                        ctx.getProperty("dbo.tenant.auth.broker.subject.strip"));
         TenantRuntimeManager.AuthorityConfig authority = kekB64 == null ? null
                 : new TenantRuntimeManager.AuthorityConfig(
                         java.util.Base64.getDecoder().decode(kekB64),
-                        ctx.getProperty("dbo.tenant.auth.issuer.base"));
+                        ctx.getProperty("dbo.tenant.auth.issuer.base"),
+                        upstream,
+                        ctx.getProperty("dbo.tenant.auth.subject.system"));
         manager = new TenantRuntimeManager(dir, provisioner, host, port,
                 new TenantRuntimeManager.Listener() {
                     @Override

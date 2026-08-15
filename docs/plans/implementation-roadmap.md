@@ -6,7 +6,7 @@ Updated at the close of every slice. The spec lives in the arc42 tree
 proof live on its GitHub issue.
 
 **State as of 2026-08-14: spec phase complete, 14 implementation slices closed,
-138 behaviour-named tests, CI green on every commit.**
+141 behaviour-named tests, CI green on every commit.**
 
 ## Spikes (all closed, verdicts in [arc42-009](../arc42-009-architecture-decisions/README.md))
 
@@ -41,6 +41,7 @@ proof live on its GitHub issue.
 | [#23](https://github.com/jengu-net/dbo/issues/23) Audit surface (Slice G) | The trail is OPEN UPWARD, CLOSED DOWNWARD: `recordCustom` (per-tenant recorder service in the registry) + `POST AuditEvent` (mapped into a native entry, NEVER stored raw) let applications contribute the WHAT; the machinery stamps WHO/WHEN from the token and its clock — a posted event claiming another agent and a 1999 timestamp lands carrying the token's client and now (proven). `AuditEntry` unconditionally append-only (no direct writes, no deletes, under ANY discipline). FHIR projection: `GET /AuditEvent` renders the native truth form per personality (R4 type/subtype vs R5 category/code shapes), search by agent/entity/action/date; scope-gated; BALP alignment = follow-up | **POL-CUSTOM-AUDIT-EVENTS**, **POL-AUDIT-UNCONDITIONALLY-APPEND-ONLY**, **POL-FHIR-AUDIT-PROJECTION** |
 | [#24](https://github.com/jengu-net/dbo/issues/24) Human identity (Slice H) | The org model IS the auth model: active `PractitionerRole` → role codes → `RoleGrant` records → SMART `user/*` scopes; revocation = ending a period on a clinical record (refresh RE-EVALUATES grants — proven). Authorization-code + PKCE (S256) on the tenant authority with a dev-local `LocalCredential` form behind the pluggable `HumanAuthenticator` seam (federated eeID = its own slice); redirect URIs validated against the `ClientApplication` record (grown: `clientType`, `redirectUris`; never redirect to unregistered targets); refresh tokens rejected at the store surface. Tokens pseudonymous: `fhirUser: Practitioner/<id>`, no name, no national code. Subject resolution = the SAME `getByIdentifier` call under PDI (vault HMAC) and without (envelope) — proven both ways. The §15 audit actor becomes the human's pseudonym | **AUTH-ORG-MODEL-IS-THE-AUTH-MODEL**, **AUTH-FEDERATED-HUMANS** (seam + dev fallback), **AUTH-ROLE-GRANTS-AS-RECORDS**, **AUTH-PSEUDONYMOUS-TOKENS** |
 | [#25](https://github.com/jengu-net/dbo/issues/25) On-behalf-of (Slice I) | Processes act IN THE NAME of practitioners: RFC 8693 token exchange (`sub` stays the human, `act` names the client, scopes attenuate to subject ∩ request — a scope the human lacks cannot be delegated); **Delegation records** for workflows outliving tokens (created via `POST /oidc/delegation` while the human token is live, exchanged WITHOUT any subject token later; capped by the record even after grants widen; ended by the subject OR dying with the human's role — both revocations proven after the fact); the `Caller` seam carries the chain and the AuditEvent projection renders BOTH agents (client requestor + on-behalf-of reference, the Provenance twin). Also fixed in this slice: REST PUT without If-Match 500 → clean unconditional update | **AUTH-ON-BEHALF-OF** |
+| [#26](https://github.com/jengu-net/dbo/issues/26) eeID federation (Slice J) | The **identity hub**: one deployment-level broker client federating to the national OIDC provider (eeID/TARA — discovery, code flow, id_token verification); a signed SESSION cookie (national id + auth time only, dead on restart) serves EVERY tenant authority via 60s audience-bound identity assertions — **the cost proof is the broker's own counter: one ceremony, N tenants**. Authorization never shared: the same valid identity is access with a grant, access_denied without (and denial costs no ceremony). Subject system + upstream are ZONE-scoped config (single-zone now; the zone overlay promotes the source). Real eeID = env config (external registration pending); proven against a stub national broker | **AUTH-ONE-CEREMONY-MANY-TENANTS**, completes **AUTH-FEDERATED-HUMANS** |
 | [#12](https://github.com/jengu-net/dbo/issues/12) REST surface | `dbo-rest` (JDK HttpServer, virtual threads, zero deps) over `FhirStoreFacade`: full CRUD w/ ETag/If-Match/If-None-Exist, absolute link[next] paging, OperationOutcome errors (400/409/412/422), `_history`, `$expand`/`$lookup`/`$validate-code`, generated `/metadata`; version-generic (R4+R5 servers) | **SRCH-HONEST-CAPABILITY** |
 
 ## REQ coverage summary
@@ -70,11 +71,12 @@ yet implemented.
 3. **Enable PDI for real tenants** — flip `"pdi": true` in registrations
    (greenfield: hogwarts' pre-PDI plaintext records need recreate-or-accept;
    decide before real PHI)
-4. **eeID/TARA federation** — implement the HumanAuthenticator seam
-   against the live broker (needs external registration)
-5. **On-behalf-of (Slice I)** — [#25](https://github.com/jengu-net/dbo/issues/25)
-   (groomed): RFC 8693 token exchange + act chains + Delegation records
-   for workflows that outlive tokens; after H
+4. **Live eeID registration** — plug the real broker into the hub's env
+   (internet.ee registration; the flow is proven against the stub)
+5. **Zone overlay (Slice K)** — jurisdiction as a first-class chain node:
+   tenant spec `"zone"` ref; identifier domains, national broker, and
+   terminology declared as records in the zone tenant (streamed via the
+   existing SYNC chains); the hub becomes per-zone; §17 to be written
 6. **jengu-cloud as relying party** — platform-epic follow-up: login via
    the tenant authorities, platform admins via the system tenant;
    Medplum OIDC + the separately-planned auth server retire into §16

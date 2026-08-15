@@ -58,6 +58,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, TenantRuntime> runtimes = new ConcurrentHashMap<>();
     private final AuthorityConfig authorityConfig;
     private final Map<String, String> authorityContexts = new ConcurrentHashMap<>();
+    private volatile cloud.jengu.dbo.auth.IdentityHub identityHub;
     private final Map<String, cloud.jengu.dbo.policy.RetentionSweep> sweeps = new ConcurrentHashMap<>();
     private volatile long lastSweepMillis;
     private volatile Thread scanner;
@@ -69,7 +70,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * that authority's tokens. issuerBase null → derived from the serving
      * address (deployment config, like the REST baseUrl).
      */
-    public record AuthorityConfig(byte[] kek, String issuerBase) {}
+    /**
+     * §16.2: the upstream broker + subject identifier system are ZONE-scoped
+     * values (single-zone deployments pass them here; the zone overlay
+     * promotes their source without changing this shape).
+     */
+    public record AuthorityConfig(byte[] kek, String issuerBase,
+            cloud.jengu.dbo.auth.IdentityHub.Upstream upstream, String subjectSystem) {
+        public AuthorityConfig(byte[] kek, String issuerBase) {
+            this(kek, issuerBase, null, null);
+        }
+    }
 
     public TenantRuntimeManager(Path directory, TenantDatabaseProvisioner provisioner,
             String host, int port, Listener listener) {
@@ -98,6 +109,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         sharedServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
         sharedServer.start();
+        if (authorityConfig != null && authorityConfig.upstream() != null) {
+            String hubBase = authorityConfig.issuerBase() != null
+                    ? authorityConfig.issuerBase()
+                    : "http://" + host + ":" + port();
+            identityHub = new cloud.jengu.dbo.auth.IdentityHub(authorityConfig.upstream(),
+                    authorityConfig.subjectSystem(), hubBase, "/hub", 28_800);
+            sharedServer.createContext("/hub", identityHub);
+        }
     }
 
     public int port() {
@@ -162,6 +181,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     issuerBase + oidcPath,
                     new cloud.jengu.dbo.auth.KeyProtector(authorityConfig.kek()));
             authority.ensureSigningKey();
+            if (identityHub != null) {
+                authority.federation(new cloud.jengu.dbo.auth.TenantAuthority.Federation(
+                        identityHub.issuer() + "/authorize",
+                        identityHub::assertionKey, identityHub.issuer()));
+            }
             if (db.bootstrapClientSecret() != null) {
                 authority.ensureClient("tenant-bootstrap", db.bootstrapClientSecret(),
                         java.util.List.of("system/*.read", "system/*.write"));

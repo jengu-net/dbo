@@ -27,5 +27,10 @@ exec java \
   ${DBO_ADMIN_PASSWORD:+-Ddbo.tenant.admin.password="${DBO_ADMIN_PASSWORD}"} \
   ${DBO_AUTH_KEK:+-Ddbo.tenant.auth.kek="${DBO_AUTH_KEK}"} \
   ${DBO_AUTH_ISSUER_BASE:+-Ddbo.tenant.auth.issuer.base="${DBO_AUTH_ISSUER_BASE}"} \
+  ${DBO_BROKER_ISSUER:+-Ddbo.tenant.auth.broker.issuer="${DBO_BROKER_ISSUER}"} \
+  ${DBO_BROKER_CLIENT_ID:+-Ddbo.tenant.auth.broker.client.id="${DBO_BROKER_CLIENT_ID}"} \
+  ${DBO_BROKER_CLIENT_SECRET:+-Ddbo.tenant.auth.broker.client.secret="${DBO_BROKER_CLIENT_SECRET}"} \
+  ${DBO_BROKER_SUBJECT_STRIP:+-Ddbo.tenant.auth.broker.subject.strip="${DBO_BROKER_SUBJECT_STRIP}"} \
+  ${DBO_AUTH_SUBJECT_SYSTEM:+-Ddbo.tenant.auth.subject.system="${DBO_AUTH_SUBJECT_SYSTEM}"} \
   ${DBO_JAVA_OPTS:-} \
   -jar bin/felix.jar

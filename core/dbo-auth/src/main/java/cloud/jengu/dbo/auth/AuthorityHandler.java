@@ -40,6 +40,7 @@ public final class AuthorityHandler implements HttpHandler {
                 case "authorize" -> authorize(exchange);
                 case "authorize/login" -> authorizeLogin(exchange);
                 case "delegation" -> delegation(exchange);
+                case "federated" -> federated(exchange);
                 default -> {
                     if (relative.startsWith("delegation/") && "DELETE".equals(exchange.getRequestMethod())) {
                         endDelegation(exchange, relative.substring("delegation/".length()));
@@ -124,6 +125,14 @@ public final class AuthorityHandler implements HttpHandler {
             case TenantAuthority.AuthorizeResult.Rejected rejected ->
                     // NEVER redirect on an invalid client/target
                     respond(exchange, 400, "{\"error\":\"" + rejected.error() + "\"}");
+            case TenantAuthority.AuthorizeResult.LoginRequired ok when authority.federation() != null -> {
+                // §16.2: humans authenticate at the deployment's hub
+                exchange.getResponseHeaders().set("Location", authority.beginFederated(
+                        q.get("client_id"), q.get("redirect_uri"),
+                        q.get("code_challenge"), q.getOrDefault("state", "")));
+                exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                exchange.sendResponseHeaders(302, -1);
+            }
             case TenantAuthority.AuthorizeResult.LoginRequired ok -> {
                 String form = "<!doctype html><html><body><form method=\"post\" action=\""
                         + basePath + "/authorize/login\">"
@@ -166,6 +175,35 @@ public final class AuthorityHandler implements HttpHandler {
                         + "code=" + redirect.code()
                         + (form.getOrDefault("state", "").isEmpty() ? ""
                                 : "&state=" + java.net.URLEncoder.encode(form.get("state"), StandardCharsets.UTF_8));
+                exchange.getResponseHeaders().set("Location", location);
+                exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                exchange.sendResponseHeaders(302, -1);
+            }
+        }
+    }
+
+    /** The hub's assertion returns here; the browser continues to the RP. */
+    private void federated(HttpExchange exchange) throws IOException {
+        Map<String, String> q = parseForm(exchange.getRequestURI().getRawQuery() == null
+                ? "" : exchange.getRequestURI().getRawQuery());
+        switch (authority.completeFederated(q.get("assertion"), q.get("state"))) {
+            case TenantAuthority.FederatedOutcome.Invalid ignored ->
+                    respond(exchange, 400, "{\"error\":\"invalid_request\"}");
+            case TenantAuthority.FederatedOutcome.Denied denied -> {
+                String location = denied.redirectUri()
+                        + (denied.redirectUri().contains("?") ? "&" : "?")
+                        + "error=" + denied.error()
+                        + (denied.rpState().isEmpty() ? "" : "&state="
+                                + java.net.URLEncoder.encode(denied.rpState(), StandardCharsets.UTF_8));
+                exchange.getResponseHeaders().set("Location", location);
+                exchange.sendResponseHeaders(302, -1);
+            }
+            case TenantAuthority.FederatedOutcome.Success success -> {
+                String location = success.redirectUri()
+                        + (success.redirectUri().contains("?") ? "&" : "?")
+                        + "code=" + success.code()
+                        + (success.rpState().isEmpty() ? "" : "&state="
+                                + java.net.URLEncoder.encode(success.rpState(), StandardCharsets.UTF_8));
                 exchange.getResponseHeaders().set("Location", location);
                 exchange.getResponseHeaders().set("Cache-Control", "no-store");
                 exchange.sendResponseHeaders(302, -1);
