@@ -31,7 +31,13 @@ public record ArchiveManifest(List<Entry> entries, String root) {
     /** One file in the archive and the digest of its contents. */
     public record Entry(String name, String sha256) {}
 
-    public static final String MANIFEST_ENTRY = "manifest.json";
+    /**
+     * The digest list is its own entry, beside the export's descriptive
+     * {@code manifest.json} rather than replacing it — that one carries the
+     * outbox fence and per-type counts, and is itself content worth
+     * attesting, so it appears in this list like everything else.
+     */
+    public static final String MANIFEST_ENTRY = "digests.json";
 
     /**
      * Digests every entry of a plain (unsealed) archive except the manifest
@@ -43,7 +49,7 @@ public record ArchiveManifest(List<Entry> entries, String root) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
                 if (MANIFEST_ENTRY.equals(entry.getName())) {
-                    continue; // the manifest cannot digest itself
+                    continue; // the digest list cannot digest itself
                 }
                 digests.put(entry.getName(), hex(sha256(zip.readAllBytes())));
             }
