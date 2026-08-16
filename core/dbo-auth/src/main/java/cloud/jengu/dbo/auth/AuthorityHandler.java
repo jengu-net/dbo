@@ -171,11 +171,30 @@ public final class AuthorityHandler implements HttpHandler {
         }
         Map<String, String> form = parseForm(new String(
                 exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        // Validate the CLIENT half first: an unknown client or unregistered
+        // redirect stays a hard 401 (never redirect an invalid target) —
+        // while a credential failure for a VALID client is the standard
+        // OAuth error redirect (RFC 6749 §4.1.2.1), so the RP's own login
+        // page shows the failure instead of a bare JSON body.
+        if (authority.beginAuthorization(form.get("client_id"), form.get("redirect_uri"),
+                emptyToNull(form.get("code_challenge")))
+                instanceof TenantAuthority.AuthorizeResult.Rejected rejected) {
+            respond(exchange, 401, "{\"error\":\"" + rejected.error() + "\"}");
+            return;
+        }
         switch (authority.completeLogin(form.get("client_id"), form.get("redirect_uri"),
                 emptyToNull(form.get("code_challenge")), form.getOrDefault("nonce", ""),
                 form.get("login"), form.get("password"))) {
-            case TenantAuthority.LoginResult.Denied denied ->
-                    respond(exchange, 401, "{\"error\":\"" + denied.error() + "\"}");
+            case TenantAuthority.LoginResult.Denied denied -> {
+                String location = form.get("redirect_uri")
+                        + (form.get("redirect_uri").contains("?") ? "&" : "?")
+                        + "error=" + denied.error()
+                        + (form.getOrDefault("state", "").isEmpty() ? ""
+                                : "&state=" + java.net.URLEncoder.encode(form.get("state"), StandardCharsets.UTF_8));
+                exchange.getResponseHeaders().set("Location", location);
+                exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                exchange.sendResponseHeaders(302, -1);
+            }
             case TenantAuthority.LoginResult.Redirect redirect -> {
                 String location = form.get("redirect_uri")
                         + (form.get("redirect_uri").contains("?") ? "&" : "?")
