@@ -50,6 +50,7 @@ tasks.jar {
                     "cloud.jengu.dbo.auth;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.pdi;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.policy;version=\"[0.1,1)\"",
+                    "cloud.jengu.dbo.sync;version=\"[0.1,1)\"",
                     "com.sun.net.httpserver",
                     "javax.sql",
                     "org.postgresql",

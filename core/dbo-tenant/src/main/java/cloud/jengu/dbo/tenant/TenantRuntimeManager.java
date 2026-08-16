@@ -157,10 +157,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             if (!runtimes.containsKey(spec.code())) {
                                 bringUp(spec);
                             }
-                        } catch (Exception e) {
-                            // a malformed spec provisions nothing — but the
-                            // failure must be diagnosable from the process
-                            // output, not only via absence
+                        } catch (Throwable e) {
+                            // Throwable, not Exception: a missing OSGi wire
+                            // arrives as NoClassDefFoundError, and catching
+                            // only Exception let it kill the scanner thread
+                            // with no output at all — absence of a tenant and
+                            // absence of a reason (jengu-platform#850).
                             System.err.println("dbo-tenant: bring-up failed for " + f.getFileName());
                             e.printStackTrace();
                         }
@@ -472,8 +474,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return;
-                } catch (RuntimeException e) {
-                    // keep reconciling
+                } catch (Throwable e) {
+                    // the reconciler must outlive any single round's
+                    // failure — including Errors (see bring-up above)
+                    System.err.println("dbo-tenant: reconciliation round failed");
+                    e.printStackTrace();
                 }
             }
         });
