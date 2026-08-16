@@ -97,7 +97,7 @@ class TenantRuntimeIT {
     @Test
     @Order(9)
     void aLongHyphenatedCodeBecomesALiveTenant() throws Exception {
-        String code = "e2e-us-xapi-distributor-onboards-customer-20260815-233454-8knsh";
+        String code = "e2e-us-xapi-distributor-onboards-customer-20260815-233454-8knshjjg";
         Files.writeString(dir.resolve(code + ".json"), """
                 {"code":"%s","fhirVersion":"r4","types":[
                   {"name":"Patient","identity":"internal"}]}""".formatted(code));
