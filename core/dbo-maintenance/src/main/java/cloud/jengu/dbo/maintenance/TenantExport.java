@@ -48,12 +48,20 @@ public final class TenantExport {
             c.setAutoCommit(false);
             c.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
             try {
-                ByteArrayOutputStream plain = new ByteArrayOutputStream();
+                // #35: sealed as it is written. The archive never exists whole
+                // in memory — a tenant's history is the volume, and holding it
+                // twice (plain and ciphertext) fails on the first real hospital.
                 ExportResult result;
-                try (ZipOutputStream zip = new ZipOutputStream(plain)) {
+                DigestingZip zip = null;
+                try (OutputStream sealed = SealedArchive.sealing(ownerMasterKey, out)) {
+                    zip = new DigestingZip(new ZipOutputStream(sealed));
                     result = writeArchive(c, domain, zip);
+                    // The manifest can only be written once every digest is
+                    // known, so it goes last — which is also why verification
+                    // needs its own pass before an import writes anything.
+                    zip.writeManifest();
+                    zip.zip().finish();
                 }
-                SealedArchive.seal(plain.toByteArray(), ownerMasterKey, out);
                 c.rollback(); // read-only snapshot
                 return result;
             } catch (Throwable t) {
@@ -65,8 +73,64 @@ public final class TenantExport {
         }
     }
 
-    private static ExportResult writeArchive(Connection c, String domain, ZipOutputStream zip)
+
+    /**
+     * Writes entries and digests them on the way past (#34, #35).
+     *
+     * <p>Digesting during the write is what lets the manifest exist without a
+     * second pass over the data: only names and digests accumulate, and those
+     * are kilobytes however large the tenant is.
+     */
+    static final class DigestingZip {
+        private final ZipOutputStream zip;
+        private final java.util.TreeMap<String, String> digests = new java.util.TreeMap<>();
+        private java.security.MessageDigest current;
+        private String currentName;
+
+        DigestingZip(ZipOutputStream zip) {
+            this.zip = zip;
+        }
+
+        ZipOutputStream zip() {
+            return zip;
+        }
+
+        void putNextEntry(ZipEntry entry) throws IOException {
+            zip.putNextEntry(entry);
+            currentName = entry.getName();
+            try {
+                current = java.security.MessageDigest.getInstance("SHA-256");
+            } catch (java.security.NoSuchAlgorithmException e) {
+                throw new IllegalStateException("SHA-256 unavailable", e);
+            }
+        }
+
+        void write(byte[] bytes) throws IOException {
+            zip.write(bytes);
+            current.update(bytes);
+        }
+
+        void closeEntry() throws IOException {
+            zip.closeEntry();
+            digests.put(currentName, ArchiveManifest.hex(current.digest()));
+            current = null;
+            currentName = null;
+        }
+
+        /** The last entry: everything before it, digested, and one root over all. */
+        void writeManifest() throws IOException {
+            java.util.List<ArchiveManifest.Entry> entries = new ArrayList<>();
+            digests.forEach((name, digest) -> entries.add(new ArchiveManifest.Entry(name, digest)));
+            ArchiveManifest manifest = new ArchiveManifest(entries, ArchiveManifest.rootOf(entries));
+            zip.putNextEntry(new ZipEntry(ArchiveManifest.MANIFEST_ENTRY));
+            zip.write(manifest.toJson().getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
+        }
+    }
+
+    private static ExportResult writeArchive(Connection c, String domain, DigestingZip out)
             throws SQLException, IOException {
+        DigestingZip zip = out;
         long fence;
         try (PreparedStatement ps = c.prepareStatement(
                 "SELECT COALESCE(max(seq), 0) FROM state.%s_outbox".formatted(domain));
