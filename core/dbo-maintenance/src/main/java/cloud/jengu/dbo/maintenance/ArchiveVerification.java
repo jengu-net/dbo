@@ -66,6 +66,76 @@ public final class ArchiveVerification {
         // Both, always. One signature proves the archive was produced; two
         // prove it was not produced by one party alone, which is the only
         // property worth having here.
+        requireBothSignatures(attestation, vendorPublicKey, tenantPublicKey);
+        return attestation.root();
+    }
+
+
+    /**
+     * Verifies without holding the archive (#35): digests every entry as it
+     * streams past, then compares against the digest list, which is the last
+     * entry precisely because it could not be written any earlier.
+     *
+     * <p>Reading to the end also reaches the GCM tag, so a truncated or
+     * altered archive fails here rather than during the import that follows.
+     */
+    public static String verifyStreaming(java.io.InputStream plain, ArchiveAttestation attestation,
+            byte[] vendorPublicKey, byte[] tenantPublicKey) throws IOException {
+        java.util.TreeMap<String, String> seen = new java.util.TreeMap<>();
+        String digestsJson = null;
+        try (ZipInputStream zip = new ZipInputStream(plain)) {
+            ZipEntry entry;
+            byte[] buffer = new byte[8192];
+            while ((entry = zip.getNextEntry()) != null) {
+                if (ArchiveManifest.MANIFEST_ENTRY.equals(entry.getName())) {
+                    digestsJson = new String(zip.readAllBytes(), StandardCharsets.UTF_8);
+                    continue;
+                }
+                java.security.MessageDigest digest;
+                try {
+                    digest = java.security.MessageDigest.getInstance("SHA-256");
+                } catch (java.security.NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("SHA-256 unavailable", e);
+                }
+                int n;
+                while ((n = zip.read(buffer)) != -1) {
+                    digest.update(buffer, 0, n);
+                }
+                seen.put(entry.getName(), ArchiveManifest.hex(digest.digest()));
+            }
+        }
+        if (digestsJson == null) {
+            throw new ArchiveRefusedException("the archive carries no digest list — nothing in it "
+                    + "was attested, so nothing in it can be trusted");
+        }
+        java.util.List<ArchiveManifest.Entry> declared = parseEntries(digestsJson);
+        for (ArchiveManifest.Entry item : declared) {
+            String actual = seen.get(item.name());
+            if (actual == null) {
+                throw new ArchiveRefusedException("the archive is missing " + item.name()
+                        + ", which the digest list says it contains");
+            }
+            if (!actual.equals(item.sha256())) {
+                throw new ArchiveRefusedException(item.name()
+                        + " does not match the digest list — its contents changed after export");
+            }
+        }
+        if (seen.size() != declared.size()) {
+            throw new ArchiveRefusedException("the archive carries entries nobody attested — "
+                    + "something was added after export");
+        }
+        java.util.List<ArchiveManifest.Entry> recomputed = new java.util.ArrayList<>();
+        seen.forEach((name, digest) -> recomputed.add(new ArchiveManifest.Entry(name, digest)));
+        if (!ArchiveManifest.rootOf(recomputed).equals(attestation.root())) {
+            throw new ArchiveRefusedException("the archive's contents do not produce the root "
+                    + "that was signed");
+        }
+        requireBothSignatures(attestation, vendorPublicKey, tenantPublicKey);
+        return attestation.root();
+    }
+
+    private static void requireBothSignatures(ArchiveAttestation attestation,
+            byte[] vendorPublicKey, byte[] tenantPublicKey) {
         if (!attestation.hasSignature(ArchiveAttestation.Party.VENDOR)) {
             throw new ArchiveRefusedException("no vendor signature — refusing an archive nobody "
                     + "admits to producing");
@@ -80,7 +150,6 @@ public final class ArchiveVerification {
         if (!attestation.verifiedBy(ArchiveAttestation.Party.TENANT, tenantPublicKey)) {
             throw new ArchiveRefusedException("the tenant signature does not verify");
         }
-        return attestation.root();
     }
 
     private static java.util.List<ArchiveManifest.Entry> parseEntries(String manifestJson) {
