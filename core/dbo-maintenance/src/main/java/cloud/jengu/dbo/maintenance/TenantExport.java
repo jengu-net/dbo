@@ -4,6 +4,8 @@ import org.postgresql.PGConnection;
 
 import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
+import cloud.jengu.dbo.core.api.TypeRegistration;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -14,6 +16,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -71,8 +74,29 @@ public final class TenantExport {
 
     public record ExportResult(long objectCount, long outboxFence) {}
 
+    /**
+     * Exports without type knowledge — every stored type travels.
+     *
+     * <p>Kept for callers that hold no registry. It cannot honour a type
+     * declared as never travelling, because it cannot tell one type from
+     * another; pass the registrations to get that guarantee
+     * (jengu-platform#870).
+     */
     public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
             OutputStream out) throws IOException {
+        return export(ds, domain, ownerMasterKey, out, List.of());
+    }
+
+    /**
+     * Exports, honouring each type's declared travel (jengu-platform#870).
+     *
+     * <p>A type whose handling says it never leaves is excluded from both
+     * representations — the portable NDJSON and the byte-faithful dumps — so
+     * "it cannot be placed in any archive" holds however the archive is read,
+     * rather than only in the half somebody remembered.
+     */
+    public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
+            OutputStream out, List<TypeRegistration> types) throws IOException {
         Names.requireDomain(domain);
         try (Connection c = ds.getConnection()) {
             c.setAutoCommit(false);
@@ -85,7 +109,7 @@ public final class TenantExport {
                 DigestingZip zip = null;
                 try (OutputStream sealed = SealedArchive.sealing(ownerMasterKey, out)) {
                     zip = new DigestingZip(new ZipOutputStream(sealed));
-                    result = writeArchive(c, domain, zip);
+                    result = writeArchive(c, domain, zip, grounded(types));
                     // The manifest can only be written once every digest is
                     // known, so it goes last — which is also why verification
                     // needs its own pass before an import writes anything.
@@ -204,8 +228,41 @@ public final class TenantExport {
         }
     }
 
-    private static ExportResult writeArchive(Connection c, String domain, DigestingZip out)
-            throws SQLException, IOException {
+    /**
+     * A COPY that leaves out the rows of types which never travel.
+     *
+     * <p>The byte-faithful dumps are whole tables, so honouring travel here
+     * means excluding rows rather than files. Without this the guarantee would
+     * hold in the portable representation and quietly fail in the other one,
+     * which is the worse of the two failures: the archive would look correct.
+     *
+     * <p>Type names are inlined because {@code TypeRegistration} validates them
+     * against {@code [A-Za-z][A-Za-z0-9]*} at construction — there is no route
+     * from user input to this string.
+     */
+    private static String copyOf(String qualifiedTable, Set<String> grounded) {
+        if (grounded.isEmpty()) {
+            return "COPY " + qualifiedTable + " TO STDOUT WITH (FORMAT csv)";
+        }
+        String excluded = grounded.stream().map(t -> "'" + t + "'")
+                .collect(java.util.stream.Collectors.joining(","));
+        return "COPY (SELECT * FROM " + qualifiedTable + " WHERE type NOT IN (" + excluded
+                + ")) TO STDOUT WITH (FORMAT csv)";
+    }
+
+    /** The type names that must not appear in any archive. */
+    private static Set<String> grounded(List<TypeRegistration> types) {
+        Set<String> never = new java.util.LinkedHashSet<>();
+        for (TypeRegistration type : types) {
+            if (!type.handling().travelsInBackup()) {
+                never.add(type.typeName());
+            }
+        }
+        return never;
+    }
+
+    private static ExportResult writeArchive(Connection c, String domain, DigestingZip out,
+            Set<String> grounded) throws SQLException, IOException {
         DigestingZip zip = out;
         long fence;
         try (PreparedStatement ps = c.prepareStatement(
@@ -223,7 +280,10 @@ public final class TenantExport {
                         .formatted(domain));
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                types.add(rs.getString(1));
+                String type = rs.getString(1);
+                if (!grounded.contains(type)) {
+                    types.add(type);
+                }
             }
         }
         long total = 0;
@@ -261,11 +321,11 @@ public final class TenantExport {
         // that costs disk beats an archive whose codes cannot be resolved.
         for (String table : stateTablesOf(c, domain)) {
             dumpInto(copy, zip, "fidelity/state." + table + ".csv",
-                    "COPY state.%s TO STDOUT WITH (FORMAT csv)".formatted(table),
+                    copyOf("state." + table, table.equals(domain + "_data") ? grounded : Set.of()),
                     table);
         }
         dumpInto(copy, zip, "fidelity/history." + domain + "_history.csv",
-                "COPY history.%s_history TO STDOUT WITH (FORMAT csv)".formatted(domain),
+                copyOf("history." + domain + "_history", grounded),
                 "history");
 
         // ---- §14 vault (present only under PDI): wrapped keys, HMAC index,

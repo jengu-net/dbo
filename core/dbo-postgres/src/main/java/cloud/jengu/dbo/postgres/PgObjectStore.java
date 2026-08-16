@@ -4,6 +4,7 @@ import cloud.jengu.dbo.core.TypeRegistry;
 import cloud.jengu.dbo.core.UuidV7;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.Envelope;
+import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.Identifier;
 import cloud.jengu.dbo.core.api.IdentityConflictException;
 import cloud.jengu.dbo.core.api.IdentityRef;
@@ -92,8 +93,18 @@ public final class PgObjectStore implements ObjectStore {
 
     @Override
     public PutResult put(PutRequest request) {
+        return put(request, Handling.Authority.TENANT_USERS);
+    }
+
+    /**
+     * A write that says who is making it. The default caller is
+     * {@code TENANT_USERS} — the least-privileged one — so a lane entitled to
+     * write data its tenant may not must say so, rather than inheriting the
+     * entitlement by being in-process.
+     */
+    public PutResult put(PutRequest request, Handling.Authority caller) {
         TypeRegistration type = registry.require(request.typeName());
-        return inTx(c -> writeObject(c, type, request));
+        return inTx(c -> writeObject(c, type, request, caller));
     }
 
     @Override
@@ -123,7 +134,51 @@ public final class PgObjectStore implements ObjectStore {
         });
     }
 
+    /**
+     * Refuses a write the type's declared handling forbids (jengu-platform#870).
+     *
+     * <p>The refusal names the rule. An opaque denial is indistinguishable from
+     * a bug, and the caller has no way to tell whether it asked wrongly or
+     * found one.
+     *
+     * <p><b>A restore passes.</b> Otherwise a backup containing an audit trail
+     * or a replicated vocabulary could never be restored, which would make
+     * these rules protect the data by losing it. The restore path is not open:
+     * it needs the owner master key and an archive both parties signed
+     * (ADR 0052), so the gate is cryptographic rather than absent.
+     */
+    private static void guardWrite(TypeRegistration type, PutRequest request,
+            boolean created, Handling.Authority caller) {
+        if (request.isRestore()) {
+            return;
+        }
+        Handling handling = type.handling();
+        if (handling.mutability() == Handling.Mutability.APPEND_ONLY && !created) {
+            throw new HandlingRefusedException(type.typeName(), "append-only",
+                    "it may be written once and never altered — by anyone, including us");
+        }
+        if (handling.mutability() == Handling.Mutability.READ_ONLY_HERE
+                && !handling.isWritableBy(caller)) {
+            throw new HandlingRefusedException(type.typeName(), "read-only-here",
+                    "it is published by " + handling.authority() + " and only that lane may "
+                            + "write it; an edit made here would be silently overwritten by the "
+                            + "next sync, or silently kept");
+        }
+    }
+
+    /** A write refused by a type's declared handling, saying which rule refused it. */
+    public static class HandlingRefusedException extends RuntimeException {
+        public HandlingRefusedException(String typeName, String rule, String because) {
+            super(typeName + ": refused by the " + rule + " rule — " + because);
+        }
+    }
+
     private PutResult writeObject(Connection c, TypeRegistration type, PutRequest request) throws SQLException {
+        return writeObject(c, type, request, Handling.Authority.TENANT_USERS);
+    }
+
+    private PutResult writeObject(Connection c, TypeRegistration type, PutRequest request,
+            Handling.Authority caller) throws SQLException {
         String id = request.id() != null ? request.id() : UuidV7.newId();
         UUID uuid = UUID.fromString(id);
         String d = type.domain();
@@ -137,6 +192,7 @@ public final class PgObjectStore implements ObjectStore {
         }
         long newVersion = current == null ? 1 : current + 1;
         boolean created = current == null;
+        guardWrite(type, request, created, caller);
         Instant now = Instant.now();
         if (request.carriesRecordedHistory()) {
             // Replaying a history that happened elsewhere: keep its version and
@@ -655,7 +711,25 @@ public final class PgObjectStore implements ObjectStore {
 
     @Override
     public void delete(String typeName, String id, Long expectedVersion) {
+        delete(typeName, id, expectedVersion, Handling.Authority.TENANT_USERS);
+    }
+
+    /** As {@link #delete(String, String, Long)}, saying who is asking. */
+    public void delete(String typeName, String id, Long expectedVersion,
+            Handling.Authority caller) {
         TypeRegistration type = registry.require(typeName);
+        Handling handling = type.handling();
+        if (handling.mutability() == Handling.Mutability.APPEND_ONLY) {
+            throw new HandlingRefusedException(typeName, "append-only",
+                    "it may be written once and never removed — what the system recorded about "
+                            + "who did what stays what it recorded");
+        }
+        if (handling.mutability() == Handling.Mutability.READ_ONLY_HERE
+                && !handling.isWritableBy(caller)) {
+            throw new HandlingRefusedException(typeName, "read-only-here",
+                    "it is published by " + handling.authority() + " and only that lane may "
+                            + "remove it");
+        }
         String d = type.domain();
         UUID uuid = UUID.fromString(id);
         inTx(c -> {
