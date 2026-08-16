@@ -183,6 +183,8 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-SYNC-PROVENANCE-COPIES | Streamed copies are read-only and provenance-tagged with source tenant and version; updates and retirements propagate through the same stream. (§6) |
 | REQ-DBO-SYNC-LOCAL-SHADOWING | A tenant's own object with the same base identity overrides the streamed copy — version-neutrally, across FHIR versions and business versions; removing the override falls back to the live upstream version. (§6, §12) |
 | REQ-DBO-SYNC-DIRECT-UPSTREAM-ONLY | A tenant declares dependencies only against its direct upstream; chains compose hop by hop. (§6) |
+| REQ-DBO-SYNC-SPEC-DECLARED | A tenant's content dependencies are part of its tenant spec (configuration); the runtime wires declared streams at bring-up and removes them when undeclared. (§6, dbo#30) |
+| REQ-DBO-SYNC-FULL-HISTORY-CATCH-UP | A newly declared dependency catches up from the upstream's full history; pre-existing content arrives the same way live changes do. (§6, dbo#30) |
 
 ## PROC — process catalogue & map
 

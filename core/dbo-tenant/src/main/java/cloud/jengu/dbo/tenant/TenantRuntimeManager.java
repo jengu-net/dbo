@@ -62,6 +62,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, javax.sql.DataSource> tenantDataSources = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.auth.IdentityHub> zoneHubs = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.policy.RetentionSweep> sweeps = new ConcurrentHashMap<>();
+    private final Map<String, java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine>> syncEngines =
+            new ConcurrentHashMap<>();
     private volatile long lastSweepMillis;
     private volatile Thread scanner;
     private volatile boolean running;
@@ -175,6 +177,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     private void bringUp(TenantSpec spec) {
+        // dbo#30: dependencies wire against the upstream's LIVE runtime —
+        // like the zone hub, an upstream that isn't up yet fails bring-up
+        // loudly and the scan loop retries once it is.
+        for (TenantSpec.Dependency dependency : spec.dependencies()) {
+            if (!runtimes.containsKey(dependency.name())) {
+                throw new IllegalStateException(spec.code() + ": upstream '" + dependency.name()
+                        + "' is not up yet — retrying on the next scan");
+            }
+        }
         TenantDatabaseProvisioner.TenantDatabase db = provisioner.provision(spec);
         tenantDataSources.put(spec.code(), db.dataSource());
         String base = baseUrl(spec.code());
@@ -239,7 +250,65 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             "/t/" + spec.code() + "/fhir", guard), spec), spec, engine));
         }
         runtimes.put(spec.code(), runtime);
+        wireDependencies(spec, runtime, db);
         listener.tenantUp(runtime);
+    }
+
+    /**
+     * dbo#30 (REQ-DBO-SYNC-SPEC-DECLARED): one stream engine per declared
+     * dependency, upstream feed → this tenant's store. The consumer id
+     * carries the DEPENDENT's code — the ack cursor lives in the upstream's
+     * feed, and two dependents of the same upstream must not share one. A
+     * fresh consumer starts at the feed's beginning, so a newly declared
+     * dependency catches up from full history
+     * (REQ-DBO-SYNC-FULL-HISTORY-CATCH-UP).
+     */
+    private void wireDependencies(TenantSpec spec, TenantRuntime runtime,
+            TenantDatabaseProvisioner.TenantDatabase db) {
+        if (spec.dependencies().isEmpty()) {
+            return;
+        }
+        boolean r4 = "r4".equals(spec.fhirVersion());
+        String domain = r4 ? R4Personality.DOMAIN : R5Personality.DOMAIN;
+        String payloadVersion = r4 ? "4.0" : "5.0";
+        java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> engines = new java.util.ArrayList<>();
+        for (TenantSpec.Dependency dependency : spec.dependencies()) {
+            TenantRuntime upstream = runtimes.get(dependency.name());
+            engines.add(new cloud.jengu.dbo.sync.ContentSyncEngine(
+                    new cloud.jengu.dbo.sync.ContentDependency(
+                            dependency.name(), dependency.types()),
+                    upstream.feed(), runtime.engine(), db.dataSource(),
+                    domain, payloadVersion,
+                    java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter()),
+                    "sync." + dependency.name() + "." + spec.code()));
+        }
+        syncEngines.put(spec.code(), java.util.List.copyOf(engines));
+    }
+
+    /**
+     * One sync round over every wired stream (declared changes applied,
+     * parked shadows re-attempted). The scan loop calls this continuously;
+     * tests call it for determinism. Returns events seen.
+     */
+    public int syncRound() {
+        int seen = 0;
+        for (java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> engines : syncEngines.values()) {
+            for (cloud.jengu.dbo.sync.ContentSyncEngine engine : engines) {
+                try {
+                    int events;
+                    do {
+                        events = engine.syncOnce(500);
+                        seen += events;
+                    } while (events > 0);
+                    engine.reconcile();
+                } catch (RuntimeException e) {
+                    // one stream's failure never blocks the others; the
+                    // next round retries from the acked cursor
+                    System.err.println("dbo-tenant: sync round failed: " + e);
+                }
+            }
+        }
+        return seen;
     }
 
     /**
@@ -376,6 +445,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         listener.tenantDown(code);
         runtime.endpoint().close();
         sweeps.remove(code);
+        syncEngines.remove(code);
         String oidcPath = authorityContexts.remove(code);
         if (oidcPath != null) {
             sharedServer.removeContext(oidcPath);
@@ -393,6 +463,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             while (running) {
                 try {
                     scanOnce();
+                    syncRound();
                     if (System.currentTimeMillis() - lastSweepMillis > 3_600_000) {
                         lastSweepMillis = System.currentTimeMillis();
                         sweeps.values().forEach(cloud.jengu.dbo.policy.RetentionSweep::sweepOnce);

@@ -50,14 +50,28 @@ public final class ContentSyncEngine {
     private final DataSource targetDs;
     private final String targetDomain;
     private final String targetPayloadVersion;
+    private final String consumer;
     private final Map<String, PayloadConverter> convertersByFrom = new LinkedHashMap<>();
 
     public ContentSyncEngine(ContentDependency dependency, ChangeFeed sourceFeed,
             ObjectStore targetStore, DataSource targetDataSource, String targetDomain,
             String targetPayloadVersion, List<PayloadConverter> converters) {
+        this(dependency, sourceFeed, targetStore, targetDataSource, targetDomain,
+                targetPayloadVersion, converters, null);
+    }
+
+    /**
+     * The ack cursor lives in the SOURCE feed keyed by consumer — when several
+     * dependents declare the same upstream, each needs its own consumer id or
+     * they share a cursor and split the event stream between them (dbo#30).
+     */
+    public ContentSyncEngine(ContentDependency dependency, ChangeFeed sourceFeed,
+            ObjectStore targetStore, DataSource targetDataSource, String targetDomain,
+            String targetPayloadVersion, List<PayloadConverter> converters, String consumer) {
         if (!DOMAIN.matcher(targetDomain).matches()) {
             throw new IllegalArgumentException("invalid domain: " + targetDomain);
         }
+        this.consumer = consumer;
         this.dependency = dependency;
         this.sourceFeed = sourceFeed;
         this.targetStore = targetStore;
@@ -71,7 +85,7 @@ public final class ContentSyncEngine {
     }
 
     private String consumer() {
-        return "sync." + dependency.name();
+        return consumer != null ? consumer : "sync." + dependency.name();
     }
 
     // -------------------------------------------------------------- syncing

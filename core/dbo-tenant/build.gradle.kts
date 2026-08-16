@@ -13,6 +13,7 @@ dependencies {
     implementation(project(":core:dbo-fhir-r4"))
     implementation(project(":core:dbo-fhir-r5"))
     implementation(project(":core:dbo-rest"))
+    implementation(project(":core:dbo-sync"))
     implementation(project(":core:dbo-auth"))
     implementation(project(":core:dbo-pdi"))
     api(project(":core:dbo-policy"))
