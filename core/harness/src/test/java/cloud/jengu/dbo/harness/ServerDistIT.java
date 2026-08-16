@@ -115,7 +115,6 @@ class ServerDistIT {
             k3s.stop();
         }
         if (postgres != null) {
-            postgres.stop();
         }
     }
 

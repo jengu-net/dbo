@@ -48,6 +48,7 @@ class DelegationIT {
     static final String ENGINE_SECRET = "engine-salajane-32-taht";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
@@ -62,12 +63,12 @@ class DelegationIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("DelegationIT");
         new SecureRandom().nextBytes(kek);
         dir = Files.createTempDirectory("dbo-delegation");
         provisioner = new LocalDatabasePerTenantProvisioner(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("esindus.json"), """
@@ -90,7 +91,7 @@ class DelegationIT {
                 .formatted(practitionerId)));
 
         org.postgresql.ds.PGSimpleDataSource ds = new org.postgresql.ds.PGSimpleDataSource();
-        String jdbcBase = postgres.getJdbcUrl().substring(0, postgres.getJdbcUrl().lastIndexOf('/') + 1);
+        String jdbcBase = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
         ds.setUrl(jdbcBase + "tenant_esindus");
         ds.setUser(postgres.getUsername());
         ds.setPassword(postgres.getPassword());
@@ -109,7 +110,6 @@ class DelegationIT {
     void down() {
         manager.close();
         provisioner.close();
-        postgres.stop();
     }
 
     private String base() {

@@ -41,16 +41,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FeedIT {
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static DataSource ds;
     static PgObjectStore store;
     static ChangeFeed feed;
 
     @BeforeAll
     void up() {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("FeedIT");
         PGSimpleDataSource pg = new PGSimpleDataSource();
-        pg.setUrl(postgres.getJdbcUrl());
+        pg.setUrl(jdbcUrl);
         pg.setUser(postgres.getUsername());
         pg.setPassword(postgres.getPassword());
         ds = pg;
@@ -60,7 +61,6 @@ class FeedIT {
 
     @AfterAll
     void down() {
-        postgres.stop();
     }
 
     private static byte[] gadget(String serial, String vendor, String name, int weight) {

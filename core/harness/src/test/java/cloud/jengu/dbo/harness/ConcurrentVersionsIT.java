@@ -33,15 +33,16 @@ class ConcurrentVersionsIT {
     static final String EID = "https://ee.ee/eid";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static R4Store r4;
     static R5Store r5;
 
     @BeforeAll
     void up() {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("ConcurrentVersionsIT");
         PGSimpleDataSource pg = new PGSimpleDataSource();
-        pg.setUrl(postgres.getJdbcUrl());
+        pg.setUrl(jdbcUrl);
         pg.setUser(postgres.getUsername());
         pg.setPassword(postgres.getPassword());
 
@@ -59,7 +60,6 @@ class ConcurrentVersionsIT {
 
     @AfterAll
     void down() {
-        postgres.stop();
     }
 
     private static String patient(String eid, String family) {

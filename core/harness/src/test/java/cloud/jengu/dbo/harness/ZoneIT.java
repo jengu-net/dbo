@@ -60,6 +60,7 @@ class ZoneIT {
     static final String REDIRECT = "http://127.0.0.1/cb";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
@@ -73,14 +74,14 @@ class ZoneIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("ZoneIT");
         new SecureRandom().nextBytes(kek);
         stubBrokers = stubBrokerPair();
 
         dir = Files.createTempDirectory("dbo-zone");
         provisioner = new LocalDatabasePerTenantProvisioner(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null, null, null,
                         Map.of("tara", "tara-salajane", "eeid", "eeid-salajane")));
@@ -135,7 +136,6 @@ class ZoneIT {
         if (stubBrokers != null) {
             stubBrokers.stop(0);
         }
-        postgres.stop();
     }
 
     /** Two national brokers on one stub server: /tara/* and /eeid/*. */
@@ -206,7 +206,7 @@ class ZoneIT {
 
     private static org.postgresql.ds.PGSimpleDataSource tenantDs(String code) {
         org.postgresql.ds.PGSimpleDataSource ds = new org.postgresql.ds.PGSimpleDataSource();
-        String jdbcBase = postgres.getJdbcUrl().substring(0, postgres.getJdbcUrl().lastIndexOf('/') + 1);
+        String jdbcBase = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
         ds.setUrl(jdbcBase + "tenant_" + code);
         ds.setUser(postgres.getUsername());
         ds.setPassword(postgres.getPassword());

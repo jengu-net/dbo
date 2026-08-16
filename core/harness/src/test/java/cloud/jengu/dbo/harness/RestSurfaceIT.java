@@ -36,6 +36,7 @@ class RestSurfaceIT {
     static final String EID = "https://ee.ee/eid";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static FhirHttpServer r4Server;
     static FhirHttpServer r5Server;
     static R4Terminology terminologyIngest;
@@ -44,10 +45,10 @@ class RestSurfaceIT {
 
     @BeforeAll
     void up() {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("RestSurfaceIT");
         PGSimpleDataSource pg = new PGSimpleDataSource();
-        pg.setUrl(postgres.getJdbcUrl());
+        pg.setUrl(jdbcUrl);
         pg.setUser(postgres.getUsername());
         pg.setPassword(postgres.getPassword());
 
@@ -79,7 +80,6 @@ class RestSurfaceIT {
     void down() {
         r4Server.close();
         r5Server.close();
-        postgres.stop();
     }
 
     private static int freePort() {

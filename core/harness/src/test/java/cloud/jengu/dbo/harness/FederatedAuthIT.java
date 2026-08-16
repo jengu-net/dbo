@@ -56,6 +56,7 @@ class FederatedAuthIT {
     static final String REDIRECT = "http://127.0.0.1/cb";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
@@ -69,14 +70,14 @@ class FederatedAuthIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("FederatedAuthIT");
         new SecureRandom().nextBytes(kek);
         stubBroker = stubNationalBroker();
 
         dir = Files.createTempDirectory("dbo-federated");
         provisioner = new LocalDatabasePerTenantProvisioner(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null,
                         new IdentityHub.Upstream(
@@ -120,7 +121,6 @@ class FederatedAuthIT {
         if (stubBroker != null) {
             stubBroker.stop(0);
         }
-        postgres.stop();
     }
 
     /** A minimal national broker: OIDC discovery, auto-approving authorize, id_token. */
@@ -190,7 +190,7 @@ class FederatedAuthIT {
 
     private TenantAuthority sideAuthority(String code) throws Exception {
         org.postgresql.ds.PGSimpleDataSource ds = new org.postgresql.ds.PGSimpleDataSource();
-        String jdbcBase = postgres.getJdbcUrl().substring(0, postgres.getJdbcUrl().lastIndexOf('/') + 1);
+        String jdbcBase = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
         ds.setUrl(jdbcBase + "tenant_" + code);
         ds.setUser(postgres.getUsername());
         ds.setPassword(postgres.getPassword());

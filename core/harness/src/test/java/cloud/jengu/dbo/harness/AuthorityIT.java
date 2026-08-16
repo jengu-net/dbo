@@ -44,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AuthorityIT {
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
@@ -52,12 +53,12 @@ class AuthorityIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("AuthorityIT");
         new SecureRandom().nextBytes(kek);
         dir = Files.createTempDirectory("dbo-authority");
         provisioner = new LocalDatabasePerTenantProvisioner(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("yks.json"), """
@@ -71,7 +72,6 @@ class AuthorityIT {
     void down() {
         manager.close();
         provisioner.close();
-        postgres.stop();
     }
 
     private String oidc(String code) {

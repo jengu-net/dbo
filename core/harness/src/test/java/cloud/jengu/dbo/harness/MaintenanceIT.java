@@ -41,6 +41,7 @@ class MaintenanceIT {
     static final byte[] WRONG_KEY = ownerKey();
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static PGSimpleDataSource dsA;
     static PGSimpleDataSource dsB;
     static PGSimpleDataSource dsC;
@@ -59,16 +60,16 @@ class MaintenanceIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("MaintenanceIT");
         try (Connection c = DriverManager.getConnection(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
              var st = c.createStatement()) {
             st.execute("CREATE DATABASE mnt_a");
             st.execute("CREATE DATABASE mnt_b");
             st.execute("CREATE DATABASE mnt_c");
         }
-        String baseUrl = postgres.getJdbcUrl().substring(0, postgres.getJdbcUrl().lastIndexOf('/') + 1);
+        String baseUrl = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
         dsA = ds(baseUrl + "mnt_a");
         dsB = ds(baseUrl + "mnt_b");
         dsC = ds(baseUrl + "mnt_c");
@@ -102,7 +103,6 @@ class MaintenanceIT {
 
     @AfterAll
     void down() {
-        postgres.stop();
     }
 
     private static PGSimpleDataSource ds(String url) {

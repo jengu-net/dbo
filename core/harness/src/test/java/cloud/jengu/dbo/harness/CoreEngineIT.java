@@ -44,15 +44,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CoreEngineIT {
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static DataSource ds;
     static PgObjectStore store;
 
     @BeforeAll
     void up() {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("CoreEngineIT");
         PGSimpleDataSource pg = new PGSimpleDataSource();
-        pg.setUrl(postgres.getJdbcUrl());
+        pg.setUrl(jdbcUrl);
         pg.setUser(postgres.getUsername());
         pg.setPassword(postgres.getPassword());
         ds = pg;
@@ -61,7 +62,6 @@ class CoreEngineIT {
 
     @AfterAll
     void down() {
-        postgres.stop();
     }
 
     private static byte[] gadget(String serial, String vendor, String name, int weight) {

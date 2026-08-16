@@ -26,6 +26,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # the test reporter writes a check run and annotates failing lines
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v5
@@ -45,6 +50,24 @@ jobs:
           fi
       - name: Build and test core
         run: ./gradlew build ${{ steps.version.outputs.gradle_args }}
+      # Gradle already writes JUnit XML; these two steps make it readable
+      # WITHOUT scrolling the log (the CI-parity rule: verdicts, not logs).
+      # Both run on failure too — that is the case worth reading.
+      - name: Publish test results
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: "**/build/test-results/**/TEST-*.xml"
+          detailed_summary: true
+          include_passed: false
+          check_name: dbo suite
+      - name: Upload HTML test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: "**/build/reports/tests/**"
+          retention-days: 7
     outputs:
       gradle_args: ${{ steps.version.outputs.gradle_args }}
       image_tag: ${{ steps.version.outputs.image_tag }}

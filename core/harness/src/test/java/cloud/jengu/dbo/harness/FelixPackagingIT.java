@@ -23,7 +23,7 @@ class FelixPackagingIT {
     @Test
     void coreAndPostgresJarsResolveAsBundlesInFelix() throws Exception {
         Map<String, String> config = new HashMap<>();
-        config.put("org.osgi.framework.storage", Files.createTempDirectory("dbo-felix").toString());
+        config.put("org.osgi.framework.storage", FelixStorage.directory("dbo-felix"));
         config.put("org.osgi.framework.storage.clean", "onFirstInit");
 
         Framework framework = ServiceLoader.load(FrameworkFactory.class).findFirst().orElseThrow()

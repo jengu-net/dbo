@@ -44,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TopicSubscriptionsIT {
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static R5Store r5;
     static PgObjectStore r5Engine;
     static SubscriptionEngine engine5;
@@ -60,15 +61,15 @@ class TopicSubscriptionsIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("TopicSubscriptionsIT");
         try (Connection c = DriverManager.getConnection(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
              var st = c.createStatement()) {
             st.execute("CREATE DATABASE topic_r5");
             st.execute("CREATE DATABASE topic_r4");
         }
-        String baseUrl = postgres.getJdbcUrl().substring(0, postgres.getJdbcUrl().lastIndexOf('/') + 1);
+        String baseUrl = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
 
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/", exchange -> {
@@ -123,7 +124,6 @@ class TopicSubscriptionsIT {
         if (engine5 != null) engine5.close();
         if (engine4 != null) engine4.close();
         if (server != null) server.stop(0);
-        postgres.stop();
     }
 
     private static PGSimpleDataSource ds(String url) {

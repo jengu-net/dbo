@@ -54,6 +54,7 @@ class HumanAuthIT {
     static final String REDIRECT = "http://127.0.0.1/cb";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
@@ -69,12 +70,12 @@ class HumanAuthIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("HumanAuthIT");
         new SecureRandom().nextBytes(kek);
         dir = Files.createTempDirectory("dbo-human");
         provisioner = new LocalDatabasePerTenantProvisioner(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
         provisioner.rpRedirectUris(List.of(REDIRECT));
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
@@ -117,12 +118,11 @@ class HumanAuthIT {
     void down() {
         manager.close();
         provisioner.close();
-        postgres.stop();
     }
 
     private static org.postgresql.ds.PGSimpleDataSource tenantDs(String code) throws Exception {
         org.postgresql.ds.PGSimpleDataSource ds = new org.postgresql.ds.PGSimpleDataSource();
-        String base = postgres.getJdbcUrl().substring(0, postgres.getJdbcUrl().lastIndexOf('/') + 1);
+        String base = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
         ds.setUrl(base + "tenant_" + code);
         ds.setUser(postgres.getUsername());
         ds.setPassword(postgres.getPassword());

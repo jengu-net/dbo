@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SpecDeclaredSyncIT {
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
@@ -43,11 +44,11 @@ class SpecDeclaredSyncIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("SpecDeclaredSyncIT");
         dir = Files.createTempDirectory("dbo-sync-tenants");
         provisioner = new LocalDatabasePerTenantProvisioner(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
     }
 
@@ -55,7 +56,6 @@ class SpecDeclaredSyncIT {
     void down() {
         manager.close();
         provisioner.close();
-        postgres.stop();
     }
 
     private static final String CANONICAL_TYPES = """
@@ -65,18 +65,18 @@ class SpecDeclaredSyncIT {
     private static String dependentSpec(String code) {
         return """
                 {"code":"%s","fhirVersion":"r4","types":%s,
-                 "dependencies":[{"name":"ee","types":["CodeSystem"]}]}"""
+                 "dependencies":[{"name":"sync-ee","types":["CodeSystem"]}]}"""
                 .formatted(code, CANONICAL_TYPES);
     }
 
     @Test
     @Order(1)
     void theZoneTenantHoldsContentFromBeforeAnyDependentExists() throws Exception {
-        Files.writeString(dir.resolve("ee.json"),
+        Files.writeString(dir.resolve("sync-ee.json"),
                 """
-                {"code":"ee","fhirVersion":"r4","types":%s}""".formatted(CANONICAL_TYPES));
+                {"code":"sync-ee","fhirVersion":"r4","types":%s}""".formatted(CANONICAL_TYPES));
         manager.scanOnce();
-        HttpResponse<String> created = post(manager.baseUrl("ee") + "/CodeSystem",
+        HttpResponse<String> created = post(manager.baseUrl("sync-ee") + "/CodeSystem",
                 """
                 {"resourceType":"CodeSystem","url":"https://ee.ee/cs/colors",
                  "status":"active","content":"complete",
@@ -85,7 +85,7 @@ class SpecDeclaredSyncIT {
         String location = created.headers().firstValue("Location").orElseThrow();
         codeSystemId = location.substring(location.lastIndexOf('/') + 1);
         // an undeclared type in the same store — must never stream
-        assertEquals(201, post(manager.baseUrl("ee") + "/ValueSet",
+        assertEquals(201, post(manager.baseUrl("sync-ee") + "/ValueSet",
                 """
                 {"resourceType":"ValueSet","url":"https://ee.ee/vs/greens",
                  "status":"active"}""").statusCode());
@@ -94,37 +94,33 @@ class SpecDeclaredSyncIT {
     @Test
     @Order(2)
     void aSpecDeclaredDependentCatchesUpFromFullHistory() throws Exception {
-        Files.writeString(dir.resolve("hogwarts.json"), dependentSpec("hogwarts"));
+        Files.writeString(dir.resolve("sync-hogwarts.json"), dependentSpec("sync-hogwarts"));
         manager.scanOnce();
-        manager.syncRound();
-        HttpResponse<String> copy = get(manager.baseUrl("hogwarts") + "/CodeSystem/" + codeSystemId);
-        assertEquals(200, copy.statusCode(), copy.body());
-        assertTrue(copy.body().contains("green"), copy.body());
+        String copy = awaitCopy("sync-hogwarts", "green");
+        assertTrue(copy.contains("green"), copy);
         // REQ-DBO-SYNC-DECLARED-ONLY at the spec grain: ValueSet undeclared
         HttpResponse<String> undeclared = get(
-                manager.baseUrl("hogwarts") + "/ValueSet?_summary=count");
+                manager.baseUrl("sync-hogwarts") + "/ValueSet?_summary=count");
         assertTrue(undeclared.body().contains("\"total\":0"), undeclared.body());
     }
 
     @Test
     @Order(3)
     void aSecondDependentReceivesTheWholeStreamToo() throws Exception {
-        Files.writeString(dir.resolve("beauxbatons.json"), dependentSpec("beauxbatons"));
+        Files.writeString(dir.resolve("sync-beauxbatons.json"), dependentSpec("sync-beauxbatons"));
         manager.scanOnce();
-        manager.syncRound();
         // a shared ack cursor on the upstream feed would have starved this
         // tenant — hogwarts already acked past the event
+        awaitCopy("sync-beauxbatons", "green");
         assertEquals(200,
-                get(manager.baseUrl("beauxbatons") + "/CodeSystem/" + codeSystemId).statusCode());
-        assertEquals(200,
-                get(manager.baseUrl("hogwarts") + "/CodeSystem/" + codeSystemId).statusCode());
+                get(manager.baseUrl("sync-hogwarts") + "/CodeSystem/" + codeSystemId).statusCode());
     }
 
     @Test
     @Order(4)
     void liveUpdatesKeepPropagating() throws Exception {
         HttpResponse<String> updated = http.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl("ee") + "/CodeSystem/" + codeSystemId))
+                        URI.create(manager.baseUrl("sync-ee") + "/CodeSystem/" + codeSystemId))
                         .header("Content-Type", "application/fhir+json")
                         .PUT(HttpRequest.BodyPublishers.ofString("""
                                 {"resourceType":"CodeSystem","url":"https://ee.ee/cs/colors",
@@ -132,17 +128,36 @@ class SpecDeclaredSyncIT {
                                  "concept":[{"code":"green"},{"code":"crimson"}]}""")).build(),
                 HttpResponse.BodyHandlers.ofString());
         assertTrue(updated.statusCode() < 300, updated.body());
-        manager.syncRound();
-        HttpResponse<String> copy = get(manager.baseUrl("hogwarts") + "/CodeSystem/" + codeSystemId);
-        assertTrue(copy.body().contains("crimson"), copy.body());
+        assertTrue(awaitCopy("sync-hogwarts", "crimson").contains("crimson"));
+    }
+
+    /**
+     * The feed only publishes events its snapshot considers settled, so a
+     * single round after a write proves nothing — poll until the copy
+     * carries what we are waiting for (the timing-immunity rule).
+     */
+    private String awaitCopy(String tenant, String expected) throws Exception {
+        long deadline = System.currentTimeMillis() + 60_000;
+        String body = "";
+        while (System.currentTimeMillis() < deadline) {
+            manager.syncRound();
+            HttpResponse<String> copy =
+                    get(manager.baseUrl(tenant) + "/CodeSystem/" + codeSystemId);
+            body = copy.body();
+            if (copy.statusCode() == 200 && body.contains(expected)) {
+                return body;
+            }
+            Thread.sleep(250);
+        }
+        throw new AssertionError(tenant + " never received '" + expected + "': " + body);
     }
 
     @Test
     @Order(5)
     void retractingTheSpecRemovesTheStream() throws Exception {
-        Files.delete(dir.resolve("hogwarts.json"));
+        Files.delete(dir.resolve("sync-hogwarts.json"));
         manager.scanOnce();
-        assertTrue(!manager.codes().contains("hogwarts"));
+        assertTrue(!manager.codes().contains("sync-hogwarts"));
         // the retracted tenant's stream is gone; the remaining one still rounds
         manager.syncRound();
     }

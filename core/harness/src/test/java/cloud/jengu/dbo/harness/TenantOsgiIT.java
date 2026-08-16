@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TenantOsgiIT {
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static Framework framework;
     static Path dir;
     static int httpPort;
@@ -43,8 +44,8 @@ class TenantOsgiIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("TenantOsgiIT");
         dir = Files.createTempDirectory("dbo-tenants-osgi");
         try (var socket = new java.net.ServerSocket(0)) {
             httpPort = socket.getLocalPort();
@@ -52,12 +53,12 @@ class TenantOsgiIT {
 
         Map<String, String> config = new HashMap<>();
         config.put("org.osgi.framework.storage",
-                Files.createTempDirectory("dbo-tenant-felix").toString());
+                FelixStorage.directory("dbo-tenant-felix"));
         config.put("org.osgi.framework.storage.clean", "onFirstInit");
         config.put("dbo.tenant.dir", dir.toString());
         config.put("dbo.tenant.http.host", "127.0.0.1");
         config.put("dbo.tenant.http.port", String.valueOf(httpPort));
-        config.put("dbo.tenant.admin.url", postgres.getJdbcUrl());
+        config.put("dbo.tenant.admin.url", jdbcUrl);
         config.put("dbo.tenant.admin.user", postgres.getUsername());
         config.put("dbo.tenant.admin.password", postgres.getPassword());
 
@@ -84,7 +85,6 @@ class TenantOsgiIT {
             framework.stop();
             framework.waitForStop(20_000);
         }
-        postgres.stop();
     }
 
     @Test
