@@ -63,6 +63,9 @@ jobs:
           # empty table cannot tell you whether it tested anything
           include_passed: true
           group_suite: true
+          # durations make the critical path obvious — the suite runs its
+          # classes concurrently, so the slowest class IS the wall clock
+          include_time_in_summary: true
           check_name: dbo suite
       - name: Upload HTML test reports
         if: failure()
