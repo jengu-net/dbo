@@ -140,8 +140,12 @@ public final class R4Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
 
     @Override
     public String read(String typeName, String id) {
+        // Rendered, not served raw (dbo#29): the payload is the truth and
+        // carries no id, so a direct read would hand back a resource the
+        // client cannot reference — while the same object in a search hit
+        // has one.
         return store.get(typeName, id)
-                .map(o -> new String(o.payload(), StandardCharsets.UTF_8))
+                .map(personality::toResourceJson)
                 .orElse(null);
     }
 

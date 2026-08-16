@@ -81,6 +81,33 @@ class FhirR4IT {
                 .formatted(code, patientId, effective, value);
     }
 
+    /**
+     * dbo#29: a read hands back a resource a client can actually use.
+     *
+     * <p>The payload is the truth and carries no id — a create without one in
+     * the body is stored exactly as sent. But serving that back verbatim gave
+     * the same object an id in a search hit and none when fetched directly,
+     * so a client could find a resource and then not be able to reference it.
+     * It cost the platform an hour disguised as an empty {@code sub} claim,
+     * and it is what a store migration's per-object verification stands on.
+     */
+    @Test
+    void aReadCarriesTheIdAndVersionTheEnvelopeKnows() {
+        PutResult created = fhir.create(patient("37505050000", "Loed", "Tiit"));
+
+        String read = fhir.read("Patient", created.id());
+
+        assertTrue(read.contains("\"id\":\"" + created.id() + "\""),
+                "read must carry Resource.id — a resource without one cannot be referenced: " + read);
+        assertTrue(read.contains("\"versionId\""),
+                "read must carry meta.versionId, as the bundle paths always have: " + read);
+
+        // the same object, found two ways, agrees about what it is
+        String searched = fhir.search("Patient",
+                Map.of("identifier", EID + "|37505050000"), null);
+        assertTrue(searched.contains(created.id()));
+    }
+
     /** Patient round-trips; token identifier search and exact string search hit. */
     @Test
     void patientIsFoundByIdentifierTokenAndByFamilyString() {
