@@ -114,6 +114,16 @@ move from schema-poking SQL to DBO's erasure/feed APIs.
 
 **Phase 4 — decommission.** Remove the Medplum client layer, the vmcontext Bot
 config, the rotation CronJob, the baseline tooling; retire the pinned image.
+The separate jengu-bootstrap Job (ADR 0004) dissolves here too: its privilege
+half existed to keep Medplum's master credential out of the runtime, and the
+DBO world has no such credential — the operator holds the scoped provisioner
+role, serving pods hold per-tenant credentials, and the config-materialisation
+lane runs on per-tenant `tenant-bootstrap` M2M clients plus one narrow k8s
+RBAC grant (create on TenantRegistration). ADR 0004's concern becomes
+structural instead of procedural — which also retires the #24 gap, where the
+prod deployment ran the main container as ADMIN anyway. Until then the Job
+stays: every one of its Medplum-super-admin reasons is live for as long as
+Medplum stores clinical data.
 
 ## What must be re-proven at parity (phase 1 exit criteria)
 
