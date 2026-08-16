@@ -250,6 +250,29 @@ public final class TenantExport {
                 + ")) TO STDOUT WITH (FORMAT csv)";
     }
 
+    /**
+     * The object's identity codes as a JSON array — the answer to "which thing
+     * is this?" for a reader who cannot resolve our ids (ADR 0050).
+     *
+     * <p>Several, not one: a corrected code becomes a new claim and the
+     * previous value stays resolvable, so an object matched by an older code
+     * is still matched.
+     */
+    private static String identityCodes(String aggregated) {
+        if (aggregated == null || aggregated.isEmpty()) {
+            return "[]";
+        }
+        StringBuilder codes = new StringBuilder("[");
+        String[] parts = aggregated.split("\u001f");
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) {
+                codes.append(',');
+            }
+            codes.append(Names.quote(parts[i]));
+        }
+        return codes.append(']').toString();
+    }
+
     /** The type names that must not appear in any archive. */
     private static Set<String> grounded(List<TypeRegistration> types) {
         Set<String> never = new java.util.LinkedHashSet<>();
@@ -290,19 +313,29 @@ public final class TenantExport {
         for (String type : types) {
             zip.putNextEntry(new ZipEntry("state/" + type + ".ndjson"));
             long n = 0;
+            // The identity codes travel beside the object, never inside it.
+            // Rewriting a payload to carry them would change the bytes the
+            // version chain and both signatures are over (ADR 0052) — the
+            // archive would arrive self-contradicting. Alongside, a reader who
+            // knows nothing of our ids can still say which thing this is.
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT id, version_id, payload_version, last_updated, payload
-                    FROM state.%s_data WHERE type = ? AND NOT deleted ORDER BY id"""
-                    .formatted(domain))) {
+                    SELECT d.id, d.version_id, d.payload_version, d.last_updated, d.payload,
+                           COALESCE((SELECT string_agg(i.system || '|' || i.value, '\u001f'
+                                                       ORDER BY i.system, i.value)
+                                     FROM state.%s_identifier i
+                                     WHERE i.object_id = d.id AND i.identity), '')
+                    FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted ORDER BY d.id"""
+                    .formatted(domain, domain))) {
                 ps.setString(1, type);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        String line = "{\"t\":%s,\"id\":%s,\"v\":%d,\"pv\":%s,\"lu\":%s,\"resource\":%s}\n"
+                        String line = "{\"t\":%s,\"id\":%s,\"v\":%d,\"pv\":%s,\"lu\":%s,\"ic\":%s,\"resource\":%s}\n"
                                 .formatted(Names.quote(type),
                                         Names.quote(rs.getObject(1).toString()),
                                         rs.getLong(2),
                                         Names.quote(rs.getString(3)),
                                         Names.quote(rs.getTimestamp(4).toInstant().toString()),
+                                        identityCodes(rs.getString(6)),
                                         Names.flatten(new String(rs.getBytes(5), StandardCharsets.UTF_8)));
                         zip.write(line.getBytes(StandardCharsets.UTF_8));
                         n++;
