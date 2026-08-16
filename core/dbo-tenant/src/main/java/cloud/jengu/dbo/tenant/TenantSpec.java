@@ -29,10 +29,12 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
         this(code, fhirVersion, types, pdi, cloud.jengu.dbo.policy.TenantPolicies.defaults());
     }
 
-    // The platform's tenant-code contract: DNS-label-shaped, up to 63
-    // chars (jengu-platform#848 — story tenants carry story+timestamp+nonce
-    // for attributability). Underscores stay accepted for existing specs.
-    private static final Pattern CODE = Pattern.compile("[a-z][a-z0-9_-]{0,62}");
+    // The platform's tenant-code contract: lowercase label, hyphens, no
+    // fixed length cap on the platform side (story tenants carry
+    // story+timestamp+nonce and reach ~70 chars — jengu-platform#848).
+    // 128 is generous headroom; databaseName() folds ANY length into a
+    // Postgres-safe identifier. Underscores stay accepted for old specs.
+    private static final Pattern CODE = Pattern.compile("[a-z][a-z0-9_-]{0,127}");
 
     public TenantSpec {
         if (code == null || !CODE.matcher(code).matches()) {
