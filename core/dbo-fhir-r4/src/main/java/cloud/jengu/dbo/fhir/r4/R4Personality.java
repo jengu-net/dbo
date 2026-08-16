@@ -495,6 +495,33 @@ public final class R4Personality {
         });
     }
 
+    /**
+     * One stored object rendered as the FHIR resource a client expects:
+     * the stored payload with its envelope {@code id} and
+     * {@code meta.versionId} put back (dbo#29).
+     *
+     * <p>The payload is the truth and does not carry them — a create without
+     * an id in the body is stored exactly as sent, which is the point. But a
+     * resource served without {@code Resource.id} is not a FHIR resource a
+     * client can use: it cannot be referenced, re-read, or matched to what
+     * the search that found it returned. The bundle paths have always put
+     * both back; read did not, so the same object had an id in a search hit
+     * and none when fetched directly.
+     *
+     * <p>Costs a parse and a re-serialise on every read. That is the price of
+     * payload-is-truth, and it is the same price the bundle framing already
+     * pays for every entry.
+     */
+    public String toResourceJson(StoredObject stored) {
+        return withTccl(() -> {
+            Resource resource = (Resource) ctx().newJsonParser()
+                    .parseResource(new String(stored.payload(), StandardCharsets.UTF_8));
+            resource.setId(stored.id());
+            resource.getMeta().setVersionId(Long.toString(stored.versionId()));
+            return ctx().newJsonParser().encodeResourceToString(resource);
+        });
+    }
+
     // ------------------------------------------------------- bundle framing
 
     /**
