@@ -271,7 +271,11 @@ public final class TenantImport {
         }
         String statePrefix = "state." + domain + "_";
         String historyPrefix = "history." + domain + "_";
-        if (!archiveName.startsWith(statePrefix) && !archiveName.startsWith(historyPrefix)) {
+        // Terminology is tenant-scoped rather than domain-scoped: one vocabulary
+        // serves every domain in the tenant, so it carries no domain prefix.
+        boolean terminology = archiveName.startsWith("state.term_");
+        if (!terminology && !archiveName.startsWith(statePrefix)
+                && !archiveName.startsWith(historyPrefix)) {
             throw new IllegalArgumentException("unexpected fidelity table: " + archiveName);
         }
         String suffix = archiveName.substring(archiveName.indexOf('_') + 1);

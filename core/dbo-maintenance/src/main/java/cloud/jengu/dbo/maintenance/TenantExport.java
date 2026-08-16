@@ -33,8 +33,39 @@ import java.util.zip.ZipOutputStream;
  */
 public final class TenantExport {
 
-    private static final List<String> STATE_TABLES =
-            List.of("data", "identifier", "reference", "outbox", "consumer");
+    /**
+     * The fidelity dumps cover <b>every</b> table in the {@code state} schema
+     * that belongs to this tenant, discovered rather than listed.
+     *
+     * <p>A hand-maintained list drifts from what it describes, silently, in
+     * the direction that loses data: it carried five of the ten domain tables,
+     * so a backup restored the delivery cursor while dropping the dead-letter
+     * queues, the replication bookkeeping and the terminology store — and
+     * nothing said so, because a missing table looks exactly like a table that
+     * was never there.
+     *
+     * <p>Discovery defaults to including. A backup carrying something it did
+     * not need is recoverable; one that silently omitted something is not.
+     * Where a class of data genuinely must not travel, that is a declared
+     * property of the type rather than an omission from a list
+     * (jengu-platform#870).
+     */
+    private static List<String> stateTablesOf(Connection c, String domain) throws SQLException {
+        List<String> tables = new ArrayList<>();
+        try (PreparedStatement ps = c.prepareStatement("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'state'
+                  AND (table_name LIKE ? OR table_name LIKE 'term\\_%')
+                ORDER BY table_name""")) {
+            ps.setString(1, domain + "\\_%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    tables.add(rs.getString(1));
+                }
+            }
+        }
+        return tables;
+    }
 
     private TenantExport() {}
 
@@ -225,9 +256,12 @@ public final class TenantExport {
 
         // ---- byte-faithful fidelity element: COPY dumps of state + history
         var copy = c.unwrap(PGConnection.class).getCopyAPI();
-        for (String table : STATE_TABLES) {
-            dumpInto(copy, zip, "fidelity/state." + domain + "_" + table + ".csv",
-                    "COPY state.%s_%s TO STDOUT WITH (FORMAT csv)".formatted(domain, table),
+        // The terminology tables are tenant-scoped rather than domain-scoped, so
+        // a tenant serving two domains repeats them in each archive. Duplication
+        // that costs disk beats an archive whose codes cannot be resolved.
+        for (String table : stateTablesOf(c, domain)) {
+            dumpInto(copy, zip, "fidelity/state." + table + ".csv",
+                    "COPY state.%s TO STDOUT WITH (FORMAT csv)".formatted(table),
                     table);
         }
         dumpInto(copy, zip, "fidelity/history." + domain + "_history.csv",
