@@ -59,7 +59,10 @@ jobs:
         with:
           report_paths: "**/build/test-results/**/TEST-*.xml"
           detailed_summary: true
-          include_passed: false
+          # list what RAN, not only what broke — a green run that shows an
+          # empty table cannot tell you whether it tested anything
+          include_passed: true
+          group_suite: true
           check_name: dbo suite
       - name: Upload HTML test reports
         if: failure()
