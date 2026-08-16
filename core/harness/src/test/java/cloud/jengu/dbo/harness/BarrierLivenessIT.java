@@ -30,20 +30,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BarrierLivenessIT {
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static PGSimpleDataSource tenantDs;
     static Connection pinner;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("BarrierLivenessIT");
         try (Connection c = DriverManager.getConnection(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
              var st = c.createStatement()) {
             st.execute("CREATE DATABASE barrier_tenant");
             st.execute("CREATE DATABASE barrier_foreign");
         }
-        String baseUrl = postgres.getJdbcUrl().substring(0, postgres.getJdbcUrl().lastIndexOf('/') + 1);
+        String baseUrl = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
 
         tenantDs = new PGSimpleDataSource();
         tenantDs.setUrl(baseUrl + "barrier_tenant");
@@ -67,7 +68,6 @@ class BarrierLivenessIT {
             pinner.rollback();
             pinner.close();
         }
-        postgres.stop();
     }
 
     @Test

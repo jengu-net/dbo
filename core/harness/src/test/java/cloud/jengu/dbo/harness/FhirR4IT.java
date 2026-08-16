@@ -37,15 +37,16 @@ class FhirR4IT {
     static final String EID = "https://ee.ee/eid";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static R4Store fhir;
     static PgObjectStore engine;
 
     @BeforeAll
     void up() {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("FhirR4IT");
         PGSimpleDataSource pg = new PGSimpleDataSource();
-        pg.setUrl(postgres.getJdbcUrl());
+        pg.setUrl(jdbcUrl);
         pg.setUser(postgres.getUsername());
         pg.setPassword(postgres.getPassword());
         DataSource ds = pg;
@@ -60,7 +61,6 @@ class FhirR4IT {
 
     @AfterAll
     void down() {
-        postgres.stop();
     }
 
     private static String patient(String eid, String family, String given) {

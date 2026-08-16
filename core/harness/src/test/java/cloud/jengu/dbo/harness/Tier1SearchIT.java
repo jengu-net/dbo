@@ -38,14 +38,15 @@ class Tier1SearchIT {
     static final String TAG_SYS = "https://jengu.cloud/tags";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static R4Store fhir;
 
     @BeforeAll
     void up() {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("Tier1SearchIT");
         PGSimpleDataSource pg = new PGSimpleDataSource();
-        pg.setUrl(postgres.getJdbcUrl());
+        pg.setUrl(jdbcUrl);
         pg.setUser(postgres.getUsername());
         pg.setPassword(postgres.getPassword());
 
@@ -62,7 +63,6 @@ class Tier1SearchIT {
 
     @AfterAll
     void down() {
-        postgres.stop();
     }
 
     // ------------------------------------------------------------- fixtures

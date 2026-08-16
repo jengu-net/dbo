@@ -54,6 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PolicyIT {
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static PGSimpleDataSource ds;
     static PolicyObjectStore store;
     static TenantPolicies policies;
@@ -61,10 +62,10 @@ class PolicyIT {
 
     @BeforeAll
     void up() {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("PolicyIT");
         ds = new PGSimpleDataSource();
-        ds.setUrl(postgres.getJdbcUrl());
+        ds.setUrl(jdbcUrl);
         ds.setUser(postgres.getUsername());
         ds.setPassword(postgres.getPassword());
         new SecureRandom().nextBytes(ownerKey);
@@ -88,7 +89,6 @@ class PolicyIT {
     @AfterAll
     void down() {
         Caller.clear();
-        postgres.stop();
     }
 
     private static byte[] observation(String code) {

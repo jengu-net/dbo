@@ -125,7 +125,6 @@ class OperatorIT {
             k3s.stop();
         }
         if (postgres != null) {
-            postgres.stop();
         }
     }
 

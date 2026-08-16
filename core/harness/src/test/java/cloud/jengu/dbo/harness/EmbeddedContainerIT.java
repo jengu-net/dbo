@@ -43,6 +43,7 @@ class EmbeddedContainerIT {
     static final String EID = "https://ee.ee/eid";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static Framework framework;
     static Map<String, Bundle> bundles = new HashMap<>();
     static AutoCloseable server;
@@ -50,11 +51,11 @@ class EmbeddedContainerIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("EmbeddedContainerIT");
 
         Map<String, String> config = new HashMap<>();
-        config.put("org.osgi.framework.storage", Files.createTempDirectory("dbo-embedded").toString());
+        config.put("org.osgi.framework.storage", FelixStorage.directory("dbo-embedded"));
         config.put("org.osgi.framework.storage.clean", "onFirstInit");
         framework = ServiceLoader.load(FrameworkFactory.class).findFirst().orElseThrow()
                 .newFramework(config);
@@ -82,7 +83,6 @@ class EmbeddedContainerIT {
             framework.stop();
             framework.waitForStop(20_000);
         }
-        postgres.stop();
     }
 
     /** Every production bundle resolves and starts ACTIVE. */
@@ -126,7 +126,7 @@ class EmbeddedContainerIT {
         // would fail unwrap inside the container — the consistency trap)
         Class<?> dsClass = bundles.get("driver").loadClass("org.postgresql.ds.PGSimpleDataSource");
         Object ds = dsClass.getConstructor().newInstance();
-        dsClass.getMethod("setUrl", String.class).invoke(ds, postgres.getJdbcUrl());
+        dsClass.getMethod("setUrl", String.class).invoke(ds, jdbcUrl);
         dsClass.getMethod("setUser", String.class).invoke(ds, postgres.getUsername());
         dsClass.getMethod("setPassword", String.class).invoke(ds, postgres.getPassword());
 

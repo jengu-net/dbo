@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SubscriptionsIT {
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static R4Store fhir;
     static PgChangeFeed feed;
     static SubscriptionEngine engine;
@@ -50,10 +51,10 @@ class SubscriptionsIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("SubscriptionsIT");
         PGSimpleDataSource pg = new PGSimpleDataSource();
-        pg.setUrl(postgres.getJdbcUrl());
+        pg.setUrl(jdbcUrl);
         pg.setUser(postgres.getUsername());
         pg.setPassword(postgres.getPassword());
 
@@ -89,14 +90,13 @@ class SubscriptionsIT {
                 R4Subscriptions.source(store, personality),
                 R4Subscriptions.criteriaCompiler(personality),
                 new RestHookTransport(),
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
     }
 
     @AfterAll
     void down() {
         if (engine != null) engine.close();
         if (server != null) server.stop(0);
-        if (postgres != null) postgres.stop();
     }
 
     // ------------------------------------------------------------- fixtures

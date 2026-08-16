@@ -46,6 +46,7 @@ class SyncStreamsIT {
     static final String EID = "https://ee.ee/eid";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static R4Store zone;
     static PgObjectStore midEngine;
     static R4Store mid;
@@ -56,16 +57,16 @@ class SyncStreamsIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("SyncStreamsIT");
         try (Connection c = DriverManager.getConnection(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
              var st = c.createStatement()) {
             st.execute("CREATE DATABASE sync_zone");
             st.execute("CREATE DATABASE sync_mid");
             st.execute("CREATE DATABASE sync_leaf");
         }
-        String baseUrl = postgres.getJdbcUrl().substring(0, postgres.getJdbcUrl().lastIndexOf('/') + 1);
+        String baseUrl = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
         PGSimpleDataSource zoneDs = ds(baseUrl + "sync_zone");
         PGSimpleDataSource midDs = ds(baseUrl + "sync_mid");
         PGSimpleDataSource leafDs = ds(baseUrl + "sync_leaf");
@@ -128,7 +129,6 @@ class SyncStreamsIT {
 
     @AfterAll
     void down() {
-        postgres.stop();
     }
 
     private void syncAll() {

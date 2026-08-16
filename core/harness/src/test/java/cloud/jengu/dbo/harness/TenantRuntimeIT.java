@@ -34,6 +34,7 @@ class TenantRuntimeIT {
     static final String EID = "https://ee.ee/eid";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
@@ -41,11 +42,11 @@ class TenantRuntimeIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("TenantRuntimeIT");
         dir = Files.createTempDirectory("dbo-tenants");
         provisioner = new LocalDatabasePerTenantProvisioner(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
     }
 
@@ -53,7 +54,6 @@ class TenantRuntimeIT {
     void down() {
         manager.close();
         provisioner.close();
-        postgres.stop();
     }
 
     private static String specA() {
@@ -135,7 +135,7 @@ class TenantRuntimeIT {
     @Order(2)
     void provisionedDatabasesCarryTimeouts() throws Exception {
         try (Connection c = DriverManager.getConnection(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
              PreparedStatement ps = c.prepareStatement("""
                      SELECT s.setconfig FROM pg_db_role_setting s
                      JOIN pg_database d ON d.oid = s.setdatabase
@@ -175,7 +175,7 @@ class TenantRuntimeIT {
         provisioner.deprovision("aiakas");
 
         try (Connection c = DriverManager.getConnection(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
              PreparedStatement ps = c.prepareStatement(
                      "SELECT count(*) FROM pg_database WHERE datname = 'tenant_aiakas'");
              ResultSet rs = ps.executeQuery()) {

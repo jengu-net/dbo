@@ -56,6 +56,7 @@ class PdiIT {
     static final String CODE_37 = "37001010021";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static PGSimpleDataSource ds;
     static PersonVault vault;
     static PdiObjectStore store;
@@ -64,10 +65,10 @@ class PdiIT {
 
     @BeforeAll
     void up() {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("PdiIT");
         ds = new PGSimpleDataSource();
-        ds.setUrl(postgres.getJdbcUrl());
+        ds.setUrl(jdbcUrl);
         ds.setUser(postgres.getUsername());
         ds.setPassword(postgres.getPassword());
 
@@ -85,7 +86,6 @@ class PdiIT {
 
     @AfterAll
     void down() {
-        postgres.stop();
     }
 
     private static byte[] patient(String family, String code) {

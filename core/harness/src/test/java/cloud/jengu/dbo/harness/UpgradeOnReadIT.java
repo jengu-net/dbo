@@ -45,6 +45,7 @@ class UpgradeOnReadIT {
     static final String DOMAIN = "clinical";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static PGSimpleDataSource pg;
     static String encounterId;
     static String patientId;
@@ -53,10 +54,10 @@ class UpgradeOnReadIT {
 
     @BeforeAll
     void up() {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("UpgradeOnReadIT");
         pg = new PGSimpleDataSource();
-        pg.setUrl(postgres.getJdbcUrl());
+        pg.setUrl(jdbcUrl);
         pg.setUser(postgres.getUsername());
         pg.setPassword(postgres.getPassword());
 
@@ -88,7 +89,6 @@ class UpgradeOnReadIT {
 
     @AfterAll
     void down() {
-        postgres.stop();
     }
 
     /** The R4-written Encounter reads back as R5 (period → actualPeriod), lazily. */

@@ -27,16 +27,17 @@ class TerminologyIT {
     static final String TREE_SYS = "https://terms.dbo.test/tree";
 
     static PostgreSQLContainer<?> postgres;
+    static String jdbcUrl;
     static PgObjectStore store;
     static R4Terminology terminology;
     static TerminologyStore nativeStore;
 
     @BeforeAll
     void up() {
-        postgres = new PostgreSQLContainer<>("postgres:17-alpine");
-        postgres.start();
+        postgres = SharedPostgres.get();
+        jdbcUrl = SharedPostgres.urlFor("TerminologyIT");
         PGSimpleDataSource pg = new PGSimpleDataSource();
-        pg.setUrl(postgres.getJdbcUrl());
+        pg.setUrl(jdbcUrl);
         pg.setUser(postgres.getUsername());
         pg.setPassword(postgres.getPassword());
 
@@ -50,7 +51,6 @@ class TerminologyIT {
 
     @AfterAll
     void down() {
-        postgres.stop();
     }
 
     private static String bigCodeSystem(int concepts, String version) {
