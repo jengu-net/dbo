@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -193,6 +194,57 @@ class EmbeddedContainerIT {
     }
 
     /** R5 and subscriptions prove wiring: their classes load through the container. */
+    /**
+     * The fat bundles (embedded stacks behind a Bundle-ClassPath) hand-write
+     * their Import-Package lists instead of letting bnd compute them, so a
+     * newly referenced sibling package compiles, publishes, and then fails to
+     * resolve AT RUNTIME as NoClassDefFoundError — with no build-time signal
+     * at all (jengu-platform#850 lost an afternoon to exactly that, in
+     * dbo-tenant → dbo-sync). Until dbo#32 moves them to computed imports,
+     * this is the ratchet: every {@code cloud.jengu.dbo.*} package a bundle's
+     * own classes reference must be its own export or on its import list.
+     */
+    @Test
+    void handWrittenImportsCoverEveryCrossBundlePackageReferenced() throws Exception {
+        for (String bundle : List.of("dbo.fhir.r4", "dbo.fhir.r5", "dbo.subscriptions",
+                "dbo.tenant", "dbo.tenant.k8s")) {
+            String path = System.getProperty(bundle + ".jar");
+            java.util.Objects.requireNonNull(path, bundle + ".jar system property missing");
+            Set<String> referenced = new java.util.TreeSet<>();
+            String imports;
+            String exports;
+            try (JarFile jar = new JarFile(path)) {
+                imports = jar.getManifest().getMainAttributes().getValue("Import-Package");
+                exports = jar.getManifest().getMainAttributes().getValue("Export-Package");
+                Enumeration<JarEntry> entries = jar.entries();
+                while (entries.hasMoreElements()) {
+                    JarEntry entry = entries.nextElement();
+                    // own classes only — the embedded lib/*.jar stacks are
+                    // private and resolve through Bundle-ClassPath
+                    if (!entry.getName().endsWith(".class")
+                            || !entry.getName().startsWith("cloud/jengu/")) {
+                        continue;
+                    }
+                    String bytes = new String(jar.getInputStream(entry).readAllBytes(),
+                            java.nio.charset.StandardCharsets.ISO_8859_1);
+                    java.util.regex.Matcher m = java.util.regex.Pattern
+                            .compile("cloud/jengu/dbo/([a-z0-9/]+)/[A-Z]").matcher(bytes);
+                    while (m.find()) {
+                        referenced.add("cloud.jengu.dbo." + m.group(1).replace('/', '.'));
+                    }
+                }
+            }
+            for (String pkg : referenced) {
+                if (exports.contains(pkg + ";")) {
+                    continue;
+                }
+                assertTrue(imports.contains(pkg + ";"),
+                        bundle + " references " + pkg + " but neither exports nor imports it — "
+                                + "add it to the Import-Package list in its build.gradle.kts");
+            }
+        }
+    }
+
     @Test
     void r5AndSubscriptionsClassesResolveInContainer() throws Exception {
         bundles.get("dbo.fhir.r5").loadClass("cloud.jengu.dbo.fhir.r5.R5Personality");
