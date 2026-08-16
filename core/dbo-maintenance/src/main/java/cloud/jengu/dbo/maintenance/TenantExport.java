@@ -6,7 +6,6 @@ import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -81,6 +80,26 @@ public final class TenantExport {
      * second pass over the data: only names and digests accumulate, and those
      * are kilobytes however large the tenant is.
      */
+    /**
+     * Streams one {@code COPY … TO STDOUT} straight into an archive entry.
+     *
+     * <p>The dump is the byte-faithful element of the archive, which means it
+     * is also the largest: a tenant's whole history, uncompressed, as CSV.
+     * Materialising it before writing made the export need memory
+     * proportional to the biggest table — the one shape guaranteed to fail on
+     * exactly the tenants for whom leaving matters most (#35).
+     */
+    private static void dumpInto(org.postgresql.copy.CopyManager copy, DigestingZip zip,
+            String entryName, String sql, String what) throws IOException {
+        zip.putNextEntry(new ZipEntry(entryName));
+        try (OutputStream entry = zip.entryStream()) {
+            copy.copyOut(sql, entry);
+        } catch (SQLException e) {
+            throw new IllegalStateException("fidelity dump failed for " + what, e);
+        }
+        zip.closeEntry();
+    }
+
     static final class DigestingZip {
         private final ZipOutputStream zip;
         private final java.util.TreeMap<String, String> digests = new java.util.TreeMap<>();
@@ -108,6 +127,32 @@ public final class TenantExport {
         void write(byte[] bytes) throws IOException {
             zip.write(bytes);
             current.update(bytes);
+        }
+
+        /**
+         * The current entry as an {@link OutputStream}, so a producer that
+         * writes into a stream — {@code COPY … TO STDOUT}, above all — can
+         * write through to the archive instead of handing back a String that
+         * has to exist all at once.
+         *
+         * <p>Closing it is a no-op: the entry is closed by
+         * {@link #closeEntry()}, and a stream that closed the ZIP underneath
+         * the caller would end the archive at the first table.
+         */
+        OutputStream entryStream() {
+            return new OutputStream() {
+                @Override
+                public void write(int b) throws IOException {
+                    zip.write(b);
+                    current.update((byte) b);
+                }
+
+                @Override
+                public void write(byte[] bytes, int off, int len) throws IOException {
+                    zip.write(bytes, off, len);
+                    current.update(bytes, off, len);
+                }
+            };
         }
 
         void closeEntry() throws IOException {
@@ -181,25 +226,13 @@ public final class TenantExport {
         // ---- byte-faithful fidelity element: COPY dumps of state + history
         var copy = c.unwrap(PGConnection.class).getCopyAPI();
         for (String table : STATE_TABLES) {
-            zip.putNextEntry(new ZipEntry("fidelity/state." + domain + "_" + table + ".csv"));
-            StringWriter csv = new StringWriter();
-            try {
-                copy.copyOut("COPY state.%s_%s TO STDOUT WITH (FORMAT csv)".formatted(domain, table), csv);
-            } catch (SQLException e) {
-                throw new IllegalStateException("fidelity dump failed for " + table, e);
-            }
-            zip.write(csv.toString().getBytes(StandardCharsets.UTF_8));
-            zip.closeEntry();
+            dumpInto(copy, zip, "fidelity/state." + domain + "_" + table + ".csv",
+                    "COPY state.%s_%s TO STDOUT WITH (FORMAT csv)".formatted(domain, table),
+                    table);
         }
-        zip.putNextEntry(new ZipEntry("fidelity/history." + domain + "_history.csv"));
-        StringWriter csv = new StringWriter();
-        try {
-            copy.copyOut("COPY history.%s_history TO STDOUT WITH (FORMAT csv)".formatted(domain), csv);
-        } catch (SQLException e) {
-            throw new IllegalStateException("fidelity dump failed for history", e);
-        }
-        zip.write(csv.toString().getBytes(StandardCharsets.UTF_8));
-        zip.closeEntry();
+        dumpInto(copy, zip, "fidelity/history." + domain + "_history.csv",
+                "COPY history.%s_history TO STDOUT WITH (FORMAT csv)".formatted(domain),
+                "history");
 
         // ---- §14 vault (present only under PDI): wrapped keys, HMAC index,
         // shred ledger — ciphertext and key material only, blind to the
@@ -209,15 +242,9 @@ public final class TenantExport {
             if (!tableExists(c, "pdi", pdiTable)) {
                 continue;
             }
-            zip.putNextEntry(new ZipEntry("fidelity/pdi." + pdiTable + ".csv"));
-            StringWriter pdiCsv = new StringWriter();
-            try {
-                copy.copyOut("COPY pdi.%s TO STDOUT WITH (FORMAT csv)".formatted(pdiTable), pdiCsv);
-            } catch (SQLException e) {
-                throw new IllegalStateException("fidelity dump failed for pdi." + pdiTable, e);
-            }
-            zip.write(pdiCsv.toString().getBytes(StandardCharsets.UTF_8));
-            zip.closeEntry();
+            dumpInto(copy, zip, "fidelity/pdi." + pdiTable + ".csv",
+                    "COPY pdi.%s TO STDOUT WITH (FORMAT csv)".formatted(pdiTable),
+                    "pdi." + pdiTable);
         }
 
         // ---- manifest
