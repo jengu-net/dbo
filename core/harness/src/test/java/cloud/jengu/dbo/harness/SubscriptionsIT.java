@@ -120,9 +120,21 @@ class SubscriptionsIT {
                  "code":{"coding":[{"system":"http://loinc.org","code":"%s"}]}}""".formatted(code);
     }
 
+    /**
+     * Waits for a condition, driving the dispatcher while it waits.
+     *
+     * <p>A single {@code dispatchOnce} is a one-shot. If the write is not yet
+     * visible in the feed when that pass runs, it finds nothing, nothing
+     * re-fires, and the wait can only run out the clock — which is what made
+     * this class fail under parallel load (#36). The real dispatcher does not
+     * have that shape: {@link SubscriptionEngine#start} loops until stopped.
+     * So these tests poll the way it does, and stop depending on one pass
+     * happening to land after the write became visible.
+     */
     private static void await(String what, BooleanSupplier condition) throws InterruptedException {
         long deadline = System.currentTimeMillis() + 60_000;
         while (System.currentTimeMillis() < deadline) {
+            engine.dispatchOnce(500);
             if (condition.getAsBoolean()) {
                 return;
             }
@@ -141,7 +153,6 @@ class SubscriptionsIT {
         fhir.create(observation("SUB-1"));
         fhir.create(observation("OTHER-9"));
 
-        engine.dispatchOnce(500);
         await("one delivery on /hook1", () -> received.getOrDefault("/hook1", List.of()).size() == 1);
         assertTrue(received.get("/hook1").get(0).contains("SUB-1"));
 
@@ -159,7 +170,6 @@ class SubscriptionsIT {
         subscription("Observation?code=http://loinc.org|SUB-2", "/hook2");
         fhir.create(observation("SUB-2"));
 
-        engine.dispatchOnce(500);
         await("delivery after retries on /hook2",
                 () -> received.getOrDefault("/hook2", List.of()).size() == 1);
         assertTrue(attempts.get("/hook2").get() >= 3, "expected at least 3 attempts");
@@ -174,7 +184,6 @@ class SubscriptionsIT {
         subscription("Observation?code=http://loinc.org|SUB-3", "/hook3");
         fhir.create(observation("SUB-3"));
 
-        engine.dispatchOnce(500);
         await("first delivery on /hook3", () -> received.getOrDefault("/hook3", List.of()).size() == 1);
 
         // dispatcher "crashed" after enqueue but before ack: rewind and redo
@@ -194,7 +203,6 @@ class SubscriptionsIT {
         subscription("Observation?code=http://loinc.org|SUB-4", "/hook4-ok");
         fhir.create(observation("SUB-4"));
 
-        engine.dispatchOnce(500);
         await("healthy sibling delivered", () -> received.getOrDefault("/hook4-ok", List.of()).size() == 1);
         await("dead letter recorded", () -> engine.deadLetters().stream()
                 .anyMatch(d -> d.subscriptionId().equals(brokenSub)));
@@ -214,7 +222,6 @@ class SubscriptionsIT {
         subscription("Observation?code=http://loinc.org|SUB-5", "/hook5");
         fhir.create(observation("SUB-5"));
 
-        engine.dispatchOnce(500);
         await("local listener callback", () -> local.size() == 1);
         await("rest-hook sibling delivery", () -> received.getOrDefault("/hook5", List.of()).size() == 1);
         assertTrue(local.get(0).contains("SUB-5"));
