@@ -4,6 +4,7 @@ import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.EnvelopeExtractor;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
 import cloud.jengu.dbo.core.api.Identifier;
+import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.IdentityClass;
 import cloud.jengu.dbo.core.api.IndexSpec;
 import cloud.jengu.dbo.core.api.TypeRegistration;
@@ -69,7 +70,7 @@ public final class GadgetModel {
                         new IndexSpec("vendorUpper", ValueKind.STRING))
                 : List.of(new IndexSpec("weightGrams", ValueKind.NUMBER));
         return new TypeRegistration("Gadget", DOMAIN, IdentityClass.IDENTIFIER,
-                java.util.Set.of(SERIAL_SYSTEM), extractor, indexes);
+                java.util.Set.of(SERIAL_SYSTEM), Handling.operational(), extractor, indexes);
     }
 
     private static TypeRegistration blueprint() {
@@ -81,7 +82,7 @@ public final class GadgetModel {
             return e;
         };
         return new TypeRegistration("Blueprint", DOMAIN, IdentityClass.CANONICAL,
-                java.util.Set.of(), extractor, List.of());
+                java.util.Set.of(), Handling.operational(), extractor, List.of());
     }
 
     private static TypeRegistration reading() {
@@ -94,7 +95,7 @@ public final class GadgetModel {
             return e;
         };
         return new TypeRegistration("Reading", DOMAIN, IdentityClass.INTERNAL,
-                java.util.Set.of(), extractor, List.of(new IndexSpec("value", ValueKind.NUMBER)));
+                java.util.Set.of(), Handling.operational(), extractor, List.of(new IndexSpec("value", ValueKind.NUMBER)));
     }
 
     private static JsonNode parse(byte[] payload) {

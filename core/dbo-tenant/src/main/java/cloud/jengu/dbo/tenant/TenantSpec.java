@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.tenant;
 
+import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.IdentityClass;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 
@@ -85,7 +86,17 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
 
     /**
      * Parses the spec file format: {"code":..,"fhirVersion":..,
-     * "types":[{name,identity,systems?}],"dependencies":[{name,types}]}.
+     * "types":[{name,identity,systems?,handling?}],"dependencies":[{name,types}]}.
+     *
+     * <p><b>{@code handling} is optional here and should not stay that way.</b>
+     * A type that does not say what kind of data it is ought to stop the
+     * platform (jengu-platform#869) — and does, for types declared in code,
+     * where {@link cloud.jengu.dbo.core.api.TypeRegistration} refuses to build
+     * without it. At this layer the declarations live in the configuration
+     * repository, so requiring the field means updating those specs first;
+     * until then an absent field means {@code operational}, which is stated
+     * here rather than assumed silently. An <em>unknown</em> value is refused
+     * outright: a typo must not fall through to the default.
      */
     public static TenantSpec parse(String json) {
         Object root = Json.parse(json);
@@ -95,13 +106,25 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
             String name = Json.str(t, "name");
             String identity = Json.str(t, "identity");
             Set<String> systems = Set.copyOf(Json.strings(t, "systems"));
-            return switch (identity) {
-                case "identifier" -> new FhirTypeConfig(name, IdentityClass.IDENTIFIER, systems);
+            FhirTypeConfig config = switch (identity) {
+                case "identifier" -> new FhirTypeConfig(name, IdentityClass.IDENTIFIER, systems,
+                        Handling.operational());
                 case "canonical" -> FhirTypeConfig.canonical(name);
                 case "internal" -> FhirTypeConfig.internal(name);
                 default -> throw new IllegalArgumentException(
                         code + "/" + name + ": unknown identity class " + identity);
             };
+            String handling = Json.strOpt(t, "handling");
+            return handling == null ? config : config.handledAs(switch (handling) {
+                case "operational" -> Handling.operational();
+                case "projected-config" -> Handling.projectedConfig();
+                case "replicated" -> Handling.replicated();
+                case "store-authored" -> Handling.storeAuthored();
+                case "audit" -> Handling.audit();
+                case "ephemeral" -> Handling.ephemeral();
+                default -> throw new IllegalArgumentException(
+                        code + "/" + name + ": unknown handling " + handling);
+            });
         }).toList();
         List<Dependency> dependencies = Json.array(root, "dependencies").stream()
                 .map(d -> new Dependency(Json.str(d, "name"),

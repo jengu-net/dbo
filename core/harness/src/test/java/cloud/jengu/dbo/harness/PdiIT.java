@@ -73,7 +73,8 @@ class PdiIT {
         ds.setPassword(postgres.getPassword());
 
         R4Personality personality = new R4Personality(List.of(
-                new FhirTypeConfig("Patient", cloud.jengu.dbo.core.api.IdentityClass.IDENTIFIER, Set.of(EID)),
+                new FhirTypeConfig("Patient", cloud.jengu.dbo.core.api.IdentityClass.IDENTIFIER, Set.of(EID),
+                        cloud.jengu.dbo.core.api.Handling.operational()),
                 FhirTypeConfig.internal("Observation")));
         PdiSpec spec = PdiSpec.fhir();
         List<TypeRegistration> transformed = PdiSetup.transform(personality.registrations(), spec);

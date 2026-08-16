@@ -82,7 +82,7 @@ public final class R5Personality {
             EnvelopeExtractor extractor = (typeName, payload) -> withTccl(() -> extract(typeName, payload));
             List<IndexSpec> indexes = defaultIndexes(t.typeName());
             out.add(new TypeRegistration(t.typeName(), domain, t.identityClass(),
-                    t.identitySystems(), extractor, indexes, PAYLOAD_VERSION));
+                    t.identitySystems(), t.handling(), extractor, indexes, PAYLOAD_VERSION));
         }
         return out;
     }
