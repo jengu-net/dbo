@@ -138,7 +138,7 @@ public final class PgObjectStore implements ObjectStore {
         long newVersion = current == null ? 1 : current + 1;
         boolean created = current == null;
         Instant now = Instant.now();
-        if (request.isRestore()) {
+        if (request.carriesRecordedHistory()) {
             // Replaying a history that happened elsewhere: keep its version and
             // its moment. Monotonic or nothing — a version that would land at or
             // below the current one means the replay is out of order or already
@@ -189,7 +189,15 @@ public final class PgObjectStore implements ObjectStore {
         replaceReferences(c, d, uuid, envelope.references());
         insertHistory(c, d, uuid, type.typeName(), newVersion, now, request.payload(), false,
                 type.payloadVersion(), chainHash);
-        insertOutbox(c, d, uuid, type.typeName(), newVersion, created ? "C" : "U");
+        if (!request.isRestore()) {
+            // A restore re-establishes state; it does not change it. The outbox
+            // is a log of changes, so restored objects do not belong in it —
+            // otherwise a subscription cannot tell a recovered tenant from a
+            // busy one, and a hospital's downstream systems receive its entire
+            // history as fresh news on the day it is already having its worst
+            // day (jengu-platform#872).
+            insertOutbox(c, d, uuid, type.typeName(), newVersion, created ? "C" : "U");
+        }
 
         return new PutResult(id, newVersion, created);
     }

@@ -134,9 +134,22 @@ class TopicSubscriptionsIT {
         return ds;
     }
 
-    private static void await(String what, BooleanSupplier condition) throws InterruptedException {
+    /**
+     * Waits for a condition, driving the given engine while it waits.
+     *
+     * <p>A single {@code dispatchOnce} is a one-shot: if the write is not yet
+     * visible in the feed when that pass runs, it finds nothing, nothing
+     * re-fires, and the wait can only run out its 60 seconds. Under parallel
+     * load that window opens (dbo#36). The real dispatcher loops until stopped,
+     * so this polls the way it does. The engine is a parameter because this
+     * class drives two of them and dispatching the wrong one would prove
+     * nothing.
+     */
+    private static void await(SubscriptionEngine engine, String what, BooleanSupplier condition)
+            throws InterruptedException {
         long deadline = System.currentTimeMillis() + 60_000;
         while (System.currentTimeMillis() < deadline) {
+            engine.dispatchOnce(500);
             if (condition.getAsBoolean()) {
                 return;
             }
@@ -188,8 +201,7 @@ class TopicSubscriptionsIT {
 
         PutResult match = r5.create(observation("T-1"));
         r5.create(observation("T-OTHER"));
-        engine5.dispatchOnce(500);
-        await("event #1 on /t1", () -> at("/t1").size() == 1);
+        await(engine5, "event #1 on /t1", () -> at("/t1").size() == 1);
 
         String first = at("/t1").get(0);
         assertTrue(first.contains("subscription-notification"));
@@ -200,8 +212,7 @@ class TopicSubscriptionsIT {
         assertTrue(first.contains("T-1"), "full-resource content must embed the Observation");
 
         r5.update(match.id(), 1L, observation("T-1"));
-        engine5.dispatchOnce(500);
-        await("event #2 on /t1", () -> at("/t1").size() == 2);
+        await(engine5, "event #2 on /t1", () -> at("/t1").size() == 2);
         assertTrue(at("/t1").get(1).contains("\"eventsSinceSubscriptionStart\":\"2\"")
                 || at("/t1").get(1).contains("\"eventsSinceSubscriptionStart\":2"));
     }
@@ -214,8 +225,7 @@ class TopicSubscriptionsIT {
         r5Subscription(TOPIC_CREATE_ONLY, "/t2", "code", "http://loinc.org|T-2", "full-resource");
 
         PutResult obs = r5.create(observation("T-2"));
-        engine5.dispatchOnce(500);
-        await("create notification on /t2", () -> at("/t2").size() == 1);
+        await(engine5, "create notification on /t2", () -> at("/t2").size() == 1);
 
         r5.update(obs.id(), 1L, observation("T-2"));
         engine5.dispatchOnce(500);
@@ -231,15 +241,13 @@ class TopicSubscriptionsIT {
         r5Subscription(TOPIC_LIFECYCLE, "/t3", null, null, "id-only");
 
         PutResult obs = r5.create(observation("T-3"));
-        engine5.dispatchOnce(500);
-        await("create on /t3", () -> at("/t3").size() == 1);
+        await(engine5, "create on /t3", () -> at("/t3").size() == 1);
         assertFalse(at("/t3").get(0).contains("\"resourceType\":\"Observation\""),
                 "id-only content must not embed the resource");
         assertTrue(at("/t3").get(0).contains("Observation/" + obs.id()));
 
         r5Engine.delete("Observation", obs.id(), null);
-        engine5.dispatchOnce(500);
-        await("delete on /t3", () -> at("/t3").size() == 2);
+        await(engine5, "delete on /t3", () -> at("/t3").size() == 2);
         assertTrue(at("/t3").get(1).contains("Observation/" + obs.id()));
     }
 
@@ -268,8 +276,7 @@ class TopicSubscriptionsIT {
 
         r4.create(observation("R4-1"));
         r4.create(observation("R4-OTHER"));
-        engine4.dispatchOnce(500);
-        await("backport notification on /t5", () -> at("/t5").size() == 1);
+        await(engine4, "backport notification on /t5", () -> at("/t5").size() == 1);
 
         String body = at("/t5").get(0);
         assertTrue(body.contains("\"history\""), "backport rides a history bundle");
