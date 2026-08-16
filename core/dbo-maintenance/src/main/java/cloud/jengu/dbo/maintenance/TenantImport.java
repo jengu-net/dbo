@@ -38,12 +38,89 @@ public final class TenantImport {
 
     public record PortableResult(long imported, long skippedIdentical) {}
 
+    /**
+     * Where a sealed archive can be read from, more than once (#35).
+     *
+     * <p>Two passes are required and not a choice: the digest list is the last
+     * entry, so a single pass would be importing before it could check, and
+     * AES-GCM only authenticates at the tag, so a one-pass reader necessarily
+     * writes unauthenticated data. A one-shot {@link InputStream} cannot
+     * express that, so the caller supplies something re-openable.
+     */
+    @FunctionalInterface
+    public interface ArchiveSource {
+        InputStream open() throws IOException;
+    }
+
+    /**
+     * What an import does with the versions the archive carries.
+     *
+     * <p>Two callers want opposite things, and conflating them silently
+     * redefines one of them — which is exactly what happened here until a
+     * test said so.
+     */
+    public enum HistoryMode {
+        /**
+         * The destination assigns its own versions and moments. A restore into
+         * a fresh tenant is a new life for the data; nothing is claiming the
+         * old versions happened here.
+         */
+        FRESH,
+        /**
+         * The archive's own versions and moments are kept — the shape a store
+         * migration needs, because a version's timestamp is the evidence of
+         * what somebody knew at a moment (ADR 0047 §7). Replayed in ascending
+         * order, and a version already present is skipped rather than
+         * rewritten, so a resumed move does not duplicate what landed.
+         */
+        PRESERVED
+    }
+
+    /**
+     * Verifies the archive whole, then imports it (#34, #35, ADR 0052 §5).
+     *
+     * <p>Nothing is written until the digests match and both signatures
+     * verify. A partially-applied archive leaves a tenant in a state neither
+     * party attested, with nobody able to say which half is which.
+     *
+     * @return the root both parties signed — the caller records it, so that
+     *         what was imported and what both parties said it was stays
+     *         answerable without the archive
+     */
+    public static PortableResult importVerified(ObjectStore target, ArchiveSource source,
+            byte[] ownerMasterKey, ArchiveAttestation attestation,
+            byte[] vendorPublicKey, byte[] tenantPublicKey, HistoryMode history)
+            throws IOException {
+        // Pass one: read to the tag, digest every entry, check the signatures.
+        try (InputStream sealed = source.open();
+             InputStream plain = SealedArchive.opening(sealed, ownerMasterKey)) {
+            ArchiveVerification.verifyStreaming(plain, attestation,
+                    vendorPublicKey, tenantPublicKey);
+        }
+        // Pass two: the same bytes, now attested.
+        try (InputStream sealed = source.open();
+             InputStream plain = SealedArchive.opening(sealed, ownerMasterKey)) {
+            return applyPortable(target, plain, history);
+        }
+    }
+
+    /**
+     * Imports without attestation — the legacy path, kept for archives that
+     * carry none. It streams (#35) but it trusts what it is given, so it must
+     * not be pointed at anything that arrived from outside.
+     */
     public static PortableResult importPortable(ObjectStore target, InputStream sealed,
             byte[] ownerMasterKey) throws IOException {
-        byte[] plain = SealedArchive.open(sealed, ownerMasterKey);
+        try (InputStream plain = SealedArchive.opening(sealed, ownerMasterKey)) {
+            return applyPortable(target, plain, HistoryMode.FRESH);
+        }
+    }
+
+    private static PortableResult applyPortable(ObjectStore target, InputStream plain,
+            HistoryMode history) throws IOException {
         long imported = 0;
         long skipped = 0;
-        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(plain))) {
+        try (ZipInputStream zip = new ZipInputStream(plain)) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
                 if (!entry.getName().startsWith("state/") || !entry.getName().endsWith(".ndjson")) {
@@ -60,6 +137,22 @@ public final class TenantImport {
                     String id = jsonString(line, "id");
                     byte[] resource = resourceOf(line);
                     var existing = target.get(type, id);
+
+                    if (history == HistoryMode.PRESERVED) {
+                        long version = jsonLong(line, "v");
+                        java.time.Instant at = java.time.Instant.parse(jsonString(line, "lu"));
+                        // Idempotent by VERSION, not by bytes: a history replays
+                        // as many lines per object, and a resumed move must skip
+                        // what already landed rather than rewrite it (#854).
+                        if (existing.isPresent() && existing.get().versionId() >= version) {
+                            skipped++;
+                            continue;
+                        }
+                        target.put(PutRequest.restored(type, id, resource, version, at));
+                        imported++;
+                        continue;
+                    }
+
                     // compare through the same flattening the export applied
                     if (existing.isPresent() && Arrays.equals(
                             Names.flatten(new String(existing.get().payload(), StandardCharsets.UTF_8))
@@ -74,6 +167,16 @@ public final class TenantImport {
             }
         }
         return new PortableResult(imported, skipped);
+    }
+
+    private static long jsonLong(String line, String field) {
+        String needle = "\"" + field + "\":";
+        int start = line.indexOf(needle) + needle.length();
+        int end = start;
+        while (end < line.length() && (Character.isDigit(line.charAt(end)))) {
+            end++;
+        }
+        return Long.parseLong(line.substring(start, end));
     }
 
     /** Byte-faithful restore into an INITIALIZED, EMPTY tenant (schema present, no data). */

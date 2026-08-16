@@ -5,6 +5,7 @@ import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.maintenance.SealedArchive;
 import cloud.jengu.dbo.maintenance.TenantExport;
+import cloud.jengu.dbo.maintenance.TenantImport;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -135,6 +136,76 @@ class ExportStreamsIT {
             }
         }, "silent truncation is the worst outcome for a restore: the destination would look "
                 + "successful and be missing whatever came after the edit");
+    }
+
+
+    @Test
+    @Timeout(300)
+    @DisplayName("#35/#854: a verified import preserves the archive's versions and moments, and a "
+            + "resumed run skips what already landed")
+    void aVerifiedImportPreservesHistoryAndResumes() throws Exception {
+        // a second tenant to import into
+        String jdbcUrl = SharedPostgres.urlFor("ExportStreamsIT");
+        try (Connection c = DriverManager.getConnection(jdbcUrl,
+                SharedPostgres.get().getUsername(), SharedPostgres.get().getPassword());
+             var st = c.createStatement()) {
+            st.execute("CREATE DATABASE stream_import");
+        }
+        String base = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
+        PGSimpleDataSource into = new PGSimpleDataSource();
+        into.setUrl(base + "stream_import");
+        into.setUser(SharedPostgres.get().getUsername());
+        into.setPassword(SharedPostgres.get().getPassword());
+        R4Personality personality = new R4Personality(List.of(
+                FhirTypeConfig.identifier("Patient", EID)));
+        PgObjectStore destination = new PgObjectStore(into, personality.registrations());
+
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        TenantExport.export(ds, R4Personality.DOMAIN, OWNER_KEY, out);
+        byte[] sealed = out.toByteArray();
+
+        java.security.KeyPair vendor = java.security.KeyPairGenerator.getInstance("Ed25519")
+                .generateKeyPair();
+        java.security.KeyPair tenant = java.security.KeyPairGenerator.getInstance("Ed25519")
+                .generateKeyPair();
+        String root;
+        try (InputStream plain = SealedArchive.opening(
+                new java.io.ByteArrayInputStream(sealed), OWNER_KEY);
+             java.util.zip.ZipInputStream zip = new java.util.zip.ZipInputStream(plain)) {
+            root = rootFrom(zip);
+        }
+        cloud.jengu.dbo.maintenance.ArchiveAttestation attestation =
+                cloud.jengu.dbo.maintenance.ArchiveAttestation.over(root)
+                        .signedBy(cloud.jengu.dbo.maintenance.ArchiveAttestation.Party.VENDOR,
+                                vendor.getPrivate().getEncoded())
+                        .signedBy(cloud.jengu.dbo.maintenance.ArchiveAttestation.Party.TENANT,
+                                tenant.getPrivate().getEncoded());
+
+        TenantImport.ArchiveSource source = () -> new java.io.ByteArrayInputStream(sealed);
+        var first = TenantImport.importVerified(destination, source, OWNER_KEY, attestation,
+                vendor.getPublic().getEncoded(), tenant.getPublic().getEncoded(),
+                TenantImport.HistoryMode.PRESERVED);
+        assertEquals(400, first.imported());
+
+        // the interrupted-and-restarted case: same archive, nothing duplicated
+        var second = TenantImport.importVerified(destination, source, OWNER_KEY, attestation,
+                vendor.getPublic().getEncoded(), tenant.getPublic().getEncoded(),
+                TenantImport.HistoryMode.PRESERVED);
+        assertEquals(0, second.imported(), "a resumed move must not rewrite what already landed");
+        assertEquals(400, second.skippedIdentical());
+    }
+
+    /** The root the export wrote, read from the archive's own digest list. */
+    private static String rootFrom(java.util.zip.ZipInputStream zip) throws IOException {
+        ZipEntry entry;
+        while ((entry = zip.getNextEntry()) != null) {
+            if ("digests.json".equals(entry.getName())) {
+                String json = new String(zip.readAllBytes(), StandardCharsets.UTF_8);
+                int at = json.indexOf("\"root\":\"") + "\"root\":\"".length();
+                return json.substring(at, json.indexOf('"', at));
+            }
+        }
+        throw new IllegalStateException("no digest list in the archive");
     }
 
     /** Accepts the archive and keeps none of it. */
