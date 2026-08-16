@@ -3,6 +3,7 @@ package cloud.jengu.dbo.auth;
 import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.EnvelopeExtractor;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
+import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.IdentityClass;
 import cloud.jengu.dbo.core.api.TypeRegistration;
 
@@ -45,9 +46,9 @@ public final class ZoneModel {
         };
         return List.of(
                 new TypeRegistration("ZoneBroker", DOMAIN, IdentityClass.IDENTIFIER,
-                        Set.of(BROKER_CODE_SYSTEM), broker, List.of()),
+                        Set.of(BROKER_CODE_SYSTEM), Handling.projectedConfig(), broker, List.of()),
                 new TypeRegistration("ZoneIdentifierDomain", DOMAIN, IdentityClass.IDENTIFIER,
-                        Set.of(IDENTIFIER_USE_SYSTEM), identifierDomain, List.of()));
+                        Set.of(IDENTIFIER_USE_SYSTEM), Handling.projectedConfig(), identifierDomain, List.of()));
     }
 
     /** A declared broker; the secret arrives from custody, not the record. */

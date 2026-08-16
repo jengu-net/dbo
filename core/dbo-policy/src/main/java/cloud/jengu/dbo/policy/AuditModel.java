@@ -3,6 +3,7 @@ package cloud.jengu.dbo.policy;
 import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.EnvelopeExtractor;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
+import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.IdentityClass;
 import cloud.jengu.dbo.core.api.TypeRegistration;
 
@@ -40,7 +41,7 @@ public final class AuditModel {
             return e;
         };
         return List.of(new TypeRegistration("AuditEntry", DOMAIN, IdentityClass.INTERNAL,
-                Set.of(), extractor, List.of()));
+                Set.of(), Handling.audit(), extractor, List.of()));
     }
 
     public static byte[] entry(String actor, String interaction, String targetType,

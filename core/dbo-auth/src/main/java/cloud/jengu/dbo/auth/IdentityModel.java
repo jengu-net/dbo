@@ -3,6 +3,7 @@ package cloud.jengu.dbo.auth;
 import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.EnvelopeExtractor;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
+import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.IdentityClass;
 import cloud.jengu.dbo.core.api.TypeRegistration;
 
@@ -57,15 +58,15 @@ public final class IdentityModel {
         };
         return List.of(
                 new TypeRegistration("ClientApplication", DOMAIN, IdentityClass.IDENTIFIER,
-                        java.util.Set.of(CLIENT_ID_SYSTEM), client, List.of()),
+                        java.util.Set.of(CLIENT_ID_SYSTEM), Handling.storeAuthored(), client, List.of()),
                 new TypeRegistration("SigningKey", DOMAIN, IdentityClass.IDENTIFIER,
-                        java.util.Set.of(KID_SYSTEM), key, List.of()),
+                        java.util.Set.of(KID_SYSTEM), Handling.storeAuthored(), key, List.of()),
                 new TypeRegistration("RoleGrant", DOMAIN, IdentityClass.IDENTIFIER,
-                        java.util.Set.of(ROLE_CODE_SYSTEM), roleGrant, List.of()),
+                        java.util.Set.of(ROLE_CODE_SYSTEM), Handling.storeAuthored(), roleGrant, List.of()),
                 new TypeRegistration("LocalCredential", DOMAIN, IdentityClass.IDENTIFIER,
-                        java.util.Set.of(LOGIN_SYSTEM), credential, List.of()),
+                        java.util.Set.of(LOGIN_SYSTEM), Handling.storeAuthored(), credential, List.of()),
                 new TypeRegistration("Delegation", DOMAIN, IdentityClass.INTERNAL,
-                        java.util.Set.of(), (type, payload) -> {
+                        java.util.Set.of(), Handling.storeAuthored(), (type, payload) -> {
                             Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
                             Envelope e = new Envelope();
                             e.value("status", EnvelopeValue.of(Json.str(n, "status")));

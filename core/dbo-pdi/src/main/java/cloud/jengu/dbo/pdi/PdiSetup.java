@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.pdi;
 
+import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.IdentityClass;
 import cloud.jengu.dbo.core.api.TypeRegistration;
 
@@ -21,7 +22,7 @@ public final class PdiSetup {
         return registrations.stream()
                 .map(r -> spec.isPersonType(r.typeName())
                         ? new TypeRegistration(r.typeName(), r.domain(), IdentityClass.INTERNAL,
-                                Set.of(), r.extractor(), r.indexes(), r.payloadVersion())
+                                Set.of(), Handling.operational(), r.extractor(), r.indexes(), r.payloadVersion())
                         : r)
                 .toList();
     }
