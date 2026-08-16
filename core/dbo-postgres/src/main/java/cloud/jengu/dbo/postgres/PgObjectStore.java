@@ -12,6 +12,7 @@ import cloud.jengu.dbo.core.api.PayloadConverter;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.PutResult;
 import cloud.jengu.dbo.core.api.StoredObject;
+import cloud.jengu.dbo.core.api.VersionChain;
 import cloud.jengu.dbo.core.api.TypeRegistration;
 import cloud.jengu.dbo.core.api.VersionConflictException;
 
@@ -137,20 +138,42 @@ public final class PgObjectStore implements ObjectStore {
         long newVersion = current == null ? 1 : current + 1;
         boolean created = current == null;
         Instant now = Instant.now();
+        if (request.isRestore()) {
+            // Replaying a history that happened elsewhere: keep its version and
+            // its moment. Monotonic or nothing — a version that would land at or
+            // below the current one means the replay is out of order or already
+            // applied, and either way writing it would corrupt the history this
+            // exists to preserve.
+            if (current != null && request.recordedVersion() <= current) {
+                throw new IllegalArgumentException(type.typeName() + "/" + id
+                        + ": restored version " + request.recordedVersion()
+                        + " is not above the stored version " + current
+                        + " — replay must be in ascending order, and an already-applied"
+                        + " version must be skipped rather than rewritten");
+            }
+            newVersion = request.recordedVersion();
+            now = request.recordedAt();
+        }
 
         Envelope envelope = type.extractor().extract(type.typeName(), request.payload());
         String envelopeJson = JsonbCodec.envelopeJson(envelope.paths());
+        // #33: link this version to the one before it. Computed on the ordinary
+        // write path, so a restored version is chained exactly as a live one —
+        // a restore that skipped chaining would be the hole the chain closes.
+        byte[] chainHash = VersionChain.link(previousChain(c, d, uuid), request.payload(),
+                newVersion, now, false);
 
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.%s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version)
-                VALUES (?, ?, ?, ?, ?::jsonb, ?, false, ?)
+                INSERT INTO state.%s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version, chain_hash)
+                VALUES (?, ?, ?, ?, ?::jsonb, ?, false, ?, ?)
                 ON CONFLICT (id) DO UPDATE SET
                   version_id = EXCLUDED.version_id,
                   last_updated = EXCLUDED.last_updated,
                   envelope = EXCLUDED.envelope,
                   payload = EXCLUDED.payload,
                   deleted = false,
-                  payload_version = EXCLUDED.payload_version""".formatted(d))) {
+                  payload_version = EXCLUDED.payload_version,
+                  chain_hash = EXCLUDED.chain_hash""".formatted(d))) {
             ps.setObject(1, uuid);
             ps.setString(2, type.typeName());
             ps.setLong(3, newVersion);
@@ -158,12 +181,14 @@ public final class PgObjectStore implements ObjectStore {
             ps.setString(5, envelopeJson);
             ps.setBytes(6, request.payload());
             ps.setString(7, type.payloadVersion());
+            ps.setBytes(8, chainHash);
             ps.executeUpdate();
         }
 
         replaceIdentifiers(c, type, uuid, envelope.identifiers());
         replaceReferences(c, d, uuid, envelope.references());
-        insertHistory(c, d, uuid, type.typeName(), newVersion, now, request.payload(), false, type.payloadVersion());
+        insertHistory(c, d, uuid, type.typeName(), newVersion, now, request.payload(), false,
+                type.payloadVersion(), chainHash);
         insertOutbox(c, d, uuid, type.typeName(), newVersion, created ? "C" : "U");
 
         return new PutResult(id, newVersion, created);
@@ -239,10 +264,11 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     private void insertHistory(Connection c, String d, UUID id, String type, long version,
-            Instant at, byte[] payload, boolean deleted, String payloadVersion) throws SQLException {
+            Instant at, byte[] payload, boolean deleted, String payloadVersion, byte[] chainHash)
+            throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO history.%s_history (id, version_id, type, last_updated, payload, deleted, payload_version)
-                VALUES (?, ?, ?, ?, ?, ?, ?)""".formatted(d))) {
+                INSERT INTO history.%s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""".formatted(d))) {
             ps.setObject(1, id);
             ps.setLong(2, version);
             ps.setString(3, type);
@@ -250,7 +276,79 @@ public final class PgObjectStore implements ObjectStore {
             ps.setBytes(5, payload);
             ps.setBoolean(6, deleted);
             ps.setString(7, payloadVersion);
+            ps.setBytes(8, chainHash);
             ps.executeUpdate();
+        }
+    }
+
+    /**
+     * The link the previous version left, or null when this object has none
+     * yet. Read under the same lock as the version it belongs to, so two
+     * concurrent writers cannot both chain onto the same predecessor.
+     */
+    /**
+     * Walks an object's history and reports the first version whose link does
+     * not follow from the one before it (#33).
+     *
+     * <p>Recomputed rather than compared against a stored expectation: a
+     * verifier that trusts a stored answer verifies nothing. Versions written
+     * before the chain existed carry no link and are reported as UNCHAINED —
+     * an honest distinction, because nothing was ever attested about them and
+     * calling that "broken" would cry wolf on every legacy row.
+     */
+    public ChainCheck verifyChain(String typeName, String id) {
+        TypeRegistration type = registry.require(typeName);
+        UUID uuid = UUID.fromString(id);
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     SELECT version_id, last_updated, payload, deleted, chain_hash
+                     FROM history.%s_history WHERE id = ? ORDER BY version_id"""
+                     .formatted(type.domain()))) {
+            ps.setObject(1, uuid);
+            byte[] previous = VersionChain.GENESIS;
+            boolean sawAny = false;
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    sawAny = true;
+                    long version = rs.getLong(1);
+                    Instant at = rs.getTimestamp(2).toInstant();
+                    byte[] payload = rs.getBytes(3);
+                    boolean deleted = rs.getBoolean(4);
+                    byte[] stored = rs.getBytes(5);
+                    if (stored == null) {
+                        return new ChainCheck(ChainCheck.Result.UNCHAINED, version);
+                    }
+                    byte[] expected = VersionChain.link(previous, payload, version, at, deleted);
+                    if (!java.util.Arrays.equals(expected, stored)) {
+                        return new ChainCheck(ChainCheck.Result.BROKEN, version);
+                    }
+                    previous = stored;
+                }
+            }
+            return sawAny
+                    ? new ChainCheck(ChainCheck.Result.INTACT, null)
+                    : new ChainCheck(ChainCheck.Result.NO_HISTORY, null);
+        } catch (SQLException e) {
+            throw new IllegalStateException("chain verification failed for " + typeName + "/" + id, e);
+        }
+    }
+
+    /** What a chain walk found, and where. */
+    public record ChainCheck(Result result, Long atVersion) {
+        public enum Result { INTACT, BROKEN, UNCHAINED, NO_HISTORY }
+
+        public boolean isIntact() {
+            return result == Result.INTACT;
+        }
+    }
+
+    private byte[] previousChain(Connection c, String d, UUID id) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT chain_hash FROM state.%s_data WHERE id = ?".formatted(d))) {
+            ps.setObject(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getBytes(1) : null;
+            }
         }
     }
 
@@ -573,12 +671,18 @@ public final class PgObjectStore implements ObjectStore {
                     lastPayloadVersion = rs.getString(2);
                 }
             }
+            // A deletion is a version too (#33). An unchained tombstone would be
+            // the gap: remove a record, leave no link, and the history reads as
+            // if it never held one.
+            byte[] tombstoneChain = VersionChain.link(previousChain(c, d, uuid), lastPayload,
+                    newVersion, now, true);
             try (PreparedStatement ps = c.prepareStatement("""
                     UPDATE state.%s_data SET deleted = true, version_id = ?, last_updated = ?,
-                    envelope = '{}'::jsonb WHERE id = ?""".formatted(d))) {
+                    envelope = '{}'::jsonb, chain_hash = ? WHERE id = ?""".formatted(d))) {
                 ps.setLong(1, newVersion);
                 ps.setTimestamp(2, Timestamp.from(now));
-                ps.setObject(3, uuid);
+                ps.setBytes(3, tombstoneChain);
+                ps.setObject(4, uuid);
                 ps.executeUpdate();
             }
             try (PreparedStatement ps = c.prepareStatement(
@@ -591,7 +695,8 @@ public final class PgObjectStore implements ObjectStore {
                 ps.setObject(1, uuid);
                 ps.executeUpdate();
             }
-            insertHistory(c, d, uuid, typeName, newVersion, now, lastPayload, true, lastPayloadVersion);
+            insertHistory(c, d, uuid, typeName, newVersion, now, lastPayload, true,
+                    lastPayloadVersion, tombstoneChain);
             insertOutbox(c, d, uuid, typeName, newVersion, "D");
             return null;
         });
