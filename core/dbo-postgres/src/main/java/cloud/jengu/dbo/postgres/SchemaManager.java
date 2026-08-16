@@ -69,8 +69,13 @@ public final class SchemaManager {
                   envelope jsonb NOT NULL,
                   payload bytea NOT NULL,
                   deleted boolean NOT NULL DEFAULT false,
-                  payload_version text NOT NULL DEFAULT '1'
+                  payload_version text NOT NULL DEFAULT '1',
+                  chain_hash bytea
                 )""".formatted(d));
+        // #33: existing domains gain the link column; rows written before it
+        // carry null, which the verifier reports as unchained rather than as
+        // broken — an honest distinction, since nothing was ever attested.
+        execute(c, "ALTER TABLE state.%s_data ADD COLUMN IF NOT EXISTS chain_hash bytea".formatted(d));
         execute(c, "CREATE INDEX IF NOT EXISTS %s_data_type_ix ON state.%s_data (type, last_updated, id)"
                 .formatted(d, d));
         execute(c, "CREATE INDEX IF NOT EXISTS %s_data_env_gin ON state.%s_data USING gin (envelope jsonb_path_ops)"
@@ -134,8 +139,11 @@ public final class SchemaManager {
                   payload bytea NOT NULL,
                   deleted boolean NOT NULL,
                   payload_version text NOT NULL DEFAULT '1',
+                  chain_hash bytea,
                   PRIMARY KEY (id, version_id)
                 )""".formatted(d));
+        execute(c, "ALTER TABLE history.%s_history ADD COLUMN IF NOT EXISTS chain_hash bytea"
+                .formatted(d));
     }
 
     private void applyIndexes(Connection c, TypeRegistry registry) throws SQLException {
