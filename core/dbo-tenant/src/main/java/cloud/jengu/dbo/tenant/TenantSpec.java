@@ -14,11 +14,37 @@ import java.util.regex.Pattern;
  */
 public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
         boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
-        String zone, String broker, List<String> acceptedBrokers) {
+        String zone, String broker, List<String> acceptedBrokers,
+        List<Dependency> dependencies) {
+
+    /**
+     * A declared content dependency (dbo#30, REQ-DBO-SYNC-SPEC-DECLARED):
+     * {@code name} is the direct upstream tenant's code; only the declared
+     * types stream. Declarations are configuration — the runtime wires the
+     * stream at bring-up and removes it when the declaration disappears.
+     */
+    public record Dependency(String name, Set<String> types) {
+        public Dependency {
+            if (name == null || !CODE.matcher(name).matches()) {
+                throw new IllegalArgumentException("invalid dependency name: " + name);
+            }
+            types = Set.copyOf(types);
+            if (types.isEmpty()) {
+                throw new IllegalArgumentException(
+                        name + ": a dependency must declare at least one type");
+            }
+        }
+    }
+
+    public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers) {
+        this(code, fhirVersion, types, pdi, policies, zone, broker, acceptedBrokers, List.of());
+    }
 
     public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
             boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies) {
-        this(code, fhirVersion, types, pdi, policies, null, null, List.of());
+        this(code, fhirVersion, types, pdi, policies, null, null, List.of(), List.of());
     }
 
     public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types) {
@@ -49,9 +75,18 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
         if (types.isEmpty()) {
             throw new IllegalArgumentException(code + ": at least one type required");
         }
+        dependencies = List.copyOf(dependencies);
+        for (Dependency dependency : dependencies) {
+            if (dependency.name().equals(code)) {
+                throw new IllegalArgumentException(code + ": cannot depend on itself");
+            }
+        }
     }
 
-    /** Parses the spec file format: {"code":..,"fhirVersion":..,"types":[{name,identity,systems?}]}. */
+    /**
+     * Parses the spec file format: {"code":..,"fhirVersion":..,
+     * "types":[{name,identity,systems?}],"dependencies":[{name,types}]}.
+     */
     public static TenantSpec parse(String json) {
         Object root = Json.parse(json);
         String code = Json.str(root, "code");
@@ -68,10 +103,14 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
                         code + "/" + name + ": unknown identity class " + identity);
             };
         }).toList();
+        List<Dependency> dependencies = Json.array(root, "dependencies").stream()
+                .map(d -> new Dependency(Json.str(d, "name"),
+                        Set.copyOf(Json.strings(d, "types"))))
+                .toList();
         return new TenantSpec(code, fhirVersion, types, Json.bool(root, "pdi"),
                 cloud.jengu.dbo.policy.TenantPolicies.parse(root),
                 Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),
-                Json.strings(root, "acceptedBrokers"));
+                Json.strings(root, "acceptedBrokers"), dependencies);
     }
 
     /**
