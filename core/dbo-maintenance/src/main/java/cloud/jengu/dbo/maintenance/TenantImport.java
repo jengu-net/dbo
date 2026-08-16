@@ -161,7 +161,7 @@ public final class TenantImport {
                         skipped++;
                         continue; // same tenant re-import: a no-op
                     }
-                    target.put(new PutRequest(type, id, null, resource));
+                    target.put(PutRequest.restoring(type, id, resource));
                     imported++;
                 }
             }
