@@ -66,7 +66,11 @@ public record PdiSpec(Map<String, Map<String, Disposition>> personTypes) {
         }
         elements.put("birthDate", Disposition.GENERALISE);
         Map<String, Map<String, Disposition>> types = new LinkedHashMap<>();
-        for (String type : new String[] {"Patient", "Practitioner", "RelatedPerson"}) {
+        // Person above all: it is the human, and under ADR 0056 the place a
+        // human's identifying data is authored. Leaving it out would protect
+        // every capacity somebody acts in and not the person themselves.
+        for (String type : new String[] {
+                "Person", "Patient", "Practitioner", "RelatedPerson"}) {
             types.put(type, elements);
         }
         return new PdiSpec(types);
