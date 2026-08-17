@@ -21,6 +21,7 @@ public final class IdentityModel {
     public static final String DOMAIN = "identity";
     public static final String CLIENT_ID_SYSTEM = "urn:dbo:auth:client-id";
     public static final String KID_SYSTEM = "urn:dbo:auth:kid";
+    public static final String BINDING_SUBJECT_SYSTEM = "urn:dbo:identity:bound-subject";
     public static final String ROLE_CODE_SYSTEM = "urn:dbo:auth:role-code";
     public static final String LOGIN_SYSTEM = "urn:dbo:auth:login";
 
@@ -74,7 +75,29 @@ public final class IdentityModel {
             }
             return e;
         };
+        // Bindings are events: the subject they concern is indexed so the
+        // current attachments can be folded, and nothing is ever edited.
+        EnvelopeExtractor binding = (type, payload) -> {
+            Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
+            Envelope e = new Envelope();
+            e.value("kind", EnvelopeValue.of(Json.str(n, "kind")));
+            e.value("subjectId", EnvelopeValue.of(Json.str(n, "subjectId")));
+            e.value("identityId", EnvelopeValue.of(Json.str(n, "identityId")));
+            e.identifier(BINDING_SUBJECT_SYSTEM, Json.str(n, "subjectId"));
+            return e;
+        };
         return List.of(
+                // Append-only for the same reason as a decision: a withdrawal
+                // that erased the binding would erase the evidence that anybody
+                // was ever identified — exactly what somebody would want erased
+                // if the binding had been wrong.
+                new TypeRegistration("BindingEvent", DOMAIN, IdentityClass.INTERNAL,
+                        java.util.Set.of(),
+                        new Handling(Handling.Authority.TENANT_USERS,
+                                Handling.Mutability.APPEND_ONLY,
+                                Handling.Durability.VERSIONED,
+                                Handling.Travel.BACKUP_ONLY),
+                        binding, List.of()),
                 // TENANT_USERS and APPEND_ONLY: a receptionist decides, and a
                 // decision is never edited. Revising an identification means
                 // recording a NEW decision that supersedes it — editing the old
