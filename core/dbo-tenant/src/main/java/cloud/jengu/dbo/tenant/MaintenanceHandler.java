@@ -44,14 +44,17 @@ public final class MaintenanceHandler implements HttpHandler {
     private final DataSource dataSource;
     private final String domain;
     private final List<TypeRegistration> types;
+    private final cloud.jengu.dbo.core.face.PortableRendering rendering;
     private final String basePath;
 
     public MaintenanceHandler(TenantAuthority authority, DataSource dataSource,
-            String domain, List<TypeRegistration> types, String basePath) {
+            String domain, List<TypeRegistration> types,
+            cloud.jengu.dbo.core.face.PortableRendering rendering, String basePath) {
         this.authority = authority;
         this.dataSource = dataSource;
         this.domain = domain;
         this.types = List.copyOf(types);
+        this.rendering = rendering;
         this.basePath = basePath;
     }
 
@@ -96,7 +99,7 @@ public final class MaintenanceHandler implements HttpHandler {
         exchange.getResponseHeaders().set(KIND_HEADER, kind.wire());
         exchange.sendResponseHeaders(200, 0);
         try (OutputStream out = exchange.getResponseBody()) {
-            TenantExport.export(dataSource, domain, ownerKey, out, types, kind);
+            TenantExport.export(dataSource, domain, ownerKey, out, types, kind, rendering);
         }
     }
 

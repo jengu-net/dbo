@@ -190,7 +190,12 @@ class ArchiveKindIT {
 
     private static byte[] exported(TenantExport.Kind kind) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        TenantExport.export(ds, DOMAIN, OWNER_KEY, out, TYPES, kind);
+        // a rendering that hands back the payload with its id — enough to
+        // exercise the element without pulling a FHIR personality into a test
+        // about travel classes
+        TenantExport.export(ds, DOMAIN, OWNER_KEY, out, TYPES, kind,
+                (payload, id, versionId) -> new String(payload, StandardCharsets.UTF_8)
+                        .replaceFirst("\\{", "{\"id\":\"" + id + "\","));
         return out.toByteArray();
     }
 

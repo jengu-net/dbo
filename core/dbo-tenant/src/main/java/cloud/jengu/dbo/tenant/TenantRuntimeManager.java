@@ -259,11 +259,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
             String adminPath = "/t/" + spec.code() + "/admin";
             String domain = "r4".equals(spec.fhirVersion())
                     ? R4Personality.DOMAIN : R5Personality.DOMAIN;
+            boolean r4 = "r4".equals(spec.fhirVersion());
+            R4Personality r4Face = r4 ? new R4Personality(spec.types()) : null;
+            R5Personality r5Face = r4 ? null : new R5Personality(spec.types());
             sharedServer.createContext(adminPath, new MaintenanceHandler(authority,
                     db.dataSource(), domain,
-                    "r4".equals(spec.fhirVersion())
-                            ? new R4Personality(spec.types()).registrations()
-                            : new R5Personality(spec.types()).registrations(),
+                    r4 ? r4Face.registrations() : r5Face.registrations(),
+                    r4 ? r4Face.portableRendering() : r5Face.portableRendering(),
                     adminPath));
             maintenanceContexts.put(spec.code(), adminPath);
         }

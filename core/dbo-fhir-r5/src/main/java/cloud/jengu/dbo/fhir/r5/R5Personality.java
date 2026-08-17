@@ -527,6 +527,26 @@ public final class R5Personality {
      * the search that found it returned. The bundle paths have always put
      * both back; read did not.
      */
+    /**
+     * The face's answer to "give me one line somebody else's tools can read"
+     * (jengu-platform#866) — a FHIR resource carrying its own id and version,
+     * which is what FHIR Bulk Data is.
+     *
+     * <p>The same projection {@link #toResourceJson} performs for every read.
+     * A portable export shows a reader what a client would see, not a shape
+     * invented for archives.
+     */
+    public cloud.jengu.dbo.core.face.PortableRendering portableRendering() {
+        return (payload, id, versionId) -> withTccl(() -> {
+            org.hl7.fhir.r5.model.Resource resource = (org.hl7.fhir.r5.model.Resource)
+                    ctx().newJsonParser()
+                            .parseResource(new String(payload, StandardCharsets.UTF_8));
+            resource.setId(id);
+            resource.getMeta().setVersionId(Long.toString(versionId));
+            return ctx().newJsonParser().encodeResourceToString(resource);
+        });
+    }
+
     public String toResourceJson(StoredObject stored) {
         return withTccl(() -> {
             Resource resource = (Resource) ctx().newJsonParser()

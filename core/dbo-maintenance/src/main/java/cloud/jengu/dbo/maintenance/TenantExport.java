@@ -186,7 +186,34 @@ public final class TenantExport {
      */
     public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
             OutputStream out, List<TypeRegistration> types, Kind kind) throws IOException {
+        return export(ds, domain, ownerMasterKey, out, types, kind, null);
+    }
+
+    /**
+     * As above, with the face's own interchange rendering
+     * (jengu-platform#866).
+     *
+     * <p>A portable export carries a <b>{@code fhir/}</b> element: one
+     * resource per line, ids and versions put back — FHIR Bulk Data, which a
+     * reader who has never heard of this store can open. Without a rendering
+     * a portable export is refused rather than emitted in a private shape
+     * with a portable label on it.
+     *
+     * <p>The {@code state/} element stays as it is. It is dbo's own
+     * interchange, and it carries identity codes <em>beside</em> each object
+     * because writing them into the payload would change the bytes the version
+     * chain and both signatures are over (ADR 0052). Collapsing the two into a
+     * single attested Bulk Data artifact is dbo#34, and belongs there.
+     */
+    public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
+            OutputStream out, List<TypeRegistration> types, Kind kind,
+            cloud.jengu.dbo.core.face.PortableRendering rendering) throws IOException {
         Names.requireDomain(domain);
+        if (kind == Kind.PORTABLE_EXPORT && rendering == null) {
+            throw new IllegalArgumentException("a portable export needs the face's interchange "
+                    + "rendering: without it this would be a private format wearing a portable "
+                    + "label, which is worse than refusing");
+        }
         try (Connection c = ds.getConnection()) {
             c.setAutoCommit(false);
             c.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
@@ -198,7 +225,7 @@ public final class TenantExport {
                 DigestingZip zip = null;
                 try (OutputStream sealed = SealedArchive.sealing(ownerMasterKey, out)) {
                     zip = new DigestingZip(new ZipOutputStream(sealed));
-                    result = writeArchive(c, domain, zip, grounded(types, kind), kind);
+                    result = writeArchive(c, domain, zip, grounded(types, kind), kind, rendering);
                     // The manifest can only be written once every digest is
                     // known, so it goes last — which is also why verification
                     // needs its own pass before an import writes anything.
@@ -422,7 +449,9 @@ public final class TenantExport {
     }
 
     private static ExportResult writeArchive(Connection c, String domain, DigestingZip out,
-            Set<String> grounded, Kind kind) throws SQLException, IOException {
+            Set<String> grounded, Kind kind,
+            cloud.jengu.dbo.core.face.PortableRendering rendering)
+            throws SQLException, IOException {
         DigestingZip zip = out;
         long fence;
         try (PreparedStatement ps = c.prepareStatement(
@@ -482,6 +511,29 @@ public final class TenantExport {
             zip.closeEntry();
             counts.put(type, n);
             total += n;
+        }
+
+        // ---- the domain's own interchange element, for a reader who has
+        // never heard of this store. One resource per line with its id and
+        // version put back — the same projection every client already sees.
+        if (kind == Kind.PORTABLE_EXPORT) {
+            for (String type : types) {
+                zip.putNextEntry(new ZipEntry("fhir/" + type + ".ndjson"));
+                try (PreparedStatement ps = c.prepareStatement("""
+                        SELECT d.id, d.version_id, d.payload
+                        FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted
+                        ORDER BY d.id""".formatted(domain))) {
+                    ps.setString(1, type);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            zip.write((rendering.render(rs.getBytes(3),
+                                    rs.getObject(1).toString(), rs.getLong(2)) + "\n")
+                                    .getBytes(StandardCharsets.UTF_8));
+                        }
+                    }
+                }
+                zip.closeEntry();
+            }
         }
 
         Set<String> written = new java.util.LinkedHashSet<>();
