@@ -68,13 +68,21 @@ spec:
                   minItems: 1
                   items:
                     type: object
-                    required: [name, identity]
+                    # handling is required at the outermost edge: an
+                    # unclassified type is refused by the API server, so it
+                    # never becomes a registration somebody has to debug at
+                    # tenant bring-up (jengu-platform#869)
+                    required: [name, identity, handling]
                     properties:
                       name:
                         type: string
                       identity:
                         type: string
                         enum: [identifier, canonical, internal]
+                      handling:
+                        type: string
+                        enum: [operational, projected-config, replicated,
+                               store-authored, audit, ephemeral]
                       systems:
                         type: array
                         items:

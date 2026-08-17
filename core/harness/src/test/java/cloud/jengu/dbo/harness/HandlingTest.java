@@ -27,6 +27,41 @@ class HandlingTest {
     private static final EnvelopeExtractor NOTHING = (typeName, payload) -> new Envelope();
 
     @Test
+    @DisplayName("#869: a type declared in a SPEC without a handling is refused too — the rule "
+            + "does not depend on which layer the declaration came from")
+    void anUnclassifiedTypeInASpecCannotBeParsed() {
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> cloud.jengu.dbo.tenant.TenantSpec.parse("""
+                        {"code":"unsaid","fhirVersion":"r4","types":[
+                          {"name":"Patient","identity":"internal"}]}"""));
+
+        assertTrue(refused.getMessage().contains("unsaid/Patient"), refused.getMessage());
+        assertTrue(refused.getMessage().contains("no declared handling"), refused.getMessage());
+    }
+
+    @Test
+    @DisplayName("#869: a misspelt handling is refused rather than falling through — a typo must "
+            + "not become a classification")
+    void aTypoIsNotAClassification() {
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> cloud.jengu.dbo.tenant.TenantSpec.parse("""
+                        {"code":"typo","fhirVersion":"r4","types":[
+                          {"name":"Patient","identity":"internal","handling":"operatoinal"}]}"""));
+
+        assertTrue(refused.getMessage().contains("operatoinal"), refused.getMessage());
+    }
+
+    @Test
+    @DisplayName("#869: a classified spec parses, and the type carries what it declared")
+    void aClassifiedSpecCarriesItsDeclaration() {
+        var spec = cloud.jengu.dbo.tenant.TenantSpec.parse("""
+                {"code":"said","fhirVersion":"r4","types":[
+                  {"name":"CodeSystem","identity":"canonical","handling":"replicated"}]}""");
+
+        assertEquals(Handling.replicated(), spec.types().get(0).handling());
+    }
+
+    @Test
     @DisplayName("#869: a type registered without a declared handling is refused, and says what to say")
     void anUnclassifiedTypeCannotBeRegistered() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,

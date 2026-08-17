@@ -82,11 +82,11 @@ class HumanAuthIT {
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("arst.json"), """
                 {"code":"arst","fhirVersion":"r4","audit":{"level":"writes"},"types":[
-                  {"name":"Patient","identity":"internal"},
-                  {"name":"Person","identity":"identifier","systems":["%s"]},
-                  {"name":"Practitioner","identity":"identifier","systems":["%s"]},
-                  {"name":"PractitionerRole","identity":"internal"},
-                  {"name":"Encounter","identity":"internal"}]}""".formatted(EID, EID));
+                  {"name":"Patient","identity":"internal","handling":"operational"},
+                  {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"PractitionerRole","identity":"internal","handling":"operational"},
+                  {"name":"Encounter","identity":"internal","handling":"operational"}]}""".formatted(EID, EID));
         manager.scanOnce();
 
         // seed the clinical side over REST with the service token
@@ -465,8 +465,8 @@ class HumanAuthIT {
         // pdi tenant: the vault's HMAC index
         Files.writeString(dir.resolve("arstp.json"), """
                 {"code":"arstp","fhirVersion":"r4","pdi":true,"types":[
-                  {"name":"Person","identity":"identifier","systems":["%s"]},
-                  {"name":"Practitioner","identity":"internal"}]}""".formatted(EID));
+                  {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"Practitioner","identity":"internal","handling":"operational"}]}""".formatted(EID));
         manager.scanOnce();
         // The national identifier is the human's, so under PDI it is claimed by
         // the Person and by nothing else. The vault claims per (system, value)

@@ -156,7 +156,14 @@ public final class ContentSyncEngine {
             return true; // handled (visible); not a shadow
         }
         try {
-            targetStore.put(new PutRequest(item.typeName(), item.objectId(), null, payload));
+            // As the replication lane, which is what this is. A type declared
+            // read-only-here refuses every other caller, and the lane that may
+            // write it has to say so — the alternative is inferring it from
+            // whichever credential happened to be in play, which would make
+            // the shield depend on deployment wiring rather than on what the
+            // code is doing (jengu-platform#869, dbo#37).
+            targetStore.put(new PutRequest(item.typeName(), item.objectId(), null, payload),
+                    cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
             recordOrigin(item, version);
             return true;
         } catch (IdentityConflictException conflict) {

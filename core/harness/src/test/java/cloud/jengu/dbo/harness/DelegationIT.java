@@ -74,11 +74,11 @@ class DelegationIT {
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("esindus.json"), """
                 {"code":"esindus","fhirVersion":"r4","audit":{"level":"writes"},"types":[
-                  {"name":"Patient","identity":"internal"},
-                  {"name":"Person","identity":"identifier","systems":["%s"]},
-                  {"name":"Practitioner","identity":"identifier","systems":["%s"]},
-                  {"name":"PractitionerRole","identity":"internal"},
-                  {"name":"Encounter","identity":"internal"}]}""".formatted(EID, EID));
+                  {"name":"Patient","identity":"internal","handling":"operational"},
+                  {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"PractitionerRole","identity":"internal","handling":"operational"},
+                  {"name":"Encounter","identity":"internal","handling":"operational"}]}""".formatted(EID, EID));
         manager.scanOnce();
 
         String service = serviceToken();

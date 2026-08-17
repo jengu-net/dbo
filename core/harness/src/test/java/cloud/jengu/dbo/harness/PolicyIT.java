@@ -107,7 +107,7 @@ class PolicyIT {
                 "audit", Map.of("level", "verbose"))));
         assertThrows(IllegalArgumentException.class, () -> TenantSpec.parse("""
                 {"code":"halb","fhirVersion":"r4","writeDiscipline":{"default":"immutable"},
-                 "types":[{"name":"Task","identity":"internal"}]}"""));
+                 "types":[{"name":"Task","identity":"internal","handling":"operational"}]}"""));
     }
 
     /** Writes are audited with the caller's identity; the audit stream is its own outbox. */
