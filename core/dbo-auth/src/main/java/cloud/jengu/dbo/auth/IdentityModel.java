@@ -56,7 +56,39 @@ public final class IdentityModel {
             e.value("status", EnvelopeValue.of(Json.str(n, "status")));
             return e;
         };
+        // Every claim that was presented becomes a (non-identity) identifier on
+        // the decision, so the next resolution can ask "has anybody already
+        // judged this claim?" without scanning. The claims are not identity
+        // claims here — they identify a person, not this record — so they do
+        // not collide with the person's own.
+        EnvelopeExtractor adjudication = (type, payload) -> {
+            Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
+            Envelope e = new Envelope();
+            e.value("outcome", EnvelopeValue.of(Json.str(n, "outcome")));
+            String subject = Json.strOpt(n, "subjectId");
+            if (subject != null) {
+                e.value("subjectId", EnvelopeValue.of(subject));
+            }
+            for (Object claim : Json.array(n, "presented")) {
+                e.identifier(Json.str(claim, "system"), Json.str(claim, "value"));
+            }
+            return e;
+        };
         return List.of(
+                // TENANT_USERS and APPEND_ONLY: a receptionist decides, and a
+                // decision is never edited. Revising an identification means
+                // recording a NEW decision that supersedes it — editing the old
+                // one would destroy the evidence of what somebody concluded and
+                // when, which is the reason to keep it at all. No named class
+                // covers this combination, which is what the four properties are
+                // for.
+                new TypeRegistration("Adjudication", DOMAIN, IdentityClass.INTERNAL,
+                        java.util.Set.of(),
+                        new Handling(Handling.Authority.TENANT_USERS,
+                                Handling.Mutability.APPEND_ONLY,
+                                Handling.Durability.VERSIONED,
+                                Handling.Travel.BACKUP_ONLY),
+                        adjudication, List.of()),
                 new TypeRegistration("ClientApplication", DOMAIN, IdentityClass.IDENTIFIER,
                         java.util.Set.of(CLIENT_ID_SYSTEM), Handling.storeAuthored(), client, List.of()),
                 new TypeRegistration("SigningKey", DOMAIN, IdentityClass.IDENTIFIER,
