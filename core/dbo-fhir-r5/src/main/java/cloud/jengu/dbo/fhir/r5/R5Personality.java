@@ -490,17 +490,29 @@ public final class R5Personality {
 
     // ----------------------------------------------------------- validation
 
+    /** See {@code R4Personality} — the same guard, the same busy machine (dbo#42). */
+    private static final String REGEX_TIMED_OUT = "Regex evaluation timed out";
+
     /** ERROR/FATAL issue lines; empty = valid. */
     public List<String> validate(String resourceJson) {
         return withTccl(() -> {
             IBaseResource resource = ctx().newJsonParser().parseResource(resourceJson);
-            ValidationResult result = validator().validateWithResult(resource);
-            return result.getMessages().stream()
-                    .filter(m -> m.getSeverity() == ResultSeverityEnum.ERROR
-                            || m.getSeverity() == ResultSeverityEnum.FATAL)
-                    .map(m -> m.getSeverity() + " " + m.getLocationString() + ": " + m.getMessage())
-                    .toList();
+            List<String> issues = issuesFrom(validator().validateWithResult(resource));
+            if (issues.stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
+                // A regex that ran out of wall clock found nothing; asking
+                // again is the only answer that is not a guess.
+                issues = issuesFrom(validator().validateWithResult(resource));
+            }
+            return issues;
         });
+    }
+
+    private static List<String> issuesFrom(ValidationResult result) {
+        return result.getMessages().stream()
+                .filter(m -> m.getSeverity() == ResultSeverityEnum.ERROR
+                        || m.getSeverity() == ResultSeverityEnum.FATAL)
+                .map(m -> m.getSeverity() + " " + m.getLocationString() + ": " + m.getMessage())
+                .toList();
     }
 
     /**

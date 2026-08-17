@@ -490,17 +490,46 @@ public final class R4Personality {
 
     // ----------------------------------------------------------- validation
 
+    /**
+     * A regex check that ran out of wall clock rather than finding anything.
+     *
+     * <p>HAPI guards every primitive-type regex against catastrophic
+     * backtracking by running it on a <b>new single-thread executor</b> with a
+     * 500ms budget — a thread per regex, timed by the clock rather than by
+     * work done. On a loaded machine the thread may simply not be scheduled in
+     * time, and a pattern matched against {@code rest-hook} "times out".
+     *
+     * <p>Which is not a finding. It says nothing about the resource, and
+     * treating it as an error rejects a valid write because a machine was
+     * busy (dbo#42).
+     */
+    private static final String REGEX_TIMED_OUT = "Regex evaluation timed out";
+
     /** ERROR/FATAL issue lines; empty = valid. */
     public List<String> validate(String resourceJson) {
         return withTccl(() -> {
             IBaseResource resource = ctx().newJsonParser().parseResource(resourceJson);
-            ValidationResult result = validator().validateWithResult(resource);
-            return result.getMessages().stream()
-                    .filter(m -> m.getSeverity() == ResultSeverityEnum.ERROR
-                            || m.getSeverity() == ResultSeverityEnum.FATAL)
-                    .map(m -> m.getSeverity() + " " + m.getLocationString() + ": " + m.getMessage())
-                    .toList();
+            List<String> issues = issuesFrom(validator().validateWithResult(resource));
+            if (issues.stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
+                // Re-run rather than assume either way. A timeout is not
+                // evidence of invalidity, so accepting it would reject a valid
+                // resource; but the guard exists because FHIR's own `code`
+                // pattern backtracks badly, so ignoring it would wave through
+                // exactly what it defends against. Asking again is the only
+                // answer that is not a guess — and if it times out twice,
+                // something is wrong beyond a busy moment and it is reported.
+                issues = issuesFrom(validator().validateWithResult(resource));
+            }
+            return issues;
         });
+    }
+
+    private static List<String> issuesFrom(ValidationResult result) {
+        return result.getMessages().stream()
+                .filter(m -> m.getSeverity() == ResultSeverityEnum.ERROR
+                        || m.getSeverity() == ResultSeverityEnum.FATAL)
+                .map(m -> m.getSeverity() + " " + m.getLocationString() + ": " + m.getMessage())
+                .toList();
     }
 
     /**
