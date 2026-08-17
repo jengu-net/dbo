@@ -78,8 +78,51 @@ public final class TenantInventory {
         return lines;
     }
 
+    /** One consumer of a domain's feed, and how far behind it is. */
+    public record Delivery(String domain, String consumer, long lag) {}
+
+    /**
+     * Who reads each domain's feed, and how far behind they are
+     * (jengu-platform#872).
+     *
+     * <p>Reported because it is what an operator needs after a restore and
+     * cannot otherwise see: delivery state never travels in an archive, so
+     * "did the restore leave my consumers somewhere sensible" has no answer
+     * from the archive itself. A consumer at the head has nothing queued for
+     * it, which is what a restore should produce — anything else means events
+     * from before the backup are about to be sent a second time.
+     */
+    public static List<Delivery> deliveryOf(DataSource ds) {
+        List<Delivery> delivery = new ArrayList<>();
+        try (Connection c = ds.getConnection()) {
+            for (String domain : TenantExport.domainsOf(c)) {
+                try (PreparedStatement ps = c.prepareStatement("""
+                        SELECT k.name,
+                               (SELECT count(*) FROM state.%s_outbox o
+                                WHERE (o.xact_id, o.seq) > (k.cursor_xid, k.seq))
+                        FROM state.%s_consumer k
+                        ORDER BY k.name""".formatted(domain, domain));
+                     ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        delivery.add(new Delivery(domain, rs.getString(1), rs.getLong(2)));
+                    }
+                } catch (SQLException noConsumerTable) {
+                    // a domain nobody subscribes to has none, which is an
+                    // answer rather than a failure
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("delivery inventory failed", e);
+        }
+        return delivery;
+    }
+
     /** The inventory as the maintenance surface serves it. */
     public static String json(List<Line> lines) {
+        return json(lines, List.of());
+    }
+
+    public static String json(List<Line> lines, List<Delivery> delivery) {
         StringBuilder out = new StringBuilder("{\"types\":[");
         for (int i = 0; i < lines.size(); i++) {
             Line line = lines.get(i);
@@ -89,6 +132,15 @@ public final class TenantInventory {
                     .append(",\"total\":").append(line.total())
                     .append(",\"identified\":").append(line.identified())
                     .append(",\"versions\":").append(line.versions())
+                    .append('}');
+        }
+        out.append("],\"delivery\":[");
+        for (int i = 0; i < delivery.size(); i++) {
+            Delivery d = delivery.get(i);
+            out.append(i > 0 ? "," : "")
+                    .append("{\"domain\":").append(Names.quote(d.domain()))
+                    .append(",\"consumer\":").append(Names.quote(d.consumer()))
+                    .append(",\"lag\":").append(d.lag())
                     .append('}');
         }
         return out.append("]}").toString();
