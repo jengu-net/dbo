@@ -73,6 +73,32 @@ public final class Bindings {
     }
 
     /**
+     * How well the standing binding between this subject and this identity was
+     * established, or {@code NONE} if there is none.
+     *
+     * <p>Feeds the chain rule: what somebody may do is bounded by the weaker
+     * of how they authenticated now and how well this identification was made.
+     * A national eID presented today does not upgrade an identification
+     * somebody made last year from a photocopy.
+     */
+    public static cloud.jengu.dbo.core.api.identity.Assurance assuranceOf(
+            ObjectStore store, String subjectId, String identityId) {
+        cloud.jengu.dbo.core.api.identity.Assurance standing =
+                cloud.jengu.dbo.core.api.identity.Assurance.NONE;
+        for (StoredObject event : eventsFor(store, subjectId)) {
+            Object node = Json.parse(new String(event.payload(), StandardCharsets.UTF_8));
+            if (!identityId.equals(Json.str(node, "identityId"))) {
+                continue;
+            }
+            standing = BindingEvent.Kind.BOUND.name().equals(Json.str(node, "kind"))
+                    ? cloud.jengu.dbo.core.api.identity.Assurance.valueOf(
+                            Json.str(node, "assurance"))
+                    : cloud.jengu.dbo.core.api.identity.Assurance.NONE;
+        }
+        return standing;
+    }
+
+    /**
      * Everything ever recorded about this subject's identity, oldest first.
      *
      * <p>The evidence half: that somebody was identified, and that it was
@@ -95,6 +121,7 @@ public final class Bindings {
         StringBuilder json = new StringBuilder("{\"kind\":\"").append(event.kind())
                 .append("\",\"identityId\":").append(Json.quote(event.identityId()))
                 .append(",\"subjectId\":").append(Json.quote(event.subjectId()))
+                .append(",\"assurance\":\"").append(event.assurance()).append('"')
                 .append(",\"actor\":").append(Json.quote(event.actor()))
                 .append(",\"at\":\"").append(event.at())
                 .append("\",\"purpose\":").append(Json.quote(event.purpose()));

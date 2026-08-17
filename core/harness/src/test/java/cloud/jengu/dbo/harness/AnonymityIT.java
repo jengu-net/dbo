@@ -4,6 +4,7 @@ import cloud.jengu.dbo.auth.Anonymity;
 import cloud.jengu.dbo.auth.Bindings;
 import cloud.jengu.dbo.auth.IdentityModel;
 import cloud.jengu.dbo.core.api.identity.AnonymityEvent;
+import cloud.jengu.dbo.core.api.identity.Assurance;
 import cloud.jengu.dbo.core.api.identity.BindingEvent;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import org.junit.jupiter.api.BeforeAll;
@@ -77,7 +78,7 @@ class AnonymityIT {
 
         Anonymity.AnonymityRefusedException refused = assertThrows(
                 Anonymity.AnonymityRefusedException.class,
-                () -> Bindings.record(store, BindingEvent.bound("person-1", "subject-a",
+                () -> Bindings.record(store, BindingEvent.bound("person-1", "subject-a", Assurance.SUBSTANTIAL,
                         "reception-desk-7", NOW, "TREAT", "recognised them")));
 
         assertTrue(refused.getMessage().contains("anonymous by declaration"), refused.getMessage());
@@ -88,7 +89,7 @@ class AnonymityIT {
     @Timeout(300)
     @DisplayName("#39: an earlier identification can still be withdrawn once anonymity is declared")
     void withdrawalStaysAvailable() {
-        Bindings.record(store, BindingEvent.bound("person-2", "subject-b",
+        Bindings.record(store, BindingEvent.bound("person-2", "subject-b", Assurance.SUBSTANTIAL,
                 "desk", NOW, "TREAT", "eID"));
         Bindings.record(store, BindingEvent.withdrawn("person-2", "subject-b",
                 "desk", NOW.plusSeconds(60), "PATRQT", "patient asked"));
@@ -107,7 +108,7 @@ class AnonymityIT {
     @Timeout(300)
     @DisplayName("#39: declaring anonymity over a standing identity is refused — withdraw first")
     void declaringOverAnIdentityIsRefused() {
-        Bindings.record(store, BindingEvent.bound("person-4", "subject-c",
+        Bindings.record(store, BindingEvent.bound("person-4", "subject-c", Assurance.SUBSTANTIAL,
                 "desk", NOW, "TREAT", "eID"));
 
         Anonymity.AnonymityRefusedException refused = assertThrows(
@@ -132,7 +133,7 @@ class AnonymityIT {
                 "patient chose to be identified", "wants the result in their record"));
 
         assertFalse(Anonymity.declared(store, "subject-d"));
-        Bindings.record(store, BindingEvent.bound("person-5", "subject-d",
+        Bindings.record(store, BindingEvent.bound("person-5", "subject-d", Assurance.SUBSTANTIAL,
                 "desk", NOW.plusSeconds(120), "PATRQT", "at the patient's request"));
 
         assertEquals(Set.of("person-5"), Bindings.current(store, "subject-d"));

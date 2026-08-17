@@ -4,6 +4,7 @@ import cloud.jengu.dbo.auth.Bindings;
 import cloud.jengu.dbo.auth.IdentityModel;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.StoredObject;
+import cloud.jengu.dbo.core.api.identity.Assurance;
 import cloud.jengu.dbo.core.api.identity.BindingEvent;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import org.junit.jupiter.api.BeforeAll;
@@ -68,7 +69,7 @@ class BindingIT {
     @Timeout(300)
     @DisplayName("#39: withdrawing removes the identity and keeps the evidence it was there")
     void withdrawalKeepsTheEvidence() {
-        Bindings.record(store, BindingEvent.bound("person-1", "subject-1",
+        Bindings.record(store, BindingEvent.bound("person-1", "subject-1", Assurance.SUBSTANTIAL,
                 "reception-desk-7", MONDAY, "TREAT", "national eID presented"));
         assertEquals(Set.of("person-1"), Bindings.current(store, "subject-1"));
 
@@ -87,11 +88,11 @@ class BindingIT {
     @Timeout(300)
     @DisplayName("#39: a mistaken withdrawal is as recoverable as a mistaken binding")
     void rebindingAfterAWithdrawalWorks() {
-        Bindings.record(store, BindingEvent.bound("person-2", "subject-2",
+        Bindings.record(store, BindingEvent.bound("person-2", "subject-2", Assurance.SUBSTANTIAL,
                 "desk", MONDAY, "TREAT", "first"));
         Bindings.record(store, BindingEvent.withdrawn("person-2", "subject-2",
                 "desk", MONDAY.plusSeconds(60), "TREAT", "second thoughts"));
-        Bindings.record(store, BindingEvent.bound("person-2", "subject-2",
+        Bindings.record(store, BindingEvent.bound("person-2", "subject-2", Assurance.SUBSTANTIAL,
                 "desk", MONDAY.plusSeconds(120), "TREAT", "confirmed after all"));
 
         assertEquals(Set.of("person-2"), Bindings.current(store, "subject-2"),
@@ -104,11 +105,11 @@ class BindingIT {
     @DisplayName("#39: binding without a purpose or a person behind it is refused")
     void bindingNamesWhoAndWhy() {
         assertTrue(assertThrows(IllegalArgumentException.class,
-                () -> BindingEvent.bound("person-3", "subject-3", "  ", MONDAY, "TREAT", null))
+                () -> BindingEvent.bound("person-3", "subject-3", Assurance.SUBSTANTIAL, "  ", MONDAY, "TREAT", null))
                 .getMessage().contains("who did it"));
 
         assertTrue(assertThrows(IllegalArgumentException.class,
-                () -> BindingEvent.bound("person-3", "subject-3", "desk", MONDAY, "", null))
+                () -> BindingEvent.bound("person-3", "subject-3", Assurance.SUBSTANTIAL, "desk", MONDAY, "", null))
                 .getMessage().contains("purpose"));
     }
 
@@ -116,7 +117,7 @@ class BindingIT {
     @Timeout(300)
     @DisplayName("#39: a recorded binding cannot be rewritten into a different one")
     void bindingEventsAreAppendOnly() {
-        String id = Bindings.record(store, BindingEvent.bound("person-4", "subject-4",
+        String id = Bindings.record(store, BindingEvent.bound("person-4", "subject-4", Assurance.SUBSTANTIAL,
                 "desk", MONDAY, "TREAT", "eID"));
 
         PgObjectStore.HandlingRefusedException refused = assertThrows(
@@ -136,7 +137,7 @@ class BindingIT {
     @Timeout(300)
     @DisplayName("#39: one subject's bindings say nothing about another's")
     void bindingsAreScopedToTheirSubject() {
-        Bindings.record(store, BindingEvent.bound("person-5", "subject-5",
+        Bindings.record(store, BindingEvent.bound("person-5", "subject-5", Assurance.SUBSTANTIAL,
                 "desk", MONDAY, "TREAT", "eID"));
 
         assertEquals(Set.of(), Bindings.current(store, "subject-6"));
