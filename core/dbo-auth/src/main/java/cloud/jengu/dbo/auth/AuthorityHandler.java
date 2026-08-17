@@ -43,6 +43,7 @@ public final class AuthorityHandler implements HttpHandler {
                 case "federated" -> federated(exchange);
                 case "admin/role-grants" -> adminRoleGrants(exchange);
                 case "admin/credentials" -> adminCredentials(exchange);
+                case "admin/edge-factors" -> adminEdgeFactors(exchange);
                 default -> {
                     if (relative.startsWith("delegation/") && "DELETE".equals(exchange.getRequestMethod())) {
                         endDelegation(exchange, relative.substring("delegation/".length()));
@@ -291,6 +292,32 @@ public final class AuthorityHandler implements HttpHandler {
         }
         authority.ensureRoleGrant(role, scopes);
         respond(exchange, 200, "{\"status\":\"ensured\",\"role\":\"" + role + "\"}");
+    }
+
+    /**
+     * The PIN verifiers a bench needs to authenticate people offline.
+     *
+     * <p>A deliberate credential-distribution surface. An edge cannot ask
+     * anybody at the moment somebody presents a PIN, so it holds verifiers in
+     * advance — the cost of working in a basement. Naming the endpoint after
+     * what it does is the point: this used to happen as a side effect of
+     * syncing clinical records, where nobody chose it.
+     *
+     * <p>Hashes only. What leaves here checks a PIN and cannot produce one.
+     */
+    private void adminEdgeFactors(HttpExchange exchange) throws IOException {
+        if (!systemWrite(exchange)) {
+            return;
+        }
+        StringBuilder json = new StringBuilder("{\"factors\":[");
+        boolean first = true;
+        for (java.util.Map.Entry<String, String> holder : authority.factorsFor("pin")) {
+            json.append(first ? "" : ",")
+                    .append("{\"login\":").append(Json.quote(holder.getKey()))
+                    .append(",\"pinHash\":").append(Json.quote(holder.getValue())).append('}');
+            first = false;
+        }
+        respond(exchange, 200, json.append("]}").toString());
     }
 
     private void adminCredentials(HttpExchange exchange) throws IOException {

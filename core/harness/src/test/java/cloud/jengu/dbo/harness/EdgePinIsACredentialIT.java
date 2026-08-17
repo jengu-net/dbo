@@ -131,6 +131,34 @@ class EdgePinIsACredentialIT {
 
     @Test
     @Timeout(300)
+    @DisplayName("#871: a bench gets verifiers for offline sign-in, and only hashes")
+    void offlineVerifiersAreDistributedAsHashesOnly() {
+        authority.setFactor("albus@hogwarts.scot", "pin", "4815");
+
+        var distributed = authority.factorsFor("pin");
+
+        assertEquals(1, distributed.size());
+        assertEquals("albus@hogwarts.scot", distributed.get(0).getKey());
+        assertFalse(distributed.get(0).getValue().contains("4815"),
+                "what reaches a bench must verify a PIN and be unable to produce one");
+        assertTrue(cloud.jengu.dbo.auth.SecretHashProbe.verifies("4815",
+                        distributed.get(0).getValue()),
+                "and it must actually verify, or an offline sign-in fails at the bedside");
+    }
+
+    @Test
+    @Timeout(300)
+    @DisplayName("#871: a login with no PIN is not distributed at all")
+    void aLoginWithoutAPinIsNotShipped() {
+        authority.ensureLocalCredential("nopin@hogwarts.scot", "test1234", "prac-2");
+
+        assertTrue(authority.factorsFor("pin").stream()
+                        .noneMatch(e -> e.getKey().equals("nopin@hogwarts.scot")),
+                "a bench holds verifiers for people who can sign in there, and nobody else");
+    }
+
+    @Test
+    @Timeout(300)
     @DisplayName("#871: the credential is store-authored — it rides a backup and never an export")
     void theCredentialIsClassifiedAsOne() {
         TypeRegistration credential = IdentityModel.registrations().stream()
