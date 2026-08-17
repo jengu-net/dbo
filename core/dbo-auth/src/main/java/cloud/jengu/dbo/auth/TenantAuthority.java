@@ -377,6 +377,33 @@ public final class TenantAuthority {
                 (stripped + ",\"factors\":" + rebuilt + "}").getBytes(StandardCharsets.UTF_8)));
     }
 
+    /**
+     * Every login that has a given factor set, with its hash — for a bench
+     * that must verify people with no network.
+     *
+     * <p><b>This distributes credential material, and says so.</b> An edge
+     * authenticates offline, so it cannot ask anybody at the moment somebody
+     * presents a PIN; it has to hold a verifier in advance. That is a real
+     * cost and it is accepted deliberately, which is different from how it
+     * arrived before — riding inside a clinical resource that happened to be
+     * synced, where nobody had to decide anything.
+     *
+     * <p>Hashes, never secrets: what leaves here verifies a PIN and does not
+     * reveal one.
+     */
+    public List<Map.Entry<String, String>> factorsFor(String amr) {
+        List<Map.Entry<String, String>> holders = new java.util.ArrayList<>();
+        for (StoredObject credential : store.select(
+                cloud.jengu.dbo.core.api.Criteria.of("LocalCredential"))) {
+            String hash = factorHash(credential, amr);
+            if (hash == null || !"active".equals(field(credential, "status"))) {
+                continue;
+            }
+            holders.add(Map.entry(field(credential, "login"), hash));
+        }
+        return holders;
+    }
+
     /** Whether this secret is the one set for that login and that factor kind. */
     public boolean verifyFactor(String login, String amr, String rawSecret) {
         return store.getByIdentifier("LocalCredential",
