@@ -26,8 +26,27 @@ public final class Bindings {
     private Bindings() {
     }
 
-    /** Records an attachment or a detachment. Never edits: both are appended. */
+    /**
+     * Records an attachment or a detachment. Never edits: both are appended.
+     *
+     * <p>Attaching an identity to a subject who is <b>anonymous by
+     * declaration</b> is refused. That refusal is the entire point of the
+     * declaration: without it, a helpful workflow identifies somebody who had
+     * a right not to be, and everybody involved believes they were being
+     * careful.
+     *
+     * <p>Detaching is always allowed. It is the corrective direction, and a
+     * subject who has since asked to be anonymous is exactly who most needs an
+     * earlier identification undone.
+     */
     public static String record(ObjectStore store, BindingEvent event) {
+        if (event.kind() == BindingEvent.Kind.BOUND
+                && Anonymity.declared(store, event.subjectId())) {
+            throw new Anonymity.AnonymityRefusedException(
+                    "subject " + event.subjectId() + " is anonymous by declaration — identifying "
+                            + "them is refused rather than merely discouraged, because a prompt "
+                            + "somebody can click through is not a protection");
+        }
         return store.put(PutRequest.create("BindingEvent", render(event))).id();
     }
 
