@@ -139,7 +139,8 @@ class BackupCoversTheTenantIT {
     void theExportDidNotWiden() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         TenantExport.export(ds, CLINICAL, OWNER_KEY, out, CLINICAL_TYPES,
-                TenantExport.Kind.PORTABLE_EXPORT);
+                TenantExport.Kind.PORTABLE_EXPORT,
+                (payload, id, versionId) -> new String(payload, StandardCharsets.UTF_8));
         TreeSet<String> entries = entriesOf(out.toByteArray());
 
         assertTrue(entries.contains("state/Note.ndjson"), entries.toString());

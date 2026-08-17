@@ -42,6 +42,7 @@ tasks.jar {
                     "org.osgi.framework",
                     "org.osgi.util.tracker",
                     "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
+                    "cloud.jengu.dbo.core.face;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.core.api.feed;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.fhir.common;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.fhir.r4;version=\"[0.1,1)\"",
