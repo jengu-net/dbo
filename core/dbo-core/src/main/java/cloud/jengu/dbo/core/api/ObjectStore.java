@@ -14,6 +14,23 @@ public interface ObjectStore {
     PutResult put(PutRequest request);
 
     /**
+     * A write that says who is making it, so a type's declared handling can
+     * refuse it (jengu-platform#870).
+     *
+     * <p>Deliberately <b>not</b> a default method. A default delegating to the
+     * one-argument form would let a wrapper inherit it and silently discard the
+     * authority on the way through: the caller believes it declared something,
+     * the shield sees the least-privileged default, and the failure is toward
+     * permissive. Abstract means a new implementation has to decide.
+     *
+     * <p>Without this on the interface a replication lane — which holds an
+     * {@code ObjectStore}, not a concrete class — has no way to say it is the
+     * source tenant, so {@code READ_ONLY_HERE} cannot be satisfied at all
+     * (dbo#41).
+     */
+    PutResult put(PutRequest request, Handling.Authority caller);
+
+    /**
      * Conditional create keyed on primary identity only. Existing object with
      * this identity → returns it untouched ({@code created=false}).
      */
@@ -29,6 +46,9 @@ public interface ObjectStore {
 
     /** Tombstone delete: version row + outbox event; frees identity claims. */
     void delete(String typeName, String id, Long expectedVersion);
+
+    /** As above, saying who is asking — see {@link #put(PutRequest, Handling.Authority)}. */
+    void delete(String typeName, String id, Long expectedVersion, Handling.Authority caller);
 
     /** All versions, oldest first (REQ-DBO-CORE-VERSIONED-HISTORY). */
     List<StoredObject> history(String typeName, String id);
