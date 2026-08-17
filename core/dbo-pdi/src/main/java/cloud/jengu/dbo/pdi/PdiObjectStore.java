@@ -35,11 +35,23 @@ public final class PdiObjectStore implements ObjectStore {
     private final ObjectStore inner;
     private final PersonVault vault;
     private final PdiSpec spec;
+    private final cloud.jengu.dbo.core.api.Coarsening coarsening;
 
     public PdiObjectStore(ObjectStore inner, PersonVault vault, PdiSpec spec) {
+        this(inner, vault, spec, cloud.jengu.dbo.core.api.Coarsening.NONE);
+    }
+
+    /**
+     * @param coarsening supplied by the face — the engine declares that an
+     *                   element is generalised, the face knows how. Without
+     *                   one, a generalised element is simply absent.
+     */
+    public PdiObjectStore(ObjectStore inner, PersonVault vault, PdiSpec spec,
+            cloud.jengu.dbo.core.api.Coarsening coarsening) {
         this.inner = inner;
         this.vault = vault;
         this.spec = spec;
+        this.coarsening = coarsening;
     }
 
     public PersonVault vault() {
@@ -171,7 +183,7 @@ public final class PdiObjectStore implements ObjectStore {
                 // The coarse value is computed here and left in the clear,
                 // because a reader without the key has no plaintext to derive
                 // it from at read time. The full value still rides encrypted.
-                Object coarse = Generalisation.of(element, value);
+                Object coarse = coarsening.coarsen(typeName, element, value);
                 if (coarse != null) {
                     parsed.put(element, coarse);
                 }
