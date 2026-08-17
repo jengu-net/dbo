@@ -301,7 +301,12 @@ public final class AuthorityHandler implements HttpHandler {
                 exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
         String login = Json.strOpt(body, "login");
         String secret = Json.strOpt(body, "secret");
-        String practitionerId = Json.strOpt(body, "practitionerId");
+        // The credential binds to the person, not to a capacity they act in
+        // (jengu-platform#879). No fallback to the old field: a credential
+        // pointing at a practitioner id would authenticate somebody to a
+        // subject that grants nothing, and the failure would read as a
+        // permissions problem rather than a wiring one.
+        String personId = Json.strOpt(body, "personId");
         String edgePin = Json.strOpt(body, "edgePin");
         if (login == null || (secret == null && edgePin == null)) {
             respond(exchange, 400, "{\"error\":\"invalid_request\"}");
@@ -311,11 +316,11 @@ public final class AuthorityHandler implements HttpHandler {
         // that creating one does — and it must not silently create a
         // credential nobody has a password for.
         if (secret != null) {
-            if (practitionerId == null) {
+            if (personId == null) {
                 respond(exchange, 400, "{\"error\":\"invalid_request\"}");
                 return;
             }
-            authority.ensureLocalCredential(login, secret, practitionerId);
+            authority.ensureLocalCredential(login, secret, personId);
         }
         if (edgePin != null) {
             try {

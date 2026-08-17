@@ -388,8 +388,8 @@ class HumanAuthIT {
                         .header("Authorization", "Bearer " + service)
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(
-                                "{\"login\":\"poppy\",\"secret\":\"pomfrey8\",\"practitionerId\":\""
-                                        + practitionerId + "\"}")).build(),
+                                "{\"login\":\"poppy\",\"secret\":\"pomfrey8\",\"personId\":\""
+                                        + personId + "\"}")).build(),
                 HttpResponse.BodyHandlers.ofString()).statusCode());
 
         // the provisioned credential signs in through the front channel
