@@ -52,6 +52,23 @@ public record Resolution(List<Candidate> candidates) {
      */
     public static Resolution of(List<IdentityClaim> presented,
             Map<IdentityClaim, List<String>> matches) {
+        return of(presented, matches, java.util.Set.of());
+    }
+
+    /**
+     * As above, knowing which subjects a person has already judged not to be
+     * this one.
+     *
+     * @param previouslyRejected subjects an earlier adjudication declined. They
+     *                           are still offered — marked — because hiding
+     *                           them would make a wrong decision permanent and
+     *                           unexaminable. What they may never be is
+     *                           certain: a machine does not silently reverse a
+     *                           person's conclusion.
+     */
+    public static Resolution of(List<IdentityClaim> presented,
+            Map<IdentityClaim, List<String>> matches,
+            java.util.Set<String> previouslyRejected) {
         Map<String, List<IdentityClaim>> bySubject = new LinkedHashMap<>();
         Map<String, Candidate.Confidence> best = new LinkedHashMap<>();
 
@@ -75,7 +92,11 @@ public record Resolution(List<Candidate> candidates) {
             if (ambiguous && confidence == Candidate.Confidence.CERTAIN) {
                 confidence = Candidate.Confidence.PROBABLE;
             }
-            candidates.add(new Candidate(subject, confidence, claims));
+            boolean rejectedBefore = previouslyRejected.contains(subject);
+            if (rejectedBefore && confidence == Candidate.Confidence.CERTAIN) {
+                confidence = Candidate.Confidence.PROBABLE;
+            }
+            candidates.add(new Candidate(subject, confidence, claims, rejectedBefore));
         });
         return new Resolution(candidates);
     }
