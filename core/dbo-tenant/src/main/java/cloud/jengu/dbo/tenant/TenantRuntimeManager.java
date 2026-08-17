@@ -62,6 +62,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, javax.sql.DataSource> tenantDataSources = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.auth.IdentityHub> zoneHubs = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.policy.RetentionSweep> sweeps = new ConcurrentHashMap<>();
+    private final Map<String, String> maintenanceContexts = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<String, java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine>> syncEngines =
             new ConcurrentHashMap<>();
     private volatile long lastSweepMillis;
@@ -250,6 +251,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     new PgChangeFeed(db.dataSource(), R5Personality.DOMAIN),
                     withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store, null,
                             "/t/" + spec.code() + "/fhir", guard), spec), spec, engine));
+        }
+        // The maintenance surface, when the tenant has an authority to guard
+        // it: backups are system-plane, and a tenant with no authority has no
+        // way to say who is asking (jengu-platform#866).
+        if (authority != null) {
+            String adminPath = "/t/" + spec.code() + "/admin";
+            String domain = "r4".equals(spec.fhirVersion())
+                    ? R4Personality.DOMAIN : R5Personality.DOMAIN;
+            sharedServer.createContext(adminPath, new MaintenanceHandler(authority,
+                    db.dataSource(), domain,
+                    "r4".equals(spec.fhirVersion())
+                            ? new R4Personality(spec.types()).registrations()
+                            : new R5Personality(spec.types()).registrations(),
+                    adminPath));
+            maintenanceContexts.put(spec.code(), adminPath);
         }
         runtimes.put(spec.code(), runtime);
         wireDependencies(spec, runtime, db);
@@ -448,6 +464,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         runtime.endpoint().close();
         sweeps.remove(code);
         syncEngines.remove(code);
+        String adminPath = maintenanceContexts.remove(code);
+        if (adminPath != null) {
+            sharedServer.removeContext(adminPath);
+        }
         String oidcPath = authorityContexts.remove(code);
         if (oidcPath != null) {
             sharedServer.removeContext(oidcPath);

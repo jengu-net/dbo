@@ -15,6 +15,7 @@ dependencies {
     implementation(project(":core:dbo-rest"))
     implementation(project(":core:dbo-sync"))
     implementation(project(":core:dbo-auth"))
+    implementation(project(":core:dbo-maintenance"))
     implementation(project(":core:dbo-pdi"))
     api(project(":core:dbo-policy"))
     compileOnly("org.osgi:osgi.core:8.0.0")
@@ -51,6 +52,7 @@ tasks.jar {
                     "cloud.jengu.dbo.pdi;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.policy;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.sync;version=\"[0.1,1)\"",
+                    "cloud.jengu.dbo.maintenance;version=\"[0.1,1)\"",
                     "com.sun.net.httpserver",
                     "javax.sql",
                     "org.postgresql",

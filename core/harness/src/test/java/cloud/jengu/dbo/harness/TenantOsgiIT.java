@@ -72,7 +72,12 @@ class TenantOsgiIT {
                 "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar", "dbo.pdi.jar", "dbo.policy.jar",
                 // the manager wires declared content dependencies (#30) —
                 // without this bundle the tenant bundle does not resolve
-                "dbo.sync.jar")) {
+                "dbo.sync.jar",
+                // and it mounts the maintenance surface (jengu-platform#866),
+                // which is the same kind of requirement: an import nothing
+                // exports leaves the tenant runtime unresolved, and the
+                // failure reads as the tenant bundle failing to start
+                "dbo.maintenance.jar")) {
             ctx.installBundle("file:" + System.getProperty(prop)).start();
         }
         tenantBundle = ctx.installBundle("file:" + System.getProperty("dbo.tenant.jar"));
