@@ -273,6 +273,51 @@ public final class TenantExport {
         return codes.append(']').toString();
     }
 
+    /**
+     * Whether a table holds <b>delivery state</b> rather than data
+     * (jengu-platform#872).
+     *
+     * <p>A subscription is two things wearing one name: the declaration — who
+     * wants what — is durable configuration and travels as an ordinary object;
+     * the cursor, the dead letters and the counters are how far delivery has
+     * got, and they are true for a moment.
+     *
+     * <p>Carrying them is the sharpest failure in the whole backup design,
+     * because it does not look like one. Delivery lags the feed by design, so
+     * a backup almost always captures a cursor standing behind the outbox
+     * head. Restoring it re-sends every event in that gap — a hospital's
+     * downstream systems receive a day of duplicate notifications and the
+     * restore reports success.
+     */
+    private static boolean isDeliveryState(String domain, String table) {
+        return table.equals(domain + "_consumer")
+                || table.equals(domain + "_subscription_dlq")
+                || table.equals(domain + "_topic_counter");
+    }
+
+    /**
+     * The consumers, by name and nothing else.
+     *
+     * <p>Who reads the feed survives a restore; where they had got to does
+     * not. Dropping the roster as well would be worse than keeping the
+     * positions: a consumer with no row starts at zero, so the restore would
+     * deliver the <em>entire</em> feed rather than merely the gap.
+     */
+    private static void writeConsumerRoster(Connection c, DigestingZip zip, String domain)
+            throws SQLException, IOException {
+        StringBuilder roster = new StringBuilder();
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT name FROM state.%s_consumer ORDER BY name".formatted(domain));
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                roster.append(rs.getString(1)).append('\n');
+            }
+        }
+        zip.putNextEntry(new java.util.zip.ZipEntry("delivery/consumers.txt"));
+        zip.write(roster.toString().getBytes(StandardCharsets.UTF_8));
+        zip.closeEntry();
+    }
+
     /** The type names that must not appear in any archive. */
     private static Set<String> grounded(List<TypeRegistration> types) {
         Set<String> never = new java.util.LinkedHashSet<>();
@@ -353,10 +398,14 @@ public final class TenantExport {
         // a tenant serving two domains repeats them in each archive. Duplication
         // that costs disk beats an archive whose codes cannot be resolved.
         for (String table : stateTablesOf(c, domain)) {
+            if (isDeliveryState(domain, table)) {
+                continue;
+            }
             dumpInto(copy, zip, "fidelity/state." + table + ".csv",
                     copyOf("state." + table, table.equals(domain + "_data") ? grounded : Set.of()),
                     table);
         }
+        writeConsumerRoster(c, zip, domain);
         dumpInto(copy, zip, "fidelity/history." + domain + "_history.csv",
                 copyOf("history." + domain + "_history", grounded),
                 "history");

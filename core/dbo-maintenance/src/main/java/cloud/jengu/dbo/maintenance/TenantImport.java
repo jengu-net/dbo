@@ -185,6 +185,7 @@ public final class TenantImport {
         Names.requireDomain(domain);
         byte[] plain = SealedArchive.open(sealed, ownerMasterKey);
         Map<String, String> dumps = new LinkedHashMap<>();
+        java.util.List<String> consumers = new java.util.ArrayList<>();
         try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(plain))) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
@@ -192,6 +193,13 @@ public final class TenantImport {
                     String table = entry.getName()
                             .substring("fidelity/".length(), entry.getName().length() - ".csv".length());
                     dumps.put(table, new String(zip.readAllBytes(), StandardCharsets.UTF_8));
+                } else if (entry.getName().equals("delivery/consumers.txt")) {
+                    for (String name : new String(zip.readAllBytes(), StandardCharsets.UTF_8)
+                            .split("\n")) {
+                        if (!name.isBlank()) {
+                            consumers.add(name.trim());
+                        }
+                    }
                 }
             }
         }
@@ -228,6 +236,7 @@ public final class TenantImport {
                     copy.copyIn("COPY " + qualified + " FROM STDIN WITH (FORMAT csv)",
                             new StringReader(dump.getValue()));
                 }
+                seedConsumersAtHead(c, domain, consumers);
                 // realign the outbox serial after the byte-exact load
                 try (PreparedStatement ps = c.prepareStatement("""
                         SELECT setval(pg_get_serial_sequence('state.%s_outbox', 'seq'),
@@ -264,6 +273,46 @@ public final class TenantImport {
     }
 
     /** Only table names the export itself wrote are accepted (validated identifier space). */
+    /**
+     * Every restored consumer starts at the head of the restored feed
+     * (jengu-platform#872).
+     *
+     * <p>Not where it stood when the backup was taken, and not at zero.
+     * Delivery lags the feed by design, so the backed-up position stands
+     * behind the head and reinstating it re-sends the gap; starting at zero
+     * re-sends everything the archive carries, which is worse. Head is the
+     * only position that asserts nothing about what was delivered.
+     *
+     * <p>The consequence is deliberate and worth stating: events written
+     * before the backup and not yet delivered when it was taken are
+     * <b>not</b> delivered after a restore. A restore is a recovery, not a
+     * replay, and re-sending a day of notifications to a hospital is the
+     * worse of the two failures.
+     */
+    private static void seedConsumersAtHead(Connection c, String domain,
+            java.util.List<String> consumers)
+            throws SQLException {
+        if (consumers.isEmpty()) {
+            return;
+        }
+        try (PreparedStatement ps = c.prepareStatement("""
+                INSERT INTO state.%s_consumer (name, seq, cursor_xid, updated_at)
+                SELECT ?, COALESCE(head.seq, 0), COALESCE(head.xact_id, '0'::xid8), now()
+                FROM (SELECT 1) one
+                LEFT JOIN LATERAL (
+                  SELECT seq, xact_id FROM state.%s_outbox
+                  ORDER BY xact_id DESC, seq DESC LIMIT 1) head ON true
+                ON CONFLICT (name) DO UPDATE
+                  SET seq = EXCLUDED.seq, cursor_xid = EXCLUDED.cursor_xid,
+                      updated_at = EXCLUDED.updated_at""".formatted(domain, domain))) {
+            for (String consumer : consumers) {
+                ps.setString(1, consumer);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+    }
+
     private static String qualifiedTable(String domain, String archiveName) {
         if (archiveName.equals("pdi.person") || archiveName.equals("pdi.identifier")
                 || archiveName.equals("pdi.shred_ledger")) {
