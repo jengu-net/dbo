@@ -69,6 +69,7 @@ public final class MaintenanceHandler implements HttpHandler {
                 case "archive" -> archive(exchange);
                 case "restore" -> restore(exchange);
                 case "inventory" -> inventory(exchange);
+                case "projection" -> projection(exchange);
                 default -> fail(exchange, 404, "not_found", "no such maintenance operation");
             }
         } catch (IllegalArgumentException refused) {
@@ -111,6 +112,31 @@ public final class MaintenanceHandler implements HttpHandler {
     private void inventory(HttpExchange exchange) throws IOException {
         respond(exchange, 200, cloud.jengu.dbo.maintenance.TenantInventory.json(
                 cloud.jengu.dbo.maintenance.TenantInventory.of(dataSource)));
+    }
+
+    /**
+     * Records which configuration commit this tenant is projected from
+     * (jengu-platform#866).
+     *
+     * <p>Written when a projection is applied rather than read when a backup
+     * is taken. Those differ whenever the sync is behind, and stamping an
+     * archive with the repository's current head would give it a commit its
+     * data never saw — worse than no stamp, because it looks like an answer.
+     */
+    private void projection(HttpExchange exchange) throws IOException {
+        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        int at = body.indexOf("\"commit\"");
+        if (at < 0) {
+            throw new IllegalArgumentException("a commit is required");
+        }
+        int open = body.indexOf('"', body.indexOf(':', at)) + 1;
+        String commit = body.substring(open, body.indexOf('"', open));
+        if (!commit.matches("[0-9a-f]{7,64}")) {
+            throw new IllegalArgumentException("not a commit sha: " + commit);
+        }
+        cloud.jengu.dbo.maintenance.ProjectionMarker.record(dataSource,
+                cloud.jengu.dbo.maintenance.ProjectionMarker.CONFIG_COMMIT, commit);
+        respond(exchange, 200, "{\"status\":\"recorded\"}");
     }
 
     private void restore(HttpExchange exchange) throws IOException {

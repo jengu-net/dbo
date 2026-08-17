@@ -224,6 +224,11 @@ public final class TenantImport {
                 if (dumps.keySet().stream().anyMatch(t -> t.startsWith("pdi."))) {
                     ensurePdiTables(c);
                 }
+                // A target that has never had a projection applied has no
+                // marker table, and the load truncates before it copies
+                if (dumps.containsKey("state.projection_marker")) {
+                    ProjectionMarker.ensureTable(c);
+                }
                 for (Map.Entry<String, String> dump : dumps.entrySet()) {
                     String qualified = qualifiedTable(declaredDomains, dump.getKey());
                     if (qualified.equals("pdi.shred_ledger")) {
@@ -400,6 +405,11 @@ public final class TenantImport {
         // Terminology is tenant-scoped rather than domain-scoped: one vocabulary
         // serves every domain in the tenant, so it carries no domain prefix.
         boolean terminology = archiveName.startsWith("state.term_");
+        // tenant-scoped, like terminology: one configuration however many
+        // domains the tenant serves
+        if (archiveName.equals("state.projection_marker")) {
+            return archiveName;
+        }
         // The guard still holds: a table must belong to a domain the archive
         // DECLARED. Widening it to "any domain" would let an archive name an
         // arbitrary table in the target database, which is what this check
