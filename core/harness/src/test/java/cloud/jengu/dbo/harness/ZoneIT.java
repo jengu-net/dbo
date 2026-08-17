@@ -103,12 +103,16 @@ class ZoneIT {
         Files.writeString(dir.resolve("haigla.json"), """
                 {"code":"haigla","fhirVersion":"r4","zone":"ee","broker":"tara",
                  "acceptedBrokers":["tara"],"types":[
+                  {"name":"Person","identity":"identifier","systems":["%s"]},
                   {"name":"Practitioner","identity":"identifier","systems":["%s"]},
-                  {"name":"PractitionerRole","identity":"internal"}]}""".formatted(SUBJECT_SYSTEM));
+                  {"name":"PractitionerRole","identity":"internal"}]}"""
+                .formatted(SUBJECT_SYSTEM, SUBJECT_SYSTEM));
         Files.writeString(dir.resolve("kliinik.json"), """
                 {"code":"kliinik","fhirVersion":"r4","zone":"ee","broker":"eeid","types":[
+                  {"name":"Person","identity":"identifier","systems":["%s"]},
                   {"name":"Practitioner","identity":"identifier","systems":["%s"]},
-                  {"name":"PractitionerRole","identity":"internal"}]}""".formatted(SUBJECT_SYSTEM));
+                  {"name":"PractitionerRole","identity":"internal"}]}"""
+                .formatted(SUBJECT_SYSTEM, SUBJECT_SYSTEM));
         manager.scanOnce();
 
         for (String code : List.of("haigla", "kliinik")) {
@@ -117,6 +121,12 @@ class ZoneIT {
                     {"resourceType":"Practitioner",
                      "identifier":[{"system":"%s","value":"%s"}]}"""
                     .formatted(SUBJECT_SYSTEM, ISIKUKOOD)));
+            // the human behind the clinician, carrying the national identifier
+            fhirPost(code, "/Person", service, """
+                    {"resourceType":"Person",
+                     "identifier":[{"system":"%s","value":"%s"}],
+                     "link":[{"target":{"reference":"Practitioner/%s"},"assurance":"level3"}]}"""
+                    .formatted(SUBJECT_SYSTEM, ISIKUKOOD, practitioner));
             fhirPost(code, "/PractitionerRole", service, """
                     {"resourceType":"PractitionerRole",
                      "practitioner":{"reference":"Practitioner/%s"},

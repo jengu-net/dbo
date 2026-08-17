@@ -88,9 +88,10 @@ class FederatedAuthIT {
             Files.writeString(dir.resolve(code + ".json"), """
                     {"code":"%s","fhirVersion":"r4","types":[
                       {"name":"Patient","identity":"internal"},
+                      {"name":"Person","identity":"identifier","systems":["%s"]},
                       {"name":"Practitioner","identity":"identifier","systems":["%s"]},
                       {"name":"PractitionerRole","identity":"internal"}]}"""
-                    .formatted(code, SUBJECT_SYSTEM));
+                    .formatted(code, SUBJECT_SYSTEM, SUBJECT_SYSTEM));
         }
         manager.scanOnce();
 
@@ -101,6 +102,12 @@ class FederatedAuthIT {
                     {"resourceType":"Practitioner",
                      "identifier":[{"system":"%s","value":"%s"}]}"""
                     .formatted(SUBJECT_SYSTEM, ISIKUKOOD)));
+            // the human the hub will assert, with the clinician as a relation
+            assertEquals(201, fhirPost(code, "/Person", service, """
+                    {"resourceType":"Person",
+                     "identifier":[{"system":"%s","value":"%s"}],
+                     "link":[{"target":{"reference":"Practitioner/%s"},"assurance":"level3"}]}"""
+                    .formatted(SUBJECT_SYSTEM, ISIKUKOOD, practitioner)).statusCode());
             assertEquals(201, fhirPost(code, "/PractitionerRole", service, """
                     {"resourceType":"PractitionerRole",
                      "practitioner":{"reference":"Practitioner/%s"},
