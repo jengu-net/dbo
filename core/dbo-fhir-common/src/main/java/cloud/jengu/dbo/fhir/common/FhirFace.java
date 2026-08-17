@@ -1,8 +1,8 @@
 package cloud.jengu.dbo.fhir.common;
 
-import cloud.jengu.dbo.core.api.Coarsening;
-import cloud.jengu.dbo.core.api.DeclaredFace;
-import cloud.jengu.dbo.core.api.DomainFace;
+import cloud.jengu.dbo.core.face.Coarsening;
+import cloud.jengu.dbo.core.face.DeclaredFace;
+import cloud.jengu.dbo.core.face.DomainFace;
 
 /**
  * What the FHIR face provides to the engine (dbo#38).

@@ -1,8 +1,8 @@
 package cloud.jengu.dbo.harness;
 
-import cloud.jengu.dbo.core.api.Coarsening;
-import cloud.jengu.dbo.core.api.DeclaredFace;
-import cloud.jengu.dbo.core.api.DomainFace;
+import cloud.jengu.dbo.core.face.Coarsening;
+import cloud.jengu.dbo.core.face.DeclaredFace;
+import cloud.jengu.dbo.core.face.DomainFace;
 import cloud.jengu.dbo.fhir.common.FhirFace;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

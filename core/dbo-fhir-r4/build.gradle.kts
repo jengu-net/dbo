@@ -33,6 +33,9 @@ tasks.jar {
                 "Export-Package" to "cloud.jengu.dbo.fhir.r4;version=\"0.1.0\"",
                 "Import-Package" to listOf(
                     "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
+                    // the inward contract: what this face implements for the
+                    // engine, as against core.api which is what it calls
+                    "cloud.jengu.dbo.core.face;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.core.api.feed;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.core;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.fhir.common;version=\"[0.1,1)\"",

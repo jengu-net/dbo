@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.core.api;
+package cloud.jengu.dbo.core.face;
 
 /**
  * How a declared identifying element is made coarser — supplied by the

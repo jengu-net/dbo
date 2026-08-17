@@ -67,7 +67,7 @@ public final class R5Personality {
      * What this personality provides to the engine (dbo#38) — the inward
      * contract, as against the outward facade a server calls.
      */
-    public cloud.jengu.dbo.core.api.DomainFace face() {
+    public cloud.jengu.dbo.core.face.DomainFace face() {
         return cloud.jengu.dbo.fhir.common.FhirFace.of("r5");
     }
 

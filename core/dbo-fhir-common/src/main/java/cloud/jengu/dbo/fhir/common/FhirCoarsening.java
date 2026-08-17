@@ -1,6 +1,6 @@
 package cloud.jengu.dbo.fhir.common;
 
-import cloud.jengu.dbo.core.api.Coarsening;
+import cloud.jengu.dbo.core.face.Coarsening;
 
 /**
  * The FHIR face's coarse forms for identifying elements (ADR 0056 §7).
