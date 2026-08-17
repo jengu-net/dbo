@@ -63,6 +63,7 @@ class HumanAuthIT {
             .followRedirects(HttpClient.Redirect.NEVER).build();
     static TenantAuthority sideAuthority;
     static String practitionerId;
+    static String personId;
     static String roleId;
     static String verifier;
     static String accessToken;
@@ -82,9 +83,10 @@ class HumanAuthIT {
         Files.writeString(dir.resolve("arst.json"), """
                 {"code":"arst","fhirVersion":"r4","audit":{"level":"writes"},"types":[
                   {"name":"Patient","identity":"internal"},
+                  {"name":"Person","identity":"identifier","systems":["%s"]},
                   {"name":"Practitioner","identity":"identifier","systems":["%s"]},
                   {"name":"PractitionerRole","identity":"internal"},
-                  {"name":"Encounter","identity":"internal"}]}""".formatted(EID));
+                  {"name":"Encounter","identity":"internal"}]}""".formatted(EID, EID));
         manager.scanOnce();
 
         // seed the clinical side over REST with the service token
@@ -95,6 +97,17 @@ class HumanAuthIT {
                  "name":[{"family":"Albus"}]}""".formatted(EID));
         assertEquals(201, practitioner.statusCode());
         practitionerId = idOf(practitioner);
+        // The human, carrying the national identifier, with the clinician they
+        // are as a relation from it. Identity is the person; what they may do
+        // follows from their relations (jengu-platform#879).
+        HttpResponse<String> person = post("arst", "/Person", service, """
+                {"resourceType":"Person",
+                 "identifier":[{"system":"%s","value":"37001010021"}],
+                 "name":[{"family":"Albus"}],
+                 "link":[{"target":{"reference":"Practitioner/%s"},"assurance":"level3"}]}"""
+                .formatted(EID, practitionerId));
+        assertEquals(201, person.statusCode(), person.body());
+        personId = idOf(person);
         HttpResponse<String> role = post("arst", "/PractitionerRole", service, """
                 {"resourceType":"PractitionerRole",
                  "practitioner":{"reference":"Practitioner/%s"},
