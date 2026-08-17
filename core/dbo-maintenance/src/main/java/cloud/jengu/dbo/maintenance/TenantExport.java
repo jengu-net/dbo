@@ -72,6 +72,46 @@ public final class TenantExport {
 
     private TenantExport() {}
 
+    /**
+     * What an archive is for, declared in it rather than inferred by whoever
+     * opens it (jengu-platform#866).
+     *
+     * <p>The two carry different things, and the difference is not a
+     * convenience. A backup holds the state that exists nowhere else —
+     * credentials, enrollments, lifecycle — so a restored installation can
+     * authenticate its own tenants. A portable export holds what belongs to
+     * the customer and none of our keys.
+     *
+     * <p>Guessing between them is what makes the failure quiet: restoring an
+     * export where a backup was meant produces an installation that looks
+     * populated and cannot log anybody in, and the operator finds out at the
+     * worst moment. So the kind travels in the manifest and the import
+     * refuses the wrong one.
+     */
+    public enum Kind {
+        BACKUP("backup"),
+        PORTABLE_EXPORT("portable-export");
+
+        private final String wire;
+
+        Kind(String wire) {
+            this.wire = wire;
+        }
+
+        public String wire() {
+            return wire;
+        }
+
+        public static Kind ofWire(String wire) {
+            for (Kind kind : values()) {
+                if (kind.wire.equals(wire)) {
+                    return kind;
+                }
+            }
+            throw new IllegalArgumentException("unknown archive kind: " + wire);
+        }
+    }
+
     public record ExportResult(long objectCount, long outboxFence) {}
 
     /**
@@ -97,6 +137,26 @@ public final class TenantExport {
      */
     public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
             OutputStream out, List<TypeRegistration> types) throws IOException {
+        return export(ds, domain, ownerMasterKey, out, types, Kind.BACKUP);
+    }
+
+    /**
+     * Exports as the named kind (jengu-platform#866).
+     *
+     * <p>A <b>portable export</b> carries what the customer owns and the
+     * vocabulary their codes resolve against, and nothing whose declared
+     * travel stops at a backup — credentials, audit, projected configuration.
+     * It also omits the byte-faithful element entirely: those dumps are this
+     * store's internals, and an archive meant to be read by somebody else's
+     * FHIR tooling should not carry a second copy of everything in a shape
+     * only we can load.
+     *
+     * <p>An export whose CodeSystems were absent would be syntactically valid
+     * FHIR and semantically unreadable, which is why replicated terminology
+     * travels as a snapshot even though it is not the customer's to own.
+     */
+    public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
+            OutputStream out, List<TypeRegistration> types, Kind kind) throws IOException {
         Names.requireDomain(domain);
         try (Connection c = ds.getConnection()) {
             c.setAutoCommit(false);
@@ -109,7 +169,7 @@ public final class TenantExport {
                 DigestingZip zip = null;
                 try (OutputStream sealed = SealedArchive.sealing(ownerMasterKey, out)) {
                     zip = new DigestingZip(new ZipOutputStream(sealed));
-                    result = writeArchive(c, domain, zip, grounded(types));
+                    result = writeArchive(c, domain, zip, grounded(types, kind), kind);
                     // The manifest can only be written once every digest is
                     // known, so it goes last — which is also why verification
                     // needs its own pass before an import writes anything.
@@ -319,10 +379,13 @@ public final class TenantExport {
     }
 
     /** The type names that must not appear in any archive. */
-    private static Set<String> grounded(List<TypeRegistration> types) {
+    private static Set<String> grounded(List<TypeRegistration> types, Kind kind) {
         Set<String> never = new java.util.LinkedHashSet<>();
         for (TypeRegistration type : types) {
-            if (!type.handling().travelsInBackup()) {
+            boolean travels = kind == Kind.BACKUP
+                    ? type.handling().travelsInBackup()
+                    : type.handling().travelsInPortableExport();
+            if (!travels) {
                 never.add(type.typeName());
             }
         }
@@ -330,7 +393,7 @@ public final class TenantExport {
     }
 
     private static ExportResult writeArchive(Connection c, String domain, DigestingZip out,
-            Set<String> grounded) throws SQLException, IOException {
+            Set<String> grounded, Kind kind) throws SQLException, IOException {
         DigestingZip zip = out;
         long fence;
         try (PreparedStatement ps = c.prepareStatement(
@@ -392,41 +455,59 @@ public final class TenantExport {
             total += n;
         }
 
-        // ---- byte-faithful fidelity element: COPY dumps of state + history
-        var copy = c.unwrap(PGConnection.class).getCopyAPI();
-        // The terminology tables are tenant-scoped rather than domain-scoped, so
-        // a tenant serving two domains repeats them in each archive. Duplication
-        // that costs disk beats an archive whose codes cannot be resolved.
-        for (String table : stateTablesOf(c, domain)) {
-            if (isDeliveryState(domain, table)) {
-                continue;
+        // ---- byte-faithful fidelity element: COPY dumps of state, history
+        // and the vault.
+        //
+        // A backup's business only, and the vault is the sharp end of that:
+        // those tables are wrapped keys and an HMAC index, and an archive a
+        // customer walks away with must carry none of our key material. The
+        // dumps are also this store's internals — an export somebody else
+        // opens should not carry a second copy of everything in a shape only
+        // we can load.
+        //
+        // A portable export still resolves its codes: CodeSystem and ValueSet
+        // are objects, and they travel in the NDJSON above under their
+        // declared snapshot travel. What stays behind is the expansion
+        // machinery, which is ours.
+        if (kind == Kind.BACKUP) {
+            var copy = c.unwrap(PGConnection.class).getCopyAPI();
+            // The terminology tables are tenant-scoped rather than
+            // domain-scoped, so a tenant serving two domains repeats them in
+            // each archive. Duplication that costs disk beats an archive whose
+            // codes cannot be resolved.
+            for (String table : stateTablesOf(c, domain)) {
+                if (isDeliveryState(domain, table)) {
+                    continue;
+                }
+                dumpInto(copy, zip, "fidelity/state." + table + ".csv",
+                        copyOf("state." + table,
+                                table.equals(domain + "_data") ? grounded : Set.of()),
+                        table);
             }
-            dumpInto(copy, zip, "fidelity/state." + table + ".csv",
-                    copyOf("state." + table, table.equals(domain + "_data") ? grounded : Set.of()),
-                    table);
-        }
-        writeConsumerRoster(c, zip, domain);
-        dumpInto(copy, zip, "fidelity/history." + domain + "_history.csv",
-                copyOf("history." + domain + "_history", grounded),
-                "history");
+            writeConsumerRoster(c, zip, domain);
+            dumpInto(copy, zip, "fidelity/history." + domain + "_history.csv",
+                    copyOf("history." + domain + "_history", grounded),
+                    "history");
 
-        // ---- §14 vault (present only under PDI): wrapped keys, HMAC index,
-        // shred ledger — ciphertext and key material only, blind to the
-        // operator by construction; the identifying data itself rides
-        // encrypted inside the payload dumps above
-        for (String pdiTable : List.of("person", "identifier", "shred_ledger")) {
-            if (!tableExists(c, "pdi", pdiTable)) {
-                continue;
+            // §14 vault (present only under PDI): wrapped keys, HMAC index,
+            // shred ledger — ciphertext and key material only, blind to the
+            // operator by construction; the identifying data itself rides
+            // encrypted inside the payload dumps above
+            for (String pdiTable : List.of("person", "identifier", "shred_ledger")) {
+                if (!tableExists(c, "pdi", pdiTable)) {
+                    continue;
+                }
+                dumpInto(copy, zip, "fidelity/pdi." + pdiTable + ".csv",
+                        "COPY pdi.%s TO STDOUT WITH (FORMAT csv)".formatted(pdiTable),
+                        "pdi." + pdiTable);
             }
-            dumpInto(copy, zip, "fidelity/pdi." + pdiTable + ".csv",
-                    "COPY pdi.%s TO STDOUT WITH (FORMAT csv)".formatted(pdiTable),
-                    "pdi." + pdiTable);
         }
 
         // ---- manifest
         zip.putNextEntry(new ZipEntry("manifest.json"));
         StringBuilder manifest = new StringBuilder();
-        manifest.append("{\"domain\":").append(Names.quote(domain))
+        manifest.append("{\"kind\":").append(Names.quote(kind.wire()))
+                .append(",\"domain\":").append(Names.quote(domain))
                 .append(",\"outboxFence\":").append(fence)
                 .append(",\"objectCount\":").append(total)
                 .append(",\"types\":{");
