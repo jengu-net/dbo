@@ -191,6 +191,11 @@ class PdiIT {
         assertFalse(read.contains("Salakas") || read.contains(CODE_37) || read.contains("__pdiEnc"),
                 "shredded person must read pseudonymous and clean");
         assertTrue(read.contains("Patient"), "the record itself remains");
+        assertFalse(read.contains("1970"),
+                "a coarse birth year must not survive an erasure — generalisation is what a "
+                        + "reader without the right to see an identity gets instead, not what "
+                        + "is left behind after somebody asked to be forgotten "
+                        + "(jengu-platform#880)");
         for (StoredObject version : store.history("Patient", personId)) {
             assertFalse(new String(version.payload(), StandardCharsets.UTF_8).contains("Salakas"),
                     "history must be unreadable after shred");
