@@ -28,6 +28,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * jengu-platform#872: a backup carries every table, or names what it left.
@@ -108,9 +109,19 @@ class ArchiveCoversEveryTableIT {
 
         List<String> missing = new ArrayList<>(inDatabase);
         missing.removeAll(inArchive);
+        // Delivery state is left out on purpose (#872) and is named here, so
+        // the guard keeps its value: an exclusion has to be a line somebody
+        // wrote, and any OTHER table going missing still fails this test.
+        missing.removeAll(List.of(R4Personality.DOMAIN + "_consumer",
+                R4Personality.DOMAIN + "_subscription_dlq",
+                R4Personality.DOMAIN + "_topic_counter"));
         assertEquals(List.of(), missing,
                 "these tables exist in the tenant and are not in its backup — a table missing "
                         + "from an archive is indistinguishable from one that never existed, and "
                         + "the loss surfaces during a restore");
+
+        assertFalse(inArchive.contains(R4Personality.DOMAIN + "_consumer"),
+                "the delivery cursor must not travel: restoring it re-sends every event "
+                        + "delivered between the cursor and the outbox head");
     }
 }
