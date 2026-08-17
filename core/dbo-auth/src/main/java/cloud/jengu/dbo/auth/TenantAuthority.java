@@ -297,12 +297,19 @@ public final class TenantAuthority {
 
     /** Dev/embedded fallback credential (§16.2) — production humans federate. */
     public void ensureLocalCredential(String login, String secret, String practitionerId) {
-        String payload = "{\"login\":\"" + login + "\""
-                + ",\"secretHash\":\"" + SecretHash.hash(secret) + "\""
-                + ",\"practitionerId\":\"" + practitionerId + "\""
-                + ",\"status\":\"active\"}";
         Optional<StoredObject> existing = store.getByIdentifier("LocalCredential",
                 List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login))).stream().findFirst();
+        // A login's other factors survive its password being set. Rewriting the
+        // whole record would drop the edge PIN somebody set for themselves,
+        // which is the same whole-object overwrite that put the PIN on a
+        // configured resource in the first place (jengu-platform#871) — one
+        // level down, and just as quiet.
+        String keptFactors = existing.map(TenantAuthority::factorsOf).orElse(null);
+        String payload = "{\"login\":\"" + login + "\""
+                + ",\"secretHash\":\"" + SecretHash.hash(secret) + "\""
+                + (keptFactors == null ? "" : ",\"factors\":" + keptFactors)
+                + ",\"practitionerId\":\"" + practitionerId + "\""
+                + ",\"status\":\"active\"}";
         if (existing.isPresent()) {
             store.put(PutRequest.update("LocalCredential", existing.get().id(),
                     existing.get().versionId(), payload.getBytes(StandardCharsets.UTF_8)));
@@ -310,6 +317,103 @@ public final class TenantAuthority {
             store.putIfAbsent(IdentityRef.identifier(IdentityModel.LOGIN_SYSTEM, login),
                     PutRequest.create("LocalCredential", payload.getBytes(StandardCharsets.UTF_8)));
         }
+    }
+
+    /**
+     * Sets one authentication factor for a login, leaving the others alone
+     * (jengu-platform#871).
+     *
+     * <p><b>Factors are kinds, not fields.</b> A PIN presented at a bench with
+     * no network is one kind; a password is another; a passkey and a one-time
+     * code will be more. Naming the field after the first case we met would
+     * have made every later one an exception.
+     *
+     * <p>The kind is an <b>RFC 8176 {@code amr} value</b> — {@code pwd},
+     * {@code pin}, {@code otp}, {@code swk}, {@code face}, {@code fpt} — rather
+     * than a name of ours. That vocabulary already exists, and it is the one
+     * that belongs in the issued token's {@code amr} claim, so a relying party
+     * can tell that a bench PIN is not the assurance a password is. Inventing
+     * "edgePin" would have meant translating at the token boundary forever.
+     *
+     * <p>Credentials live here rather than on a {@code Practitioner} because
+     * FHIR deliberately layers authentication outside the resource model — a
+     * PIN in a clinical resource was never a FHIR shape, only an extension
+     * standing where none would ever exist. Here it is store-authored state:
+     * it rides a backup, never a portable export, and configuration cannot
+     * overwrite it.
+     */
+    public void setFactor(String login, String amr, String rawSecret) {
+        StoredObject existing = store.getByIdentifier("LocalCredential",
+                        List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login)))
+                .stream().findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "no credential for " + login + " — a factor belongs to an existing "
+                                + "login, and must not be a way to create one"));
+        if (!amr.matches("[a-z]{2,10}")) {
+            throw new IllegalArgumentException("not an amr value: " + amr);
+        }
+        String json = new String(existing.payload(), StandardCharsets.UTF_8);
+        Object node = Json.parse(json);
+        Object factors = node instanceof java.util.Map<?, ?> m ? m.get("factors") : null;
+        StringBuilder rebuilt = new StringBuilder("{");
+        if (factors instanceof java.util.Map<?, ?> map) {
+            map.forEach((k, v) -> {
+                if (!amr.equals(k)) {
+                    rebuilt.append(rebuilt.length() > 1 ? "," : "")
+                            .append('"').append(k).append("\":\"").append(v).append('"');
+                }
+            });
+        }
+        rebuilt.append(rebuilt.length() > 1 ? "," : "")
+                .append('"').append(amr).append("\":\"")
+                .append(SecretHash.hash(rawSecret)).append("\"}");
+
+        // Remove only the factors block. Truncating everything after it took
+        // the fields that followed — status among them — and the store refused
+        // the write rather than storing a credential with a hole in it.
+        String withoutFactors = removeFactors(json);
+        String stripped = withoutFactors.substring(0, withoutFactors.lastIndexOf('}'));
+        store.put(PutRequest.update("LocalCredential", existing.id(), existing.versionId(),
+                (stripped + ",\"factors\":" + rebuilt + "}").getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /** Whether this secret is the one set for that login and that factor kind. */
+    public boolean verifyFactor(String login, String amr, String rawSecret) {
+        return store.getByIdentifier("LocalCredential",
+                        List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login)))
+                .stream().findFirst()
+                .map(o -> factorHash(o, amr))
+                .filter(hash -> hash != null && SecretHash.verify(rawSecret, hash))
+                .isPresent();
+    }
+
+    private static String factorHash(StoredObject credential, String amr) {
+        Object node = Json.parse(new String(credential.payload(), StandardCharsets.UTF_8));
+        Object factors = node instanceof java.util.Map<?, ?> m ? m.get("factors") : null;
+        return factors instanceof java.util.Map<?, ?> map && map.get(amr) != null
+                ? String.valueOf(map.get(amr)) : null;
+    }
+
+    /** The payload without its factors block, everything else in place. */
+    private static String removeFactors(String json) {
+        int at = json.indexOf(",\"factors\":");
+        if (at < 0) {
+            return json;
+        }
+        int close = json.indexOf('}', json.indexOf('{', at));
+        return json.substring(0, at) + json.substring(close + 1);
+    }
+
+    /** The factors block verbatim, so setting a password preserves it. */
+    private static String factorsOf(StoredObject credential) {
+        String json = new String(credential.payload(), StandardCharsets.UTF_8);
+        int at = json.indexOf("\"factors\":");
+        if (at < 0) {
+            return null;
+        }
+        int start = json.indexOf('{', at);
+        int end = json.indexOf('}', start);
+        return json.substring(start, end + 1);
     }
 
     /**
