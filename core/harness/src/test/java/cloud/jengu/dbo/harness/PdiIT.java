@@ -84,7 +84,7 @@ class PdiIT {
         new SecureRandom().nextBytes(ownerKey);
         vault = new PersonVault(ds, workingKey);
         store = new PdiObjectStore(new PgObjectStore(ds, transformed), vault, spec,
-                personality.face().require(cloud.jengu.dbo.core.api.Coarsening.class));
+                personality.face().require(cloud.jengu.dbo.core.face.Coarsening.class));
     }
 
     @AfterAll

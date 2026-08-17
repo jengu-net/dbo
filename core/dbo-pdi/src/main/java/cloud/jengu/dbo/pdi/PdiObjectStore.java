@@ -5,6 +5,7 @@ import cloud.jengu.dbo.core.api.Identifier;
 import cloud.jengu.dbo.core.api.IdentityConflictException;
 import cloud.jengu.dbo.core.api.IdentityRef;
 import cloud.jengu.dbo.core.api.ObjectStore;
+import cloud.jengu.dbo.core.face.Coarsening;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.PutResult;
 import cloud.jengu.dbo.core.api.StoredObject;
@@ -35,10 +36,10 @@ public final class PdiObjectStore implements ObjectStore {
     private final ObjectStore inner;
     private final PersonVault vault;
     private final PdiSpec spec;
-    private final cloud.jengu.dbo.core.api.Coarsening coarsening;
+    private final Coarsening coarsening;
 
     public PdiObjectStore(ObjectStore inner, PersonVault vault, PdiSpec spec) {
-        this(inner, vault, spec, cloud.jengu.dbo.core.api.Coarsening.NONE);
+        this(inner, vault, spec, Coarsening.NONE);
     }
 
     /**
@@ -47,7 +48,7 @@ public final class PdiObjectStore implements ObjectStore {
      *                   one, a generalised element is simply absent.
      */
     public PdiObjectStore(ObjectStore inner, PersonVault vault, PdiSpec spec,
-            cloud.jengu.dbo.core.api.Coarsening coarsening) {
+            Coarsening coarsening) {
         this.inner = inner;
         this.vault = vault;
         this.spec = spec;
