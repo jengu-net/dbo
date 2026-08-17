@@ -88,7 +88,7 @@ class ZoneIT {
 
         // the ZONE tenant first — its declarations are records
         Files.writeString(dir.resolve("ee.json"), """
-                {"code":"ee","fhirVersion":"r4","types":[{"name":"Basic","identity":"internal"}]}""");
+                {"code":"ee","fhirVersion":"r4","types":[{"name":"Basic","identity":"internal","handling":"operational"}]}""");
         manager.scanOnce();
         String stubBase = "http://127.0.0.1:" + stubBrokers.getAddress().getPort();
         PgObjectStore zoneStore = new PgObjectStore(tenantDs("ee"), ZoneModel.registrations());
@@ -103,15 +103,15 @@ class ZoneIT {
         Files.writeString(dir.resolve("haigla.json"), """
                 {"code":"haigla","fhirVersion":"r4","zone":"ee","broker":"tara",
                  "acceptedBrokers":["tara"],"types":[
-                  {"name":"Person","identity":"identifier","systems":["%s"]},
-                  {"name":"Practitioner","identity":"identifier","systems":["%s"]},
-                  {"name":"PractitionerRole","identity":"internal"}]}"""
+                  {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"PractitionerRole","identity":"internal","handling":"operational"}]}"""
                 .formatted(SUBJECT_SYSTEM, SUBJECT_SYSTEM));
         Files.writeString(dir.resolve("kliinik.json"), """
                 {"code":"kliinik","fhirVersion":"r4","zone":"ee","broker":"eeid","types":[
-                  {"name":"Person","identity":"identifier","systems":["%s"]},
-                  {"name":"Practitioner","identity":"identifier","systems":["%s"]},
-                  {"name":"PractitionerRole","identity":"internal"}]}"""
+                  {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"PractitionerRole","identity":"internal","handling":"operational"}]}"""
                 .formatted(SUBJECT_SYSTEM, SUBJECT_SYSTEM));
         manager.scanOnce();
 

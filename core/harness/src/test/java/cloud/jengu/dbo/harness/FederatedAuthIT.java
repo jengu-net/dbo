@@ -87,10 +87,10 @@ class FederatedAuthIT {
         for (String code : List.of("kliinika", "kliinikb", "kliinikc")) {
             Files.writeString(dir.resolve(code + ".json"), """
                     {"code":"%s","fhirVersion":"r4","types":[
-                      {"name":"Patient","identity":"internal"},
-                      {"name":"Person","identity":"identifier","systems":["%s"]},
-                      {"name":"Practitioner","identity":"identifier","systems":["%s"]},
-                      {"name":"PractitionerRole","identity":"internal"}]}"""
+                      {"name":"Patient","identity":"internal","handling":"operational"},
+                      {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
+                      {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
+                      {"name":"PractitionerRole","identity":"internal","handling":"operational"}]}"""
                     .formatted(code, SUBJECT_SYSTEM, SUBJECT_SYSTEM));
         }
         manager.scanOnce();

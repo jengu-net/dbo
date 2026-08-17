@@ -59,8 +59,8 @@ class TenantRuntimeIT {
     private static String specA() {
         return """
                 {"code":"aiakas","fhirVersion":"r4","types":[
-                  {"name":"Patient","identity":"identifier","systems":["%s"]},
-                  {"name":"Observation","identity":"internal"}]}""".formatted(EID);
+                  {"name":"Patient","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"Observation","identity":"internal","handling":"operational"}]}""".formatted(EID);
     }
 
     private HttpResponse<String> post(String url, String body) throws Exception {
@@ -100,7 +100,7 @@ class TenantRuntimeIT {
         String code = "e2e-us-xapi-distributor-onboards-customer-20260815-233454-8knshjjg";
         Files.writeString(dir.resolve(code + ".json"), """
                 {"code":"%s","fhirVersion":"r4","types":[
-                  {"name":"Patient","identity":"internal"}]}""".formatted(code));
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}""".formatted(code));
         assertTrue(manager.scanOnce().contains(code));
         assertEquals(200, get(manager.baseUrl(code) + "/metadata").statusCode());
         assertTrue(cloud.jengu.dbo.tenant.TenantSpec.databaseName(code).length() <= 63);
@@ -115,8 +115,8 @@ class TenantRuntimeIT {
     void twoTenantsServeConcurrentlyIsolated() throws Exception {
         Files.writeString(dir.resolve("teine.json"), """
                 {"code":"teine","fhirVersion":"r5","types":[
-                  {"name":"SubscriptionTopic","identity":"canonical"},
-                  {"name":"Patient","identity":"internal"}]}""");
+                  {"name":"SubscriptionTopic","identity":"canonical","handling":"operational"},
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         assertEquals(java.util.Set.of("aiakas", "teine"), manager.scanOnce());
 
         String teine = manager.baseUrl("teine");

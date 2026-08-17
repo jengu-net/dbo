@@ -62,9 +62,9 @@ class AuthorityIT {
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("yks.json"), """
-                {"code":"yks","fhirVersion":"r4","types":[{"name":"Patient","identity":"internal"}]}""");
+                {"code":"yks","fhirVersion":"r4","types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
         Files.writeString(dir.resolve("kaks.json"), """
-                {"code":"kaks","fhirVersion":"r4","types":[{"name":"Patient","identity":"internal"}]}""");
+                {"code":"kaks","fhirVersion":"r4","types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
         manager.scanOnce();
     }
 
@@ -193,7 +193,7 @@ class AuthorityIT {
     void aPdiTenantServesReassembledResourcesOverCiphertextStorage() throws Exception {
         java.nio.file.Files.writeString(dir.resolve("kolm.json"), """
                 {"code":"kolm","fhirVersion":"r4","pdi":true,"types":[
-                  {"name":"Patient","identity":"identifier","systems":["%s"]}]}""".formatted(
+                  {"name":"Patient","identity":"identifier","systems":["%s"],"handling":"operational"}]}""".formatted(
                 "https://eesti.ee/isikukood"));
         manager.scanOnce();
         String token = token("kolm", null);
@@ -230,7 +230,7 @@ class AuthorityIT {
                 {"code":"neli","fhirVersion":"r4",
                  "audit":{"level":"writes"},
                  "writeDiscipline":{"default":"append-only"},
-                 "types":[{"name":"Patient","identity":"internal"}]}""");
+                 "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
         manager.scanOnce();
         String token = token("neli", null);
         HttpResponse<String> created = post(fhir("neli") + "/Patient", token,

@@ -138,8 +138,8 @@ class OperatorIT {
                 "fhirVersion", "r4",
                 "deletionPolicy", deletionPolicy,
                 "types", List.of(
-                        Map.of("name", "Patient", "identity", "identifier", "systems", List.of(EID)),
-                        Map.of("name", "Observation", "identity", "internal"))));
+                        Map.of("name", "Patient", "identity", "identifier", "systems", List.of(EID), "handling", "operational"),
+                        Map.of("name", "Observation", "identity", "internal", "handling", "operational"))));
         return cr;
     }
 
@@ -225,7 +225,7 @@ class OperatorIT {
                 "audit", Map.of("level", "writes"),
                 "writeDiscipline", Map.of("default", "append-only"),
                 "retention", Map.of("perType", Map.of("Observation", Map.of("removeAfter", "P30D"))),
-                "types", List.of(Map.of("name", "Patient", "identity", "internal"))));
+                "types", List.of(Map.of("name", "Patient", "identity", "internal", "handling", "operational"))));
         client.genericKubernetesResources(TenantOperator.CRD_CONTEXT).inNamespace(NS)
                 .resource(poliis).create();
         // poll-until-condition: a just-created CR may miss the next list on

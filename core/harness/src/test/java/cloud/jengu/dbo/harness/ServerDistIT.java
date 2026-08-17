@@ -192,8 +192,8 @@ class ServerDistIT {
         cr.setAdditionalProperty("spec", Map.of(
                 "code", CODE, "fhirVersion", "r4", "deletionPolicy", "Delete",
                 "types", List.of(
-                        Map.of("name", "Patient", "identity", "identifier", "systems", List.of(EID)),
-                        Map.of("name", "Observation", "identity", "internal"))));
+                        Map.of("name", "Patient", "identity", "identifier", "systems", List.of(EID), "handling", "operational"),
+                        Map.of("name", "Observation", "identity", "internal", "handling", "operational"))));
         client.genericKubernetesResources(TenantK8sContract.CRD_CONTEXT).inNamespace(NS)
                 .resource(cr).create();
         operator.reconcileOnce();

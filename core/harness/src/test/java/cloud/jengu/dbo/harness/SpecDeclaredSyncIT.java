@@ -59,14 +59,25 @@ class SpecDeclaredSyncIT {
     }
 
     private static final String CANONICAL_TYPES = """
-            [{"name":"CodeSystem","identity":"canonical"},
-             {"name":"ValueSet","identity":"canonical"}]""";
+            [{"name":"CodeSystem","identity":"canonical","handling":"operational"},
+             {"name":"ValueSet","identity":"canonical","handling":"operational"}]""";
+
+    /**
+     * The dependent declares the streamed type <b>replicated</b>: the zone
+     * publishes it and nobody here may write it. That makes this test cover
+     * the lane as well as the stream — the replication engine writes as the
+     * source tenant, so a shield that refuses every other caller does not
+     * refuse the one delivery it exists to protect.
+     */
+    private static final String REPLICATED_TYPES = """
+            [{"name":"CodeSystem","identity":"canonical","handling":"replicated"},
+             {"name":"ValueSet","identity":"canonical","handling":"operational"}]""";
 
     private static String dependentSpec(String code) {
         return """
                 {"code":"%s","fhirVersion":"r4","types":%s,
                  "dependencies":[{"name":"sync-ee","types":["CodeSystem"]}]}"""
-                .formatted(code, CANONICAL_TYPES);
+                .formatted(code, REPLICATED_TYPES);
     }
 
     @Test

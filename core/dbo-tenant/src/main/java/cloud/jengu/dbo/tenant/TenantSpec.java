@@ -88,15 +88,17 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
      * Parses the spec file format: {"code":..,"fhirVersion":..,
      * "types":[{name,identity,systems?,handling?}],"dependencies":[{name,types}]}.
      *
-     * <p><b>{@code handling} is optional here and should not stay that way.</b>
-     * A type that does not say what kind of data it is ought to stop the
-     * platform (jengu-platform#869) — and does, for types declared in code,
-     * where {@link cloud.jengu.dbo.core.api.TypeRegistration} refuses to build
-     * without it. At this layer the declarations live in the configuration
-     * repository, so requiring the field means updating those specs first;
-     * until then an absent field means {@code operational}, which is stated
-     * here rather than assumed silently. An <em>unknown</em> value is refused
-     * outright: a typo must not fall through to the default.
+     * <p><b>{@code handling} is required</b> (jengu-platform#869). A type that
+     * has not said what kind of data it is stops the tenant coming up, named,
+     * rather than being guessed at — the same rule
+     * {@link cloud.jengu.dbo.core.api.TypeRegistration} applies to types
+     * declared in code, now applied to types declared in a spec.
+     *
+     * <p>There is no default because a default here is a silent decision about
+     * a hospital's data: guessing {@code operational} would let a tenant edit a
+     * vocabulary it does not own, and guessing anything stricter would refuse
+     * writes nobody could explain. An unknown value is refused for the same
+     * reason a missing one is — a typo must not become a classification.
      */
     public static TenantSpec parse(String json) {
         Object root = Json.parse(json);
@@ -115,7 +117,14 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
                         code + "/" + name + ": unknown identity class " + identity);
             };
             String handling = Json.strOpt(t, "handling");
-            return handling == null ? config : config.handledAs(switch (handling) {
+            if (handling == null) {
+                throw new IllegalArgumentException(code + "/" + name
+                        + ": no declared handling — say what kind of data this is (who may "
+                        + "write it, whether it may change, whether it is kept, whether it "
+                        + "may leave). There is no default: guessing would be a silent "
+                        + "decision about somebody's data");
+            }
+            return config.handledAs(switch (handling) {
                 case "operational" -> Handling.operational();
                 case "projected-config" -> Handling.projectedConfig();
                 case "replicated" -> Handling.replicated();

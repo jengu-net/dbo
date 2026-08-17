@@ -342,6 +342,15 @@ public final class TenantOperator implements AutoCloseable {
                 }
                 sb.append(']');
             }
+            // Carried through rather than defaulted here: the spec layer
+            // refuses a type that has not said what kind of data it is
+            // (jengu-platform#869), and a default invented in the translator
+            // would answer that question on the author's behalf without
+            // anybody deciding.
+            Object handling = t.get("handling");
+            if (handling != null) {
+                sb.append(",\"handling\":").append(jsonString((String) handling));
+            }
             sb.append('}');
         }
         return sb.append("]}").toString();
