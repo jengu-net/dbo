@@ -63,6 +63,14 @@ public final class R5Personality {
     private volatile FhirContext ctx;
     private volatile FhirValidator validator;
 
+    /**
+     * What this personality provides to the engine (dbo#38) — the inward
+     * contract, as against the outward facade a server calls.
+     */
+    public cloud.jengu.dbo.core.api.DomainFace face() {
+        return cloud.jengu.dbo.fhir.common.FhirFace.of("r5");
+    }
+
     public R5Personality(List<FhirTypeConfig> typeConfigs) {
         for (FhirTypeConfig t : typeConfigs) {
             types.put(t.typeName(), t);
