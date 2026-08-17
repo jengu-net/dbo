@@ -163,8 +163,18 @@ public final class PdiObjectStore implements ObjectStore {
         Map<String, Object> identifying = new LinkedHashMap<>();
         for (String element : spec.identifyingElements(typeName)) {
             Object value = parsed.remove(element);
-            if (value != null) {
-                identifying.put(element, value);
+            if (value == null) {
+                continue;
+            }
+            identifying.put(element, value);
+            if (spec.dispositionOf(typeName, element) == PdiSpec.Disposition.GENERALISE) {
+                // The coarse value is computed here and left in the clear,
+                // because a reader without the key has no plaintext to derive
+                // it from at read time. The full value still rides encrypted.
+                Object coarse = Generalisation.of(element, value);
+                if (coarse != null) {
+                    parsed.put(element, coarse);
+                }
             }
         }
         // identity claims from the ORIGINAL identifier list, vault-side
@@ -210,6 +220,19 @@ public final class PdiObjectStore implements ObjectStore {
                     vault.decrypt(key.get(), Base64.getDecoder().decode(String.valueOf(enc))),
                     StandardCharsets.UTF_8));
             parsed.putAll(identifying);
+        }
+        if (key.isEmpty()) {
+            // Shredded or restricted, which is not the same as merely lacking
+            // authority. A coarse value is a DISCLOSURE control — what somebody
+            // without the right to see an identity gets instead — and it has no
+            // business surviving an erasure. Leaving a birth year behind after
+            // Article 17 would be retaining personal data in a weaker form and
+            // calling it gone.
+            for (String element : spec.identifyingElements(typeName)) {
+                if (spec.dispositionOf(typeName, element) == PdiSpec.Disposition.GENERALISE) {
+                    parsed.remove(element);
+                }
+            }
         }
         // shredded or restricted: the ciphertext block is stripped — the read
         // is a clean pseudonymous resource
