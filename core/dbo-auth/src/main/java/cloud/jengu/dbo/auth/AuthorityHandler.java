@@ -302,11 +302,29 @@ public final class AuthorityHandler implements HttpHandler {
         String login = Json.strOpt(body, "login");
         String secret = Json.strOpt(body, "secret");
         String practitionerId = Json.strOpt(body, "practitionerId");
-        if (login == null || secret == null || practitionerId == null) {
+        String edgePin = Json.strOpt(body, "edgePin");
+        if (login == null || (secret == null && edgePin == null)) {
             respond(exchange, 400, "{\"error\":\"invalid_request\"}");
             return;
         }
-        authority.ensureLocalCredential(login, secret, practitionerId);
+        // Setting a PIN is not creating a login, so it does not need the fields
+        // that creating one does — and it must not silently create a
+        // credential nobody has a password for.
+        if (secret != null) {
+            if (practitionerId == null) {
+                respond(exchange, 400, "{\"error\":\"invalid_request\"}");
+                return;
+            }
+            authority.ensureLocalCredential(login, secret, practitionerId);
+        }
+        if (edgePin != null) {
+            try {
+                authority.setFactor(login, "pin", edgePin);
+            } catch (IllegalArgumentException unknownLogin) {
+                respond(exchange, 404, "{\"error\":\"unknown_login\"}");
+                return;
+            }
+        }
         respond(exchange, 200, "{\"status\":\"ensured\",\"login\":\"" + login + "\"}");
     }
 
