@@ -91,11 +91,11 @@ class HandlingShieldsIT {
     void auditCannotBeAltered() {
         PutResult written = store.put(PutRequest.create("Ledger", body("logged in")));
 
-        PgObjectStore.HandlingRefusedException onUpdate = assertThrows(
-                PgObjectStore.HandlingRefusedException.class,
+        cloud.jengu.dbo.core.api.HandlingRefusedException onUpdate = assertThrows(
+                cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                 () -> store.put(new PutRequest("Ledger", written.id(), null, body("logged out"))));
-        PgObjectStore.HandlingRefusedException onDelete = assertThrows(
-                PgObjectStore.HandlingRefusedException.class,
+        cloud.jengu.dbo.core.api.HandlingRefusedException onDelete = assertThrows(
+                cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                 () -> store.delete("Ledger", written.id(), null));
 
         assertTrue(onUpdate.getMessage().contains("append-only"), onUpdate.getMessage());
@@ -109,7 +109,7 @@ class HandlingShieldsIT {
         PutResult written = store.put(PutRequest.create("Ledger", body("something happened")));
 
         for (Handling.Authority caller : Handling.Authority.values()) {
-            assertThrows(PgObjectStore.HandlingRefusedException.class,
+            assertThrows(cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                     () -> store.put(new PutRequest("Ledger", written.id(), null, body("edited")),
                             caller),
                     "an append-only record altered by " + caller + " is still altered");
@@ -124,8 +124,8 @@ class HandlingShieldsIT {
         PutResult published = store.put(PutRequest.create("Vocabulary", body("v1")),
                 Handling.Authority.SOURCE_TENANT);
 
-        PgObjectStore.HandlingRefusedException refused = assertThrows(
-                PgObjectStore.HandlingRefusedException.class,
+        cloud.jengu.dbo.core.api.HandlingRefusedException refused = assertThrows(
+                cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                 () -> store.put(new PutRequest("Vocabulary", published.id(), null, body("edited"))));
 
         assertTrue(refused.getMessage().contains("read-only-here"), refused.getMessage());
@@ -139,8 +139,8 @@ class HandlingShieldsIT {
     void aRefusalNamesItsRule() {
         PutResult written = store.put(PutRequest.create("Ledger", body("x")));
 
-        PgObjectStore.HandlingRefusedException refused = assertThrows(
-                PgObjectStore.HandlingRefusedException.class,
+        cloud.jengu.dbo.core.api.HandlingRefusedException refused = assertThrows(
+                cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                 () -> store.delete("Ledger", written.id(), null));
 
         assertTrue(refused.getMessage().startsWith("Ledger:"), refused.getMessage());

@@ -91,8 +91,8 @@ class AdjudicationPersistedIT {
         String id = Adjudications.record(store, Adjudication.bound("person-3", List.of(),
                 List.of(claim), "reception-desk-7", WHEN, "photograph matches"));
 
-        PgObjectStore.HandlingRefusedException refused = assertThrows(
-                PgObjectStore.HandlingRefusedException.class,
+        cloud.jengu.dbo.core.api.HandlingRefusedException refused = assertThrows(
+                cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                 () -> store.put(new PutRequest("Adjudication", id, null,
                         ("{\"outcome\":\"BOUND\",\"subjectId\":\"person-4\","
                                 + "\"rejected\":[],\"presented\":[]}")

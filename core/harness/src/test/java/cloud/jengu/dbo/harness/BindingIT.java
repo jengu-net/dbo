@@ -120,8 +120,8 @@ class BindingIT {
         String id = Bindings.record(store, BindingEvent.bound("person-4", "subject-4", Assurance.SUBSTANTIAL,
                 "desk", MONDAY, "TREAT", "eID"));
 
-        PgObjectStore.HandlingRefusedException refused = assertThrows(
-                PgObjectStore.HandlingRefusedException.class,
+        cloud.jengu.dbo.core.api.HandlingRefusedException refused = assertThrows(
+                cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                 () -> store.put(new PutRequest("BindingEvent", id, null,
                         ("{\"kind\":\"BOUND\",\"identityId\":\"person-999\","
                                 + "\"subjectId\":\"subject-4\",\"actor\":\"desk\","

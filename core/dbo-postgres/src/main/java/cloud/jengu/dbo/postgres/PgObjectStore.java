@@ -5,6 +5,7 @@ import cloud.jengu.dbo.core.UuidV7;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.Handling;
+import cloud.jengu.dbo.core.api.HandlingRefusedException;
 import cloud.jengu.dbo.core.api.Identifier;
 import cloud.jengu.dbo.core.api.IdentityConflictException;
 import cloud.jengu.dbo.core.api.IdentityRef;
@@ -163,13 +164,6 @@ public final class PgObjectStore implements ObjectStore {
                     "it is published by " + handling.authority() + " and only that lane may "
                             + "write it; an edit made here would be silently overwritten by the "
                             + "next sync, or silently kept");
-        }
-    }
-
-    /** A write refused by a type's declared handling, saying which rule refused it. */
-    public static class HandlingRefusedException extends RuntimeException {
-        public HandlingRefusedException(String typeName, String rule, String because) {
-            super(typeName + ": refused by the " + rule + " rule — " + because);
         }
     }
 
