@@ -53,6 +53,34 @@ public final class TenantExport {
      * property of the type rather than an omission from a list
      * (jengu-platform#870).
      */
+    /**
+     * Every domain the tenant database holds (jengu-platform#866).
+     *
+     * <p>A tenant is not one domain. Clinical records live in the FHIR
+     * personality's domain, credentials and signing keys in {@code identity},
+     * the trail in {@code audit} — and a backup that covered only the one it
+     * was asked for restored an installation that could not authenticate
+     * anybody. The failure is silent in the worst way: the data is all there,
+     * and nobody can log in to see it.
+     *
+     * <p>Discovered rather than listed, for the reason the table sweep is
+     * discovered: a list is a second description of the database that stops
+     * being true without anything failing.
+     */
+    static List<String> domainsOf(Connection c) throws SQLException {
+        List<String> domains = new ArrayList<>();
+        try (PreparedStatement ps = c.prepareStatement("""
+                SELECT replace(table_name, '_data', '') FROM information_schema.tables
+                WHERE table_schema = 'state' AND table_name LIKE '%\\_data'
+                ORDER BY table_name""");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                domains.add(rs.getString(1));
+            }
+        }
+        return domains;
+    }
+
     private static List<String> stateTablesOf(Connection c, String domain) throws SQLException {
         List<String> tables = new ArrayList<>();
         try (PreparedStatement ps = c.prepareStatement("""
@@ -373,7 +401,7 @@ public final class TenantExport {
                 roster.append(rs.getString(1)).append('\n');
             }
         }
-        zip.putNextEntry(new java.util.zip.ZipEntry("delivery/consumers.txt"));
+        zip.putNextEntry(new java.util.zip.ZipEntry("delivery/" + domain + ".consumers.txt"));
         zip.write(roster.toString().getBytes(StandardCharsets.UTF_8));
         zip.closeEntry();
     }
@@ -455,6 +483,7 @@ public final class TenantExport {
             total += n;
         }
 
+        Set<String> written = new java.util.LinkedHashSet<>();
         // ---- byte-faithful fidelity element: COPY dumps of state, history
         // and the vault.
         //
@@ -471,23 +500,35 @@ public final class TenantExport {
         // machinery, which is ours.
         if (kind == Kind.BACKUP) {
             var copy = c.unwrap(PGConnection.class).getCopyAPI();
-            // The terminology tables are tenant-scoped rather than
-            // domain-scoped, so a tenant serving two domains repeats them in
-            // each archive. Duplication that costs disk beats an archive whose
-            // codes cannot be resolved.
-            for (String table : stateTablesOf(c, domain)) {
-                if (isDeliveryState(domain, table)) {
-                    continue;
+            // EVERY domain, not the one asked for. Credentials and the audit
+            // trail live in their own domains, and a backup that skipped them
+            // restored an installation nobody could log in to.
+            //
+            // The type-level travel exclusions apply only to the domain whose
+            // registrations were supplied — the others are carried whole,
+            // which is what a backup means. Nothing declared "never leaves"
+            // can be in another domain unnoticed, because a domain with no
+            // registrations here has no way to declare anything either.
+            for (String backedUp : domainsOf(c)) {
+                Set<String> exclusions = backedUp.equals(domain) ? grounded : Set.of();
+                // The terminology tables are tenant-scoped rather than
+                // domain-scoped: they appear once, under the first domain
+                // that sweeps them up, and the import resolves them by name.
+                for (String table : stateTablesOf(c, backedUp)) {
+                    if (isDeliveryState(backedUp, table) || written.contains(table)) {
+                        continue;
+                    }
+                    written.add(table);
+                    dumpInto(copy, zip, "fidelity/state." + table + ".csv",
+                            copyOf("state." + table,
+                                    table.equals(backedUp + "_data") ? exclusions : Set.of()),
+                            table);
                 }
-                dumpInto(copy, zip, "fidelity/state." + table + ".csv",
-                        copyOf("state." + table,
-                                table.equals(domain + "_data") ? grounded : Set.of()),
-                        table);
+                writeConsumerRoster(c, zip, backedUp);
+                dumpInto(copy, zip, "fidelity/history." + backedUp + "_history.csv",
+                        copyOf("history." + backedUp + "_history", exclusions),
+                        "history." + backedUp);
             }
-            writeConsumerRoster(c, zip, domain);
-            dumpInto(copy, zip, "fidelity/history." + domain + "_history.csv",
-                    copyOf("history." + domain + "_history", grounded),
-                    "history");
 
             // §14 vault (present only under PDI): wrapped keys, HMAC index,
             // shred ledger — ciphertext and key material only, blind to the
@@ -508,6 +549,12 @@ public final class TenantExport {
         StringBuilder manifest = new StringBuilder();
         manifest.append("{\"kind\":").append(Names.quote(kind.wire()))
                 .append(",\"domain\":").append(Names.quote(domain))
+                // what the archive actually covers: every domain for a
+                // backup, the one asked for in an export
+                .append(",\"domains\":[").append(
+                        (kind == Kind.BACKUP ? domainsOf(c) : List.of(domain)).stream()
+                        .map(Names::quote).collect(java.util.stream.Collectors.joining(",")))
+                .append(']')
                 .append(",\"outboxFence\":").append(fence)
                 .append(",\"objectCount\":").append(total)
                 .append(",\"types\":{");

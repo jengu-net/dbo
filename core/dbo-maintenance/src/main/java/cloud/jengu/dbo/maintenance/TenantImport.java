@@ -185,8 +185,9 @@ public final class TenantImport {
         Names.requireDomain(domain);
         byte[] plain = SealedArchive.open(sealed, ownerMasterKey);
         Map<String, String> dumps = new LinkedHashMap<>();
-        java.util.List<String> consumers = new java.util.ArrayList<>();
+        Map<String, java.util.List<String>> consumers = new LinkedHashMap<>();
         TenantExport.Kind[] declaredKind = {null};
+        java.util.List<String> declaredDomains = new java.util.ArrayList<>();
         try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(plain))) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
@@ -195,12 +196,21 @@ public final class TenantImport {
                             .substring("fidelity/".length(), entry.getName().length() - ".csv".length());
                     dumps.put(table, new String(zip.readAllBytes(), StandardCharsets.UTF_8));
                 } else if (entry.getName().equals("manifest.json")) {
-                    declaredKind[0] = kindOf(new String(zip.readAllBytes(), StandardCharsets.UTF_8));
-                } else if (entry.getName().equals("delivery/consumers.txt")) {
+                    String manifestJson = new String(zip.readAllBytes(), StandardCharsets.UTF_8);
+                    declaredKind[0] = kindOf(manifestJson);
+                    declaredDomains.addAll(domainsOf(manifestJson, domain));
+                } else if (entry.getName().startsWith("delivery/")
+                        && entry.getName().endsWith(".consumers.txt")) {
+                    // one roster per domain: a consumer of the clinical feed
+                    // must not be seeded into the identity one, where it would
+                    // be a reader nobody wrote
+                    String of = entry.getName().substring("delivery/".length(),
+                            entry.getName().length() - ".consumers.txt".length());
                     for (String name : new String(zip.readAllBytes(), StandardCharsets.UTF_8)
                             .split("\n")) {
                         if (!name.isBlank()) {
-                            consumers.add(name.trim());
+                            consumers.computeIfAbsent(of, k -> new java.util.ArrayList<>())
+                                    .add(name.trim());
                         }
                     }
                 }
@@ -215,7 +225,7 @@ public final class TenantImport {
                     ensurePdiTables(c);
                 }
                 for (Map.Entry<String, String> dump : dumps.entrySet()) {
-                    String qualified = qualifiedTable(domain, dump.getKey());
+                    String qualified = qualifiedTable(declaredDomains, dump.getKey());
                     if (qualified.equals("pdi.shred_ledger")) {
                         // the ledger MERGES, never replaces: live shred entries
                         // must survive a restore from a pre-shred archive —
@@ -240,13 +250,18 @@ public final class TenantImport {
                     copy.copyIn("COPY " + qualified + " FROM STDIN WITH (FORMAT csv)",
                             new StringReader(dump.getValue()));
                 }
-                seedConsumersAtHead(c, domain, consumers);
-                // realign the outbox serial after the byte-exact load
-                try (PreparedStatement ps = c.prepareStatement("""
-                        SELECT setval(pg_get_serial_sequence('state.%s_outbox', 'seq'),
-                                      COALESCE((SELECT max(seq) FROM state.%s_outbox), 0) + 1, false)"""
-                        .formatted(domain, domain))) {
-                    ps.execute();
+                for (String restored : declaredDomains) {
+                    seedConsumersAtHead(c, restored,
+                            consumers.getOrDefault(restored, java.util.List.of()));
+                    // realign the outbox serial after the byte-exact load —
+                    // every domain has its own, and one left behind hands out
+                    // sequence numbers that already exist
+                    try (PreparedStatement ps = c.prepareStatement("""
+                            SELECT setval(pg_get_serial_sequence('state.%s_outbox', 'seq'),
+                                          COALESCE((SELECT max(seq) FROM state.%s_outbox), 0) + 1,
+                                          false)""".formatted(restored, restored))) {
+                        ps.execute();
+                    }
                 }
                 // §14.4 policy replay: a restore must never resurrect an
                 // erased person — re-apply every ledger entry (idempotent;
@@ -353,19 +368,48 @@ public final class TenantImport {
         }
     }
 
-    private static String qualifiedTable(String domain, String archiveName) {
+    /**
+     * The domains an archive says it covers, defaulting to the one asked for.
+     *
+     * <p>A backup covers every domain the tenant held — clinical records,
+     * credentials, the audit trail — because an installation restored without
+     * the others cannot authenticate anybody (jengu-platform#866).
+     */
+    private static java.util.List<String> domainsOf(String manifestJson, String fallback) {
+        int at = manifestJson.indexOf("\"domains\"");
+        if (at < 0) {
+            return java.util.List.of(fallback);
+        }
+        int open = manifestJson.indexOf('[', at);
+        String body = manifestJson.substring(open + 1, manifestJson.indexOf(']', open));
+        java.util.List<String> domains = new java.util.ArrayList<>();
+        for (String raw : body.split(",")) {
+            String name = raw.trim().replace("\"", "");
+            if (!name.isBlank()) {
+                domains.add(name);
+            }
+        }
+        return domains.isEmpty() ? java.util.List.of(fallback) : domains;
+    }
+
+    private static String qualifiedTable(java.util.List<String> domains, String archiveName) {
         if (archiveName.equals("pdi.person") || archiveName.equals("pdi.identifier")
                 || archiveName.equals("pdi.shred_ledger")) {
             return archiveName;
         }
-        String statePrefix = "state." + domain + "_";
-        String historyPrefix = "history." + domain + "_";
         // Terminology is tenant-scoped rather than domain-scoped: one vocabulary
         // serves every domain in the tenant, so it carries no domain prefix.
         boolean terminology = archiveName.startsWith("state.term_");
-        if (!terminology && !archiveName.startsWith(statePrefix)
-                && !archiveName.startsWith(historyPrefix)) {
-            throw new IllegalArgumentException("unexpected fidelity table: " + archiveName);
+        // The guard still holds: a table must belong to a domain the archive
+        // DECLARED. Widening it to "any domain" would let an archive name an
+        // arbitrary table in the target database, which is what this check
+        // exists to prevent.
+        boolean known = terminology || domains.stream().anyMatch(d ->
+                archiveName.startsWith("state." + d + "_")
+                        || archiveName.startsWith("history." + d + "_"));
+        if (!known) {
+            throw new IllegalArgumentException("unexpected fidelity table: " + archiveName
+                    + " — the archive declares " + domains);
         }
         String suffix = archiveName.substring(archiveName.indexOf('_') + 1);
         if (!suffix.matches("[a-z_]{1,32}")) {
