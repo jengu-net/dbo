@@ -186,6 +186,7 @@ public final class TenantImport {
         byte[] plain = SealedArchive.open(sealed, ownerMasterKey);
         Map<String, String> dumps = new LinkedHashMap<>();
         java.util.List<String> consumers = new java.util.ArrayList<>();
+        TenantExport.Kind[] declaredKind = {null};
         try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(plain))) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
@@ -193,6 +194,8 @@ public final class TenantImport {
                     String table = entry.getName()
                             .substring("fidelity/".length(), entry.getName().length() - ".csv".length());
                     dumps.put(table, new String(zip.readAllBytes(), StandardCharsets.UTF_8));
+                } else if (entry.getName().equals("manifest.json")) {
+                    declaredKind[0] = kindOf(new String(zip.readAllBytes(), StandardCharsets.UTF_8));
                 } else if (entry.getName().equals("delivery/consumers.txt")) {
                     for (String name : new String(zip.readAllBytes(), StandardCharsets.UTF_8)
                             .split("\n")) {
@@ -203,6 +206,7 @@ public final class TenantImport {
                 }
             }
         }
+        requireBackup(declaredKind[0]);
         try (Connection c = target.getConnection()) {
             c.setAutoCommit(false);
             try {
@@ -273,6 +277,42 @@ public final class TenantImport {
     }
 
     /** Only table names the export itself wrote are accepted (validated identifier space). */
+    /** The kind an archive declares, or null when it declares none. */
+    private static TenantExport.Kind kindOf(String manifestJson) {
+        int at = manifestJson.indexOf("\"kind\"");
+        if (at < 0) {
+            return null;
+        }
+        int open = manifestJson.indexOf('"', manifestJson.indexOf(':', at)) + 1;
+        return TenantExport.Kind.ofWire(manifestJson.substring(open, manifestJson.indexOf('"', open)));
+    }
+
+    /**
+     * Refuses a byte-faithful restore from anything but a backup
+     * (jengu-platform#866).
+     *
+     * <p>A portable export deliberately carries no credentials, no audit and
+     * no configuration projection. Loading one where a backup was meant
+     * produces an installation that looks populated and cannot authenticate
+     * anybody — a failure discovered at sign-in, long after the restore
+     * reported success, by somebody who has no reason to suspect the archive.
+     *
+     * <p>An archive declaring no kind at all is refused too. It predates this
+     * rule, and treating "did not say" as "is a backup" would let exactly the
+     * archives that were never checked through the check.
+     */
+    private static void requireBackup(TenantExport.Kind declared) {
+        if (declared == TenantExport.Kind.BACKUP) {
+            return;
+        }
+        throw new IllegalArgumentException(declared == null
+                ? "this archive does not say what kind it is, so it cannot be restored as a "
+                        + "backup — re-export it"
+                : "this is a " + declared.wire() + ", not a backup: it carries no credentials "
+                        + "and no configuration, so restoring it would produce an installation "
+                        + "that cannot authenticate its own tenants");
+    }
+
     /**
      * Every restored consumer starts at the head of the restored feed
      * (jengu-platform#872).
