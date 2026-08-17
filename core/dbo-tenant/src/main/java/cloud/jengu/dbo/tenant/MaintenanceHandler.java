@@ -68,6 +68,7 @@ public final class MaintenanceHandler implements HttpHandler {
             switch (relative) {
                 case "archive" -> archive(exchange);
                 case "restore" -> restore(exchange);
+                case "inventory" -> inventory(exchange);
                 default -> fail(exchange, 404, "not_found", "no such maintenance operation");
             }
         } catch (IllegalArgumentException refused) {
@@ -96,6 +97,20 @@ public final class MaintenanceHandler implements HttpHandler {
         try (OutputStream out = exchange.getResponseBody()) {
             TenantExport.export(dataSource, domain, ownerKey, out, types, kind);
         }
+    }
+
+    /**
+     * What the tenant holds, before anything is moved
+     * (jengu-platform#866).
+     *
+     * <p>No owner key: this reads no content, only counts. Requiring one
+     * would be security theatre — it would suggest the answer discloses
+     * something it does not, and would make the report an operator runs
+     * before deciding harder to run than the move itself.
+     */
+    private void inventory(HttpExchange exchange) throws IOException {
+        respond(exchange, 200, cloud.jengu.dbo.maintenance.TenantInventory.json(
+                cloud.jengu.dbo.maintenance.TenantInventory.of(dataSource)));
     }
 
     private void restore(HttpExchange exchange) throws IOException {
