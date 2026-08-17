@@ -86,7 +86,25 @@ public final class IdentityModel {
             e.identifier(BINDING_SUBJECT_SYSTEM, Json.str(n, "subjectId"));
             return e;
         };
+        EnvelopeExtractor anonymity = (type, payload) -> {
+            Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
+            Envelope e = new Envelope();
+            e.value("kind", EnvelopeValue.of(Json.str(n, "kind")));
+            e.value("subjectId", EnvelopeValue.of(Json.str(n, "subjectId")));
+            e.identifier(BINDING_SUBJECT_SYSTEM, Json.str(n, "subjectId"));
+            return e;
+        };
         return List.of(
+                // Append-only: a lifted declaration must not erase that it once
+                // stood, or nobody can answer whether a person was identified
+                // during a period they had asked not to be.
+                new TypeRegistration("AnonymityEvent", DOMAIN, IdentityClass.INTERNAL,
+                        java.util.Set.of(),
+                        new Handling(Handling.Authority.TENANT_USERS,
+                                Handling.Mutability.APPEND_ONLY,
+                                Handling.Durability.VERSIONED,
+                                Handling.Travel.BACKUP_ONLY),
+                        anonymity, List.of()),
                 // Append-only for the same reason as a decision: a withdrawal
                 // that erased the binding would erase the evidence that anybody
                 // was ever identified — exactly what somebody would want erased
