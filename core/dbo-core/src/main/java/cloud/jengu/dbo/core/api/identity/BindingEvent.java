@@ -22,7 +22,7 @@ import java.util.Objects;
  * <p>Withdrawal touches no clinical data. The attachment lives on the identity
  * side, so detaching it removes nothing that was recorded about the care.
  */
-public record BindingEvent(Kind kind, String identityId, String subjectId,
+public record BindingEvent(Kind kind, String identityId, String subjectId, Assurance assurance,
                            String actor, Instant at, String purpose, String because) {
 
     public enum Kind {
@@ -48,6 +48,12 @@ public record BindingEvent(Kind kind, String identityId, String subjectId,
                     "binding and withdrawing name who did it — de-anonymising somebody without "
                             + "a trace is the failure this record exists to prevent");
         }
+        Objects.requireNonNull(assurance, "assurance");
+        if (kind == Kind.BOUND && assurance == Assurance.NONE) {
+            throw new IllegalArgumentException(
+                    "an identification records how well it was established — NONE means nothing "
+                            + "was, which is the absence of a binding rather than a weak one");
+        }
         if (purpose == null || purpose.isBlank()) {
             throw new IllegalArgumentException(
                     "binding states its purpose: it discloses who a subject is, and 'why' is "
@@ -55,13 +61,20 @@ public record BindingEvent(Kind kind, String identityId, String subjectId,
         }
     }
 
-    public static BindingEvent bound(String identityId, String subjectId,
+    /**
+     * @param assurance how well this identification was established — the
+     *                  strength of the evidence in front of whoever made it,
+     *                  which later bounds what the binding can be used for
+     */
+    public static BindingEvent bound(String identityId, String subjectId, Assurance assurance,
             String actor, Instant at, String purpose, String because) {
-        return new BindingEvent(Kind.BOUND, identityId, subjectId, actor, at, purpose, because);
+        return new BindingEvent(Kind.BOUND, identityId, subjectId, assurance,
+                actor, at, purpose, because);
     }
 
     public static BindingEvent withdrawn(String identityId, String subjectId,
             String actor, Instant at, String purpose, String because) {
-        return new BindingEvent(Kind.WITHDRAWN, identityId, subjectId, actor, at, purpose, because);
+        return new BindingEvent(Kind.WITHDRAWN, identityId, subjectId, Assurance.NONE,
+                actor, at, purpose, because);
     }
 }
