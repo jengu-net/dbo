@@ -143,6 +143,12 @@ public final class FhirHttpServer implements AutoCloseable {
             respond(exchange, 412, store.operationOutcome("conflict", e.getMessage()));
         } catch (IdentityConflictException e) {
             respond(exchange, 409, store.operationOutcome("duplicate", e.getMessage()));
+        } catch (cloud.jengu.dbo.core.api.HandlingRefusedException e) {
+            // 403, not 500 and not 401. This is not a permission the caller
+            // could be granted — an append-only record cannot be altered by
+            // anyone, including us — so the answer says which rule refused it
+            // rather than implying somebody could authorise their way past.
+            respond(exchange, 403, store.operationOutcome("forbidden", e.getMessage()));
         } catch (cloud.jengu.dbo.core.api.PolicyViolationException e) {
             respond(exchange, 409, store.operationOutcome("business-rule", e.getMessage()));
         } catch (IllegalArgumentException e) {

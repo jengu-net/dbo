@@ -84,7 +84,7 @@ class AuthoritySurvivesWrappersIT {
                 "a lane holding an ObjectStore must be able to say it is the source tenant, or "
                         + "READ_ONLY_HERE is a rule nobody can satisfy");
 
-        assertThrows(PgObjectStore.HandlingRefusedException.class,
+        assertThrows(cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                 () -> asInterface.put(PutRequest.create("Vocabulary", body()),
                         Handling.Authority.TENANT_USERS));
     }
@@ -102,8 +102,8 @@ class AuthoritySurvivesWrappersIT {
                 Handling.Authority.SOURCE_TENANT).id(),
                 "the declaration must reach the store through the wrapper");
 
-        PgObjectStore.HandlingRefusedException refused = assertThrows(
-                PgObjectStore.HandlingRefusedException.class,
+        cloud.jengu.dbo.core.api.HandlingRefusedException refused = assertThrows(
+                cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                 () -> wrapped.put(PutRequest.create("Vocabulary", body()),
                         Handling.Authority.TENANT_USERS));
 
@@ -119,7 +119,7 @@ class AuthoritySurvivesWrappersIT {
     void theShortFormIsStillTenantUsers() {
         ObjectStore asInterface = direct;
 
-        assertThrows(PgObjectStore.HandlingRefusedException.class,
+        assertThrows(cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                 () -> asInterface.put(PutRequest.create("Vocabulary", body())),
                 "not declaring an authority must not be a way to acquire one");
     }
