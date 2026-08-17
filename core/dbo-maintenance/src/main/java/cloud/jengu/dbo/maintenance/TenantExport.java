@@ -86,7 +86,8 @@ public final class TenantExport {
         try (PreparedStatement ps = c.prepareStatement("""
                 SELECT table_name FROM information_schema.tables
                 WHERE table_schema = 'state'
-                  AND (table_name LIKE ? OR table_name LIKE 'term\\_%')
+                  AND (table_name LIKE ? OR table_name LIKE 'term\\_%'
+                       OR table_name = 'projection_marker')
                 ORDER BY table_name""")) {
             ps.setString(1, domain + "\\_%");
             try (ResultSet rs = ps.executeQuery()) {
@@ -547,7 +548,15 @@ public final class TenantExport {
         // ---- manifest
         zip.putNextEntry(new ZipEntry("manifest.json"));
         StringBuilder manifest = new StringBuilder();
+        String configCommit = ProjectionMarker.read(c, ProjectionMarker.CONFIG_COMMIT);
         manifest.append("{\"kind\":").append(Names.quote(kind.wire()))
+                // Which configuration this data was projected under, so a
+                // restore can be reassembled against the same one rather than
+                // against whatever the repository says today. Absent when the
+                // tenant has never had a projection applied — stated as
+                // absent rather than defaulted to a plausible commit.
+                .append(",\"configCommit\":").append(
+                        configCommit == null ? "null" : Names.quote(configCommit))
                 .append(",\"domain\":").append(Names.quote(domain))
                 // what the archive actually covers: every domain for a
                 // backup, the one asked for in an export
