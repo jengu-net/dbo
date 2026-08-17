@@ -6,6 +6,7 @@ import cloud.jengu.dbo.core.api.Identifier;
 import cloud.jengu.dbo.core.api.IdentityRef;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PolicyViolationException;
+import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.PutResult;
 import cloud.jengu.dbo.core.api.StoredObject;
@@ -43,8 +44,18 @@ public final class PolicyObjectStore implements ObjectStore {
 
     @Override
     public PutResult put(PutRequest request) {
+        return put(request, Handling.Authority.TENANT_USERS);
+    }
+
+    /**
+     * Forwards the caller's authority rather than dropping it. A wrapper that
+     * swallowed it would leave the shield seeing the least-privileged default
+     * while the caller believed it had declared something (dbo#41).
+     */
+    @Override
+    public PutResult put(PutRequest request, Handling.Authority caller) {
         refuseDirectAuditWrites(request.typeName());
-        PutResult result = inner.put(request);
+        PutResult result = inner.put(request, caller);
         auditWrite(result.created() ? "create" : "update", request.typeName(), result.id());
         return result;
     }
@@ -69,6 +80,12 @@ public final class PolicyObjectStore implements ObjectStore {
 
     @Override
     public void delete(String typeName, String id, Long expectedVersion) {
+        delete(typeName, id, expectedVersion, Handling.Authority.TENANT_USERS);
+    }
+
+    @Override
+    public void delete(String typeName, String id, Long expectedVersion,
+            Handling.Authority caller) {
         if ("AuditEntry".equals(typeName)) {
             // §15.1: the trail is exempt from the tenant's chosen discipline
             throw new PolicyViolationException(
@@ -79,7 +96,7 @@ public final class PolicyObjectStore implements ObjectStore {
                     "append-only write discipline forbids deleting " + typeName
                             + " — correct by supersession or entered-in-error (§15.2)");
         }
-        inner.delete(typeName, id, expectedVersion);
+        inner.delete(typeName, id, expectedVersion, caller);
         auditWrite("delete", typeName, id);
     }
 

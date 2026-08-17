@@ -63,14 +63,24 @@ public final class PdiObjectStore implements ObjectStore {
 
     @Override
     public PutResult put(PutRequest request) {
+        return put(request, cloud.jengu.dbo.core.api.Handling.Authority.TENANT_USERS);
+    }
+
+    /**
+     * Forwards the caller's authority through the vault. Dropping it here
+     * would be the quiet kind of hole: the shield would see the
+     * least-privileged default while the caller believed otherwise (dbo#41).
+     */
+    @Override
+    public PutResult put(PutRequest request, cloud.jengu.dbo.core.api.Handling.Authority caller) {
         if (!spec.isPersonType(request.typeName())) {
-            return inner.put(request);
+            return inner.put(request, caller);
         }
         // creates need the id BEFORE encryption — mint it here so the person
         // key exists for the very first version (the engine upserts by id)
         String id = request.id() != null ? request.id() : cloud.jengu.dbo.core.UuidV7.newId();
         return inner.put(new PutRequest(request.typeName(), id, request.expectedVersion(),
-                isolate(request.typeName(), id, request.payload())));
+                isolate(request.typeName(), id, request.payload())), caller);
     }
 
     @Override
@@ -160,6 +170,12 @@ public final class PdiObjectStore implements ObjectStore {
     @Override
     public void delete(String typeName, String id, Long expectedVersion) {
         inner.delete(typeName, id, expectedVersion);
+    }
+
+    @Override
+    public void delete(String typeName, String id, Long expectedVersion,
+            cloud.jengu.dbo.core.api.Handling.Authority caller) {
+        inner.delete(typeName, id, expectedVersion, caller);
     }
 
     @Override
