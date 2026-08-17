@@ -18,6 +18,7 @@ import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -82,7 +83,8 @@ class PdiIT {
         new SecureRandom().nextBytes(workingKey);
         new SecureRandom().nextBytes(ownerKey);
         vault = new PersonVault(ds, workingKey);
-        store = new PdiObjectStore(new PgObjectStore(ds, transformed), vault, spec);
+        store = new PdiObjectStore(new PgObjectStore(ds, transformed), vault, spec,
+                cloud.jengu.dbo.fhir.common.FhirCoarsening.INSTANCE);
     }
 
     @AfterAll
@@ -94,6 +96,38 @@ class PdiIT {
                 + "\",\"value\":\"" + code + "\"}],\"name\":[{\"family\":\"" + family
                 + "\"}],\"birthDate\":\"1970-01-01\",\"gender\":\"male\"}")
                 .getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * jengu-platform#880: the coarse value is computed on write and kept in the
+     * clear, because a reader without the key has no plaintext to derive one
+     * from — and the face supplies the coarsening, since knowing that a birth
+     * date reduces to its year is knowledge about FHIR shapes, not about
+     * storage (ADR 0057 §3).
+     */
+    @Test
+    @Order(0)
+    @DisplayName("#880: the stored payload carries the birth year, and only the year")
+    void theCoarseValueIsWrittenInTheClear() throws Exception {
+        String id = store.put(PutRequest.create("Patient", patient("Coarse", "39001010023"))).id();
+
+        String stored;
+        try (java.sql.Connection c = ds.getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                     "SELECT payload FROM state." + R4Personality.DOMAIN
+                             + "_data WHERE id = ?::uuid")) {
+            ps.setString(1, id);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                stored = new String(rs.getBytes(1), StandardCharsets.UTF_8);
+            }
+        }
+
+        assertTrue(stored.contains("\"birthDate\":\"1970\""),
+                "the year must survive in the clear, or a reader with no right to the full date "
+                        + "gets nothing where a clinician needs an age: " + stored);
+        assertFalse(stored.contains("1970-01-01"),
+                "and the full date must not be in the clear — it rides encrypted like the rest");
     }
 
     /** Authorized reads see the full resource; versions reassemble from history. */
