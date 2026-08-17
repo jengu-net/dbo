@@ -122,7 +122,7 @@ class HumanAuthIT {
                 new PgObjectStore(ds, IdentityModel.registrations()),
                 "http://127.0.0.1:" + manager.port() + "/t/arst/oidc", new KeyProtector(kek));
         sideAuthority.ensureRoleGrant("doctor", List.of("user/*.read", "user/Encounter.write"));
-        sideAuthority.ensureLocalCredential("albus", "kaljuke9", practitionerId);
+        sideAuthority.ensureLocalCredential("albus", "kaljuke9", personId);
         sideAuthority.ensureClient("webapp", null, List.of("user/*.read", "user/*.write"),
                 "public-pkce", List.of(REDIRECT));
     }
@@ -443,27 +443,46 @@ class HumanAuthIT {
         return body.replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
     }
 
-    /** §16.1: subject resolution works identically under PDI — through the vault. */
+    /**
+     * §16.1: subject resolution works identically under PDI — through the vault.
+     *
+     * <p>It resolves the <b>person</b>, not the clinician. A national
+     * identifier names a human, and what that human may do follows from the
+     * relations they hold — which is what lets somebody with no practitioner
+     * relation authenticate at all (jengu-platform#879).
+     */
     @Test
     @Order(8)
-    void nationalIdResolvesThePractitionerUnderPdiAndWithout() throws Exception {
+    void nationalIdResolvesThePersonUnderPdiAndWithout() throws Exception {
         // plain tenant: envelope identifier
         R4Personality plain = new R4Personality(TenantSpec.parse(
                 Files.readString(dir.resolve("arst.json"))).types());
         sideAuthority.attachSubjects(new PgObjectStore(tenantDs("arst"), plain.registrations()));
-        assertEquals(practitionerId,
-                sideAuthority.resolveByNationalId(EID, "37001010021").orElseThrow());
+        assertEquals(personId,
+                sideAuthority.resolveByNationalId(EID, "37001010021").orElseThrow(),
+                "the national identifier names the human, not the capacity they act in");
 
         // pdi tenant: the vault's HMAC index
         Files.writeString(dir.resolve("arstp.json"), """
                 {"code":"arstp","fhirVersion":"r4","pdi":true,"types":[
-                  {"name":"Practitioner","identity":"identifier","systems":["%s"]}]}""".formatted(EID));
+                  {"name":"Person","identity":"identifier","systems":["%s"]},
+                  {"name":"Practitioner","identity":"internal"}]}""".formatted(EID));
         manager.scanOnce();
+        // The national identifier is the human's, so under PDI it is claimed by
+        // the Person and by nothing else. The vault claims per (system, value)
+        // rather than per type, so a Practitioner claiming it too is refused —
+        // which is ADR 0056 enforced by the storage rather than by a reviewer.
         HttpResponse<String> created = post("arstp", "/Practitioner", serviceToken("arstp"), """
                 {"resourceType":"Practitioner",
-                 "identifier":[{"system":"%s","value":"48001010030"}],
-                 "name":[{"family":"Peidetud"}]}""".formatted(EID));
+                 "name":[{"family":"Peidetud"}]}""");
         assertEquals(201, created.statusCode(), created.body());
+        HttpResponse<String> hidden = post("arstp", "/Person", serviceToken("arstp"), """
+                {"resourceType":"Person",
+                 "identifier":[{"system":"%s","value":"48001010030"}],
+                 "name":[{"family":"Peidetud"}],
+                 "link":[{"target":{"reference":"Practitioner/%s"},"assurance":"level3"}]}"""
+                .formatted(EID, idOf(created)));
+        assertEquals(201, hidden.statusCode(), hidden.body());
 
         PdiSpec pdiSpec = PdiSpec.fhir();
         R4Personality personality = new R4Personality(TenantSpec.parse(
@@ -475,8 +494,10 @@ class HumanAuthIT {
         pdiSide.attachSubjects(new PdiObjectStore(
                 new PgObjectStore(ds, PdiSetup.transform(personality.registrations(), pdiSpec)),
                 new PersonVault(ds, kek), pdiSpec));
-        assertEquals(idOf(created),
+        assertEquals(idOf(hidden),
                 pdiSide.resolveByNationalId(EID, "48001010030").orElseThrow(),
-                "resolution through the vault's HMAC index");
+                "resolution through the vault's HMAC index — the Person's identifiers are "
+                        + "vaulted like any other person type, so the lookup matches without "
+                        + "the value being disclosed to the matching");
     }
 }

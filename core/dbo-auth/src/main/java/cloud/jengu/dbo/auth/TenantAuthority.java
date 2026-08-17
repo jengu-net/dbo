@@ -137,10 +137,10 @@ public final class TenantAuthority {
                         .noneMatch(federation.acceptedBrokers()::contains)) {
             return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
         }
-        Optional<String> practitioner = resolveByNationalId(
+        Optional<String> person = resolveByNationalId(
                 Json.str(claims, "sys"), Json.str(claims, "val"));
-        Grants grants = practitioner.isEmpty()
-                ? new Grants(List.of(), List.of()) : evaluateGrants(practitioner.get());
+        Grants grants = person.isEmpty()
+                ? new Grants(List.of(), List.of()) : evaluateGrants(person.get());
         List<String> scopes = grants.scopes();
         if (scopes.isEmpty()) {
             // valid national identity, but THIS tenant grants nothing — the
@@ -149,7 +149,7 @@ public final class TenantAuthority {
         }
         String code = UuidV7.newId() + UuidV7.newId().substring(0, 8);
         pendingCodes.put(code, new PendingAuthorization(parked.clientId(), parked.redirectUri(),
-                parked.codeChallenge(), practitioner.get(),
+                parked.codeChallenge(), person.get(),
                 String.join(" ", scopes), String.join(",", grants.roles()),
                 parked.nonce(), System.currentTimeMillis() + 60_000));
         return new FederatedOutcome.Success(parked.redirectUri(), parked.rpState(), code);
@@ -296,7 +296,7 @@ public final class TenantAuthority {
     }
 
     /** Dev/embedded fallback credential (§16.2) — production humans federate. */
-    public void ensureLocalCredential(String login, String secret, String practitionerId) {
+    public void ensureLocalCredential(String login, String secret, String personId) {
         Optional<StoredObject> existing = store.getByIdentifier("LocalCredential",
                 List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login))).stream().findFirst();
         // A login's other factors survive its password being set. Rewriting the
@@ -308,7 +308,7 @@ public final class TenantAuthority {
         String payload = "{\"login\":\"" + login + "\""
                 + ",\"secretHash\":\"" + SecretHash.hash(secret) + "\""
                 + (keptFactors == null ? "" : ",\"factors\":" + keptFactors)
-                + ",\"practitionerId\":\"" + practitionerId + "\""
+                + ",\"personId\":\"" + personId + "\""
                 + ",\"status\":\"active\"}";
         if (existing.isPresent()) {
             store.put(PutRequest.update("LocalCredential", existing.get().id(),
@@ -422,7 +422,7 @@ public final class TenantAuthority {
      * HMAC index under PDI, the envelope otherwise; the same call either way.
      */
     public Optional<String> resolveByNationalId(String system, String value) {
-        return subjectStore.getByIdentifier("Practitioner",
+        return subjectStore.getByIdentifier("Person",
                 List.of(new Identifier(system, value))).stream()
                 .map(StoredObject::id).findFirst();
     }
@@ -431,9 +431,53 @@ public final class TenantAuthority {
     public record Grants(List<String> scopes, List<String> roles) {}
 
     /** Active PractitionerRoles → role codes → RoleGrants → scopes + roles. */
-    public Grants evaluateGrants(String practitionerId) {
+    /**
+     * What a person may do, derived from the relations they hold.
+     *
+     * <p>Identity is the person; authorization is their relations. A human
+     * signs in as themselves and is separately a clinician here, a patient
+     * there, a representative for somebody else — which is what
+     * {@code Person.link} models. Binding a credential to a
+     * {@code Practitioner} made every non-clinical sign-in a special case of a
+     * clinical one.
+     *
+     * <p>Only the practitioner relation grants anything today. The union below
+     * is where the others attach, rather than a branch somewhere else
+     * (jengu-platform#879).
+     */
+    public Grants evaluateGrants(String personId) {
         java.util.Set<String> scopes = new java.util.LinkedHashSet<>();
         java.util.Set<String> roles = new java.util.LinkedHashSet<>();
+        for (String practitionerId : linkedOfType(personId, "Practitioner")) {
+            grantsFromPractitioner(practitionerId, scopes, roles);
+        }
+        return new Grants(List.copyOf(scopes), List.copyOf(roles));
+    }
+
+    /**
+     * The ids a person is linked to, of one kind. A person may hold several of
+     * the same kind — two practitioner records at two organisations is
+     * ordinary — so this returns all of them.
+     */
+    public List<String> linkedOfType(String personId, String resourceType) {
+        Optional<StoredObject> person = subjectStore.get("Person", personId);
+        if (person.isEmpty()) {
+            return List.of();
+        }
+        List<String> targets = new java.util.ArrayList<>();
+        Object payload = Json.parse(new String(person.get().payload(), StandardCharsets.UTF_8));
+        for (Object link : Json.array(payload, "link")) {
+            Object target = link instanceof java.util.Map<?, ?> m ? m.get("target") : null;
+            String reference = target == null ? null : Json.strOpt(target, "reference");
+            if (reference != null && reference.startsWith(resourceType + "/")) {
+                targets.add(reference.substring(resourceType.length() + 1));
+            }
+        }
+        return targets;
+    }
+
+    private void grantsFromPractitioner(String practitionerId,
+            java.util.Set<String> scopes, java.util.Set<String> roles) {
         for (StoredObject role : subjectStore.select(
                 cloud.jengu.dbo.core.api.Criteria.of("PractitionerRole")
                         .referencing("practitioner", "Practitioner", practitionerId))) {
@@ -458,7 +502,6 @@ public final class TenantAuthority {
                 }
             }
         }
-        return new Grants(List.copyOf(scopes), List.copyOf(roles));
     }
 
     private static boolean periodActive(Object practitionerRolePayload) {
@@ -476,7 +519,7 @@ public final class TenantAuthority {
     // -------------------------------------------------- authorization code
 
     record PendingAuthorization(String clientId, String redirectUri, String codeChallenge,
-            String practitionerId, String scope, String roles, String nonce, long expiresAt) {}
+            String personId, String scope, String roles, String nonce, long expiresAt) {}
 
     public sealed interface AuthorizeResult {
         record LoginRequired(String clientId, String redirectUri) implements AuthorizeResult {}
@@ -515,17 +558,17 @@ public final class TenantAuthority {
                 instanceof AuthorizeResult.Rejected rejected) {
             return new LoginResult.Denied(rejected.error());
         }
-        Optional<String> practitioner = humanAuthenticator.authenticate(login, secret);
-        if (practitioner.isEmpty()) {
+        Optional<String> person = humanAuthenticator.authenticate(login, secret);
+        if (person.isEmpty()) {
             return new LoginResult.Denied("access_denied");
         }
-        Grants grants = evaluateGrants(practitioner.get());
+        Grants grants = evaluateGrants(person.get());
         if (grants.scopes().isEmpty()) {
             return new LoginResult.Denied("access_denied");
         }
         String code = UuidV7.newId() + UuidV7.newId().substring(0, 8);
         pendingCodes.put(code, new PendingAuthorization(clientId, redirectUri, codeChallenge,
-                practitioner.get(), String.join(" ", grants.scopes()),
+                person.get(), String.join(" ", grants.scopes()),
                 String.join(",", grants.roles()), nonce == null ? "" : nonce,
                 System.currentTimeMillis() + 60_000));
         return new LoginResult.Redirect(code);
@@ -571,7 +614,7 @@ public final class TenantAuthority {
         if (!pkceMatches(pending.codeChallenge(), codeVerifier)) {
             return new TokenResult.Rejected("invalid_grant", "PKCE verification failed");
         }
-        return humanTokens(pending.practitionerId(), clientId, pending.scope(), pending.roles(),
+        return humanTokens(pending.personId(), clientId, pending.scope(), pending.roles(),
                 pending.nonce());
     }
 
@@ -597,12 +640,12 @@ public final class TenantAuthority {
                 || Json.num(claims, "exp") < System.currentTimeMillis() / 1000) {
             return new TokenResult.Rejected("invalid_grant", "refresh token invalid");
         }
-        String practitionerId = Json.str(claims, "sub");
-        Grants grants = evaluateGrants(practitionerId);
+        String personId = Json.str(claims, "sub");
+        Grants grants = evaluateGrants(personId);
         if (grants.scopes().isEmpty()) {
             return new TokenResult.Rejected("access_denied", "no active grants");
         }
-        return humanTokens(practitionerId, Json.str(claims, "client_id"),
+        return humanTokens(personId, Json.str(claims, "client_id"),
                 String.join(" ", grants.scopes()), String.join(",", grants.roles()));
     }
 
@@ -716,15 +759,29 @@ public final class TenantAuthority {
                 .toList();
     }
 
-    private TokenResult actToken(String practitionerId, String actingClientId,
+    /**
+     * A delegated token: somebody's authority, exercised by a client acting for
+     * them.
+     *
+     * <p>Resolves {@code fhirUser} from the person's relations like every other
+     * issuing path. Building it from the subject id — which read correctly
+     * while the subject WAS a practitioner — now produces
+     * {@code Practitioner/<personId>}: a token asserting that a person's id
+     * names a clinician. Nothing would have rejected it, and every consumer
+     * would have believed it.
+     */
+    private TokenResult actToken(String personId, String actingClientId,
             List<String> scopes, List<String> roles) {
         StoredObject key = activeKey().orElseThrow(() -> new IllegalStateException("no active signing key"));
         long now = System.currentTimeMillis() / 1000;
         String rolesJson = roles.isEmpty() ? "[]"
                 : "[\"" + String.join("\",\"", roles) + "\"]";
-        String claims = "{\"iss\":\"" + issuer + "\",\"sub\":\"" + practitionerId + "\""
+        String fhirUser = linkedOfType(personId, "Practitioner").stream().findFirst()
+                .map(id -> "Practitioner/" + id)
+                .orElse("Person/" + personId);
+        String claims = "{\"iss\":\"" + issuer + "\",\"sub\":\"" + personId + "\""
                 + ",\"aud\":\"" + issuer + "\",\"client_id\":\"" + actingClientId + "\""
-                + ",\"fhirUser\":\"Practitioner/" + practitionerId + "\""
+                + ",\"fhirUser\":\"" + fhirUser + "\""
                 + ",\"roles\":" + rolesJson
                 + ",\"act\":{\"sub\":\"" + actingClientId + "\"}"
                 + ",\"scope\":\"" + String.join(" ", scopes) + "\""
@@ -735,9 +792,9 @@ public final class TenantAuthority {
                 String.join(" ", scopes));
     }
 
-    private TokenResult humanTokens(String practitionerId, String clientId, String scope,
+    private TokenResult humanTokens(String personId, String clientId, String scope,
             String rolesCsv) {
-        return humanTokens(practitionerId, clientId, scope, rolesCsv, null);
+        return humanTokens(personId, clientId, scope, rolesCsv, null);
     }
 
     /**
@@ -746,15 +803,22 @@ public final class TenantAuthority {
      * can build a principal without touching the access token. {@code nonce}
      * null = refresh (no id_token); empty = code flow without a nonce.
      */
-    private TokenResult humanTokens(String practitionerId, String clientId, String scope,
+    private TokenResult humanTokens(String personId, String clientId, String scope,
             String rolesCsv, String nonce) {
         StoredObject key = activeKey().orElseThrow(() -> new IllegalStateException("no active signing key"));
         long now = System.currentTimeMillis() / 1000;
         String rolesJson = rolesCsv == null || rolesCsv.isEmpty() ? "[]"
                 : "[\"" + rolesCsv.replace(",", "\",\"") + "\"]";
-        String base = "\"iss\":\"" + issuer + "\",\"sub\":\"" + practitionerId + "\""
+        // sub is the person; fhirUser is the capacity they act in. SMART's own
+        // split, because the human and the role are different facts — and a
+        // stable sub means somebody who is a clinician here and a patient there
+        // is one subject rather than two accounts sharing a name.
+        String fhirUser = linkedOfType(personId, "Practitioner").stream().findFirst()
+                .map(id -> "Practitioner/" + id)
+                .orElse("Person/" + personId);
+        String base = "\"iss\":\"" + issuer + "\",\"sub\":\"" + personId + "\""
                 + ",\"aud\":\"" + issuer + "\",\"client_id\":\"" + clientId + "\""
-                + ",\"fhirUser\":\"Practitioner/" + practitionerId + "\""
+                + ",\"fhirUser\":\"" + fhirUser + "\""
                 + ",\"roles\":" + rolesJson
                 + ",\"scope\":\"" + scope + "\",\"iat\":" + now;
         String access = "{" + base + ",\"jti\":\"" + UuidV7.newId() + "\""
@@ -764,9 +828,9 @@ public final class TenantAuthority {
         String kid = field(key, "kid");
         String idToken = null;
         if (nonce != null) {
-            idToken = Jws.sign(kid, "{\"iss\":\"" + issuer + "\",\"sub\":\"" + practitionerId + "\""
+            idToken = Jws.sign(kid, "{\"iss\":\"" + issuer + "\",\"sub\":\"" + personId + "\""
                     + ",\"aud\":\"" + clientId + "\""
-                    + ",\"fhirUser\":\"Practitioner/" + practitionerId + "\""
+                    + ",\"fhirUser\":\"" + fhirUser + "\""
                     + ",\"roles\":" + rolesJson
                     + (nonce.isEmpty() ? "" : ",\"nonce\":\"" + nonce + "\"")
                     + ",\"iat\":" + now + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + "}",
@@ -915,7 +979,7 @@ public final class TenantAuthority {
                             List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login))).stream()
                     .filter(c -> "active".equals(field(c, "status")))
                     .filter(c -> SecretHash.verify(secret, field(c, "secretHash")))
-                    .map(c -> field(c, "practitionerId"))
+                    .map(c -> field(c, "personId"))
                     .findFirst();
         }
     }

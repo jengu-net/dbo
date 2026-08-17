@@ -57,6 +57,7 @@ class DelegationIT {
             .followRedirects(HttpClient.Redirect.NEVER).build();
     static TenantAuthority sideAuthority;
     static String practitionerId;
+    static String personId;
     static String roleId;
     static String humanToken;
     static String delegationId;
@@ -74,9 +75,10 @@ class DelegationIT {
         Files.writeString(dir.resolve("esindus.json"), """
                 {"code":"esindus","fhirVersion":"r4","audit":{"level":"writes"},"types":[
                   {"name":"Patient","identity":"internal"},
+                  {"name":"Person","identity":"identifier","systems":["%s"]},
                   {"name":"Practitioner","identity":"identifier","systems":["%s"]},
                   {"name":"PractitionerRole","identity":"internal"},
-                  {"name":"Encounter","identity":"internal"}]}""".formatted(EID));
+                  {"name":"Encounter","identity":"internal"}]}""".formatted(EID, EID));
         manager.scanOnce();
 
         String service = serviceToken();
@@ -84,6 +86,12 @@ class DelegationIT {
                 {"resourceType":"Practitioner",
                  "identifier":[{"system":"%s","value":"36001010009"}],
                  "name":[{"family":"Volitaja"}]}""".formatted(EID)));
+        personId = idOf(fhirPost("/Person", service, """
+                {"resourceType":"Person",
+                 "identifier":[{"system":"%s","value":"36001010009"}],
+                 "name":[{"family":"Volitaja"}],
+                 "link":[{"target":{"reference":"Practitioner/%s"},"assurance":"level3"}]}"""
+                .formatted(EID, practitionerId)));
         roleId = idOf(fhirPost("/PractitionerRole", service, """
                 {"resourceType":"PractitionerRole",
                  "practitioner":{"reference":"Practitioner/%s"},
@@ -98,7 +106,7 @@ class DelegationIT {
         sideAuthority = new TenantAuthority(new PgObjectStore(ds, IdentityModel.registrations()),
                 base() + "/oidc", new KeyProtector(kek));
         sideAuthority.ensureRoleGrant("doctor", List.of("user/*.read", "user/Encounter.write"));
-        sideAuthority.ensureLocalCredential("volitaja", "salakala8", practitionerId);
+        sideAuthority.ensureLocalCredential("volitaja", "salakala8", personId);
         sideAuthority.ensureClient("webapp", null, List.of("user/*.read", "user/*.write"),
                 "public-pkce", List.of(REDIRECT));
         sideAuthority.ensureClient("engine", ENGINE_SECRET, List.of());
@@ -182,8 +190,12 @@ class DelegationIT {
                         + "&scope=" + URLEncoder.encode("user/Encounter.write", StandardCharsets.UTF_8));
         String actToken = tokenField(exchanged, "access_token");
         String claims = claimsOf(actToken);
-        assertTrue(claims.contains("\"sub\":\"" + practitionerId + "\"")
+        assertTrue(claims.contains("\"sub\":\"" + personId + "\"")
                 && claims.contains("\"act\":{\"sub\":\"engine\"}"), claims);
+        assertTrue(claims.contains("\"fhirUser\":\"Practitioner/" + practitionerId + "\""),
+                "sub is the human and fhirUser is the capacity they act in — SMART's own split, "
+                        + "and the reason a delegated token can name three parties without "
+                        + "conflating any of them: " + claims);
         assertTrue(claims.contains("user/Encounter.write") && !claims.contains("user/*.read"),
                 "scopes attenuate to the request ∩ the subject's");
 
