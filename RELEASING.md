@@ -4,9 +4,17 @@ A release is a `v*` tag. The pipeline does the rest: the suite runs, images
 build multi-arch, and a signed Maven Central bundle is uploaded and left for a
 human to release.
 
-There is no private Maven repository. Consumers take releases from Central; a
-composite build or `./gradlew publishToMavenLocal` covers development against
-an unreleased change.
+Jars publish to the project's own public Maven repository. Consumers add it
+once:
+
+```kotlin
+repositories {
+    maven { url = uri("https://repo.jengu.cloud/repository/maven-releases/") }
+}
+```
+
+Central is a later destination for the same coordinates — blocked on artifact
+size, not on anything about the build. See below.
 
 Nothing publishes unless the whole suite is green on exactly that commit.
 
@@ -113,9 +121,15 @@ while the fat OSGi bundles ride the container image and the release archive.
 That is a fair reading of the limit rather than a workaround — a jar carrying
 140 MB of vendored HL7 is a deployment artifact, not a compile dependency.
 
-Until then artifacts publish to the project's own Maven repository, which the
-signing configuration here already covers: it signs the publication, not the
-destination.
+Until then artifacts publish to the project's own repository, which the
+signing configuration already covers: it signs the publication, not the
+destination. A self-hosted repository has no gatekeeper, which makes the
+`.asc` files matter more there than they would on Central, not less.
+
+Its credentials are `NEXUS_USERNAME` and `NEXUS_PASSWORD` — named after a
+server that no longer runs, and shared with the LAN container registry, so one
+secret opens two systems. Both are worth separating; neither is worth breaking
+a pipeline over today.
 
 ## Version numbering
 

@@ -52,17 +52,35 @@ subprojects {
 
         configure<PublishingExtension> {
             repositories {
+                // The project's own repository — PUBLIC, which is the whole
+                // difference from the arrangement this replaced. Artifacts
+                // here are ~320MB a release, comfortably past what Maven
+                // Central's size thresholds admit (see RELEASING.md), and the
+                // fat OSGi bundles are what embedded-Felix consumers actually
+                // resolve. Central becomes viable once the packaging fronts
+                // on the status page land; the coordinates and the signing
+                // are already the same, so that is a destination change.
+                maven {
+                    name = "JenguRepo"
+                    val snapshot = version.toString().endsWith("SNAPSHOT")
+                    url = uri(
+                        if (snapshot) "https://repo.jengu.cloud/repository/maven-snapshots/"
+                        else "https://repo.jengu.cloud/repository/maven-releases/"
+                    )
+                    credentials {
+                        username = System.getenv("NEXUS_USERNAME") ?: findProperty("jengu.repo.user") as String? ?: ""
+                        password = System.getenv("NEXUS_PASSWORD") ?: findProperty("jengu.repo.key") as String? ?: ""
+                    }
+                }
                 // Maven Central is not published to directly: the Central
                 // Portal takes ONE bundle zip for the whole release. Every
                 // module stages into a shared local repository laid out the
-                // Maven way, and :centralBundle zips it.
+                // Maven way, and :centralBundle zips it. Kept warm for when
+                // the artifacts are small enough to go there.
                 maven {
                     name = "CentralStaging"
                     url = uri(rootProject.layout.buildDirectory.dir("staging-deploy"))
                 }
-                // `publishToMavenLocal` covers the local composite-build loop.
-                // There is no private repository: a public project resolving
-                // through one is a project nobody outside can build.
             }
             publications {
                 register<MavenPublication>("maven") {

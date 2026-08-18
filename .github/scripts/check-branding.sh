@@ -24,6 +24,8 @@ allow+='|ghcr\.io/jengu'           # ...and the other one
 allow+='|Jengu Net'                # the copyright holder
 allow+='|id\.set\("jengu"\)'       # the POM developer id
 allow+='|`jengu` organisation'     # the Docker Hub org, in prose
+allow+='|JenguRepo'                # the publishing repository's Gradle name
+allow+='|jengu\.repo\.'             # its credential properties
 allow+='|check-branding'           # this file
 
 if hits=$(grep -rniE 'jengu' \
