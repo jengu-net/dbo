@@ -1,8 +1,12 @@
 # Releasing
 
-A release is a `v*` tag. The pipeline does the rest: the suite runs, jars
-publish, images build multi-arch, and a signed Maven Central bundle is
-uploaded and left for a human to release.
+A release is a `v*` tag. The pipeline does the rest: the suite runs, images
+build multi-arch, and a signed Maven Central bundle is uploaded and left for a
+human to release.
+
+There is no private Maven repository. Consumers take releases from Central; a
+composite build or `./gradlew publishToMavenLocal` covers development against
+an unreleased change.
 
 Nothing publishes unless the whole suite is green on exactly that commit.
 
