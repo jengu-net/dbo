@@ -119,8 +119,8 @@ class MaintenanceIT {
         PgObjectStore engineB = new PgObjectStore(dsB, personality.registrations());
         R4Store tenantB = new R4Store(engineB, personality, "https://b.test");
 
-        var result = TenantImport.importPortable(engineB,
-                new ByteArrayInputStream(archive), OWNER_KEY);
+        var result = CoSignedArchive.over(archive, OWNER_KEY)
+                .importInto(engineB, OWNER_KEY, TenantImport.HistoryMode.FRESH);
         assertEquals(2, result.imported());
 
         StoredObject restored = engineB.get("Patient", patientId).orElseThrow();
@@ -136,8 +136,8 @@ class MaintenanceIT {
     @Test
     void reimportIntoTheSameTenantIsANoOp() throws Exception {
         long versionBefore = engineA.get("Patient", patientId).orElseThrow().versionId();
-        var result = TenantImport.importPortable(engineA,
-                new ByteArrayInputStream(archive), OWNER_KEY);
+        var result = CoSignedArchive.over(archive, OWNER_KEY)
+                .importInto(engineA, OWNER_KEY, TenantImport.HistoryMode.FRESH);
         assertEquals(0, result.imported());
         assertEquals(2, result.skippedIdentical());
         assertEquals(versionBefore, engineA.get("Patient", patientId).orElseThrow().versionId(),
@@ -146,9 +146,12 @@ class MaintenanceIT {
 
     /** The platform cannot read what it operates: wrong key fails; no plaintext in the file. */
     @Test
-    void wrongKeyFailsAndArchiveCarriesNoPlaintext() {
+    void wrongKeyFailsAndArchiveCarriesNoPlaintext() throws Exception {
+        // signed properly, then opened with the wrong key: the refusal is the
+        // seal's, before any signature is even looked at
+        CoSignedArchive signed = CoSignedArchive.over(archive, OWNER_KEY);
         assertThrows(IllegalArgumentException.class, () ->
-                TenantImport.importPortable(engineA, new ByteArrayInputStream(archive), WRONG_KEY));
+                signed.importInto(engineA, WRONG_KEY, TenantImport.HistoryMode.FRESH));
         String raw = new String(archive, StandardCharsets.ISO_8859_1);
         assertFalse(raw.contains("Varundatav"), "payload text must not appear in the sealed archive");
         assertFalse(raw.contains("36012120001"), "identifiers must not appear in the sealed archive");

@@ -77,11 +77,18 @@ public final class TenantImport {
     }
 
     /**
-     * Verifies the archive whole, then imports it (§11).
+     * Verifies the archive whole, then imports it (§11,
+     * REQ-DBO-MNT-IMPORT-REFUSES-UNATTESTED).
      *
      * <p>Nothing is written until the digests match and both signatures
      * verify. A partially-applied archive leaves a tenant in a state neither
      * party attested, with nobody able to say which half is which.
+     *
+     * <p><b>This is the only way objects enter a store from an archive.</b>
+     * There was a second one — an unattested import "kept for archives that
+     * carry none" — and a path that trusts what it is given is the path
+     * everything eventually arrives through. An archive without both
+     * signatures is refused rather than imported carefully.
      *
      * @return the root both parties signed — the caller records it, so that
      *         what was imported and what both parties said it was stays
@@ -104,17 +111,6 @@ public final class TenantImport {
         }
     }
 
-    /**
-     * Imports without attestation — the legacy path, kept for archives that
-     * carry none. It streams but it trusts what it is given, so it must
-     * not be pointed at anything that arrived from outside.
-     */
-    public static PortableResult importPortable(ObjectStore target, InputStream sealed,
-            byte[] ownerMasterKey) throws IOException {
-        try (InputStream plain = SealedArchive.opening(sealed, ownerMasterKey)) {
-            return applyPortable(target, plain, HistoryMode.FRESH);
-        }
-    }
 
     private static PortableResult applyPortable(ObjectStore target, InputStream plain,
             HistoryMode history) throws IOException {
