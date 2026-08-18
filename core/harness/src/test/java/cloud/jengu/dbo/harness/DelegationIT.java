@@ -95,7 +95,7 @@ class DelegationIT {
         roleId = idOf(fhirPost("/PractitionerRole", service, """
                 {"resourceType":"PractitionerRole",
                  "practitioner":{"reference":"Practitioner/%s"},
-                 "code":[{"coding":[{"system":"urn:jengu:role","code":"doctor"}]}]}"""
+                 "code":[{"coding":[{"system":"urn:example:role","code":"doctor"}]}]}"""
                 .formatted(practitionerId)));
 
         org.postgresql.ds.PGSimpleDataSource ds = new org.postgresql.ds.PGSimpleDataSource();
@@ -304,7 +304,7 @@ class DelegationIT {
                         .PUT(HttpRequest.BodyPublishers.ofString("""
                                 {"resourceType":"PractitionerRole","id":"%s",
                                  "practitioner":{"reference":"Practitioner/%s"},
-                                 "code":[{"coding":[{"system":"urn:jengu:role","code":"doctor"}]}],
+                                 "code":[{"coding":[{"system":"urn:example:role","code":"doctor"}]}],
                                  "period":{"end":"%s"}}""".formatted(roleId, practitionerId,
                                 java.time.LocalDate.now().minusDays(1)))).build(),
                 HttpResponse.BodyHandlers.ofString()).statusCode());

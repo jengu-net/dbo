@@ -45,7 +45,7 @@ public final class TenantOperator implements AutoCloseable {
 
     public static final ResourceDefinitionContext CRD_CONTEXT = TenantK8sContract.CRD_CONTEXT;
     public static final String CONFIGMAP = TenantK8sContract.CONFIGMAP;
-    public static final String FINALIZER = "jengu.cloud/tenant-protection";
+    public static final String FINALIZER = "dbo.jengu.cloud/tenant-protection";
     public static final String TENANT_LABEL = TenantK8sContract.TENANT_LABEL;
 
     private static final String DUPLICATE_OBJECT = "42710";
@@ -57,7 +57,7 @@ public final class TenantOperator implements AutoCloseable {
     private final String adminUser;
     private final String adminPassword;
     private final String tenantUrlBase;
-    /** §16.5: redirect URIs for the per-tenant jengu-cloud RP client (null = no RP provisioning). */
+    /** §16.5: redirect URIs for the per-tenant relying party (null = no RP provisioning). */
     private volatile java.util.List<String> rpRedirectUris;
     private final SecureRandom random = new SecureRandom();
     private volatile Thread loop;
@@ -82,11 +82,24 @@ public final class TenantOperator implements AutoCloseable {
     }
 
     private volatile String rpIssuerBase;
+    private volatile String rpClientId =
+            cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase.DEFAULT_RP_CLIENT_ID;
 
     /** @param issuerBase the SERVING base pods/browsers reach (not the JDBC one) */
     public void rpConfig(java.util.List<String> redirectUris, String issuerBase) {
         this.rpRedirectUris = redirectUris;
         this.rpIssuerBase = issuerBase;
+    }
+
+    /**
+     * @param clientId what the relying party authenticates as; blank keeps the
+     *                 default. It only has to match what the application in
+     *                 front of the store presents — dbo attaches no meaning.
+     */
+    public void rpClientId(String clientId) {
+        if (clientId != null && !clientId.isBlank()) {
+            this.rpClientId = clientId;
+        }
     }
 
     /** Idempotently installs the CRD and waits until the API serves it. */
@@ -202,16 +215,16 @@ public final class TenantOperator implements AutoCloseable {
         k8s.secrets().inNamespace(namespace).resource(secret).serverSideApply();
 
         if (rpRedirectUris != null && !rpRedirectUris.isEmpty()) {
-            // the jengu-cloud RP client's custody: a
-            // PLATFORM-readable Secret; the serving side ensures the
-            // ClientApplication record from it, so record and Secret never drift
+            // The relying party's custody: a PLATFORM-readable Secret; the
+            // serving side ensures the ClientApplication record from it, so
+            // the record and the Secret never drift
             String rpSecretName = "tenant-" + code + "-rp";
             String rpSecret = existingSecretField(rpSecretName, "client_secret")
                     .orElseGet(this::newPassword);
             Secret rp = new SecretBuilder()
                     .withNewMetadata().withName(rpSecretName).withNamespace(namespace)
                     .addToLabels(TENANT_LABEL, code).endMetadata()
-                    .addToStringData("client_id", "jengu-cloud")
+                    .addToStringData("client_id", rpClientId)
                     .addToStringData("client_secret", rpSecret)
                     .addToStringData("redirect_uris", String.join(",", rpRedirectUris)
                             .replace("{code}", code))

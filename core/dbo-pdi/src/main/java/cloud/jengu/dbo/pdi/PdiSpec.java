@@ -10,7 +10,7 @@ import java.util.Set;
  *
  * <p>Everything listed is encrypted in place under the person's key. What
  * differs is the <b>disposition</b> — what a reader without the key sees in
- * its place (ADR 0056 §7).
+ * its place (§14).
  */
 public record PdiSpec(Map<String, Map<String, Disposition>> personTypes) {
 
@@ -66,7 +66,7 @@ public record PdiSpec(Map<String, Map<String, Disposition>> personTypes) {
         }
         elements.put("birthDate", Disposition.GENERALISE);
         Map<String, Map<String, Disposition>> types = new LinkedHashMap<>();
-        // Person above all: it is the human, and under ADR 0056 the place a
+        // Person above all: it is the human, and §14 makes it the place a
         // human's identifying data is authored. Leaving it out would protect
         // every capacity somebody acts in and not the person themselves.
         for (String type : new String[] {

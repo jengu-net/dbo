@@ -146,7 +146,7 @@ public final class PgObjectStore implements ObjectStore {
      * or a replicated vocabulary could never be restored, which would make
      * these rules protect the data by losing it. The restore path is not open:
      * it needs the owner master key and an archive both parties signed
-     * (ADR 0052), so the gate is cryptographic rather than absent.
+     * (§11), so the gate is cryptographic rather than absent.
      */
     private static void guardWrite(TypeRegistration type, PutRequest request,
             boolean created, Handling.Authority caller) {

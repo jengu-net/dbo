@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * An archive is attested by both parties, and an import refuses
- * anything less (ADR 0052).
+ * anything less (§11).
  *
  * <p>Each refusal is proven on its own. "Refuses a bad archive" is one
  * sentence and several distinct failures — altered content, an archive that

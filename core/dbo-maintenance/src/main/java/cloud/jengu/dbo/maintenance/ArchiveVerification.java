@@ -8,7 +8,7 @@ import java.util.zip.ZipInputStream;
 
 /**
  * Checks an archive against what both parties attested, before a single row
- * of it is written (ADR 0052 §5).
+ * of it is written (§11).
  *
  * <p>Refusal is whole. A partially-applied archive is worse than a rejected
  * one: the tenant is left in a state neither party attested, and nobody can

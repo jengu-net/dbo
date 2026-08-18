@@ -69,7 +69,7 @@ public final class TenantImport {
         /**
          * The archive's own versions and moments are kept — the shape a store
          * migration needs, because a version's timestamp is the evidence of
-         * what somebody knew at a moment (ADR 0047 §7). Replayed in ascending
+         * what somebody knew at a moment. Replayed in ascending
          * order, and a version already present is skipped rather than
          * rewritten, so a resumed move does not duplicate what landed.
          */
@@ -77,7 +77,7 @@ public final class TenantImport {
     }
 
     /**
-     * Verifies the archive whole, then imports it (ADR 0052 §5).
+     * Verifies the archive whole, then imports it (§11).
      *
      * <p>Nothing is written until the digests match and both signatures
      * verify. A partially-applied archive leaves a tenant in a state neither

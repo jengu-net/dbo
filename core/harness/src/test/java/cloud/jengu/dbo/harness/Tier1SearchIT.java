@@ -33,9 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class Tier1SearchIT {
 
     static final String EID = "https://ee.ee/eid";
-    static final String BARCODE_SYS = "urn:jengu:specimen-barcode";
+    static final String BARCODE_SYS = "urn:example:specimen-barcode";
     static final String ORDER_SYS = "https://order.example/ids";
-    static final String TAG_SYS = "https://jengu.cloud/tags";
+    static final String TAG_SYS = "http://example.org/tags";
 
     static PostgreSQLContainer<?> postgres;
     static String jdbcUrl;

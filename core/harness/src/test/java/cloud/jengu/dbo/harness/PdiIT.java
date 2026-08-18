@@ -103,7 +103,7 @@ class PdiIT {
      * clear, because a reader without the key has no plaintext to derive one
      * from — and the face supplies the coarsening, since knowing that a birth
      * date reduces to its year is knowledge about FHIR shapes, not about
-     * storage (ADR 0057 §3).
+     * storage (§12).
      */
     @Test
     @Order(0)

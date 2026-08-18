@@ -186,7 +186,7 @@ class ServerDistIT {
     @Timeout(600)
     void theDistServesAnOperatorProvisionedTenant() throws Exception {
         GenericKubernetesResource cr = new GenericKubernetesResource();
-        cr.setApiVersion("jengu.cloud/v1alpha1");
+        cr.setApiVersion("dbo.jengu.cloud/v1alpha1");
         cr.setKind("TenantRegistration");
         cr.setMetadata(new ObjectMetaBuilder().withName(CODE).withNamespace(NS).build());
         cr.setAdditionalProperty("spec", Map.of(

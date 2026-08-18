@@ -4,7 +4,7 @@ import java.util.Objects;
 
 /**
  * What kind of data a type is: who may write it, whether it may change,
- * whether it is kept, and whether it may leave (jengu-platform ADR 0054).
+ * whether it is kept, and whether it may leave (§15).
  *
  * <p>Four independent properties rather than a list of kinds. A list grows by
  * one every time somebody asks about a case it does not cover — audit,

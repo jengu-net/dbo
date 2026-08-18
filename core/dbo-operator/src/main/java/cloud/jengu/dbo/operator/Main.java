@@ -14,7 +14,7 @@ public final class Main {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        String namespace = env("DBO_NAMESPACE", "jengu");
+        String namespace = env("DBO_NAMESPACE", "dbo");
         String adminUrl = require("DBO_ADMIN_JDBC_URL");
         String adminUser = require("DBO_ADMIN_USER");
         String adminPassword = require("DBO_ADMIN_PASSWORD");
@@ -30,6 +30,7 @@ public final class Main {
             if (rpRedirects != null && !rpRedirects.isBlank()
                     && rpIssuerBase != null && !rpIssuerBase.isBlank()) {
                 operator.rpConfig(java.util.List.of(rpRedirects.split(",")), rpIssuerBase);
+                operator.rpClientId(System.getenv("DBO_RP_CLIENT_ID"));
             }
             operator.ensureCrd();
             operator.start(intervalMillis);

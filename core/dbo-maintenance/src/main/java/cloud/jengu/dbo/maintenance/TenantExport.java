@@ -199,7 +199,7 @@ public final class TenantExport {
      * <p>The {@code state/} element stays as it is. It is dbo's own
      * interchange, and it carries identity codes <em>beside</em> each object
      * because writing them into the payload would change the bytes the version
-     * chain and both signatures are over (ADR 0052). Collapsing the two into a
+     * chain and both signatures are over (§11). Collapsing the two into a
      * single attested Bulk Data artifact is separate work, and belongs there.
      */
     public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
@@ -365,7 +365,7 @@ public final class TenantExport {
 
     /**
      * The object's identity codes as a JSON array — the answer to "which thing
-     * is this?" for a reader who cannot resolve our ids (ADR 0050).
+     * is this?" for a reader who cannot resolve our ids.
      *
      * <p>Several, not one: a corrected code becomes a new claim and the
      * previous value stays resolvable, so an object matched by an older code
@@ -477,7 +477,7 @@ public final class TenantExport {
             long n = 0;
             // The identity codes travel beside the object, never inside it.
             // Rewriting a payload to carry them would change the bytes the
-            // version chain and both signatures are over (ADR 0052) — the
+            // version chain and both signatures are over (§11) — the
             // archive would arrive self-contradicting. Alongside, a reader who
             // knows nothing of our ids can still say which thing this is.
             try (PreparedStatement ps = c.prepareStatement("""

@@ -12,7 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Who attested an archive's root, and how anyone checks it (ADR 0052).
+ * Who attested an archive's root, and how anyone checks it (§11).
  *
  * <p><b>Detached on purpose.</b> The attestation travels beside the archive
  * rather than inside it, so the tenant can countersign without holding the

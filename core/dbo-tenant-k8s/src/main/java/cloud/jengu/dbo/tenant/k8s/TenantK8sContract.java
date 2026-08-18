@@ -10,7 +10,7 @@ import io.fabric8.kubernetes.client.dsl.base.ResourceDefinitionContext;
 public final class TenantK8sContract {
 
     public static final ResourceDefinitionContext CRD_CONTEXT = new ResourceDefinitionContext.Builder()
-            .withGroup("jengu.cloud")
+            .withGroup("dbo.jengu.cloud")
             .withVersion("v1alpha1")
             .withKind("TenantRegistration")
             .withPlural("tenantregistrations")
@@ -20,7 +20,7 @@ public final class TenantK8sContract {
     /** The ConfigMap whose keys are tenant spec files ({@code <code>.json}). */
     public static final String CONFIGMAP = "dbo-tenants";
 
-    public static final String TENANT_LABEL = "jengu.cloud/tenant";
+    public static final String TENANT_LABEL = "dbo.jengu.cloud/tenant";
 
     private TenantK8sContract() {
     }

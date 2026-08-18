@@ -111,7 +111,7 @@ class HumanAuthIT {
         HttpResponse<String> role = post("arst", "/PractitionerRole", service, """
                 {"resourceType":"PractitionerRole",
                  "practitioner":{"reference":"Practitioner/%s"},
-                 "code":[{"coding":[{"system":"urn:jengu:role","code":"doctor"}]}]}"""
+                 "code":[{"coding":[{"system":"urn:example:role","code":"doctor"}]}]}"""
                 .formatted(practitionerId));
         assertEquals(201, role.statusCode(), role.body());
         roleId = idOf(role);
@@ -300,7 +300,7 @@ class HumanAuthIT {
                         .PUT(HttpRequest.BodyPublishers.ofString("""
                                 {"resourceType":"PractitionerRole","id":"%s",
                                  "practitioner":{"reference":"Practitioner/%s"},
-                                 "code":[{"coding":[{"system":"urn:jengu:role","code":"doctor"}]}],
+                                 "code":[{"coding":[{"system":"urn:example:role","code":"doctor"}]}],
                                  "period":{"end":"%s"}}""".formatted(roleId, practitionerId,
                                 java.time.LocalDate.now().minusDays(1)))).build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -329,7 +329,7 @@ class HumanAuthIT {
                         .POST(HttpRequest.BodyPublishers.ofString("""
                                 {"resourceType":"PractitionerRole",
                                  "practitioner":{"reference":"Practitioner/%s"},
-                                 "code":[{"coding":[{"system":"urn:jengu:role","code":"doctor"}]}]}"""
+                                 "code":[{"coding":[{"system":"urn:example:role","code":"doctor"}]}]}"""
                                 .formatted(practitionerId))).build(),
                 HttpResponse.BodyHandlers.ofString()).statusCode());
 
@@ -337,7 +337,7 @@ class HumanAuthIT {
                         URI.create(base("arst") + "/oidc/authorize/login"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
-                                "client_id=jengu-cloud&redirect_uri="
+                                "client_id=dbo-rp&redirect_uri="
                                         + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
                                         + "&nonce=n-0xSpr1ng&login=albus&password=kaljuke9")).build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -348,7 +348,7 @@ class HumanAuthIT {
                         URI.create(base("arst") + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
-                                "grant_type=authorization_code&client_id=jengu-cloud&code=" + code
+                                "grant_type=authorization_code&client_id=dbo-rp&code=" + code
                                         + "&redirect_uri=" + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
                                         + "&client_secret=" + URLEncoder.encode(
                                                 provisioner.rpClientSecret("arst"), StandardCharsets.UTF_8)))
@@ -357,13 +357,13 @@ class HumanAuthIT {
         assertEquals(200, tokens.statusCode(), tokens.body());
         String claims = claimsOf(tokens.body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1"));
         assertTrue(claims.contains("\"roles\":[\"doctor\"]")
-                && claims.contains("\"client_id\":\"jengu-cloud\""), claims);
+                && claims.contains("\"client_id\":\"dbo-rp\""), claims);
 
         // OIDC proper: the id_token is what the RP builds its principal from —
         // audience is the CLIENT, the nonce echoes, roles + fhirUser ride along
         assertTrue(tokens.body().contains("\"id_token\""), tokens.body());
         String idClaims = claimsOf(tokens.body().replaceAll(".*\"id_token\":\"([^\"]+)\".*", "$1"));
-        assertTrue(idClaims.contains("\"aud\":\"jengu-cloud\"")
+        assertTrue(idClaims.contains("\"aud\":\"dbo-rp\"")
                 && idClaims.contains("\"nonce\":\"n-0xSpr1ng\"")
                 && idClaims.contains("\"roles\":[\"doctor\"]")
                 && idClaims.contains("\"fhirUser\":\"Practitioner/" + practitionerId + "\""), idClaims);
@@ -397,7 +397,7 @@ class HumanAuthIT {
                         URI.create(base("arst") + "/oidc/authorize/login"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
-                                "client_id=jengu-cloud&redirect_uri="
+                                "client_id=dbo-rp&redirect_uri="
                                         + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
                                         + "&login=poppy&password=pomfrey8")).build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -425,7 +425,7 @@ class HumanAuthIT {
                         URI.create(base("arst") + "/oidc/authorize/login"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
-                                "client_id=jengu-cloud&redirect_uri="
+                                "client_id=dbo-rp&redirect_uri="
                                         + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
                                         + "&login=albus&password=kaljuke9")).build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -434,7 +434,7 @@ class HumanAuthIT {
         String body = http.send(HttpRequest.newBuilder(URI.create(base("arst") + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
-                                "grant_type=authorization_code&client_id=jengu-cloud&code=" + code
+                                "grant_type=authorization_code&client_id=dbo-rp&code=" + code
                                         + "&redirect_uri=" + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
                                         + "&client_secret=" + URLEncoder.encode(
                                                 provisioner.rpClientSecret("arst"), StandardCharsets.UTF_8)))
@@ -471,7 +471,7 @@ class HumanAuthIT {
         // The national identifier is the human's, so under PDI it is claimed by
         // the Person and by nothing else. The vault claims per (system, value)
         // rather than per type, so a Practitioner claiming it too is refused —
-        // which is ADR 0056 enforced by the storage rather than by a reviewer.
+        // which is §14 enforced by the storage rather than by a reviewer.
         HttpResponse<String> created = post("arstp", "/Practitioner", serviceToken("arstp"), """
                 {"resourceType":"Practitioner",
                  "name":[{"family":"Peidetud"}]}""");

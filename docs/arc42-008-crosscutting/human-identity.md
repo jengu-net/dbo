@@ -127,8 +127,13 @@ settle here:
 - **Who registers the relying party at each authority:** the operator, with
   the bootstrap-client custody pattern — a confidential `ClientApplication`
   with declared redirect URIs, whose secret lands in a platform-readable
-  Secret. Third-party applications (SMART appliances) get the standard
-  instead: RFC 7591 dynamic client registration.
+  Secret. The client id travels in that custody too (`DBO_RP_CLIENT_ID` for
+  the operator, `dbo.tenant.rp.client.id` for a local runtime, defaulting to
+  `dbo-rp`): the serving side ensures the record from what custody says, so
+  the Secret and the record cannot disagree about who the relying party is,
+  and the store attaches no meaning to the name itself. Third-party
+  applications (SMART appliances) get the standard instead: RFC 7591 dynamic
+  client registration.
 - **Provisioning is REST, same path everywhere.** The tenant-bootstrap
   M2M client writes RoleGrant defaults (sourced from the configuration
   repository) and dev-only LocalCredentials through the authority's
@@ -158,6 +163,6 @@ of adoption (§7.6 — the tenancy and identity triad).
 
 Compartment/attribute rules beyond role→scopes (the Organization tree is
 recorded and waiting); consent/veto participation in token decisions
-(ADR 0016 attaches to these seams); the platform's login UI and session
+(the consent track attaches to these seams); the platform's login UI and session
 management (the host's, as the relying party); edge PIN auth
 unification (the edge caches Practitioners already — grants join later).

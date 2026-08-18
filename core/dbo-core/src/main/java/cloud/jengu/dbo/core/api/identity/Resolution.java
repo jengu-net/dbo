@@ -16,8 +16,7 @@ import java.util.Optional;
  * <p>The rules here are the <b>mechanism</b>: a claim's strength bounds the
  * confidence it can produce, and ambiguity destroys certainty. What to do with
  * a merely probable match — resolve it, or put it in front of somebody — is
- * policy, and belongs to the zone rather than to the engine
- * (jengu-platform ADR 0057 §3).
+ * policy, and belongs to the zone rather than to the engine (§17).
  */
 public record Resolution(List<Candidate> candidates) {
 
