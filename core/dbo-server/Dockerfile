@@ -2,7 +2,6 @@
 # + the production bundle set. Same base as the fleet's other images.
 FROM eclipse-temurin:21-jre
 
-LABEL org.opencontainers.image.source="https://github.com/jengu-net/dbo"
 LABEL org.opencontainers.image.description="DBO multi-tenant FHIR server (Felix distribution)"
 
 RUN groupadd --system dbo && \
