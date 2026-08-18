@@ -8,6 +8,12 @@ cannot help. DBO is the store that helps.
   shared one. The management plane provisions it without ever seeing its
   credentials, and erasing a tenant is a `DROP DATABASE` rather than a delete
   sweep somebody has to trust.
+- **Owned by the tenant, not the operator.** The tenant is its own OIDC
+  authority, so even its users' access belongs to it — the store accepts
+  nobody else's tokens. Archives are sealed under the owner's key, and under
+  personal-data isolation the platform holds no key that opens a person. Not a
+  policy the operator promises to honour — a set of things the operator cannot
+  do.
 - **Process, not just CRUD.** A transactional outbox is the change feed, one
   cursor primitive serves both pagination and synchronization, and durable
   work runs on the database that already holds the data. No broker, no cache
@@ -24,6 +30,13 @@ cannot help. DBO is the store that helps.
   exportable, retained for how long — declared per type and enforced by the
   engine, not left to the habits of the code that writes it. Audit is
   append-only against everyone, the vendor included.
+- **One API, and it is FHIR.** `Person`, `Practitioner`, `Organization` and
+  `PractitionerRole` *are* the identity and authorization model: access derives
+  from an active `PractitionerRole`, and revoking it is ending a period on an
+  ordinary record. Where FHIR has no resource — client applications, signing
+  keys, role grants, audit entries — DBO uses a regular versioned record in the
+  tenant's own store, not an admin plane or a settings blob. No second
+  vocabulary to learn and no second surface to secure.
 - **Archives that leave whole.** One sealed archive is backup, restore,
   migration and export: attested by both parties, encrypted under the owner's
   key so the operator cannot read it, and restore-tested by daily use.
@@ -31,9 +44,6 @@ cannot help. DBO is the store that helps.
   engine, per tenant and per domain, and the engine holds no version
   knowledge at all. A domain written under R4 reads as R5 through converters
   rather than a migration.
-- **Its own authority per tenant.** Each tenant issues its own tokens and the
-  store accepts only that tenant's. A cross-tenant token fails at signature
-  verification, not at a permission check.
 - **Embeddable.** The production bundles boot inside a host application's own
   JVM, so development and test run against the real engine rather than a
   substitute. Cold start is about five seconds.

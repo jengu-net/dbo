@@ -1,12 +1,14 @@
 # DBO — main requirements
 
 The driving problem: a FHIR server stores FHIR, and a healthcare platform needs more
-than that — tenancy that is a structural boundary rather than a filter, process and
-eventing as part of storage, jurisdiction as configuration, identifying data under
-enforced control, the nature of each stored type declared rather than conventional,
-archives that can leave whole, and a FHIR version chosen per tenant. Each of those is
-otherwise reimplemented by hand above a store that cannot help. The gaps are set out
-in the [introduction](README.md).
+than that — tenancy that is a structural boundary rather than a filter, a store the
+tenant owns rather than one the operator can read, process and eventing as part of
+storage, jurisdiction as configuration, identifying data under enforced control, the
+nature of each stored type declared rather than conventional, configuration and
+identity expressed as ordinary FHIR rather than a proprietary admin plane, archives
+that can leave whole, and a FHIR version chosen per tenant. Each of those is otherwise
+reimplemented by hand above a store that cannot help. The gaps are set out in the
+[introduction](README.md).
 
 These are the founding requirements; they fix direction. Their distillation
 into stable, testable REQ IDs lives in [req-catalogue.md](../arc42-006-runtime/req-catalogue.md).
