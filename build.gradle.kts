@@ -52,19 +52,6 @@ subprojects {
 
         configure<PublishingExtension> {
             repositories {
-                // The internal repository the embedded-Felix consumers resolve.
-                maven {
-                    name = "JenguRepo"
-                    val snapshot = version.toString().endsWith("SNAPSHOT")
-                    url = uri(
-                        if (snapshot) "https://repo.jengu.cloud/repository/maven-snapshots/"
-                        else "https://repo.jengu.cloud/repository/maven-releases/"
-                    )
-                    credentials {
-                        username = System.getenv("NEXUS_USERNAME") ?: findProperty("jengu.repo.user") as String? ?: ""
-                        password = System.getenv("NEXUS_PASSWORD") ?: findProperty("jengu.repo.key") as String? ?: ""
-                    }
-                }
                 // Maven Central is not published to directly: the Central
                 // Portal takes ONE bundle zip for the whole release. Every
                 // module stages into a shared local repository laid out the
@@ -73,6 +60,9 @@ subprojects {
                     name = "CentralStaging"
                     url = uri(rootProject.layout.buildDirectory.dir("staging-deploy"))
                 }
+                // `publishToMavenLocal` covers the local composite-build loop.
+                // There is no private repository: a public project resolving
+                // through one is a project nobody outside can build.
             }
             publications {
                 register<MavenPublication>("maven") {
