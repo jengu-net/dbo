@@ -139,11 +139,47 @@ version). What OSGi isolation actually buys is subtler and still real:
 That boundary rule has a consequence to decide deliberately. A host
 platform whose own canon is "the typed HAPI object *is* the domain model"
 meets a wall in embedded mode: the host's HAPI and the personality's private
-HAPI are
-different classloaders even at the same version — so the host↔DBO surface
-is canonical JSON, not shared HAPI objects. Either we accept re-parse at
-that edge (cheap enough for dev/test; measure), or a personality may
-*optionally export* its model packages for a host that wants to share them.
+HAPI are different classloaders even at the same version — so the host↔DBO
+surface is canonical JSON, not shared HAPI objects. Either we accept
+re-parse at that edge, or a personality may *optionally export* its model
+packages for a host that wants to share them.
+
+**RESOLVED: both, from one shared bundle.** Private embedding per
+personality was measured at 138.0 MB for R4 and 155.7 MB for R5, of which
+140.4 MB is byte-identical between them — and Felix caches each installed
+bundle per framework, so a deployment giving a tenant its own framework pays
+it again every time. The stack is one indivisible engine (the HL7 validator
+converts everything up to R5, validates there, and maps back), which is
+exactly what makes it a good thing to own once.
+
+So: **one bundle owns the HL7/HAPI stack**, and it offers version-keyed
+services — parse, serialise, convert, validate — looked up by
+{@code fhir.version} the way per-tenant services are looked up by
+{@code tenant}. A tenant's declared FHIR version selects the service set;
+nothing above learns what HAPI is.
+
+Two things cross that boundary, and a consumer picks which:
+
+- **Canonical JSON**, for anything that wants no HAPI wire at all. This is
+  the boundary rule unchanged.
+- **The model packages** — `org.hl7.fhir.r4.model`, `org.hl7.fhir.r5.model`
+  and `org.hl7.fhir.instance.model.api` — exported from the shared bundle
+  for hosts and personalities that would rather share class identity than
+  re-parse. This is the second branch above, taken deliberately.
+
+The narrowness is load-bearing. `utilities`, `convertors`, `validation` and
+`ca.uhn.fhir.*` stay private: those genuinely span jars, and exporting them
+is what would turn a clean wire into a split-package problem. The model
+packages do not — they come from the core jar, with
+`hapi-fhir-structures-rX` a 32 KB adapter beside them. Export versions track
+the HAPI version, so a major upgrade is a visible coordinated change rather
+than a silent rewire.
+
+The reflection hazard argues the same way. `FhirContext` locating structures
+by classloader-sensitive lookup is dangerous when it must see classes a
+*personality* defines; here a personality defines none and imports them from
+the bundle `FhirContext` itself lives in — one wire, one identity, nothing
+to discover across a boundary.
 
 R6 status: no released `hapi-fhir-structures-r6`; R6 normative ballot
 started 2026-01, final publication 2027 at the earliest; draft R6 model
