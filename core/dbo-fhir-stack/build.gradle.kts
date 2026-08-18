@@ -1,3 +1,4 @@
+import org.gradle.api.artifacts.ResolvedArtifact
 import java.util.zip.ZipFile
 
 // The HL7/HAPI stack, embedded ONCE and exported. Every personality used to
@@ -61,22 +62,65 @@ configurations.named("embedded") {
  * Every FHIR package that actually carries classes, read off the jars rather
  * than listed by hand. org.hl7.fhir.* spans dozens of jars; a hand-written
  * export list resolves and then fails on first use of whatever it forgot.
+ *
+ * **Each export carries the version of the jar it came from.** A package
+ * exported without one is exported at 0.0.0, and any consumer stating a range
+ * — which bnd computes by default, so most of them do — then fails to resolve
+ * against this bundle. jengu-platform's driver SPI imports
+ * `org.hl7.fhir.r4.model;version="[6.9,7)"`; unversioned, this bundle cannot
+ * satisfy it, and the framework where the store owns the FHIR classes does not
+ * come up at all (jengu-platform#856, dbo#47).
+ *
+ * The two families are NOT one number: `ca.uhn.fhir.*` is HAPI's own version
+ * while `org.hl7.fhir.*` is the HL7 core family HAPI ships (8.10.1 carries
+ * 6.9.x). Taking each package's version from its own artifact keeps that true
+ * without anybody having to remember it.
  */
-fun exportedPackages(jars: Iterable<File>): List<String> {
-    val packages = sortedSetOf<String>()
-    jars.forEach { jar ->
-        ZipFile(jar).use { zip ->
+fun exportedPackages(artifacts: Iterable<ResolvedArtifact>): List<String> {
+    val versions = sortedMapOf<String, String>()
+    val conflicts = sortedMapOf<String, MutableSet<String>>()
+    artifacts.forEach { artifact ->
+        val version = osgiVersion(artifact.moduleVersion.id.version)
+        ZipFile(artifact.file).use { zip ->
             zip.entries().asSequence()
                 .filter { !it.isDirectory && it.name.endsWith(".class") }
                 .forEach { entry ->
                     val pkg = entry.name.substringBeforeLast('/', "").replace('/', '.')
                     if (pkg.startsWith("org.hl7.fhir") || pkg.startsWith("ca.uhn.fhir")) {
-                        packages += pkg
+                        val existing = versions.putIfAbsent(pkg, version)
+                        if (existing != null && existing != version) {
+                            conflicts.getOrPut(pkg) { sortedSetOf(existing) } += version
+                        }
                     }
                 }
         }
     }
-    return packages.toList()
+    // An export with no version is exported at 0.0.0 and satisfies no stated
+    // range. Checked rather than trusted, because the symptom appears in a
+    // consumer's framework and names this bundle only by its absence.
+    val unversioned = versions.filterValues { it.isBlank() }.keys
+    if (unversioned.isNotEmpty()) {
+        error("dbo-fhir-stack: package(s) would be exported without a version: " +
+            unversioned.joinToString(", "))
+    }
+    // A package arriving at two versions is a split package, and picking one
+    // silently exports classes the version does not describe.
+    if (conflicts.isNotEmpty()) {
+        error("dbo-fhir-stack: package(s) present at more than one version — " +
+            conflicts.entries.joinToString("; ") { "${it.key} at ${it.value.joinToString(", ")}" })
+    }
+    return versions.map { (pkg, version) -> "$pkg;version=\"$version\"" }
+}
+
+/**
+ * `1.2.3-SNAPSHOT` is a valid Maven version and not a valid OSGi one; the
+ * qualifier is separated by a dot, and only after three numeric segments.
+ */
+fun osgiVersion(mavenVersion: String): String {
+    val parts = mavenVersion.split("-", limit = 2)
+    val numeric = parts[0].split(".").let { it + List(maxOf(0, 3 - it.size)) { "0" } }
+    val base = numeric.take(3).joinToString(".") { it.toIntOrNull()?.toString() ?: "0" }
+    return if (parts.size == 2) "$base.${parts[1].replace(Regex("[^A-Za-z0-9_-]"), "_")}" else base
 }
 
 tasks.jar {
@@ -86,9 +130,10 @@ tasks.jar {
     // the artifact has the artifact, not the repository.
     into("META-INF") { from(rootProject.file("THIRD-PARTY.md")) }
     doFirst {
-        val jars = embedded.resolve()
+        val artifacts = embedded.resolvedConfiguration.resolvedArtifacts
+        val jars = artifacts.map { it.file }
         val libs = jars.joinToString(",") { "lib/${it.name}" }
-        val exports = exportedPackages(jars)
+        val exports = exportedPackages(artifacts)
         logger.lifecycle("dbo-fhir-stack: ${jars.size} embedded jars, ${exports.size} exported FHIR packages")
         manifest {
             attributes(
