@@ -116,6 +116,9 @@ public final class TenantExport {
      * worst moment. So the kind travels in the manifest and the import
      * refuses the wrong one.
      */
+    /** The interchange element's Bulk Data manifest, beside its NDJSON. */
+    public static final String BULK_MANIFEST_ENTRY = "fhir/manifest.json";
+
     public enum Kind {
         BACKUP("backup"),
         PORTABLE_EXPORT("portable-export");
@@ -330,6 +333,16 @@ public final class TenantExport {
             currentName = null;
         }
 
+        /** The digest of an entry already written — the same one the root is over. */
+        String digestOf(String name) {
+            String digest = digests.get(name);
+            if (digest == null) {
+                throw new IllegalStateException("no digest for " + name + ": an entry is "
+                        + "digested when it closes, so it cannot be described before then");
+            }
+            return digest;
+        }
+
         /** The last entry: everything before it, digested, and one root over all. */
         void writeManifest() throws IOException {
             java.util.List<ArchiveManifest.Entry> entries = new ArrayList<>();
@@ -339,6 +352,58 @@ public final class TenantExport {
             zip.write(manifest.toJson().getBytes(StandardCharsets.UTF_8));
             zip.closeEntry();
         }
+    }
+
+    /**
+     * The FHIR element's own manifest, in the shape Bulk Data already defines
+     * (REQ-DBO-MNT-PORTABLE-STATE-EXPORT).
+     *
+     * <p>An export that opens in somebody else's tools has to be findable by
+     * them too: a reader who has never heard of this store knows what
+     * {@code transactionTime} and {@code output} mean, and does not know what
+     * {@code digests.json} is. So the interchange element carries the standard
+     * manifest beside its NDJSON, with file names relative to it.
+     *
+     * <p>The digests are the SAME ones the root is over — read from the entries
+     * as they were written, not recomputed — so the manifest a stranger checks
+     * and the attestation both parties signed cannot disagree. That is also why
+     * this manifest cannot describe itself: an entry is digested when it
+     * closes, and {@code digests.json} covers this file in turn.
+     *
+     * <p>{@code transactionTime} is the store's own snapshot moment rather than
+     * the exporting JVM's clock — the export runs in one repeatable-read
+     * transaction, and that transaction's timestamp is when this data was true.
+     */
+    private static void writeBulkManifest(Connection c, DigestingZip zip,
+            Map<String, Long> counts) throws IOException, SQLException {
+        String transactionTime;
+        try (PreparedStatement ps = c.prepareStatement("SELECT transaction_timestamp()");
+             ResultSet rs = ps.executeQuery()) {
+            rs.next();
+            transactionTime = rs.getTimestamp(1).toInstant().toString();
+        }
+        StringBuilder json = new StringBuilder("{\"transactionTime\":")
+                .append(Names.quote(transactionTime))
+                .append(",\"requiresAccessToken\":false,\"output\":[");
+        boolean first = true;
+        for (Map.Entry<String, Long> line : counts.entrySet()) {
+            if (!first) {
+                json.append(',');
+            }
+            first = false;
+            String entry = "fhir/" + line.getKey() + ".ndjson";
+            json.append("{\"type\":").append(Names.quote(line.getKey()))
+                    .append(",\"url\":").append(Names.quote(line.getKey() + ".ndjson"))
+                    .append(",\"count\":").append(line.getValue())
+                    // not a Bulk Data field: the spec defines no checksum, and a
+                    // reader who ignores this one still reads the export
+                    .append(",\"digest\":").append(Names.quote("sha256:" + zip.digestOf(entry)))
+                    .append('}');
+        }
+        json.append("],\"error\":[]}");
+        zip.putNextEntry(new ZipEntry(BULK_MANIFEST_ENTRY));
+        zip.write(json.toString().getBytes(StandardCharsets.UTF_8));
+        zip.closeEntry();
     }
 
     /**
@@ -513,8 +578,10 @@ public final class TenantExport {
         // never heard of this store. One resource per line with its id and
         // version put back — the same projection every client already sees.
         if (kind == Kind.PORTABLE_EXPORT) {
+            Map<String, Long> fhirCounts = new LinkedHashMap<>();
             for (String type : types) {
                 zip.putNextEntry(new ZipEntry("fhir/" + type + ".ndjson"));
+                long lines = 0;
                 try (PreparedStatement ps = c.prepareStatement("""
                         SELECT d.id, d.version_id, d.payload
                         FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted
@@ -525,11 +592,14 @@ public final class TenantExport {
                             zip.write((rendering.render(rs.getBytes(3),
                                     rs.getObject(1).toString(), rs.getLong(2)) + "\n")
                                     .getBytes(StandardCharsets.UTF_8));
+                            lines++;
                         }
                     }
                 }
                 zip.closeEntry();
+                fhirCounts.put(type, lines);
             }
+            writeBulkManifest(c, zip, fhirCounts);
         }
 
         Set<String> written = new java.util.LinkedHashSet<>();

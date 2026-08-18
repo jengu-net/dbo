@@ -20,6 +20,7 @@ import org.postgresql.ds.PGSimpleDataSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import cloud.jengu.dbo.maintenance.ArchiveManifest;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.sql.Connection;
@@ -107,6 +108,57 @@ class ArchiveKindIT {
         assertTrue(entries.stream().noneMatch(e -> e.startsWith("fidelity/")),
                 "and none of this store's byte-faithful internals, least of all the vault: "
                         + entries);
+    }
+
+    /**
+     * REQ-DBO-MNT-PORTABLE-STATE-EXPORT — the interchange element is findable
+     * by somebody who has never heard of this store.
+     *
+     * <p>NDJSON alone is a directory of files whose meaning a reader has to
+     * guess. Bulk Data already defines the manifest that says which file holds
+     * which type and how many rows it should have, so that is what travels
+     * beside them — and the digests in it are the ones the root is over, so
+     * checking the export and checking the attestation cannot give different
+     * answers.
+     */
+    @Test
+    @Timeout(300)
+    @DisplayName("the portable element carries a Bulk Data manifest, and its digests are "
+            + "the ones the archive was attested over")
+    void thePortableElementIsFindableAsBulkData() throws Exception {
+        byte[] export = exported(TenantExport.Kind.PORTABLE_EXPORT);
+        String manifest = new String(entryOf(export, TenantExport.BULK_MANIFEST_ENTRY),
+                StandardCharsets.UTF_8);
+
+        assertTrue(manifest.contains("\"transactionTime\""),
+                "a reader has to know when this was true: " + manifest);
+        assertTrue(manifest.contains("\"type\":\"Note\"")
+                        && manifest.contains("\"url\":\"Note.ndjson\""),
+                "each type names its own file, relative to the manifest beside it: " + manifest);
+
+        // the digest a stranger checks is the digest of the file that is there
+        byte[] notes = entryOf(export, "fhir/Note.ndjson");
+        String actual = "sha256:" + java.util.HexFormat.of().formatHex(
+                java.security.MessageDigest.getInstance("SHA-256").digest(notes));
+        assertTrue(manifest.contains("\"digest\":\"" + actual + "\""),
+                "the manifest describes a file that is not the one in the archive:\n"
+                        + manifest + "\nactual " + actual);
+
+        // and the count is the file's, not a number somebody typed
+        long lines = new String(notes, StandardCharsets.UTF_8).lines()
+                .filter(l -> !l.isBlank()).count();
+        assertTrue(manifest.contains("\"count\":" + lines),
+                "the count does not match the file's own lines (" + lines + "): " + manifest);
+
+        // the manifest is inside the attested set: a reader who trusts it is
+        // trusting something both parties signed over
+        assertTrue(new String(entryOf(export, ArchiveManifest.MANIFEST_ENTRY),
+                        StandardCharsets.UTF_8).contains(TenantExport.BULK_MANIFEST_ENTRY),
+                "the root does not cover the manifest a stranger reads");
+
+        assertFalse(entriesOf(exported(TenantExport.Kind.BACKUP))
+                        .contains(TenantExport.BULK_MANIFEST_ENTRY),
+                "a backup is this store's own business and has no interchange element");
     }
 
     @Test
@@ -209,6 +261,19 @@ class ArchiveKindIT {
             }
         }
         return names;
+    }
+
+    private static byte[] entryOf(byte[] sealed, String name) throws Exception {
+        try (InputStream plain = SealedArchive.opening(new ByteArrayInputStream(sealed), OWNER_KEY);
+             ZipInputStream zip = new ZipInputStream(plain)) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                if (name.equals(entry.getName())) {
+                    return zip.readAllBytes();
+                }
+            }
+        }
+        throw new IllegalStateException("no " + name + " in the archive");
     }
 
     private static String manifestOf(byte[] sealed) throws Exception {
