@@ -27,8 +27,8 @@ docs conventions.
 - [arc42-009-architecture-decisions](arc42-009-architecture-decisions/README.md) —
   resolved questions & risks (§7)
 - [evidence/](evidence/) — usage inventories grounding the spec
-- [plans/implementation-roadmap.md](plans/implementation-roadmap.md) — **the living
-  status page**: closed slices, REQ coverage, next fronts
+- [plans/implementation-status.md](plans/implementation-status.md) — **the living
+  status page**: what is built, what proves it, what is only specified
 - [plans/](plans/) — [Medplum migration](plans/medplum-migration.md)
 
 **§-numbering note:** the spec grew as one document; its section numbers

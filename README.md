@@ -21,7 +21,7 @@ boot inside the application JVM in development and test.
 
 **Implementation underway** — engine, feeds, R4+R5 personalities, tier-1
 search, subscriptions and terminology are built and CI-green. The living
-status page: [docs/plans/implementation-roadmap.md](docs/plans/implementation-roadmap.md).
+status page: [docs/plans/implementation-status.md](docs/plans/implementation-status.md).
 
 - [docs/arc42-001-introduction](docs/arc42-001-introduction/README.md) — goals and founding requirements
 - [docs/README.md](docs/README.md) — the arc42 documentation index
@@ -30,7 +30,7 @@ status page: [docs/plans/implementation-roadmap.md](docs/plans/implementation-ro
 
 ## History
 
-An earlier incarnation of this idea ("db-objects", 2024–2025) lives on the
-[`legacy`](../../tree/legacy) branch, preserved verbatim. Its durable concepts —
-the payload/envelope split, identifier model, transactional outbox, version-driven
-leader election — are carried into the new specification; its implementation is not.
+An earlier incarnation of this idea ("db-objects", 2024–2025) is not part of
+this repository. Its durable concepts — the payload/envelope split, the
+identifier model, the transactional outbox, version-driven leader election —
+are carried into the specification here; its implementation is not.

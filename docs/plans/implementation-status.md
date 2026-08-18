@@ -1,0 +1,229 @@
+# Implementation status
+
+What is built, what it is proven by, and what is specified but not yet
+built. The specification itself lives in the arc42 tree ([index](../README.md));
+the requirement codes below are defined in the
+[REQ catalogue](../arc42-006-runtime/req-catalogue.md).
+
+**267 behaviour-named tests across 53 classes, 50 of them integration tests
+against a real Postgres, a real Felix container, and — for the provisioning
+operator — a real Kubernetes API server. CI is green on every commit; nothing
+publishes and no image ships unless the whole suite passes on exactly that
+commit.**
+
+## Built
+
+### CORE — the object engine
+
+`dbo-core` is the zero-dependency API: `ObjectStore`, `PutRequest`,
+`StoredObject`, UUIDv7 identifiers, the sealed `IdentityRef`, and the
+`Handling` classification every registered type must declare. `dbo-postgres`
+implements it — single-transaction writes, database-enforced no-merge on
+identity claims, and the `state`/`history`/`dbos` schema split. Payloads
+carry a version and pass through a `PayloadConverter` chain on read, so a
+domain written under one FHIR version re-binds to another without a rewrite;
+history is exempt by design. Every version links to the one before it, so a
+history that was edited underneath the store fails verification.
+
+*Complete*, including the declared truth form, the identity rules and
+upgrade-on-read.
+
+### CONT — container and embedding
+
+Every module is a real OSGi bundle. Personalities embed a private HAPI stack
+and subscriptions embeds a private DBOS, both as nested jars behind a
+`Bundle-ClassPath`, exporting only DBO-owned packages. The production bundles
+boot in an in-JVM Felix and serve a live FHIR flow over HTTP — that is the
+test, not a packaging assertion. The serving distribution uses the standard
+Felix launcher with no launcher code of its own; measured cold start is about
+five seconds from boot to a first 200 on a current schema.
+
+*Complete.*
+
+### TEN — tenancy and isolation
+
+`TenantDatabaseProvisioner` is a mandatory OSGi service that returns a
+`DataSource` and never credentials — the property the whole isolation story
+rests on. The default implementation gives each tenant its own database;
+`dbo-tenant-k8s` gives the in-cluster edition, reading operator-written
+Secrets. Tenant spec files become live service sets keyed by a `tenant=`
+registry property, all on one shared port at `/t/<code>/fhir`. Retracting a
+tenant stops serving it; erasing one is an explicit deprovision that drops
+the database.
+
+*Registry-scoped access, dynamic services, credential-blind provisioning, the
+dedicated-database tier and erasure are done. Dedicated instances, the shared
+tier and quotas are specified, not built.*
+
+### AUTH — tenant authority and surface protection
+
+`dbo-auth` is JDK crypto only: JWS RS256, JWK/JWKS, PBKDF2 secret hashing and
+a SMART system-scope grammar. Identity artifacts — `ClientApplication`,
+`SigningKey`, `RoleGrant` — are regular records in the tenant's own store,
+which is what makes key rotation and authority portability ordinary
+operations rather than special cases. Each tenant is its own OIDC authority
+at `/t/<code>/oidc`; the store surface accepts only that tenant's own tokens,
+so a cross-tenant token dies at signature verification. Human access derives
+from the organisational model: an active `PractitionerRole` yields role codes
+yield grants yield `user/*` scopes, and revocation is ending a period on a
+clinical record. Authorization-code with PKCE, RFC 8693 token exchange for
+processes acting in a human's name, and delegation records for workflows that
+outlive a token. Tokens are pseudonymous — a practitioner reference, no name,
+no national code. A deployment-level identity hub federates to a national
+OIDC provider so one ceremony serves every tenant in the zone.
+
+*Complete for the tenant authority, role model, federation and on-behalf-of.*
+
+### PDI — personal-data isolation
+
+`dbo-pdi` encrypts identifying elements inside the payload with per-person
+keys, in the same atomic engine write. History, envelopes, feeds, archives
+and sync therefore carry ciphertext by construction rather than by
+remembering to. The vault holds wrapped keys, an HMAC identifier index, the
+restriction flag and a shred ledger — never plaintext. Crypto-shredding
+destroys the key; a pre-shred archive cannot resurrect the person, because
+restore merges the ledger and replays it. Opt-in per tenant.
+
+*Complete.*
+
+### POL — tenant policies
+
+Audit entries are regular records in the tenant's own `audit` domain with
+their own outbox, so a subscription can watch access. The trail is open
+upward and closed downward: applications contribute what happened, the
+machinery stamps who and when from the token and its clock, and a posted
+event claiming another agent and a false timestamp lands carrying the token's
+client and the real time. `AuditEntry` is append-only against everyone,
+including the vendor. Retention is declarative and its sweep is itself
+audited, without retaining the data it removed.
+
+*Complete. IHE BALP alignment of the AuditEvent projection is not done.*
+
+### ZONE — jurisdiction overlay
+
+A zone is a tenant whose declarations are records. Brokers and identifier
+domains come from configuration and terminology, never from code; secrets
+stay in broker custody. One hub per zone, multi-upstream, and sessions record
+which broker performed each ceremony and accumulate across tenants with
+different acceptance policies.
+
+*Complete.*
+
+### VER — version plurality
+
+`dbo-fhir-common` holds what both personalities share; `dbo-fhir-r4` and
+`dbo-fhir-r5` are private HAPI stacks that coexist in one JVM over one
+database, with zero differences in the engine between them. Search parameters
+are extracted from HAPI's own definitions rather than hand-listed.
+
+*Complete except an R6 personality — there is no ballot to build against.*
+
+### SRCH — search
+
+Tier 1 is the measured production shape: modifiers (`:exact`, `:missing`,
+`:not`, `:identifier`), the `system|code` form, one-level chains,
+`_lastUpdated`, `_summary=count`, `_elements`, `_include`, and
+identity-keyed conditional create. Search is strict — an unrecognised
+parameter is a 400, not a silently broader result — and the capability
+statement says only what is true.
+
+*Tier 1 complete. Tiers 2 and 3 are deliberately unclaimed.*
+
+### FEED — feeds and pagination
+
+One primitive serves both pagination and synchronization: named consumers
+with ack, reset and lag, keyset paging, and gap-free reads behind a commit
+fence. Delivery order is transaction-major, because a sequence alone cannot
+fence a commit that lands late. A long transaction in another database on the
+same instance no longer delays a quiet tenant's feed.
+
+*Complete except the lean-wire option, which needs a wire to be lean over.*
+
+### EVT — eventing and subscriptions
+
+`dbo-subscriptions` is personality-agnostic; DBOS delivers. Matching is by
+search, exactly-once comes from composing the feed position with the workflow
+id, and the dead-letter queue is data like everything else. Topic-based
+subscriptions run in the same engine: R5-native from stored
+`SubscriptionTopic` records, and backported to R4 through configured topics.
+
+*Complete.*
+
+### TERM — terminology
+
+`dbo-terminology` stores a concept per row rather than a resource per code
+system — the truth-form inversion. Forty thousand concepts load in about half
+a second; `$lookup`, `$validate-code` and `$expand` with is-a expansion work
+over the native form. A shell code system says `content=not-present` instead
+of pretending.
+
+*Complete.*
+
+### SYNC — canonical content dependencies
+
+`dbo-sync` streams declared content over the feed: provenance-tagged copies
+that keep the source id, conflict-driven shadowing with live fallback,
+conversion at apply time so a zone's R4 content lands in an R5 leaf, and
+chains that hop store by store through each one's own outbox.
+
+*Complete at the stream-mechanics level. Terminology-grain hooks are
+specified, not built.*
+
+### MNT — maintenance
+
+One sealed archive, two elements: portable NDJSON (re-importing into the same
+tenant is a no-op; importing into a fresh one is a restore) and byte-faithful
+dumps that preserve versions, history and consumer positions. The owner's key
+seals it, so the operator cannot read it. The snapshot is repeatable-read
+with the outbox fence recorded in the manifest, which makes the incremental
+form just the feed. A restored consumer stands at the head of the restored
+feed, not where it stood when the backup was taken. Archives are attested by
+both parties and an altered one fails authentication rather than ending
+quietly.
+
+*Complete. The blob element waits on blob storage.*
+
+### The serving surface
+
+`dbo-rest` is a JDK `HttpServer` on virtual threads with no framework and no
+new dependencies: CRUD with ETag/If-Match/If-None-Exist, absolute paging
+links, `OperationOutcome` for every error, `_history`, the terminology
+operations, and a generated `/metadata`. `dbo-operator` reconciles
+`TenantRegistration` custom resources with a scoped provisioner role that is
+never superuser, and its deletion policies distinguish "stop serving" from
+"erase".
+
+## Specified, not built
+
+**WF** (durable work and planes), **SCAL** (routing), **PROC** (the process
+catalogue and map) and **OPS** (operations) are written down in the spec and
+have no implementation.
+
+## Known next fronts
+
+Unordered, and each needs its own design pass before it starts.
+
+- **Enable personal-data isolation for existing tenants.** The flag is
+  per-tenant and takes effect on write, so tenants that hold pre-isolation
+  plaintext need a decision — recreate or accept — before they hold real
+  patient data.
+- **Live national-broker registration.** The federation flow is proven
+  against a stub; the real broker is an environment configuration and a
+  registration process.
+- **Zone content over real chains.** The zone's declarations are chain-ready
+  records; today a deployment seeds them locally rather than streaming them
+  from an upstream.
+- **IHE BALP alignment.** Profile the AuditEvent projection against Basic
+  Audit Log Patterns once there is a consumer to validate against.
+- **Durable retention sweep.** The periodic sweep is idempotent and correct
+  in process; promoting it to a scheduled durable workflow makes it survive a
+  restart mid-sweep.
+- **Placement.** When zones multiply databases past one server's comfort, a
+  `TenantRegistration` grows a placement target. The custom resource is
+  already the seam for it.
+- **Computed bundle imports.** The fat bundles hand-write their
+  `Import-Package` lists, which is why a ratchet test exists; moving them to
+  bnd-computed imports retires the ratchet.
+
+Later horizons: the routing layer, the process catalogue, an R6 personality
+when there is a ballot, a shared-schema tenancy tier, and blob storage.

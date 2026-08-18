@@ -251,7 +251,7 @@ per-tenant plane needs no workaround.
 Resolved by measuring
 instead of guessing: an inventory of all ~206 production FHIR search call
 sites across jengu-platform, lab and VA
-([search-usage-inventory.md](search-usage-inventory.md), 2026-08) shows
+([search-usage-inventory.md](../evidence/search-usage-inventory.md), 2026-08) shows
 jengu uses a narrow, conservative slice — token `identifier=` lookup
 dominates (~88 sites), nearly everything is `_count`-bounded and
 `-_lastUpdated`-sorted, and `_filter`/`_has`/composites/full-text have zero
@@ -301,8 +301,8 @@ DBO), `_compartment` (one Subscription criteria), `CodeSystem/$import`,
 
 Full inventory of every Medplum
 dependency dimension in
-[medplum-usage-inventory.md](medplum-usage-inventory.md); the path itself in
-[medplum-migration.md](medplum-migration.md). Central finding: the hard
+[medplum-usage-inventory.md](../evidence/medplum-usage-inventory.md); the path itself in
+[medplum-migration.md](../plans/medplum-migration.md). Central finding: the hard
 coupling is not storage (search/CRUD/conditional writes sit inside DBO
 tier 1, behind a clean client seam) but **identity and tenancy expressed in
 Medplum's proprietary vocabulary** — Project-per-tenant, roles on
