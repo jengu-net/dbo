@@ -55,6 +55,32 @@ Each figure exists because dbo makes a claim that needs a number behind it.
 | Archive and restore duration | Maintenance is only credible if its timings are known. |
 | Tenants per JVM before degradation | A product limit an edge deployment has to be told. |
 
+## A run is invalid unless it earns being valid
+
+Three things disqualify a run, and all three are recorded rather than hidden:
+
+- **It throttled or browned out.** The numbers describe cooling, not code.
+- **Any request failed.** A latency figure computed over the requests that
+  happened to work is not a figure about the system, and it errs in the
+  flattering direction, because the requests that break tend to be the slow
+  ones.
+- **The machine could not be watched.** No `vcgencmd` means nothing can say
+  whether it throttled. Running on a laptop is how the runner gets developed;
+  it is not how a number gets quoted.
+
+An invalid run is still written out in full. It is evidence, and evidence you
+delete is evidence you were going to need.
+
+## What the runner measures today
+
+Implemented: writes, the token lookup, and feed lag across every tenant — plus
+cold start, which `run.sh` times because a JVM cannot time its own birth.
+
+Not yet: the PDI write delta, subscription delivery latency, archive and
+restore duration, and the tenant ceiling. The result schema already has their
+shapes, so adding one is filling in a settled contract rather than another
+design argument.
+
 ## Running one
 
 The runner executes **on the Pi**, against the production REST surface over

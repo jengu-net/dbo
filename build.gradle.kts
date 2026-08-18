@@ -33,9 +33,14 @@ subprojects {
     // CI derives it from the v-tag) — fixed numbering for bundles AND images.
     version = (findProperty("dbo.version") as String?) ?: "0.1.0-SNAPSHOT"
 
-    // Publish every library module. The dist (dbo-server) and the harness
-    // are not libraries.
-    if (project.path != ":core:harness" && project.path != ":core:dbo-server") {
+    // Publish every library module. Named exclusions rather than a guess:
+    // the distribution is an image, and the harness, the conformance report
+    // and the bench are tools this repository runs on itself. Publishing any
+    // of them would put a test rig on Maven Central under a name that
+    // promises a library.
+    val notALibrary = setOf(
+        ":core:harness", ":core:dbo-server", ":core:conformance", ":bench:runner")
+    if (project.path !in notALibrary) {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")
 
