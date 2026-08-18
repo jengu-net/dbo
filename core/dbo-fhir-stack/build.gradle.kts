@@ -44,6 +44,13 @@ dependencies {
 // suite exercising validation, conversion and terminology ingestion, not a
 // green compile.
 configurations.named("embedded") {
+    // slf4j-api arrives as a transitive of the HL7 core stack and must NOT ride
+    // along: this bundle imports `org.slf4j` from the shared slf4j-api bundle,
+    // and an embedded copy beside it splits the API in two — `org.slf4j` from
+    // the import, `org.slf4j.spi` from lib/ — which surfaces as a LinkageError
+    // (loader constraint violation) the first time something logs, not as a
+    // resolution failure.
+    exclude(group = "org.slf4j")
     exclude(group = "net.sourceforge.plantuml")
     exclude(group = "org.xerial", module = "sqlite-jdbc")
     exclude(group = "net.sf.saxon", module = "Saxon-HE")
@@ -91,7 +98,15 @@ tasks.jar {
                 "Bundle-ClassPath" to ".,$libs",
                 "Export-Package" to exports.joinToString(","),
                 "Import-Package" to listOf(
+                    // The whole slf4j API, not just `org.slf4j`: the engine
+                    // reaches the fluent builder in org.slf4j.spi the first
+                    // time HAPI logs, and importing one package of a library
+                    // whose classes reference the others fails at that call
+                    // rather than at resolution.
                     "org.slf4j",
+                    "org.slf4j.spi",
+                    "org.slf4j.event",
+                    "org.slf4j.helpers",
                     "javax.naming;resolution:=optional",
                     "javax.naming.spi;resolution:=optional",
                     "javax.management;resolution:=optional",

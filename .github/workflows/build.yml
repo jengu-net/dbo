@@ -145,6 +145,11 @@ jobs:
       REGISTRY: 192.168.1.14:5050
       GHCR_IMAGE: ghcr.io/jengu-net/${{ matrix.image }}
       DOCKERHUB_IMAGE: docker.io/jengu/${{ matrix.image }}
+      # A boolean, never the secret itself, and computed HERE because the
+      # `secrets` context does not exist inside an `if:` — a workflow that
+      # reaches for it there does not fail the job, it fails to parse, and
+      # every push to the branch reports a run with no jobs at all.
+      HAVE_DOCKERHUB: ${{ secrets.DOCKERHUB_TOKEN != '' }}
     permissions:
       contents: read
       packages: write
@@ -181,17 +186,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Log in to Docker Hub
         id: dockerhub
-        if: ${{ secrets.DOCKERHUB_TOKEN != '' }}
+        if: ${{ env.HAVE_DOCKERHUB == 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Assemble the tag list
         id: tags
-        env:
-          # A boolean, never the secret itself — an interpolated secret ends up
-          # in the shell's argument list and in any `set -x` output.
-          HAVE_DOCKERHUB: ${{ secrets.DOCKERHUB_TOKEN != '' }}
         run: |
           set -euo pipefail
           {
