@@ -17,9 +17,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Container wiring (dbo#17): registers the default provisioner when admin
+ * Container wiring: registers the default provisioner when admin
  * config is present, REQUIRES a {@link TenantDatabaseProvisioner} service
- * (Alan's mandatory-service design), and runs the manager — per-tenant
+ * (the mandatory-service design), and runs the manager — per-tenant
  * service sets appear/retract in the registry with {@code tenant=<code>}
  * properties (REQ-DBO-CONT-DYNAMIC-TENANT-SERVICES).
  *
@@ -43,7 +43,7 @@ public final class Activator implements BundleActivator {
                     ctx.getProperty("dbo.tenant.admin.password"));
             String rpRedirects = ctx.getProperty("dbo.tenant.rp.redirect.uris");
             if (rpRedirects != null && !rpRedirects.isBlank()) {
-                // embedded/local RP custody (jengu-platform#847): {code}
+                // embedded/local RP custody: {code}
                 // resolves per tenant at provision time
                 localProvisioner.rpRedirectUris(java.util.List.of(rpRedirects.split(",")));
             }

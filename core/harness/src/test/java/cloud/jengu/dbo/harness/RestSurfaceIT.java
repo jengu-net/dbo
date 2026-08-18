@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** dbo#12 proof matrix: the FHIR REST surface over real HTTP. */
+/** Proof matrix: the FHIR REST surface over real HTTP. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RestSurfaceIT {
 
@@ -142,7 +142,7 @@ class RestSurfaceIT {
     }
 
     /** If-None-Exist: 201 then 200, same id (bootstrap workhorse over HTTP). */
-    /** PUT without If-Match is an unconditional update, never a 500 (dbo#24 finding). */
+    /** PUT without If-Match is an unconditional update, never a 500 (finding). */
     @Test
     void updateWithoutIfMatchIsUnconditional() throws Exception {
         HttpResponse<String> created = send(req(base + "/Patient")

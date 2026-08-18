@@ -9,8 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * What a tenant holds, counted where the counting is cheap
- * (jengu-platform#866).
+ * What a tenant holds, counted where the counting is cheap.
  *
  * <p>The report an operator sees before a move, and the same numbers used to
  * verify one afterwards. It is deliberately <b>counts, not contents</b>: a
@@ -82,8 +81,7 @@ public final class TenantInventory {
     public record Delivery(String domain, String consumer, long lag) {}
 
     /**
-     * Who reads each domain's feed, and how far behind they are
-     * (jengu-platform#872).
+     * Who reads each domain's feed, and how far behind they are.
      *
      * <p>Reported because it is what an operator needs after a restore and
      * cannot otherwise see: delivery state never travels in an archive, so

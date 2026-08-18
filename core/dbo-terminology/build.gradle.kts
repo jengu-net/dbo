@@ -2,10 +2,10 @@ plugins {
     id("biz.aQute.bnd.builder")
 }
 
-// The normalized terminology store (dbo#9): concept-per-row, authoritative —
+// The normalized terminology store: concept-per-row, authoritative —
 // the declared truth-form inversion of §6. Streaming COPY ingest needs the
 // PostgreSQL driver's CopyManager, so the driver is a real dependency here.
-// bnd computes Import-Package from bytecode (dbo#13) — it will demand
+// bnd computes Import-Package from bytecode — it will demand
 // org.postgresql.* from the driver bundle, exactly right.
 
 dependencies {

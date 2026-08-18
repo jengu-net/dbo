@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * An identity attached to, or detached from, a subject (dbo#39).
+ * An identity attached to, or detached from, a subject.
  *
  * <p><b>Binding is the privileged operation</b>, and it is easy to assume the
  * opposite. Everything else in the membrane protects <em>reads</em> of

@@ -1,4 +1,4 @@
-// The serving distribution (dbo#19): the STANDARD Felix launcher
+// The serving distribution: the STANDARD Felix launcher
 // (org.apache.felix.main) + felix.auto.deploy over bundle/ holding the
 // production bundle set. No launcher code of ours — what runs in prod is
 // exactly the bundles CI tests. Env→system-property mapping lives in
@@ -16,7 +16,7 @@ dependencies {
         ":core:dbo-core", ":core:dbo-fhir-common", ":core:dbo-postgres",
         ":core:dbo-terminology", ":core:dbo-subscriptions", ":core:dbo-fhir-r4",
         ":core:dbo-fhir-r5", ":core:dbo-rest", ":core:dbo-auth", ":core:dbo-pdi", ":core:dbo-policy", ":core:dbo-sync",
-        // dbo-tenant imports it for the maintenance surface (#866)
+        // dbo-tenant imports it for the maintenance surface
         ":core:dbo-maintenance", ":core:dbo-tenant", ":core:dbo-tenant-k8s",
     ).forEach { bundles(project(it)) { isTransitive = false } }
     // the JDBC driver is itself an OSGi bundle

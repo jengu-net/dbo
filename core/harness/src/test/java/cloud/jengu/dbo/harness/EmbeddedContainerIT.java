@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#13: REQ-DBO-CONT-EMBEDDED-IN-JVM — the PRODUCTION bundles boot in an
+ * REQ-DBO-CONT-EMBEDDED-IN-JVM — the PRODUCTION bundles boot in an
  * in-JVM Felix and serve a real FHIR flow over HTTP. The host shares only
  * Felix, the OSGi API and the JDK; everything DBO is reached reflectively
  * through bundle classloaders.
@@ -159,7 +159,7 @@ class EmbeddedContainerIT {
 
         Class<?> serverClass = bundles.get("dbo.rest").loadClass("cloud.jengu.dbo.rest.FhirHttpServer");
         // pick the standalone 5-arg ctor by SHAPE, not by declaration order —
-        // dbo#20 added authenticated overloads
+        // authenticated overloads came later
         Constructor<?> serverCtor = java.util.Arrays.stream(serverClass.getConstructors())
                 .filter(c -> c.getParameterCount() == 5
                         && c.getParameterTypes()[2] == String.class
@@ -199,8 +199,8 @@ class EmbeddedContainerIT {
      * their Import-Package lists instead of letting bnd compute them, so a
      * newly referenced sibling package compiles, publishes, and then fails to
      * resolve AT RUNTIME as NoClassDefFoundError — with no build-time signal
-     * at all (jengu-platform#850 lost an afternoon to exactly that, in
-     * dbo-tenant → dbo-sync). Until dbo#32 moves them to computed imports,
+     * at all (it has already happened once, in dbo-tenant → dbo-sync).
+     * Until they move to computed imports,
      * this is the ratchet: every {@code cloud.jengu.dbo.*} package a bundle's
      * own classes reference must be its own export or on its import list.
      */

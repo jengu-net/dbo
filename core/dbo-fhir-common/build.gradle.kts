@@ -3,7 +3,7 @@ plugins {
 }
 
 // Version-neutral, HAPI-free pieces shared by all FHIR personalities.
-// bnd computes Import-Package from bytecode (dbo#13).
+// bnd computes Import-Package from bytecode.
 
 dependencies {
     api(project(":core:dbo-core"))

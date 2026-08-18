@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * One tenant's declaration (dbo#17): code, FHIR version, configured types.
+ * One tenant's declaration: code, FHIR version, configured types.
  * In production these specs come from configuration (git / operator-managed
  * mounts); the manager watches them as files.
  */
@@ -19,7 +19,7 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
         List<Dependency> dependencies) {
 
     /**
-     * A declared content dependency (dbo#30, REQ-DBO-SYNC-SPEC-DECLARED):
+     * A declared content dependency (REQ-DBO-SYNC-SPEC-DECLARED):
      * {@code name} is the direct upstream tenant's code; only the declared
      * types stream. Declarations are configuration — the runtime wires the
      * stream at bring-up and removes it when the declaration disappears.
@@ -58,7 +58,7 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
 
     // The platform's tenant-code contract: lowercase label, hyphens, no
     // fixed length cap on the platform side (story tenants carry
-    // story+timestamp+nonce and reach ~70 chars — jengu-platform#848).
+    // story+timestamp+nonce and reach ~70 chars).
     // 128 is generous headroom; databaseName() folds ANY length into a
     // Postgres-safe identifier. Underscores stay accepted for old specs.
     private static final Pattern CODE = Pattern.compile("[a-z][a-z0-9_-]{0,127}");
@@ -88,7 +88,7 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
      * Parses the spec file format: {"code":..,"fhirVersion":..,
      * "types":[{name,identity,systems?,handling?}],"dependencies":[{name,types}]}.
      *
-     * <p><b>{@code handling} is required</b> (jengu-platform#869). A type that
+     * <p><b>{@code handling} is required</b>. A type that
      * has not said what kind of data it is stops the tenant coming up, named,
      * rather than being guessed at — the same rule
      * {@link cloud.jengu.dbo.core.api.TypeRegistration} applies to types

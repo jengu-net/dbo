@@ -39,7 +39,7 @@ public final class TenantImport {
     public record PortableResult(long imported, long skippedIdentical) {}
 
     /**
-     * Where a sealed archive can be read from, more than once (#35).
+     * Where a sealed archive can be read from, more than once.
      *
      * <p>Two passes are required and not a choice: the digest list is the last
      * entry, so a single pass would be importing before it could check, and
@@ -77,7 +77,7 @@ public final class TenantImport {
     }
 
     /**
-     * Verifies the archive whole, then imports it (#34, #35, ADR 0052 §5).
+     * Verifies the archive whole, then imports it (ADR 0052 §5).
      *
      * <p>Nothing is written until the digests match and both signatures
      * verify. A partially-applied archive leaves a tenant in a state neither
@@ -106,7 +106,7 @@ public final class TenantImport {
 
     /**
      * Imports without attestation — the legacy path, kept for archives that
-     * carry none. It streams (#35) but it trusts what it is given, so it must
+     * carry none. It streams but it trusts what it is given, so it must
      * not be pointed at anything that arrived from outside.
      */
     public static PortableResult importPortable(ObjectStore target, InputStream sealed,
@@ -143,7 +143,7 @@ public final class TenantImport {
                         java.time.Instant at = java.time.Instant.parse(jsonString(line, "lu"));
                         // Idempotent by VERSION, not by bytes: a history replays
                         // as many lines per object, and a resumed move must skip
-                        // what already landed rather than rewrite it (#854).
+                        // what already landed rather than rewrite it.
                         if (existing.isPresent() && existing.get().versionId() >= version) {
                             skipped++;
                             continue;
@@ -308,8 +308,7 @@ public final class TenantImport {
     }
 
     /**
-     * Refuses a byte-faithful restore from anything but a backup
-     * (jengu-platform#866).
+     * Refuses a byte-faithful restore from anything but a backup.
      *
      * <p>A portable export deliberately carries no credentials, no audit and
      * no configuration projection. Loading one where a backup was meant
@@ -334,8 +333,7 @@ public final class TenantImport {
     }
 
     /**
-     * Every restored consumer starts at the head of the restored feed
-     * (jengu-platform#872).
+     * Every restored consumer starts at the head of the restored feed.
      *
      * <p>Not where it stood when the backup was taken, and not at zero.
      * Delivery lags the feed by design, so the backed-up position stands
@@ -378,7 +376,7 @@ public final class TenantImport {
      *
      * <p>A backup covers every domain the tenant held — clinical records,
      * credentials, the audit trail — because an installation restored without
-     * the others cannot authenticate anybody (jengu-platform#866).
+     * the others cannot authenticate anybody.
      */
     private static java.util.List<String> domainsOf(String manifestJson, String fallback) {
         int at = manifestJson.indexOf("\"domains\"");

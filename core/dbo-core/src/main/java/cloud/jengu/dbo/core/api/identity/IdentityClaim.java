@@ -5,7 +5,7 @@ import java.util.Objects;
 
 /**
  * One claim that a subject is a particular person: an identifier, and how well
- * anybody knows it is theirs (dbo#39).
+ * anybody knows it is theirs.
  *
  * <p>A number transcribed from a card in a pocket, one checked against the
  * issuing registry, and one cryptographically asserted by a national eID are

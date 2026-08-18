@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 
 /**
- * R5-native topic-based subscriptions (dbo#15): topics are stored active
+ * R5-native topic-based subscriptions: topics are stored active
  * SubscriptionTopic resources; subscriptions are R5 Subscription resources
  * (topic canonical + filterBy + rest-hook channel); notifications are
  * subscription-notification Bundles with SubscriptionStatus. Public surface

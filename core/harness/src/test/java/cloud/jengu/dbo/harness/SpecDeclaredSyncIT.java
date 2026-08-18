@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#30 (REQ-DBO-SYNC-SPEC-DECLARED, REQ-DBO-SYNC-FULL-HISTORY-CATCH-UP):
+ * REQ-DBO-SYNC-SPEC-DECLARED, REQ-DBO-SYNC-FULL-HISTORY-CATCH-UP:
  * content dependencies declared in the tenant SPEC are wired by the runtime
  * manager itself — no code instantiates an engine here. A zone tenant holds
  * a CodeSystem from before any dependent existed; dependents appear by spec

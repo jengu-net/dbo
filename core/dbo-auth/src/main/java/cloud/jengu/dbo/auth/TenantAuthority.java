@@ -302,7 +302,7 @@ public final class TenantAuthority {
         // A login's other factors survive its password being set. Rewriting the
         // whole record would drop the edge PIN somebody set for themselves,
         // which is the same whole-object overwrite that put the PIN on a
-        // configured resource in the first place (jengu-platform#871) — one
+        // configured resource in the first place — one
         // level down, and just as quiet.
         String keptFactors = existing.map(TenantAuthority::factorsOf).orElse(null);
         String payload = "{\"login\":\"" + login + "\""
@@ -320,8 +320,7 @@ public final class TenantAuthority {
     }
 
     /**
-     * Sets one authentication factor for a login, leaving the others alone
-     * (jengu-platform#871).
+     * Sets one authentication factor for a login, leaving the others alone.
      *
      * <p><b>Factors are kinds, not fields.</b> A PIN presented at a bench with
      * no network is one kind; a password is another; a passkey and a one-time
@@ -469,8 +468,7 @@ public final class TenantAuthority {
      * clinical one.
      *
      * <p>Only the practitioner relation grants anything today. The union below
-     * is where the others attach, rather than a branch somewhere else
-     * (jengu-platform#879).
+     * is where the others attach, rather than a branch somewhere else.
      */
     public Grants evaluateGrants(String personId) {
         java.util.Set<String> scopes = new java.util.LinkedHashSet<>();

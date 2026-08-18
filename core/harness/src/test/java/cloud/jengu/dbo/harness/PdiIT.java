@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#21 (§14): identifying elements are ciphertext everywhere the engine
+ * §14: identifying elements are ciphertext everywhere the engine
  * writes — state, history, envelopes, feed, archives — reassembled only for
  * authorized reads; identity stays unmergeable vault-side; shredding erases
  * the person from every copy at once and a restore cannot resurrect them.
@@ -99,7 +99,7 @@ class PdiIT {
     }
 
     /**
-     * jengu-platform#880: the coarse value is computed on write and kept in the
+     * The coarse value is computed on write and kept in the
      * clear, because a reader without the key has no plaintext to derive one
      * from — and the face supplies the coarsening, since knowing that a birth
      * date reduces to its year is knowledge about FHIR shapes, not about
@@ -107,7 +107,7 @@ class PdiIT {
      */
     @Test
     @Order(0)
-    @DisplayName("#880: the stored payload carries the birth year, and only the year")
+    @DisplayName("the stored payload carries the birth year, and only the year")
     void theCoarseValueIsWrittenInTheClear() throws Exception {
         String id = store.put(PutRequest.create("Patient", patient("Coarse", "39001010023"))).id();
 
@@ -228,8 +228,7 @@ class PdiIT {
         assertFalse(read.contains("1970"),
                 "a coarse birth year must not survive an erasure — generalisation is what a "
                         + "reader without the right to see an identity gets instead, not what "
-                        + "is left behind after somebody asked to be forgotten "
-                        + "(jengu-platform#880)");
+                        + "is left behind after somebody asked to be forgotten.");
         for (StoredObject version : store.history("Patient", personId)) {
             assertFalse(new String(version.payload(), StandardCharsets.UTF_8).contains("Salakas"),
                     "history must be unreadable after shred");

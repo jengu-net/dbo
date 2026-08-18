@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** dbo#16: backup is export, restore is import — sealed with the owner's key. */
+/** Backup is export, restore is import — sealed with the owner's key. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class MaintenanceIT {
 

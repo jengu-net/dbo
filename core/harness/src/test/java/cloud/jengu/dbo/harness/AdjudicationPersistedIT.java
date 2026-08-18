@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#39: the decision is written down, and found again the next time the same
+ * The decision is written down, and found again the next time the same
  * claim turns up.
  *
  * <p>Recording it is only half. Without the recall, the record is an archive
@@ -58,7 +58,7 @@ class AdjudicationPersistedIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: a decision recorded today changes what resolution offers tomorrow")
+    @DisplayName("a decision recorded today changes what resolution offers tomorrow")
     void aRecordedDecisionIsFoundAgain() {
         IdentityClaim claim = IdentityClaim.authenticated(LICENCE, "K7777001");
 
@@ -85,7 +85,7 @@ class AdjudicationPersistedIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: a decision cannot be edited — revising means recording a new one")
+    @DisplayName("a decision cannot be edited — revising means recording a new one")
     void decisionsAreAppendOnly() {
         IdentityClaim claim = IdentityClaim.authenticated(LICENCE, "K7777002");
         String id = Adjudications.record(store, Adjudication.bound("person-3", List.of(),
@@ -105,7 +105,7 @@ class AdjudicationPersistedIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: a decision about one claim says nothing about another")
+    @DisplayName("a decision about one claim says nothing about another")
     void decisionsDoNotLeakAcrossClaims() {
         IdentityClaim decided = IdentityClaim.authenticated(LICENCE, "K7777003");
         IdentityClaim unrelated = IdentityClaim.authenticated(LICENCE, "K7777004");

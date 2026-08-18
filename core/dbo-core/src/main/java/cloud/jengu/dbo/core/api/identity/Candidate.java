@@ -3,8 +3,7 @@ package cloud.jengu.dbo.core.api.identity;
 import java.util.List;
 
 /**
- * A subject that might be the person presenting, and how sure the store is
- * (dbo#39).
+ * A subject that might be the person presenting, and how sure the store is.
  *
  * <p>Resolution answers with candidates rather than an answer, because
  * identification is a match and not a key lookup. The confidence is what

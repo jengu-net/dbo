@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** dbo#17: spec files become live tenants; retract ≠ erase; deprovision drops. */
+/** Spec files become live tenants; retract ≠ erase; deprovision drops. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TenantRuntimeIT {
@@ -130,7 +130,7 @@ class TenantRuntimeIT {
         assertTrue(get(manager.baseUrl("aiakas") + "/metadata").body().contains("\"4.0.1\""));
     }
 
-    /** dbo#18 R3: provisioned databases carry the liveness timeouts. */
+    /** Provisioned databases carry the liveness timeouts. */
     @Test
     @Order(2)
     void provisionedDatabasesCarryTimeouts() throws Exception {

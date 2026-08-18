@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#39: the lookup lives with the recall, so a caller cannot do one and
+ * The lookup lives with the recall, so a caller cannot do one and
  * forget the other.
  *
  * <p>The failure that motivates this is quiet: resolution offers a candidate
@@ -91,7 +91,7 @@ class IdentityLookupIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: a proven claim finds its record without the caller writing a query")
+    @DisplayName("a proven claim finds its record without the caller writing a query")
     void aClaimFindsItsRecord() {
         String id = subject(EE, "38001010021");
 
@@ -103,7 +103,7 @@ class IdentityLookupIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: a claim nobody holds resolves to nothing, which is an ordinary answer")
+    @DisplayName("a claim nobody holds resolves to nothing, which is an ordinary answer")
     void anUnknownClaimFindsNobody() {
         Resolution resolution = Identities.resolve(store, "Subject",
                 List.of(IdentityClaim.authenticated(EE, "39912310099")));
@@ -114,7 +114,7 @@ class IdentityLookupIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: the lookup folds in what somebody already decided, without being asked")
+    @DisplayName("the lookup folds in what somebody already decided, without being asked")
     void priorDecisionsAreAppliedAutomatically() {
         String id = subject(LICENCE, "K5150001");
         IdentityClaim claim = IdentityClaim.authenticated(LICENCE, "K5150001");
@@ -135,7 +135,7 @@ class IdentityLookupIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: claims pointing at different records leave the choosing to a person")
+    @DisplayName("claims pointing at different records leave the choosing to a person")
     void twoRecordsMeanNobodyIsCertain() {
         String estonian = subject(EE, "38001010022");
         String licensed = subject(LICENCE, "K5150002");
@@ -153,7 +153,7 @@ class IdentityLookupIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: presenting nothing asks nothing of the store")
+    @DisplayName("presenting nothing asks nothing of the store")
     void noClaimsIsNotAQuery() {
         Resolution resolution = Identities.resolve(store, "Subject", List.of());
 

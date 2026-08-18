@@ -77,7 +77,7 @@ public final class R4Subscriptions {
             "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-filter-criteria";
 
     /**
-     * R4 backport (dbo#15): topics are platform CONFIGURATION (R4 has no
+     * R4 backport: topics are platform CONFIGURATION (R4 has no
      * SubscriptionTopic resource); an R4 Subscription participates with
      * criteria = topic url and filters in the backport extension.
      */

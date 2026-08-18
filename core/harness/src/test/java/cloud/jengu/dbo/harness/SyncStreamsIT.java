@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#14: §6 sync streams — zone→mid→leaf. Declared types stream as
+ * §6 sync streams — zone→mid→leaf. Declared types stream as
  * provenance-tagged copies; the leaf hop converts R4→R5 at apply; a local
  * object shadows the stream and deleting it falls back to the live upstream.
  */

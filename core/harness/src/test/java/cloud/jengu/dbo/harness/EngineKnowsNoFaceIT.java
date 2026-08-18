@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#38: the engine depends on no face, asserted from the bundle manifest
+ * The engine depends on no face, asserted from the bundle manifest
  * rather than by reading code.
  *
  * <p>The inward contract lives in {@code cloud.jengu.dbo.core.face} — what a
@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class EngineKnowsNoFaceIT {
 
     @Test
-    @DisplayName("#38: the engine bundle imports nothing from any face")
+    @DisplayName("the engine bundle imports nothing from any face")
     void theEngineImportsNoFacePackage() throws Exception {
         List<String> imports = importPackagesOf("cloud.jengu.dbo.core");
 

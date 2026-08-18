@@ -14,7 +14,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * What an archive contains, digested — and one root over all of it (#34).
+ * What an archive contains, digested — and one root over all of it.
  *
  * <p>The root is computed over the manifest's entries rather than over the
  * archive's bytes, so an archive can be re-packed, re-compressed, or its

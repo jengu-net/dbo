@@ -64,7 +64,7 @@ public final class R5Personality {
     private volatile FhirValidator validator;
 
     /**
-     * What this personality provides to the engine (dbo#38) — the inward
+     * What this personality provides to the engine — the inward
      * contract, as against the outward facade a server calls.
      */
     public cloud.jengu.dbo.core.face.DomainFace face() {
@@ -83,7 +83,7 @@ public final class R5Personality {
         return registrations(DOMAIN);
     }
 
-    /** Registrations over an explicit domain — the re-binding seam for version transitions (dbo#11). */
+    /** Registrations over an explicit domain — the re-binding seam for version transitions. */
     public List<TypeRegistration> registrations(String domain) {
         List<TypeRegistration> out = new ArrayList<>();
         for (FhirTypeConfig t : types.values()) {
@@ -490,7 +490,7 @@ public final class R5Personality {
 
     // ----------------------------------------------------------- validation
 
-    /** See {@code R4Personality} — the same guard, the same busy machine (dbo#42). */
+    /** See {@code R4Personality} — the same guard, the same busy machine. */
     private static final String REGEX_TIMED_OUT = "Regex evaluation timed out";
 
     /** ERROR/FATAL issue lines; empty = valid. */
@@ -518,7 +518,7 @@ public final class R5Personality {
     /**
      * One stored object rendered as the FHIR resource a client expects:
      * the stored payload with its envelope {@code id} and
-     * {@code meta.versionId} put back (dbo#29).
+     * {@code meta.versionId} put back.
      *
      * <p>The payload is the truth and does not carry them — a create without
      * an id in the body is stored exactly as sent, which is the point. But a
@@ -529,7 +529,7 @@ public final class R5Personality {
      */
     /**
      * The face's answer to "give me one line somebody else's tools can read"
-     * (jengu-platform#866) — a FHIR resource carrying its own id and version,
+     * — a FHIR resource carrying its own id and version,
      * which is what FHIR Bulk Data is.
      *
      * <p>The same projection {@link #toResourceJson} performs for every read.
@@ -794,7 +794,7 @@ public final class R5Personality {
         return validator;
     }
 
-    /** HAPI landmine #2 from the spike: service discovery is TCCL-based; pin ours. */
+    /** HAPI landmine: service discovery is TCCL-based; pin ours. */
     private <T> T withTccl(Supplier<T> body) {
         Thread t = Thread.currentThread();
         ClassLoader old = t.getContextClassLoader();

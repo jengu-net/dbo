@@ -26,7 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
 /**
- * Turns tenant spec files into live tenant service sets (dbo#17):
+ * Turns tenant spec files into live tenant service sets:
  * spec appears → provision (via the mandatory {@link TenantDatabaseProvisioner})
  * → personality + engine + facade + feed → FHIR endpoint at
  * {@code /t/<code>/fhir} on ONE shared port (the interim until the routing
@@ -163,7 +163,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             // arrives as NoClassDefFoundError, and catching
                             // only Exception let it kill the scanner thread
                             // with no output at all — absence of a tenant and
-                            // absence of a reason (jengu-platform#850).
+                            // absence of a reason.
                             System.err.println("dbo-tenant: bring-up failed for " + f.getFileName());
                             e.printStackTrace();
                         }
@@ -180,7 +180,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     private void bringUp(TenantSpec spec) {
-        // dbo#30: dependencies wire against the upstream's LIVE runtime —
+        // Dependencies wire against the upstream's LIVE runtime —
         // like the zone hub, an upstream that isn't up yet fails bring-up
         // loudly and the scan loop retries once it is.
         for (TenantSpec.Dependency dependency : spec.dependencies()) {
@@ -216,7 +216,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         java.util.List.of("system/*.read", "system/*.write"));
             }
             if (db.rpClientSecret() != null) {
-                // the jengu-cloud relying party (jengu-platform#844): record
+                // the jengu-cloud relying party: record
                 // ensured from custody, so Secret and record never drift
                 authority.ensureClient("jengu-cloud", db.rpClientSecret(),
                         java.util.List.of("user/*.read", "user/*.write"),
@@ -254,7 +254,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no
-        // way to say who is asking (jengu-platform#866).
+        // way to say who is asking.
         if (authority != null) {
             String adminPath = "/t/" + spec.code() + "/admin";
             String domain = "r4".equals(spec.fhirVersion())
@@ -275,7 +275,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
-     * dbo#30 (REQ-DBO-SYNC-SPEC-DECLARED): one stream engine per declared
+     * REQ-DBO-SYNC-SPEC-DECLARED: one stream engine per declared
      * dependency, upstream feed → this tenant's store. The consumer id
      * carries the DEPENDENT's code — the ack cursor lives in the upstream's
      * feed, and two dependents of the same upstream must not share one. A

@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#39: anonymous on purpose is a thing a subject can say, and saying it
+ * Anonymous on purpose is a thing a subject can say, and saying it
  * stops them being identified.
  *
  * <p>The failure this prevents is nobody's fault and everybody's problem: two
@@ -57,7 +57,7 @@ class AnonymityIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: not yet identified and anonymous on purpose are different states")
+    @DisplayName("not yet identified and anonymous on purpose are different states")
     void theTwoUnboundStatesAreDistinguishable() {
         assertFalse(Anonymity.declared(store, "trauma-patient"),
                 "an unconscious patient nobody has identified is not anonymous by choice — "
@@ -71,7 +71,7 @@ class AnonymityIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: identifying somebody anonymous by declaration is refused, not discouraged")
+    @DisplayName("identifying somebody anonymous by declaration is refused, not discouraged")
     void bindingIsRefusedForADeclaredAnonymousSubject() {
         Anonymity.record(store, AnonymityEvent.declared("subject-a", "clinic-desk", NOW,
                 "anonymous testing", null));
@@ -87,7 +87,7 @@ class AnonymityIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: an earlier identification can still be withdrawn once anonymity is declared")
+    @DisplayName("an earlier identification can still be withdrawn once anonymity is declared")
     void withdrawalStaysAvailable() {
         Bindings.record(store, BindingEvent.bound("person-2", "subject-b", Assurance.SUBSTANTIAL,
                 "desk", NOW, "TREAT", "eID"));
@@ -106,7 +106,7 @@ class AnonymityIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: declaring anonymity over a standing identity is refused — withdraw first")
+    @DisplayName("declaring anonymity over a standing identity is refused — withdraw first")
     void declaringOverAnIdentityIsRefused() {
         Bindings.record(store, BindingEvent.bound("person-4", "subject-c", Assurance.SUBSTANTIAL,
                 "desk", NOW, "TREAT", "eID"));
@@ -125,7 +125,7 @@ class AnonymityIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: a person may change their mind, and then they can be identified")
+    @DisplayName("a person may change their mind, and then they can be identified")
     void liftingTheDeclarationAllowsIdentification() {
         Anonymity.record(store, AnonymityEvent.declared("subject-d", "desk", NOW,
                 "anonymous testing", null));
@@ -145,7 +145,7 @@ class AnonymityIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: a declaration states its basis, and one without is refused")
+    @DisplayName("a declaration states its basis, and one without is refused")
     void aDeclarationStatesItsBasis() {
         assertTrue(assertThrows(IllegalArgumentException.class,
                 () -> AnonymityEvent.declared("subject-e", "desk", NOW, "  ", null))

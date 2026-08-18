@@ -86,8 +86,8 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     /**
      * DriverManager discovery is boot-classloader-blind inside OSGi — the
      * driver bundle's classes are invisible to it. Ask the driver directly
-     * through this bundle's own wiring instead (the dbo#19 landmine, hit
-     * again by the embedded platform container: jengu-platform#847).
+     * through this bundle's own wiring instead — a landmine hit twice: once
+     * in the serving distribution, once in an embedded host container.
      */
     private Connection adminConnection() throws SQLException {
         java.util.Properties props = new java.util.Properties();
@@ -137,7 +137,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     }
 
     /**
-     * dbo#18 R3: worst-case feed delay becomes the timeout, by construction —
+     * Worst-case feed delay becomes the timeout, by construction —
      * idle-in-transaction and runaway transactions are capped per tenant
      * database; the admin role is exempted (fidelity restores may run long).
      */
@@ -153,7 +153,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
                 } catch (SQLException e) {
                     if ("42704".equals(e.getSQLState())) {
                         // transaction_timeout arrived in PG17. An embedding
-                        // host (jengu-platform#847 runs the platform's own
+                        // host (runs the platform's own
                         // PG16) keeps the timeouts its major supports —
                         // never a bring-up failure.
                         continue;

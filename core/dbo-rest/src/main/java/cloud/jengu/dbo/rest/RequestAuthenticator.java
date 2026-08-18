@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.rest;
 
 /**
- * The serving surface's guard seam (dbo#20, §13.5). When wired, every
+ * The serving surface's guard seam (§13.5). When wired, every
  * request except {@code /metadata} passes through it before dispatch.
  * The implementation lives with the tenant authority; dbo-rest only knows
  * the contract.

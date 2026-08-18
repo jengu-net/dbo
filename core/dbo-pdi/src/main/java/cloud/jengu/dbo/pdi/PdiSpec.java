@@ -10,7 +10,7 @@ import java.util.Set;
  *
  * <p>Everything listed is encrypted in place under the person's key. What
  * differs is the <b>disposition</b> — what a reader without the key sees in
- * its place (jengu-platform#880, ADR 0056 §7).
+ * its place (ADR 0056 §7).
  */
 public record PdiSpec(Map<String, Map<String, Disposition>> personTypes) {
 

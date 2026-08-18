@@ -1,8 +1,7 @@
 package cloud.jengu.dbo.core.api;
 
 /**
- * A write refused by a type's declared handling, saying which rule refused it
- * (jengu-platform#870).
+ * A write refused by a type's declared handling, saying which rule refused it.
  *
  * <p>In the core API rather than beside the Postgres store because it is part
  * of the store's contract: every surface that writes has to be able to tell

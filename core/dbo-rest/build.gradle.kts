@@ -2,9 +2,9 @@ plugins {
     id("biz.aQute.bnd.builder")
 }
 
-// The FHIR HTTP surface (dbo#12): JDK HttpServer on virtual threads, ZERO new
-// dependencies (R2). Version-generic: serves any FhirStoreFacade.
-// bnd computes Import-Package from bytecode (dbo#13).
+// The FHIR HTTP surface: JDK HttpServer on virtual threads, ZERO new
+// dependencies. Version-generic: serves any FhirStoreFacade.
+// bnd computes Import-Package from bytecode.
 
 dependencies {
     api(project(":core:dbo-core"))

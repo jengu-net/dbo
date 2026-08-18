@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * #34: an archive is attested by both parties, and an import refuses
+ * An archive is attested by both parties, and an import refuses
  * anything less (ADR 0052).
  *
  * <p>Each refusal is proven on its own. "Refuses a bad archive" is one
@@ -58,7 +58,7 @@ class ArchiveAttestationIT {
     }
 
     @Test
-    @DisplayName("#34: an archive both parties signed verifies, and yields the root the "
+    @DisplayName("an archive both parties signed verifies, and yields the root the "
             + "destination records")
     void aCoSignedArchiveVerifies() throws Exception {
         KeyPair vendor = ed25519();
@@ -77,7 +77,7 @@ class ArchiveAttestationIT {
     }
 
     @Test
-    @DisplayName("#34: a resource altered after export is refused, and the refusal names the file")
+    @DisplayName("a resource altered after export is refused, and the refusal names the file")
     void alteredContentIsRefused() throws Exception {
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();
@@ -100,7 +100,7 @@ class ArchiveAttestationIT {
     }
 
     @Test
-    @DisplayName("#34: an archive that grew an entry after export is refused")
+    @DisplayName("an archive that grew an entry after export is refused")
     void anAddedEntryIsRefused() throws Exception {
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();
@@ -122,7 +122,7 @@ class ArchiveAttestationIT {
     }
 
     @Test
-    @DisplayName("#34: an archive the tenant has not countersigned is refused, and says so")
+    @DisplayName("an archive the tenant has not countersigned is refused, and says so")
     void aMissingCountersignatureIsRefused() throws Exception {
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();
@@ -141,7 +141,7 @@ class ArchiveAttestationIT {
     }
 
     @Test
-    @DisplayName("#34: a signature from the wrong key is refused — holding one half is not enough")
+    @DisplayName("a signature from the wrong key is refused — holding one half is not enough")
     void aForgedCountersignatureIsRefused() throws Exception {
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();
@@ -160,7 +160,7 @@ class ArchiveAttestationIT {
     }
 
     @Test
-    @DisplayName("#34: the root is over contents, not bytes — re-packing does not invalidate it")
+    @DisplayName("the root is over contents, not bytes — re-packing does not invalidate it")
     void rePackingDoesNotInvalidateTheAttestation() throws Exception {
         byte[] first = archive("b.ndjson", "two\n", "a.ndjson", "one\n");
         byte[] reordered = archive("a.ndjson", "one\n", "b.ndjson", "two\n");
@@ -173,7 +173,7 @@ class ArchiveAttestationIT {
     }
 
     @Test
-    @DisplayName("#34: an archive with no manifest is refused rather than trusted")
+    @DisplayName("an archive with no manifest is refused rather than trusted")
     void anUnattestedArchiveIsRefused() throws Exception {
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();

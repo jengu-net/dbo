@@ -50,11 +50,10 @@ public final class TenantExport {
      * <p>Discovery defaults to including. A backup carrying something it did
      * not need is recoverable; one that silently omitted something is not.
      * Where a class of data genuinely must not travel, that is a declared
-     * property of the type rather than an omission from a list
-     * (jengu-platform#870).
+     * property of the type rather than an omission from a list.
      */
     /**
-     * Every domain the tenant database holds (jengu-platform#866).
+     * Every domain the tenant database holds.
      *
      * <p>A tenant is not one domain. Clinical records live in the FHIR
      * personality's domain, credentials and signing keys in {@code identity},
@@ -103,7 +102,7 @@ public final class TenantExport {
 
     /**
      * What an archive is for, declared in it rather than inferred by whoever
-     * opens it (jengu-platform#866).
+     * opens it.
      *
      * <p>The two carry different things, and the difference is not a
      * convenience. A backup holds the state that exists nowhere else —
@@ -148,8 +147,7 @@ public final class TenantExport {
      *
      * <p>Kept for callers that hold no registry. It cannot honour a type
      * declared as never travelling, because it cannot tell one type from
-     * another; pass the registrations to get that guarantee
-     * (jengu-platform#870).
+     * another; pass the registrations to get that guarantee.
      */
     public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
             OutputStream out) throws IOException {
@@ -157,7 +155,7 @@ public final class TenantExport {
     }
 
     /**
-     * Exports, honouring each type's declared travel (jengu-platform#870).
+     * Exports, honouring each type's declared travel.
      *
      * <p>A type whose handling says it never leaves is excluded from both
      * representations — the portable NDJSON and the byte-faithful dumps — so
@@ -170,7 +168,7 @@ public final class TenantExport {
     }
 
     /**
-     * Exports as the named kind (jengu-platform#866).
+     * Exports as the named kind.
      *
      * <p>A <b>portable export</b> carries what the customer owns and the
      * vocabulary their codes resolve against, and nothing whose declared
@@ -190,8 +188,7 @@ public final class TenantExport {
     }
 
     /**
-     * As above, with the face's own interchange rendering
-     * (jengu-platform#866).
+     * As above, with the face's own interchange rendering.
      *
      * <p>A portable export carries a <b>{@code fhir/}</b> element: one
      * resource per line, ids and versions put back — FHIR Bulk Data, which a
@@ -203,7 +200,7 @@ public final class TenantExport {
      * interchange, and it carries identity codes <em>beside</em> each object
      * because writing them into the payload would change the bytes the version
      * chain and both signatures are over (ADR 0052). Collapsing the two into a
-     * single attested Bulk Data artifact is dbo#34, and belongs there.
+     * single attested Bulk Data artifact is separate work, and belongs there.
      */
     public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
             OutputStream out, List<TypeRegistration> types, Kind kind,
@@ -218,7 +215,7 @@ public final class TenantExport {
             c.setAutoCommit(false);
             c.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
             try {
-                // #35: sealed as it is written. The archive never exists whole
+                // Sealed as it is written. The archive never exists whole
                 // in memory — a tenant's history is the volume, and holding it
                 // twice (plain and ciphertext) fails on the first real hospital.
                 ExportResult result;
@@ -245,7 +242,7 @@ public final class TenantExport {
 
 
     /**
-     * Writes entries and digests them on the way past (#34, #35).
+     * Writes entries and digests them on the way past.
      *
      * <p>Digesting during the write is what lets the manifest exist without a
      * second pass over the data: only names and digests accumulate, and those
@@ -258,7 +255,7 @@ public final class TenantExport {
      * is also the largest: a tenant's whole history, uncompressed, as CSV.
      * Materialising it before writing made the export need memory
      * proportional to the biggest table — the one shape guaranteed to fail on
-     * exactly the tenants for whom leaving matters most (#35).
+     * exactly the tenants for whom leaving matters most.
      */
     private static void dumpInto(org.postgresql.copy.CopyManager copy, DigestingZip zip,
             String entryName, String sql, String what) throws IOException {
@@ -390,8 +387,7 @@ public final class TenantExport {
     }
 
     /**
-     * Whether a table holds <b>delivery state</b> rather than data
-     * (jengu-platform#872).
+     * Whether a table holds <b>delivery state</b> rather than data.
      *
      * <p>A subscription is two things wearing one name: the declaration — who
      * wants what — is durable configuration and travels as an ordinary object;

@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * jengu-platform#877: the platform can say whether its records are whole.
+ * The platform can say whether its records are whole.
  *
  * <p>Nothing validates references on write, so a dangling reference is created
  * by ordinary operation and noticed by nobody. These prove it is noticed now —
@@ -82,7 +82,7 @@ class ReferenceClosureIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#877: a record pointing at something absent is found, and named from both ends")
+    @DisplayName("a record pointing at something absent is found, and named from both ends")
     void looseEndsAreFindable() {
         String missing = "11111111-1111-1111-1111-111111111111";
         PutResult report = store.put(PutRequest.create("Report",
@@ -103,7 +103,7 @@ class ReferenceClosureIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#877: a reference resolved elsewhere by design is not reported as damage")
+    @DisplayName("a reference resolved elsewhere by design is not reported as damage")
     void expectedAbsenceIsNotADefect() {
         store.put(PutRequest.create("Report",
                 pointingAt("LicensedVocabulary/http://snomed.info/sct|73211009")));
@@ -126,7 +126,7 @@ class ReferenceClosureIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#877: the report can be asked again, and a loose end heals when its target lands")
+    @DisplayName("the report can be asked again, and a loose end heals when its target lands")
     void theReportIsRerunnableAndLooseEndsHeal() {
         String targetId = "22222222-2222-2222-2222-222222222222";
         store.put(PutRequest.create("Report", pointingAt("Subject/" + targetId)));
@@ -148,7 +148,7 @@ class ReferenceClosureIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#877: a restore that would leave records pointing at nothing is refused, not warned")
+    @DisplayName("a restore that would leave records pointing at nothing is refused, not warned")
     void aRestoreIsWholeOrRefused() {
         store.put(PutRequest.create("Report",
                 pointingAt("Subject/33333333-3333-3333-3333-333333333333")));

@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#7: the tier-1 search matrix, each scenario mirroring a production shape
+ * The tier-1 search matrix, each scenario mirroring a production shape
  * from docs/evidence/search-usage-inventory.md.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#39: attaching an identity to a subject, and taking it back.
+ * Attaching an identity to a subject, and taking it back.
  *
  * <p>Binding is the act no read control touches — an anonymous subject has no
  * identity to read, so protecting reads protects nothing until somebody binds.
@@ -58,7 +58,7 @@ class BindingIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: an anonymous subject has nobody attached until somebody attaches them")
+    @DisplayName("an anonymous subject has nobody attached until somebody attaches them")
     void aSubjectStartsAnonymous() {
         assertEquals(Set.of(), Bindings.current(store, "subject-untouched"),
                 "care is recorded before anybody knows who the person is, and that is a complete "
@@ -67,7 +67,7 @@ class BindingIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: withdrawing removes the identity and keeps the evidence it was there")
+    @DisplayName("withdrawing removes the identity and keeps the evidence it was there")
     void withdrawalKeepsTheEvidence() {
         Bindings.record(store, BindingEvent.bound("person-1", "subject-1", Assurance.SUBSTANTIAL,
                 "reception-desk-7", MONDAY, "TREAT", "national eID presented"));
@@ -86,7 +86,7 @@ class BindingIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: a mistaken withdrawal is as recoverable as a mistaken binding")
+    @DisplayName("a mistaken withdrawal is as recoverable as a mistaken binding")
     void rebindingAfterAWithdrawalWorks() {
         Bindings.record(store, BindingEvent.bound("person-2", "subject-2", Assurance.SUBSTANTIAL,
                 "desk", MONDAY, "TREAT", "first"));
@@ -102,7 +102,7 @@ class BindingIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: binding without a purpose or a person behind it is refused")
+    @DisplayName("binding without a purpose or a person behind it is refused")
     void bindingNamesWhoAndWhy() {
         assertTrue(assertThrows(IllegalArgumentException.class,
                 () -> BindingEvent.bound("person-3", "subject-3", Assurance.SUBSTANTIAL, "  ", MONDAY, "TREAT", null))
@@ -115,7 +115,7 @@ class BindingIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: a recorded binding cannot be rewritten into a different one")
+    @DisplayName("a recorded binding cannot be rewritten into a different one")
     void bindingEventsAreAppendOnly() {
         String id = Bindings.record(store, BindingEvent.bound("person-4", "subject-4", Assurance.SUBSTANTIAL,
                 "desk", MONDAY, "TREAT", "eID"));
@@ -135,7 +135,7 @@ class BindingIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: one subject's bindings say nothing about another's")
+    @DisplayName("one subject's bindings say nothing about another's")
     void bindingsAreScopedToTheirSubject() {
         Bindings.record(store, BindingEvent.bound("person-5", "subject-5", Assurance.SUBSTANTIAL,
                 "desk", MONDAY, "TREAT", "eID"));

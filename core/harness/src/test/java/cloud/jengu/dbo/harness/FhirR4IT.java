@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** dbo#6 proof matrix: the R4 personality over the model-agnostic engine. */
+/** Proof matrix: the R4 personality over the model-agnostic engine. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class FhirR4IT {
 
@@ -82,7 +82,7 @@ class FhirR4IT {
     }
 
     /**
-     * dbo#29: a read hands back a resource a client can actually use.
+     * A read hands back a resource a client can actually use.
      *
      * <p>The payload is the truth and carries no id — a create without one in
      * the body is stored exactly as sent. But serving that back verbatim gave

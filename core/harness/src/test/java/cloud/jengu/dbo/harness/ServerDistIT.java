@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#19: the REAL serving distribution (standard Felix launcher + the
+ * The REAL serving distribution (standard Felix launcher + the
  * production bundle set, booted through bin/dbo-server exactly as the
  * container does) serves an operator-provisioned tenant end-to-end —
  * k8s-secret-backed provisioner, tenant-role pooled creds, spec-directory

@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * jengu-platform#871: a clinician's edge PIN is a credential, not a field on a
+ * A clinician's edge PIN is a credential, not a field on a
  * configured record.
  *
  * <p>It used to live as an extension on a {@code Practitioner} projected from
@@ -67,7 +67,7 @@ class EdgePinIsACredentialIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#871: a PIN set at the bench is verified there, and is not on any clinical record")
+    @DisplayName("a PIN set at the bench is verified there, and is not on any clinical record")
     void aPinIsACredential() {
         authority.setFactor("albus@hogwarts.scot", "pin", "4815");
 
@@ -77,7 +77,7 @@ class EdgePinIsACredentialIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#871: setting a password leaves the PIN, and setting a PIN leaves the password")
+    @DisplayName("setting a password leaves the PIN, and setting a PIN leaves the password")
     void factorsDoNotOverwriteEachOther() {
         authority.setFactor("albus@hogwarts.scot", "pin", "4815");
 
@@ -108,7 +108,7 @@ class EdgePinIsACredentialIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#871: factors are kinds — a one-time code sits beside the PIN, not over it")
+    @DisplayName("factors are kinds — a one-time code sits beside the PIN, not over it")
     void factorsAreKindsNotFields() {
         authority.setFactor("albus@hogwarts.scot", "pin", "4815");
         authority.setFactor("albus@hogwarts.scot", "otp", "162342");
@@ -123,7 +123,7 @@ class EdgePinIsACredentialIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#871: a PIN cannot conjure a login that nobody has a password for")
+    @DisplayName("a PIN cannot conjure a login that nobody has a password for")
     void aPinDoesNotCreateALogin() {
         assertThrows(IllegalArgumentException.class,
                 () -> authority.setFactor("nobody@hogwarts.scot", "pin", "0000"));
@@ -131,7 +131,7 @@ class EdgePinIsACredentialIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#871: a bench gets verifiers for offline sign-in, and only hashes")
+    @DisplayName("a bench gets verifiers for offline sign-in, and only hashes")
     void offlineVerifiersAreDistributedAsHashesOnly() {
         authority.setFactor("albus@hogwarts.scot", "pin", "4815");
 
@@ -148,7 +148,7 @@ class EdgePinIsACredentialIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#871: a login with no PIN is not distributed at all")
+    @DisplayName("a login with no PIN is not distributed at all")
     void aLoginWithoutAPinIsNotShipped() {
         authority.ensureLocalCredential("nopin@hogwarts.scot", "test1234", "prac-2");
 
@@ -159,7 +159,7 @@ class EdgePinIsACredentialIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#871: the credential is store-authored — it rides a backup and never an export")
+    @DisplayName("the credential is store-authored — it rides a backup and never an export")
     void theCredentialIsClassifiedAsOne() {
         TypeRegistration credential = IdentityModel.registrations().stream()
                 .filter(t -> t.typeName().equals("LocalCredential"))

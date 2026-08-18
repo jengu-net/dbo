@@ -2,7 +2,7 @@ plugins {
     id("biz.aQute.bnd.builder")
 }
 
-// Tenant policies (dbo#22, §15): audit (regular pseudonymous records riding
+// Tenant policies (§15): audit (regular pseudonymous records riding
 // the outbox, actor from the §13 token), append-only write discipline
 // (engine-enforced tombstone rejection), and declarative retention (the one
 // sanctioned mutation of history, itself audited). ZERO new dependencies.

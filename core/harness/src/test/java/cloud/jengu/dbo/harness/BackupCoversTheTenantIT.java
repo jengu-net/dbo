@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * jengu-platform#866: a backup covers the tenant, not the domain it was asked
+ * A backup covers the tenant, not the domain it was asked
  * about.
  *
  * <p>A tenant is several domains at once — clinical records under the FHIR
@@ -86,7 +86,7 @@ class BackupCoversTheTenantIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#866: a backup taken of the clinical domain carries the credentials that live "
+    @DisplayName("a backup taken of the clinical domain carries the credentials that live "
             + "in another one")
     void theBackupCarriesEveryDomain() throws Exception {
         TreeSet<String> entries = entriesOf(backup);
@@ -103,7 +103,7 @@ class BackupCoversTheTenantIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#866: the archive declares which domains it covers, so a reader is not left "
+    @DisplayName("the archive declares which domains it covers, so a reader is not left "
             + "inferring it from the file names")
     void theCoveredDomainsAreDeclared() throws Exception {
         String manifest = manifestOf(backup);
@@ -115,7 +115,7 @@ class BackupCoversTheTenantIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#866: restoring it produces an installation that can authenticate its own "
+    @DisplayName("restoring it produces an installation that can authenticate its own "
             + "tenants — the records and the credentials both land")
     void theRestoreCanAuthenticate() throws Exception {
         PGSimpleDataSource target = database("backup_whole_tenant_target");
@@ -134,7 +134,7 @@ class BackupCoversTheTenantIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#866: a portable export still covers only what the customer owns — widening "
+    @DisplayName("a portable export still covers only what the customer owns — widening "
             + "the backup must not widen the export")
     void theExportDidNotWiden() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();

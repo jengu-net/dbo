@@ -46,11 +46,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#18 Slice B on a REAL Kubernetes API server (k3s) with the Postgres
+ * The provisioning operator on a REAL Kubernetes API server (k3s) with the Postgres
  * instance OUTSIDE the cluster — matching the Hetzner topology (host-native
  * PG). The operator runs with the SCOPED dbo_provisioner role
  * (CREATEDB CREATEROLE, not superuser). The serving side is the unchanged
- * dbo#17 manager, fed by SpecDirSync and pooled by
+ * tenant runtime manager, fed by SpecDirSync and pooled by
  * KubernetesSecretProvisioner — the tenant role's own credentials, never
  * the admin's.
  */
@@ -177,7 +177,7 @@ class OperatorIT {
         assertEquals("tenant-bootstrap", decode(secret, "client_id"));
         assertTrue(decode(secret, "client_secret").length() >= 24);
 
-        // Slice L: the jengu-cloud RP client's platform-readable custody
+        // the RP client's platform-readable custody
         Secret rp = client.secrets().inNamespace(NS).withName("tenant-opitenant-rp").get();
         assertNotNull(rp, "the RP Secret must exist");
         assertEquals("jengu-cloud", decode(rp, "client_id"));
@@ -200,7 +200,7 @@ class OperatorIT {
                 JOIN pg_roles r ON r.oid = m.member
                 WHERE g.rolname = 'tenants' AND r.rolname = 'tenant_opitenant'"""));
 
-        // R3 applied by this provisioner too
+        // per-database timeouts applied by this provisioner too
         assertEquals(1, countIn("""
                 SELECT count(*) FROM pg_db_role_setting s
                 JOIN pg_database d ON d.oid = s.setdatabase
@@ -213,8 +213,8 @@ class OperatorIT {
         assertTrue(client.configMaps().inNamespace(NS).withName(TenantOperator.CONFIGMAP)
                 .get().getData().containsKey("opitenant.json"));
 
-        // §14/§15 blocks survive the CRD schema AND the re-emit (the slice E
-        // pruning gap) — proven on a dedicated registration
+        // §14/§15 blocks survive the CRD schema AND the re-emit (the
+        // structural-pruning gap) — proven on a dedicated registration
         GenericKubernetesResource poliis = new GenericKubernetesResource();
         poliis.setApiVersion("jengu.cloud/v1alpha1");
         poliis.setKind("TenantRegistration");
@@ -257,7 +257,7 @@ class OperatorIT {
         }
     }
 
-    /** Full chain: ConfigMap → SpecDirSync → #17 manager + secret-backed pool → live endpoint. */
+    /** Full chain: ConfigMap → SpecDirSync → runtime manager + secret-backed pool → live endpoint. */
     @Test
     @Order(2)
     @Timeout(300)

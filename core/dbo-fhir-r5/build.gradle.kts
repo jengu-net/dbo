@@ -2,7 +2,7 @@
 // r5 model imports: under the §7.3 packaging model each personality embeds a
 // PRIVATE HAPI stack, so per-personality compiled units are the target shape.
 // A neutral-API commons (FhirTerser-based) is the known refactor option,
-// deferred until the R6 ballot personality makes the cost real (dbo#10).
+// deferred until the R6 ballot personality makes the cost real.
 
 val embedded: Configuration by configurations.creating
 configurations.implementation.get().extendsFrom(embedded)

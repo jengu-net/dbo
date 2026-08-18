@@ -7,8 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Which configuration commit this tenant's projection came from
- * (jengu-platform#866).
+ * Which configuration commit this tenant's projection came from.
  *
  * <p>A restore puts a tenant's data back. Whether the restore is
  * <b>reproducible</b> or merely approximate depends on knowing which

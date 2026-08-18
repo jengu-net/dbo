@@ -1,4 +1,4 @@
-// Tenant runtime wiring (dbo#17): the mandatory TenantDatabaseProvisioner
+// Tenant runtime wiring: the mandatory TenantDatabaseProvisioner
 // service, the default database-per-tenant implementation, and the manager
 // that turns spec files into live tenant service sets. HikariCP (+slf4j)
 // rides privately in the bundle — the fat-embedding pattern.

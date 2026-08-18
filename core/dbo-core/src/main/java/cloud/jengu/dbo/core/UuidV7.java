@@ -5,8 +5,7 @@ import java.util.UUID;
 
 /**
  * RFC 9562 UUIDv7: 48-bit unix-millis prefix + random. Time-ordered ids keep
- * B-tree inserts append-mostly and give feed cursors a natural tiebreak; the
- * groomed decision of dbo#4.
+ * B-tree inserts append-mostly and give feed cursors a natural tiebreak.
  */
 public final class UuidV7 {
 

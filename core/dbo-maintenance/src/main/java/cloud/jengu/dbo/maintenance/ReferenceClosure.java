@@ -10,8 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Whether any record points at something that is not there
- * (jengu-platform#877).
+ * Whether any record points at something that is not there.
  *
  * <p>Nothing validates references on write — there are no foreign keys between
  * objects, deliberately, because clinical data has genuine reference cycles and

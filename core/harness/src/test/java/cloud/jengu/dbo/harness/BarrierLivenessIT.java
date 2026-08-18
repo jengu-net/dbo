@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#18 R1: the per-database barrier fast path — a long write-transaction
- * in a FOREIGN database of the same instance (the dbo#16 pinner) no longer
+ * The per-database barrier fast path — a long write-transaction
+ * in a FOREIGN database of the same instance (the foreign-database pinner) no longer
  * delays a quiet tenant's feed.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

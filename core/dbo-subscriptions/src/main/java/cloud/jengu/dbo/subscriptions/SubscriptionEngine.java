@@ -28,7 +28,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
- * Durable subscription delivery over the change feed (dbo#8).
+ * Durable subscription delivery over the change feed.
  *
  * <p>Matching is a search, not an evaluator: an event matches a subscription
  * iff {@code count(compiled criteria AND id = event.objectId) > 0} — the whole
@@ -165,7 +165,7 @@ public final class SubscriptionEngine implements AutoCloseable {
     }
 
     /**
-     * Enables the topic-based path (dbo#15): topics + subscriptions from the
+     * Enables the topic-based path: topics + subscriptions from the
      * personality source, notifications shaped by the composer, filters
      * compiled through the personality's strict search compiler.
      */

@@ -24,7 +24,7 @@ The zone tenant (e.g. `ee`) carries a dbo-native `zone` domain:
   from here; dbo code carries none.
 
 Because declarations are records they are versioned, audited, exported,
-and — on real chains — STREAMED down the existing §6/#14 SYNC machinery:
+and — on real chains — STREAMED down the existing §6 SYNC machinery:
 the zone chain and the content chain are the same mechanism.
 
 ## 17.2 The set is jurisdictional; the choice is organizational

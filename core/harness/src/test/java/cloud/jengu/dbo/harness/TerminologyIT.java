@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** dbo#9 proof matrix: the terminology truth-form inversion. */
+/** Proof matrix: the terminology truth-form inversion. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TerminologyIT {
 

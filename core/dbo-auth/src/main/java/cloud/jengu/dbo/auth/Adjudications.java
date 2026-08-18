@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Decisions about who somebody is, written down and found again (dbo#39).
+ * Decisions about who somebody is, written down and found again.
  *
  * <p>Recording the decision is only half of it. The half that pays is asking,
  * next time the same claim turns up, whether anybody already looked at this
@@ -28,8 +28,8 @@ public final class Adjudications {
     /** Writes the decision. Append-only: a revision is a new decision, never an edit. */
     public static String record(ObjectStore store, Adjudication decision) {
         // TENANT_USERS is the default caller, which is what a receptionist is.
-        // Declaring it explicitly is not possible through the interface — see
-        // dbo#41 — and would be a no-op here in any case.
+        // Declaring it explicitly is not possible through the ObjectStore
+        // interface — and would be a no-op here in any case.
         return store.put(PutRequest.create("Adjudication", render(decision))).id();
     }
 

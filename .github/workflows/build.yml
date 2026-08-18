@@ -1,6 +1,6 @@
 name: build
 
-# THE dbo pipeline — one workflow, two modes (Alan's consolidation):
+# THE dbo pipeline — one workflow, two modes:
 #
 #   main push / PR   suite → (push only) snapshot jars → images :main-<sha>
 #   release tag v*   suite → RELEASE jars (fixed version from the tag,

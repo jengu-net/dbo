@@ -90,7 +90,7 @@ public final class SealedArchive {
 
 
     /**
-     * Seals as the caller writes (#35): the archive never exists whole in
+     * Seals as the caller writes: the archive never exists whole in
      * memory, in plaintext or in ciphertext.
      *
      * <p>The wire format is unchanged — magic, header, ciphertext — so an
@@ -127,7 +127,7 @@ public final class SealedArchive {
     }
 
     /**
-     * Opens as the caller reads (#35).
+     * Opens as the caller reads.
      *
      * <p>Deliberately NOT {@code CipherInputStream}: that class swallows the
      * AEAD tag failure on close, so a tampered or truncated archive reads as

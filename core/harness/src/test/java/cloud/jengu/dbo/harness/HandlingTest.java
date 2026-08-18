@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * jengu-platform#869: every type says what kind of data it is, and the
+ * Every type says what kind of data it is, and the
  * combinations that are always mistakes are refused where they are written
  * rather than discovered where they hurt.
  */
@@ -27,7 +27,7 @@ class HandlingTest {
     private static final EnvelopeExtractor NOTHING = (typeName, payload) -> new Envelope();
 
     @Test
-    @DisplayName("#869: a type declared in a SPEC without a handling is refused too — the rule "
+    @DisplayName("a type declared in a SPEC without a handling is refused too — the rule "
             + "does not depend on which layer the declaration came from")
     void anUnclassifiedTypeInASpecCannotBeParsed() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
@@ -40,7 +40,7 @@ class HandlingTest {
     }
 
     @Test
-    @DisplayName("#869: a misspelt handling is refused rather than falling through — a typo must "
+    @DisplayName("a misspelt handling is refused rather than falling through — a typo must "
             + "not become a classification")
     void aTypoIsNotAClassification() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
@@ -52,7 +52,7 @@ class HandlingTest {
     }
 
     @Test
-    @DisplayName("#869: a classified spec parses, and the type carries what it declared")
+    @DisplayName("a classified spec parses, and the type carries what it declared")
     void aClassifiedSpecCarriesItsDeclaration() {
         var spec = cloud.jengu.dbo.tenant.TenantSpec.parse("""
                 {"code":"said","fhirVersion":"r4","types":[
@@ -62,7 +62,7 @@ class HandlingTest {
     }
 
     @Test
-    @DisplayName("#869: a type registered without a declared handling is refused, and says what to say")
+    @DisplayName("a type registered without a declared handling is refused, and says what to say")
     void anUnclassifiedTypeCannotBeRegistered() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> new TypeRegistration("Mystery", "test", IdentityClass.INTERNAL,
@@ -73,7 +73,7 @@ class HandlingTest {
     }
 
     @Test
-    @DisplayName("#869/#872: ephemeral data may not travel — a restored heartbeat asserts a lie")
+    @DisplayName("ephemeral data may not travel — a restored heartbeat asserts a lie")
     void ephemeralDataMayNotTravel() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> new Handling(Handling.Authority.OBSERVED, Handling.Mutability.REPLACE_IN_PLACE,
@@ -83,7 +83,7 @@ class HandlingTest {
     }
 
     @Test
-    @DisplayName("#869: an append-only record that expires is refused — that is not append-only")
+    @DisplayName("an append-only record that expires is refused — that is not append-only")
     void appendOnlyCannotExpire() {
         assertThrows(IllegalArgumentException.class,
                 () -> new Handling(Handling.Authority.PLATFORM_RUNTIME,
@@ -92,7 +92,7 @@ class HandlingTest {
     }
 
     @Test
-    @DisplayName("#869: observed data may not accumulate versions — heartbeats are not history")
+    @DisplayName("observed data may not accumulate versions — heartbeats are not history")
     void observedDataIsNotVersioned() {
         assertThrows(IllegalArgumentException.class,
                 () -> new Handling(Handling.Authority.OBSERVED, Handling.Mutability.REPLACE_IN_PLACE,
@@ -100,7 +100,7 @@ class HandlingTest {
     }
 
     @Test
-    @DisplayName("#869: credentials ride a backup and never an export; clinical data rides both")
+    @DisplayName("credentials ride a backup and never an export; clinical data rides both")
     void travelDiffersByKind() {
         assertTrue(Handling.storeAuthored().travelsInBackup(),
                 "a backup without credentials cannot authenticate its own tenants");
@@ -113,14 +113,14 @@ class HandlingTest {
     }
 
     @Test
-    @DisplayName("#869: audit is append-only against everyone, the vendor included")
+    @DisplayName("audit is append-only against everyone, the vendor included")
     void auditIsAppendOnly() {
         assertEquals(Handling.Mutability.APPEND_ONLY, Handling.audit().mutability());
         assertFalse(Handling.audit().isWritableBy(Handling.Authority.TENANT_USERS));
     }
 
     @Test
-    @DisplayName("#869: replicated data is writable only by the tenant that publishes it")
+    @DisplayName("replicated data is writable only by the tenant that publishes it")
     void replicatedDataIsReadOnlyHere() {
         Handling replicated = Handling.replicated();
         assertFalse(replicated.isWritableBy(Handling.Authority.TENANT_USERS),

@@ -12,7 +12,7 @@ import java.util.List;
 
 /**
  * Whether a subject is anonymous on purpose, and the refusal that makes the
- * declaration mean something (dbo#39).
+ * declaration mean something.
  */
 public final class Anonymity {
 

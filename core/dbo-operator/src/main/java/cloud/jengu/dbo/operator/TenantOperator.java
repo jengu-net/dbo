@@ -25,11 +25,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The provisioning operator (dbo#18, Slice B): reconciles
+ * The provisioning operator: reconciles
  * {@code TenantRegistration} CRs against the Hetzner pattern — a login role
  * and a database per tenant on the host-native Postgres instance, the
  * credentials as a k8s Secret, the tenant's spec JSON as a key in the
- * {@code dbo-tenants} ConfigMap (which serving pods mount as the dbo#17
+ * {@code dbo-tenants} ConfigMap (which serving pods mount as their tenant
  * spec directory).
  *
  * <p>Runs with a SCOPED provisioner role (CREATEDB CREATEROLE), never
@@ -179,7 +179,7 @@ public final class TenantOperator implements AutoCloseable {
             execIgnoring(c, "CREATE ROLE tenants NOLOGIN", DUPLICATE_OBJECT);
             execIgnoring(c, "GRANT tenants TO " + role, DUPLICATE_OBJECT);
             execIgnoring(c, "CREATE DATABASE " + role + " OWNER " + role, DUPLICATE_DATABASE);
-            // dbo#18 R3, mirrored from the local provisioner: worst-case feed
+            // Mirrored from the local provisioner: worst-case feed
             // delay becomes the timeout, by construction
             exec(c, "ALTER DATABASE " + role + " SET idle_in_transaction_session_timeout = '60s'");
             exec(c, "ALTER DATABASE " + role + " SET transaction_timeout = '300s'");
@@ -202,7 +202,7 @@ public final class TenantOperator implements AutoCloseable {
         k8s.secrets().inNamespace(namespace).resource(secret).serverSideApply();
 
         if (rpRedirectUris != null && !rpRedirectUris.isEmpty()) {
-            // the jengu-cloud RP client's custody (jengu-platform#844): a
+            // the jengu-cloud RP client's custody: a
             // PLATFORM-readable Secret; the serving side ensures the
             // ClientApplication record from it, so record and Secret never drift
             String rpSecretName = "tenant-" + code + "-rp";
@@ -307,7 +307,7 @@ public final class TenantOperator implements AutoCloseable {
         }
     }
 
-    /** Re-emits the CR spec in the dbo#17 spec-file format the manager parses. */
+    /** Re-emits the CR spec in the spec-file format the manager parses. */
     @SuppressWarnings("unchecked")
     static String specJson(GenericKubernetesResource cr) {
         Map<String, Object> spec = (Map<String, Object>) cr.getAdditionalProperties().get("spec");
@@ -344,7 +344,7 @@ public final class TenantOperator implements AutoCloseable {
             }
             // Carried through rather than defaulted here: the spec layer
             // refuses a type that has not said what kind of data it is
-            // (jengu-platform#869), and a default invented in the translator
+            //, and a default invented in the translator
             // would answer that question on the author's behalf without
             // anybody deciding.
             Object handling = t.get("handling");

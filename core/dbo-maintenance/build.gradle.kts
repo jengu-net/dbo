@@ -2,7 +2,7 @@ plugins {
     id("biz.aQute.bnd.builder")
 }
 
-// Backup is export, restore is import (dbo#16, §11). The PG driver supplies
+// Backup is export, restore is import (§11). The PG driver supplies
 // COPY for the byte-faithful fidelity element; crypto is JDK-only.
 // bnd computes Import-Package from bytecode.
 

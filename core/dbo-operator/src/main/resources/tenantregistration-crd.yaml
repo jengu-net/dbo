@@ -71,7 +71,7 @@ spec:
                     # handling is required at the outermost edge: an
                     # unclassified type is refused by the API server, so it
                     # never becomes a registration somebody has to debug at
-                    # tenant bring-up (jengu-platform#869)
+                    # tenant bring-up
                     required: [name, identity, handling]
                     properties:
                       name:

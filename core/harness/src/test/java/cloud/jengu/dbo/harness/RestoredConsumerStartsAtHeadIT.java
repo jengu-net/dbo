@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * jengu-platform#872: a restored consumer stands at the head of the feed.
+ * A restored consumer stands at the head of the feed.
  *
  * <p>The companion to {@code ImportDoesNotRedeliverIT}, which covers the other
  * half of the same promise: that half proves a restore does not <em>announce</em>
@@ -89,7 +89,7 @@ class RestoredConsumerStartsAtHeadIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#872: a restored consumer stands at the head of the feed, not where the "
+    @DisplayName("a restored consumer stands at the head of the feed, not where the "
             + "backup caught it")
     void aRestoredConsumerIsAtTheHead() throws Exception {
         restoreInto(target);
@@ -109,7 +109,7 @@ class RestoredConsumerStartsAtHeadIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#872: the objects themselves are all there — nothing was dropped along with "
+    @DisplayName("the objects themselves are all there — nothing was dropped along with "
             + "the delivery state")
     void theDataItselfSurvives() throws Exception {
         restoreInto(target);

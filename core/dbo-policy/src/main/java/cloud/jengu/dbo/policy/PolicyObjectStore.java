@@ -50,7 +50,7 @@ public final class PolicyObjectStore implements ObjectStore {
     /**
      * Forwards the caller's authority rather than dropping it. A wrapper that
      * swallowed it would leave the shield seeing the least-privileged default
-     * while the caller believed it had declared something (dbo#41).
+     * while the caller believed it had declared something.
      */
     @Override
     public PutResult put(PutRequest request, Handling.Authority caller) {

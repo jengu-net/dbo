@@ -63,7 +63,7 @@ public final class ContentSyncEngine {
     /**
      * The ack cursor lives in the SOURCE feed keyed by consumer — when several
      * dependents declare the same upstream, each needs its own consumer id or
-     * they share a cursor and split the event stream between them (dbo#30).
+     * they share a cursor and split the event stream between them.
      */
     public ContentSyncEngine(ContentDependency dependency, ChangeFeed sourceFeed,
             ObjectStore targetStore, DataSource targetDataSource, String targetDomain,
@@ -161,7 +161,7 @@ public final class ContentSyncEngine {
             // write it has to say so — the alternative is inferring it from
             // whichever credential happened to be in play, which would make
             // the shield depend on deployment wiring rather than on what the
-            // code is doing (jengu-platform#869, dbo#37).
+            // code is doing.
             targetStore.put(new PutRequest(item.typeName(), item.objectId(), null, payload),
                     cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
             recordOrigin(item, version);

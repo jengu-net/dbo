@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * jengu-platform#880: what identifies is declared, and some of it is made
+ * What identifies is declared, and some of it is made
  * coarser rather than taken away.
  *
  * <p>A birth date identifies and is also what dosing, growth charts and
@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GeneralisedNotRemovedIT {
 
     @Test
-    @DisplayName("#880: a birth date is declared coarse, not removed; the rest is removed")
+    @DisplayName("a birth date is declared coarse, not removed; the rest is removed")
     void birthDateIsGeneralisedAndTheRestIsRemoved() {
         PdiSpec spec = PdiSpec.fhir();
 
@@ -42,7 +42,7 @@ class GeneralisedNotRemovedIT {
     }
 
     @Test
-    @DisplayName("#880: an element with no known coarse form is absent rather than approximated")
+    @DisplayName("an element with no known coarse form is absent rather than approximated")
     void unknownElementsAreNotApproximated() {
         PdiSpec spec = PdiSpec.fhir();
 
@@ -54,7 +54,7 @@ class GeneralisedNotRemovedIT {
     }
 
     @Test
-    @DisplayName("#880: a jurisdiction can change what identifies, and how")
+    @DisplayName("a jurisdiction can change what identifies, and how")
     void aJurisdictionCanOverrideTheDeclaration() {
         PdiSpec base = PdiSpec.fhir();
         assertFalse(base.identifyingElements("Patient").contains("maritalStatus"));
@@ -74,7 +74,7 @@ class GeneralisedNotRemovedIT {
     }
 
     @Test
-    @DisplayName("#880: the coarse birth date is still a valid FHIR date")
+    @DisplayName("the coarse birth date is still a valid FHIR date")
     void theCoarseFormIsValidFhir() {
         // FHIR's date type admits YYYY, YYYY-MM and YYYY-MM-DD, so the coarse
         // value is expressible in the standard's own type system rather than

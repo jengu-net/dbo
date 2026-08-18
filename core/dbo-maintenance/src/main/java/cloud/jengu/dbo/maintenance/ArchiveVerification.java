@@ -8,7 +8,7 @@ import java.util.zip.ZipInputStream;
 
 /**
  * Checks an archive against what both parties attested, before a single row
- * of it is written (#34, ADR 0052 §5).
+ * of it is written (ADR 0052 §5).
  *
  * <p>Refusal is whole. A partially-applied archive is worse than a rejected
  * one: the tenant is left in a state neither party attested, and nobody can
@@ -72,7 +72,7 @@ public final class ArchiveVerification {
 
 
     /**
-     * Verifies without holding the archive (#35): digests every entry as it
+     * Verifies without holding the archive: digests every entry as it
      * streams past, then compares against the digest list, which is the last
      * entry precisely because it could not be written any earlier.
      *

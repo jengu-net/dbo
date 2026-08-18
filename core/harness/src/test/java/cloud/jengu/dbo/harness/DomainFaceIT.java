@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#38: what the engine requires from a face is a named contract, declared
+ * What the engine requires from a face is a named contract, declared
  * rather than assumed.
  *
  * <p>The property that matters most here is the last one: a capability the
@@ -30,7 +30,7 @@ class DomainFaceIT {
     }
 
     @Test
-    @DisplayName("#38: a face provides what it declared, and the engine can use it")
+    @DisplayName("a face provides what it declared, and the engine can use it")
     void aFaceProvidesWhatItDeclared() {
         DomainFace face = FhirFace.of("r4");
 
@@ -41,7 +41,7 @@ class DomainFaceIT {
     }
 
     @Test
-    @DisplayName("#38: asking for something a face never declared is refused, and named")
+    @DisplayName("asking for something a face never declared is refused, and named")
     void anUndeclaredCapabilityIsRefused() {
         DomainFace face = FhirFace.of("r4");
 
@@ -59,7 +59,7 @@ class DomainFaceIT {
     }
 
     @Test
-    @DisplayName("#38: a new capability does not break a face that predates it")
+    @DisplayName("a new capability does not break a face that predates it")
     void theContractGrowsWithoutBreakingFaces() {
         DomainFace older = FhirFace.of("r4");
         DomainFace newer = DeclaredFace.named("fhir-r5")
@@ -76,7 +76,7 @@ class DomainFaceIT {
     }
 
     @Test
-    @DisplayName("#38: declaring the same capability twice is a mistake, not a merge")
+    @DisplayName("declaring the same capability twice is a mistake, not a merge")
     void declaringTwiceIsRefused() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> DeclaredFace.named("confused")
@@ -88,7 +88,7 @@ class DomainFaceIT {
     }
 
     @Test
-    @DisplayName("#38: a face that generalises nothing is a valid face")
+    @DisplayName("a face that generalises nothing is a valid face")
     void afaceMayProvideNothing() {
         DomainFace bare = DeclaredFace.named("minimal").build();
 

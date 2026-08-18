@@ -45,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#27 (§17): the zone is a tenant whose declarations are records — two
+ * §17: the zone is a tenant whose declarations are records — two
  * national brokers (tara: government, eeid: private) declared in the zone
  * tenant; the tenant chooses its broker, may restrict what it accepts, and
  * the per-zone hub's sessions ACCUMULATE ceremonies. The fee proof is

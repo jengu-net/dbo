@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 
 /**
  * Mirrors the operator's {@code dbo-tenants} ConfigMap into a local
- * directory, so the dbo#17 {@code TenantRuntimeManager} runs UNCHANGED
+ * directory, so {@code TenantRuntimeManager} runs UNCHANGED
  * in-cluster: it keeps watching a spec directory; this keeps that directory
  * equal to the ConfigMap. (A ConfigMap volume mount does the same job in a
  * pod; this class is the mount for processes that don't have one — and the

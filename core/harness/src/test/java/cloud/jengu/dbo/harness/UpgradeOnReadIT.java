@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#11: REQ-DBO-CORE-UPGRADE-ON-READ — a domain written under R4 re-binds
+ * REQ-DBO-CORE-UPGRADE-ON-READ — a domain written under R4 re-binds
  * to R5 with a converter; reads upgrade lazily, stored bytes stay R4, and
  * converter + reindex makes R5 search live. The transition, not the ceremony.
  */

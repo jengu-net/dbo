@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#10: REQ-DBO-VER-CONCURRENT-VERSIONS — R4 and R5 personalities over ONE
+ * REQ-DBO-VER-CONCURRENT-VERSIONS — R4 and R5 personalities over ONE
  * database in ONE process, isolated by domain, with the core untouched.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

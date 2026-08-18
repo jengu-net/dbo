@@ -22,8 +22,8 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 
 /**
- * The FHIR REST endpoint over one tenant store (dbo#12). JDK HttpServer +
- * virtual threads — no framework (R2). Engine semantics surface as HTTP:
+ * The FHIR REST endpoint over one tenant store. JDK HttpServer +
+ * virtual threads — no framework. Engine semantics surface as HTTP:
  * If-Match → 412, identity conflict → 409, validation → 422, strict search →
  * 400; every error body is an OperationOutcome.
  */
@@ -65,7 +65,7 @@ public final class FhirHttpServer implements AutoCloseable {
     }
 
     /**
-     * Attached mode (dbo#17): mounts onto an EXISTING shared server under the
+     * Attached mode: mounts onto an EXISTING shared server under the
      * base path — the multi-tenant interim (`/t/<code>/fhir`) until the
      * routing layer. {@link #close()} detaches the context, never stops the
      * shared server.
