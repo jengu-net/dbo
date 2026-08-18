@@ -1,10 +1,9 @@
 # dbo-operator — the tenant provisioning operator.
 # Built from the installDist output: bin/ launcher + lib/ full classpath.
-# Same base as jengu-runtime (glibc temurin) for fleet consistency; the
-# operator itself has no native deps.
+# A glibc temurin base, matching the serving image; the operator itself has
+# no native dependencies.
 FROM eclipse-temurin:21-jre
 
-LABEL org.opencontainers.image.source="https://github.com/jengu-net/dbo"
 LABEL org.opencontainers.image.description="DBO tenant provisioning operator"
 
 RUN groupadd --system dbo && \

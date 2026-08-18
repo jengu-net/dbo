@@ -5,11 +5,16 @@ name: build
 #   main push / PR   suite → (push only) snapshot jars → images :main-<sha>
 #   release tag v*   suite → RELEASE jars (fixed version from the tag,
 #                    Bundle-Version included) → images :X.Y.Z
+#                    → Maven Central bundle (v-tags only)
 #
 # Snapshot jars are what embedded-Felix consumers (platform local-dev,
 # edge runtimes) resolve; releases pin everything to one number. Nothing
 # publishes and no image ships unless the full suite is green on exactly
 # that commit.
+#
+# Maven Central is deliberately RELEASE-ONLY and gated on a secret being
+# present: Central is immutable, so a publish is not something a main-branch
+# push should be able to do by accident.
 
 on:
   push:
@@ -44,9 +49,11 @@ jobs:
           if [[ "${{ github.ref_type }}" == "tag" && "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "gradle_args=-Pdbo.version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
             echo "image_tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
           else
             echo "gradle_args=" >> "$GITHUB_OUTPUT"
             echo "image_tag=main-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Build and test core
         run: ./gradlew build ${{ steps.version.outputs.gradle_args }}
@@ -77,6 +84,7 @@ jobs:
     outputs:
       gradle_args: ${{ steps.version.outputs.gradle_args }}
       image_tag: ${{ steps.version.outputs.image_tag }}
+      is_release: ${{ steps.version.outputs.is_release }}
 
   publish:
     needs: build
@@ -112,7 +120,18 @@ jobs:
             dist: ":core:dbo-server:installDist"
             context: core/dbo-server
     env:
+      # The LAN registry stays the fleet's own source — edge runtimes and the
+      # k3s deployments resolve from it, and it must not depend on a public
+      # registry being reachable. GHCR is the public primary; Docker Hub
+      # mirrors it because that is where people look first. Both public
+      # pushes are gated on their secret existing, so a fork builds images
+      # without needing any of them.
       REGISTRY: 192.168.1.14:5050
+      GHCR_IMAGE: ghcr.io/jengu-net/${{ matrix.image }}
+      DOCKERHUB_IMAGE: docker.io/jengu/${{ matrix.image }}
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -134,6 +153,45 @@ jobs:
           mkdir -p ~/.docker
           AUTH=$(printf '%s:%s' "$REG_USER" "$REG_PASS" | base64 | tr -d '\n')
           printf '{"auths":{"%s":{"auth":"%s"}}}' "${{ env.REGISTRY }}" "$AUTH" > ~/.docker/config.json
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to Docker Hub
+        id: dockerhub
+        if: ${{ secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Assemble the tag list
+        id: tags
+        env:
+          # A boolean, never the secret itself — an interpolated secret ends up
+          # in the shell's argument list and in any `set -x` output.
+          HAVE_DOCKERHUB: ${{ secrets.DOCKERHUB_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          {
+            echo "list<<EOF"
+            echo "${{ env.REGISTRY }}/${{ matrix.image }}:${{ needs.build.outputs.image_tag }}"
+            echo "${{ env.REGISTRY }}/${{ matrix.image }}:latest"
+            echo "${{ env.GHCR_IMAGE }}:${{ needs.build.outputs.image_tag }}"
+            # `latest` follows RELEASES only. A main-branch push moving latest
+            # means a user who typed no tag gets an untagged commit.
+            if [ "${{ needs.build.outputs.is_release }}" = "true" ]; then
+              echo "${{ env.GHCR_IMAGE }}:latest"
+            fi
+            if [ "$HAVE_DOCKERHUB" = "true" ]; then
+              echo "${{ env.DOCKERHUB_IMAGE }}:${{ needs.build.outputs.image_tag }}"
+              if [ "${{ needs.build.outputs.is_release }}" = "true" ]; then
+                echo "${{ env.DOCKERHUB_IMAGE }}:latest"
+              fi
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -149,9 +207,66 @@ jobs:
           file: ${{ matrix.context }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ matrix.image }}:${{ needs.build.outputs.image_tag }}
-            ${{ env.REGISTRY }}/${{ matrix.image }}:latest
+          tags: ${{ steps.tags.outputs.list }}
           labels: |
-            org.opencontainers.image.source=https://github.com/jengu-net/dbo
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.build.outputs.image_tag }}
+            org.opencontainers.image.licenses=MIT
+
+  central:
+    # Maven Central, release tags only. Immutable once accepted: the bundle is
+    # uploaded and left in a validated state for a human to release from the
+    # Central Portal, rather than auto-published.
+    needs: build
+    if: needs.build.outputs.is_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Refuse to build a bundle without a signing key
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "::error::SIGNING_KEY is not set — Central rejects unsigned artifacts."
+            echo "An unsigned bundle would fail validation after upload, which is a" >&2
+            echo "worse place to find out. Set SIGNING_KEY and SIGNING_PASSWORD." >&2
+            exit 1
+          fi
+      - name: Stage and bundle
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: ./gradlew centralBundle --no-daemon ${{ needs.build.outputs.gradle_args }}
+      - name: Upload to the Central Portal
+        env:
+          CENTRAL_TOKEN: ${{ secrets.CENTRAL_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CENTRAL_TOKEN" ]; then
+            echo "::error::CENTRAL_TOKEN is not set."
+            exit 1
+          fi
+          code=$(curl --silent --show-error --fail-with-body \
+            --output /tmp/central-response.txt --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer $CENTRAL_TOKEN" \
+            --form "bundle=@build/central/dbo-central-bundle.zip" \
+            "https://central.sonatype.com/api/v1/publisher/upload?name=dbo-${GITHUB_REF_NAME}&publishingType=USER_MANAGED")
+          echo "HTTP $code"
+          cat /tmp/central-response.txt
+          echo
+          echo "Deployment staged. Validate and release it from" \
+               "https://central.sonatype.com/publishing/deployments"
+      - name: Keep the bundle as a build artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: central-bundle
+          path: build/central/dbo-central-bundle.zip
+          retention-days: 14
