@@ -67,6 +67,12 @@ class TenantOsgiIT {
         framework.start();
         BundleContext ctx = framework.getBundleContext();
         ctx.installBundle("file:" + System.getProperty("pg.driver.jar")).start();
+        // The logging arrangement the distribution ships: the mediator first
+        // (a framework extension, never started), then the API bundle, then
+        // the binding that provides its serviceloader capability.
+        ctx.installBundle("file:" + System.getProperty("spifly.jar"));
+        ctx.installBundle("file:" + System.getProperty("slf4j.api.jar"));
+        ctx.installBundle("file:" + System.getProperty("dbo.logging.jar")).start();
         for (String prop : List.of("dbo.core.jar", "dbo.fhir.common.jar", "dbo.postgres.jar",
                 "dbo.terminology.jar", "dbo.subscriptions.jar", "dbo.fhir.r4.jar",
                 "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar", "dbo.pdi.jar", "dbo.policy.jar",

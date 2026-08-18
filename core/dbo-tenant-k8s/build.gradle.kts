@@ -12,7 +12,10 @@ dependencies {
     compileOnly("org.osgi:osgi.core:8.0.0")
     embedded("io.fabric8:kubernetes-client:7.3.1")
     embedded("com.zaxxer:HikariCP:7.1.0")
-    embedded("org.slf4j:slf4j-simple:2.0.18")
+    // slf4j-api is SHARED, not embedded: one binding for the whole
+    // runtime instead of a private one per bundle. compileOnly because
+    // it resolves from the slf4j-api bundle at runtime.
+    compileOnly("org.slf4j:slf4j-api:2.0.18")
 }
 
 tasks.jar {
@@ -32,6 +35,7 @@ tasks.jar {
                 "Bundle-ClassPath" to ".,$libs",
                 "Export-Package" to "cloud.jengu.dbo.tenant.k8s;version=\"0.1.0\"",
                 "Import-Package" to listOf(
+                    "org.slf4j",
                     "org.osgi.framework",
                     "cloud.jengu.dbo.tenant;version=\"[0.1,1)\"",
                     "org.postgresql",

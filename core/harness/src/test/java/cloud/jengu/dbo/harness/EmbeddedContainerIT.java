@@ -63,6 +63,17 @@ class EmbeddedContainerIT {
         BundleContext ctx = framework.getBundleContext();
 
         bundles.put("driver", ctx.installBundle("file:" + System.getProperty("pg.driver.jar")));
+        // The logging arrangement, installed the way the distribution
+        // installs it: the API as a bundle everything imports, and the
+        // binding as a FRAGMENT of it. A fragment is never started — it
+        // attaches to its host — so it stays out of the started set below.
+        // SPI-Fly first: it is a FRAMEWORK EXTENSION, so it attaches to the
+        // system bundle and must be there before anything requiring the
+        // serviceloader extender tries to resolve.
+        ctx.installBundle("file:" + System.getProperty("spifly.jar"));
+        Bundle slf4j = ctx.installBundle("file:" + System.getProperty("slf4j.api.jar"));
+        ctx.installBundle("file:" + System.getProperty("dbo.logging.jar"));
+        bundles.put("slf4j", slf4j);
         for (String name : List.of("dbo.core", "dbo.fhir.common", "dbo.postgres", "dbo.terminology",
                 "dbo.subscriptions", "dbo.fhir.r4", "dbo.fhir.r5", "dbo.rest")) {
             String path = System.getProperty(name + ".jar");

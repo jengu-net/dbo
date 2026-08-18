@@ -20,6 +20,11 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
     testImplementation("org.testcontainers:testcontainers-k3s:2.0.5")
     testImplementation("org.postgresql:postgresql:42.7.11")
+    testImplementation("org.slf4j:slf4j-api:2.0.18")
+    // slf4j-api declares Require-Capability osgi.extender=osgi.serviceloader.processor.
+    // SPI-Fly is that extender: a framework extension that lets a bundle's
+    // ServiceLoader lookup see providers. Without it slf4j-api will not resolve.
+    testImplementation("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.7")
     testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.18")
 }
@@ -65,7 +70,19 @@ tasks.test {
     doFirst {
         systemProperty("pg.driver.jar", configurations.testRuntimeClasspath.get()
             .files.first { it.name.startsWith("postgresql-") }.absolutePath)
+        // slf4j-api is a BUNDLE in the runtime now, not a private jar inside
+        // each module. The container has to install it for the same reason
+        // the distribution ships it.
+        systemProperty("slf4j.api.jar", configurations.testRuntimeClasspath.get()
+            .files.first { it.name.startsWith("slf4j-api-") }.absolutePath)
+        systemProperty("spifly.jar", configurations.testRuntimeClasspath.get()
+            .files.first { it.name.contains("spifly") }.absolutePath)
     }
+    dependsOn(":core:dbo-logging:jar")
+    systemProperty(
+        "dbo.logging.jar",
+        project(":core:dbo-logging").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
+    )
     systemProperty(
         "dbo.fhir.r5.jar",
         project(":core:dbo-fhir-r5").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,

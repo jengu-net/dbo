@@ -22,7 +22,10 @@ dependencies {
     embedded("com.zaxxer:HikariCP:7.1.0")
     // the PG driver comes from the DRIVER BUNDLE at runtime — compile-only
     compileOnly("org.postgresql:postgresql:42.7.11")
-    embedded("org.slf4j:slf4j-simple:2.0.18")
+    // slf4j-api is SHARED, not embedded: one binding for the whole
+    // runtime instead of a private one per bundle. compileOnly because
+    // it resolves from the slf4j-api bundle at runtime.
+    compileOnly("org.slf4j:slf4j-api:2.0.18")
 }
 
 tasks.jar {
@@ -42,6 +45,7 @@ tasks.jar {
                 "Bundle-ClassPath" to ".,$libs",
                 "Export-Package" to "cloud.jengu.dbo.tenant;version=\"0.1.0\"",
                 "Import-Package" to listOf(
+                    "org.slf4j",
                     "org.osgi.framework",
                     "org.osgi.util.tracker",
                     "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
