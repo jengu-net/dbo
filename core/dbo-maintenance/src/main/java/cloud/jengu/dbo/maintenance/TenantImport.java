@@ -188,11 +188,30 @@ public final class TenantImport {
         return Long.parseLong(line.substring(start, end));
     }
 
-    /** Byte-faithful restore into an INITIALIZED, EMPTY tenant (schema present, no data). */
+    /**
+     * Byte-faithful restore into an INITIALIZED, EMPTY tenant (schema present,
+     * no data) — attested like every other way in
+     * (REQ-DBO-MNT-IMPORT-REFUSES-UNATTESTED).
+     *
+     * <p>This is the path a live restore endpoint calls, so it was the one
+     * that mattered most and the one that had no attestation at all. The
+     * signatures are the caller's to obtain: this store holds no tenant key,
+     * and a store that could countersign on the tenant's behalf would make the
+     * second signature mean nothing. The ceremony is requested here and
+     * performed elsewhere.
+     */
     public static void restoreFidelity(DataSource target, String domain, InputStream sealed,
-            byte[] ownerMasterKey) throws IOException {
+            byte[] ownerMasterKey, ArchiveAttestation attestation,
+            byte[] vendorPublicKey, byte[] tenantPublicKey, ImportLedger ledger)
+            throws IOException {
         Names.requireDomain(domain);
+        Objects.requireNonNull(ledger, "a restore records what it accepted, or does not happen");
         byte[] plain = SealedArchive.open(sealed, ownerMasterKey);
+        String acceptedRoot = ArchiveVerification.verify(plain, attestation,
+                vendorPublicKey, tenantPublicKey);
+        ledger.accepted(new ImportLedger.Accepted(acceptedRoot,
+                ImportLedger.Accepted.fingerprint(vendorPublicKey),
+                ImportLedger.Accepted.fingerprint(tenantPublicKey), 0, 0));
         Map<String, String> dumps = new LinkedHashMap<>();
         Map<String, java.util.List<String>> consumers = new LinkedHashMap<>();
         TenantExport.Kind[] declaredKind = {null};

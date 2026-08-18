@@ -161,8 +161,8 @@ class MaintenanceIT {
     @Test
     void fidelityRestoreIsByteFaithful() throws Exception {
         PgObjectStore engineC = new PgObjectStore(dsC, personality.registrations());
-        TenantImport.restoreFidelity(dsC, R4Personality.DOMAIN,
-                new ByteArrayInputStream(archive), OWNER_KEY);
+        CoSignedArchive.over(archive, OWNER_KEY)
+                .restoreFidelityInto(dsC, R4Personality.DOMAIN, OWNER_KEY);
 
         StoredObject restored = engineC.get("Patient", patientId).orElseThrow();
         assertEquals(2, restored.versionId(), "fidelity preserves version ids");

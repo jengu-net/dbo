@@ -123,8 +123,8 @@ class BackupCoversTheTenantIT {
         new PgObjectStore(target, CLINICAL_TYPES);
         new PgObjectStore(target, IDENTITY_TYPES);
 
-        TenantImport.restoreFidelity(target, CLINICAL,
-                new ByteArrayInputStream(backup), OWNER_KEY);
+        CoSignedArchive.over(backup, OWNER_KEY)
+                .restoreFidelityInto(target, CLINICAL, OWNER_KEY);
 
         assertEquals(1, liveCount(target, CLINICAL), "the clinical record came back");
         assertEquals(1, liveCount(target, IDENTITY),

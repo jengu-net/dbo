@@ -240,8 +240,8 @@ class PdiIT {
                 "no new identifying data for a shredded person");
 
         // restore the pre-shred archive: the ledger MERGES and replays
-        TenantImport.restoreFidelity(ds, R4Personality.DOMAIN,
-                new ByteArrayInputStream(archive.toByteArray()), ownerKey);
+        CoSignedArchive.over(archive.toByteArray(), ownerKey)
+                .restoreFidelityInto(ds, R4Personality.DOMAIN, ownerKey);
         String restored = new String(store.get("Patient", personId).orElseThrow().payload(),
                 StandardCharsets.UTF_8);
         assertFalse(restored.contains("Salakas") || restored.contains(CODE_37),
