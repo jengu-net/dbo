@@ -820,11 +820,17 @@ public final class R5Personality {
         return validator;
     }
 
-    /** HAPI landmine: service discovery is TCCL-based; pin ours. */
+    /**
+     * HAPI landmine: service discovery is TCCL-based; pin the loader that owns
+     * the stack. Asked for by way of a HAPI class rather than this one, because
+     * the engine lives in a bundle of its own: the ServiceLoader lookup behind
+     * CacheFactory only finds its provider from the loader carrying the engine's
+     * META-INF/services, and that is no longer this personality's loader.
+     */
     private <T> T withTccl(Supplier<T> body) {
         Thread t = Thread.currentThread();
         ClassLoader old = t.getContextClassLoader();
-        t.setContextClassLoader(R5Personality.class.getClassLoader());
+        t.setContextClassLoader(FhirContext.class.getClassLoader());
         try {
             return body.get();
         } finally {

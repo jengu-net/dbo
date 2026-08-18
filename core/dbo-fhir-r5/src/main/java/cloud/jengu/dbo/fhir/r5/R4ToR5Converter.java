@@ -25,7 +25,9 @@ public final class R4ToR5Converter implements PayloadConverter {
     public byte[] convert(String typeName, byte[] payload) {
         Thread t = Thread.currentThread();
         ClassLoader old = t.getContextClassLoader();
-        t.setContextClassLoader(R4ToR5Converter.class.getClassLoader());
+        // the loader that owns the convertors, which is the shared stack bundle
+        // rather than this personality
+        t.setContextClassLoader(org.hl7.fhir.r4.model.Resource.class.getClassLoader());
         try {
             org.hl7.fhir.r4.model.Resource r4 =
                     (org.hl7.fhir.r4.model.Resource) new org.hl7.fhir.r4.formats.JsonParser().parse(payload);

@@ -4,7 +4,7 @@ The bets, each elaborated in its own section:
 
 1. **Version-agnostic core + personality bundles** — the engine knows objects
    (payload, envelope, identifiers, references); FHIR-version meaning lives in
-   per-version OSGi bundles with private HAPI stacks
+   per-version OSGi bundles over one shared HAPI stack
    ([§1](../arc42-005-building-blocks/README.md), §7.3).
 2. **Payload/envelope split** — opaque payload as truth, derived searchable
    projection, reindex as an operation

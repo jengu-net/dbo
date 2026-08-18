@@ -74,6 +74,8 @@ class TenantOsgiIT {
         ctx.installBundle("file:" + System.getProperty("slf4j.api.jar"));
         ctx.installBundle("file:" + System.getProperty("dbo.logging.jar")).start();
         for (String prop : List.of("dbo.core.jar", "dbo.fhir.common.jar", "dbo.postgres.jar",
+                // the HL7/HAPI engine both personalities import from
+                "dbo.fhir.stack.jar",
                 "dbo.terminology.jar", "dbo.subscriptions.jar", "dbo.fhir.r4.jar",
                 "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar", "dbo.pdi.jar", "dbo.policy.jar",
                 // the manager wires declared content dependencies —

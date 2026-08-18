@@ -14,6 +14,8 @@ dependencies {
     // other bundles in this list; transitive=false keeps stray jars out
     listOf(
         ":core:dbo-core", ":core:dbo-fhir-common", ":core:dbo-postgres",
+        // the HL7/HAPI engine, once, for every personality after it
+        ":core:dbo-fhir-stack",
         ":core:dbo-terminology", ":core:dbo-subscriptions", ":core:dbo-fhir-r4",
         ":core:dbo-fhir-r5", ":core:dbo-rest", ":core:dbo-auth", ":core:dbo-pdi", ":core:dbo-policy", ":core:dbo-sync",
         // dbo-tenant imports it for the maintenance surface

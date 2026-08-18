@@ -15,7 +15,8 @@ themselves for it to travel in.
 
 | Software | Version | Licence | Rides inside |
 |---|---|---|---|
-| [HAPI FHIR](https://hapifhir.io) — structures, validation, validation resources, caching | 8.10.1 | Apache-2.0 | `dbo-fhir-r4`, `dbo-fhir-r5` |
+| [HAPI FHIR](https://hapifhir.io) — structures, validation, caching | 8.10.1 | Apache-2.0 | `dbo-fhir-stack` |
+| [HAPI FHIR](https://hapifhir.io) — validation resources | 8.10.1 | Apache-2.0 | `dbo-fhir-r4`, `dbo-fhir-r5` |
 | [DBOS Transact](https://github.com/dbos-inc) | 1.0.0 | MIT | `dbo-subscriptions` |
 | [Fabric8 Kubernetes Client](https://github.com/fabric8io/kubernetes-client) | 7.3.1 | Apache-2.0 | `dbo-tenant-k8s` |
 | [HikariCP](https://github.com/brettwooldridge/HikariCP) | 7.1.0 | Apache-2.0 | `dbo-tenant`, `dbo-tenant-k8s` |

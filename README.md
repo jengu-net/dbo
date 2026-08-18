@@ -82,7 +82,8 @@ The specification is an [arc42](https://arc42.org/) tree:
 |---|---|
 | `dbo-core` | The zero-dependency object API — no FHIR, no framework |
 | `dbo-postgres` | The engine: single-transaction writes, envelopes, history, the outbox |
-| `dbo-fhir-common`, `dbo-fhir-r4`, `dbo-fhir-r5` | Personalities, each with a private HAPI stack |
+| `dbo-fhir-stack` | The HL7/HAPI validation engine, embedded once and exported |
+| `dbo-fhir-common`, `dbo-fhir-r4`, `dbo-fhir-r5` | Personalities: version meaning and version profiles, over the shared stack |
 | `dbo-rest` | The FHIR HTTP surface — JDK `HttpServer`, virtual threads, no framework |
 | `dbo-auth` | The per-tenant OIDC authority, JDK crypto only |
 | `dbo-pdi` | Personal-data isolation — identifying elements encrypted in the payload |

@@ -16,7 +16,7 @@ than a list of changes from something earlier.
   envelope indexing, history, transactional outbox, version chaining,
   upgrade-on-read through payload converters.
 - **FHIR** — R4 and R5 personalities running concurrently over one engine,
-  each with a private HAPI stack; tier-1 search; generated CapabilityStatement;
+  over one shared HAPI stack; tier-1 search; generated CapabilityStatement;
   terminology in a concept-per-row native form.
 - **Tenancy** — a database per tenant, credential-blind provisioning, dynamic
   per-tenant service sets, erasure by drop, and a Kubernetes operator

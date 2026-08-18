@@ -30,9 +30,10 @@ upgrade-on-read.
 
 ### CONT — container and embedding
 
-Every module is a real OSGi bundle. Personalities embed a private HAPI stack
-and subscriptions embeds a private DBOS, both as nested jars behind a
-`Bundle-ClassPath`, exporting only DBO-owned packages. The production bundles
+Every module is a real OSGi bundle. One shared bundle embeds the HL7/HAPI
+engine and exports it to both personalities, and subscriptions embeds a private
+DBOS, both as nested jars behind a `Bundle-ClassPath`; everything DBO-owned is
+still the only thing a personality exports beyond its own validation resources. The production bundles
 boot in an in-JVM Felix and serve a live FHIR flow over HTTP — that is the
 test, not a packaging assertion. The serving distribution uses the standard
 Felix launcher with no launcher code of its own; measured cold start is about
@@ -111,9 +112,9 @@ different acceptance policies.
 
 ### VER — version plurality
 
-`dbo-fhir-common` holds what both personalities share; `dbo-fhir-r4` and
-`dbo-fhir-r5` are private HAPI stacks that coexist in one JVM over one
-database, with zero differences in the engine between them. Search parameters
+`dbo-fhir-common` holds what both personalities share and `dbo-fhir-stack` the
+HAPI engine they both import; `dbo-fhir-r4` and `dbo-fhir-r5` coexist in one
+JVM over one database, with zero differences in the engine between them. Search parameters
 are extracted from HAPI's own definitions rather than hand-listed.
 
 *Complete except an R6 personality — there is no ballot to build against.*
@@ -198,6 +199,26 @@ specification rather than for validating against it. Excluding them:
 36.8 MB from each, and the same 36.8 MB again from every additional copy a
 per-tenant framework would cache.
 
+Then the engine itself stopped being per-personality. Of the ~76 jars each one
+embedded, 74 were byte-identical between R4 and R5, so one bundle
+(`dbo-fhir-stack`) embeds the HL7/HAPI engine and exports it, and a personality
+keeps its own code and the validation resources of its own version:
+
+| | before | after |
+|---|---|---|
+| `dbo-fhir-stack` | — | **95.7 MB** |
+| `dbo-fhir-r4` | 101.1 MB | **5.4 MB** |
+| `dbo-fhir-r5` | 118.9 MB | **23.2 MB** |
+
+220.0 MB to 124.3 MB, and the shared 95.7 MB is now cached once per framework
+instead of once per personality per framework. A third personality costs its
+validation resources rather than another engine.
+
+Slimming the engine per version was not the alternative it looked like: the HL7
+validator converts every input up to R5, validates there and maps back, so
+`r4`/`r4b`/`dstu3`/`dstu2` are its input adapters rather than spare parts. One
+indivisible version-agnostic engine is what makes it a good thing to own once.
+
 `icu4j` (14.5 MB) stays: internationalised string handling is plausibly on a
 validation path, and removing it on the strength of a name would be a guess.
 
@@ -245,21 +266,11 @@ Unordered, and each needs its own design pass before it starts.
 - **Placement.** When zones multiply databases past one server's comfort, a
   `TenantRegistration` grows a placement target. The custom resource is
   already the seam for it.
-- **One shared bundle owns the HL7 stack.** Each personality privately embeds
-  it today: 138.0 MB for R4, 155.7 MB for R5, **140.4 MB of it byte-identical
-  between them**, and Felix caches per framework so a per-tenant framework
-  pays it again each time. The stack becomes one bundle offering version-keyed
-  parse/serialise/convert/validate services, exporting only the model
-  packages; the personalities keep their own code and their version-specific
-  validation resources. Expected 301 MB staged → ~170 MB, and a third
-  personality then costs its resources rather than another 140 MB. The design
-  is settled in §7.3; the first thing to prove is HAPI's classloader-sensitive
-  reflection, by validating a real resource rather than by watching bundles
-  resolve.
 - **Computed bundle imports.** The fat bundles hand-write their
   `Import-Package` lists, which is why a ratchet test exists; moving them to
-  bnd-computed imports retires the ratchet — and the shared-bundle work above
-  is the natural moment, since bnd computing one manifest is the point.
+  bnd-computed imports retires the ratchet. The engine half of those lists is
+  already computed — a personality reads the shared stack's export list rather
+  than naming packages — and the DBO half is what the ratchet still guards.
 
 Later horizons: the routing layer, the process catalogue, an R6 personality
 when there is a ballot, a shared-schema tenancy tier, and blob storage.

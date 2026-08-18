@@ -26,6 +26,9 @@
   validation, SearchParameter → envelope extraction, Subscription topic evaluation.
   A tenant/domain binds to one personality; several personalities coexist in one
   container.
+- **dbo-fhir-stack** — the HL7/HAPI engine the FHIR personalities are built on,
+  embedded once and exported to all of them, so a container pays for it once
+  rather than once per version.
 - **dbo-postgres** — JDBC on virtual threads (no reactive driver), DBOS-style SQL,
   Liquibase with advisory session locks.
 - **Per-tenant service sets** — registered/retracted dynamically in the OSGi

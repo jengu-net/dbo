@@ -113,25 +113,28 @@ adoption path set (§7.6).
 
 ### 7.3 HAPI as personality dependency
 
-Direction: yes — each personality bundle
-embeds the HAPI stack for its FHIR version as *private* packages (same
-pattern as the DBOS embedding bundle, §7.1; HAPI jars carry no OSGi
-metadata, so bnd-wrapping is needed either way). It gives parsing,
-validation, and — decisively — a **FHIRPath engine** per version, which
-SearchParameter → envelope extraction requires; hand-building that per
-version is not a realistic alternative.
+Direction: yes — the HAPI stack rides inside the runtime as embedded packages
+rather than as a flat-classpath dependency (same pattern as the DBOS embedding
+bundle, §7.1; HAPI jars carry no OSGi metadata, so bnd-wrapping is needed
+either way). It gives parsing, validation, and — decisively — a **FHIRPath
+engine** per version, which SearchParameter → envelope extraction requires;
+hand-building that per version is not a realistic alternative. Where the stack
+sits — one shared bundle rather than a private copy per personality — is
+resolved below.
 
 Corrected premise: multi-version HAPI is *not* impossible on a flat
 classpath — it is designed for it (distinct `org.hl7.fhir.r4/.r5` model
 packages, `FhirContext.forR4()`/`forR5()` coexisting, one structure jar per
 version). What OSGi isolation actually buys is subtler and still real:
 
-- **Version-skew freedom.** On a flat classpath, all structure jars share
-  one `hapi-fhir-base` + `org.hl7.fhir.utilities`/validator core, so every
-  personality upgrades in lockstep, and cross-contamination exists (e.g.
-  R4 profile snapshot generation historically pulling in R5 structures).
-  Private packaging lets the R6-draft personality track fast-moving ballot
-  snapshots while R4/R5 tenants stay on pinned, boring versions.
+- **Version-skew freedom, if a personality needs it.** All structure jars in
+  one bundle share a `hapi-fhir-base` + `org.hl7.fhir.utilities`/validator
+  core, so the personalities riding the shared stack upgrade in lockstep —
+  which is the trade the shared stack makes, and the right one while they
+  all sit on the same released HAPI. A personality that must skew (the
+  R6-draft one, tracking fast-moving ballot snapshots) buys it back by
+  embedding its own stack privately instead of importing this one: the
+  packaging is per personality, not per platform.
 - **A clean boundary rule**: HAPI types never cross the bundle boundary.
   The personality API toward dbo-core speaks payload bytes + typed envelope
   values + validation outcomes only.
@@ -152,28 +155,33 @@ it again every time. The stack is one indivisible engine (the HL7 validator
 converts everything up to R5, validates there, and maps back), which is
 exactly what makes it a good thing to own once.
 
-So: **one bundle owns the HL7/HAPI stack**, and it offers version-keyed
-services — parse, serialise, convert, validate — looked up by
-{@code fhir.version} the way per-tenant services are looked up by
-{@code tenant}. A tenant's declared FHIR version selects the service set;
-nothing above learns what HAPI is.
+So: **one bundle owns the HL7/HAPI stack** — `dbo-fhir-stack` — and exports
+it. A personality keeps its own code and the validation resources of its own
+version (`hapi-fhir-validation-resources-rX`: R4 ships profile and value-set
+XML under `org/hl7/fhir/r4/model/`, R5 ships NPM tarballs under
+`org/hl7/fhir/r5/packages/`), exports those resource directories back, and
+imports the engine. Version-keyed services are unchanged: a tenant's declared
+FHIR version selects a personality, and nothing above it learns what HAPI is.
 
 Two things cross that boundary, and a consumer picks which:
 
 - **Canonical JSON**, for anything that wants no HAPI wire at all. This is
-  the boundary rule unchanged.
-- **The model packages** — `org.hl7.fhir.r4.model`, `org.hl7.fhir.r5.model`
-  and `org.hl7.fhir.instance.model.api` — exported from the shared bundle
-  for hosts and personalities that would rather share class identity than
-  re-parse. This is the second branch above, taken deliberately.
+  the boundary rule unchanged, and it stays the only thing on dbo's own
+  public API — enforced by `ApiBoundaryTest`.
+- **The engine packages**, for hosts and personalities that would rather
+  share class identity than re-parse. `org.hl7.fhir.*` and `ca.uhn.fhir.*`
+  in full, from the one bundle that has them.
 
-The narrowness is load-bearing. `utilities`, `convertors`, `validation` and
-`ca.uhn.fhir.*` stay private: those genuinely span jars, and exporting them
-is what would turn a clean wire into a split-package problem. The model
-packages do not — they come from the core jar, with
-`hapi-fhir-structures-rX` a 32 KB adapter beside them. Export versions track
-the HAPI version, so a major upgrade is a visible coordinated change rather
-than a silent rewire.
+Exporting the engine whole rather than a narrow model-only slice is what lets
+a personality keep calling `FhirContext`, `FhirValidator` and `IFhirPath`
+directly instead of moving that code inside the shared bundle. The split-package
+objection to a wide export does not apply to a single exporter: `org.hl7.fhir.*`
+spans dozens of jars, but they are all inside one bundle, so there is exactly
+one candidate for every package. What the wide export does demand is that the
+list be complete — which is why it is read off the jars at build time, and why
+the personalities' engine imports are read off *that* list rather than written
+by hand. A missing entry resolves and then throws `NoClassDefFoundError` on
+first use.
 
 The reflection hazard argues the same way. `FhirContext` locating structures
 by classloader-sensitive lookup is dangerous when it must see classes a
@@ -194,13 +202,19 @@ coexisting with genuine divergence (R4 rejects `SubscriptionTopic`),
 R4 profile validation flags structural errors, and the boundary rule held
 — JSON in/out, zero HAPI types crossed the api.
 
-Measured: personality bundle sizes R4 **145MB** / R5 **163MB** (all-in,
-validation included); `FhirContext` init ~0.4s (R4) / ~0.8s (R5), lazy.
+Measured, with the engine shared and the authoring-side transitives
+excluded: `dbo-fhir-stack` **95.7MB**, personalities **5.4MB** (R4) and
+**23.2MB** (R5) — their validation resources and their own code. The whole
+serving bundle set is 154MB, and a third personality costs its resources
+rather than another engine. `FhirContext` init ~0.4s (R4) / ~0.8s (R5), lazy.
 
 Landmine log:
 1. **TCCL** — HAPI's cache-provider discovery (`HAPI-2200`) is
    ServiceLoader/TCCL-based; every personality entry point must run with
-   the bundle classloader as TCCL (a `withTccl` wrapper).
+   the classloader that owns the engine as TCCL (a `withTccl` wrapper).
+   That loader is asked for by way of a HAPI class, not the personality's
+   own: with a shared stack the two are different bundles, and only the
+   engine's loader carries its `META-INF/services`.
 2. **R5 FHIRPath eagerly builds `DefaultProfileValidationSupport`** — pure
    path evaluation drags `hapi-fhir-validation` +
    `hapi-fhir-validation-resources-r5` (the base-profile npm package)
@@ -213,9 +227,11 @@ Landmine log:
    validator runs — the REQ-DBO-VER-SPECIFIED-VALIDATION semantics must
    define which errors surface at which stage.
 5. **Finding**: the HL7 validator core is internally R5-based, so the R4
-   stack legitimately contains `org.hl7.fhir.r5` model classes. Isolation
-   therefore means *separate private copies* (verified by classloader
-   identity per bundle; the host sees nothing) — not absence.
+   validation path legitimately uses `org.hl7.fhir.r5` model classes. That
+   is why the engine is indivisible, and why the R4 personality does not
+   import the R5 model even though its validator walks it: the R5 classes
+   are reached inside the shared bundle. The duplication was never in what
+   a personality uses — it was in what the engine needs.
 
 Still open (non-blocking): whether a leaner `org.hl7.fhir.core`-only
 dependency (skipping the `ca.uhn` layer) is worth it per personality —

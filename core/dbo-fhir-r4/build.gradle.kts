@@ -1,8 +1,13 @@
+import java.util.jar.JarFile
+import java.util.zip.ZipFile
+
 // The FHIR R4 personality: everything that knows what an R4 payload MEANS.
 // HAPI rides as ordinary dependencies here; the §7.3 boundary (no HAPI type
-// crosses the public API) is enforced by ApiBoundaryTest in the harness, and
-// the OSGi private-embedding packaging is the proven pattern applied in
-// a later packaging task.
+// crosses the public API) is enforced by ApiBoundaryTest in the harness.
+//
+// The engine itself is NOT embedded: it is one shared bundle
+// (:core:dbo-fhir-stack) that this personality imports from. What stays here is
+// R4's own validation resources — the profiles and value sets of one version.
 
 val embedded: Configuration by configurations.creating
 configurations.implementation.get().extendsFrom(embedded)
@@ -12,33 +17,56 @@ dependencies {
     api(project(":core:dbo-fhir-common"))
     api(project(":core:dbo-subscriptions"))
     api(project(":core:dbo-terminology"))
-    embedded("ca.uhn.hapi.fhir:hapi-fhir-structures-r4:8.10.1")
+    // HAPI on the compile classpath, and at runtime the one bundle that owns it
+    api(project(":core:dbo-fhir-stack"))
     // slf4j-api is SHARED, not embedded: one binding for the whole
     // runtime instead of a private one per bundle. compileOnly because
     // it resolves from the slf4j-api bundle at runtime.
     compileOnly("org.slf4j:slf4j-api:2.0.18")
-    embedded("ca.uhn.hapi.fhir:hapi-fhir-validation:8.10.1")
-    embedded("ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:8.10.1")
-    embedded("ca.uhn.hapi.fhir:hapi-fhir-caching-caffeine:8.10.1")
+    embedded("ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:8.10.1") {
+        isTransitive = false
+    }
 }
 
-// The HL7 core stack carries the spec-AUTHORING side of that library as well
-// as the validating side: a UML renderer, a package-cache database, an XSLT
-// engine and a git client arrive as transitives of org.hl7.fhir.*. A store
-// validating a resource needs none of them.
-//
-// These fail at RUNTIME, not at build — a Class.forName behind an authoring
-// entry point resolves fine until something calls it — so the proof is the
-// suite exercising validation, conversion and terminology ingestion, not a
-// green compile.
-configurations.named("embedded") {
-    exclude(group = "net.sourceforge.plantuml")
-    exclude(group = "org.xerial", module = "sqlite-jdbc")
-    exclude(group = "net.sf.saxon", module = "Saxon-HE")
-    exclude(group = "org.eclipse.jgit")
+/**
+ * The resource directories this personality contributes back to the engine.
+ * hapi-fhir-validation-resources-rX carries no classes at all — profiles, value
+ * sets and schemas under org/hl7/fhir/rX/model/ — and the validator in the
+ * shared bundle reaches them through its DynamicImport-Package. Read off the
+ * jar rather than listed by hand, so a HAPI upgrade that adds a directory does
+ * not silently stop exporting it.
+ */
+fun resourcePackages(jars: Iterable<File>): List<String> {
+    val packages = sortedSetOf<String>()
+    jars.forEach { jar ->
+        ZipFile(jar).use { zip ->
+            zip.entries().asSequence()
+                .filter { !it.isDirectory && it.name.startsWith("org/hl7/fhir/") }
+                .forEach { packages += it.name.substringBeforeLast('/').replace('/', '.') }
+        }
+    }
+    return packages.toList()
 }
+
+val stackJar = project(":core:dbo-fhir-stack").tasks.named<Jar>("jar")
+
+/**
+ * Every engine package the shared bundle exports, imported wholesale.
+ *
+ * Not a hand-picked list: this personality's classes reach HAPI types they never
+ * name — {@code ctx.getVersion()} returns a {@code ca.uhn.fhir.model.api}
+ * interface — and a missing entry RESOLVES and then throws
+ * NoClassDefFoundError on first use, with no build-time signal. Naming the one
+ * exporter's export list keeps the two sides of the boundary the same set by
+ * construction.
+ */
+fun engineImports(): List<String> =
+    JarFile(stackJar.get().archiveFile.get().asFile).use { jar ->
+        jar.manifest.mainAttributes.getValue("Export-Package").split(",")
+    }
 
 tasks.jar {
+    dependsOn(stackJar)
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     into("lib") { from(embedded) }
     // Whose code rides in this jar, and under what terms. A recipient of
@@ -52,9 +80,11 @@ tasks.jar {
                 "Bundle-SymbolicName" to "cloud.jengu.dbo.fhir.r4",
                 "Bundle-Version" to project.version.toString().replace("-", "."),
                 "Bundle-ClassPath" to ".,$libs",
-                "Export-Package" to "cloud.jengu.dbo.fhir.r4;version=\"0.1.0\"",
-                "Import-Package" to listOf(
+                "Export-Package" to (listOf("cloud.jengu.dbo.fhir.r4;version=\"0.1.0\"")
+                    + resourcePackages(embedded.resolve())).joinToString(","),
+                "Import-Package" to (listOf(
                     "org.slf4j",
+                ) + engineImports() + listOf(
                     "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
                     // the inward contract: what this face implements for the
                     // engine, as against core.api which is what it calls
@@ -96,7 +126,7 @@ tasks.jar {
                     "org.w3c.dom.ls;resolution:=optional",
                     "org.w3c.dom.events;resolution:=optional",
                     "org.ietf.jgss;resolution:=optional",
-                ).joinToString(","),
+                )).joinToString(","),
             )
         }
     }
