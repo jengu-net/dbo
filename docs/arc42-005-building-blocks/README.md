@@ -31,7 +31,7 @@
 - **Per-tenant service sets** — registered/retracted dynamically in the OSGi
   service registry as tenants arrive, move, or leave (see §4).
 
-Embedded mode: a host application (jengu cloud in dev/test, story-e2e harnesses)
-starts Felix in-JVM, installs the same bundles, and talks to DBO through its Java
+Embedded mode: a host application — the platform's own assemblies in
+development and test, end-to-end harnesses — starts Felix in-JVM, installs the same bundles, and talks to DBO through its Java
 API — the only shared dependencies are Felix and the OSGi API.
 

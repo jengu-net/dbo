@@ -8,8 +8,8 @@ store.
 
 ## 13.1 The trust root is the tenant, not the store
 
-Medplum — whose operational pattern dbo otherwise borrows (identity artifacts
-as resources, client_credentials for services) — got one thing conceptually
+The server whose operational pattern dbo otherwise borrows — identity artifacts
+as resources, client_credentials for services — got one thing conceptually
 wrong: it is a **server-level** authority. One issuer, one key set, all
 projects beneath it. Every relying party that trusts the server transitively
 trusts every project it hosts, and project separation degrades to

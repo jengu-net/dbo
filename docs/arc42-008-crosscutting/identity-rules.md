@@ -16,8 +16,8 @@ Each personality declares exactly one **primary identity class** per type:
 
 Synthetic identifiers are allowed and encouraged where a type is logically
 identified but FHIR gives no field: e.g. an audit event's stable event id
-rides as a designated identifier/tag system (jengu already does this for
-idempotent audit flush). `Binary` uses its **content hash** as identity —
+rides as a designated identifier/tag system — a shape production platforms
+already use for idempotent audit flush. `Binary` uses its **content hash** as identity —
 which gives blob dedup for free.
 
 ## Orthogonal version axes — none of them are identity
@@ -27,7 +27,7 @@ Identity **excludes** all four version axes:
 1. instance version (`versionId` / ETag — history),
 2. business version (canonical `version` field — a *qualifier*, below),
 3. FHIR version (R4/R5/R6 personality),
-4. tenant object shape (jengu-style shape stamp).
+4. tenant object shape (the shape stamp).
 
 The same logical artifact expressed in R4-shape-2 and R5-shape-3 has the
 **same identity**. Consequence, stated as an invariant: **conversion never
@@ -44,8 +44,8 @@ resolution winner per (tenant, url).
 
 **IDENTIFIER.** The personality (with zone configuration) designates which
 identifier systems are *identity-bearing* per type, in trust order — e.g.
-Patient: national eID before MRN; Device: EUI/serial; Organization: the jengu
-code system. Non-designated identifiers are searchable but never merge
+Patient: national eID before MRN; Device: EUI/serial; Organization: the
+platform's own code system. Non-designated identifiers are searchable but never merge
 identity. Uniqueness: (tenant, type, system, value) over identity-bearing
 systems. Two objects claiming the same identity-bearing identifier is a
 **conflict surfaced to the owner** (MPI-class resolution), never an implicit

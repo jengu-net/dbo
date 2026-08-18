@@ -1,9 +1,9 @@
 # DBO — main requirements
 
-The driving problem: jengu's current FHIR store (Medplum) is pinned to FHIR R4 with
-no R5/R6 roadmap, while Estonia's national base FHIR is already R5 and jengu's device
-strength is significantly upgraded in R5/R6. DBO is the specification of an "ideal"
-FHIR storage for jengu's actual needs.
+The driving problem: the FHIR servers available to build on are pinned to FHIR R4,
+while several national base specifications are already R5 and the device and
+observation model is substantially better in R5 and R6. DBO is the specification of a
+FHIR store for which the version is a per-tenant, per-domain choice.
 
 These are the founding requirements; they fix direction. Their distillation
 into stable, testable REQ IDs lives in [req-catalogue.md](../arc42-006-runtime/req-catalogue.md).
@@ -23,9 +23,10 @@ implementation), because:
   SSO/IdP wiring, per-tenant storage services must come and go at runtime without
   restarting the process. The OSGi service registry is exactly this lifecycle.
 - **Embeddability**: in development and test, the FHIR container boots *inside the
-  same JVM* as the application (jengu) with no significant dependency conflicts —
-  the only surface visible to the host is Felix + the OSGi API. This mirrors the
-  proven jengu edge/driver pattern (in-JVM Felix containers in tests).
+  same JVM* as the host application with no significant dependency conflicts —
+  the only surface visible to the host is Felix + the OSGi API. This mirrors a
+  pattern already proven in production device runtimes: in-JVM Felix containers
+  in tests.
 - The core stays framework-free as plain Java APIs; OSGi bundles are the packaging
   and wiring layer, thin adapters may exist for host frameworks.
 
@@ -33,9 +34,9 @@ implementation), because:
 
 Every API, table, index, event and cache is tenant-scoped from the first line.
 Tenancy is structural, not a column that queries may forget: there must be no code
-path that can read or write data without an explicit tenant context. (The legacy
-codebase's `app_code` — present in constraints, absent from predicates — is the
-anti-pattern.)
+path that can read or write data without an explicit tenant context. (The earlier engine's
+tenant column — present in constraints, absent from predicates — is the
+anti-pattern; see §9.6.)
 
 ## R4 — PostgreSQL storage, DBOS as the background engine
 
@@ -45,7 +46,7 @@ notification, single-round-trip atomic state transitions, batch projections).
 
 **DBOS is the background engine**: durable tasks, streams, scheduled work, and
 communication between instances run on DBOS rather than an external broker. This
-replaces the legacy "zone dependency" / Kafka direction — the database itself is the
+replaces the earlier engine's broker direction — the database itself is the
 coordination substrate.
 
 ## R5 — Total tenant isolation, credential-blind provisioning
@@ -78,7 +79,7 @@ version-specific knowledge (parsing, validation, search-parameter extraction) to
 pluggable per-version bundles.
 
 The same property keeps the engine open to **sibling models that FHIR does not
-cover** — the legacy db-objects insight worth keeping: the storage models
+cover** — the insight worth keeping from the earlier engine (§9.5): the storage models
 "FHIR-like objects", fully expandable, so non-FHIR domain objects ride on the same
 engine rather than beside it.
 
@@ -110,7 +111,7 @@ Whether the internal implementation is DBOS streams, a thin custom event layer o
 Postgres, or both, is a concept-phase decision — but delivery must be durable,
 tenant-scoped, and replayable from the outbox.
 
-## Derived requirements (from the legacy post-mortem)
+## Derived requirements (from the earlier engine's post-mortem, §9.6)
 
 - **D1 — Synchronous read-your-writes.** A create/update returns only after data
   and outbox are committed in one transaction; FHIR interaction semantics
@@ -121,4 +122,4 @@ tenant-scoped, and replayable from the outbox.
 - **D4 — Partitionable event ownership.** No single master processes all tenants'
   events; ownership shards per tenant/domain.
 - **D5 — Migration as deployment.** Version-driven promotion (highest-version node
-  leads, migrates, others passivate) is retained from the legacy design.
+  leads, migrates, others passivate) is retained from the earlier design (§9.5).

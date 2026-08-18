@@ -102,12 +102,13 @@ never as anonymous system accounts:
 A delegated token can never exceed what the human could do, and every
 mutation it performs is attributable to both the process and the person.
 
-## 16.5 How the jengu application fits
+## 16.5 How a host application fits
 
-jengu-cloud becomes an **OIDC relying party of the tenant authorities** —
-it keeps Spring Security's full OAuth2-client machinery (sessions, token
-storage, login flow) and loses only the authorization-SERVER role it never
-had. Three practicalities settled here:
+The application in front of the store becomes an **OIDC relying party of the
+tenant authorities**. It keeps whatever OAuth2-client machinery its framework
+gives it — sessions, token storage, login flow — and loses only the
+authorization-SERVER role it should never have held. Five practicalities
+settle here:
 
 - **The authority surface is published; the store surface is not.** The
   authorization-code flow requires browsers to reach
@@ -117,26 +118,25 @@ had. Three practicalities settled here:
   path-regexp on `/t/+/oidc/`); `/t/<code>/fhir` stays unrouted and
   network-scoped. REQ-DBO-AUTH-PRIVATE-SURFACE is about the store, and it
   stands.
-- **Dynamic relying-party registrations.** Spring's property-file client
-  registrations are boot-time — but `ClientRegistrationRepository` is an
-  SPI. The platform implements a tenant-code-keyed repository that builds
-  registrations on demand from the tenant registry (issuer = the tenant's
-  authority URL, credentials from per-tenant custody) — the same shape as
-  the existing per-tenant Medplum client registry. A tenant created at
-  14:00 is loginable at 14:00.
-- **Who registers the RP at each authority:** the operator, with the
-  bootstrap-client custody pattern — a `jengu-cloud` ClientApplication
-  (confidential, declared redirect URIs) whose secret lands in a
-  platform-readable Secret. Third-party apps (SMART appliances) get the
-  STANDARD later: RFC 7591 dynamic client registration.
+- **Dynamic relying-party registrations.** Framework client registrations are
+  usually boot-time property files, but the lookup behind them is normally an
+  SPI. A host implements a tenant-code-keyed repository that builds
+  registrations on demand from the tenant registry — issuer is the tenant's
+  authority URL, credentials come from per-tenant custody. A tenant created
+  at 14:00 is loginable at 14:00.
+- **Who registers the relying party at each authority:** the operator, with
+  the bootstrap-client custody pattern — a confidential `ClientApplication`
+  with declared redirect URIs, whose secret lands in a platform-readable
+  Secret. Third-party applications (SMART appliances) get the standard
+  instead: RFC 7591 dynamic client registration.
 - **Provisioning is REST, same path everywhere.** The tenant-bootstrap
-  M2M client writes RoleGrant defaults (sourced from the git config
-  repo) and dev-only LocalCredentials through the authority's
+  M2M client writes RoleGrant defaults (sourced from the configuration
+  repository) and dev-only LocalCredentials through the authority's
   `admin/role-grants` + `admin/credentials` endpoints — guarded by an
   explicit system-plane write scope (a human's `user/*.write` never
   reaches it). Practitioners and PractitionerRoles ride the ordinary
   FHIR surface with the same token. One provisioning path serves the
-  embedded local-dev container and the k8s dbo-server identically.
+  embedded development container and the deployed dbo-server identically.
 - **The RP builds its principal from an id_token.** The auth-code exchange
   returns an OIDC id_token beside the access token — audience is the
   CLIENT (the access token's stays the issuer), the RP's `nonce` echoes,
@@ -148,17 +148,16 @@ had. Three practicalities settled here:
 Login resolves the org code to the tenant, redirects to that tenant's
 `/authorize`, and wraps the returned tokens in the platform session; the
 platform's TenantContext derives from token claims as it does today.
-Platform administrators authenticate against the SYSTEM tenant's authority
-— the jengu system database is a tenant like any other, §13 applied to
-ourselves. The Medplum OIDC dependency and the separately-planned
-authorization server both retire into this: the per-tenant authorities ARE
-the authorization server, which also dissolves the hardest part of the
-Medplum exit (the tenancy/identity triad).
+Platform administrators authenticate against the SYSTEM tenant's authority —
+the host's own system database is a tenant like any other, §13 applied to
+ourselves. A host adopting this needs no separate authorization server: the
+per-tenant authorities are it, which is also what dissolves the hardest part
+of adoption (§7.6 — the tenancy and identity triad).
 
 ## 16.6 What stays outside
 
 Compartment/attribute rules beyond role→scopes (the Organization tree is
 recorded and waiting); consent/veto participation in token decisions
 (ADR 0016 attaches to these seams); the platform's login UI and session
-management (jengu-cloud's, as the relying party); edge PIN auth
+management (the host's, as the relying party); edge PIN auth
 unification (the edge caches Practitioners already — grants join later).

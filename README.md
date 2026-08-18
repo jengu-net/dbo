@@ -1,36 +1,73 @@
-# DBO — jengu FHIR object store
+# DBO — a multi-tenant FHIR object store
 
-DBO is the working name for jengu's own multi-tenant FHIR storage engine.
+DBO is a FHIR storage engine for platforms that host many healthcare tenants
+and cannot accept one FHIR version, one shared database, or one trust root
+for all of them.
 
-## Why
-
-The jengu platform currently runs on Medplum as its FHIR store. Medplum has served
-well — auth, projects, FHIR API, admin tooling out of the box — but it is pinned to
-**FHIR R4** with no roadmap to R5 or R6. Meanwhile:
-
-- Estonia's official national base FHIR version is already **R5**.
-- jengu's core strength — **device integration** — is significantly upgraded in the
-  R5 and R6 device/observation model.
-
-This repository specifies (and will eventually implement) an "ideal" FHIR storage for
-jengu's actual needs: multi-tenant with hard isolation, FHIR-version-plural
-(R4/R5/R6 and beyond), PostgreSQL-backed, top-notch performance, and light enough to
-boot inside the application JVM in development and test.
+- **Version-plural.** R4 and R5 personalities run concurrently over one
+  engine, per tenant and per domain, and the engine holds no version
+  knowledge at all. A domain written under R4 reads as R5 through converters
+  rather than a migration.
+- **Isolated by construction.** A tenant is a database. The management plane
+  provisions it without ever seeing its credentials, and erasing a tenant is
+  a `DROP DATABASE` rather than a delete sweep somebody has to trust.
+- **Its own authority.** Each tenant issues its own tokens, and the store
+  surface accepts only that tenant's. A cross-tenant token fails at signature
+  verification, not at a permission check.
+- **Postgres and nothing else.** No cache tier, no broker, no queue service.
+  Durable work, subscriptions, change feeds and coordination all run on the
+  database that already holds the data.
+- **Embeddable.** The production bundles boot inside a host application's own
+  JVM, so development and test run against the real engine rather than a
+  substitute. Cold start is about five seconds.
+- **Honest.** Search is strict — an unsupported parameter is a 400, never a
+  quietly broader result set — and the CapabilityStatement is generated from
+  what is actually implemented.
 
 ## Status
 
-**Implementation underway** — engine, feeds, R4+R5 personalities, tier-1
-search, subscriptions and terminology are built and CI-green. The living
-status page: [docs/plans/implementation-status.md](docs/plans/implementation-status.md).
+Implementation is underway and CI-green: the engine, feeds, R4 and R5
+personalities, tier-1 search, subscriptions, terminology, the tenant
+authority, personal-data isolation, tenant policies, maintenance and the
+Kubernetes provisioning operator are built and proven by 267 behaviour-named
+tests. Durable work planes, routing, the process catalogue and operations are
+specified and not built.
 
-- [docs/arc42-001-introduction](docs/arc42-001-introduction/README.md) — goals and founding requirements
-- [docs/README.md](docs/README.md) — the arc42 documentation index
-- [docs/evidence/legacy-concept-inventory.md](docs/evidence/legacy-concept-inventory.md) — what the
-  previous db-objects codebase got right (and wrong)
+The living status page is
+[docs/plans/implementation-status.md](docs/plans/implementation-status.md).
 
-## History
+## Documentation
 
-An earlier incarnation of this idea ("db-objects", 2024–2025) is not part of
-this repository. Its durable concepts — the payload/envelope split, the
-identifier model, the transactional outbox, version-driven leader election —
-are carried into the specification here; its implementation is not.
+The specification is an [arc42](https://arc42.org/) tree:
+
+- [docs/README.md](docs/README.md) — the documentation index
+- [docs/arc42-001-introduction](docs/arc42-001-introduction/README.md) — goals
+  and the founding requirements
+- [docs/arc42-009-architecture-decisions](docs/arc42-009-architecture-decisions/README.md)
+  — the resolved questions, including the
+  [adoption path from an existing FHIR server](docs/arc42-009-architecture-decisions/README.md)
+- [docs/arc42-008-crosscutting/design-rationale.md](docs/arc42-008-crosscutting/design-rationale.md)
+  — why the engine is shaped this way
+
+## Modules
+
+| Module | What it is |
+|---|---|
+| `dbo-core` | The zero-dependency object API — no FHIR, no framework |
+| `dbo-postgres` | The engine: single-transaction writes, envelopes, history, the outbox |
+| `dbo-fhir-common`, `dbo-fhir-r4`, `dbo-fhir-r5` | Personalities, each with a private HAPI stack |
+| `dbo-rest` | The FHIR HTTP surface — JDK `HttpServer`, virtual threads, no framework |
+| `dbo-auth` | The per-tenant OIDC authority, JDK crypto only |
+| `dbo-pdi` | Personal-data isolation — identifying elements encrypted in the payload |
+| `dbo-policy` | Audit and write discipline as tenant policy |
+| `dbo-subscriptions` | Durable subscription delivery over the change feed |
+| `dbo-sync` | Declared content dependencies streamed between tenants |
+| `dbo-terminology` | Concept-per-row terminology and its operations |
+| `dbo-maintenance` | Sealed archives: backup, restore, export, import |
+| `dbo-tenant`, `dbo-tenant-k8s` | Tenant runtime wiring and the in-cluster provisioning seam |
+| `dbo-operator` | The Kubernetes provisioning operator |
+| `dbo-server` | The serving distribution |
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).

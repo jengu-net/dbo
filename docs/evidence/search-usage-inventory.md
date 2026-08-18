@@ -1,11 +1,12 @@
 # FHIR search usage inventory (evidence for the search tiers)
 
-Snapshot 2026-08-14: every FHIR search interaction the jengu codebases
-(jengu-platform, lab, jengu/VA) actually issue against Medplum — ~206 call sites
-in production code. This is the empirical basis for the tier structure in
-[§7.5](../arc42-009-architecture-decisions/README.md). All searches go through hand-rolled REST clients
-taking raw query strings; there is no Medplum SDK, no GraphQL, and no batch
-search-entry usage.
+Snapshot 2026-08-14: every FHIR search interaction a production healthcare
+platform — a clinical cloud, a laboratory system and a visit assistant —
+actually issues against its FHIR server, across ~206 call sites in production
+code. This is the empirical basis for the tier structure in
+[§7.5](../arc42-009-architecture-decisions/README.md). All searches go through
+hand-rolled REST clients taking raw query strings: no server SDK, no GraphQL,
+and no batch search-entry usage.
 
 ## Used, by frequency
 
@@ -33,8 +34,9 @@ search-entry usage.
 | Conditional create/update/delete on search criteria | ~50 | `If-None-Exist: url=…` / `identifier=sys\|val` — the bootstrap/upsert workhorse |
 
 $operations in use: `ValueSet/$expand`, `$validate`, `CodeSystem/$lookup`,
-`$meta-add`; Medplum-proprietary: `CodeSystem/$import`, `Project/$init`,
-`Project/$expunge`, `_project`, `_compartment` (one Subscription criteria).
+`$meta-add`. The remainder were server-proprietary — bulk terminology import,
+project initialisation and expunge, project and compartment search
+parameters — and have no FHIR equivalent to reproduce.
 
 ## Zero production usage
 
@@ -50,7 +52,7 @@ GraphQL; custom `SearchParameter` resources.
 ## Reading
 
 The platform pushes anything more expressive than token+reference+sort into
-client-side Java post-processing (e.g. audit queries fetch bounded
-`_count`/`_sort` pages and filter `source.site` in Java; lab worklists append a
-`performer` filter rather than chaining). Tier 2 exists to delete those
-workarounds, not to chase spec completeness.
+client-side post-processing: audit queries fetch bounded `_count`/`_sort`
+pages and filter in application code, worklists append a `performer` filter
+rather than chaining. Tier 2 exists to delete those workarounds, not to chase
+spec completeness.
