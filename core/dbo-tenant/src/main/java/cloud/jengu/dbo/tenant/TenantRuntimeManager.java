@@ -11,6 +11,8 @@ import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.rest.FhirHttpServer;
 import com.sun.net.httpserver.HttpServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -36,6 +38,14 @@ import java.util.stream.Stream;
  * erasure is only ever the explicit provisioner {@code deprovision}.
  */
 public final class TenantRuntimeManager implements AutoCloseable {
+
+    private static final Logger LOG = LoggerFactory.getLogger("dbo.tenant");
+
+    /** The last reported tenant set, so the rollup reports change rather than time. */
+    private volatile String lastRollup;
+
+    /** Bring-up failures already reported, so a permanent one is said once. */
+    private final Set<String> reportedFailures = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public record TenantRuntime(
             TenantSpec spec,
@@ -156,7 +166,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             TenantSpec spec = TenantSpec.parse(Files.readString(f));
                             declared.add(spec.code());
                             if (!runtimes.containsKey(spec.code())) {
+                                long began = System.nanoTime();
                                 bringUp(spec);
+                                reportedFailures.removeIf(k -> k.startsWith(f.getFileName() + ":"));
+                                LOG.info("tenant up: code={} fhir={} pdi={} in {}ms",
+                                        spec.code(), spec.fhirVersion(), spec.pdi(),
+                                        (System.nanoTime() - began) / 1_000_000);
+                                rollup();
                             }
                         } catch (Throwable e) {
                             // Throwable, not Exception: a missing OSGi wire
@@ -164,8 +180,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             // only Exception let it kill the scanner thread
                             // with no output at all — absence of a tenant and
                             // absence of a reason.
-                            System.err.println("dbo-tenant: bring-up failed for " + f.getFileName());
-                            e.printStackTrace();
+                            // Reported once per distinct failure. The scan
+                            // retries every couple of seconds, and a spec
+                            // that will never parse would otherwise write the
+                            // same stack until the disk filled — burying the
+                            // one line that mattered.
+                            String signature = f.getFileName() + ":" + e;
+                            if (reportedFailures.add(signature)) {
+                                LOG.error("tenant bring-up failed: spec={} (further identical "
+                                        + "failures suppressed until it changes)",
+                                        f.getFileName(), e);
+                            }
                         }
                     });
         } catch (IOException e) {
@@ -176,7 +201,33 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 takeDown(code);
             }
         }
+        rollup();
         return codes();
+    }
+
+    /**
+     * What this box is now, after whatever just changed.
+     *
+     * <p>A per-tenant line answers "what happened"; this answers "what is
+     * true". An operator reading a log two hours later needs the second one,
+     * and reconstructing it by replaying every up and down event is how a
+     * count goes wrong.
+     */
+    private void rollup() {
+        // Emitted only when the shape actually changed. A scan loop that
+        // restates the same counts every two seconds turns the log into a
+        // heartbeat, and a heartbeat is what people filter out — including
+        // on the run where the number finally moved.
+        String shape = runtimes.keySet().stream().sorted().collect(java.util.stream.Collectors.joining(","));
+        if (shape.equals(lastRollup)) {
+            return;
+        }
+        lastRollup = shape;
+        LOG.info("tenants: serving={} r4={} r5={} pdi={}",
+                runtimes.size(),
+                runtimes.values().stream().filter(r -> "r4".equals(r.spec().fhirVersion())).count(),
+                runtimes.values().stream().filter(r -> "r5".equals(r.spec().fhirVersion())).count(),
+                runtimes.values().stream().filter(r -> r.spec().pdi()).count());
     }
 
     private void bringUp(TenantSpec spec) {
@@ -325,7 +376,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 } catch (RuntimeException e) {
                     // one stream's failure never blocks the others; the
                     // next round retries from the acked cursor
-                    System.err.println("dbo-tenant: sync round failed: " + e);
+                    LOG.warn("sync round failed for one stream; retrying from the "
+                            + "acked cursor next round", e);
                 }
             }
         }
@@ -463,6 +515,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (runtime == null) {
             return;
         }
+        // Retraction, not erasure: the tenant stops being served and its
+        // database stays. Deprovision is the destructive one and says so
+        // separately.
+        LOG.info("tenant down: code={} reason=undeclared", code);
         listener.tenantDown(code);
         runtime.endpoint().close();
         sweeps.remove(code);
@@ -500,8 +556,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 } catch (Throwable e) {
                     // the reconciler must outlive any single round's
                     // failure — including Errors (see bring-up above)
-                    System.err.println("dbo-tenant: reconciliation round failed");
-                    e.printStackTrace();
+                    LOG.warn("reconciliation round failed; the reconciler continues", e);
                 }
             }
         });

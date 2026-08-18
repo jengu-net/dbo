@@ -26,6 +26,9 @@ configurations.runtimeClasspath {
 }
 
 dependencies {
+    // a plain jar, not a bundle: it needs the binding on its own classpath
+    implementation("org.slf4j:slf4j-api:2.0.18")
+    runtimeOnly(project(":core:dbo-logging"))
     // the JDBC driver must be on the runtime classpath — the operator is a
     // standalone process, nothing else supplies it
     runtimeOnly("org.postgresql:postgresql:42.7.11")

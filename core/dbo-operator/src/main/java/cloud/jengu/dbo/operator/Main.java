@@ -2,6 +2,8 @@ package cloud.jengu.dbo.operator;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Container entrypoint: in-cluster k8s config, environment-driven Postgres
@@ -9,6 +11,8 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
  * the pod's Secret mount), then the poll loop until the pod stops.
  */
 public final class Main {
+
+    private static final Logger LOG = LoggerFactory.getLogger("dbo.operator");
 
     private Main() {
     }
@@ -34,10 +38,26 @@ public final class Main {
             }
             operator.ensureCrd();
             operator.start(intervalMillis);
-            System.out.println("dbo-operator reconciling TenantRegistrations in namespace "
-                    + namespace + " every " + intervalMillis + "ms");
-            Thread.currentThread().join(); // SIGTERM ends the JVM; k8s owns the lifecycle
+            // Startup says WHAT it is and WHERE it will act. A pod that logs
+            // only "started" leaves an operator guessing which namespace it
+            // took, which is the thing that is actually ever wrong.
+            LOG.info("started: component=dbo-operator version={} jdk={} namespace={} "
+                    + "reconcileMs={} rpProvisioning={}",
+                    version(), Runtime.version(), namespace, intervalMillis,
+                    rpRedirects != null && !rpRedirects.isBlank());
+            // SIGTERM ends the JVM; k8s owns the lifecycle. The hook is what
+            // turns a kill into a sentence instead of a silence.
+            Runtime.getRuntime().addShutdownHook(new Thread(
+                    () -> LOG.info("shutdown requested: component=dbo-operator"),
+                    "dbo-shutdown"));
+            Thread.currentThread().join();
         }
+    }
+
+    /** The build's version, or a marker when running from a plain classpath. */
+    private static String version() {
+        String v = Main.class.getPackage().getImplementationVersion();
+        return v == null ? "dev" : v;
     }
 
     private static String env(String name, String fallback) {

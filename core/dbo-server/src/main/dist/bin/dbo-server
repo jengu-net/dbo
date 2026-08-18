@@ -14,10 +14,26 @@ if [ -z "${DBO_AUTH_KEK:-}" ] && [ "${DBO_AUTH_DISABLED:-}" != "true" ]; then
   exit 78
 fi
 
+# INFO by default: a box that says nothing while it works cannot be told
+# apart from a box that is stuck. felix.log.level tracks the same setting so
+# the framework's own verbosity does not have to be remembered separately
+# (0=none 1=error 2=warning 3=info 4=debug).
+DBO_LOG_LEVEL="${DBO_LOG_LEVEL:-info}"
+case "$DBO_LOG_LEVEL" in
+  error) FELIX_LOG_LEVEL=1 ;;
+  warn)  FELIX_LOG_LEVEL=2 ;;
+  info)  FELIX_LOG_LEVEL=3 ;;
+  *)     FELIX_LOG_LEVEL=4 ;;
+esac
+
+# Bundles that log through java.util.logging — the ServiceLoader mediator
+# among them — would otherwise print their own INFO chatter beside the JSON
+# stream in a different format entirely.
 exec java \
-  -Dorg.slf4j.simpleLogger.defaultLogLevel="${DBO_LOG_LEVEL:-warn}" \
-  -Dorg.slf4j.simpleLogger.showDateTime=true \
-  -Dorg.slf4j.simpleLogger.dateTimeFormat="yyyy-MM-dd'T'HH:mm:ss.SSS" \
+  -Djava.util.logging.config.file=conf/logging.properties \
+  -Ddbo.log.level="${DBO_LOG_LEVEL}" \
+  -Ddbo.log.format="${DBO_LOG_FORMAT:-json}" \
+  -Dfelix.log.level="${FELIX_LOG_LEVEL}" \
   -Ddbo.tenant.dir="${DBO_TENANT_DIR:?DBO_TENANT_DIR must point at the spec directory}" \
   -Ddbo.tenant.http.host="${DBO_HTTP_HOST:-0.0.0.0}" \
   -Ddbo.tenant.http.port="${DBO_HTTP_PORT:-8090}" \

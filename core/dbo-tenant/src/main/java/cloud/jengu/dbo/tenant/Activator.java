@@ -9,6 +9,8 @@ import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.Hashtable;
@@ -28,6 +30,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class Activator implements BundleActivator {
 
+    private static final Logger LOG = LoggerFactory.getLogger("dbo.server");
+
     private ServiceRegistration<TenantDatabaseProvisioner> defaultProvisioner;
     private ServiceTracker<TenantDatabaseProvisioner, TenantDatabaseProvisioner> tracker;
     private LocalDatabasePerTenantProvisioner localProvisioner;
@@ -36,6 +40,20 @@ public final class Activator implements BundleActivator {
 
     @Override
     public void start(BundleContext ctx) {
+        // The posture, not just the fact of starting. Every field here is
+        // something that silently differs between two deployments that look
+        // identical, and each has at some point been the answer to "why is
+        // this box behaving differently from that one".
+        LOG.info("starting: component=dbo-server version={} jdk={} os={} "
+                + "provisioner={} authority={} bind={}:{} specs={}",
+                version(), Runtime.version(),
+                System.getProperty("os.name") + " " + System.getProperty("os.arch"),
+                ctx.getProperty("dbo.tenant.k8s.namespace") != null
+                        ? "kubernetes-secrets" : "local-database-per-tenant",
+                ctx.getProperty("dbo.tenant.auth.kek") != null ? "enabled" : "DISABLED",
+                ctx.getProperty("dbo.tenant.http.host"),
+                ctx.getProperty("dbo.tenant.http.port"),
+                ctx.getProperty("dbo.tenant.dir"));
         String adminUrl = ctx.getProperty("dbo.tenant.admin.url");
         if (adminUrl != null) {
             localProvisioner = new LocalDatabasePerTenantProvisioner(adminUrl,
@@ -87,6 +105,13 @@ public final class Activator implements BundleActivator {
             }
         }
         return java.util.Map.copyOf(out);
+    }
+
+    /** The bundle's version, or a marker when it has none. */
+    private static String version() {
+        Package p = Activator.class.getPackage();
+        String v = p == null ? null : p.getImplementationVersion();
+        return v == null ? "dev" : v;
     }
 
     private synchronized void startManager(BundleContext ctx, TenantDatabaseProvisioner provisioner) {
@@ -146,6 +171,7 @@ public final class Activator implements BundleActivator {
 
     @Override
     public void stop(BundleContext ctx) {
+        LOG.info("shutdown requested: component=dbo-server");
         if (tracker != null) {
             tracker.close();
         }

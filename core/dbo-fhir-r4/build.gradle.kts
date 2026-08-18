@@ -13,7 +13,10 @@ dependencies {
     api(project(":core:dbo-subscriptions"))
     api(project(":core:dbo-terminology"))
     embedded("ca.uhn.hapi.fhir:hapi-fhir-structures-r4:8.10.1")
-    embedded("org.slf4j:slf4j-simple:2.0.18")
+    // slf4j-api is SHARED, not embedded: one binding for the whole
+    // runtime instead of a private one per bundle. compileOnly because
+    // it resolves from the slf4j-api bundle at runtime.
+    compileOnly("org.slf4j:slf4j-api:2.0.18")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-validation:8.10.1")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:8.10.1")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-caching-caffeine:8.10.1")
@@ -35,6 +38,7 @@ tasks.jar {
                 "Bundle-ClassPath" to ".,$libs",
                 "Export-Package" to "cloud.jengu.dbo.fhir.r4;version=\"0.1.0\"",
                 "Import-Package" to listOf(
+                    "org.slf4j",
                     "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
                     // the inward contract: what this face implements for the
                     // engine, as against core.api which is what it calls

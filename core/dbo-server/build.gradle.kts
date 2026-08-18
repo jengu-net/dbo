@@ -21,6 +21,19 @@ dependencies {
     ).forEach { bundles(project(it)) { isTransitive = false } }
     // the JDBC driver is itself an OSGi bundle
     bundles("org.postgresql:postgresql:42.7.11") { isTransitive = false }
+    // One logging arrangement for the runtime: the API as a bundle every
+    // module imports, and dbo-logging as a FRAGMENT of it carrying the
+    // binding. Five private bindings meant five configurations and no
+    // hierarchy; this is one of each.
+    bundles("org.slf4j:slf4j-api:2.0.18") { isTransitive = false }
+    bundles(project(":core:dbo-logging")) { isTransitive = false }
+    // The ServiceLoader mediator slf4j-api requires by manifest. A framework
+    // extension: it attaches to the system bundle rather than starting, which
+    // is why it has to be present before anything requiring the extender
+    // tries to resolve.
+    bundles("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.7") {
+        isTransitive = false
+    }
 }
 
 val installDist = tasks.register<Sync>("installDist") {
