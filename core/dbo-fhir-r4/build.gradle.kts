@@ -1,7 +1,7 @@
 // The FHIR R4 personality: everything that knows what an R4 payload MEANS.
 // HAPI rides as ordinary dependencies here; the §7.3 boundary (no HAPI type
 // crosses the public API) is enforced by ApiBoundaryTest in the harness, and
-// the OSGi private-embedding packaging is the spike-proven pattern applied in
+// the OSGi private-embedding packaging is the proven pattern applied in
 // a later packaging task.
 
 val embedded: Configuration by configurations.creating

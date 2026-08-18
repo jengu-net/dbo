@@ -16,13 +16,13 @@ concurrency, serving-pod role), and consumers — storages, subscription
 feeds, the tenant assigner — simply look them up; conversely, workflow/step
 implementations register *themselves* into the whiteboard and the embedding
 bundle enrolls them with DBOS. Tenant arrival/departure becomes plain OSGi
-service dynamics. The spike then only has to verify classloading (DBOS's
-proxying/reflection under a bundle classloader) rather than architecture.
+service dynamics. What remained to establish was classloading — DBOS's
+proxying and reflection under a bundle classloader — rather than architecture.
 Worst case remains: implement the DBOS *patterns* (Postgres queues, exactly-
 once steps) natively in dbo-core behind the same whiteboard interfaces.
 
-**VERDICT (spike, 2026-08-14): ADOPT.** All scenarios pass
-(`spike/dbos-felix/`, Felix 7 in-JVM, Postgres via Testcontainers):
+**VERDICT: ADOPT — proven.** Every scenario holds, on Felix 7 in-JVM
+against a real Postgres:
 
 - *A — runtime in a bundle*: `dev.dbos:transact` 1.0.0 launches inside a
   bundle with all deps private (Bundle-ClassPath nested jars); schema
@@ -52,7 +52,7 @@ the bundle classloader before first pool creation; caller-visibility then
 passes since Hikari shares the classloader. No TCCL fixes, no ServiceLoader
 issues, no logging clashes were needed.
 
-Production notes carried out of the spike: export only the annotations
+Carried into production: export only the annotations
 package (later replaced by dbo-process's own annotations); the
 `StepRunner`-style DBO-owned boundary held with zero DBOS types leaking;
 one embedding-bundle copy serves N runtimes.
@@ -71,9 +71,9 @@ registry stays the programming model (consumers look up `ObjectStore` for a
 tenant and may get a local instance or a remote proxy — indistinguishable);
 we just don't buy the spec's generality: no dynamic interface export, no
 pluggable discovery providers, no config-admin ceremony. Aries RSA/ECF
-remain reference material for proxy/classloader mechanics. The spike now
-sizes our own layer (proxy generation over a fixed interface set is small)
-rather than auditing someone else's.
+remain reference material for proxy/classloader mechanics. The work is
+sizing our own layer — proxy generation over a fixed interface set is
+small — rather than auditing someone else's.
 
 **VERDICT (Cellar evaluation, 2026-08-14): REJECT Cellar — build our own,
 as planned.** Source-level review of `cellar-dosgi` at `apache/karaf-cellar`
@@ -103,10 +103,10 @@ main:
 - **Karaf-the-container** (features model, shell, provisioning) remains a
   separate, open option — Karaf itself ships steadily (4.4.x through
   2026) — to be decided when packaging/distribution becomes real work.
-  The embedded in-JVM mode runs on plain Felix regardless (proven by both
-  spikes).
+  The embedded in-JVM mode runs on plain Felix regardless, which is
+  proven.
 
-With this, all §7 spike questions are closed: DBOS adopt (§7.1), own
+With this, every §7 question is closed: DBOS adopt (§7.1), own
 routing layer with Cellar rejected (§7.2), HAPI personalities confirmed
 (§7.3), planes resolved (§7.4), search tiers evidence-based (§7.5),
 adoption path set (§7.6).
@@ -151,8 +151,8 @@ code lives in the `org.hl7.fhir.core` validator stack. So the R6
 personality begins life on ballot-snapshot artifacts — exactly the
 fast-moving dependency the bundle isolation is for.
 
-**VERDICT (spike, 2026-08-14): CONFIRMED — HAPI per personality works.**
-All scenarios pass (`spike/hapi-felix/`, HAPI 8.10.1, Felix 7 in-JVM):
+**VERDICT: CONFIRMED — HAPI per personality works.** Every scenario
+holds, on HAPI 8.10.1 and Felix 7 in-JVM:
 R4 parse + FHIRPath (incl. identifier-extraction expressions), R5
 coexisting with genuine divergence (R4 rejects `SubscriptionTopic`),
 R4 profile validation flags structural errors, and the boundary rule held
@@ -242,7 +242,7 @@ each tenant's own DBOS and carries only references between them.
   regardless — the hop model makes the audit structural instead of
   per-integration.
 
-Spike item — ANSWERED by the embedding spike (see §7.1 verdict): `DBOS` is an
+ANSWERED (see the §7.1 verdict): `DBOS` is an
 instantiable class, and multiple launched runtimes against different
 system databases coexist in one JVM with isolated workflow state. The
 per-tenant plane needs no workaround.
