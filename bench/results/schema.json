@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "dbo benchmark result",
+  "description": "One run. The machine is recorded with the numbers because a figure without its hardware is unattributable, and a Pi 4 and a Pi 5 differ by two to three times.",
+  "type": "object",
+  "required": ["startedAt", "dboVersion", "machine", "thermal", "valid", "measurements"],
+  "properties": {
+    "startedAt": { "type": "string", "format": "date-time" },
+    "dboVersion": { "type": "string" },
+    "machine": {
+      "type": "object",
+      "required": ["model", "memoryKb", "kernel", "profile", "postgres", "jdk"],
+      "properties": {
+        "model": { "type": "string" },
+        "memoryKb": { "type": "integer" },
+        "kernel": { "type": "string" },
+        "profile": {
+          "enum": ["ram", "nvme"],
+          "description": "ram = PGDATA on tmpfs: a CPU and concurrency ceiling, NOT a storage figure, because fsync is free. nvme = what a deployment feels."
+        },
+        "postgres": { "type": "string" },
+        "jdk": { "type": "string" }
+      }
+    },
+    "thermal": {
+      "type": "object",
+      "description": "Sampled throughout. A run whose throttle flags latched is reported, not hidden — its numbers describe cooling rather than code.",
+      "required": ["maxSocTempC", "throttledSinceBoot"],
+      "properties": {
+        "maxSocTempC": { "type": "number" },
+        "throttledSinceBoot": { "type": "boolean" },
+        "underVoltageSinceBoot": { "type": "boolean" }
+      }
+    },
+    "valid": {
+      "type": "boolean",
+      "description": "False when the run throttled, when tmpfs filled, or when any measurement failed to complete. An invalid run is kept and marked, never quietly dropped."
+    },
+    "tenants": { "type": "integer" },
+    "measurements": {
+      "type": "object",
+      "properties": {
+        "coldStartMs": {
+          "type": "integer",
+          "description": "Distribution boot to the first 200 on a current schema."
+        },
+        "write": { "$ref": "#/$defs/latency" },
+        "writeWithPdi": {
+          "$ref": "#/$defs/latency",
+          "description": "The same path with personal-data isolation on. The delta is the per-write cost of encrypting identifying elements."
+        },
+        "tokenLookup": {
+          "$ref": "#/$defs/latency",
+          "description": "identifier=system|value — 88 of 206 measured production call sites are this one shape, so it is weighted as reality weights it."
+        },
+        "feedLagMs": {
+          "type": "object",
+          "description": "Consumer lag across every tenant database under write load. The differentiated measurement: N tenant databases on one instance is exactly what the commit-fence fast path exists for.",
+          "properties": {
+            "p50": { "type": "number" },
+            "p99": { "type": "number" },
+            "max": { "type": "number" }
+          }
+        },
+        "subscriptionDeliveryMs": { "$ref": "#/$defs/latency" },
+        "archiveSeconds": { "type": "number" },
+        "restoreSeconds": { "type": "number" },
+        "tenantsBeforeDegradation": {
+          "type": "integer",
+          "description": "How many tenants one JVM holds before latency leaves its band. A product limit an edge deployment has to be told."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "latency": {
+      "type": "object",
+      "required": ["count", "p50", "p99"],
+      "properties": {
+        "count": { "type": "integer" },
+        "perSecond": { "type": "number" },
+        "p50": { "type": "number" },
+        "p95": { "type": "number" },
+        "p99": { "type": "number" },
+        "max": { "type": "number" }
+      }
+    }
+  }
+}
