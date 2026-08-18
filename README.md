@@ -1,22 +1,39 @@
 # DBO — a multi-tenant FHIR object store
 
-DBO is a FHIR storage engine for platforms that host many healthcare tenants
-and cannot accept one FHIR version, one shared database, or one trust root
-for all of them.
+A FHIR server stores FHIR. A healthcare platform needs more than that, and
+ends up building the rest by hand — once per application, above a store that
+cannot help. DBO is the store that helps.
 
+- **Isolated by construction.** A tenant is a database, not a filter over a
+  shared one. The management plane provisions it without ever seeing its
+  credentials, and erasing a tenant is a `DROP DATABASE` rather than a delete
+  sweep somebody has to trust.
+- **Process, not just CRUD.** A transactional outbox is the change feed, one
+  cursor primitive serves both pagination and synchronization, and durable
+  work runs on the database that already holds the data. No broker, no cache
+  tier, no second source of truth about what happened.
+- **Jurisdiction is configuration.** A zone is a tenant whose declarations are
+  records: which identifier systems establish a person, which brokers may
+  authenticate one, which terminology is canonical. One identity ceremony
+  serves every tenant in the zone.
+- **Identifying data under enforced control.** Identifying elements are
+  encrypted inside the payload with per-person keys, in the same atomic
+  write, so history, feeds, archives and replication carry ciphertext by
+  construction. Erasure destroys a key; no earlier archive can undo it.
+- **Every type declares what it is.** Append-only, versioned, auditable,
+  exportable, retained for how long — declared per type and enforced by the
+  engine, not left to the habits of the code that writes it. Audit is
+  append-only against everyone, the vendor included.
+- **Archives that leave whole.** One sealed archive is backup, restore,
+  migration and export: attested by both parties, encrypted under the owner's
+  key so the operator cannot read it, and restore-tested by daily use.
 - **Version-plural.** R4 and R5 personalities run concurrently over one
   engine, per tenant and per domain, and the engine holds no version
   knowledge at all. A domain written under R4 reads as R5 through converters
   rather than a migration.
-- **Isolated by construction.** A tenant is a database. The management plane
-  provisions it without ever seeing its credentials, and erasing a tenant is
-  a `DROP DATABASE` rather than a delete sweep somebody has to trust.
-- **Its own authority.** Each tenant issues its own tokens, and the store
-  surface accepts only that tenant's. A cross-tenant token fails at signature
+- **Its own authority per tenant.** Each tenant issues its own tokens and the
+  store accepts only that tenant's. A cross-tenant token fails at signature
   verification, not at a permission check.
-- **Postgres and nothing else.** No cache tier, no broker, no queue service.
-  Durable work, subscriptions, change feeds and coordination all run on the
-  database that already holds the data.
 - **Embeddable.** The production bundles boot inside a host application's own
   JVM, so development and test run against the real engine rather than a
   substitute. Cold start is about five seconds.

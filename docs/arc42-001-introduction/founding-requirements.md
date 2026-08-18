@@ -1,9 +1,12 @@
 # DBO — main requirements
 
-The driving problem: the FHIR servers available to build on are pinned to FHIR R4,
-while several national base specifications are already R5 and the device and
-observation model is substantially better in R5 and R6. DBO is the specification of a
-FHIR store for which the version is a per-tenant, per-domain choice.
+The driving problem: a FHIR server stores FHIR, and a healthcare platform needs more
+than that — tenancy that is a structural boundary rather than a filter, process and
+eventing as part of storage, jurisdiction as configuration, identifying data under
+enforced control, the nature of each stored type declared rather than conventional,
+archives that can leave whole, and a FHIR version chosen per tenant. Each of those is
+otherwise reimplemented by hand above a store that cannot help. The gaps are set out
+in the [introduction](README.md).
 
 These are the founding requirements; they fix direction. Their distillation
 into stable, testable REQ IDs lives in [req-catalogue.md](../arc42-006-runtime/req-catalogue.md).
