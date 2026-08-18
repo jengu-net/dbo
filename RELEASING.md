@@ -89,6 +89,34 @@ checking layout and POM contents, and Central would reject it. Every release
 tag runs with the key, and the workflow fails early and loudly if the key is
 missing rather than discovering it after the upload.
 
+## Maven Central is blocked on artifact size
+
+Central tracks release size as a three-month monthly average, with the
+threshold set where the top 10% of publishers begin — **about 78 MB** at the
+time of writing, and the Usage Center is the source of truth. Enforcement
+begins 1 October 2026.
+
+Measured here: **320.9 MB of main jars**, of which `dbo-fhir-r5` is 155.7 MB
+and `dbo-fhir-r4` is 137.9 MB. With sources, javadoc and signatures a single
+`0.1.0` bundle came to **339 MB** — roughly four times the threshold, in one
+release.
+
+The two packaging items on
+[the status page](docs/plans/implementation-status.md) — trimming the
+spec-authoring transitives, then collapsing the duplicated HL7 stack into one
+shared bundle — take that to roughly 133 MB together. Necessary, and still
+not under the line.
+
+So Central additionally needs a split by what an artifact is *for*: the thin
+modules a consumer compiles against (about 7.4 MB together) publish there,
+while the fat OSGi bundles ride the container image and the release archive.
+That is a fair reading of the limit rather than a workaround — a jar carrying
+140 MB of vendored HL7 is a deployment artifact, not a compile dependency.
+
+Until then artifacts publish to the project's own Maven repository, which the
+signing configuration here already covers: it signs the publication, not the
+destination.
+
 ## Version numbering
 
 `0.x` while requirement areas remain specified-but-unbuilt (see the
