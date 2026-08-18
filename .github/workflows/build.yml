@@ -2,15 +2,17 @@ name: build
 
 # THE dbo pipeline — one workflow, two modes:
 #
-#   main push / PR   suite → (push only) images :main-<sha>
-#   release tag v*   suite → images :X.Y.Z → Maven Central bundle
+#   main push / PR   suite → (push only) snapshot jars → images :main-<sha>
+#   release tag v*   suite → RELEASE jars → images :X.Y.Z
+#                    → Maven Central bundle (v-tags only)
 #
 # Releases pin everything to one number: the jars, the Bundle-Versions and
 # the image tags. Nothing publishes and no image ships unless the full suite
 # is green on exactly that commit.
 #
-# There is no private Maven repository. Consumers take releases from Central;
-# a local composite build or `publishToMavenLocal` covers development.
+# Jars go to the project's own PUBLIC repository. Central is a later
+# destination for the same coordinates, blocked on artifact size rather than
+# on anything about the build (RELEASING.md).
 #
 # Maven Central is deliberately RELEASE-ONLY and gated on a secret being
 # present: Central is immutable, so a publish is not something a main-branch
@@ -90,6 +92,29 @@ jobs:
       gradle_args: ${{ steps.version.outputs.gradle_args }}
       image_tag: ${{ steps.version.outputs.image_tag }}
       is_release: ${{ steps.version.outputs.is_release }}
+
+  publish:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Publish library modules
+        # SNAPSHOT → maven-snapshots, fixed version → maven-releases; the
+        # repository URL switches on the version suffix.
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: >-
+          ./gradlew publishAllPublicationsToJenguRepoRepository --no-daemon
+          ${{ needs.build.outputs.gradle_args }}
 
   images:
     needs: build
