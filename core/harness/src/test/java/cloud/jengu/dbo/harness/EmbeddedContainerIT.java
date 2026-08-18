@@ -72,7 +72,7 @@ class EmbeddedContainerIT {
         // serviceloader extender tries to resolve.
         ctx.installBundle("file:" + System.getProperty("spifly.jar"));
         Bundle slf4j = ctx.installBundle("file:" + System.getProperty("slf4j.api.jar"));
-        ctx.installBundle("file:" + System.getProperty("dbo.logging.jar"));
+        ctx.installBundle("file:" + System.getProperty("dbo.logging.jar")).start();
         bundles.put("slf4j", slf4j);
         for (String name : List.of("dbo.core", "dbo.fhir.common", "dbo.postgres", "dbo.terminology",
                 "dbo.subscriptions", "dbo.fhir.r4", "dbo.fhir.r5", "dbo.rest")) {

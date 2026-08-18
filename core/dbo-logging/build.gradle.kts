@@ -11,6 +11,7 @@
 // hierarchy anything could set a level on.
 dependencies {
     compileOnly("org.slf4j:slf4j-api:2.0.18")
+    compileOnly("org.osgi:osgi.core:8.0.0")
 }
 
 tasks.jar {
@@ -19,7 +20,8 @@ tasks.jar {
             "Bundle-ManifestVersion" to "2",
             "Bundle-SymbolicName" to "cloud.jengu.dbo.logging",
             "Bundle-Version" to project.version.toString().replace("-", "."),
-            "Import-Package" to "org.slf4j,org.slf4j.spi,org.slf4j.helpers,org.slf4j.event",
+            "Bundle-Activator" to "cloud.jengu.dbo.logging.FrameworkLogging",
+            "Import-Package" to "org.slf4j,org.slf4j.spi,org.slf4j.helpers,org.slf4j.event,org.osgi.framework",
             "Provide-Capability" to
                 "osgi.serviceloader;osgi.serviceloader=\"org.slf4j.spi.SLF4JServiceProvider\"",
             "Require-Capability" to
