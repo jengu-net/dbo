@@ -10,13 +10,13 @@ import java.util.Set;
  * carries, and — for IDENTIFIER — its designated identity-bearing systems in
  * trust order. Supplied by tenant/zone configuration in production. Version-neutral: any personality consumes it.
  *
- * <p>Also carries the type's {@link Handling} — what kind of data it is
- * (jengu-platform#869). The factories below state {@code operational()}
+ * <p>Also carries the type's {@link Handling} — what kind of data it is.
+ * The factories below state {@code operational()}
  * rather than defaulting to it silently: a clinical resource written by the
  * tenant's own people is the ordinary case, and everything else says so.
  * Terminology replicated from a zone uses {@link #replicatedCanonical}, and
  * types written from two directions at once — {@code Practitioner} above all —
- * wait on per-field authority (jengu-platform#871) rather than being forced
+ * wait on per-field authority rather than being forced
  * into one answer here.
  */
 public record FhirTypeConfig(String typeName, IdentityClass identityClass,

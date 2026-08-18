@@ -3,7 +3,7 @@ package cloud.jengu.dbo.fhir.r5;
 import cloud.jengu.dbo.core.api.PayloadConverter;
 
 /**
- * The R4→R5 hop over HL7's own version convertors (dbo#11). Runs at READ —
+ * The R4→R5 hop over HL7's own version convertors. Runs at READ —
  * stored bytes stay R4 (payload-is-truth); identity fields survive because the
  * HL7 convertor maps `url` and `identifier` structurally
  * (REQ-DBO-CORE-IDENTITY-SURVIVES-CONVERSION — asserted in the harness).

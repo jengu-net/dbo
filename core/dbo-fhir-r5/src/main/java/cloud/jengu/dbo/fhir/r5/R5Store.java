@@ -140,7 +140,7 @@ public final class R5Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
 
     @Override
     public String read(String typeName, String id) {
-        // Rendered, not served raw (dbo#29) — see R5Personality#toResourceJson.
+        // Rendered, not served raw — see R5Personality#toResourceJson.
         return store.get(typeName, id)
                 .map(personality::toResourceJson)
                 .orElse(null);

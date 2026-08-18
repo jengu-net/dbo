@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Resolving presented claims against what the store actually holds (dbo#39).
+ * Resolving presented claims against what the store actually holds.
  *
  * <p>{@link Resolution#of} takes the matches as a parameter, which kept the
  * confidence rules testable without a database while they were being settled.

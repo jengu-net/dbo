@@ -1,4 +1,4 @@
-# dbo-server — the serving distribution (dbo#19): standard Felix launcher
+# dbo-server — the serving distribution: standard Felix launcher
 # + the production bundle set. Same base as the fleet's other images.
 FROM eclipse-temurin:21-jre
 

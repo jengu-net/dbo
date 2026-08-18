@@ -8,7 +8,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
 /**
- * In-cluster wiring (dbo#19): when {@code dbo.tenant.k8s.namespace} is set,
+ * In-cluster wiring: when {@code dbo.tenant.k8s.namespace} is set,
  * registers {@link KubernetesSecretProvisioner} as the mandatory
  * {@link TenantDatabaseProvisioner} service — the dbo-tenant manager tracks
  * it and serves. The serving pod's k8s identity needs only {@code secrets:
@@ -16,7 +16,7 @@ import org.osgi.framework.ServiceRegistration;
  * from the serving path.
  *
  * <p>Without the property this bundle is inert — the local default (or any
- * other provisioner) wins, unchanged from dbo#17.
+ * other provisioner) wins, unchanged.
  */
 public final class Activator implements BundleActivator {
 

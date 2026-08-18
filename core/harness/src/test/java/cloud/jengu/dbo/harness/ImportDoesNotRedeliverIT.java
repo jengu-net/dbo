@@ -32,7 +32,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * jengu-platform#872: restoring a tenant must not re-enact its past.
+ * Restoring a tenant must not re-enact its past.
  *
  * <p>A restore writes every object the archive carries. Every write
  * enqueues an outbox event, and a subscription reading that outbox cannot
@@ -99,7 +99,7 @@ class ImportDoesNotRedeliverIT {
                 "https://dbo.test/fhir");
         sourceFhir.create("""
                 {"resourceType":"Subscription","status":"active",
-                 "reason":"#872","criteria":"Observation?code=http://loinc.org|R-1",
+                 "reason":"restore replay test","criteria":"Observation?code=http://loinc.org|R-1",
                  "channel":{"type":"rest-hook","endpoint":"%s%s",
                             "payload":"application/fhir+json"}}"""
                 .formatted(endpoint, HOOK));
@@ -121,7 +121,7 @@ class ImportDoesNotRedeliverIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#872: a restored tenant notifies nobody — the past is recovered, not re-enacted")
+    @DisplayName("a restored tenant notifies nobody — the past is recovered, not re-enacted")
     void restoringATenantDeliversNothing() throws Exception {
         ByteArrayOutputStream archive = new ByteArrayOutputStream();
         TenantExport.export(sourceDs, R4Personality.DOMAIN, OWNER_KEY, archive);

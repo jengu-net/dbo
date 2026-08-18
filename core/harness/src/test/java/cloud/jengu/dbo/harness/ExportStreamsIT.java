@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * #35: export streams, so a tenant larger than the heap can still leave.
+ * Export streams, so a tenant larger than the heap can still leave.
  *
  * <p>Measuring peak heap in a test is a way to write a flaky test, so this
  * proves the property structurally instead: the archive is written to a sink
@@ -80,7 +80,7 @@ class ExportStreamsIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#35: the archive is written straight to its destination — nothing holds it whole")
+    @DisplayName("the archive is written straight to its destination — nothing holds it whole")
     void theArchiveIsNeverHeldWhole() throws Exception {
         CountingSink sink = new CountingSink();
 
@@ -94,7 +94,7 @@ class ExportStreamsIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#35: a streamed archive opens, and carries the digests written last")
+    @DisplayName("a streamed archive opens, and carries the digests written last")
     void aStreamedArchiveOpensAndCarriesItsDigests() throws Exception {
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
         TenantExport.export(ds, R4Personality.DOMAIN, OWNER_KEY, out);
@@ -120,7 +120,7 @@ class ExportStreamsIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#35: an altered archive fails authentication rather than ending quietly")
+    @DisplayName("an altered archive fails authentication rather than ending quietly")
     void anAlteredArchiveFailsAuthentication() throws Exception {
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
         TenantExport.export(ds, R4Personality.DOMAIN, OWNER_KEY, out);
@@ -141,7 +141,7 @@ class ExportStreamsIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#35/#854: a verified import preserves the archive's versions and moments, and a "
+    @DisplayName("a verified import preserves the archive's versions and moments, and a "
             + "resumed run skips what already landed")
     void aVerifiedImportPreservesHistoryAndResumes() throws Exception {
         // a second tenant to import into

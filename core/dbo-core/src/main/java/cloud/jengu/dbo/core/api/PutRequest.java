@@ -80,7 +80,7 @@ public record PutRequest(String typeName, String id, Long expectedVersion, byte[
 
     /**
      * Whether this write re-establishes state rather than changing it, and so
-     * must not be announced to anyone downstream (jengu-platform#872).
+     * must not be announced to anyone downstream.
      */
     public boolean isRestore() {
         return restoring;

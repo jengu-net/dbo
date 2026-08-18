@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The dbo#17 provisioning seam, in-cluster edition (dbo#18): the OPERATOR
+ * The provisioning seam, in-cluster edition: the OPERATOR
  * creates roles and databases; this provisioner only waits for the tenant's
  * Secret and builds a pool from it. Serving code stays credential-blind —
  * it receives a DataSource, and the credentials it rides are the tenant
@@ -45,7 +45,7 @@ public final class KubernetesSecretProvisioner implements TenantDatabaseProvisio
         Secret secret = awaitSecret(TenantK8sContract.secretName(spec.code()));
         HikariDataSource pool = pools.computeIfAbsent(spec.code(), code -> {
             HikariConfig config = new HikariConfig();
-            // spike #1 landmine: in OSGi, DriverManager cannot see the driver
+            // OSGi landmine: DriverManager cannot see the driver
             // bundle's registration from this bundle's Hikari — name the class
             // so Hikari loads it through our wiring (org.postgresql imported)
             config.setDriverClassName("org.postgresql.Driver");

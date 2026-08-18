@@ -6,7 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 
 /**
- * Each version of an object links to the one before it (#33).
+ * Each version of an object links to the one before it.
  *
  * <p>Rewriting a version changes its link, which changes every link after it.
  * A history can therefore be checked without trusting the system that stored

@@ -1,5 +1,5 @@
-// In-cluster tenant provisioning seam (dbo#19): KubernetesSecretProvisioner
-// (the dbo#17 mandatory service, backed by operator-written tenant Secrets)
+// In-cluster tenant provisioning seam: KubernetesSecretProvisioner
+// (the mandatory provisioning service, backed by operator-written tenant Secrets)
 // + SpecDirSync (tests / non-pod processes — in a pod the ConfigMap volume
 // mount IS the spec directory). Fat bundle: fabric8 + Hikari ride privately
 // (lib/ nested jars), only the dbo package is exported.

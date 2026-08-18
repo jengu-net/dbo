@@ -131,7 +131,7 @@ need to *never miss an update* are outbox consumers by definition — the model
 makes reaching for the right feed a type decision instead of a folklore rule.
 
 
-### Implementation note: gap-free outbox reads (dbo#5)
+### Implementation note: gap-free outbox reads
 
 `seq > cursor` alone is not a safe outbox read: sequence values are assigned
 at insert but transactions commit in any order, so a slow transaction's rows
@@ -143,7 +143,7 @@ below the snapshot's xmin has finished, so any still-invisible row must sort
 *after* the reader's frontier. Delivery is gap-free and in commit order with
 no extra coordination — the barrier is one predicate.
 
-Liveness caveat (dbo#16 finding): `xmin` is CLUSTER-GLOBAL, so a long-running
+Liveness caveat: `xmin` is CLUSTER-GLOBAL, so a long-running
 transaction in *any* database of the Postgres instance delays feed delivery
 everywhere — a delay, never a loss. Dedicated-tier tenants on dedicated
 instances are unaffected by neighbours; shared-cluster deployments should

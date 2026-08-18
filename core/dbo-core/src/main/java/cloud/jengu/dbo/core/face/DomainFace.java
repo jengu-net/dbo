@@ -5,7 +5,7 @@ import java.util.Set;
 
 /**
  * What the engine requires <b>from</b> a domain face — the mirror of the
- * facades a face offers outward (jengu-platform ADR 0057, dbo#38).
+ * facades a face offers outward (jengu-platform ADR 0057).
  *
  * <p>The outward facades are what the world calls: an HTTP server holds a
  * {@code FhirStoreFacade} and serves requests through it. This is the other

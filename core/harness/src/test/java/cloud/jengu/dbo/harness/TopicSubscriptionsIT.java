@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** dbo#15: topic-based subscriptions — R5-native and R4-backported. */
+/** Topic-based subscriptions — R5-native and R4-backported. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TopicSubscriptionsIT {
 
@@ -140,7 +140,7 @@ class TopicSubscriptionsIT {
      * <p>A single {@code dispatchOnce} is a one-shot: if the write is not yet
      * visible in the feed when that pass runs, it finds nothing, nothing
      * re-fires, and the wait can only run out its 60 seconds. Under parallel
-     * load that window opens (dbo#36). The real dispatcher loops until stopped,
+     * load that window opens. The real dispatcher loops until stopped,
      * so this polls the way it does. The engine is a parameter because this
      * class drives two of them and dispatching the wrong one would prove
      * nothing.
@@ -185,7 +185,7 @@ class TopicSubscriptionsIT {
                         .formatted(filterParam, filterValue);
         return r5.create("""
                 {"resourceType":"Subscription","status":"active",
-                 "topic":"%s","reason":"dbo#15",
+                 "topic":"%s","reason":"topic delivery test",
                  "channelType":{"system":"http://terminology.hl7.org/CodeSystem/subscription-channel-type",
                                 "code":"rest-hook"},
                  "endpoint":"%s%s","content":"%s"%s}"""
@@ -267,7 +267,7 @@ class TopicSubscriptionsIT {
     @Timeout(120)
     void r4BackportDeliversParametersStatusBundle() throws Exception {
         r4.create("""
-                {"resourceType":"Subscription","status":"active","reason":"dbo#15",
+                {"resourceType":"Subscription","status":"active","reason":"topic delivery test",
                  "extension":[{"url":"%s","valueString":"code=http://loinc.org|R4-1"}],
                  "criteria":"%s",
                  "channel":{"type":"rest-hook","endpoint":"%s/t5",

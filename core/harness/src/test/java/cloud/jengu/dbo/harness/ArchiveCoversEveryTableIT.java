@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
- * jengu-platform#872: a backup carries every table, or names what it left.
+ * A backup carries every table, or names what it left.
  *
  * <p>The export used to hold a hand-written list of five tables against a
  * schema that had grown to ten. Nothing failed: a table missing from a backup
@@ -77,7 +77,7 @@ class ArchiveCoversEveryTableIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#872: every table in the tenant's state schema is in the archive")
+    @DisplayName("every table in the tenant's state schema is in the archive")
     void theArchiveCoversEveryStateTable() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         TenantExport.export(ds, R4Personality.DOMAIN, OWNER_KEY, out);
@@ -109,7 +109,7 @@ class ArchiveCoversEveryTableIT {
 
         List<String> missing = new ArrayList<>(inDatabase);
         missing.removeAll(inArchive);
-        // Delivery state is left out on purpose (#872) and is named here, so
+        // Delivery state is left out on purpose and is named here, so
         // the guard keeps its value: an exclusion has to be a line somebody
         // wrote, and any OTHER table going missing still fails this test.
         missing.removeAll(List.of(R4Personality.DOMAIN + "_consumer",

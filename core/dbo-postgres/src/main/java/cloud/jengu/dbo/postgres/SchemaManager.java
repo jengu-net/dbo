@@ -72,7 +72,7 @@ public final class SchemaManager {
                   payload_version text NOT NULL DEFAULT '1',
                   chain_hash bytea
                 )""".formatted(d));
-        // #33: existing domains gain the link column; rows written before it
+        // Existing domains gain the link column; rows written before it
         // carry null, which the verifier reports as unchained rather than as
         // broken — an honest distinction, since nothing was ever attested.
         execute(c, "ALTER TABLE state.%s_data ADD COLUMN IF NOT EXISTS chain_hash bytea".formatted(d));
@@ -104,7 +104,7 @@ public final class SchemaManager {
                 )""".formatted(d));
         execute(c, "CREATE INDEX IF NOT EXISTS %s_reference_target_ix ON state.%s_reference (target_type, target_id)"
                 .formatted(d, d));
-        // xact_id is the gap-free-read barrier (dbo#5): seq is assigned at
+        // xact_id is the gap-free-read barrier: seq is assigned at
         // insert but commits interleave; a reader that trusts "seq > cursor"
         // alone can skip a slow transaction's rows. Readers only deliver rows
         // whose xact_id is below the current snapshot's xmin — everything
@@ -127,7 +127,7 @@ public final class SchemaManager {
                   updated_at timestamptz NOT NULL DEFAULT now()
                 )""".formatted(d));
                 execute(c, "ALTER TABLE state.%s_consumer ADD COLUMN IF NOT EXISTS cursor_xid xid8 NOT NULL DEFAULT '0'".formatted(d));
-                // dbo#25 fence: the feed orders by (xact_id, seq) — xid-major,
+                // Commit fence: the feed orders by (xact_id, seq) — xid-major,
                 // so no commit can ever land behind the cursor
                 execute(c, "CREATE INDEX IF NOT EXISTS %s_outbox_xid_seq ON state.%s_outbox (xact_id, seq)".formatted(d, d));
         execute(c, """

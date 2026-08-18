@@ -8,7 +8,7 @@ plugins {
 }
 
 // bnd COMPUTES Import-Package from bytecode — imports can never drift from
-// code (dbo#13 review). Fat embedding bundles (personalities, subscriptions)
+// code (review). Fat embedding bundles (personalities, subscriptions)
 // stay hand-curated: bnd would analyze their embedded stacks into noise.
 tasks.jar {
     bundle {

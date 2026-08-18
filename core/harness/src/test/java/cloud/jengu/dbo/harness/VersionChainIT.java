@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * #33: every version links to the one before it, so a history cannot be
+ * Every version links to the one before it, so a history cannot be
  * rewritten without the break showing.
  *
  * <p>The test that matters is the tamper: an edit made <b>behind the store's
@@ -64,7 +64,7 @@ class VersionChainIT {
     }
 
     @Test
-    @DisplayName("#33: an untouched history verifies, without asking anything outside")
+    @DisplayName("an untouched history verifies, without asking anything outside")
     void anUntouchedHistoryVerifies() {
         PutResult created = store.put(PutRequest.create("Patient", patient("38001010001", "Kask")));
         store.put(new PutRequest("Patient", created.id(), null, patient("38001010001", "Kask-Tamm")));
@@ -76,7 +76,7 @@ class VersionChainIT {
     }
 
     @Test
-    @DisplayName("#33: a version edited straight in the database breaks the chain, and the break "
+    @DisplayName("a version edited straight in the database breaks the chain, and the break "
             + "is named")
     void anEditBehindTheStoresBackIsCaught() throws Exception {
         PutResult created = store.put(PutRequest.create("Patient", patient("38001010002", "Rebane")));
@@ -103,7 +103,7 @@ class VersionChainIT {
     }
 
     @Test
-    @DisplayName("#33: a deletion is a version too, and it is chained")
+    @DisplayName("a deletion is a version too, and it is chained")
     void aTombstoneIsChained() {
         PutResult created = store.put(PutRequest.create("Patient", patient("38001010003", "Saar")));
         store.delete("Patient", created.id(), null);
@@ -116,7 +116,7 @@ class VersionChainIT {
     }
 
     @Test
-    @DisplayName("#33: a replayed version is chained exactly as a live one — the restore path is "
+    @DisplayName("a replayed version is chained exactly as a live one — the restore path is "
             + "not a way around the chain")
     void aRestoredVersionIsChained() {
         // the shape a migration writes: chosen version, chosen moment

@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * jengu-platform#870: the store refuses what a type's class forbids.
+ * The store refuses what a type's class forbids.
  *
  * <p>Each refusal is proven on its own against a real store. "The shields
  * work" is one sentence and four unrelated mechanisms, and a test covering
@@ -87,7 +87,7 @@ class HandlingShieldsIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#870: an audit record can be written once and never altered or removed")
+    @DisplayName("an audit record can be written once and never altered or removed")
     void auditCannotBeAltered() {
         PutResult written = store.put(PutRequest.create("Ledger", body("logged in")));
 
@@ -104,7 +104,7 @@ class HandlingShieldsIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#870: the audit shield holds against the platform itself, not only tenant users")
+    @DisplayName("the audit shield holds against the platform itself, not only tenant users")
     void auditShieldHoldsAgainstEveryCaller() {
         PutResult written = store.put(PutRequest.create("Ledger", body("something happened")));
 
@@ -118,7 +118,7 @@ class HandlingShieldsIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#870: a tenant cannot edit its copy of a vocabulary another tenant publishes")
+    @DisplayName("a tenant cannot edit its copy of a vocabulary another tenant publishes")
     void replicatedDataIsReadOnlyHere() {
         // the publishing lane may write it
         PutResult published = store.put(PutRequest.create("Vocabulary", body("v1")),
@@ -135,7 +135,7 @@ class HandlingShieldsIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#870: a refusal names the rule that refused it, and the type")
+    @DisplayName("a refusal names the rule that refused it, and the type")
     void aRefusalNamesItsRule() {
         PutResult written = store.put(PutRequest.create("Ledger", body("x")));
 
@@ -149,7 +149,7 @@ class HandlingShieldsIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#870: ordinary data is unaffected — the shields refuse, they do not obstruct")
+    @DisplayName("ordinary data is unaffected — the shields refuse, they do not obstruct")
     void operationalDataIsUntouched() {
         PutResult note = store.put(PutRequest.create("Note", body("a note")));
         store.put(new PutRequest("Note", note.id(), null, body("an edited note")));
@@ -158,7 +158,7 @@ class HandlingShieldsIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#870: data that never leaves is in no archive — neither representation carries it")
+    @DisplayName("data that never leaves is in no archive — neither representation carries it")
     void neverLeavingDataIsInNoArchive() throws Exception {
         store.put(PutRequest.create("Session", body("secret-session-marker")),
                 Handling.Authority.PLATFORM_RUNTIME);

@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#22 (§15): audit entries are regular pseudonymous records riding their
+ * §15: audit entries are regular pseudonymous records riding their
  * own outbox with the actor from the caller seam; append-only discipline
  * rejects tombstones naming the policy; retention removes expired objects
  * from state AND history (audited), and a restored pre-sweep archive comes
@@ -151,7 +151,7 @@ class PolicyIT {
         store.delete("Task", task.id(), null);
     }
 
-    /** §15.1 (Slice G): the trail is open upward, closed downward. */
+    /** §15.1: the trail is open upward, closed downward. */
     @Test
     @Order(5)
     void customEventsAreStampedAndTheTrailIsUntouchable() {

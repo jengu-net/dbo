@@ -5,7 +5,7 @@ import cloud.jengu.dbo.core.face.DeclaredFace;
 import cloud.jengu.dbo.core.face.DomainFace;
 
 /**
- * What the FHIR face provides to the engine (dbo#38).
+ * What the FHIR face provides to the engine.
  *
  * <p>Version-neutral: R4 and R5 agree about the shapes these capabilities
  * concern — a {@code date} is a {@code date} in both — so both personalities

@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * A person's decision about who somebody is (dbo#39).
+ * A person's decision about who somebody is.
  *
  * <p>When claims do not resolve on their own, a human decides: this is the
  * person we already know, or this is somebody new. The decision is recorded

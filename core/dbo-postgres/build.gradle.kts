@@ -6,7 +6,7 @@ plugins {
 // and javax.sql (JDK): the JDBC DataSource is provided by the host/tenant
 // provisioning — this module never sees credentials
 // (REQ-DBO-TEN-REGISTRY-SCOPED-ACCESS groundwork).
-// bnd computes Import-Package from bytecode (dbo#13).
+// bnd computes Import-Package from bytecode.
 
 dependencies {
     api(project(":core:dbo-core"))

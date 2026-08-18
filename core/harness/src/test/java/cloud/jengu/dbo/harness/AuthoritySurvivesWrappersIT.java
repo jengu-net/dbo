@@ -29,9 +29,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#41: a caller's declared authority survives every wrapper it passes.
+ * A caller's declared authority survives every wrapper it passes.
  *
- * <p>Without this, the shields from jengu-platform#870 are only enforceable by
+ * <p>Without this, the handling shields are only enforceable by
  * callers holding a concrete store. A replication lane holds an
  * {@link ObjectStore}, so it could not declare itself the source tenant at
  * all, and {@code READ_ONLY_HERE} would be a rule nobody could satisfy.
@@ -75,7 +75,7 @@ class AuthoritySurvivesWrappersIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#41: the publishing lane can write replicated data through the interface")
+    @DisplayName("the publishing lane can write replicated data through the interface")
     void thePublishingLaneCanDeclareItself() {
         ObjectStore asInterface = direct;
 
@@ -91,7 +91,7 @@ class AuthoritySurvivesWrappersIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#41: the authority survives the vault wrapper rather than being dropped")
+    @DisplayName("the authority survives the vault wrapper rather than being dropped")
     void theAuthoritySurvivesThePdiWrapper() {
         byte[] kek = new byte[32];
         new SecureRandom().nextBytes(kek);
@@ -115,7 +115,7 @@ class AuthoritySurvivesWrappersIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#41: the one-argument write still means the least-privileged caller")
+    @DisplayName("the one-argument write still means the least-privileged caller")
     void theShortFormIsStillTenantUsers() {
         ObjectStore asInterface = direct;
 

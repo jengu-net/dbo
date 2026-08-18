@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * A subject that is anonymous <b>on purpose</b> (dbo#39).
+ * A subject that is anonymous <b>on purpose</b>.
  *
  * <p>Two unbound subjects look identical and mean opposite things. One is not
  * yet identified — a patient brought in unconscious, where binding is expected

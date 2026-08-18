@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.core.api.identity;
 
 /**
- * How well an identity is established (dbo#39).
+ * How well an identity is established.
  *
  * <p>The names are eIDAS's, because identity assurance is a regulatory
  * question rather than a medical one and that vocabulary already exists across

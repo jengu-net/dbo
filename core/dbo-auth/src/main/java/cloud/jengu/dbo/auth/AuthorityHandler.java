@@ -275,7 +275,7 @@ public final class AuthorityHandler implements HttpHandler {
      * §16.3 provisioning surface: the tenant-bootstrap M2M client writes
      * RoleGrant defaults (from the git config repo) and dev LocalCredentials
      * over the SAME authenticated REST path in every deployment shape —
-     * embedded local-dev and the k8s dbo-server alike (jengu-platform#847).
+     * embedded local-dev and the k8s dbo-server alike.
      * Guarded by a system-plane write scope of this authority's own tokens.
      */
     private void adminRoleGrants(HttpExchange exchange) throws IOException {
@@ -328,8 +328,8 @@ public final class AuthorityHandler implements HttpHandler {
                 exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
         String login = Json.strOpt(body, "login");
         String secret = Json.strOpt(body, "secret");
-        // The credential binds to the person, not to a capacity they act in
-        // (jengu-platform#879). No fallback to the old field: a credential
+        // The credential binds to the person, not to a capacity they act in.
+        // No fallback to the old field: a credential
         // pointing at a practitioner id would authenticate somebody to a
         // subject that grants nothing, and the failure would read as a
         // permissions problem rather than a wiring one.

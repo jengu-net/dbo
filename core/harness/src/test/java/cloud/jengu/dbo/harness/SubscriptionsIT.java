@@ -32,7 +32,7 @@ import java.util.function.BooleanSupplier;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** dbo#8 proof matrix: durable rest-hook delivery over the change feed via DBOS. */
+/** Proof matrix: durable rest-hook delivery over the change feed via DBOS. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SubscriptionsIT {
 
@@ -104,7 +104,7 @@ class SubscriptionsIT {
     private String subscription(String criteria, String path) {
         return fhirCreateSubscription("""
                 {"resourceType":"Subscription","status":"active",
-                 "reason":"dbo#8 test","criteria":"%s",
+                 "reason":"delivery test","criteria":"%s",
                  "channel":{"type":"rest-hook","endpoint":"%s%s",
                             "payload":"application/fhir+json"}}"""
                 .formatted(criteria, baseEndpoint, path));
@@ -126,7 +126,7 @@ class SubscriptionsIT {
      * <p>A single {@code dispatchOnce} is a one-shot. If the write is not yet
      * visible in the feed when that pass runs, it finds nothing, nothing
      * re-fires, and the wait can only run out the clock — which is what made
-     * this class fail under parallel load (#36). The real dispatcher does not
+     * this class fail under parallel load. The real dispatcher does not
      * have that shape: {@link SubscriptionEngine#start} loops until stopped.
      * So these tests poll the way it does, and stop depending on one pass
      * happening to land after the write became visible.

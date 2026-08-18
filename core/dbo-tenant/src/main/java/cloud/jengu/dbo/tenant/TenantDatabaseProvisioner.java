@@ -3,9 +3,9 @@ package cloud.jengu.dbo.tenant;
 import javax.sql.DataSource;
 
 /**
- * The mandatory provisioning seam (dbo#17, Alan's design): implementations
+ * The mandatory provisioning seam: implementations
  * decide WHERE a tenant's storage lives — a database on a shared dev
- * instance (default), an operator-provisioned dedicated instance (Slice B),
+ * instance (default), an operator-provisioned dedicated instance,
  * a schema on a shared database (shared tier, later).
  *
  * <p>The load-bearing property: {@link #provision} returns a

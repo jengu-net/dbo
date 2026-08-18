@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#20 (§13): every tenant is its own OIDC authority — discovery, JWKS,
+ * §13: every tenant is its own OIDC authority — discovery, JWKS,
  * client_credentials tokens; the store surface accepts ONLY that tenant's
  * tokens; scopes use the SMART system grammar; rotation keeps old tokens
  * verifying; identity records are unreachable through the FHIR surface.
@@ -264,7 +264,7 @@ class AuthorityIT {
                 "the create must be audited with the token's client as actor");
     }
 
-    /** Slice G over REST: the trail as AuditEvent — readable, contributable,
+    /** The trail over REST, as AuditEvent — readable, contributable,
      *  impersonation-proof, and never deletable. */
     @Test
     @Order(9)

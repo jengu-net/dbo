@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#39: a person's decision about who somebody is, kept — including when the
+ * A person's decision about who somebody is, kept — including when the
  * answer was "not this one".
  *
  * <p>Without the negative half, the next person to meet the same near-match
@@ -33,7 +33,7 @@ class AdjudicationIT {
     private static final Instant WHEN = Instant.parse("2026-08-17T09:15:00Z");
 
     @Test
-    @DisplayName("#39: a decision names who made it, when, and what they were looking at")
+    @DisplayName("a decision names who made it, when, and what they were looking at")
     void aDecisionCarriesItsProvenance() {
         IdentityClaim presented = IdentityClaim.asserted(LICENCE, "K1234567");
 
@@ -49,7 +49,7 @@ class AdjudicationIT {
     }
 
     @Test
-    @DisplayName("#39: an anonymous decision is refused — it can never be questioned")
+    @DisplayName("an anonymous decision is refused — it can never be questioned")
     void aDecisionWithoutADeciderIsRefused() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> Adjudication.created("person-9", List.of(), List.of(),
@@ -59,7 +59,7 @@ class AdjudicationIT {
     }
 
     @Test
-    @DisplayName("#39: nobody has decided yet, and that is a state rather than a failure")
+    @DisplayName("nobody has decided yet, and that is a state rather than a failure")
     void deferredNeedsNobody() {
         Adjudication pending = Adjudication.deferred(
                 List.of(IdentityClaim.asserted(LICENCE, "K1234567")));
@@ -70,7 +70,7 @@ class AdjudicationIT {
     }
 
     @Test
-    @DisplayName("#39: a candidate somebody already declined comes back marked, not hidden")
+    @DisplayName("a candidate somebody already declined comes back marked, not hidden")
     void aRejectedCandidateIsMarkedNotHidden() {
         IdentityClaim claim = IdentityClaim.authenticated(EE, "38001010021");
 
@@ -84,7 +84,7 @@ class AdjudicationIT {
     }
 
     @Test
-    @DisplayName("#39: a machine does not silently reverse a person's conclusion")
+    @DisplayName("a machine does not silently reverse a person's conclusion")
     void aRejectedCandidateNeverResolvesAutomatically() {
         IdentityClaim proven = IdentityClaim.authenticated(EE, "38001010021");
 
@@ -103,7 +103,7 @@ class AdjudicationIT {
     }
 
     @Test
-    @DisplayName("#39: a candidate nobody has judged is not marked")
+    @DisplayName("a candidate nobody has judged is not marked")
     void anUnjudgedCandidateCarriesNoMark() {
         IdentityClaim proven = IdentityClaim.authenticated(EE, "38001010021");
 

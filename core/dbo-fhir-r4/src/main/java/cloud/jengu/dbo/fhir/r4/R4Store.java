@@ -140,7 +140,7 @@ public final class R4Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
 
     @Override
     public String read(String typeName, String id) {
-        // Rendered, not served raw (dbo#29): the payload is the truth and
+        // Rendered, not served raw: the payload is the truth and
         // carries no id, so a direct read would hand back a resource the
         // client cannot reference — while the same object in a search hit
         // has one.

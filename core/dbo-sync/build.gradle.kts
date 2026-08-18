@@ -2,7 +2,7 @@ plugins {
     id("biz.aQute.bnd.builder")
 }
 
-// Declared content dependencies over the feed (dbo#14, §6): the Project.link[]
+// Declared content dependencies over the feed (§6): the Project.link[]
 // replacement — read-only, provenance-tagged, converted-at-apply copies
 // streamed into the dependent tenant's own database.
 // bnd computes Import-Package from bytecode.

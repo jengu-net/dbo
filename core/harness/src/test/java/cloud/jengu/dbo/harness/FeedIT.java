@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** dbo#5 proof matrix: the feed primitive over the outbox, and keyset pagination. */
+/** Proof matrix: the feed primitive over the outbox, and keyset pagination. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class FeedIT {
 
@@ -166,7 +166,7 @@ class FeedIT {
         while (System.currentTimeMillis() < deadline) {
             FeedChunk<FeedItem> chunk = feed.readFor(consumer, 17);
             for (FeedItem item : chunk.items()) {
-                // dbo#25: delivery order is (xact_id, seq)-major — commit
+                // Delivery order is (xact_id, seq)-major — commit
                 // fencing outranks strict seq order; the PROMISE is
                 // exactly-once, asserted via the delivered set below
                 assertTrue(delivered.add(item.objectId() + "@" + item.versionId()),

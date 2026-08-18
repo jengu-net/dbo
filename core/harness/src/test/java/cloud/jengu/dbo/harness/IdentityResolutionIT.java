@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#39: identification resolves to candidates, and a claim's strength bounds
+ * Identification resolves to candidates, and a claim's strength bounds
  * what it can conclude.
  *
  * <p>The failure these prevent is silent: everything resolves, everything
@@ -28,7 +28,7 @@ class IdentityResolutionIT {
     private static final String LV = "https://latvija.lv/personas-kods";
 
     @Test
-    @DisplayName("#39: an authenticated claim matching one subject resolves without a human")
+    @DisplayName("an authenticated claim matching one subject resolves without a human")
     void aProvenClaimResolvesOnItsOwn() {
         IdentityClaim proven = IdentityClaim.authenticated(EE, "38001010021");
 
@@ -39,7 +39,7 @@ class IdentityResolutionIT {
     }
 
     @Test
-    @DisplayName("#39: a number read off a document never resolves anybody by itself")
+    @DisplayName("a number read off a document never resolves anybody by itself")
     void anUnverifiedClaimNeverResolvesAutomatically() {
         // the coma patient's driving licence, transcribed from a card
         IdentityClaim fromAPocket = IdentityClaim.asserted(
@@ -55,7 +55,7 @@ class IdentityResolutionIT {
     }
 
     @Test
-    @DisplayName("#39: claims pointing at different people destroy certainty rather than picking one")
+    @DisplayName("claims pointing at different people destroy certainty rather than picking one")
     void ambiguityIsNotResolvedByChoosing() {
         IdentityClaim estonian = IdentityClaim.authenticated(EE, "38001010021");
         IdentityClaim latvian = IdentityClaim.authenticated(LV, "38001010021");
@@ -70,7 +70,7 @@ class IdentityResolutionIT {
     }
 
     @Test
-    @DisplayName("#39: no match is an ordinary answer — the person before their first visit")
+    @DisplayName("no match is an ordinary answer — the person before their first visit")
     void noMatchIsNotAnError() {
         IdentityClaim unknown = IdentityClaim.authenticated(EE, "39912310099");
 
@@ -84,7 +84,7 @@ class IdentityResolutionIT {
     }
 
     @Test
-    @DisplayName("#39: a revoked document does not resolve anybody — it is in somebody else's hands")
+    @DisplayName("a revoked document does not resolve anybody — it is in somebody else's hands")
     void aRevokedClaimDoesNotMatch() {
         IdentityClaim stolen = new IdentityClaim("https://issuer.example/passport", "P9988776",
                 IdentityClaim.Verification.CHECKED, IdentityClaim.Status.REVOKED);
@@ -97,7 +97,7 @@ class IdentityResolutionIT {
     }
 
     @Test
-    @DisplayName("#39: a superseded number still finds the person its records refer to")
+    @DisplayName("a superseded number still finds the person its records refer to")
     void aSupersededClaimStillResolvesForHistory() {
         IdentityClaim old = new IdentityClaim(EE, "38001010021",
                 IdentityClaim.Verification.CHECKED, IdentityClaim.Status.SUPERSEDED);
@@ -111,7 +111,7 @@ class IdentityResolutionIT {
     }
 
     @Test
-    @DisplayName("#39: a claim with no issuing system is refused — the same digits are two people")
+    @DisplayName("a claim with no issuing system is refused — the same digits are two people")
     void aClaimWithoutAnIssuerIsRefused() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> IdentityClaim.asserted("", "38001010021"));
@@ -134,7 +134,7 @@ class IdentityResolutionIT {
      * and would reward presenting less.
      */
     @Test
-    @DisplayName("#39: alternatives take the strongest claim; a weak one alongside changes nothing")
+    @DisplayName("alternatives take the strongest claim; a weak one alongside changes nothing")
     void alternativeClaimsTakeTheStrongest() {
         IdentityClaim proven = IdentityClaim.authenticated(EE, "38001010021");
         IdentityClaim guessed = IdentityClaim.asserted(

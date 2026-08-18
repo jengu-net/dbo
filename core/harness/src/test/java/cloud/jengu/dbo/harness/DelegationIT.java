@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#25 (§16.4): processes act IN THE NAME OF practitioners — live
+ * §16.4: processes act IN THE NAME OF practitioners — live
  * delegation via RFC 8693 token exchange (act chains, attenuation), durable
  * delegation via Delegation records that outlive tokens, honour revocation,
  * and never widen with later grants. Every delegated mutation is

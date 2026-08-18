@@ -19,7 +19,7 @@
    Worst case remains: implement the DBOS *patterns* (Postgres queues, exactly-
    once steps) natively in dbo-core behind the same whiteboard interfaces.
 
-   **VERDICT (spike dbo#1, 2026-08-14): ADOPT.** All scenarios pass
+   **VERDICT (spike, 2026-08-14): ADOPT.** All scenarios pass
    (`spike/dbos-felix/`, Felix 7 in-JVM, Postgres via Testcontainers):
 
    - *A — runtime in a bundle*: `dev.dbos:transact` 1.0.0 launches inside a
@@ -230,7 +230,7 @@
      regardless — the hop model makes the audit structural instead of
      per-integration.
 
-   Spike item — ANSWERED by dbo#1 (see §7.1 verdict): `DBOS` is an
+   Spike item — ANSWERED by the embedding spike (see §7.1 verdict): `DBOS` is an
    instantiable class, and multiple launched runtimes against different
    system databases coexist in one JVM with isolated workflow state. The
    per-tenant plane needs no workaround.

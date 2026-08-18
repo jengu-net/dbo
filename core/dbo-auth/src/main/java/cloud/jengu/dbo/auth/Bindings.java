@@ -13,8 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Who a subject is currently identified as, folded from what was recorded
- * (dbo#39).
+ * Who a subject is currently identified as, folded from what was recorded.
  *
  * <p>The events are the truth and the answer is derived, rather than the
  * answer being stored and the events being a log beside it. That is what makes

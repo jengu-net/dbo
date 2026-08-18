@@ -2,7 +2,7 @@ package cloud.jengu.dbo.core.face;
 
 /**
  * Renders a stored object as the domain's own interchange shape — for
- * healthcare, one FHIR resource per line (jengu-platform#866).
+ * healthcare, one FHIR resource per line.
  *
  * <p>The engine stores payloads and knows nothing about them. It cannot put an
  * id back on a resource, because "resources have an id, in a field called

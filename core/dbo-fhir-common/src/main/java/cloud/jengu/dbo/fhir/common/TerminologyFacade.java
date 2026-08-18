@@ -2,7 +2,7 @@ package cloud.jengu.dbo.fhir.common;
 
 import java.util.Optional;
 
-/** The terminology operations the REST layer exposes when wired (dbo#12). */
+/** The terminology operations the REST layer exposes when wired. */
 public interface TerminologyFacade {
 
     Optional<String> lookup(String system, String code);

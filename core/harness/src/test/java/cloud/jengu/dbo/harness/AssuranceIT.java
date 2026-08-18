@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#39: a strong identity cannot be reached through a weak door.
+ * A strong identity cannot be reached through a weak door.
  *
  * <p>A person holds several identifiers of different strengths and any of them
  * resolves the same record. Without this rule, whoever can assert the weakest
@@ -52,7 +52,7 @@ class AssuranceIT {
     }
 
     @Test
-    @DisplayName("#39: the chain is as strong as its weakest step")
+    @DisplayName("the chain is as strong as its weakest step")
     void theWeakerBounds() {
         assertEquals(Assurance.LOW, Assurance.weakerOf(Assurance.HIGH, Assurance.LOW));
         assertEquals(Assurance.LOW, Assurance.weakerOf(Assurance.LOW, Assurance.HIGH));
@@ -64,7 +64,7 @@ class AssuranceIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: a national eID today does not upgrade an identification made from a photocopy")
+    @DisplayName("a national eID today does not upgrade an identification made from a photocopy")
     void aStrongAssertionDoesNotUpgradeAWeakBinding() {
         Bindings.record(store, BindingEvent.bound("person-1", "subject-1", Assurance.LOW,
                 "records-office", NOW, "TREAT", "photocopy of a licence, filed last year"));
@@ -80,7 +80,7 @@ class AssuranceIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: a weak assertion over a strong binding is bounded too")
+    @DisplayName("a weak assertion over a strong binding is bounded too")
     void aWeakAssertionDoesNotInheritAStrongBinding() {
         Bindings.record(store, BindingEvent.bound("person-2", "subject-2", Assurance.HIGH,
                 "desk", NOW, "TREAT", "national eID"));
@@ -95,7 +95,7 @@ class AssuranceIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: re-identifying at a higher standard raises it, and the history keeps both")
+    @DisplayName("re-identifying at a higher standard raises it, and the history keeps both")
     void aBetterIdentificationRaisesIt() {
         Bindings.record(store, BindingEvent.bound("person-3", "subject-3", Assurance.LOW,
                 "desk", NOW, "TREAT", "took their word for it"));
@@ -110,7 +110,7 @@ class AssuranceIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: withdrawing leaves nothing to inherit")
+    @DisplayName("withdrawing leaves nothing to inherit")
     void withdrawalDropsTheAssurance() {
         Bindings.record(store, BindingEvent.bound("person-4", "subject-4", Assurance.HIGH,
                 "desk", NOW, "TREAT", "eID"));
@@ -126,7 +126,7 @@ class AssuranceIT {
     }
 
     @Test
-    @DisplayName("#39: an identification that established nothing is not an identification")
+    @DisplayName("an identification that established nothing is not an identification")
     void bindingAtNoneIsRefused() {
         assertTrue(assertThrows(IllegalArgumentException.class,
                 () -> BindingEvent.bound("person-5", "subject-5", Assurance.NONE,
@@ -136,7 +136,7 @@ class AssuranceIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#39: one identity's assurance says nothing about another's on the same subject")
+    @DisplayName("one identity's assurance says nothing about another's on the same subject")
     void assuranceIsPerIdentity() {
         Bindings.record(store, BindingEvent.bound("person-6", "subject-6", Assurance.HIGH,
                 "desk", NOW, "TREAT", "eID"));

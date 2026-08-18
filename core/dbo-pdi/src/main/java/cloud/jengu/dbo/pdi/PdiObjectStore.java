@@ -69,7 +69,7 @@ public final class PdiObjectStore implements ObjectStore {
     /**
      * Forwards the caller's authority through the vault. Dropping it here
      * would be the quiet kind of hole: the shield would see the
-     * least-privileged default while the caller believed otherwise (dbo#41).
+     * least-privileged default while the caller believed otherwise.
      */
     @Override
     public PutResult put(PutRequest request, cloud.jengu.dbo.core.api.Handling.Authority caller) {

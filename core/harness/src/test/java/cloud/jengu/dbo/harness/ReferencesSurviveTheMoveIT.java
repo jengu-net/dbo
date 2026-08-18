@@ -36,10 +36,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * jengu-platform#876: a record that points at another still points at the same
+ * A record that points at another still points at the same
  * thing after the data has moved.
  *
- * <p>Proven with the closure report (#877) rather than by inspecting rows:
+ * <p>Proven with the closure report rather than by inspecting rows:
  * "the references resolve" is exactly the question that report answers, and
  * asking it is a stronger check than any assertion written here would be.
  *
@@ -123,7 +123,7 @@ class ReferencesSurviveTheMoveIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#876: after a move every reference still resolves, though the referrer arrived first")
+    @DisplayName("after a move every reference still resolves, though the referrer arrived first")
     void referencesResolveAfterTheMove() throws Exception {
         ByteArrayOutputStream archive = new ByteArrayOutputStream();
         TenantExport.export(sourceDs, DOMAIN, OWNER_KEY, archive, TYPES);
@@ -140,7 +140,7 @@ class ReferencesSurviveTheMoveIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#876: the archive says which thing each object is, without anyone resolving our ids")
+    @DisplayName("the archive says which thing each object is, without anyone resolving our ids")
     void theArchiveCarriesIdentityCodes() throws Exception {
         ByteArrayOutputStream archive = new ByteArrayOutputStream();
         TenantExport.export(sourceDs, DOMAIN, OWNER_KEY, archive, TYPES);
@@ -175,7 +175,7 @@ class ReferencesSurviveTheMoveIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#876: a reference recorded in an older version still resolves after the move")
+    @DisplayName("a reference recorded in an older version still resolves after the move")
     void historicalReferencesResolve() throws Exception {
         ByteArrayOutputStream archive = new ByteArrayOutputStream();
         TenantExport.export(sourceDs, DOMAIN, OWNER_KEY, archive, TYPES);

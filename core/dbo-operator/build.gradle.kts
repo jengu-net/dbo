@@ -1,8 +1,8 @@
-// Provisioning operator (dbo#18, Slice B): runs as its own process/pod —
+// Provisioning operator: runs as its own process/pod —
 // a plain jar, NOT an OSGi bundle. Watches TenantRegistration CRs and
 // executes the Hetzner pattern (role + database + Secret + ConfigMap entry)
 // with a scoped provisioner role, never superuser. Also ships the in-cluster
-// side: KubernetesSecretProvisioner (the dbo#17 seam backed by tenant
+// side: KubernetesSecretProvisioner (the provisioning seam backed by tenant
 // Secrets) and SpecDirSync (ConfigMap -> the manager's spec directory).
 
 plugins {

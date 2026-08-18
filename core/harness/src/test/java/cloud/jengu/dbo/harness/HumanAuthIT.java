@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#24 (§16): the org model is the auth model — a human's access derives
+ * §16: the org model is the auth model — a human's access derives
  * from Practitioner + active PractitionerRole + RoleGrant records; the flow
  * is authorization-code + PKCE against the tenant's own authority; tokens
  * are pseudonymous; revocation is ending a period on a clinical record.
@@ -99,7 +99,7 @@ class HumanAuthIT {
         practitionerId = idOf(practitioner);
         // The human, carrying the national identifier, with the clinician they
         // are as a relation from it. Identity is the person; what they may do
-        // follows from their relations (jengu-platform#879).
+        // follows from their relations.
         HttpResponse<String> person = post("arst", "/Person", service, """
                 {"resourceType":"Person",
                  "identifier":[{"system":"%s","value":"37001010021"}],
@@ -316,7 +316,7 @@ class HumanAuthIT {
         assertTrue(refused.body().contains("access_denied"), refused.body());
     }
 
-    /** Slice L: the operator-custody RP client (confidential) completes the code flow. */
+    /** The operator-custody RP client (confidential) completes the code flow. */
     @Test
     @Order(5)
     void theProvisionedRpClientCompletesAConfidentialFlow() throws Exception {
@@ -369,7 +369,7 @@ class HumanAuthIT {
                 && idClaims.contains("\"fhirUser\":\"Practitioner/" + practitionerId + "\""), idClaims);
     }
 
-    /** #847: the provisioning surface — bootstrap writes grants and credentials over REST. */
+    /** The provisioning surface — bootstrap writes grants and credentials over REST. */
     @Test
     @Order(7)
     void theAdminSurfaceProvisionsGrantsAndCredentialsOverRest() throws Exception {
@@ -449,7 +449,7 @@ class HumanAuthIT {
      * <p>It resolves the <b>person</b>, not the clinician. A national
      * identifier names a human, and what that human may do follows from the
      * relations they hold — which is what lets somebody with no practitioner
-     * relation authenticate at all (jengu-platform#879).
+     * relation authenticate at all.
      */
     @Test
     @Order(8)

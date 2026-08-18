@@ -15,7 +15,7 @@ public interface ObjectStore {
 
     /**
      * A write that says who is making it, so a type's declared handling can
-     * refuse it (jengu-platform#870).
+     * refuse it.
      *
      * <p>Deliberately <b>not</b> a default method. A default delegating to the
      * one-argument form would let a wrapper inherit it and silently discard the
@@ -25,8 +25,7 @@ public interface ObjectStore {
      *
      * <p>Without this on the interface a replication lane — which holds an
      * {@code ObjectStore}, not a concrete class — has no way to say it is the
-     * source tenant, so {@code READ_ONLY_HERE} cannot be satisfied at all
-     * (dbo#41).
+     * source tenant, so {@code READ_ONLY_HERE} cannot be satisfied at all.
      */
     PutResult put(PutRequest request, Handling.Authority caller);
 

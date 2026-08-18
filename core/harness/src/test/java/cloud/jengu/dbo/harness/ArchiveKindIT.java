@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * jengu-platform#866: an archive says what it is for, and the two kinds carry
+ * An archive says what it is for, and the two kinds carry
  * different things.
  *
  * <p>A backup holds the state that exists nowhere else so a restored
@@ -88,7 +88,7 @@ class ArchiveKindIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#866: a portable export carries the customer's data and the vocabulary its "
+    @DisplayName("a portable export carries the customer's data and the vocabulary its "
             + "codes resolve against, and no credentials")
     void aPortableExportCarriesVocabularyAndNoCredentials() throws Exception {
         TreeSet<String> entries = entriesOf(exported(TenantExport.Kind.PORTABLE_EXPORT));
@@ -111,7 +111,7 @@ class ArchiveKindIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#866: a backup carries the state that exists nowhere else, so a restored "
+    @DisplayName("a backup carries the state that exists nowhere else, so a restored "
             + "installation can authenticate its own tenants")
     void aBackupCarriesStoreAuthoredState() throws Exception {
         TreeSet<String> entries = entriesOf(exported(TenantExport.Kind.BACKUP));
@@ -126,7 +126,7 @@ class ArchiveKindIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#866: each archive declares its kind, so a reader does not have to infer it "
+    @DisplayName("each archive declares its kind, so a reader does not have to infer it "
             + "from what happens to be inside")
     void theKindIsDeclared() throws Exception {
         assertTrue(manifestOf(exported(TenantExport.Kind.BACKUP))
@@ -139,7 +139,7 @@ class ArchiveKindIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#866: restoring a portable export where a backup is required is refused, and "
+    @DisplayName("restoring a portable export where a backup is required is refused, and "
             + "says why rather than restoring most of an installation")
     void restoringAnExportAsABackupIsRefused() throws Exception {
         byte[] export = exported(TenantExport.Kind.PORTABLE_EXPORT);
@@ -169,7 +169,7 @@ class ArchiveKindIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("#866: a backup still restores — the check refuses the wrong kind, it does not "
+    @DisplayName("a backup still restores — the check refuses the wrong kind, it does not "
             + "obstruct the right one")
     void aBackupStillRestores() throws Exception {
         byte[] backup = exported(TenantExport.Kind.BACKUP);

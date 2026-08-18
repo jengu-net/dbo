@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * What the store makes of the claims somebody presented (dbo#39).
+ * What the store makes of the claims somebody presented.
  *
  * <p>Three outcomes, not two: a confident single match, candidates for a human
  * to weigh, and nothing — which is <b>normal</b>, being the person before their

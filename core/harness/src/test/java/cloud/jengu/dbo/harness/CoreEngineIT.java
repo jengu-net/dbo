@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo#4 proof matrix. Test names describe behaviour; the REQ each proves is
+ * Proof matrix. Test names describe behaviour; the REQ each proves is
  * named in its javadoc.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -265,7 +265,7 @@ class CoreEngineIT {
         assertEquals(versionBefore, after.versionId());
     }
 
-    /** dbo#18 R2: reindex runs in chunked short transactions across many objects. */
+    /** Reindex runs in chunked short transactions across many objects. */
     @Test
     void reindexChunksAcrossManyObjects() {
         for (int i = 0; i < 1100; i++) {

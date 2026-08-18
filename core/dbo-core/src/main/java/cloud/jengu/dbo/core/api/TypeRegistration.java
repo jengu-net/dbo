@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
  * class, its identity-bearing systems, how it is handled, the envelope
  * extractor, and the index spec. Registration fails closed — no type without
  * an identity declaration (REQ-DBO-CORE-DECLARED-IDENTITY), no type without a
- * declared {@link Handling} (jengu-platform#869), no index as an afterthought
+ * declared {@link Handling}, no index as an afterthought
  * (REQ-DBO-SRCH-DECLARED-INDEXES groundwork).
  *
  * <p>Failing closed on handling is the point rather than strictness for its

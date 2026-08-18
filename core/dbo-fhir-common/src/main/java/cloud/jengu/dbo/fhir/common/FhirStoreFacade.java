@@ -5,7 +5,7 @@ import cloud.jengu.dbo.core.api.PutResult;
 import java.util.Map;
 
 /**
- * The version-neutral store surface the REST layer serves (dbo#12). Each
+ * The version-neutral store surface the REST layer serves. Each
  * personality's store implements it; JSON strings and core types only.
  */
 public interface FhirStoreFacade {

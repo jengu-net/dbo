@@ -26,7 +26,7 @@ public final class PgChangeFeed implements ChangeFeed {
     private static final Pattern CONSUMER = Pattern.compile("[A-Za-z][A-Za-z0-9_.-]{0,63}");
 
     /**
-     * The delivery barrier (dbo#5 + dbo#18 R1, corrected in dbo#19).
+     * The delivery barrier.
      * Delivered rows must satisfy {@code xact_id < H} where H is the local
      * horizon taken BEFORE the read snapshot:
      *
@@ -34,12 +34,12 @@ public final class PgChangeFeed implements ChangeFeed {
      * time, H = the horizon snapshot's xmax — every same-database
      * transaction below it has already finished, so its rows are visible to
      * the (later) read snapshot and no commit can land behind the cursor. A
-     * long transaction in a FOREIGN database (the dbo#16 finding) no longer
+     * long transaction in a FOREIGN database no longer
      * delays the feed. If a local write IS in flight, H = null and the read
      * falls back to the conservative cluster-wide xmin barrier.
      *
      * <p>The order is load-bearing: evaluating liveness inside the read
-     * statement (the first R1 attempt) races — a writer that commits
+     * statement (the first attempt at this) races — a writer that commits
      * between the statement's snapshot and its pg_stat_activity scan is
      * visible in neither, and its event is skipped forever.
      */
@@ -151,7 +151,7 @@ public final class PgChangeFeed implements ChangeFeed {
     }
 
     /**
-     * dbo#25 fence: xid-major order. seq alone cannot fence — the outbox seq
+     * The commit fence: xid-major order. seq alone cannot fence — the outbox seq
      * is drawn BEFORE the transaction's xid is assigned, so xid order and
      * seq order interleave across backends, and a seq-ordered cursor could
      * pass a not-yet-visible lower seq (permanent loss, caught by FeedIT in
@@ -203,7 +203,7 @@ public final class PgChangeFeed implements ChangeFeed {
         }
     }
 
-    /** The dbo#19 horizon: xmax when this database is write-quiet, else null. */
+    /** The local horizon: xmax when this database is write-quiet, else null. */
     private String localHorizon(Connection c) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(LOCAL_HORIZON);
              ResultSet rs = ps.executeQuery()) {

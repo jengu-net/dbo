@@ -1,4 +1,4 @@
-# dbo-operator — the tenant provisioning operator (dbo#18).
+# dbo-operator — the tenant provisioning operator.
 # Built from the installDist output: bin/ launcher + lib/ full classpath.
 # Same base as jengu-runtime (glibc temurin) for fleet consistency; the
 # operator itself has no native deps.

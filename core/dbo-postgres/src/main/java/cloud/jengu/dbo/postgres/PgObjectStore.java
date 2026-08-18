@@ -136,7 +136,7 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     /**
-     * Refuses a write the type's declared handling forbids (jengu-platform#870).
+     * Refuses a write the type's declared handling forbids.
      *
      * <p>The refusal names the rule. An opaque denial is indistinguishable from
      * a bug, and the caller has no way to tell whether it asked wrongly or
@@ -207,7 +207,7 @@ public final class PgObjectStore implements ObjectStore {
 
         Envelope envelope = type.extractor().extract(type.typeName(), request.payload());
         String envelopeJson = JsonbCodec.envelopeJson(envelope.paths());
-        // #33: link this version to the one before it. Computed on the ordinary
+        // Link this version to the one before it. Computed on the ordinary
         // write path, so a restored version is chained exactly as a live one —
         // a restore that skipped chaining would be the hole the chain closes.
         byte[] chainHash = VersionChain.link(previousChain(c, d, uuid), request.payload(),
@@ -245,7 +245,7 @@ public final class PgObjectStore implements ObjectStore {
             // otherwise a subscription cannot tell a recovered tenant from a
             // busy one, and a hospital's downstream systems receive its entire
             // history as fresh news on the day it is already having its worst
-            // day (jengu-platform#872).
+            // day.
             insertOutbox(c, d, uuid, type.typeName(), newVersion, created ? "C" : "U");
         }
 
@@ -346,7 +346,7 @@ public final class PgObjectStore implements ObjectStore {
      */
     /**
      * Walks an object's history and reports the first version whose link does
-     * not follow from the one before it (#33).
+     * not follow from the one before it.
      *
      * <p>Recomputed rather than compared against a stored expectation: a
      * verifier that trusts a stored answer verifies nothing. Versions written
@@ -747,7 +747,7 @@ public final class PgObjectStore implements ObjectStore {
                     lastPayloadVersion = rs.getString(2);
                 }
             }
-            // A deletion is a version too (#33). An unchained tombstone would be
+            // A deletion is a version too. An unchained tombstone would be
             // the gap: remove a record, leave no link, and the history reads as
             // if it never held one.
             byte[] tombstoneChain = VersionChain.link(previousChain(c, d, uuid), lastPayload,
@@ -786,9 +786,9 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     /**
-     * Chunked reindex (dbo#18 R2): each batch is its own SHORT transaction —
+     * Chunked reindex: each batch is its own SHORT transaction —
      * a large reindex never pins the instance's xmin for its whole duration
-     * (the barrier-liveness lesson of dbo#16 applied to our own worst case).
+     * (the barrier-liveness lesson applied to our own worst case).
      * Idempotent per object, so interruption just means re-running.
      */
     public int rebuildEnvelopes(String typeName, int batchSize) {

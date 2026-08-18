@@ -16,8 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * A tenant's maintenance surface: take an archive, restore one
- * (jengu-platform#866).
+ * A tenant's maintenance surface: take an archive, restore one.
  *
  * <p><b>The owner's key arrives with the request and is never kept.</b> That
  * is the whole shape of this endpoint. §11 decides that the platform operates
@@ -104,8 +103,7 @@ public final class MaintenanceHandler implements HttpHandler {
     }
 
     /**
-     * What the tenant holds, before anything is moved
-     * (jengu-platform#866).
+     * What the tenant holds, before anything is moved.
      *
      * <p>No owner key: this reads no content, only counts. Requiring one
      * would be security theatre — it would suggest the answer discloses
@@ -119,8 +117,7 @@ public final class MaintenanceHandler implements HttpHandler {
     }
 
     /**
-     * Records which configuration commit this tenant is projected from
-     * (jengu-platform#866).
+     * Records which configuration commit this tenant is projected from.
      *
      * <p>Written when a projection is applied rather than read when a backup
      * is taken. Those differ whenever the sync is behind, and stamping an
