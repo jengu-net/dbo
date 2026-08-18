@@ -283,7 +283,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         TenantRuntime runtime;
         if ("r4".equals(spec.fhirVersion())) {
             R4Personality personality = new R4Personality(spec.types());
-            ObjectStore engine = policyWrapped(spec, db, personality.registrations(), R4Personality.DOMAIN);
+            cloud.jengu.dbo.policy.PolicyObjectStore engine = policyWrapped(spec, db, personality.registrations(), R4Personality.DOMAIN);
             if (authority != null) {
                 authority.attachSubjects(engine); // §16.1: subjects are the tenant's records
             }
@@ -294,7 +294,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             "/t/" + spec.code() + "/fhir", guard), spec), spec, engine));
         } else {
             R5Personality personality = new R5Personality(spec.types());
-            ObjectStore engine = policyWrapped(spec, db, personality.registrations(), R5Personality.DOMAIN);
+            cloud.jengu.dbo.policy.PolicyObjectStore engine = policyWrapped(spec, db, personality.registrations(), R5Personality.DOMAIN);
             if (authority != null) {
                 authority.attachSubjects(engine);
             }
@@ -318,7 +318,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     db.dataSource(), domain,
                     r4 ? r4Face.registrations() : r5Face.registrations(),
                     r4 ? r4Face.portableRendering() : r5Face.portableRendering(),
-                    adminPath));
+                    adminPath,
+                    new AuditedImportLedger(
+                            (cloud.jengu.dbo.policy.PolicyObjectStore) runtime.engine())));
             maintenanceContexts.put(spec.code(), adminPath);
         }
         runtimes.put(spec.code(), runtime);
@@ -415,7 +417,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * retention sweeps at bring-up (a restored pre-sweep archive comes up
      * already swept) and periodically from the scan loop.
      */
-    private ObjectStore policyWrapped(TenantSpec spec,
+    private cloud.jengu.dbo.policy.PolicyObjectStore policyWrapped(TenantSpec spec,
             TenantDatabaseProvisioner.TenantDatabase db,
             java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> registrations,
             String domain) {

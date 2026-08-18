@@ -65,6 +65,13 @@ record CoSignedArchive(byte[] sealed, ArchiveAttestation attestation,
                 attestation, vendorPublicKey, tenantPublicKey, history, ledger);
     }
 
+    /** Byte-faithful restore into an empty tenant, attested as production requires. */
+    void restoreFidelityInto(javax.sql.DataSource target, String domain, byte[] ownerMasterKey)
+            throws IOException {
+        TenantImport.restoreFidelity(target, domain, new ByteArrayInputStream(sealed),
+                ownerMasterKey, attestation, vendorPublicKey, tenantPublicKey, accepted -> { });
+    }
+
     private static KeyPair ed25519() throws Exception {
         return KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
     }

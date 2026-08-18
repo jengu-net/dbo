@@ -147,8 +147,8 @@ class ArchiveKindIT {
         new PgObjectStore(target, TYPES);
 
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
-                () -> TenantImport.restoreFidelity(target, DOMAIN,
-                        new ByteArrayInputStream(export), OWNER_KEY));
+                () -> CoSignedArchive.over(export, OWNER_KEY)
+                        .restoreFidelityInto(target, DOMAIN, OWNER_KEY));
 
         assertTrue(refused.getMessage().contains("portable-export"), refused.getMessage());
         assertTrue(refused.getMessage().contains("authenticate"),
@@ -176,8 +176,8 @@ class ArchiveKindIT {
         PGSimpleDataSource target = database("archive_kinds_backup_target");
         new PgObjectStore(target, TYPES);
 
-        TenantImport.restoreFidelity(target, DOMAIN,
-                new ByteArrayInputStream(backup), OWNER_KEY);
+        CoSignedArchive.over(backup, OWNER_KEY)
+                .restoreFidelityInto(target, DOMAIN, OWNER_KEY);
 
         try (Connection c = target.getConnection();
              var ps = c.prepareStatement(

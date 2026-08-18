@@ -38,6 +38,12 @@ public final class MaintenanceHandler implements HttpHandler {
     public static final String OWNER_KEY_HEADER = "X-Owner-Key";
     /** {@code backup} or {@code portable-export}. */
     public static final String KIND_HEADER = "X-Archive-Kind";
+    /** The attestation JSON, base64 — both signatures over the archive's root. */
+    public static final String ATTESTATION_HEADER = "X-Archive-Attestation";
+    /** The key that sealed the archive, base64 X.509. */
+    public static final String VENDOR_KEY_HEADER = "X-Vendor-Key";
+    /** The key that countersigned it, base64 X.509. */
+    public static final String TENANT_KEY_HEADER = "X-Tenant-Key";
 
     private final TenantAuthority authority;
     private final DataSource dataSource;
@@ -45,16 +51,20 @@ public final class MaintenanceHandler implements HttpHandler {
     private final List<TypeRegistration> types;
     private final cloud.jengu.dbo.core.face.PortableRendering rendering;
     private final String basePath;
+    private final cloud.jengu.dbo.maintenance.ImportLedger ledger;
 
     public MaintenanceHandler(TenantAuthority authority, DataSource dataSource,
             String domain, List<TypeRegistration> types,
-            cloud.jengu.dbo.core.face.PortableRendering rendering, String basePath) {
+            cloud.jengu.dbo.core.face.PortableRendering rendering, String basePath,
+            cloud.jengu.dbo.maintenance.ImportLedger ledger) {
         this.authority = authority;
         this.dataSource = dataSource;
         this.domain = domain;
         this.types = List.copyOf(types);
         this.rendering = rendering;
         this.basePath = basePath;
+        this.ledger = java.util.Objects.requireNonNull(ledger,
+                "the tenant's own trail is where a restore is written down");
     }
 
     @Override
@@ -142,8 +152,37 @@ public final class MaintenanceHandler implements HttpHandler {
 
     private void restore(HttpExchange exchange) throws IOException {
         byte[] ownerKey = ownerKey(exchange);
-        TenantImport.restoreFidelity(dataSource, domain, exchange.getRequestBody(), ownerKey);
+        TenantImport.restoreFidelity(dataSource, domain, exchange.getRequestBody(), ownerKey,
+                attestation(exchange),
+                publicKey(exchange, VENDOR_KEY_HEADER),
+                publicKey(exchange, TENANT_KEY_HEADER),
+                ledger);
         respond(exchange, 200, "{\"status\":\"restored\"}");
+    }
+
+    /**
+     * The two signatures over the archive's root, as the exporter and the
+     * tenant produced them. Required: this store never holds the tenant's key,
+     * so an unsigned restore is not something it could complete honestly.
+     */
+    private cloud.jengu.dbo.maintenance.ArchiveAttestation attestation(HttpExchange exchange) {
+        String header = exchange.getRequestHeaders().getFirst(ATTESTATION_HEADER);
+        if (header == null || header.isBlank()) {
+            throw new IllegalArgumentException(ATTESTATION_HEADER + " is required: a restore "
+                    + "applies an archive both parties signed, and this store cannot sign for "
+                    + "either of them");
+        }
+        return cloud.jengu.dbo.maintenance.ArchiveAttestation.fromJson(
+                new String(Base64.getDecoder().decode(header.trim()), StandardCharsets.UTF_8));
+    }
+
+    private byte[] publicKey(HttpExchange exchange, String header) {
+        String value = exchange.getRequestHeaders().getFirst(header);
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(header + " is required: a signature nobody can "
+                    + "check is not evidence");
+        }
+        return Base64.getDecoder().decode(value.trim());
     }
 
     private byte[] ownerKey(HttpExchange exchange) {

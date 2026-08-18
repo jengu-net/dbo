@@ -133,8 +133,8 @@ class RestoredConsumerStartsAtHeadIT {
         // initialised, empty tenant rather than creating one
         new PgObjectStore(into, new R4Personality(
                 List.of(FhirTypeConfig.internal("Observation"))).registrations());
-        TenantImport.restoreFidelity(into, R4Personality.DOMAIN,
-                new ByteArrayInputStream(archive), OWNER_KEY);
+        CoSignedArchive.over(archive, OWNER_KEY)
+                .restoreFidelityInto(into, R4Personality.DOMAIN, OWNER_KEY);
     }
 
     private static byte[] observation(int n) {

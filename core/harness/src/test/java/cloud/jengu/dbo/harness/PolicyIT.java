@@ -197,8 +197,8 @@ class PolicyIT {
         assertTrue(!audit.contains("Vana"), "the audit never retains the removed data");
 
         // a restored pre-sweep archive comes up already swept: restore, sweep at bring-up
-        TenantImport.restoreFidelity(ds, R4Personality.DOMAIN,
-                new ByteArrayInputStream(archive.toByteArray()), ownerKey);
+        CoSignedArchive.over(archive.toByteArray(), ownerKey)
+                .restoreFidelityInto(ds, R4Personality.DOMAIN, ownerKey);
         assertTrue(store.get("Observation", old.id()).isPresent(), "restore brings the bytes back");
         sweep.sweepOnce();
         assertTrue(store.get("Observation", old.id()).isEmpty(),

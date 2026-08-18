@@ -69,14 +69,12 @@ class ArchiveAttestationIT {
      * for a test or a migration and then becomes the path everything uses.
      * So the shape of the API is asserted, not just its behaviour.
      *
-     * <p>{@code restoreFidelity} is the one entry point still unattested. It
-     * is named here rather than excluded quietly, and this assertion fails the
-     * day it gains an attestation — which is the point: the carve-out has to
-     * be removed deliberately, by someone reading this.
+     * <p>There is no exception left. The byte-faithful restore — the live
+     * endpoint, and for a while the only way in that required nothing — takes
+     * an attestation like the rest.
      */
     @Test
-    @DisplayName("every way into a store from an archive takes an attestation, "
-            + "and the one that does not is named")
+    @DisplayName("every way into a store from an archive takes an attestation")
     void everyImportPathIsAttested() {
         List<String> unattested = Arrays.stream(TenantImport.class.getMethods())
                 .filter(m -> m.getDeclaringClass() == TenantImport.class)
@@ -88,9 +86,9 @@ class ArchiveAttestationIT {
                 .sorted()
                 .toList();
 
-        assertEquals(List.of("restoreFidelity"), unattested,
-                "an import path without an attestation: either it takes one, or it is the "
-                        + "known hole and this assertion is updated with the reason");
+        assertEquals(List.of(), unattested,
+                "an import path that takes no attestation — the refusals are worth nothing "
+                        + "if there is a way past them");
     }
 
     @Test
