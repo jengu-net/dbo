@@ -280,11 +280,17 @@ public final class FhirHttpServer implements AutoCloseable {
                 String id = segments[1];
                 switch (method) {
                     case "GET" -> {
-                        String resource = store.read(type, id);
-                        if (resource == null) {
+                        FhirStoreFacade.ReadResult result = store.readForServing(type, id);
+                        if (result == null) {
                             respond(exchange, 404, store.operationOutcome("not-found", type + "/" + id));
                         } else {
-                            respond(exchange, 200, resource);
+                            // A read carries its validators. Without them a
+                            // client cannot make the conditional update the
+                            // read was for.
+                            exchange.getResponseHeaders().set("ETag", etag(result.versionId()));
+                            exchange.getResponseHeaders().set("Last-Modified",
+                                    HTTP_DATE.format(result.lastUpdated()));
+                            respond(exchange, 200, result.resourceJson());
                         }
                     }
                     case "PUT" -> {
@@ -346,6 +352,11 @@ public final class FhirHttpServer implements AutoCloseable {
     private static String etag(long versionId) {
         return "W/\"" + versionId + "\"";
     }
+
+    /** RFC 7231 IMF-fixdate, which is the only form a Last-Modified may take. */
+    private static final java.time.format.DateTimeFormatter HTTP_DATE =
+            java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME
+                    .withZone(java.time.ZoneOffset.UTC);
 
     private static String required(Map<String, String> query, String name) {
         String value = query.get(name);

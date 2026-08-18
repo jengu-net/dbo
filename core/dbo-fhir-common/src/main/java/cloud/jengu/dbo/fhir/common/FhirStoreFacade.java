@@ -19,6 +19,23 @@ public interface FhirStoreFacade {
 
     String read(String typeName, String id);
 
+    /**
+     * A read, with the two facts a serving surface has to put in headers.
+     *
+     * <p>{@link #read} answers the body alone, which is all a caller inside
+     * the JVM wants. HTTP wants more: the specification requires an
+     * {@code ETag} on a read and asks for a {@code Last-Modified}, and without
+     * them a client cannot do a conditional update after a read — it would
+     * have to write blind, or re-fetch through a search to find a version it
+     * was just handed.
+     *
+     * @return null when the resource does not exist, mirroring {@link #read}
+     */
+    ReadResult readForServing(String typeName, String id);
+
+    /** A resource with its version and the moment it was last written. */
+    record ReadResult(String resourceJson, long versionId, java.time.Instant lastUpdated) {}
+
     void delete(String typeName, String id, Long expectedVersion);
 
     /** Searchset Bundle; cursor from a previous page's link[next]. */
