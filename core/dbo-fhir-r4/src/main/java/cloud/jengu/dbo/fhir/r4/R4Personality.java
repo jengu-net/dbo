@@ -508,7 +508,7 @@ public final class R4Personality {
     /** ERROR/FATAL issue lines; empty = valid. */
     public List<String> validate(String resourceJson) {
         return withTccl(() -> {
-            IBaseResource resource = ctx().newJsonParser().parseResource(resourceJson);
+            IBaseResource resource = parse(resourceJson);
             List<String> issues = issuesFrom(validator().validateWithResult(resource));
             if (issues.stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
                 // Re-run rather than assume either way. A timeout is not
@@ -612,6 +612,15 @@ public final class R4Personality {
                             .getSearch().setMode(Bundle.SearchEntryMode.INCLUDE);
                 }
             }
+            // The self link is not decoration: the specification requires a
+            // search result to say which query produced it, and a client
+            // holding a Bundle with only link[next] cannot repeat, cache or
+            // cite the search it just ran.
+            StringBuilder self = new StringBuilder();
+            originalParams.forEach((k, v) ->
+                    self.append(self.isEmpty() ? "" : "&").append(k).append('=').append(v));
+            bundle.addLink().setRelation("self").setUrl(baseUrl + "/" + typeName
+                    + (self.isEmpty() ? "" : "?" + self));
             if (!chunk.drained() && chunk.nextCursor() != null) {
                 StringBuilder qs = new StringBuilder();
                 originalParams.forEach((k, v) -> qs.append(qs.isEmpty() ? "" : "&").append(k).append('=').append(v));
@@ -750,8 +759,25 @@ public final class R4Personality {
 
     /** The resource type of a raw resource JSON (for generic write endpoints). */
     public String resourceTypeOf(String resourceJson) {
-        return withTccl(() -> ctx().newJsonParser().parseResource(resourceJson)
-                .fhirType());
+        return withTccl(() -> parse(resourceJson).fhirType());
+    }
+
+    /**
+     * Parses, and treats a body that is not FHIR as the client's mistake.
+     *
+     * <p>An unparseable body used to reach the serving surface as whatever
+     * the parser threw, land in its catch-all and answer 500 — telling a
+     * caller the server broke, when in fact their request was malformed. It
+     * is a 400, and the difference matters to whoever is deciding which of
+     * the two of you has a bug.
+     */
+    private IBaseResource parse(String resourceJson) {
+        try {
+            return ctx().newJsonParser().parseResource(resourceJson);
+        } catch (ca.uhn.fhir.parser.DataFormatException e) {
+            throw new IllegalArgumentException("body is not parseable FHIR JSON: "
+                    + e.getMessage(), e);
+        }
     }
 
     /** The canonical url of a canonical resource JSON. */

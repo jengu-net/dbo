@@ -146,6 +146,14 @@ public final class R5Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
                 .orElse(null);
     }
 
+    @Override
+    public ReadResult readForServing(String typeName, String id) {
+        return store.get(typeName, id)
+                .map(o -> new ReadResult(personality.toResourceJson(o),
+                        o.versionId(), o.lastUpdated()))
+                .orElse(null);
+    }
+
 
     @Override
     public void delete(String typeName, String id, Long expectedVersion) {

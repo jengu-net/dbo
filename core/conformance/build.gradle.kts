@@ -26,6 +26,11 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // The R5 validator loads the FHIR core NPM package eagerly, and on a
+    // default heap it does not finish: the failure surfaces as HAPI-2330 with
+    // a null message, three frames above an OutOfMemoryError nobody sees. The
+    // proof suite pays the same 2g for the same reason.
+    maxHeapSize = "2g"
     // The report lands in the tree, not only in build/, because its whole
     // purpose is to be read and to show movement between commits.
     systemProperty("dbo.conformance.out", rootProject.layout.projectDirectory.dir("docs/conformance").asFile.path)

@@ -103,25 +103,7 @@ class RestConformanceTest {
         writeReport("R4", r4Base);
     }
 
-    /**
-     * Not yet published, and deliberately so.
-     *
-     * <p>Driving this catalogue at R5 over HTTP produces {@code HAPI-2330} on
-     * the first create, after which the surface stops answering within the
-     * request timeout. The same personality with the same type configuration
-     * creates R5 Patients happily in {@code ConcurrentVersionsIT}, which
-     * exercises the store directly rather than through the HTTP surface — so
-     * the difference is somewhere in that path, and one of the two is wrong.
-     *
-     * <p>A conformance report is a claim about the server. Publishing "2 of 18
-     * supported" while the evidence points at the harness would be a false
-     * claim, and a false one in the direction that matters — it understates a
-     * product. It stays unpublished until somebody knows which side the defect
-     * is on.
-     */
     @Test
-    @org.junit.jupiter.api.Disabled("HAPI-2330 on first R5 create over HTTP; "
-            + "unresolved whether the defect is in the surface or in this harness")
     void reportR5() throws Exception {
         writeReport("R5", r5Base);
     }
