@@ -43,6 +43,11 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v4
+      - name: Check branding
+        # Branding creeps back one commit at a time, and a public repository
+        # that quietly regrows private issue numbers and internal hostnames is
+        # worse than one that never cleaned them.
+        run: .github/scripts/check-branding.sh
       - name: Resolve version
         id: version
         run: |
@@ -88,6 +93,11 @@ jobs:
 
   images:
     needs: build
+    # LOAD-BEARING SECURITY, not a convenience: this job runs on a SELF-HOSTED
+    # runner and pushes to a LAN registry. A public repository whose fork PRs
+    # could reach a self-hosted runner is arbitrary code execution on the
+    # machine that runs it. Removing this condition, or adding pull_request to
+    # a job on this runner, is the whole vulnerability.
     if: github.event_name != 'pull_request'
     runs-on: self-hosted
     timeout-minutes: 30
