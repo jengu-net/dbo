@@ -98,3 +98,7 @@ The specification is an [arc42](https://arc42.org/) tree:
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
+
+Some modules publish as fat bundles carrying their dependencies inside the
+jar; [THIRD-PARTY.md](THIRD-PARTY.md) says whose code that is and under what
+terms.

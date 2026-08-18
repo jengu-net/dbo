@@ -21,6 +21,9 @@ dependencies {
 tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     into("lib") { from(embedded) }
+    // Whose code rides in this jar, and under what terms. A recipient of
+    // the artifact has the artifact, not the repository.
+    into("META-INF") { from(rootProject.file("THIRD-PARTY.md")) }
     doFirst {
         val libs = embedded.resolve().joinToString(",") { "lib/${it.name}" }
         manifest {
