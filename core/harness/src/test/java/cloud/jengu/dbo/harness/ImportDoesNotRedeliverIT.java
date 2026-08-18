@@ -128,8 +128,8 @@ class ImportDoesNotRedeliverIT {
 
         R4Personality p = personality();
         PgObjectStore destination = new PgObjectStore(destinationDs, p.registrations());
-        TenantImport.importPortable(destination,
-                new ByteArrayInputStream(archive.toByteArray()), OWNER_KEY);
+        CoSignedArchive.over(archive.toByteArray(), OWNER_KEY)
+                .importInto(destination, OWNER_KEY, TenantImport.HistoryMode.FRESH);
 
         // The restored tenant is brought up: its subscriptions are live again,
         // pointed at the endpoints they were always pointed at.

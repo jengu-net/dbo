@@ -129,8 +129,8 @@ class ReferencesSurviveTheMoveIT {
         TenantExport.export(sourceDs, DOMAIN, OWNER_KEY, archive, TYPES);
 
         PgObjectStore destination = new PgObjectStore(destinationDs, TYPES);
-        TenantImport.importPortable(destination,
-                new ByteArrayInputStream(archive.toByteArray()), OWNER_KEY);
+        CoSignedArchive.over(archive.toByteArray(), OWNER_KEY)
+                .importInto(destination, OWNER_KEY, TenantImport.HistoryMode.FRESH);
 
         ReferenceClosure.Report report = ReferenceClosure.check(destinationDs, DOMAIN, Set.of());
 
@@ -164,8 +164,8 @@ class ReferencesSurviveTheMoveIT {
         // signatures are over. An assertion on the archive text would only
         // restate the line above; this asks the destination.
         PgObjectStore roundTripped = new PgObjectStore(destinationDs, TYPES);
-        TenantImport.importPortable(roundTripped,
-                new ByteArrayInputStream(archive.toByteArray()), OWNER_KEY);
+        CoSignedArchive.over(archive.toByteArray(), OWNER_KEY)
+                .importInto(roundTripped, OWNER_KEY, TenantImport.HistoryMode.FRESH);
         assertArrayEquals(
                 source.get("Zulu", subjectId).orElseThrow().payload(),
                 roundTripped.get("Zulu", subjectId).orElseThrow().payload(),

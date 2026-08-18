@@ -3,6 +3,7 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.dbo.maintenance.ArchiveAttestation;
 import cloud.jengu.dbo.maintenance.ArchiveManifest;
 import cloud.jengu.dbo.maintenance.ArchiveVerification;
+import cloud.jengu.dbo.maintenance.TenantImport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -10,6 +11,8 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.util.Arrays;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -21,7 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * An archive is attested by both parties, and an import refuses
- * anything less (§11).
+ * anything less (§11) — REQ-DBO-MNT-ARCHIVE-ROOT-OVER-CONTENTS,
+ * REQ-DBO-MNT-BOTH-PARTIES-ATTEST, REQ-DBO-MNT-IMPORT-REFUSES-UNATTESTED.
  *
  * <p>Each refusal is proven on its own. "Refuses a bad archive" is one
  * sentence and several distinct failures — altered content, an archive that
@@ -55,6 +59,38 @@ class ArchiveAttestationIT {
         withManifest[namesAndBodies.length] = ArchiveManifest.MANIFEST_ENTRY;
         withManifest[namesAndBodies.length + 1] = manifest.toJson();
         return archive(withManifest);
+    }
+
+    /**
+     * REQ-DBO-MNT-IMPORT-REFUSES-UNATTESTED — there is no second way in.
+     *
+     * <p>The refusals below are worth nothing if a caller can sidestep them,
+     * and an unattested convenience overload is how that happens: it arrives
+     * for a test or a migration and then becomes the path everything uses.
+     * So the shape of the API is asserted, not just its behaviour.
+     *
+     * <p>{@code restoreFidelity} is the one entry point still unattested. It
+     * is named here rather than excluded quietly, and this assertion fails the
+     * day it gains an attestation — which is the point: the carve-out has to
+     * be removed deliberately, by someone reading this.
+     */
+    @Test
+    @DisplayName("every way into a store from an archive takes an attestation, "
+            + "and the one that does not is named")
+    void everyImportPathIsAttested() {
+        List<String> unattested = Arrays.stream(TenantImport.class.getMethods())
+                .filter(m -> m.getDeclaringClass() == TenantImport.class)
+                .filter(m -> m.getName().startsWith("import") || m.getName().startsWith("restore"))
+                .filter(m -> Arrays.stream(m.getParameterTypes())
+                        .noneMatch(ArchiveAttestation.class::equals))
+                .map(java.lang.reflect.Method::getName)
+                .distinct()
+                .sorted()
+                .toList();
+
+        assertEquals(List.of("restoreFidelity"), unattested,
+                "an import path without an attestation: either it takes one, or it is the "
+                        + "known hole and this assertion is updated with the reason");
     }
 
     @Test
