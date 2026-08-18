@@ -22,6 +22,22 @@ dependencies {
     embedded("ca.uhn.hapi.fhir:hapi-fhir-caching-caffeine:8.10.1")
 }
 
+// The HL7 core stack carries the spec-AUTHORING side of that library as well
+// as the validating side: a UML renderer, a package-cache database, an XSLT
+// engine and a git client arrive as transitives of org.hl7.fhir.*. A store
+// validating a resource needs none of them.
+//
+// These fail at RUNTIME, not at build — a Class.forName behind an authoring
+// entry point resolves fine until something calls it — so the proof is the
+// suite exercising validation, conversion and terminology ingestion, not a
+// green compile.
+configurations.named("embedded") {
+    exclude(group = "net.sourceforge.plantuml")
+    exclude(group = "org.xerial", module = "sqlite-jdbc")
+    exclude(group = "net.sf.saxon", module = "Saxon-HE")
+    exclude(group = "org.eclipse.jgit")
+}
+
 tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     into("lib") { from(embedded) }
