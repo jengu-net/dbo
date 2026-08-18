@@ -198,7 +198,7 @@ class ReferencesSurviveTheMoveIT {
 
         TenantImport.importVerified(destination, source, OWNER_KEY, attestation,
                 vendor.getPublic().getEncoded(), tenant.getPublic().getEncoded(),
-                TenantImport.HistoryMode.PRESERVED);
+                TenantImport.HistoryMode.PRESERVED, accepted -> { });
 
         // the moved object kept its own version, and the target it pointed at
         // from that version is still there under the same identity

@@ -18,6 +18,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -90,25 +91,37 @@ public final class TenantImport {
      * everything eventually arrives through. An archive without both
      * signatures is refused rather than imported carefully.
      *
-     * @return the root both parties signed — the caller records it, so that
-     *         what was imported and what both parties said it was stays
-     *         answerable without the archive
+     * @param ledger where the destination writes down what it accepted
+     *               (REQ-DBO-MNT-ACCEPTED-ROOT-RECORDED) — required, because an
+     *               import nobody recorded is one nobody can account for later
+     * @return the root both parties signed
      */
     public static PortableResult importVerified(ObjectStore target, ArchiveSource source,
             byte[] ownerMasterKey, ArchiveAttestation attestation,
-            byte[] vendorPublicKey, byte[] tenantPublicKey, HistoryMode history)
+            byte[] vendorPublicKey, byte[] tenantPublicKey, HistoryMode history,
+            ImportLedger ledger)
             throws IOException {
+        Objects.requireNonNull(ledger, "an import records what it accepted, or does not happen");
         // Pass one: read to the tag, digest every entry, check the signatures.
+        String root;
         try (InputStream sealed = source.open();
              InputStream plain = SealedArchive.opening(sealed, ownerMasterKey)) {
-            ArchiveVerification.verifyStreaming(plain, attestation,
+            root = ArchiveVerification.verifyStreaming(plain, attestation,
                     vendorPublicKey, tenantPublicKey);
         }
         // Pass two: the same bytes, now attested.
+        PortableResult result;
         try (InputStream sealed = source.open();
              InputStream plain = SealedArchive.opening(sealed, ownerMasterKey)) {
-            return applyPortable(target, plain, history);
+            result = applyPortable(target, plain, history);
         }
+        // Recorded after the objects land: a root recorded for an import that
+        // then failed would be a claim about data the tenant does not have.
+        ledger.accepted(new ImportLedger.Accepted(root,
+                ImportLedger.Accepted.fingerprint(vendorPublicKey),
+                ImportLedger.Accepted.fingerprint(tenantPublicKey),
+                result.imported(), result.skippedIdentical()));
+        return result;
     }
 
 
