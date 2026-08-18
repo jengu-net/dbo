@@ -14,13 +14,16 @@ application {
 }
 
 // The operator process does plain JDBC + the k8s API. dbo-tenant's serving
-// stack (personalities with private HAPI, REST, engine) reaches this
+// stack (personalities, the shared HAPI bundle, REST, engine) reaches this
 // module's runtime classpath transitively but is only exercised by
 // TenantRuntimeManager — which runs in the SERVING process, never in the
 // operator pod. Excluding it keeps the image ~30MB instead of ~500MB.
 configurations.runtimeClasspath {
     exclude(group = "cloud.jengu.dbo", module = "dbo-fhir-r4")
     exclude(group = "cloud.jengu.dbo", module = "dbo-fhir-r5")
+    // the HAPI engine the personalities import; named rather than left to
+    // follow them out, since it is the ~140MB half of that 500MB
+    exclude(group = "cloud.jengu.dbo", module = "dbo-fhir-stack")
     exclude(group = "cloud.jengu.dbo", module = "dbo-rest")
     exclude(group = "cloud.jengu.dbo", module = "dbo-postgres")
 }

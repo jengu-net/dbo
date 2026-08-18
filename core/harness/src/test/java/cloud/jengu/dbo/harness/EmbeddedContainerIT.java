@@ -29,6 +29,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -75,6 +76,8 @@ class EmbeddedContainerIT {
         ctx.installBundle("file:" + System.getProperty("dbo.logging.jar")).start();
         bundles.put("slf4j", slf4j);
         for (String name : List.of("dbo.core", "dbo.fhir.common", "dbo.postgres", "dbo.terminology",
+                // the HL7/HAPI engine, once, for both personalities after it
+                "dbo.fhir.stack",
                 "dbo.subscriptions", "dbo.fhir.r4", "dbo.fhir.r5", "dbo.rest")) {
             String path = System.getProperty(name + ".jar");
             java.util.Objects.requireNonNull(path, name + ".jar system property missing");
@@ -106,27 +109,101 @@ class EmbeddedContainerIT {
         }
     }
 
-    /** Private stacks stay private: nested libs present, only DBO packages exported. */
+    /** Embedded stacks stay embedded: nested libs present, only DBO packages exported. */
     @Test
-    void personalityAndSubscriptionJarsEmbedTheirStacks() throws Exception {
-        for (String prop : List.of("dbo.fhir.r4.jar", "dbo.fhir.r5.jar", "dbo.subscriptions.jar")) {
+    void subscriptionJarEmbedsItsStack() throws Exception {
+        String path = System.getProperty("dbo.subscriptions.jar");
+        try (JarFile jar = new JarFile(path)) {
+            List<String> libs = new ArrayList<>();
+            Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                String name = entries.nextElement().getName();
+                if (name.startsWith("lib/") && name.endsWith(".jar")) {
+                    libs.add(name);
+                }
+            }
+            assertTrue(!libs.isEmpty(), path + " has no embedded libs");
+            String exports = jar.getManifest().getMainAttributes().getValue("Export-Package");
+            assertTrue(exports.startsWith("cloud.jengu.dbo."), path + " exports: " + exports);
+            assertTrue(!exports.contains("ca.uhn") && !exports.contains("org.hl7")
+                    && !exports.contains("dev.dbos"), path + " leaks: " + exports);
+        }
+    }
+
+    /**
+     * A personality carries no engine of its own. It exports its DBO package and
+     * the resource DIRECTORIES of its own FHIR version — profiles and value sets
+     * the validator reads back out — and not one package holding engine classes.
+     * That is the difference between the packaging that duplicated 140MB per
+     * personality and the one that does not.
+     */
+    @Test
+    void personalitiesCarryValidationResourcesAndNoEngine() throws Exception {
+        for (String prop : List.of("dbo.fhir.r4.jar", "dbo.fhir.r5.jar")) {
             String path = System.getProperty(prop);
             try (JarFile jar = new JarFile(path)) {
-                List<String> libs = new ArrayList<>();
+                Set<String> classPackages = new java.util.TreeSet<>();
                 Enumeration<JarEntry> entries = jar.entries();
                 while (entries.hasMoreElements()) {
                     String name = entries.nextElement().getName();
-                    if (name.startsWith("lib/") && name.endsWith(".jar")) {
-                        libs.add(name);
+                    if (name.startsWith("lib/") && name.endsWith(".class")) {
+                        classPackages.add(name.substring(0, name.lastIndexOf('/'))
+                                .replace('/', '.'));
                     }
                 }
-                assertTrue(!libs.isEmpty(), path + " has no embedded libs");
+                assertTrue(classPackages.isEmpty(),
+                        path + " embeds engine classes: " + classPackages);
+
                 String exports = jar.getManifest().getMainAttributes().getValue("Export-Package");
                 assertTrue(exports.startsWith("cloud.jengu.dbo."), path + " exports: " + exports);
-                assertTrue(!exports.contains("ca.uhn") && !exports.contains("org.hl7")
-                        && !exports.contains("dev.dbos"), path + " leaks: " + exports);
+                assertTrue(!exports.contains("ca.uhn") && !exports.contains("dev.dbos"),
+                        path + " leaks: " + exports);
+                // only the resource tree of ITS OWN version
+                String own = prop.contains("r4") ? "org.hl7.fhir.r4." : "org.hl7.fhir.r5.";
+                for (String exported : exports.split(",")) {
+                    if (exported.startsWith("org.hl7")) {
+                        assertTrue(exported.startsWith(own),
+                                path + " exports another version's package: " + exported);
+                    }
+                }
+                // The two versions ship their definitions differently — R4 as
+                // profile/value-set XML under model/, R5 as NPM tarballs under
+                // packages/ — so the invariant is that SOMETHING of its own
+                // version is exported, not a particular directory name.
+                assertTrue(exports.contains(own),
+                        path + " exports no validation resources of its own: " + exports);
             }
         }
+    }
+
+    /**
+     * One exporter of the engine, and the classes it hands out are the same
+     * classes on both sides of a bundle boundary. Private embedding gave each
+     * personality its own {@code org.hl7.fhir.r4.model.Patient}; a resource
+     * passed to a driver was an alien object of a same-named class.
+     */
+    @Test
+    void oneBundleOwnsTheEngineAndItsClassesCrossBoundaries() throws Exception {
+        // dbo-fhir-r5 speaks org.hl7.fhir.r4.model too — R4ToR5Converter takes an
+        // R4 resource in — so the two personalities are a real cross-bundle
+        // handoff of one model class, not two same-named ones
+        Class<?> fromR4 = bundles.get("dbo.fhir.r4").loadClass("org.hl7.fhir.r4.model.Patient");
+        Class<?> fromR5 = bundles.get("dbo.fhir.r5").loadClass("org.hl7.fhir.r4.model.Patient");
+        Class<?> fromStack = bundles.get("dbo.fhir.stack")
+                .loadClass("org.hl7.fhir.r4.model.Patient");
+
+        assertSame(fromR4, fromR5, "personalities see different R4 model classes");
+        assertSame(fromR4, fromStack, "the personality is not using the shared engine's class");
+        assertTrue(String.valueOf(fromR4.getClassLoader()).contains("cloud.jengu.dbo.fhir.stack"),
+                "the engine is not coming from the shared bundle: " + fromR4.getClassLoader());
+
+        // The R5 model the R4 validator converts up to is NOT visible from the R4
+        // personality: it imports the packages it names, and that one it does not.
+        // The validator reaches it inside the shared bundle, which is the point —
+        // the duplication was never in what a personality uses, it was in what
+        // the engine needs.
+        assertSame(bundles.get("dbo.fhir.stack").loadClass("org.hl7.fhir.r5.model.Patient"),
+                bundles.get("dbo.fhir.r5").loadClass("org.hl7.fhir.r5.model.Patient"));
     }
 
     /** The payoff: a full FHIR flow served over HTTP from INSIDE the container. */

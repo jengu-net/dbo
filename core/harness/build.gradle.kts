@@ -41,7 +41,7 @@ tasks.test {
         "dbo.postgres.jar",
         project(":core:dbo-postgres").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
     )
-    dependsOn(":core:dbo-terminology:jar", ":core:dbo-fhir-r5:jar",
+    dependsOn(":core:dbo-terminology:jar", ":core:dbo-fhir-r5:jar", ":core:dbo-fhir-stack:jar",
         ":core:dbo-fhir-common:jar", ":core:dbo-subscriptions:jar", ":core:dbo-rest:jar",
         ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar",
         ":core:dbo-tenant-k8s:jar", ":core:dbo-auth:jar", ":core:dbo-pdi:jar", ":core:dbo-policy:jar",
@@ -52,6 +52,7 @@ tasks.test {
     )
     for ((prop, module) in mapOf(
         "dbo.fhir.common.jar" to "dbo-fhir-common",
+        "dbo.fhir.stack.jar" to "dbo-fhir-stack",
         "dbo.subscriptions.jar" to "dbo-subscriptions",
         "dbo.rest.jar" to "dbo-rest",
         "dbo.sync.jar" to "dbo-sync",
