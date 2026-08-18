@@ -66,10 +66,10 @@ configurations.named("embedded") {
  * **Each export carries the version of the jar it came from.** A package
  * exported without one is exported at 0.0.0, and any consumer stating a range
  * — which bnd computes by default, so most of them do — then fails to resolve
- * against this bundle. jengu-platform's driver SPI imports
- * `org.hl7.fhir.r4.model;version="[6.9,7)"`; unversioned, this bundle cannot
- * satisfy it, and the framework where the store owns the FHIR classes does not
- * come up at all (jengu-platform#856, dbo#47).
+ * against this bundle. A host platform's driver SPI importing
+ * `org.hl7.fhir.r4.model;version="[6.9,7)"` is the case that found this:
+ * unversioned, this bundle cannot satisfy it, and the framework where the
+ * store owns the FHIR classes does not come up at all (#47).
  *
  * The two families are NOT one number: `ca.uhn.fhir.*` is HAPI's own version
  * while `org.hl7.fhir.*` is the HL7 core family HAPI ships (8.10.1 carries
