@@ -17,7 +17,7 @@ public final class TenantK8sContract {
             .withNamespaced(true)
             .build();
 
-    /** The ConfigMap whose keys are tenant spec files (<code>.json). */
+    /** The ConfigMap whose keys are tenant spec files ({@code <code>.json}). */
     public static final String CONFIGMAP = "dbo-tenants";
 
     public static final String TENANT_LABEL = "jengu.cloud/tenant";

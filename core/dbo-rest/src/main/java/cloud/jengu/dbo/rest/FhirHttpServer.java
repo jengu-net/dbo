@@ -66,7 +66,7 @@ public final class FhirHttpServer implements AutoCloseable {
 
     /**
      * Attached mode: mounts onto an EXISTING shared server under the
-     * base path — the multi-tenant interim (`/t/<code>/fhir`) until the
+     * base path — the multi-tenant interim ({@code /t/<code>/fhir}) until the
      * routing layer. {@link #close()} detaches the context, never stops the
      * shared server.
      */
