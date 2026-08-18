@@ -173,6 +173,7 @@ jobs:
           AUTH=$(printf '%s:%s' "$REG_USER" "$REG_PASS" | base64 | tr -d '\n')
           printf '{"auths":{"%s":{"auth":"%s"}}}' "${{ env.REGISTRY }}" "$AUTH" > ~/.docker/config.json
       - name: Log in to GHCR
+        continue-on-error: true
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -194,12 +195,12 @@ jobs:
         run: |
           set -euo pipefail
           {
-            echo "list<<EOF"
-            echo "${{ env.REGISTRY }}/${{ matrix.image }}:${{ needs.build.outputs.image_tag }}"
-            echo "${{ env.REGISTRY }}/${{ matrix.image }}:latest"
+            echo "public<<EOF"
             echo "${{ env.GHCR_IMAGE }}:${{ needs.build.outputs.image_tag }}"
-            # `latest` follows RELEASES only. A main-branch push moving latest
-            # means a user who typed no tag gets an untagged commit.
+            # On the PUBLIC registries `latest` follows releases only: somebody
+            # who types no tag should not receive an arbitrary commit. The
+            # fleet registry is different on purpose — that is how deployments
+            # there pick up main.
             if [ "${{ needs.build.outputs.is_release }}" = "true" ]; then
               echo "${{ env.GHCR_IMAGE }}:latest"
             fi
@@ -210,6 +211,12 @@ jobs:
               fi
             fi
             echo "EOF"
+            echo "labels<<EOF"
+            echo "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}"
+            echo "org.opencontainers.image.revision=${{ github.sha }}"
+            echo "org.opencontainers.image.version=${{ needs.build.outputs.image_tag }}"
+            echo "org.opencontainers.image.licenses=MIT"
+            echo "EOF"
           } >> "$GITHUB_OUTPUT"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -219,19 +226,35 @@ jobs:
           config-inline: |
             [registry."192.168.1.14:5050"]
               http = true
-      - name: Build and push image (multi-arch amd64 + arm64)
+      # THE FLEET'S PUSH. Deployments update from this registry, so it goes
+      # first and on its own: a public registry being unreachable, rate
+      # limited or misconfigured must not be able to stop the image an
+      # already-running cluster is waiting for. `latest` moves on every main
+      # push here, which is what makes that update path work.
+      - name: Build and push to the fleet registry (multi-arch amd64 + arm64)
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.context }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.tags.outputs.list }}
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ needs.build.outputs.image_tag }}
-            org.opencontainers.image.licenses=MIT
+          tags: |
+            ${{ env.REGISTRY }}/${{ matrix.image }}:${{ needs.build.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ matrix.image }}:latest
+          labels: ${{ steps.tags.outputs.labels }}
+      # The public mirrors, best-effort. Cached layers make this nearly free,
+      # and a failure here is a publishing problem rather than an outage.
+      - name: Build and push to the public registries
+        continue-on-error: true
+        if: steps.tags.outputs.public != ''
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.public }}
+          labels: ${{ steps.tags.outputs.labels }}
 
   central:
     # Maven Central, release tags only. Immutable once accepted: the bundle is
