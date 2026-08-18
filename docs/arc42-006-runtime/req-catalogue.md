@@ -207,7 +207,7 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ | Promise |
 |---|---|
 | REQ-DBO-MNT-BACKUP-IS-EXPORT | Backup and export are one mechanism, restore and import another single one; every backup is restorable by the everyday import path. (§11) |
-| REQ-DBO-MNT-PORTABLE-STATE-EXPORT | The latest-state export is idempotent, store-independent FHIR (with blob content, hash-verified) — importable into a fresh tenant, the same tenant, or any other FHIR store. (§11) |
+| REQ-DBO-MNT-PORTABLE-STATE-EXPORT | The latest-state export is idempotent, store-independent FHIR (with blob content, hash-verified) — importable into a fresh tenant, the same tenant, or any other FHIR store. It travels as Bulk Data: NDJSON per type whose resources carry their own id and version, beside the manifest that spec defines — same digests the archive was attested over, so a stranger checking the export and a party checking the signatures cannot get different answers. (§11) |
 | REQ-DBO-MNT-HISTORY-BY-SCHEMA | Version history, audit and consumer state live in their own database schemas, so the high-fidelity history element is a schema-scoped dump, restorable byte-exact. (§11) |
 | REQ-DBO-MNT-OWNER-KEY-ENCRYPTION | An export bundle is encrypted so that only the tenant owner's master key can open it; the platform operates backups it cannot read, and restore requires the owner. (§11) |
 | REQ-DBO-MNT-SNAPSHOT-CONSISTENT | The state element is cut at a single consistent snapshot; incremental export is the feed from that snapshot's cursor. (§11, §10) |
