@@ -54,8 +54,15 @@ record CoSignedArchive(byte[] sealed, ArchiveAttestation attestation,
     /** Imports into {@code target}, verifying first, as production does. */
     TenantImport.PortableResult importInto(cloud.jengu.dbo.core.api.ObjectStore target,
             byte[] ownerMasterKey, TenantImport.HistoryMode history) throws IOException {
+        return importInto(target, ownerMasterKey, history, accepted -> { });
+    }
+
+    /** As above, with the ledger the destination records into. */
+    TenantImport.PortableResult importInto(cloud.jengu.dbo.core.api.ObjectStore target,
+            byte[] ownerMasterKey, TenantImport.HistoryMode history,
+            cloud.jengu.dbo.maintenance.ImportLedger ledger) throws IOException {
         return TenantImport.importVerified(target, source(), ownerMasterKey,
-                attestation, vendorPublicKey, tenantPublicKey, history);
+                attestation, vendorPublicKey, tenantPublicKey, history, ledger);
     }
 
     private static KeyPair ed25519() throws Exception {

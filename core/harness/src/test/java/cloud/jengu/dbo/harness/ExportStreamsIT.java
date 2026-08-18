@@ -182,17 +182,34 @@ class ExportStreamsIT {
                                 tenant.getPrivate().getEncoded());
 
         TenantImport.ArchiveSource source = () -> new java.io.ByteArrayInputStream(sealed);
+        java.util.List<cloud.jengu.dbo.maintenance.ImportLedger.Accepted> recorded =
+                new java.util.ArrayList<>();
         var first = TenantImport.importVerified(destination, source, OWNER_KEY, attestation,
                 vendor.getPublic().getEncoded(), tenant.getPublic().getEncoded(),
-                TenantImport.HistoryMode.PRESERVED);
+                TenantImport.HistoryMode.PRESERVED, recorded::add);
         assertEquals(400, first.imported());
+
+        // REQ-DBO-MNT-ACCEPTED-ROOT-RECORDED: the destination wrote down what it
+        // accepted and from whom, so the move is answerable without the archive
+        assertEquals(1, recorded.size());
+        assertEquals(root, recorded.get(0).root(), "the recorded root is the one both parties signed");
+        assertEquals(cloud.jengu.dbo.maintenance.ImportLedger.Accepted
+                        .fingerprint(tenant.getPublic().getEncoded()),
+                recorded.get(0).tenantKeyDigest(), "the countersigner is named in the record");
+        assertEquals(400, recorded.get(0).objects());
 
         // the interrupted-and-restarted case: same archive, nothing duplicated
         var second = TenantImport.importVerified(destination, source, OWNER_KEY, attestation,
                 vendor.getPublic().getEncoded(), tenant.getPublic().getEncoded(),
-                TenantImport.HistoryMode.PRESERVED);
+                TenantImport.HistoryMode.PRESERVED, recorded::add);
         assertEquals(0, second.imported(), "a resumed move must not rewrite what already landed");
         assertEquals(400, second.skippedIdentical());
+
+        // and the resumed half is recorded too: two acceptances of one root is
+        // the honest account of what happened, not a duplicate to suppress
+        assertEquals(2, recorded.size());
+        assertEquals(0, recorded.get(1).objects());
+        assertEquals(400, recorded.get(1).unchanged());
     }
 
     /** The root the export wrote, read from the archive's own digest list. */
