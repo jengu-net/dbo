@@ -183,6 +183,30 @@ quietly.
 
 *Complete. The blob element waits on blob storage.*
 
+### Packaging
+
+The spec-authoring transitives are gone from the personalities. The HL7 core
+stack carried a UML renderer, a package-cache database, an XSLT engine and a
+git client as transitives of `org.hl7.fhir.*` — machinery for authoring the
+specification rather than for validating against it. Excluding them:
+
+| | before | after |
+|---|---|---|
+| `dbo-fhir-r4` | 137.9 MB | **101.1 MB** |
+| `dbo-fhir-r5` | 155.7 MB | **118.9 MB** |
+
+36.8 MB from each, and the same 36.8 MB again from every additional copy a
+per-tenant framework would cache.
+
+`icu4j` (14.5 MB) stays: internationalised string handling is plausibly on a
+validation path, and removing it on the strength of a name would be a guess.
+
+The proof is that the suite still exercises what those jars could have been
+hiding behind — R4 validation, the R4→R5 converter, CodeSystem ingestion, and
+the production bundles booting in a real Felix container. A green compile
+proves nothing here, because a `Class.forName` behind an authoring entry point
+resolves fine until something calls it.
+
 ### The serving surface
 
 `dbo-rest` is a JDK `HttpServer` on virtual threads with no framework and no
@@ -221,15 +245,6 @@ Unordered, and each needs its own design pass before it starts.
 - **Placement.** When zones multiply databases past one server's comfort, a
   `TenantRegistration` grows a placement target. The custom resource is
   already the seam for it.
-- **Trim the spec-authoring transitives out of the HL7 stack.** A personality
-  embeds a UML renderer (`plantuml-mit`, 16.5 MB), a package-cache database
-  (`sqlite-jdbc`, 11.4 MB), an XSLT engine (`Saxon-HE`, 6.0 MB) and a git
-  client (`jgit`, 3.2 MB) — 37.0 MB of spec-authoring machinery a store
-  validating a resource has no use for. The catch is that these fail at
-  runtime, not at build: a `Class.forName` behind an entry point resolves
-  fine until something calls it. The proof has to exercise — validate a
-  resource, convert one, ingest a CodeSystem — not merely start a framework.
-  Cheapest done first, because it shrinks what the next item has to move.
 - **One shared bundle owns the HL7 stack.** Each personality privately embeds
   it today: 138.0 MB for R4, 155.7 MB for R5, **140.4 MB of it byte-identical
   between them**, and Felix caches per framework so a per-tenant framework
