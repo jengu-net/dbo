@@ -80,7 +80,7 @@ tenant data: exported, restored, and synced like everything else.
 ## 14.6 What stays outside
 
 Consent semantics and veto co-ownership (who must agree before the working
-key may unwrap a given person's key) are the platform's ADR 0016 track —
+key may unwrap a given person's key) are the consent and co-ownership track —
 §14 provides the key seams they attach to. Anonymisation pipelines
 (deriving statistics from shredded records) consume what §14 leaves behind
 by construction: pseudonymous, unlinkable records.

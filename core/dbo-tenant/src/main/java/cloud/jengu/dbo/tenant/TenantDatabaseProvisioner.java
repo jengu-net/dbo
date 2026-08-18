@@ -39,13 +39,26 @@ public interface TenantDatabaseProvisioner {
      *                              the deployment runs without an authority
      */
     record TenantDatabase(DataSource dataSource, String bootstrapClientSecret,
-            String rpClientSecret, java.util.List<String> rpRedirectUris) {
+            String rpClientId, String rpClientSecret, java.util.List<String> rpRedirectUris) {
+        /**
+         * The client id used when a deployment provisions a relying party but
+         * names none. The store does not care what the application in front of
+         * it calls itself; it only has to agree with whatever wrote the custody.
+         */
+        public static final String DEFAULT_RP_CLIENT_ID = "dbo-rp";
+
         public TenantDatabase(DataSource dataSource) {
-            this(dataSource, null, null, java.util.List.of());
+            this(dataSource, null, null, null, java.util.List.of());
         }
 
         public TenantDatabase(DataSource dataSource, String bootstrapClientSecret) {
-            this(dataSource, bootstrapClientSecret, null, java.util.List.of());
+            this(dataSource, bootstrapClientSecret, null, null, java.util.List.of());
+        }
+
+        /** The configured id, or the default when custody named none. */
+        public String rpClientIdOrDefault() {
+            return rpClientId == null || rpClientId.isBlank()
+                    ? DEFAULT_RP_CLIENT_ID : rpClientId;
         }
     }
 }

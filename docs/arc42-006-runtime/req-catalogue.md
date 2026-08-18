@@ -109,7 +109,7 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-VER-VERSION-AGNOSTIC-CORE | The engine has no knowledge of any FHIR version; all version meaning lives in personality bundles. (R6, §1) |
 | REQ-DBO-VER-CONCURRENT-VERSIONS | Tenants (and domains within a tenant) on different FHIR versions run concurrently in one container. (R6) |
 | REQ-DBO-VER-PERSONALITY-OWNS-MEANING | Parsing, validation, search-parameter extraction and subscription evaluation are personality responsibilities, per version. (§1) |
-| REQ-DBO-VER-SPECIFIED-VALIDATION | Profile-resolution and validation semantics are specified by DBO — a malformed or versioned canonical reference can never silently disable validation. (§7.6, ADR 0042 lesson) |
+| REQ-DBO-VER-SPECIFIED-VALIDATION | Profile-resolution and validation semantics are specified by DBO — a malformed or versioned canonical reference can never silently disable validation. (§7.6, §9.3) |
 | REQ-DBO-VER-TRANSITION-BY-CONVERTERS | Moving a tenant between FHIR versions is converters plus reindex, not a data migration ceremony. (§2, R6) |
 
 ## SRCH — search

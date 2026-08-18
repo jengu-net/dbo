@@ -216,9 +216,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         java.util.List.of("system/*.read", "system/*.write"));
             }
             if (db.rpClientSecret() != null) {
-                // the jengu-cloud relying party: record
-                // ensured from custody, so Secret and record never drift
-                authority.ensureClient("jengu-cloud", db.rpClientSecret(),
+                // The relying party's record is ensured FROM custody — id,
+                // secret and redirect URIs all — so the Secret and the record
+                // cannot drift. Which application it is, the store never knows.
+                authority.ensureClient(db.rpClientIdOrDefault(), db.rpClientSecret(),
                         java.util.List.of("user/*.read", "user/*.write"),
                         "confidential", db.rpRedirectUris());
             }

@@ -93,9 +93,9 @@ class ZoneIT {
         String stubBase = "http://127.0.0.1:" + stubBrokers.getAddress().getPort();
         PgObjectStore zoneStore = new PgObjectStore(tenantDs("ee"), ZoneModel.registrations());
         zoneStore.put(PutRequest.create("ZoneBroker", ZoneModel.Broker.payload(
-                new ZoneModel.Broker("tara", stubBase + "/tara", "jengu-tara", "EE", "high"))));
+                new ZoneModel.Broker("tara", stubBase + "/tara", "zone-tara", "EE", "high"))));
         zoneStore.put(PutRequest.create("ZoneBroker", ZoneModel.Broker.payload(
-                new ZoneModel.Broker("eeid", stubBase + "/eeid", "jengu-eeid", "EE", "substantial"))));
+                new ZoneModel.Broker("eeid", stubBase + "/eeid", "zone-eeid", "EE", "substantial"))));
         zoneStore.put(PutRequest.create("ZoneIdentifierDomain",
                 ZoneModel.identifierDomainPayload(ZoneModel.USE_PERSON_PRIMARY, SUBJECT_SYSTEM)));
 
@@ -130,7 +130,7 @@ class ZoneIT {
             fhirPost(code, "/PractitionerRole", service, """
                     {"resourceType":"PractitionerRole",
                      "practitioner":{"reference":"Practitioner/%s"},
-                     "code":[{"coding":[{"system":"urn:jengu:role","code":"doctor"}]}]}"""
+                     "code":[{"coding":[{"system":"urn:example:role","code":"doctor"}]}]}"""
                     .formatted(practitioner));
             TenantAuthority side = sideAuthority(code);
             side.ensureRoleGrant("doctor", List.of("user/*.read"));
@@ -162,7 +162,7 @@ class ZoneIT {
             String path = exchange.getRequestURI().getPath();
             String broker = path.startsWith("/tara") ? "tara" : "eeid";
             String brokerBase = base + "/" + broker;
-            String clientId = "jengu-" + broker;
+            String clientId = "zone-" + broker;
             String response;
             int status = 200;
             if (path.endsWith("/.well-known/openid-configuration")) {

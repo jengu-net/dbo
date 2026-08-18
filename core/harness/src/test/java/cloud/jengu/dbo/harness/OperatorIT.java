@@ -97,8 +97,8 @@ class OperatorIT {
         operator = new TenantOperator(client, NS,
                 provisionerUrl, "dbo_provisioner", "prov-secret",
                 provisionerUrl.substring(0, provisionerUrl.lastIndexOf('/') + 1));
-        operator.rpConfig(java.util.List.of("https://jengu.example/login/oauth2/code/{code}"),
-                "http://dbo-server.jengu.svc.cluster.local:8090");
+        operator.rpConfig(java.util.List.of("https://app.example/login/oauth2/code/{code}"),
+                "http://dbo-server.dbo.svc.cluster.local:8090");
         operator.ensureCrd();
 
         dir = Files.createTempDirectory("dbo-operator-specs");
@@ -130,7 +130,7 @@ class OperatorIT {
 
     private static GenericKubernetesResource registration(String code, String deletionPolicy) {
         GenericKubernetesResource cr = new GenericKubernetesResource();
-        cr.setApiVersion("jengu.cloud/v1alpha1");
+        cr.setApiVersion("dbo.jengu.cloud/v1alpha1");
         cr.setKind("TenantRegistration");
         cr.setMetadata(new ObjectMetaBuilder().withName(code).withNamespace(NS).build());
         cr.setAdditionalProperty("spec", Map.of(
@@ -180,10 +180,10 @@ class OperatorIT {
         // the RP client's platform-readable custody
         Secret rp = client.secrets().inNamespace(NS).withName("tenant-opitenant-rp").get();
         assertNotNull(rp, "the RP Secret must exist");
-        assertEquals("jengu-cloud", decode(rp, "client_id"));
-        assertEquals("https://jengu.example/login/oauth2/code/opitenant",
+        assertEquals("dbo-rp", decode(rp, "client_id"));
+        assertEquals("https://app.example/login/oauth2/code/opitenant",
                 decode(rp, "redirect_uris"));
-        assertEquals("http://dbo-server.jengu.svc.cluster.local:8090/t/opitenant/oidc",
+        assertEquals("http://dbo-server.dbo.svc.cluster.local:8090/t/opitenant/oidc",
                 decode(rp, "issuer"));
         try (Connection c = DriverManager.getConnection(
                 decode(secret, "url"), decode(secret, "user"), decode(secret, "password"));
@@ -216,7 +216,7 @@ class OperatorIT {
         // §14/§15 blocks survive the CRD schema AND the re-emit (the
         // structural-pruning gap) — proven on a dedicated registration
         GenericKubernetesResource poliis = new GenericKubernetesResource();
-        poliis.setApiVersion("jengu.cloud/v1alpha1");
+        poliis.setApiVersion("dbo.jengu.cloud/v1alpha1");
         poliis.setKind("TenantRegistration");
         poliis.setMetadata(new ObjectMetaBuilder().withName("poliis").withNamespace(NS).build());
         poliis.setAdditionalProperty("spec", Map.of(

@@ -64,7 +64,7 @@ instance ownership and the component has no work left to do.
 - **Any-instance-serves-anything statelessness**, replaced by assignment-based
   locality — see §9.1.
 - **Validation silently disarmed by versioned canonicals.** A profile
-  reference that resolves to nothing must fail loudly (ADR 0042).
+  reference that resolves to nothing must fail loudly.
 - **Offset paging with duplicate windows.** Keyset cursors, one primitive,
   §10.
 - **Session-invalidation semantics that reject a structurally valid token.**

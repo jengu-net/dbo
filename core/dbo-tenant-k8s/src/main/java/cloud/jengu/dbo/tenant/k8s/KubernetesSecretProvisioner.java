@@ -61,12 +61,17 @@ public final class KubernetesSecretProvisioner implements TenantDatabaseProvisio
         Secret rp = k8s.secrets().inNamespace(namespace)
                 .withName("tenant-" + spec.code() + "-rp").get();
         String rpSecret = null;
+        String rpClientId = null;
         java.util.List<String> rpRedirects = java.util.List.of();
         if (rp != null && rp.getData() != null && rp.getData().containsKey("client_secret")) {
             rpSecret = decode(rp, "client_secret");
             rpRedirects = java.util.List.of(decode(rp, "redirect_uris").split(","));
+            // The id is the operator's to choose; reading it here is what keeps
+            // the record and the Secret from disagreeing about who the RP is.
+            rpClientId = rp.getData().containsKey("client_id")
+                    ? decode(rp, "client_id") : null;
         }
-        return new TenantDatabase(pool, clientSecret, rpSecret, rpRedirects);
+        return new TenantDatabase(pool, clientSecret, rpClientId, rpSecret, rpRedirects);
     }
 
     @Override

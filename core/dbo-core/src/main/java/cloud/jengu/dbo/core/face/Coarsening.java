@@ -2,7 +2,7 @@ package cloud.jengu.dbo.core.face;
 
 /**
  * How a declared identifying element is made coarser — supplied by the
- * <b>face</b>, called by the engine (jengu-platform ADR 0057 §3).
+ * <b>face</b>, called by the engine (§12).
  *
  * <p>The engine decides <em>that</em> an element is generalised rather than
  * removed, because that is a data-handling decision. It cannot decide

@@ -82,7 +82,7 @@ class FederatedAuthIT {
                 new TenantRuntimeManager.AuthorityConfig(kek, null,
                         new IdentityHub.Upstream(
                                 "http://127.0.0.1:" + stubBroker.getAddress().getPort(),
-                                "jengu-hub", "hub-secret", "EE"),
+                                "zone-hub", "hub-secret", "EE"),
                         SUBJECT_SYSTEM));
         for (String code : List.of("kliinika", "kliinikb", "kliinikc")) {
             Files.writeString(dir.resolve(code + ".json"), """
@@ -111,7 +111,7 @@ class FederatedAuthIT {
             assertEquals(201, fhirPost(code, "/PractitionerRole", service, """
                     {"resourceType":"PractitionerRole",
                      "practitioner":{"reference":"Practitioner/%s"},
-                     "code":[{"coding":[{"system":"urn:jengu:role","code":"doctor"}]}]}"""
+                     "code":[{"coding":[{"system":"urn:example:role","code":"doctor"}]}]}"""
                     .formatted(practitioner)).statusCode());
             sideAuthority(code).ensureRoleGrant("doctor", List.of("user/*.read"));
             sideAuthority(code).ensureClient("webapp", null,
@@ -162,7 +162,7 @@ class FederatedAuthIT {
                 case "/token" -> {
                     long now = System.currentTimeMillis() / 1000;
                     String idToken = cloud.jengu.dbo.auth.Jws.sign("stub-kid",
-                            "{\"iss\":\"" + base + "\",\"aud\":\"jengu-hub\""
+                            "{\"iss\":\"" + base + "\",\"aud\":\"zone-hub\""
                                     + ",\"sub\":\"EE" + ISIKUKOOD + "\""
                                     + ",\"iat\":" + now + ",\"exp\":" + (now + 300) + "}",
                             stubKey.getPrivate());

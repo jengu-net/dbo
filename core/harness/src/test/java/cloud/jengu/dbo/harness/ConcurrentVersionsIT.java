@@ -114,7 +114,7 @@ class ConcurrentVersionsIT {
     void r5SearchCompilationSpotChecks() {
         r5.create("""
                 {"resourceType":"Observation","status":"final",
-                 "meta":{"tag":[{"system":"https://jengu.cloud/tags","code":"synced"}]},
+                 "meta":{"tag":[{"system":"http://example.org/tags","code":"synced"}]},
                  "code":{"coding":[{"system":"http://loinc.org","code":"R5-1"}]}}""");
         r5.create("""
                 {"resourceType":"Observation","status":"final",

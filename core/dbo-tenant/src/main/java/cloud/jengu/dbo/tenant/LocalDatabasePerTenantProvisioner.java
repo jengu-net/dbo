@@ -28,6 +28,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     private final Map<String, String> bootstrapSecrets = new ConcurrentHashMap<>();
     private final Map<String, String> rpSecrets = new ConcurrentHashMap<>();
     private volatile java.util.List<String> rpRedirectUris = java.util.List.of();
+    private volatile String rpClientId;
 
     public LocalDatabasePerTenantProvisioner(String adminUrl, String user, String password) {
         this.adminUrl = adminUrl;
@@ -62,18 +63,24 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
         });
         return new TenantDatabase(pool, bootstrapSecrets.computeIfAbsent(spec.code(),
                 code -> generatedSecret()),
+                rpClientId,
                 rpRedirectUris.isEmpty() ? null
                         : rpSecrets.computeIfAbsent(spec.code(), code -> generatedSecret()),
                 rpRedirectUris.stream()
                         .map(uri -> uri.replace("{code}", spec.code())).toList());
     }
 
-    /** Dev: redirect URIs for the per-tenant jengu-cloud RP client. */
+    /** Dev: redirect URIs for the per-tenant relying-party client. */
     public void rpRedirectUris(java.util.List<String> uris) {
         this.rpRedirectUris = java.util.List.copyOf(uris);
     }
 
-    /** Dev/test convenience: the generated jengu-cloud RP client secret. */
+    /** Dev: the client id the relying party authenticates as. */
+    public void rpClientId(String clientId) {
+        this.rpClientId = clientId;
+    }
+
+    /** Dev/test convenience: the generated relying-party client secret. */
     public String rpClientSecret(String tenantCode) {
         return rpSecrets.get(tenantCode);
     }

@@ -3,7 +3,7 @@ package cloud.jengu.dbo.fhir.common;
 import cloud.jengu.dbo.core.face.Coarsening;
 
 /**
- * The FHIR face's coarse forms for identifying elements (ADR 0056 §7).
+ * The FHIR face's coarse forms for identifying elements (§14 §7).
  *
  * <p>Version-neutral: R4 and R5 agree about what a {@code date} is, so both
  * personalities use this one.
