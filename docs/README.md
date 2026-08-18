@@ -31,6 +31,7 @@ docs conventions.
   status page**: closed slices, REQ coverage, next fronts
 - [plans/](plans/) — [Medplum migration](plans/medplum-migration.md)
 
-**§-numbering note:** the spec grew as one `concepts.md`; its section numbers
-(§1–§12) are preserved in the titles above, so cross-references like "(§7.4)"
-remain stable. §7.4 = the two-planes/hops decision in arc42-009.
+**§-numbering note:** the spec grew as one document; its section numbers
+(§1–§17) are preserved in the titles above, so cross-references like "(§7.4)"
+remain stable across the split. Every subsection a cross-reference names is a
+heading in its own right, so "(§7.4)" and "(§16.2)" are places you can jump to.
