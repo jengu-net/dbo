@@ -109,7 +109,7 @@ main:
 With this, all §7 spike questions are closed: DBOS adopt (§7.1), own
 routing layer with Cellar rejected (§7.2), HAPI personalities confirmed
 (§7.3), planes resolved (§7.4), search tiers evidence-based (§7.5),
-migration path set (§7.6).
+adoption path set (§7.6).
 
 ### 7.3 HAPI as personality dependency
 
@@ -136,9 +136,10 @@ version). What OSGi isolation actually buys is subtler and still real:
   The personality API toward dbo-core speaks payload bytes + typed envelope
   values + validation outcomes only.
 
-That boundary rule has a consequence to decide deliberately: the jengu
-platform's canon is "the typed HAPI R4 object *is* the domain model". In
-embedded mode the host's own HAPI and the personality's private HAPI are
+That boundary rule has a consequence to decide deliberately. A host
+platform whose own canon is "the typed HAPI object *is* the domain model"
+meets a wall in embedded mode: the host's HAPI and the personality's private
+HAPI are
 different classloaders even at the same version — so the host↔DBO surface
 is canonical JSON, not shared HAPI objects. Either we accept re-parse at
 that edge (cheap enough for dev/test; measure), or a personality may
@@ -250,9 +251,9 @@ per-tenant plane needs no workaround.
 
 Resolved by measuring
 instead of guessing: an inventory of all ~206 production FHIR search call
-sites across jengu-platform, lab and VA
+sites across a clinical cloud, a laboratory system and a visit assistant
 ([search-usage-inventory.md](../evidence/search-usage-inventory.md), 2026-08) shows
-jengu uses a narrow, conservative slice — token `identifier=` lookup
+a narrow, conservative slice in real use — token `identifier=` lookup
 dominates (~88 sites), nearly everything is `_count`-bounded and
 `-_lastUpdated`-sorted, and `_filter`/`_has`/composites/full-text have zero
 production usage.
@@ -292,29 +293,40 @@ clinical system is a safety issue, not a compatibility feature).
 first-class feature — the envelope's derived-projection design already
 supports it (register extraction rule → rebuild envelope → new index).
 
-**Migration notes** (feeds §7.6): Medplum-proprietary usages needing
-equivalents or retirement — `_project` (obsolete: tenancy is structural in
-DBO), `_compartment` (one Subscription criteria), `CodeSystem/$import`,
-`Project/$init`, `$expunge` (becomes erasure-by-drop, §7.4), `$meta-add`.
+**Adoption notes** (feeds §7.6): the server-proprietary usages an incoming
+deployment has to replace rather than port — a project search parameter
+(obsolete here: tenancy is structural), a compartment search parameter, bulk
+terminology import, project initialisation, and expunge (which becomes
+erasure-by-drop, §7.4).
 
-### 7.6 Migration path off Medplum — resolved
+### 7.6 Adoption path from an existing FHIR server — resolved
 
-Full inventory of every Medplum
-dependency dimension in
-[medplum-usage-inventory.md](../evidence/medplum-usage-inventory.md); the path itself in
-[medplum-migration.md](../plans/medplum-migration.md). Central finding: the hard
-coupling is not storage (search/CRUD/conditional writes sit inside DBO
-tier 1, behind a clean client seam) but **identity and tenancy expressed in
-Medplum's proprietary vocabulary** — Project-per-tenant, roles on
-`ProjectMembership`, credentials in `Project.setting[]`, and `Project.link[]`
-zone chains (no FHIR equivalent). Hence: identity-first, storage-second.
-Phases: (0) the already-planned Spring Authorization Server workstream
-extracts identity while still on Medplum; (1) DBO reaches tier-1 parity
-behind the per-tenant base-URL seam, starting with the embedded in-JVM
-store replacing the Medplum testcontainer in dev/test; (2) tenant-by-tenant
-greenfield flip (recreate from git; R4 NDJSON export→ingest only where
-clinical data must survive; R5/R6 via upgrade-on-read later); (3) edge
-drops Medplum+Redis, hosting DBO bundles in the edge JVM; (4) decommission.
-No dual-write, no live-sync, no compat layer beyond the FHIR surface jengu
-actually uses.
+A deployment already running on another FHIR server does not adopt DBO by
+flipping a base URL, and the reason is worth stating plainly: **the hard
+coupling is never storage**. Search, CRUD and conditional writes sit inside
+tier 1 behind a client seam that any deployment already has. The coupling is
+**identity and tenancy expressed in the incumbent's proprietary vocabulary** —
+a project resource standing in for a tenant, roles hung off a membership
+resource, credentials stored in a settings array, cross-tenant links with no
+FHIR equivalent. None of that ports; all of it has to be re-expressed.
 
+Hence the order: identity first, storage second.
+
+1. **Extract identity while still on the incumbent.** Whatever issues tokens
+   today stops being the incumbent's concern. In DBO the tenant is its own
+   authority (§13), so this step is what makes the rest a storage question.
+2. **Reach tier-1 parity behind the existing seam.** The embedded in-JVM
+   store replaces the incumbent's test container first — development and test
+   run on DBO long before production does, which is where the parity gaps
+   surface cheaply.
+3. **Flip tenant by tenant.** Configuration is recreated from its source of
+   truth rather than migrated. Clinical data that must survive moves as
+   NDJSON; everything derivable is re-derived. Version transitions come later
+   through upgrade-on-read, not during the move.
+4. **Move the edge.** An edge runtime hosting DBO bundles in its own JVM
+   drops both the incumbent server and its cache tier.
+5. **Decommission.**
+
+No dual-write, no live synchronisation, and no compatibility layer beyond the
+FHIR surface itself. A compatibility layer for a proprietary vocabulary would
+outlive the migration it was built for.

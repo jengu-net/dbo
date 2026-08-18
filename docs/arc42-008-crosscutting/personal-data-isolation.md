@@ -33,9 +33,10 @@ elements are indexes, and an index is a copy. Personal-classified elements
 either index vault-side or are rebuilt on shred — after erasure the person
 is unfindable, not merely unreadable.
 
-jengu already practices this shape by hand (the lab module never stores
-patient identity; the visit-assistant edge carries no PHI). §14 makes it
-the store's standard instead of each module's discipline.
+Production platforms already practice this shape by hand — a laboratory module
+that never stores patient identity, a clinical edge runtime that carries no
+patient data at all. §14 makes it the store's standard instead of each
+module's discipline.
 
 ## 14.3 Three keys, three holders
 

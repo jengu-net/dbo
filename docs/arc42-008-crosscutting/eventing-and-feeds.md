@@ -19,9 +19,9 @@ Shared content published by an upper-chain tenant (zone) is **streamed as
 read-only copies** into each dependent lower-chain tenant's own database.
 Canonical artifacts (CodeSystems, ConceptMaps, ValueSets, profiles…) are the
 motivating case, but **any resource type can be declared as a dependency** —
-the mechanism is type-generic; only the grain rules are type-specific. This is DBO's
-replacement for Medplum's `Project.link[]` — materialization-time instead of
-resolution-time — and it is forced by a hard fact: tenants live in different
+the mechanism is type-generic; only the grain rules are type-specific. Where other
+servers link tenants and resolve content across them at read time, DBO materialises
+the copy — and that choice is forced by a hard fact: tenants live in different
 databases, and **indexing must be local** (searches, `$expand`, validation all
 hit tenant-local envelope indexes; there are no cross-database joins).
 
@@ -42,7 +42,7 @@ hit tenant-local envelope indexes; there are no cross-database joins).
 - **The synchronizer converts at apply.** Sender and receiver need not run the
   same versions — neither the same **FHIR version** (a zone publishing R5
   content to an R4 tenant, or vice versa) nor the same **tenant object shape**
-  (jengu-style shape versioning, the stamp riding `meta.extension`). The
+  (shape versioning, with the stamp riding `meta.extension`). The
   stream carries objects in the sender's form; at apply, the receiver's
   converter chains — the same registered converters that power
   upgrade-on-read (§2) and version transitions — bring the copy into the
@@ -100,13 +100,14 @@ else is a choice of source and transport:
 | Outbox | commit sequence per tenant/domain | subscriptions, edge sync, §6 content streams, CDC |
 
 - **Cursors are keyset positions, never offsets.** Opaque to the consumer,
-  stable under concurrent writes — the duplicate-window problem that Medplum's
-  offset paging forced onto ~100 jengu call sites (dedupe on type+id,
-  defensive page cursors) is designed out, not worked around.
+  stable under concurrent writes. The duplicate-window problem that offset
+  paging forces onto its callers — dedupe on type and id, defensive page
+  cursors, roughly a hundred call sites of it in the measured platform — is
+  designed out rather than worked around.
 - **Pull and push are transports over the same cursor semantics.** Pull: the
   consumer requests the next chunk (HTTP paging). Push: the producer streams
   chunks over WS and the consumer's **ack carries the cursor** — which is
-  exactly the shape jengu's edge sync already converged on (ascending
+  exactly the shape production edge synchronisation already converged on (ascending
   `_lastUpdated` cursor, wipe gated on the push-confirmed cursor). A dropped
   connection resumes from the last acked cursor; at-least-once delivery +
   idempotent apply (identity + version) is the delivery contract.

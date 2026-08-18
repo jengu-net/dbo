@@ -116,7 +116,7 @@ deliberately have no REQs yet — they get them when scheduled.
 
 | REQ | Promise |
 |---|---|
-| REQ-DBO-SRCH-TIER1-PARITY | Every search feature jengu uses in production today works identically ([inventory](../evidence/search-usage-inventory.md)). (§7.5) |
+| REQ-DBO-SRCH-TIER1-PARITY | Every search feature a production healthcare platform actually issues works identically ([inventory](../evidence/search-usage-inventory.md)). (§7.5) |
 | REQ-DBO-SRCH-STRICT-BY-DEFAULT | An unsupported search parameter is rejected, never silently ignored. (§7.5) |
 | REQ-DBO-SRCH-HONEST-CAPABILITY | Each personality's CapabilityStatement is generated from what is actually implemented. (§7.5) |
 | REQ-DBO-SRCH-TYPED-ORDERING | Sorting and range filtering are typed — numeric, date and token semantics are correct, with matching indexes. (D3) |

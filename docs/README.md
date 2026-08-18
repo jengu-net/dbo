@@ -1,7 +1,6 @@
 # DBO documentation
 
-Structured per [arc42](https://arc42.org/), mirroring the jengu-platform
-docs conventions.
+Structured per [arc42](https://arc42.org/).
 
 - [arc42-001-introduction](arc42-001-introduction/README.md) — goals, quality
   goals, [founding requirements](arc42-001-introduction/founding-requirements.md)
@@ -16,7 +15,7 @@ docs conventions.
   [object model](arc42-008-crosscutting/object-model.md) (§2–§3),
   [eventing & feeds](arc42-008-crosscutting/eventing-and-feeds.md) (§6, §10),
   [process catalogue](arc42-008-crosscutting/process-catalogue.md) (§8),
-  [Medplum lessons](arc42-008-crosscutting/medplum-lessons.md) (§9),
+  [design rationale](arc42-008-crosscutting/design-rationale.md) (§9),
   [maintenance](arc42-008-crosscutting/maintenance.md) (§11),
   [identity rules](arc42-008-crosscutting/identity-rules.md) (§12),
   [tenant authority](arc42-008-crosscutting/tenant-authority.md) (§13),
@@ -26,10 +25,9 @@ docs conventions.
   [zone overlay](arc42-008-crosscutting/zone-overlay.md) (§17)
 - [arc42-009-architecture-decisions](arc42-009-architecture-decisions/README.md) —
   resolved questions & risks (§7)
-- [evidence/](evidence/) — usage inventories grounding the spec
+- [evidence/](evidence/) — the measured usage grounding the specification
 - [plans/implementation-status.md](plans/implementation-status.md) — **the living
   status page**: what is built, what proves it, what is only specified
-- [plans/](plans/) — [Medplum migration](plans/medplum-migration.md)
 
 **§-numbering note:** the spec grew as one document; its section numbers
 (§1–§17) are preserved in the titles above, so cross-references like "(§7.4)"

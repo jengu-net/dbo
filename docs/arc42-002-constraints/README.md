@@ -11,6 +11,7 @@
 - **Kubernetes** is responsible only for running parallel instances and the
   security layer (network policy, secrets, the provisioning operator);
   tenant-aware routing happens at the application level. (R7)
-- **FHIR and published standards over invention** at every external surface;
-  proprietary mechanics (Medplum-style `Project.link[]`, `$import`) are
-  explicitly not reproduced.
+- **FHIR and published standards over invention** at every external surface.
+  Where an existing server solved a problem with a proprietary resource field
+  or operation, DBO solves it with a standard mechanism or declares it out of
+  scope — it does not reproduce another product's vocabulary.

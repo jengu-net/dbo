@@ -4,8 +4,8 @@ DBO provides its maintenance functions as one mechanism, not four: **backup is
 a scheduled export; restore is an import.** There is no separate backup
 format to maintain, verify or bit-rot — the thing you archive is the thing
 you can load, and every backup is implicitly restore-tested by the import
-path being in daily use (tenant moves, dev seeding, the Medplum exit ingest
-is this same importer).
+path being in daily use — tenant moves, development seeding and adoption
+ingest are all this same importer.
 
 An export bundle contains **two elements, each on demand**:
 
@@ -31,7 +31,7 @@ rest in archives. Envelope encryption: DBO encrypts with a data key, the data
 key is wrapped with the owner's master key; restore therefore *requires* the
 owner's participation — a backup can never quietly become a platform-readable
 copy of a tenant, and a stolen archive is ciphertext. (Key custody follows
-the platform's veto/co-ownership direction — ADR 0016 in jengu; recovery
+the veto/co-ownership direction; recovery
 options like key escrow with co-owner quorum are the tenant owner's choice,
 not the platform's.)
 
