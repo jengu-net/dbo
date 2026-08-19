@@ -430,6 +430,28 @@ whitespace, fixing element order — without an engine module learning what a fo
 decimal precision as significant, so a generic canonicaliser folding `1.0` into `1` would
 be quietly wrong about a lab value. No engine can know that. The face does.
 
+**One function, not a family.** The temptation is to give the face a hash per question,
+so it is worth writing down which questions exist and what already answers them.
+
+| Question | What answers it | Whose |
+|---|---|---|
+| have these bytes been altered since I stored or attested them? | exact digest over those bytes | the engine's — normalising anything blinds it |
+| is this write actually a change? | canonical hash, ancestor slots excluded | **the face's** — the one function it provides |
+| which object is this? | the envelope's extracted identifiers | already the engine's, and better: an index answers ranges, a hash only equality |
+| would a reader see any difference? | `versionId` | already the engine's, and cheaper: a counter is ordered, a hash is not |
+
+Two of those are hashes worth refusing. Both would shadow a mechanism that is already
+better at the question, and both would need maintaining in step with it.
+
+**The axis that is real is which form, not which question.** A hash over a stored payload
+and a hash over a revealed one are different values, because personal-data isolation means
+the stored form carries ciphertext. And a hash over revealed content **is identifying
+data**: persist or expose one and it becomes a correlation vector, the same person in two
+tenants producing the same value, which is what §14 exists to prevent. A digest is not
+anonymisation. The vault already holds an HMAC identifier index rather than a digest for
+exactly this reason, so the rule has precedent rather than needing one: anything hashing
+revealed content is keyed with the tenant's own key, or it does not exist.
+
 **And it is computed for a comparison, never stored.** Both sides of a comparison are
 hashed under whatever rule is current, so improving the rule is always safe. Persist one
 — as a dedup key, an idempotency record — and improving the rule changes the answer for
