@@ -294,14 +294,41 @@ them.
 public interface PayloadFraming {
     record Member(String typeName, byte[] payload, MemberFacts facts) {}
 
-    byte[] frame(String frameType, List<Member> members);   // searchset, history, export
-    List<Member> unframe(byte[] document);                  // transaction, batch, import
+    Frame open(String frameType, OutputStream out);        // searchset, history, export
+
+    interface Frame extends AutoCloseable {
+        void member(Member member);                        // payload passes through untouched
+        @Override void close();                            // closes the document
+    }
+
+    void unframe(InputStream document, MemberSink sink);   // transaction, batch, import
 }
 ```
 
 `frameType` is the face's word for what kind of document this is; `MemberFacts` is what
 the engine knows about a member and the face says in its own vocabulary — which is the
 ancestor-rendering obligation above, not a second one.
+
+**The engine drives, the face spells.** Taking a list and returning a document would hold
+a whole page in memory, which contradicts the reason a set is streamed at all. Handing
+the face a lazy sequence instead would be worse: a lazy sequence over a search is an open
+cursor inside a transaction, so a face that pulls decides how long that transaction lives
+and what becomes of it when the face throws halfway down a page. That is a face acting
+rather than translating, and the rule that the engine never re-enters itself through one
+exists to prevent exactly that. So the engine reads a row, converts it, applies whatever
+the membrane owes it, hands over one member and forgets it. Memory is one member, not one
+page.
+
+That also puts enrichment where it has to be. Decrypting an identifying element reads the
+vault, and a face must not — so the membrane sits in the engine's loop, between the
+converter and the frame, and the face is handed a member that is already what a reader
+should see.
+
+**Converters stay per object for the same reason.** A converter is a pure function from
+one payload to one payload, which is what lets it compose into this loop, be tested on a
+single object, and be reordered. A stream-to-stream converter would add nothing the loop
+does not already give and would invite an implementation that carries state between
+items, or worse, one that drives the cursor.
 
 Byte-exact members are the point rather than an optimisation. This store's posture is
 that a payload is truth, and re-rendering a resource to put it in a page would make the
