@@ -62,7 +62,13 @@ each item is a way the two containers differ.
 - **The bundle set is one list.** It lives in the root build as
   `dboRuntimeModules`; the serving distribution and the console both generate
   from it. Two hand-maintained copies would drift, and the drift would appear
-  as "works in the console, dies on first use in the distribution".
+  as "works in the console, dies on first use in the distribution". The watch
+  set is not a second list either: `dbo:watch`, the first `dbo:` command,
+  derives it from the bundles the container has installed and drops the ones
+  whose embedded stack is too heavy to re-read on every publish. Measured
+  weight rather than a name list, because the names would drift the same way —
+  and because embedding a small private jar is no reason to stop watching a
+  module that changes daily.
 - **The framework floors differ, and it bites immediately.** Felix computes the
   system bundle's exports from the running JDK's modules and so exports
   `com.sun.net.httpserver` for free; Karaf names its extra packages explicitly

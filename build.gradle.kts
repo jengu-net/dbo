@@ -65,6 +65,11 @@ val dboLoggingExtension =
 // turns a four-second republish into a minute.
 val dboDevMode = (findProperty("dbo.dev") as String?) == "true"
 
+// The console's Karaf, named once: the assembly unpacks this version and the
+// command bundle compiles against its shell API.
+val dboKarafVersion = (findProperty("dbo.karaf.version") as String?) ?: "4.4.11"
+
+extra["dboKarafVersion"] = dboKarafVersion
 extra["dboRuntimeModules"] = dboRuntimeModules
 extra["dboRuntimeExternalBundles"] = dboRuntimeExternalBundles
 extra["dboLoggingBundles"] = dboLoggingBundles
@@ -88,7 +93,7 @@ subprojects {
         ":core:harness", ":core:dbo-server", ":core:conformance", ":bench:runner",
         // the development console: a stock Karaf pointed at the bundle set,
         // not an artifact anyone consumes
-        ":karaf")
+        ":karaf", ":karaf:commands")
     if (project.path !in notALibrary) {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")
