@@ -516,9 +516,18 @@ public final class R4Personality {
                 // resource; but the guard exists because FHIR's own `code`
                 // pattern backtracks badly, so ignoring it would wave through
                 // exactly what it defends against. Asking again is the only
-                // answer that is not a guess — and if it times out twice,
-                // something is wrong beyond a busy moment and it is reported.
+                // answer that is not a guess.
                 issues = issuesFrom(validator().validateWithResult(resource));
+            }
+            // Twice is not a busy moment, and it is still not a finding. The
+            // machine could not answer, so it says that instead of calling the
+            // resource invalid — a caller who retries succeeds, and nobody
+            // spends an afternoon on a data-quality report about a regex.
+            if (issues.stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
+                throw new cloud.jengu.dbo.fhir.common.ValidationUnavailableException(
+                        resource.fhirType(),
+                        issues.stream().filter(i -> i.contains(REGEX_TIMED_OUT))
+                                .findFirst().orElse(REGEX_TIMED_OUT));
             }
             return issues;
         });
