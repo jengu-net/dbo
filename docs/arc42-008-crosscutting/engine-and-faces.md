@@ -130,6 +130,7 @@ place, it says so.
 | **ancestor rendering** | the engine's own facts, said in the domain's words — id, version, when, where from, under what shape, under what handling | `core.face.PortableRendering` for export and `toResourceJson` for serving: **two implementations of one body**, saying two of the six facts |
 | **envelope extraction** | identifiers, references, indexable paths | a lambda on `TypeRegistration` |
 | **payload codec** | parse and render the wire format | inside the personality |
+| **document equivalence** | what counts as the same object, so a re-import can skip one | **misplaced** — `Names.flatten` in `dbo-maintenance`, an engine module deciding it with a newline replacement |
 | **query compilation** | the domain's query language to engine criteria | inside the personality |
 | **audit rendering** | engine facts as the domain's audit resource | **misplaced** — `FhirAuditProjection` hand-builds AuditEvent JSON inside `dbo-policy`, an engine module |
 | **attestation rendering** | an archive's root and signatures as a domain resource | **outside the contract** — `ArchiveProvenance`, a loose static in `dbo-fhir-common` (#34) |
@@ -417,6 +418,24 @@ differences do not matter, and it is the face that provides it. FHIR fixes eleme
 and drops whitespace for exactly this, because signatures needed it, so there is a
 published rule to implement rather than a convention to invent. One name doing both jobs
 would be the mistake — a semantic hash cannot detect tampering it is designed to ignore.
+
+That second one is not hypothetical and it is not new: `Names.flatten` in `dbo-maintenance`
+replaces carriage returns and newlines with spaces, and comparing that is how a re-import
+into the same tenant decides an object is unchanged. So the engine already defines what
+counts as the same document, with the crudest rule there is, in a module that should not
+be deciding it. It moves to the face, where a rule can improve — dropping insignificant
+whitespace, fixing element order — without an engine module learning what a format is.
+
+**Why it is genuinely the face's**, in one example rather than a principle: FHIR treats
+decimal precision as significant, so a generic canonicaliser folding `1.0` into `1` would
+be quietly wrong about a lab value. No engine can know that. The face does.
+
+**And it is computed for a comparison, never stored.** Both sides of a comparison are
+hashed under whatever rule is current, so improving the rule is always safe. Persist one
+— as a dedup key, an idempotency record — and improving the rule changes the answer for
+objects already stored, with every stored key becoming incomparable and nothing raising
+its voice. If it ever must be persisted it carries the rule's version beside it, the way
+a payload carries `payload_version`.
 
 Worth knowing before anyone calls it free: normalising order means a canonical hash
 cannot stream purely, because keys are buffered per object level and sorted before
