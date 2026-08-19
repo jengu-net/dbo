@@ -69,20 +69,22 @@ val logServiceApi = "org.apache.felix:org.apache.felix.log:1.3.0"
 // [2.0,3) and wire to the product's slf4j; pax-url wires to 1.7 and finds no
 // 1.7-era binding, which makes its logging silent rather than wrong. Two API
 // bundles, one binding, and nothing of the product's arrangement changed.
-val legacySlf4jApi = "org.slf4j:slf4j-api:1.7.36"
-
-// The 1.7 API declares a MANDATORY import of org.slf4j.impl — that generation
-// bound by classpath convention rather than by ServiceLoader — so it does not
-// resolve without a binding at all. The no-op one is the right binding here:
-// pax-url's logging should be silent, not wrong, and nothing else is meant to
-// wire to 1.7.
-val legacySlf4jBinding = "org.slf4j:slf4j-nop:1.7.36"
-
+// pax-url-aether is the mvn: URL handler bundle:watch reads through, so Karaf
+// cannot stand up without it and the console's loop rests on it. It is built
+// against slf4j 1.7 and imports org.slf4j.spi;[1.7,2.0), which slf4j-api 2.0.18
+// exports at 2.0.18 — the gap pax-logging papers over by exporting both
+// generations at once.
+//
+// Supplying the real 1.7 API beside the 2.x one does NOT work: pax-url then
+// took org.slf4j from 2.0.18 and org.slf4j.impl from the 1.7 binding and died
+// with a loader constraint violation on ILoggerFactory, two class spaces inside
+// one bundle's wiring. The fragment re-exports the host's OWN classes at 1.7
+// versions instead — one class space, both ranges satisfied.
+val slf4jCompatFragment = ":karaf:slf4j-compat"
 val karafDist: Configuration by configurations.creating
 val dboLoggingBundles: Configuration by configurations.creating
-// Its own configuration, because Gradle resolves two versions of one module to
-// the highest and would quietly drop the 1.7 API — the one bundle here whose
-// whole purpose is being the older generation.
+// The compat fragment, kept in its own configuration so its coordinates are
+// found beside the resolved ones.
 val dboLegacySlf4j: Configuration by configurations.creating
 
 @Suppress("UNCHECKED_CAST")
@@ -91,9 +93,7 @@ val loggingGavs = (rootProject.extra["dboLoggingBundles"] as List<String>) + spi
 dependencies {
     karafDist("org.apache.karaf:apache-karaf:$karafVersion@tar.gz")
     loggingGavs.forEach { dboLoggingBundles(it) { isTransitive = false } }
-    listOf(legacySlf4jApi, legacySlf4jBinding).forEach {
-        dboLegacySlf4j(it) { isTransitive = false }
-    }
+    dboLegacySlf4j(project(slf4jCompatFragment)) { isTransitive = false }
     @Suppress("UNCHECKED_CAST")
     (rootProject.extra["dboLoggingModules"] as List<String>).forEach {
         dboLoggingBundles(project(it)) { isTransitive = false }
@@ -180,7 +180,7 @@ val karafHome = tasks.register<Sync>("karafHome") {
 val console = tasks.register("console") {
     group = "development"
     description = "Assembles the Karaf development console into build/dbo-console."
-    dependsOn(karafHome, ":karaf:commands:jar")
+    dependsOn(karafHome, ":karaf:commands:jar", ":karaf:slf4j-compat:jar")
 
     val local = file("dev/local.properties")
     val example = file("dev/local.properties.example")
@@ -331,10 +331,12 @@ fun installDboLogging(home: File) {
     // Startup bundles resolve from Karaf's own system/ repository, laid out
     // the Maven way, so each jar has to land at its coordinate's path.
     val available = dboLoggingBundles.files + dboLegacySlf4j.files
-    ((loggingGavs + legacySlf4jApi + legacySlf4jBinding).map {
+    (loggingGavs.map {
         val (group, artifact, version) = it.split(":")
         Triple(group, artifact, version)
-    } + listOf(Triple("cloud.jengu.dbo", "dbo-logging", projectVersion))).forEach { (group, artifact, version) ->
+    } + listOf(
+        Triple("cloud.jengu.dbo", "dbo-logging", projectVersion),
+        Triple("cloud.jengu.dbo", "dbo-slf4j-compat", projectVersion))).forEach { (group, artifact, version) ->
         val fileName = "$artifact-$version.jar"
         val jar = available.firstOrNull { it.name == fileName }
             ?: throw GradleException("$fileName is not in the logging configuration")
@@ -367,10 +369,18 @@ fun installDboLogging(home: File) {
     xml = paxImpl.replaceFirst(xml, "")
     features.writeText(xml)
 
-    // Karaf's log commands are pax-logging's.
+    // Two boot features have to go. `log` is Karaf's own log commands, which are
+    // pax-logging's and have nothing to bind to once it is gone. `wrap` is the
+    // wrap: URL handler, which a development console never uses and which drags
+    // pax-logging-api back in as a dependency — it wants the 1.7-era packages
+    // too, and the resolver reaches for the bundle that exports both
+    // generations. Left in, it undoes the whole substitution: Karaf boots,
+    // pax-logging is Active again, and slf4j reports no provider.
     val featuresCfg = home.resolve("etc/org.apache.karaf.features.cfg")
     featuresCfg.writeText(
-        featuresCfg.readText().replace("    log/$karafVersion, \\\n", "")
+        featuresCfg.readText()
+            .replace("    log/$karafVersion, \\\n", "")
+            .replace("    wrap/2.7.1, \\\n", "")
     )
 
     logger.lifecycle("dbo: logging posture = dbo (the distribution's binding; "

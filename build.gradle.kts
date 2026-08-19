@@ -93,7 +93,7 @@ subprojects {
         ":core:harness", ":core:dbo-server", ":core:conformance", ":bench:runner",
         // the development console: a stock Karaf pointed at the bundle set,
         // not an artifact anyone consumes
-        ":karaf", ":karaf:commands")
+        ":karaf", ":karaf:commands", ":karaf:slf4j-compat")
     if (project.path !in notALibrary) {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")
