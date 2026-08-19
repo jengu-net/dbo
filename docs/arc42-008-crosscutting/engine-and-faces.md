@@ -453,6 +453,33 @@ whitespace, fixing element order — without an engine module learning what a fo
 decimal precision as significant, so a generic canonicaliser folding `1.0` into `1` would
 be quietly wrong about a lab value. No engine can know that. The face does.
 
+**Normalising FHIR needs the schema, which is why the tool matters.** Element order is
+defined by a StructureDefinition, decimal precision is significant — `1.0` is not `1` for
+a lab value — and a primitive extension pairs `x` with `_x` and must move with it. No
+general-purpose JSON library knows any of that. One can normalise *JSON* and, doing so,
+quietly claim to have normalised FHIR: reorder what the specification ordered, fold a
+precision that carried meaning, separate a primitive from its extension. That is exactly
+the silent loss the round-trip condition above exists to catch, and it is why the
+normaliser has to come from something that reads the definitions.
+
+HL7's own **element model** (`org.hl7.fhir.rX.elementmodel`) is that something: it parses
+against StructureDefinitions rather than against a hand-written grammar, so it knows what
+a version defines rather than what a document happens to contain. It is also free of any
+server framework's shape, which makes it a second and independent argument for the
+direction in §7.7 — the model behind a face coming from the reference implementation
+rather than from a wrapper over it.
+
+Not the generic JSON utilities from the same project. `org.hl7.fhir.utilities.json` is a
+capable general parser and model — it even preserves comments — but it has no FHIR
+knowledge and no canonical mode, so it can normalise a document's syntax and nothing
+about its meaning. Reaching for it because it carries the right organisation's name would
+be the mistake this paragraph exists to prevent.
+
+Practical note for whoever builds it: the shared stack exports `org.hl7.fhir.r4b.elementmodel`
+and `org.hl7.fhir.r5.elementmodel` but **not** `org.hl7.fhir.r4.elementmodel`, whose classes
+are embedded and unexported. An R4 normaliser needs that export added, which is a change to
+a fat bundle's manifest and so a change the container test is the judge of.
+
 **One function, not a family.** The temptation is to give the face a hash per question,
 so it is worth writing down which questions exist and what already answers them.
 
