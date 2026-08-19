@@ -139,6 +139,14 @@ public final class FhirHttpServer implements AutoCloseable {
             respond(exchange, 400, store.operationOutcome("invalid", e.getMessage()));
         } catch (ValidationFailedException e) {
             respond(exchange, 422, store.operationOutcome("invalid", String.join("; ", e.issues())));
+        } catch (cloud.jengu.dbo.fhir.common.ValidationUnavailableException e) {
+            // 503, not 422. The resource was never found invalid — validation
+            // could not reach a verdict, and answering "invalid" would tell a
+            // caller their good resource is malformed, intermittently, with a
+            // regular expression as the diagnosis. Retry-After because the
+            // retry is the caller's and it will work.
+            exchange.getResponseHeaders().set("Retry-After", "1");
+            respond(exchange, 503, store.operationOutcome("timeout", e.getMessage()));
         } catch (VersionConflictException e) {
             respond(exchange, 412, store.operationOutcome("conflict", e.getMessage()));
         } catch (IdentityConflictException e) {

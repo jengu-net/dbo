@@ -503,6 +503,16 @@ public final class R5Personality {
                 // again is the only answer that is not a guess.
                 issues = issuesFrom(validator().validateWithResult(resource));
             }
+            // Twice is not a busy moment, and it is still not a finding. The
+            // machine could not answer, so it says that instead of calling the
+            // resource invalid — a caller who retries succeeds, and nobody
+            // spends an afternoon on a data-quality report about a regex.
+            if (issues.stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
+                throw new cloud.jengu.dbo.fhir.common.ValidationUnavailableException(
+                        resource.fhirType(),
+                        issues.stream().filter(i -> i.contains(REGEX_TIMED_OUT))
+                                .findFirst().orElse(REGEX_TIMED_OUT));
+            }
             return issues;
         });
     }
