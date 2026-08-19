@@ -29,6 +29,12 @@ dependencies {
     embedded("ca.uhn.hapi.fhir:hapi-fhir-validation:8.10.1")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-structures-r4:8.10.1")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-caching-caffeine:8.10.1")
+    // Needed by the HL7 engine and declared by nobody who reaches this graph:
+    // the worker context builds a terminology cache on construction, and that
+    // cache is a commons-collections4 map. Absent, it is a NoClassDefFoundError
+    // the first time a context is built — which the HAPI-typed paths never do,
+    // so it hid until a face read definitions from a package.
+    embedded("org.apache.commons:commons-collections4:4.4")
     // slf4j-api is SHARED, not embedded: one binding for the whole
     // runtime instead of a private one per bundle. compileOnly because
     // it resolves from the slf4j-api bundle at runtime.
