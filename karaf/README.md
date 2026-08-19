@@ -64,6 +64,46 @@ refreshing it cascades through the whole set.
 The console's own commands live in `deploy/`, which Karaf re-deploys on change
 — so developing a command has the same loop as developing a bundle.
 
+## Seeing what a tenant is
+
+```
+dbo-tenant:list
+dbo-tenant:capabilities dev
+```
+
+`dbo-tenant:list` reads the service registry, so it answers "what is serving",
+not "what was declared" — a spec that failed to come up is absent here, and the
+log is where that belongs.
+
+`dbo-tenant:capabilities` flattens the tenant's CapabilityStatement into one
+row per fact: a category, a path, a value.
+
+```
+TYPE   | NAME                          | VALUE
+server | fhirVersion                   | 4.0.1
+server | security.description          | Bearer JWT from this tenant's own authority (/oidc); ...
+entity | Patient.conditionalCreate     | true
+entity | Observation.conditionalCreate | false
+entity | Patient.searchParam           | 30 (token 12, string 9, date 4, reference 3, uri 2)
+```
+
+Those two `conditionalCreate` rows are the point of the command: nothing
+configures them. They fall out of the spec declaring Patient by identifier and
+Observation as store-assigned, and a store-assigned id has nothing to key a
+conditional write on. The table is where a declaration in a spec file becomes
+visible as a promise to clients.
+
+`--search-params` lists parameters one per row instead of counting them by
+kind. Karaf wants options before the argument, so it is
+`dbo-tenant:capabilities --search-params dev`.
+
+It reads the tenant's own `/metadata` rather than the store facade. The facade
+can render a statement too, but its single-argument form is the one that does
+not know which operations were actually registered, and the security block is
+added at the serving edge — so the registry would report less than the tenant
+actually promises. `/metadata` is the one path the guard exempts, so this needs
+no token.
+
 ## Worth knowing
 
 **Tenants are live.** The spec directory is reconciled every two seconds, so a
