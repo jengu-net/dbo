@@ -16,7 +16,9 @@ import cloud.jengu.dbo.core.api.DateKeys;
 import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.EnvelopeExtractor;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
+import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.Identifier;
+import cloud.jengu.dbo.core.api.IdentityClass;
 import cloud.jengu.dbo.core.api.IndexSpec;
 import cloud.jengu.dbo.core.api.TypeRegistration;
 import cloud.jengu.dbo.core.api.ValueKind;
@@ -55,6 +57,19 @@ import java.util.function.Supplier;
 public final class R4Personality {
 
     public static final String DOMAIN = "r4";
+
+    /**
+     * The engine-level search dimensions this personality accepts, beyond the
+     * type's own parameters. Read by the search compiler and the capability
+     * statement alike (#52).
+     */
+    static final java.util.Map<String, String> META_SEARCH_PARAMS =
+            new java.util.LinkedHashMap<>(java.util.Map.of(
+                    "_tag", "token", "_profile", "uri",
+                    "_lastUpdated", "date", "_id", "token"));
+
+    /** The only wire format this personality renders — and so the only one declared. */
+    static final String RENDERED_FORMAT = "application/fhir+json";
 
     /** The payload schema version this personality writes. */
     public static final String PAYLOAD_VERSION = "4.0";
@@ -750,18 +765,55 @@ public final class R4Personality {
             cs.setDate(new java.util.Date());
             cs.setFhirVersion(org.hl7.fhir.r4.model.Enumerations.FHIRVersion
                     .fromCode(ctx().getVersion().getVersion().getFhirVersionString()));
-            cs.addFormat("application/fhir+json");
+            cs.addFormat(RENDERED_FORMAT); // what it renders, not a wish
             var rest = cs.addRest();
             rest.setMode(org.hl7.fhir.r4.model.CapabilityStatement.RestfulCapabilityMode.SERVER);
             for (String typeName : types.keySet()) {
                 var resource = rest.addResource();
                 resource.setType(typeName);
-                for (var interaction : java.util.List.of("read", "create", "update", "delete",
-                        "search-type", "history-instance")) {
+                // #52: derived from what the type DECLARES, not a list applied to
+                // every type. The engine already refuses a tenant write to a
+                // replicated type and any change to an append-only one; a
+                // statement announcing create for those told a client something
+                // the store answers with 403.
+                FhirTypeConfig config = types.get(typeName);
+                Handling handling = config.handling();
+                boolean writable = handling.isWritableBy(Handling.Authority.TENANT_USERS);
+                boolean mayChange = handling.mutability() == Handling.Mutability.FULL
+                        || handling.mutability() == Handling.Mutability.REPLACE_IN_PLACE;
+                boolean keepsHistory = handling.durability() == Handling.Durability.VERSIONED;
+
+                java.util.List<String> interactions = new ArrayList<>(
+                        java.util.List.of("read", "search-type"));
+                if (writable) {
+                    interactions.add("create");
+                    if (mayChange) {
+                        interactions.add("update");
+                        interactions.add("delete");
+                    }
+                }
+                if (keepsHistory) {
+                    interactions.add("history-instance");
+                    interactions.add("vread");
+                }
+                for (var interaction : interactions) {
                     resource.addInteraction().setCode(
                             org.hl7.fhir.r4.model.CapabilityStatement.TypeRestfulInteraction
                                     .fromCode(interaction));
                 }
+
+                // A conditional write must be keyed on the type's own identity
+                // (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS), so a store-assigned
+                // id has nothing to key on and the store refuses one.
+                resource.setConditionalCreate(
+                        writable && config.identityClass() != IdentityClass.INTERNAL);
+
+                // History is the durability declaration, said in FHIR's words.
+                // Not VERSIONED_UPDATE: If-Match is honoured, never required.
+                resource.setVersioning(keepsHistory
+                        ? org.hl7.fhir.r4.model.CapabilityStatement.ResourceVersionPolicy.VERSIONED
+                        : org.hl7.fhir.r4.model.CapabilityStatement.ResourceVersionPolicy.NOVERSION);
+                resource.setReadHistory(keepsHistory);
                 for (RuntimeSearchParam sp : searchParams(typeName)) {
                     var supported = switch (sp.getParamType()) {
                         case TOKEN, STRING, DATE, NUMBER, REFERENCE, URI -> true;
@@ -773,8 +825,12 @@ public final class R4Personality {
                                         .fromCode(sp.getParamType().getCode()));
                     }
                 }
-                resource.addSearchParam().setName("_tag").setType(
-                        org.hl7.fhir.r4.model.Enumerations.SearchParamType.TOKEN);
+                // One list, checked against the compiler by CapabilityHonestyIT —
+                // these used to be written out here, in the extractor and in the
+                // search switch, so a fifth would have updated two of three.
+                META_SEARCH_PARAMS.forEach((name, kind) ->
+                        resource.addSearchParam().setName(name).setType(
+                                org.hl7.fhir.r4.model.Enumerations.SearchParamType.fromCode(kind)));
                 resource.addSearchParam().setName("_profile").setType(
                         org.hl7.fhir.r4.model.Enumerations.SearchParamType.URI);
                 resource.addSearchParam().setName("_lastUpdated").setType(
