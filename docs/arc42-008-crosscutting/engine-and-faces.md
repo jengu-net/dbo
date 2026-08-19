@@ -36,6 +36,41 @@ A face declares what it provides. A face with no terminology provides nothing fo
 rather than stubbing it — a stub is a lie the engine cannot tell apart from a broken
 implementation.
 
+## Three sets, not one
+
+An obligation belongs to one of three groups, and which group it is in decides how it
+is provided and when its absence is an error.
+
+**1. What the domain version defines.** Ancestors, resource shapes, search
+parameters, parse and render. FHIR versions these itself, so one face per version is
+not an implementation choice — it is the shape of the thing. `FhirFace.of("r4")` being
+a constant is correct here, and would be wrong for anything else.
+
+**2. What this store adds.** Declared handling, the native terminology form, custody,
+identity claims, the shred ledger. FHIR has no version of these because FHIR does not
+have them. Some fit an ancestor slot (handling → `Meta.security`, sync origin →
+`Meta.source`, the shape stamp → `Meta.profile`); the rest need **a resource of their
+own** — `AuditEvent`, `Provenance`, `Task` — which is why three obligations in the
+table are the same shape. Every new engine concept lands in this group, so it is the
+one that keeps growing.
+
+**3. What this tenant requires.** A tenant uses a subset, and its spec already says
+which: `fhirVersion`, `types`, `pdi`, `policies`, `dependencies`. PDI implies
+coarsening; terminology types imply a grain codec; policies imply audit rendering; a
+dependency implies both ends of a stream.
+
+That third set is what makes a refusal safe. A face cannot be required to provide
+everything — a tenant with no terminology needs no grain codec, and a face without one
+is legitimately incomplete rather than broken. **Absence is only an error against a
+requirement**, which is exactly why a face declares what it provides rather than
+stubbing what it does not.
+
+It is also the missing consumer. `DeclaredFace` exists and nothing in production looks
+anything up through it, because the check that would is unwritten: **reconciling a
+tenant's requirements against its face's offer at bring-up**. Until that exists, a
+tenant whose spec needs something its face lacks comes up fine and fails at first use,
+two frames from the cause.
+
 ## The obligations, as they actually are
 
 This table is the current state, not the target. Where something sits in the wrong
@@ -126,26 +161,30 @@ hands the rest straight back.
 ## The limit this contract has today
 
 `DeclaredFace` lookup is **version-scoped and stateless**: `FhirFace.of("r4")` is a
-constant, one face per version, capabilities looked up by type.
+constant, one face per version, capabilities looked up by type. That fits set 1
+exactly and set 2 not at all — a grain codec reads and writes one *tenant's* native
+form, and so does audit rendering. Two tenants of the same version need different
+instances, so those are passed as arguments instead of being declared.
 
-Several obligations are not like that. A grain codec reads and writes **one tenant's**
-native form; so does audit rendering; so does portable rendering. Two tenants of the
-same version need different instances, so those are passed as arguments instead of
-being declared — which means the contract cannot currently express a third of its own
-table.
+So the contract cannot express the half of its own table that this store adds, which
+is also the half that keeps growing.
 
-The obligations split cleanly in two, and the split is worth seeing before choosing:
+The way out follows from the three sets rather than from taste. **A face per version
+stays right for what the version defines**; what the store adds needs a per-tenant
+layer, because that is what it is. Collapsing both into one per-tenant face would
+multiply objects that genuinely are per version; adding a scope to the lookup names a
+division the code already has, badly.
 
-- **Stateless renderings** — coarsening, ancestor rendering, attestation rendering,
-  run rendering, catalogue projection. Declarable today, exactly as coarsening
-  already is.
-- **Store-holding obligations** — grain codec, audit rendering, identity projection.
-  Not expressible.
+**And the first thing to build is the caller, not the mechanism.** The reconciliation
+above — a tenant's spec against its face's offer, at bring-up — is what a scoped
+lookup is *for*: it is the one place that knows both what this tenant requires and
+what its face provides, so it is where the two scopes have to be asked for
+differently. Extending the lookup without it would be widening a road nobody drives
+on; writing it makes the scope question answer itself.
 
-Either a face becomes per tenant, or the lookup distinguishes the two scopes. The
-first keeps the contract uniform and makes `FhirFace.of` no longer a constant; the
-second keeps the constant and adds a scope to the lookup. That decision is #38's, and
-nothing else in the table should move before it.
+The payoff is the reason this contract was named in the first place: the day somebody
+writes a face for a domain that is not healthcare, the engine tells them what they owe
+**before anything serves a request**, instead of after.
 
 ## Why this matters beyond tidiness
 
