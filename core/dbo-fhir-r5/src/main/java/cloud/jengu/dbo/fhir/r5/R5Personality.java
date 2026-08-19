@@ -125,8 +125,7 @@ public final class R5Personality {
     }
 
     private Envelope extract(String typeName, byte[] payload) {
-        IBaseResource resource = ctx().newJsonParser()
-                .parseResource(new String(payload, StandardCharsets.UTF_8));
+        IBaseResource resource = document(typeName, payload);
         Envelope e = new Envelope();
         IFhirPath fhirPath = ctx().newFhirPath();
 
@@ -848,6 +847,15 @@ public final class R5Personality {
      */
     private IBaseResource parse(String resourceJson) {
         return R5Version.parse(resourceJson);
+    }
+
+    /**
+     * The document behind a payload, asked of the face rather than parsed here,
+     * so that a payload the write path has already read is read once
+     * (REQ-DBO-VER-ONE-READ-PER-REQUEST).
+     */
+    private IBaseResource document(String typeName, byte[] payload) {
+        return R5Version.document(typeName, payload);
     }
 
     /** The canonical url of a canonical resource JSON. */

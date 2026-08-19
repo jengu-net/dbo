@@ -82,27 +82,39 @@ public final class R5Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
 
     @Override
     public PutResult create(String resourceJson) {
-        String type = checked(resourceJson).type();
-        return store.put(PutRequest.create(type, resourceJson.getBytes(StandardCharsets.UTF_8)));
+        Read accepted = checked(resourceJson);
+        return store.put(PutRequest.create(accepted.type(), accepted.payload()));
     }
     /**
      * The type and the verdict from one read (REQ-DBO-VER-ONE-READ-PER-REQUEST).
      *
      * <p>Asking the personality for the type and then for the verdict read the
-     * same bytes twice, and the engine's envelope extraction reads them a third
-     * time. This closes the first two: the face reads once and is asked both
-     * questions about the document it produced.
+     * same bytes twice, and the engine's envelope extraction read them a third
+     * time. All three are this one: the face reads once and is asked both
+     * questions about the document it produced, and the engine — which is
+     * handed bytes, because the extractor is the engine's and knows no
+     * document — asks the same face about the same array and is given the
+     * document it already has.
      *
      * <p>Generic so the document stays the face's own — the store holds a
      * {@code Payloads<?>} and never names what came back.
      */
     private static <D> Read read(cloud.jengu.dbo.core.face.Payloads<D> payloads, String json) {
-        D document = payloads.read(null, json.getBytes(StandardCharsets.UTF_8));
+        byte[] payload = json.getBytes(StandardCharsets.UTF_8);
+        D document = payloads.read(null, payload);
         String type = payloads.typeOf(document);
-        return new Read(type, payloads.validate(type, document));
+        return new Read(type, payload, payloads.validate(type, document));
     }
 
-    private record Read(String type, java.util.List<String> issues) {}
+    /**
+     * What one read of a body says about it, and the bytes it was read from.
+     *
+     * <p>The array is carried rather than made again at the write, because it
+     * is what lets the engine's envelope extraction be this same read: the face
+     * hands back the document it holds for exactly these bytes. Encoding the
+     * string twice would produce equal arrays and a fourth parse.
+     */
+    private record Read(String type, byte[] payload, java.util.List<String> issues) {}
 
     /** Reads once, and refuses before anything is written. */
     private Read checked(String resourceJson) {
@@ -118,17 +130,16 @@ public final class R5Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
     /** Validated update; null expectedVersion = unconditional. */
     @Override
     public PutResult update(String id, Long expectedVersion, String resourceJson) {
-        String type = checked(resourceJson).type();
-        return store.put(new PutRequest(type, id, expectedVersion,
-                resourceJson.getBytes(StandardCharsets.UTF_8)));
+        Read accepted = checked(resourceJson);
+        return store.put(new PutRequest(accepted.type(), id, expectedVersion, accepted.payload()));
     }
 
     /** Conditional upsert of a canonical artifact by its url (validated). */
     public PutResult putCanonical(String resourceJson) {
-        String type = checked(resourceJson).type();
+        Read accepted = checked(resourceJson);
         String url = personality.canonicalUrlOf(resourceJson);
         return store.putConditional(IdentityRef.canonical(url),
-                PutRequest.create(type, resourceJson.getBytes(StandardCharsets.UTF_8)));
+                PutRequest.create(accepted.type(), accepted.payload()));
     }
 
     /** Strict FHIR search over one type; returns a searchset Bundle with link[next]. */
@@ -189,7 +200,7 @@ public final class R5Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
      */
     @Override
     public PutResult conditionalCreate(String resourceJson, Map<String, String> condition) {
-        String type = checked(resourceJson).type();
+        Read accepted = checked(resourceJson);
         if (condition.size() != 1) {
             throw new IllegalArgumentException(
                     "conditional create requires exactly one identity condition, got: " + condition.keySet());
@@ -210,8 +221,7 @@ public final class R5Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
                     "conditional create accepts only identity conditions (identifier=, url=), got: "
                             + cond.getKey());
         };
-        return store.putIfAbsent(ref, PutRequest.create(type,
-                resourceJson.getBytes(StandardCharsets.UTF_8)));
+        return store.putIfAbsent(ref, PutRequest.create(accepted.type(), accepted.payload()));
     }
 
     @Override
