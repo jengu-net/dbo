@@ -44,10 +44,10 @@ import java.util.stream.Collectors;
  * the registry would therefore report less than the tenant actually promises.
  * {@code /metadata} is the one path the guard exempts, so this needs no token.
  */
-@Command(scope = "dbo-tenant", name = "capabilities",
+@Command(scope = "dbo-tenant", name = "capability-list",
         description = "Shows a tenant's CapabilityStatement as a table of facts.")
 @Service
-public class TenantCapabilitiesCommand implements Action {
+public class TenantCapabilityListCommand implements Action {
 
     @Argument(index = 0, name = "tenant", required = true,
             description = "The tenant code, as dbo-tenant:list reports it.")
