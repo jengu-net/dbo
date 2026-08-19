@@ -53,10 +53,13 @@ sharing a family — not two versions of the store.
 - **Archives that leave whole.** One sealed archive is backup, restore,
   migration and export: attested by both parties, encrypted under the owner's
   key so the operator cannot read it, and restore-tested by daily use.
-- **Version-plural.** R4 and R5 personalities run concurrently over one
-  engine, per tenant and per domain, and the engine holds no version
+- **Version-plural.** R4 and R5 faces run concurrently over one engine —
+  different tenants on different versions — and the engine holds no version
   knowledge at all. A domain written under R4 reads as R5 through converters
-  rather than a migration.
+  rather than a migration. Two faces of one tenant at once, and faces beyond
+  the FHIR family, are what
+  [founding requirement R6](docs/arc42-001-introduction/founding-requirements.md)
+  asks for and the configuration model does not yet allow.
 - **Embeddable.** The production bundles boot inside a host application's own
   JVM, so development and test run against the real engine rather than a
   substitute. Cold start is about five seconds.
