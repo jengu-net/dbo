@@ -386,6 +386,44 @@ things, so framing and unframing may be offered over streams as well as arrays w
 the abstraction lying about what it can do. The single resource stays an array; the set
 is where the stream belongs, along with blobs.
 
+**Stamping and rendering the ancestors are two acts, and they happen at different
+times.** The store's authority statement — these bytes were accepted as version N of
+this object, at this time, under this handling — is a claim about custody at a moment,
+so it is made at **write** and nowhere else. A read-time stamp would attest what is
+being held now rather than what was accepted and kept unchanged since, and the chain
+that links a version to the one before it could not exist at all.
+
+Putting the ancestors *into a document a reader receives* is the other act, and it
+belongs at **read**, because the alternative is freezing facts into bytes that are never
+rewritten. Doing it at read used to mean parsing every member and rendering it again.
+It does not have to: a face can stream the stored bytes through, emitting as it reads
+and overriding the ancestor slots as they pass. No object graph, one pass, and correct
+on a payload that already carries an `id` — replace rather than insert is trivial when
+re-emitting a parse, where it is treacherous when editing a string. That is the same
+shape as reading a payload's hash without materialising it, and the two belong beside
+each other on the face for the same reason: only the structure's owner can walk it
+cheaply.
+
+So a reader receives exactly what its author wrote, byte for byte, in every element the
+author wrote — and the ancestor slots, which were never theirs. Whether the ancestors
+*also* live in the stored bytes stops being a blocker and becomes an optimisation, to
+be settled by measuring the read-time pass rather than by argument.
+
+**Two hashes, and only one of them is the face's.** A digest over the stored bytes is
+what a history chain needs — it detects a version edited underneath the store, it needs
+no parse, and nothing cheaper exists. A hash over what a document *means*, so that two
+spellings of one resource agree, is a different function: only the face knows which
+differences do not matter, and it is the face that provides it. FHIR fixes element order
+and drops whitespace for exactly this, because signatures needed it, so there is a
+published rule to implement rather than a convention to invent. One name doing both jobs
+would be the mistake — a semantic hash cannot detect tampering it is designed to ignore.
+
+Worth knowing before anyone calls it free: normalising order means a canonical hash
+cannot stream purely, because keys are buffered per object level and sorted before
+digesting. That is memory proportional to an object's width rather than to the document,
+and far less than a model — but it is not nothing, and the claim should survive being
+measured.
+
 **A face is a service, and a capability is ordered rather than held.** These functions are
 passive: a caller asks the face for one when it needs it, and what stands behind it — a
 pooled parser, a thread, a cache — is the providing bundle's business and nobody else's.
