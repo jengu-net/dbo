@@ -48,6 +48,26 @@ public interface FhirStoreFacade {
     String capabilityStatement(String baseUrl);
 
     /** An OperationOutcome document for error responses. */
+    /**
+     * Would this resource be accepted — answered without writing it (#48).
+     *
+     * <p>The verdict comes from the write path's own validation rather than a
+     * second implementation of the rules. Two validators would eventually
+     * disagree, and the one a caller consulted would not be the one that
+     * mattered.
+     *
+     * <p><b>Shape, not state.</b> The answer is a property of the resource:
+     * its profile and the constraints that profile carries. It is not a promise
+     * about the world at write time — an identity already claimed, or a version
+     * moved on underneath, are answered by the write and cannot honestly be
+     * predicted here. A caller who treats this as a reservation will be wrong
+     * eventually.
+     *
+     * @return an {@code OperationOutcome}, issues carrying the locations the
+     *         refusal would carry, so somebody is told what to fix
+     */
+    String validationOutcome(String resourceJson);
+
     String operationOutcome(String issueCode, String diagnostics);
 
     /** True when the type is configured in this store's personality. */

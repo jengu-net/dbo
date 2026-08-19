@@ -33,6 +33,15 @@ public final class R4Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
     }
 
     /** Validate then create; returns after the single-transaction commit. */
+    /**
+     * Would this be accepted (#48) — the first half of {@link #create}, without
+     * the second. The verdict is the write's own, so the two cannot drift.
+     */
+    @Override
+    public String validationOutcome(String resourceJson) {
+        return personality.validationOutcome(resourceJson);
+    }
+
     @Override
     public PutResult create(String resourceJson) {
         String type = personality.resourceTypeOf(resourceJson);
