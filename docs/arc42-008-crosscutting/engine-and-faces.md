@@ -405,10 +405,33 @@ shape as reading a payload's hash without materialising it, and the two belong b
 each other on the face for the same reason: only the structure's owner can walk it
 cheaply.
 
-So a reader receives exactly what its author wrote, byte for byte, in every element the
-author wrote — and the ancestor slots, which were never theirs. Whether the ancestors
-*also* live in the stored bytes stops being a blocker and becomes an optimisation, to
-be settled by measuring the read-time pass rather than by argument.
+So a reader receives exactly the stored form, and the ancestor slots, which were never
+the author's.
+
+**What the stored form is, though, is declared rather than assumed.** Byte-for-byte what
+the author wrote is the default and not a law:
+REQ-DBO-CORE-DECLARED-TRUTH-FORM already says a type's authoritative representation —
+payload or normalized form — is its personality's to declare. Two things in the store
+already rely on that. A CodeSystem is stored as concepts and reassembled on the way out,
+so no byte of the submitted document survives as such; and a tenant with personal-data
+isolation stores ciphertext where the author wrote a name. A universal byte-identity rule
+would already be false in both.
+
+Where a type declares a normalized form, the store normalises on **write**, a read is
+plainly pass-through, and the ancestors may be stamped at write as well — because what
+the author wrote was never the promise for that type. Where it does not, the payload is
+kept as authored and the ancestors are applied on the way out. One mechanism, two
+declarations, and the difference is written down per type rather than discovered.
+
+**Normalising is forgiveness, and forgiveness has one condition.** It makes "is this a
+change?" exact rather than approximate, so two clients spelling one resource differently
+stop producing two versions. The condition is that a normaliser must never silently drop
+what it does not understand — an unknown extension, an element from a later ballot. Payload
+is truth and stored bytes are never rewritten, so a renderer that loses something loses it
+permanently, silently, and the discovery arrives years later. That is testable rather than
+hopeful: round-trip a resource carrying an unknown extension and a later version's element
+and require both to survive. A face that passes may declare a normalized truth form; one
+that does not, may not.
 
 **Two hashes, and only one of them is the face's.** A digest over the stored bytes is
 what a history chain needs — it detects a version edited underneath the store, it needs
