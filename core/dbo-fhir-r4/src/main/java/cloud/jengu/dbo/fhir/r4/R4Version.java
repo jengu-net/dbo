@@ -105,7 +105,12 @@ final class R4Version {
     /** A regex that ran out of wall clock found nothing; see validated(). */
     private static final String REGEX_TIMED_OUT = "Regex evaluation timed out";
 
+    /** Reads of a payload, so a test can hold this to its word. */
+    static final java.util.concurrent.atomic.AtomicLong READS =
+            new java.util.concurrent.atomic.AtomicLong();
+
     static IBaseResource parse(String resourceJson) {
+        READS.incrementAndGet();
         try {
             return context().newJsonParser().parseResource(resourceJson);
         } catch (ca.uhn.fhir.parser.DataFormatException e) {
@@ -150,6 +155,11 @@ final class R4Version {
         @Override
         public IBaseResource read(String typeName, byte[] payload) {
             return parse(new String(payload, StandardCharsets.UTF_8));
+        }
+
+        @Override
+        public String typeOf(IBaseResource document) {
+            return document.fhirType();
         }
 
         @Override
