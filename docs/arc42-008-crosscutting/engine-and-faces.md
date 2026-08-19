@@ -233,6 +233,94 @@ The payoff is the reason this contract was named in the first place: the day som
 writes a face for a domain that is not healthcare, the engine tells them what they owe
 **before anything serves a request**, instead of after.
 
+## The payload seam: bytes at the edge, one parse inside
+
+The obligations above that concern a payload — the codec, validation, conversion
+between versions — have one shape, and it is already written down once. `PayloadConverter`
+takes a type name, a payload version to hop from and to, and `byte[]`. Nothing in that
+signature is FHIR: a type is a string, a version is a string, a payload is bytes. It is
+the shape the rest should take, so they are siblings of it rather than a scheme of their
+own.
+
+**The coordinates are the face, the type name, and the payload version.** Not
+`Meta.profile`: the shape a resource was authored under and the format its bytes are
+stored in are different axes, and conflating them breaks at the first R4→R5 move. An
+interface that means one of them says which in its name.
+
+**Bytes are the boundary, not the internal contract.** If every operation takes bytes,
+the write path parses and discards once per step — deserialize, validate, extract the
+envelope, hash — which is more allocation than holding a model, not less, and would make
+a change made for efficiency cost efficiency. So a face mints a document handle the
+engine passes back to it and never reads:
+
+```java
+public interface Payloads<D> {                  // D is the face's own model
+    D read(String typeName, byte[] payload);    // parsed once
+    List<String> validate(String typeName, D document);
+    byte[] write(D document);
+}
+```
+
+The engine holds `Payloads<?>` and never names `D`. The public API stays bytes, so §7.3
+holds — no model type crosses it — while one request parses once. Byte-in, byte-out
+convenience sits on top for callers that genuinely have only bytes, the converter chain
+on read being the obvious one.
+
+**This is what makes the model a lens rather than a commitment.** Payload is truth and
+stored bytes are never rewritten, so a face may parse into whatever represents a
+resource best — the HL7 core model, something generated, something that is not FHIR at
+all — and a model that round-trips imperfectly still cannot corrupt what is stored,
+because what is stored is what arrived. Model choice is therefore reversible in a way it
+is not for a store that persists its object graph. That property is worth protecting: it
+argues for experimenting freely with representations and against ever letting one become
+the persisted form.
+
+**Resources are `byte[]`; streams belong to blobs.** A write is one transaction that
+computes an envelope and links the version into a per-object hash chain, all of which
+want the whole array — a streaming resource payload would be buffered internally and the
+abstraction would be a lie. Blob storage is its own unbuilt front and is where streams
+belong, with a contract that admits them honestly.
+
+**Sets are framed, not re-serialised.** A searchset, a history, a transaction and a
+portable export are all many resources in one document, and the engine holds their
+members as bytes it has already been given. Routing them through the single-resource
+codec would parse each member and render it again — N parses to emit one page, and
+worse, the bytes that came out would be the model's rendering rather than the ones that
+were authored. A face frames instead: it writes the document around members whose
+payloads pass through untouched, and takes a document apart into members without reading
+them.
+
+```java
+public interface PayloadFraming {
+    record Member(String typeName, byte[] payload, MemberFacts facts) {}
+
+    byte[] frame(String frameType, List<Member> members);   // searchset, history, export
+    List<Member> unframe(byte[] document);                  // transaction, batch, import
+}
+```
+
+`frameType` is the face's word for what kind of document this is; `MemberFacts` is what
+the engine knows about a member and the face says in its own vocabulary — which is the
+ancestor-rendering obligation above, not a second one.
+
+Byte-exact members are the point rather than an optimisation. This store's posture is
+that a payload is truth, and re-rendering a resource to put it in a page would make the
+copy a client reads differ from the copy that was stored, in whitespace and key order at
+least, and in whatever a model normalises at worst.
+
+**And a set is where a stream is honest.** The caveat above — that resources are
+`byte[]` because a write is one transaction over a whole array — does not extend to
+documents made of members. An export of a million resources is a sequence of bounded
+things, so framing and unframing may be offered over streams as well as arrays without
+the abstraction lying about what it can do. The single resource stays an array; the set
+is where the stream belongs, along with blobs.
+
+**They are version-scoped, which is why they are capabilities.** A codec, a validator and
+a converter know what a version defines and nothing about a tenant, so they sit in set 1
+and `DeclaredFace` fits them exactly. Envelope extraction does not: it depends on the
+declared types, so it stays per tenant. That is the same line drawn twice — the half of a
+personality that is per version, and the half that is per tenant.
+
 ## Why this matters beyond tidiness
 
 A contract with no name is a contract nobody notices they have broken. The coarsening
