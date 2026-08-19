@@ -1,5 +1,35 @@
 # The engine and its faces (§1)
 
+## This is not a FHIR store
+
+It is a store for regulated data that can be **presented** as a FHIR server by
+configuring a face — and does so well enough that the distinction is easy to miss.
+Miss it and the mistake follows immediately: FHIR ends up in the engine, and the next
+domain needs a fork instead of a face.
+
+The module layout is that claim made structural, which is why it is worth reading as a
+statement rather than as packaging:
+
+- `dbo-core` — the engine's own concepts. **No FHIR.**
+- `core.face` — what the engine requires from any face. No FHIR either: nothing in it
+  names a resource, a version or a domain.
+- `dbo-fhir-common` — what every FHIR face shares. **A module of its own, deliberately
+  not part of core**, because the store is not only for FHIR.
+- `dbo-fhir-r4`, `dbo-fhir-r5` — two faces of one family, not two versions of the store.
+
+The families are open on purpose. `fhir-r4` and `fhir-r5` are two; a profile-constrained
+face over R4, or a face for a domain with no clinical vocabulary at all, are more of the
+same kind of thing.
+
+**Where the code does not keep this promise yet.** `TenantSpec` — the engine's own
+configuration record — carries `String fhirVersion` and `List<FhirTypeConfig>`, and
+validates that the version is exactly `"r4"` or `"r5"`. Four places in
+`TenantRuntimeManager` branch on that string to choose a personality, a storage domain
+and a payload version. So the set of faces is closed, enforced, and FHIR-shaped in the
+engine's configuration: a custom face cannot be declared, because the spec rejects it
+before any face is consulted. Named here so it is a known divergence rather than
+something rediscovered later (#38).
+
 ## What the split is
 
 The engine's concepts are **regulatory, not clinical**: object, identity, envelope,
