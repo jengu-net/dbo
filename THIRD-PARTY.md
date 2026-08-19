@@ -21,6 +21,17 @@ themselves for it to travel in.
 | [Fabric8 Kubernetes Client](https://github.com/fabric8io/kubernetes-client) | 7.3.1 | Apache-2.0 | `dbo-tenant-k8s` |
 | [HikariCP](https://github.com/brettwooldridge/HikariCP) | 7.1.0 | Apache-2.0 | `dbo-tenant`, `dbo-tenant-k8s` |
 | [SLF4J](https://www.slf4j.org) (simple binding) | 2.0.18 | MIT | several bundles |
+| [HL7 FHIR R6 core definitions](https://hl7.org/fhir) (`hl7.fhir.r6.core`) | 6.0.0-ballot5 | CC0-1.0 | `dbo-fhir-element` |
+| [HL7 Terminology](https://terminology.hl7.org) (`hl7.terminology.r5`) | 7.3.0 | CC0-1.0 | `dbo-fhir-element` |
+| [HL7 FHIR Tools extensions](https://hl7.org/fhir/tools) (`hl7.fhir.uv.tools.r5`) | 1.1.2 | CC0-1.0 | `dbo-fhir-element` |
+
+Those last three are **specification content** rather than software: the
+StructureDefinitions, ValueSets, CodeSystems and SearchParameters a FHIR
+version is defined by, published by HL7 as packages. They ride inside
+`dbo-fhir-element` because a store must not fetch its definitions at bring-up
+(REQ-DBO-VER-DEFINITIONS-TRAVEL-WITH-THE-FACE), and they are pinned by version
+and verified by digest at build time so a published bundle says exactly which
+ballot it carries.
 
 ## Required at runtime, not embedded
 
