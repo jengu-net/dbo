@@ -263,7 +263,15 @@ public final class FhirHttpServer implements AutoCloseable {
                         String body = readBody(exchange);
                         String ifNoneExist = exchange.getRequestHeaders().getFirst("If-None-Exist");
                         PutResult result;
-                        if (ifNoneExist != null) {
+                        // A CodeSystem written the ordinary way is stored whole
+                        // and answers nothing: the concepts never reach the
+                        // native form, so $lookup and $expand find an empty
+                        // system and say so politely. Terminology writes go
+                        // through the facade, which splits shell from concepts
+                        // (REQ-DBO-TERM-EVERY-TENANT-ANSWERS).
+                        if (terminology != null && isTerminology(type)) {
+                            result = ingest(type, body);
+                        } else if (ifNoneExist != null) {
                             result = store.conditionalCreate(body, parseQuery(ifNoneExist));
                         } else {
                             result = store.create(body);
@@ -347,6 +355,27 @@ public final class FhirHttpServer implements AutoCloseable {
         }
         v = v.replace("\"", "");
         return Long.parseLong(v);
+    }
+
+    /** The two types whose truth form is the native one, not the resource. */
+    private static boolean isTerminology(String type) {
+        return "CodeSystem".equals(type) || "ValueSet".equals(type);
+    }
+
+    /**
+     * Writes a terminology resource through the facade.
+     *
+     * <p>Both halves land or neither is useful: a CodeSystem shell with no
+     * concepts answers nothing, and concepts with no shell have no identity,
+     * no history and no feed entry. The facade owns that pairing; this only
+     * routes to it.
+     */
+    private PutResult ingest(String type, String body) {
+        if ("ValueSet".equals(type)) {
+            return terminology.ingestValueSet(body);
+        }
+        TerminologyFacade.IngestResult ingested = terminology.ingestCodeSystem(body);
+        return new PutResult(ingested.id(), ingested.versionId(), true);
     }
 
     private static String etag(long versionId) {

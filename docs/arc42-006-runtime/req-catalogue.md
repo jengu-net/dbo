@@ -171,6 +171,7 @@ deliberately have no REQs yet — they get them when scheduled.
 |---|---|
 | REQ-DBO-TERM-NATIVE-FORM | Terminology lives in a normalized, query-optimized form; the FHIR resource form is a wire projection assembled on demand. (§6) |
 | REQ-DBO-TERM-BULK-LOAD | Loading a large CodeSystem is a native bulk operation — no chunking workarounds, no parameter-cap ceilings. (§6, §7.6) |
+| REQ-DBO-TERM-EVERY-TENANT-ANSWERS | Every served tenant answers `$lookup`, `$expand` and `$validate-code` from its own store's native form, whichever FHIR version it speaks; no tenant is a second-class reader. A terminology write reaches that form rather than being stored whole — a resource that is present and answers nothing is worse than one that is absent. (§6, §7.5) |
 | REQ-DBO-TERM-OPERATIONS-FROM-NATIVE-FORM | `$expand`, `$lookup` and `validate-code` are served from the normalized form at tenant-local speed. (§6, §7.5) |
 
 ## SYNC — canonical content dependencies

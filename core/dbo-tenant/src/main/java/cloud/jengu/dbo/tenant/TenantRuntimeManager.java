@@ -5,8 +5,10 @@ import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
 import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.fhir.r4.R4Store;
+import cloud.jengu.dbo.fhir.r4.R4Terminology;
 import cloud.jengu.dbo.fhir.r5.R5Personality;
 import cloud.jengu.dbo.fhir.r5.R5Store;
+import cloud.jengu.dbo.fhir.r5.R5Terminology;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.rest.FhirHttpServer;
@@ -288,10 +290,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 authority.attachSubjects(engine); // §16.1: subjects are the tenant's records
             }
             FhirStoreFacade store = new R4Store(engine, personality, base);
+            // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is per tenant,
+            // so the facade is built here rather than shared — a tenant answers
+            // $expand from its own concepts or it is a second-class reader.
+            R4Terminology terminology = new R4Terminology(engine, personality,
+                    new cloud.jengu.dbo.terminology.TerminologyStore(db.dataSource()));
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R4Personality.DOMAIN),
-                    withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store, null,
-                            "/t/" + spec.code() + "/fhir", guard), spec), spec, engine));
+                    withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
+                            terminology, "/t/" + spec.code() + "/fhir", guard), spec), spec, engine));
         } else {
             R5Personality personality = new R5Personality(spec.types());
             cloud.jengu.dbo.policy.PolicyObjectStore engine = policyWrapped(spec, db, personality.registrations(), R5Personality.DOMAIN);
@@ -299,10 +306,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 authority.attachSubjects(engine);
             }
             FhirStoreFacade store = new R5Store(engine, personality, base);
+            R5Terminology terminology = new R5Terminology(engine, personality,
+                    new cloud.jengu.dbo.terminology.TerminologyStore(db.dataSource()));
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R5Personality.DOMAIN),
-                    withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store, null,
-                            "/t/" + spec.code() + "/fhir", guard), spec), spec, engine));
+                    withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
+                            terminology, "/t/" + spec.code() + "/fhir", guard), spec), spec, engine));
         }
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no

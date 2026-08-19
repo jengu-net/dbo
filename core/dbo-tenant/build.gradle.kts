@@ -60,6 +60,9 @@ tasks.jar {
                     "cloud.jengu.dbo.pdi;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.policy;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.sync;version=\"[0.1,1)\"",
+                    // the native terminology form, which each tenant's facade
+                    // is built over (REQ-DBO-TERM-EVERY-TENANT-ANSWERS)
+                    "cloud.jengu.dbo.terminology;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.maintenance;version=\"[0.1,1)\"",
                     "com.sun.net.httpserver",
                     "javax.sql",

@@ -130,6 +130,67 @@ class TenantRuntimeIT {
         assertTrue(get(manager.baseUrl("aiakas") + "/metadata").body().contains("\"4.0.1\""));
     }
 
+    /**
+     * REQ-DBO-TERM-EVERY-TENANT-ANSWERS — a tenant answers terminology from its
+     * own store, whichever FHIR version it speaks.
+     *
+     * <p>Both halves of the gap are here. The runtime used to pass no facade at
+     * all, so the operations 404'd; and a CodeSystem posted the ordinary way is
+     * stored whole and answers nothing, which is worse than a 404 because the
+     * resource is plainly there. Posting through the endpoint and then asking
+     * the endpoint is the only arrangement that proves neither is true any more.
+     */
+    @Test
+    @Order(8)
+    void everyTenantAnswersTerminologyFromItsOwnStore() throws Exception {
+        Files.writeString(dir.resolve("terms4.json"), """
+                {"code":"terms4","fhirVersion":"r4","types":[
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"}]}""");
+        Files.writeString(dir.resolve("terms5.json"), """
+                {"code":"terms5","fhirVersion":"r5","types":[
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"}]}""");
+        manager.scanOnce();
+
+        for (String code : java.util.List.of("terms4", "terms5")) {
+            String base = manager.baseUrl(code);
+            String system = "https://terms.dbo.test/" + code;
+
+            assertEquals(201, post(base + "/CodeSystem", """
+                    {"resourceType":"CodeSystem","url":"%s","version":"1","status":"active",
+                     "content":"complete","concept":[
+                       {"code":"a","display":"Alpha"},
+                       {"code":"b","display":"Beta"}]}""".formatted(system)).statusCode(),
+                    code + " refused the CodeSystem");
+            assertEquals(201, post(base + "/ValueSet", """
+                    {"resourceType":"ValueSet","url":"%s/vs","version":"1","status":"active",
+                     "compose":{"include":[{"system":"%s"}]}}"""
+                    .formatted(system, system)).statusCode(), code + " refused the ValueSet");
+
+            String lookup = get(base + "/CodeSystem/$lookup?system=" + system + "&code=a").body();
+            assertTrue(lookup.contains("Alpha"),
+                    code + " cannot look up a code it was given: " + lookup);
+
+            String expansion = get(base + "/ValueSet/$expand?url=" + system + "/vs").body();
+            assertTrue(expansion.contains("\"total\":2"),
+                    code + " expanded to something other than the two concepts: " + expansion);
+            assertTrue(expansion.contains("Beta"), expansion);
+        }
+
+        // and the concepts are the tenant's own: terms5 knows nothing of terms4's
+        String foreign = get(manager.baseUrl("terms5")
+                + "/CodeSystem/$lookup?system=https://terms.dbo.test/terms4&code=a").body();
+        assertFalse(foreign.contains("Alpha"),
+                "one tenant answered from another tenant's concepts: " + foreign);
+
+        // this test brought its own tenants; the ones after it count what is
+        // served, so it takes them away again
+        Files.delete(dir.resolve("terms4.json"));
+        Files.delete(dir.resolve("terms5.json"));
+        manager.scanOnce();
+    }
+
     /** Provisioned databases carry the liveness timeouts. */
     @Test
     @Order(2)
