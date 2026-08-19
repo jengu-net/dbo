@@ -86,7 +86,16 @@ class ProvisionedSecretIT {
                     {"code":"ulemine","fhirVersion":"r4","types":[
                       {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}""");
 
-            java.util.Set<String> up = manager.scanOnce();
+            // Scanning until it holds, not once: a scan walks the directory in
+            // whatever order the filesystem gives, so a scan that meets the
+            // dependent first correctly leaves it waiting and brings the
+            // upstream up alone. The promise is that the wait ends, not that it
+            // ends within one pass — asserting the stronger thing made this
+            // test pass on one filesystem's ordering and fail on another's.
+            java.util.Set<String> up = java.util.Set.of();
+            for (int scan = 0; scan < 5 && !up.contains("jargnev"); scan++) {
+                up = manager.scanOnce();
+            }
             assertTrue(up.contains("ulemine") && up.contains("jargnev"),
                     "the retry did not resolve it: " + up);
         }
