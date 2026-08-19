@@ -32,6 +32,15 @@ public interface Payloads<D> {
     D read(String typeName, byte[] payload);
 
     /**
+     * What this document says it is.
+     *
+     * <p>Asked of the document rather than of the bytes so a caller that has
+     * already read it does not read it again — the write path needs the type
+     * and the verdict, and they used to cost a parse each.
+     */
+    String typeOf(D document);
+
+    /**
      * What is wrong with a document, worst first; empty means nothing is.
      *
      * <p>A list rather than a thrown refusal, because the caller asking

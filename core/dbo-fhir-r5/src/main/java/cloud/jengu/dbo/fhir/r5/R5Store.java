@@ -82,33 +82,50 @@ public final class R5Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
 
     @Override
     public PutResult create(String resourceJson) {
-        String type = personality.resourceTypeOf(resourceJson);
-        List<String> issues = personality.validate(resourceJson);
-        if (!issues.isEmpty()) {
-            throw new ValidationFailedException(type, issues);
-        }
+        String type = checked(resourceJson).type();
         return store.put(PutRequest.create(type, resourceJson.getBytes(StandardCharsets.UTF_8)));
     }
+    /**
+     * The type and the verdict from one read (REQ-DBO-VER-ONE-READ-PER-REQUEST).
+     *
+     * <p>Asking the personality for the type and then for the verdict read the
+     * same bytes twice, and the engine's envelope extraction reads them a third
+     * time. This closes the first two: the face reads once and is asked both
+     * questions about the document it produced.
+     *
+     * <p>Generic so the document stays the face's own — the store holds a
+     * {@code Payloads<?>} and never names what came back.
+     */
+    private static <D> Read read(cloud.jengu.dbo.core.face.Payloads<D> payloads, String json) {
+        D document = payloads.read(null, json.getBytes(StandardCharsets.UTF_8));
+        String type = payloads.typeOf(document);
+        return new Read(type, payloads.validate(type, document));
+    }
+
+    private record Read(String type, java.util.List<String> issues) {}
+
+    /** Reads once, and refuses before anything is written. */
+    private Read checked(String resourceJson) {
+        Read read = read(R5Version.face()
+                .require(cloud.jengu.dbo.core.face.Payloads.class), resourceJson);
+        if (!read.issues().isEmpty()) {
+            throw new ValidationFailedException(read.type(), read.issues());
+        }
+        return read;
+    }
+
 
     /** Validated update; null expectedVersion = unconditional. */
     @Override
     public PutResult update(String id, Long expectedVersion, String resourceJson) {
-        String type = personality.resourceTypeOf(resourceJson);
-        List<String> issues = personality.validate(resourceJson);
-        if (!issues.isEmpty()) {
-            throw new ValidationFailedException(type, issues);
-        }
+        String type = checked(resourceJson).type();
         return store.put(new PutRequest(type, id, expectedVersion,
                 resourceJson.getBytes(StandardCharsets.UTF_8)));
     }
 
     /** Conditional upsert of a canonical artifact by its url (validated). */
     public PutResult putCanonical(String resourceJson) {
-        String type = personality.resourceTypeOf(resourceJson);
-        List<String> issues = personality.validate(resourceJson);
-        if (!issues.isEmpty()) {
-            throw new ValidationFailedException(type, issues);
-        }
+        String type = checked(resourceJson).type();
         String url = personality.canonicalUrlOf(resourceJson);
         return store.putConditional(IdentityRef.canonical(url),
                 PutRequest.create(type, resourceJson.getBytes(StandardCharsets.UTF_8)));
@@ -172,11 +189,7 @@ public final class R5Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
      */
     @Override
     public PutResult conditionalCreate(String resourceJson, Map<String, String> condition) {
-        String type = personality.resourceTypeOf(resourceJson);
-        List<String> issues = personality.validate(resourceJson);
-        if (!issues.isEmpty()) {
-            throw new ValidationFailedException(type, issues);
-        }
+        String type = checked(resourceJson).type();
         if (condition.size() != 1) {
             throw new IllegalArgumentException(
                     "conditional create requires exactly one identity condition, got: " + condition.keySet());
