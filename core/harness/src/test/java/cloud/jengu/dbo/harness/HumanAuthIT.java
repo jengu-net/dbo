@@ -87,7 +87,7 @@ class HumanAuthIT {
                   {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
                   {"name":"PractitionerRole","identity":"internal","handling":"operational"},
                   {"name":"Encounter","identity":"internal","handling":"operational"}]}""".formatted(EID, EID));
-        manager.scanOnce();
+        UntilServed.scan(manager, "arst");
 
         // seed the clinical side over REST with the service token
         String service = serviceToken("arst");
@@ -467,7 +467,7 @@ class HumanAuthIT {
                 {"code":"arstp","fhirVersion":"r4","pdi":true,"types":[
                   {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
                   {"name":"Practitioner","identity":"internal","handling":"operational"}]}""".formatted(EID));
-        manager.scanOnce();
+        UntilServed.scan(manager, "arstp");
         // The national identifier is the human's, so under PDI it is claimed by
         // the Person and by nothing else. The vault claims per (system, value)
         // rather than per type, so a Practitioner claiming it too is refused —

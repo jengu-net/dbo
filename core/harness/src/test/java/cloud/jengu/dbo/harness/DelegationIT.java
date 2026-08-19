@@ -79,7 +79,7 @@ class DelegationIT {
                   {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
                   {"name":"PractitionerRole","identity":"internal","handling":"operational"},
                   {"name":"Encounter","identity":"internal","handling":"operational"}]}""".formatted(EID, EID));
-        manager.scanOnce();
+        UntilServed.scan(manager, "esindus");
 
         String service = serviceToken();
         practitionerId = idOf(fhirPost("/Practitioner", service, """

@@ -263,7 +263,7 @@ class OperatorIT {
     @Timeout(300)
     void theUnchangedTenantManagerServesFromOperatorProvisionedState() throws Exception {
         assertEquals(Set.of("opitenant.json"), sync.syncOnce());
-        assertEquals(Set.of("opitenant"), manager.scanOnce());
+        assertEquals(Set.of("opitenant"), UntilServed.scan(manager, "opitenant"));
 
         String base = manager.baseUrl("opitenant");
         HttpResponse<String> created = http.send(HttpRequest.newBuilder(URI.create(base + "/Patient"))
