@@ -37,24 +37,63 @@ val karafVersion = rootProject.extra["dboKarafVersion"] as String
 //                     product's writer, at the product's single global level.
 val loggingPosture = (findProperty("dbo.karaf.logging") as String?) ?: "karaf"
 
-// The distribution installs SPI-Fly as a framework EXTENSION, which attaches to
-// the system bundle at framework init — past the point a running Karaf can
-// reach. The dynamic bundle is the same mediator packaged to be installed
-// normally, and what slf4j-api actually requires is the osgi.serviceloader
-// extender capability, which both provide. Noted because it is the one place
-// this console's wiring is not the distribution's.
-val spiFlyDynamicBundle =
-    "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:1.3.7"
+// The same SPI-Fly the distribution installs, as a framework EXTENSION.
+//
+// The dynamic bundle looks like a drop-in alternative and is not: it carries no
+// ASM at all and imports org.objectweb.asm, .commons, .util and the spifly
+// weaver from the container, where the extension embeds all of it. Karaf has no
+// ASM, so the dynamic bundle stays unresolved, nothing provides the
+// osgi.serviceloader extender, and slf4j-api and dbo-logging never resolve —
+// silently, because the thing that would report it is what failed.
+//
+// An extension attaches to the system bundle rather than starting, so it has to
+// be present before anything requiring the extender resolves. Karaf's launcher
+// installs the startup set after framework init, which is early enough.
+val spiFlyExtension = rootProject.extra["dboLoggingExtension"] as String
+
+// Karaf's own plumbing — metatype, config.core, features.core — imports the
+// OSGi LogService API, which in a stock Karaf comes from pax-logging-api and
+// from nothing else. The distribution never needs it because its bundle set has
+// none of those. So this is the console's concession to living inside Karaf,
+// the same shape as exporting com.sun.net.httpserver: not part of the product's
+// arrangement, just what the host requires to stand up around it.
+val logServiceApi = "org.apache.felix:org.apache.felix.log:1.3.0"
+
+// pax-url-aether is the mvn: URL handler, and so the thing bundle:watch reads
+// through — Karaf cannot start without it and the console's whole loop rests on
+// it. It is built against slf4j 1.7 and imports org.slf4j.spi;[1.7,2.0), which
+// slf4j-api 2.0.18 does not satisfy. This is exactly the gap pax-logging exists
+// to paper over: it exports org.slf4j.spi at BOTH generations at once.
+//
+// So the 1.7 API rides along beside the 2.x one. Karaf's own bundles import
+// [2.0,3) and wire to the product's slf4j; pax-url wires to 1.7 and finds no
+// 1.7-era binding, which makes its logging silent rather than wrong. Two API
+// bundles, one binding, and nothing of the product's arrangement changed.
+val legacySlf4jApi = "org.slf4j:slf4j-api:1.7.36"
+
+// The 1.7 API declares a MANDATORY import of org.slf4j.impl — that generation
+// bound by classpath convention rather than by ServiceLoader — so it does not
+// resolve without a binding at all. The no-op one is the right binding here:
+// pax-url's logging should be silent, not wrong, and nothing else is meant to
+// wire to 1.7.
+val legacySlf4jBinding = "org.slf4j:slf4j-nop:1.7.36"
 
 val karafDist: Configuration by configurations.creating
 val dboLoggingBundles: Configuration by configurations.creating
+// Its own configuration, because Gradle resolves two versions of one module to
+// the highest and would quietly drop the 1.7 API — the one bundle here whose
+// whole purpose is being the older generation.
+val dboLegacySlf4j: Configuration by configurations.creating
 
 @Suppress("UNCHECKED_CAST")
-val loggingGavs = (rootProject.extra["dboLoggingBundles"] as List<String>) + spiFlyDynamicBundle
+val loggingGavs = (rootProject.extra["dboLoggingBundles"] as List<String>) + spiFlyExtension + logServiceApi
 
 dependencies {
     karafDist("org.apache.karaf:apache-karaf:$karafVersion@tar.gz")
     loggingGavs.forEach { dboLoggingBundles(it) { isTransitive = false } }
+    listOf(legacySlf4jApi, legacySlf4jBinding).forEach {
+        dboLegacySlf4j(it) { isTransitive = false }
+    }
     @Suppress("UNCHECKED_CAST")
     (rootProject.extra["dboLoggingModules"] as List<String>).forEach {
         dboLoggingBundles(project(it)) { isTransitive = false }
@@ -291,12 +330,13 @@ fun installDboLogging(home: File) {
 
     // Startup bundles resolve from Karaf's own system/ repository, laid out
     // the Maven way, so each jar has to land at its coordinate's path.
-    (loggingGavs.map {
+    val available = dboLoggingBundles.files + dboLegacySlf4j.files
+    ((loggingGavs + legacySlf4jApi + legacySlf4jBinding).map {
         val (group, artifact, version) = it.split(":")
         Triple(group, artifact, version)
     } + listOf(Triple("cloud.jengu.dbo", "dbo-logging", projectVersion))).forEach { (group, artifact, version) ->
         val fileName = "$artifact-$version.jar"
-        val jar = dboLoggingBundles.files.firstOrNull { it.name == fileName }
+        val jar = available.firstOrNull { it.name == fileName }
             ?: throw GradleException("$fileName is not in the logging configuration")
         val into = home.resolve(
             "system/${group.replace('.', '/')}/$artifact/$version/$fileName")

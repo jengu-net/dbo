@@ -150,14 +150,33 @@ arrangement instead — slf4j-api, `dbo-logging`, and SPI-Fly as a dynamic bundl
 rather than the framework extension the distribution uses, because an extension
 can only attach at framework init.
 
-**It does not currently complete boot.** Every bundle installs, including
-`features.core`, slf4j-api, SPI-Fly and `dbo-logging`, and the framework reaches
-start level 100 — but no boot feature comes up and the ssh port never opens.
-Nothing says why, which is the point worth recording: the diagnostics that would
-report it are Karaf's, and they are what the posture replaces. Karaf 4.4.11's own
-bundles import `org.slf4j;version="[2.0,3)"`, which slf4j-api 2.0.18 satisfies,
-so the version ranges are not the obstacle. Use the default posture until this is
-understood.
+**It binds, and it does not yet finish booting.** `dbo-logging` is the binding:
+container failures arrive as `ERROR dbo.container - …` in the product's own
+format, which is how each of the following was found. Four blockers are cleared
+and one remains.
+
+Cleared, and each one a way Karaf differs from the distribution:
+
+- **SPI-Fly must be the framework extension**, not the dynamic bundle. The
+  extension embeds ASM and the weaver; the dynamic bundle embeds none of it and
+  imports them from a container that has neither. It attaches from Karaf's
+  startup set, so the objection that an extension cannot attach in Karaf was
+  wrong.
+- **`org.osgi.service.log`** is imported by Karaf's own metatype, config and
+  features bundles and in a stock Karaf comes only from pax-logging. The Felix
+  Log Service provides it.
+- **pax-url-aether wants slf4j 1.7.** It is the `mvn:` handler `bundle:watch`
+  reads through, and it imports `org.slf4j.spi;[1.7,2.0)` — the gap pax-logging
+  papers over by exporting both generations at once. The 1.7 API rides along
+  beside the 2.x one.
+- **The 1.7 API needs a binding to resolve at all**, declaring a mandatory
+  `org.slf4j.impl` import. The no-op binding is the right one: pax-url's logging
+  should be silent rather than wrong.
+
+Remaining: resolution is clean and no boot feature installs. Twenty-five bundles
+— the startup set exactly — and the ssh port never opens, with nothing logged.
+`featuresBoot` is well formed and `features.core` resolves. Use the default
+posture until this is understood.
 
 **Reassembly is destructive.** `:karaf:console` re-unpacks Karaf, which drops
 `data/` — installed bundle state and the ssh host key with it. It refuses to
