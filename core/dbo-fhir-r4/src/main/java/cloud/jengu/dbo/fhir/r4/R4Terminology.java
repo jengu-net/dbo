@@ -44,6 +44,85 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.Terminol
         this.terminology = terminology;
     }
 
+    // ----------------------------------------------------------- operations
+
+    /**
+     * The three operations this facade answers (#51).
+     *
+     * <p>Each carries its own status decision: an unregistered ValueSet is a
+     * 404 from {@code $expand}, an unknown code is a 404 from {@code $lookup},
+     * while {@code $validate-code} answers 200 with {@code result: false} —
+     * because "no" is the answer to that question rather than a failure to
+     * answer it. A router inferring statuses would have flattened all three.
+     */
+    @Override
+    public java.util.List<cloud.jengu.dbo.fhir.common.FhirOperation> operations() {
+        return java.util.List.of(
+                operation("expand", "ValueSet-expand", "ValueSet",
+                        (type, query, body) -> expand(required(query, "url"), query.get("filter"),
+                                intOf(query, "offset", 0), intOf(query, "count", 100))
+                                .map(cloud.jengu.dbo.fhir.common.FhirOperation.Answer::ok)
+                                .orElseGet(() -> notRegistered(
+                                        "ValueSet not registered: " + required(query, "url")))),
+                operation("lookup", "CodeSystem-lookup", "CodeSystem",
+                        (type, query, body) -> lookup(required(query, "system"),
+                                required(query, "code"))
+                                .map(cloud.jengu.dbo.fhir.common.FhirOperation.Answer::ok)
+                                .orElseGet(() -> notRegistered("code not found"))),
+                operation("validate-code", "CodeSystem-validate-code", "CodeSystem",
+                        (type, query, body) -> cloud.jengu.dbo.fhir.common.FhirOperation.Answer.ok(
+                                validateCode(required(query, "system"), required(query, "code")))));
+    }
+
+    /** The shape of an answer: what happened, and what to send. */
+    private interface Handler {
+        cloud.jengu.dbo.fhir.common.FhirOperation.Answer answer(
+                String typeName, java.util.Map<String, String> query, String body);
+    }
+
+    private cloud.jengu.dbo.fhir.common.FhirOperation operation(String name, String definition,
+            String type, Handler handler) {
+        return new cloud.jengu.dbo.fhir.common.FhirOperation() {
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String definition() {
+                return "http://hl7.org/fhir/OperationDefinition/" + definition;
+            }
+
+            @Override
+            public java.util.Set<String> types() {
+                return java.util.Set.of(type);
+            }
+
+            @Override
+            public Answer answer(String typeName, java.util.Map<String, String> query, String body) {
+                return handler.answer(typeName, query, body);
+            }
+        };
+    }
+
+    private cloud.jengu.dbo.fhir.common.FhirOperation.Answer notRegistered(String diagnostics) {
+        return cloud.jengu.dbo.fhir.common.FhirOperation.Answer.status(404,
+                new R4Store(store, personality, "").operationOutcome("not-found", diagnostics));
+    }
+
+    private static String required(java.util.Map<String, String> query, String name) {
+        String value = query.get(name);
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("missing required parameter: " + name);
+        }
+        return value;
+    }
+
+    private static int intOf(java.util.Map<String, String> query, String name, int fallback) {
+        String value = query.get(name);
+        return value == null || value.isBlank() ? fallback : Integer.parseInt(value);
+    }
+
     // --------------------------------------------------------------- ingest
 
     /** Shell through the engine, concepts through COPY. Returns (engine result, concept count). */

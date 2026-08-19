@@ -79,6 +79,11 @@ public final class R4Personality {
 
     // -------------------------------------------------------- registrations
 
+    /** The types this personality is configured for — what an operation applies to. */
+    public java.util.Set<String> configuredTypes() {
+        return java.util.Set.copyOf(types.keySet());
+    }
+
     public List<TypeRegistration> registrations() {
         return registrations(DOMAIN);
     }
@@ -726,6 +731,18 @@ public final class R4Personality {
      * their actually-supported search parameters — never hand-maintained.
      */
     public String capabilityStatement(String baseUrl) {
+        return capabilityStatement(baseUrl, java.util.List.of());
+    }
+
+    /**
+     * As above, declaring exactly the operations that were registered (#51).
+     *
+     * <p>The list is given rather than inferred: this personality cannot see
+     * which facades the serving layer wired, and a generator that guessed would
+     * announce an operation nobody answers — which a client would then call.
+     */
+    public String capabilityStatement(String baseUrl,
+            java.util.Collection<cloud.jengu.dbo.fhir.common.FhirOperation> served) {
         return withTccl(() -> {
             var cs = new org.hl7.fhir.r4.model.CapabilityStatement();
             cs.setStatus(org.hl7.fhir.r4.model.Enumerations.PublicationStatus.ACTIVE);
@@ -762,6 +779,13 @@ public final class R4Personality {
                         org.hl7.fhir.r4.model.Enumerations.SearchParamType.URI);
                 resource.addSearchParam().setName("_lastUpdated").setType(
                         org.hl7.fhir.r4.model.Enumerations.SearchParamType.DATE);
+                // declared because registered, not because remembered (#51)
+                for (var operation : served) {
+                    if (operation.types().contains(typeName)) {
+                        resource.addOperation().setName(operation.name())
+                                .setDefinition(operation.definition());
+                    }
+                }
                 resource.addSearchParam().setName("_id").setType(
                         org.hl7.fhir.r4.model.Enumerations.SearchParamType.TOKEN);
             }

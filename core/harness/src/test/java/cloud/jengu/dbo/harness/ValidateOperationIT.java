@@ -146,6 +146,44 @@ class ValidateOperationIT {
         assertEquals(404, answer.statusCode(), answer.body());
     }
 
+    /**
+     * REQ-DBO-SRCH-HONEST-CAPABILITY, extended to operations (#51): what the
+     * statement declares is what the router answers, and nothing else.
+     *
+     * <p>A registry makes drift unlikely. This makes reintroducing it loud —
+     * the same job the hand-written-imports ratchet does for bundle manifests.
+     */
+    @Test
+    @Timeout(300)
+    @DisplayName("every operation the statement declares is answered, and an undeclared one is not")
+    void declaredAndRoutableAreTheSameSet() throws Exception {
+        String statement = HTTP.send(HttpRequest.newBuilder(
+                                URI.create(server.baseUrl() + "/metadata")).GET().build(),
+                        HttpResponse.BodyHandlers.ofString()).body();
+
+        // this server has no terminology facade wired, so it must declare
+        // $validate and NOT the three terminology operations — the absence
+        // needs no flag, it is simply nothing registered
+        assertTrue(statement.contains("\"name\":\"validate\""),
+                "an operation the store answers is undeclared: " + statement);
+        assertFalse(statement.contains("\"name\":\"expand\""),
+                "an operation nothing answers is declared — a client would call it: " + statement);
+        assertFalse(statement.contains("\"name\":\"lookup\""), statement);
+
+        // and what is declared is reachable: not the router's "unknown endpoint"
+        assertEquals(200, validate(VALID, "").statusCode(),
+                "the statement declares $validate and the router does not answer it");
+
+        // while an operation nobody registered falls through to 404
+        HttpResponse<String> ghost = HTTP.send(HttpRequest.newBuilder(URI.create(
+                                server.baseUrl() + "/Observation/$reindex"))
+                        .header("Content-Type", "application/fhir+json")
+                        .POST(HttpRequest.BodyPublishers.ofString("{}")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(404, ghost.statusCode(),
+                "an unregistered operation was answered by something: " + ghost.body());
+    }
+
     /** Strips the entry array so the count line can be compared as a whole. */
     private static String countOnly(String searchsetJson) {
         return searchsetJson.replaceAll(",\"entry\":\\[.*\\]", "");

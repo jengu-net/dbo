@@ -37,6 +37,16 @@ public final class FhirHttpServer implements AutoCloseable {
     private final String basePath;
     private final boolean ownsServer;
     private final RequestAuthenticator authenticator;
+    /**
+     * Every operation this server answers, keyed by {@code Type/$name} (#51).
+     *
+     * <p>Built from what was actually wired: the store's own, plus a
+     * terminology facade's if one was given. The router dispatches from here
+     * and the CapabilityStatement is generated from here, so an operation
+     * cannot be reachable and unannounced — which four of them were.
+     */
+    private final Map<String, cloud.jengu.dbo.fhir.common.FhirOperation> operations =
+            new LinkedHashMap<>();
     /** §15.4: the tenant's declared policies, named in the capability statement. */
     public volatile String policyNote;
     /** §15.1: when set, /AuditEvent is served as a projection of the trail. */
@@ -53,6 +63,7 @@ public final class FhirHttpServer implements AutoCloseable {
         this.terminology = terminology;
         this.authenticator = authenticator;
         this.basePath = normalize(basePath);
+        register();
         try {
             this.server = HttpServer.create(new InetSocketAddress(host, port), 0);
         } catch (IOException e) {
@@ -81,9 +92,24 @@ public final class FhirHttpServer implements AutoCloseable {
         this.terminology = terminology;
         this.authenticator = authenticator;
         this.basePath = normalize(basePath);
+        register();
         this.server = sharedServer;
         this.ownsServer = false;
         server.createContext(this.basePath.isEmpty() ? "/" : this.basePath, this::handle);
+    }
+
+    /** Collects what the wired facades say they answer. */
+    private void register() {
+        java.util.List<cloud.jengu.dbo.fhir.common.FhirOperation> declared =
+                new java.util.ArrayList<>(store.operations());
+        if (terminology != null) {
+            declared.addAll(terminology.operations());
+        }
+        for (cloud.jengu.dbo.fhir.common.FhirOperation operation : declared) {
+            for (String type : operation.types()) {
+                operations.put(type + "/$" + operation.name(), operation);
+            }
+        }
     }
 
     /**
@@ -181,7 +207,8 @@ public final class FhirHttpServer implements AutoCloseable {
 
         if (segments.length == 1 && "metadata".equals(segments[0]) && "GET".equals(method)) {
             // anonymous by REQ-DBO-AUTH-OPEN-CAPABILITY; declares the auth mode
-            respond(exchange, 200, securityDeclared(store.capabilityStatement(baseUrl())));
+            respond(exchange, 200, securityDeclared(
+                    store.capabilityStatement(baseUrl(), operations.values())));
             return;
         }
         if (authenticator != null) {
@@ -229,51 +256,28 @@ public final class FhirHttpServer implements AutoCloseable {
             return;
         }
 
-        // [Type]/$validate — would this be accepted, without writing it (#48).
-        // Before the terminology branch because it needs no terminology facade,
-        // and it is not a mutation: the authorization above already classifies
-        // a POST to an operation as a read, which is what this is.
-        if (segments.length == 2 && "$validate".equals(segments[1]) && "POST".equals(method)) {
-            String mode = query.getOrDefault("mode", "create");
-            if (!"create".equals(mode) && !"update".equals(mode)) {
-                respond(exchange, 400, store.operationOutcome("invalid",
-                        "unsupported $validate mode: " + mode));
+        // Operations, dispatched from the registry and nowhere else (#51). A
+        // hand-written branch beside this would be the second list all over
+        // again, so there is not one.
+        if (segments.length == 2 && segments[1].startsWith("$")) {
+            var operation = operations.get(segments[0] + "/" + segments[1]);
+            if (operation != null) {
+                if (!store.knowsType(segments[0])) {
+                    respond(exchange, 404, store.operationOutcome("not-supported",
+                            "unknown resource type: " + segments[0]));
+                    return;
+                }
+                var answer = operation.answer(segments[0], query, readBody(exchange));
+                respond(exchange, answer.status(), answer.body());
                 return;
             }
-            if (!store.knowsType(segments[0])) {
-                respond(exchange, 404, store.operationOutcome("not-supported",
-                        "unknown resource type: " + segments[0]));
-                return;
-            }
-            // 200 whatever the verdict: the question was answered. Whether the
-            // resource is acceptable is what the OperationOutcome says, and a
-            // caller asking a question correctly did not make a bad request.
-            respond(exchange, 200, store.validationOutcome(readBody(exchange)));
+            // A $-segment is an operation, never an id. Falling through would
+            // have routed it as an instance — "method not allowed on the
+            // resource $reindex" — when the truth is that no such operation
+            // exists here.
+            respond(exchange, 404, store.operationOutcome("not-supported",
+                    "unknown operation: " + segments[0] + "/" + segments[1]));
             return;
-        }
-
-        // terminology operations
-        if (terminology != null && segments.length == 2 && segments[1].startsWith("$")) {
-            switch (segments[0] + "/" + segments[1]) {
-                case "ValueSet/$expand" -> {
-                    String url = required(query, "url");
-                    var expansion = terminology.expand(url, query.get("filter"),
-                            intOf(query, "offset", 0), intOf(query, "count", 100));
-                    respondOptional(exchange, expansion, "ValueSet not registered: " + url);
-                    return;
-                }
-                case "CodeSystem/$lookup" -> {
-                    var found = terminology.lookup(required(query, "system"), required(query, "code"));
-                    respondOptional(exchange, found, "code not found");
-                    return;
-                }
-                case "CodeSystem/$validate-code" -> {
-                    respond(exchange, 200,
-                            terminology.validateCode(required(query, "system"), required(query, "code")));
-                    return;
-                }
-                default -> { /* falls through to 404 below */ }
-            }
         }
 
         if (segments.length >= 1 && !store.knowsType(segments[0])) {
