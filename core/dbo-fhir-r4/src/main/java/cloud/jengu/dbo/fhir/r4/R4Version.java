@@ -150,7 +150,8 @@ final class R4Version {
      * so what only a version declares. The document is HAPI's; nothing above
      * this bundle names it, which is what a wildcard on the engine's side buys.
      */
-    private static final Payloads<IBaseResource> PAYLOADS = new Payloads<>() {
+    private static final Payloads<IBaseResource> PAYLOADS =
+            new cloud.jengu.dbo.core.face.ReadOnce<>(new Payloads<IBaseResource>() {
 
         @Override
         public IBaseResource read(String typeName, byte[] payload) {
@@ -172,7 +173,21 @@ final class R4Version {
             return withTccl(() -> context().newJsonParser().encodeResourceToString(document))
                     .getBytes(StandardCharsets.UTF_8);
         }
-    };
+    });
+
+    /**
+     * The document behind a payload, for this version's own code — the engine's
+     * envelope extraction, which is handed bytes because
+     * {@code EnvelopeExtractor} is the engine's and knows no document.
+     *
+     * <p>Asked of the same capability the write path asked, so a payload the
+     * face has already read is not read again
+     * (REQ-DBO-VER-ONE-READ-PER-REQUEST), and a payload a decorator rewrote on
+     * the way in is read as it now stands.
+     */
+    static IBaseResource document(String typeName, byte[] payload) {
+        return PAYLOADS.read(typeName, payload);
+    }
 
 
     /**

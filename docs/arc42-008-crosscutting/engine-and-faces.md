@@ -128,7 +128,7 @@ place, it says so.
 | **coarsening** | how a declared element is made coarser | `core.face.Coarsening`, **declared** via `DeclaredFace` — the reference case |
 | **grain codec** | reassemble a stored form for transport, take a transported form apart | `core.face.GrainCodec`, passed explicitly (#31) |
 | **ancestor rendering** | the engine's own facts, said in the domain's words — id, version, when, where from, under what shape, under what handling | one body on the version, shared by serving, export and framing; still saying two of the six facts |
-| **envelope extraction** | identifiers, references, indexable paths | a lambda on `TypeRegistration` |
+| **envelope extraction** | identifiers, references, indexable paths | a lambda on `TypeRegistration`, reading through the face's payload codec so a payload is read once |
 | **payload codec** | parse and render the wire format | `core.face.Payloads`, **declared** via `DeclaredFace` |
 | **document equivalence** | what counts as the same object, so a re-import can skip one | **misplaced** — `Names.flatten` in `dbo-maintenance`, an engine module deciding it with a newline replacement |
 | **framing** | many objects as one document — a page, a history, an export | `core.face.PayloadFraming`, **declared**; members rendered rather than passed through until a normaliser exists |
@@ -267,6 +267,22 @@ The engine holds `Payloads<?>` and never names `D`. The public API stays bytes, 
 holds — no model type crosses it — while one request parses once. Byte-in, byte-out
 convenience sits on top for callers that genuinely have only bytes, the converter chain
 on read being the obvious one.
+
+**The document does not travel, and that is what makes it safe.** One part of a write is
+on the far side of `ObjectStore.put`: the engine extracts the searchable envelope, and
+`EnvelopeExtractor` takes bytes because it is the engine's and knows no document. Sending
+the document after it — in the `PutRequest`, or as an argument every decorator passes
+along — puts an opaque handle in a value type or a parameter that is silently lost when
+one wrapper forgets it. Worse, it can arrive *beside different bytes*: the isolation
+decorator rewrites a person's payload on the way in, so an envelope built from the
+document that was handed over would index the very values §14 keeps out of the clear.
+
+So the face remembers instead. `core.face.ReadOnce` holds the document it last read
+against the identity of the array it read it from, and hands it back only to a caller
+reading *that* array — which the engine is, because the write carries the bytes the face
+read rather than encoding the body again. A decorator that rewrites the payload misses,
+and the engine reads what it is actually storing. The mechanism cannot be wrong, only
+unused, and it is one document per thread, released as it is handed on.
 
 **This is what makes the model a lens rather than a commitment.** Payload is truth and
 stored bytes are never rewritten, so a face may parse into whatever represents a
