@@ -30,22 +30,24 @@ The families are open on purpose. `fhir-r4` and `fhir-r5` are two; a profile-con
 face over R4, or a face for a domain with no clinical vocabulary at all, are more of the
 same kind of thing.
 
-**Where the code does not keep R6 yet**, stated precisely because a founding
-requirement is the thing being missed rather than a preference:
+**How a version is chosen.** A face bundle announces the version it serves, as a
+`FhirVersion` service registered under its code, and the tenant wiring resolves a
+tenant's declared version against what is installed. Nothing in the wiring knows which
+versions exist: adding one is installing a bundle, and a tenant declaring a version
+nothing provides is refused because nothing provides it — told, by name, what this
+container does serve. `TenantSpec` requires that a version is *named*, not that it is
+one of two.
 
-- `TenantSpec` — the engine's own configuration record — carries `String fhirVersion`
-  and `List<FhirTypeConfig>`, and **validates the version is exactly `"r4"` or
-  `"r5"`**. A custom face cannot be declared: the spec rejects it before any face is
-  consulted, and R6 itself would be rejected by the code named after it.
-- Four places in `TenantRuntimeManager` branch on that string to choose a personality,
-  a storage domain and a payload version, so the set of faces is closed in the wiring
-  as well as in the spec.
-- One `fhirVersion` per tenant means **one face per tenant**. R6 asks for different
-  domains *within* a tenant on different versions; a tenant gets one.
+`FhirVersion` is the runtime's counterpart to `DomainFace`. The engine asks a face for
+capabilities; the runtime asks a version for what a bring-up builds — the type
+registrations, the outward store facade, the tenant's terminology, the storage domain
+and the payload version. Resolving only the face would have left the wiring branching,
+because the branches never chose a face: they chose those.
 
-None of that is hard to fix, and none of it is what the engine does wrong internally —
-the engine really does hold no version knowledge. It is the *configuration* model that
-is FHIR-shaped, which is the last place anybody looks. Tracked in #38.
+**Where the code still does not keep R6**, stated precisely because a founding
+requirement is the thing being missed rather than a preference: one `fhirVersion` per
+tenant means **one face per tenant**. R6 asks for different domains *within* a tenant on
+different versions; a tenant gets one. Tracked in #38.
 
 ## What the split is
 

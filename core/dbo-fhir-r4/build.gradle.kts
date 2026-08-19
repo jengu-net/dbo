@@ -23,6 +23,8 @@ dependencies {
     // runtime instead of a private one per bundle. compileOnly because
     // it resolves from the slf4j-api bundle at runtime.
     compileOnly("org.slf4j:slf4j-api:2.0.18")
+    // the registry the face announces itself to; the framework provides it
+    compileOnly("org.osgi:osgi.core:8.0.0")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:8.10.1") {
@@ -80,12 +82,15 @@ tasks.jar {
             attributes(
                 "Bundle-ManifestVersion" to "2",
                 "Bundle-SymbolicName" to "cloud.jengu.dbo.fhir.r4",
+                // The bundle announces the version it serves; see Activator.
+                "Bundle-Activator" to "cloud.jengu.dbo.fhir.r4.Activator",
                 "Bundle-Version" to project.version.toString().replace("-", "."),
                 "Bundle-ClassPath" to ".,$libs",
                 "Export-Package" to (listOf("cloud.jengu.dbo.fhir.r4;version=\"0.1.0\"")
                     + resourcePackages(embedded.resolve())).joinToString(","),
                 "Import-Package" to (listOf(
                     "org.slf4j",
+                    "org.osgi.framework;version=\"[1.8,2)\"",
                 ) + engineImports() + listOf(
                     "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
                     // the inward contract: what this face implements for the

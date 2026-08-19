@@ -92,6 +92,50 @@ public final class Activator implements BundleActivator {
         tracker.open();
     }
 
+    /**
+     * The versions the registry holds right now (R6).
+     *
+     * <p>Asked at every bring-up rather than captured once, because face
+     * bundles come and go: a version installed after the manager started is
+     * served by the next scan, and one uninstalled stops being served without
+     * anything having to be told. The classpath fallback the plain
+     * constructors use would answer "none" here — a bundle's own loader sees
+     * no other bundle's providers — so the container never takes it.
+     */
+    private static cloud.jengu.dbo.fhir.common.FhirVersions registered(BundleContext ctx) {
+        return new cloud.jengu.dbo.fhir.common.FhirVersions() {
+            @Override
+            public java.util.Optional<cloud.jengu.dbo.fhir.common.FhirVersion> byCode(String code) {
+                return installed().stream().filter(v -> v.code().equals(code)).findFirst();
+            }
+
+            @Override
+            public java.util.Set<String> codes() {
+                return installed().stream()
+                        .map(cloud.jengu.dbo.fhir.common.FhirVersion::code)
+                        .collect(java.util.stream.Collectors.toCollection(java.util.TreeSet::new));
+            }
+
+            private java.util.List<cloud.jengu.dbo.fhir.common.FhirVersion> installed() {
+                try {
+                    java.util.List<cloud.jengu.dbo.fhir.common.FhirVersion> found =
+                            new java.util.ArrayList<>();
+                    for (ServiceReference<cloud.jengu.dbo.fhir.common.FhirVersion> ref
+                            : ctx.getServiceReferences(
+                                    cloud.jengu.dbo.fhir.common.FhirVersion.class, null)) {
+                        cloud.jengu.dbo.fhir.common.FhirVersion version = ctx.getService(ref);
+                        if (version != null) {
+                            found.add(version);
+                        }
+                    }
+                    return found;
+                } catch (org.osgi.framework.InvalidSyntaxException e) {
+                    throw new IllegalStateException("no filter was given, so none can be invalid", e);
+                }
+            }
+        };
+    }
+
     /** "tara=secret1,eeid=secret2" — custody by broker code (§17.1). */
     private static java.util.Map<String, String> parseBrokerSecrets(String csv) {
         if (csv == null || csv.isBlank()) {
@@ -165,7 +209,7 @@ public final class Activator implements BundleActivator {
                             registrations.forEach(ServiceRegistration::unregister);
                         }
                     }
-                }, authority);
+                }, authority, registered(ctx));
         manager.start(2_000);
     }
 

@@ -69,8 +69,13 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
         }
         // (databaseName() below derives a Postgres-safe name; the code
         // itself only has to be URL- and file-name-safe)
-        if (!"r4".equals(fhirVersion) && !"r5".equals(fhirVersion)) {
-            throw new IllegalArgumentException(code + ": unsupported fhirVersion " + fhirVersion);
+        // Which versions exist is not a spec's business and never was: this
+        // rejected R6 by the name of the requirement asking for it, and a
+        // custom face could not be declared at all. What a version has to be
+        // here is a name; whether anything serves it is answered at bring-up
+        // by what is installed (REQ-DBO-VER-CONCURRENT-VERSIONS, R6).
+        if (fhirVersion == null || fhirVersion.isBlank()) {
+            throw new IllegalArgumentException(code + ": fhirVersion is required");
         }
         types = List.copyOf(types);
         if (types.isEmpty()) {
