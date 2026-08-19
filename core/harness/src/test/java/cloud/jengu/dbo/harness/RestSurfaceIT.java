@@ -309,6 +309,36 @@ class RestSurfaceIT {
                 what + " names something more than once: " + repeated + " (in " + names + ")");
     }
 
+    /**
+     * REQ-DBO-SRCH-RESULTS-STREAM: a page is written as it is produced.
+     *
+     * <p>Chunked rather than length-prefixed is the observable half — the
+     * server cannot state a length it does not know yet, which is exactly what
+     * not assembling the page first means.
+     */
+    @Test
+    void aSearchIsWrittenAsItIsProduced() throws Exception {
+        HttpResponse<String> page = send(req(base + "/Patient?_count=2").GET().build());
+        assertEquals(200, page.statusCode());
+        assertTrue(page.headers().firstValue("content-length").isEmpty(),
+                "the page was assembled before answering: it came with a length");
+        assertTrue(page.body().contains("\"resourceType\":\"Bundle\""), page.body());
+    }
+
+    /**
+     * And a refusal is still a refusal. A search that cannot compile fails
+     * before producing a byte, so the status is still free — which is why the
+     * headers wait for the first write rather than being sent up front.
+     */
+    @Test
+    void aSearchThatCannotCompileStillAnswersWithAStatus() throws Exception {
+        HttpResponse<String> refused =
+                send(req(base + "/Patient?_cursor=not-a-cursor").GET().build());
+        assertTrue(refused.statusCode() >= 400,
+                "a streamed answer swallowed a refusal: " + refused.statusCode()
+                        + " " + refused.body());
+    }
+
     /** Terminology operations answer over HTTP from the native concept store. */
     @Test
     void terminologyOperationsOverHttp() throws Exception {

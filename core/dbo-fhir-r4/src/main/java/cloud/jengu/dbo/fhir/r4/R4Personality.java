@@ -612,6 +612,23 @@ public final class R4Personality {
     public String toSearchBundle(FeedChunk<StoredObject> chunk, String baseUrl, String typeName,
             Map<String, String> originalParams, List<StoredObject> includedTargets,
             List<String> elements) {
+        java.io.ByteArrayOutputStream buffered = new java.io.ByteArrayOutputStream(4096);
+        try {
+            writeSearchBundle(chunk, baseUrl, typeName, originalParams, includedTargets,
+                    elements, buffered);
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+        return buffered.toString(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * The same page, written as it is produced. A caller with somewhere to
+     * write it does not need it assembled first (REQ-DBO-SRCH-RESULTS-STREAM).
+     */
+    public void writeSearchBundle(FeedChunk<StoredObject> chunk, String baseUrl, String typeName,
+            Map<String, String> originalParams, List<StoredObject> includedTargets,
+            List<String> elements, java.io.OutputStream out) throws java.io.IOException {
         StringBuilder self = new StringBuilder();
         originalParams.forEach((k, v) ->
                 self.append(self.isEmpty() ? "" : "&").append(k).append('=').append(v));
@@ -629,8 +646,7 @@ public final class R4Personality {
         cloud.jengu.dbo.core.face.PayloadFraming framing = R4Version.framing();
         var frame = framing.frame("searchset",
                 new cloud.jengu.dbo.core.face.PayloadFraming.Facts(null, selfUrl, nextUrl));
-        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream(4096);
-        try {
+        {
             out.write(frame.prologue());
             boolean first = true;
             for (StoredObject o : chunk.items()) {
@@ -644,11 +660,7 @@ public final class R4Personality {
                 }
             }
             out.write(frame.epilogue());
-        } catch (java.io.IOException e) {
-            // A ByteArrayOutputStream does not do this; the signature does.
-            throw new java.io.UncheckedIOException(e);
         }
-        return out.toString(StandardCharsets.UTF_8);
     }
 
     /** Writes one member with its separator, and says whether the next is still first. */

@@ -41,6 +41,25 @@ public interface FhirStoreFacade {
     /** Searchset Bundle; cursor from a previous page's link[next]. */
     String search(String typeName, Map<String, String> params, String cursor);
 
+    /**
+     * The same searchset, written as it is produced rather than returned whole
+     * (REQ-DBO-SRCH-RESULTS-STREAM).
+     *
+     * <p>Returning a String means a page exists three times before a reader
+     * sees any of it — the payloads, whatever the face built from them, and the
+     * encoded copy. Writing into the caller's stream leaves one member in
+     * flight, which is what makes a page, an export and a stream between
+     * tenants the same path rather than three.
+     *
+     * <p>The default answers the old way, so a face that has not implemented
+     * this is slower and never wrong.
+     */
+    default void search(String typeName, Map<String, String> params, String cursor,
+            java.io.OutputStream out) throws java.io.IOException {
+        out.write(search(typeName, params, cursor)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
     /** History Bundle, oldest first. Empty entries if the id is unknown. */
     String historyBundle(String typeName, String id);
 
