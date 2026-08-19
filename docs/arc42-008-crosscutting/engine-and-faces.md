@@ -7,6 +7,15 @@ configuring a face — and does so well enough that the distinction is easy to m
 Miss it and the mistake follows immediately: FHIR ends up in the engine, and the next
 domain needs a fork instead of a face.
 
+This is not a later refinement. It is
+[founding requirement R6](../arc42-001-introduction/founding-requirements.md), which
+asks for R4, R5, **R6 and future versions concurrently** — *"different tenants, and
+even different domains within a tenant, on different versions"* — and for the same
+property to keep the engine open to *"sibling models that FHIR does not cover"*, so
+that non-FHIR domain objects ride on the same engine rather than beside it. What this
+document adds is the mechanics: what the engine requires from a face, and where those
+obligations currently live.
+
 The module layout is that claim made structural, which is why it is worth reading as a
 statement rather than as packaging:
 
@@ -21,14 +30,22 @@ The families are open on purpose. `fhir-r4` and `fhir-r5` are two; a profile-con
 face over R4, or a face for a domain with no clinical vocabulary at all, are more of the
 same kind of thing.
 
-**Where the code does not keep this promise yet.** `TenantSpec` — the engine's own
-configuration record — carries `String fhirVersion` and `List<FhirTypeConfig>`, and
-validates that the version is exactly `"r4"` or `"r5"`. Four places in
-`TenantRuntimeManager` branch on that string to choose a personality, a storage domain
-and a payload version. So the set of faces is closed, enforced, and FHIR-shaped in the
-engine's configuration: a custom face cannot be declared, because the spec rejects it
-before any face is consulted. Named here so it is a known divergence rather than
-something rediscovered later (#38).
+**Where the code does not keep R6 yet**, stated precisely because a founding
+requirement is the thing being missed rather than a preference:
+
+- `TenantSpec` — the engine's own configuration record — carries `String fhirVersion`
+  and `List<FhirTypeConfig>`, and **validates the version is exactly `"r4"` or
+  `"r5"`**. A custom face cannot be declared: the spec rejects it before any face is
+  consulted, and R6 itself would be rejected by the code named after it.
+- Four places in `TenantRuntimeManager` branch on that string to choose a personality,
+  a storage domain and a payload version, so the set of faces is closed in the wiring
+  as well as in the spec.
+- One `fhirVersion` per tenant means **one face per tenant**. R6 asks for different
+  domains *within* a tenant on different versions; a tenant gets one.
+
+None of that is hard to fix, and none of it is what the engine does wrong internally —
+the engine really does hold no version knowledge. It is the *configuration* model that
+is FHIR-shaped, which is the last place anybody looks. Tracked in #38.
 
 ## What the split is
 
