@@ -93,7 +93,7 @@ class FederatedAuthIT {
                       {"name":"PractitionerRole","identity":"internal","handling":"operational"}]}"""
                     .formatted(code, SUBJECT_SYSTEM, SUBJECT_SYSTEM));
         }
-        manager.scanOnce();
+        UntilServed.scan(manager, "kliinika", "kliinikb", "kliinikc");
 
         // the doctor works at clinics A and B — not C
         for (String code : List.of("kliinika", "kliinikb")) {

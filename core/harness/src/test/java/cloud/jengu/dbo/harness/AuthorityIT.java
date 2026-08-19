@@ -65,7 +65,7 @@ class AuthorityIT {
                 {"code":"yks","fhirVersion":"r4","types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
         Files.writeString(dir.resolve("kaks.json"), """
                 {"code":"kaks","fhirVersion":"r4","types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
-        manager.scanOnce();
+        UntilServed.scan(manager, "yks", "kaks");
     }
 
     @AfterAll
@@ -195,7 +195,7 @@ class AuthorityIT {
                 {"code":"kolm","fhirVersion":"r4","pdi":true,"types":[
                   {"name":"Patient","identity":"identifier","systems":["%s"],"handling":"operational"}]}""".formatted(
                 "https://eesti.ee/isikukood"));
-        manager.scanOnce();
+        UntilServed.scan(manager, "kolm");
         String token = token("kolm", null);
         HttpResponse<String> created = post(fhir("kolm") + "/Patient", token, """
                 {"resourceType":"Patient",
@@ -231,7 +231,7 @@ class AuthorityIT {
                  "audit":{"level":"writes"},
                  "writeDiscipline":{"default":"append-only"},
                  "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
-        manager.scanOnce();
+        UntilServed.scan(manager, "neli");
         String token = token("neli", null);
         HttpResponse<String> created = post(fhir("neli") + "/Patient", token,
                 "{\"resourceType\":\"Patient\"}");

@@ -80,7 +80,7 @@ class TenantRuntimeIT {
     @Order(1)
     void aSpecFileBecomesALiveTenant() throws Exception {
         Files.writeString(dir.resolve("aiakas.json"), specA());
-        assertEquals(java.util.Set.of("aiakas"), manager.scanOnce());
+        assertEquals(java.util.Set.of("aiakas"), UntilServed.scan(manager, "aiakas"));
 
         String base = manager.baseUrl("aiakas");
         HttpResponse<String> created = post(base + "/Patient", """
