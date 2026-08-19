@@ -107,7 +107,8 @@ Both arguments complete on TAB. Tenants come from the registry rather than a
 cached list, because they come and go while the console is open. Capability
 names come from the statement of the tenant already typed — the union across
 tenants would offer facts a tenant does not have — so nothing completes until
-a tenant is on the line.
+a tenant is on the line. The whole tree is offered, both the names that open
+into a table and the individual ones that print a value.
 
 `--search-params` expands every entity at once instead of one. Karaf wants
 options before arguments, so it is
