@@ -12,6 +12,7 @@ Structured per [arc42](https://arc42.org/).
 - [arc42-007-deployment](arc42-007-deployment/README.md) — scaling/routing (§5),
   [tenant provisioning](arc42-007-deployment/tenant-provisioning.md) (§4)
 - [arc42-008-crosscutting](arc42-008-crosscutting/) —
+  [engine and faces](arc42-008-crosscutting/engine-and-faces.md) (§1),
   [object model](arc42-008-crosscutting/object-model.md) (§2–§3),
   [eventing & feeds](arc42-008-crosscutting/eventing-and-feeds.md) (§6, §10),
   [process catalogue](arc42-008-crosscutting/process-catalogue.md) (§8),
