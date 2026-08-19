@@ -8,6 +8,17 @@ import org.hl7.fhir.common.hapi.validation.support.InMemoryTerminologyServerVali
 import org.hl7.fhir.common.hapi.validation.support.ValidationSupportChain;
 import org.hl7.fhir.common.hapi.validation.validator.FhirInstanceValidator;
 
+import org.hl7.fhir.instance.model.api.IBaseResource;
+
+import ca.uhn.fhir.validation.ValidationResult;
+import ca.uhn.fhir.validation.ResultSeverityEnum;
+import cloud.jengu.dbo.core.face.DomainFace;
+import cloud.jengu.dbo.core.face.Payloads;
+import cloud.jengu.dbo.fhir.common.FhirFace;
+
+import java.nio.charset.StandardCharsets;
+
+import java.util.List;
 import java.util.function.Supplier;
 
 /**
@@ -85,5 +96,76 @@ final class R5Version {
         } finally {
             t.setContextClassLoader(old);
         }
+    }
+
+    /** A regex that ran out of wall clock found nothing; see validated(). */
+    private static final String REGEX_TIMED_OUT = "Regex evaluation timed out";
+
+    static IBaseResource parse(String resourceJson) {
+        try {
+            return context().newJsonParser().parseResource(resourceJson);
+        } catch (ca.uhn.fhir.parser.DataFormatException e) {
+            throw new IllegalArgumentException("body is not parseable FHIR JSON: "
+                    + e.getMessage(), e);
+        }
+    }
+
+    static ValidationResult validated(IBaseResource resource) {
+        ValidationResult result = validator().validateWithResult(resource);
+        if (issuesFrom(result).stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
+            // A regex that ran out of wall clock found nothing; asking again is
+            // the only answer that is not a guess.
+            result = validator().validateWithResult(resource);
+        }
+        List<String> issues = issuesFrom(result);
+        if (issues.stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
+            // Twice is not a busy moment, and it is still not a finding.
+            throw new cloud.jengu.dbo.fhir.common.ValidationUnavailableException(
+                    resource.fhirType(),
+                    issues.stream().filter(i -> i.contains(REGEX_TIMED_OUT))
+                            .findFirst().orElse(REGEX_TIMED_OUT));
+        }
+        return result;
+    }
+
+    static List<String> issuesFrom(ValidationResult result) {
+        return result.getMessages().stream()
+                .filter(m -> m.getSeverity() == ResultSeverityEnum.ERROR
+                        || m.getSeverity() == ResultSeverityEnum.FATAL)
+                .map(m -> m.getSeverity() + " " + m.getLocationString() + ": " + m.getMessage())
+                .toList();
+    }
+
+    /**
+     * Reading and writing a payload: what only a version knows how to do, and
+     * so what only a version declares. The document is HAPI's; nothing above
+     * this bundle names it, which is what a wildcard on the engine's side buys.
+     */
+    private static final Payloads<IBaseResource> PAYLOADS = new Payloads<>() {
+
+        @Override
+        public IBaseResource read(String typeName, byte[] payload) {
+            return parse(new String(payload, StandardCharsets.UTF_8));
+        }
+
+        @Override
+        public List<String> validate(String typeName, IBaseResource document) {
+            return withTccl(() -> issuesFrom(validated(document)));
+        }
+
+        @Override
+        public byte[] write(IBaseResource document) {
+            return withTccl(() -> context().newJsonParser().encodeResourceToString(document))
+                    .getBytes(StandardCharsets.UTF_8);
+        }
+    };
+
+    /** One face for the version, not one per tenant that happens to be on it. */
+    private static final DomainFace FACE = FhirFace.describing("r5")
+            .providing(Payloads.class, PAYLOADS)
+            .build();
+
+    static DomainFace face() {
+        return FACE;
     }
 }

@@ -22,8 +22,19 @@ public final class FhirFace {
      *                parallel faces could not serve the request
      */
     public static DomainFace of(String version) {
+        return describing(version).build();
+    }
+
+    /**
+     * The same, still open, for a personality that has capabilities of its own
+     * to add — reading and writing a payload being the obvious ones, since only
+     * a version knows how its payloads are spelled.
+     *
+     * @param version the personality's name, so a refusal says which of two
+     *                parallel faces could not serve the request
+     */
+    public static DeclaredFace.Builder describing(String version) {
         return DeclaredFace.named("fhir-" + version)
-                .providing(Coarsening.class, FhirCoarsening.INSTANCE)
-                .build();
+                .providing(Coarsening.class, FhirCoarsening.INSTANCE);
     }
 }
