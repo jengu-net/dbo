@@ -404,6 +404,28 @@ holding a capability from the previous revision is an object with a dead classlo
 behind it, failing later as something that looks like anything but that. Ask per
 operation, or track the service.
 
+*And both of those are worth catching rather than documenting.* A connection pool does not
+rely on being told to close connections; it records where one was taken and warns when it
+is held too long, with the stack trace of the caller that took it. The same applies here,
+in two forms, because the two hazards fail differently.
+
+A cursor-backed stream is an ordinary resource leak: warn when one is held past a
+threshold, and — the commoner case — use a {@code Cleaner} to warn when one is collected
+having never been closed at all. A dropped stream happens more often than a slow one, and
+a timer alone never sees it.
+
+A held capability is not a resource leak but a correctness one, and no timer can see it:
+nothing observes that a reference is still out there. What is observable is the moment it
+goes stale, so invalidate on unregistration and complain at next use, naming where the
+capability was obtained. That fires when the bug becomes real rather than when a clock
+guesses, and it needs no threshold to tune.
+
+Two constraints on the warning itself. It may name the code site, the age and the kind of
+thing; it may not name what was being read. A search carries `identifier=system|value`,
+and a diagnostic that helpfully quoted the request would put in a log the thing §14
+encrypts in the payload. And capturing a stack trace is not free, so this is gated and off
+by default, in the same shape as the rest of the logging knobs.
+
 *Internal concurrency must not become visible concurrency.* Writing a member goes into the
 caller's stream, so whatever a provider does behind the scenes it returns having written,
 in the order it was called. The engine owns order and back-pressure because a page is
