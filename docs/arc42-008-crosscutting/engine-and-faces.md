@@ -127,10 +127,11 @@ place, it says so.
 |---|---|---|
 | **coarsening** | how a declared element is made coarser | `core.face.Coarsening`, **declared** via `DeclaredFace` — the reference case |
 | **grain codec** | reassemble a stored form for transport, take a transported form apart | `core.face.GrainCodec`, passed explicitly (#31) |
-| **ancestor rendering** | the engine's own facts, said in the domain's words — id, version, when, where from, under what shape, under what handling | `core.face.PortableRendering` for export and `toResourceJson` for serving: **two implementations of one body**, saying two of the six facts |
+| **ancestor rendering** | the engine's own facts, said in the domain's words — id, version, when, where from, under what shape, under what handling | one body on the version, shared by serving, export and framing; still saying two of the six facts |
 | **envelope extraction** | identifiers, references, indexable paths | a lambda on `TypeRegistration` |
-| **payload codec** | parse and render the wire format | inside the personality |
+| **payload codec** | parse and render the wire format | `core.face.Payloads`, **declared** via `DeclaredFace` |
 | **document equivalence** | what counts as the same object, so a re-import can skip one | **misplaced** — `Names.flatten` in `dbo-maintenance`, an engine module deciding it with a newline replacement |
+| **framing** | many objects as one document — a page, a history, an export | `core.face.PayloadFraming`, **declared**; members rendered rather than passed through until a normaliser exists |
 | **query compilation** | the domain's query language to engine criteria | inside the personality |
 | **audit rendering** | engine facts as the domain's audit resource | **misplaced** — `FhirAuditProjection` hand-builds AuditEvent JSON inside `dbo-policy`, an engine module |
 | **attestation rendering** | an archive's root and signatures as a domain resource | **outside the contract** — `ArchiveProvenance`, a loose static in `dbo-fhir-common` (#34) |
