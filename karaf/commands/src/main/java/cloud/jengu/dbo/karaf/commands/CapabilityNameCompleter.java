@@ -8,10 +8,15 @@ import org.apache.karaf.shell.support.completers.StringsCompleter;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
 
+import javax.json.JsonObject;
+
 import java.util.List;
 
 /**
  * Completes a capability name from the statement of the tenant already typed.
+ *
+ * <p>The whole tree: the summarising names that open into a table and the
+ * individual ones that print a value, since the command answers both.
  *
  * <p>Which means reading the command line: the names depend on the first
  * argument, and offering the union across tenants would suggest facts that
@@ -34,8 +39,16 @@ public class CapabilityNameCompleter implements Completer {
 
         StringsCompleter delegate = new StringsCompleter();
         try {
-            Capabilities.rows(Capabilities.fetch(Capabilities.baseUrl(context, tenant)), false)
-                    .forEach(row -> delegate.getStrings().add(row.name()));
+            JsonObject statement = Capabilities.fetch(Capabilities.baseUrl(context, tenant));
+            // Both shapes, because both resolve. The collapsed set has
+            // Patient.searchParam, which opens into a table; the expanded set
+            // has Patient.searchParam.identifier, which prints one value. A
+            // completer offering only the first would hide half of what the
+            // command answers.
+            for (boolean expanded : new boolean[] {false, true}) {
+                Capabilities.rows(statement, expanded)
+                        .forEach(row -> delegate.getStrings().add(row.name()));
+            }
         } catch (Exception e) {
             // A tenant that cannot be read has no names to offer. Completion is
             // not the place to report it; running the command says so plainly.
