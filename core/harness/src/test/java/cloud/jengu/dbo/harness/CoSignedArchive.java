@@ -2,12 +2,10 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.maintenance.ArchiveAttestation;
 import cloud.jengu.dbo.maintenance.ArchiveManifest;
-import cloud.jengu.dbo.maintenance.SealedArchive;
 import cloud.jengu.dbo.maintenance.TenantImport;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 
@@ -30,12 +28,8 @@ record CoSignedArchive(byte[] sealed, ArchiveAttestation attestation,
 
     /** Signs a sealed archive as both parties, over the root the export wrote. */
     static CoSignedArchive over(byte[] sealed, byte[] ownerMasterKey) throws Exception {
-        byte[] plain;
-        try (InputStream opening = SealedArchive.opening(
-                new ByteArrayInputStream(sealed), ownerMasterKey)) {
-            plain = opening.readAllBytes();
-        }
-        String root = ArchiveManifest.of(plain).root();
+        String root = ArchiveManifest.rootOfSealed(
+                new ByteArrayInputStream(sealed), ownerMasterKey);
 
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();
