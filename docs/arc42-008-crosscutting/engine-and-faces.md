@@ -45,7 +45,7 @@ place, it says so.
 |---|---|---|
 | **coarsening** | how a declared element is made coarser | `core.face.Coarsening`, **declared** via `DeclaredFace` — the reference case |
 | **grain codec** | reassemble a stored form for transport, take a transported form apart | `core.face.GrainCodec`, passed explicitly (#31) |
-| **ancestor rendering** | the engine's own facts, said in the domain's words — id, version, when, where from, under what shape, under what handling | `core.face.PortableRendering` for export and `toResourceJson` for serving: **two implementations**, and three of the facts unsaid (see below) |
+| **ancestor rendering** | the engine's own facts, said in the domain's words — id, version, when, where from, under what shape, under what handling | `core.face.PortableRendering` for export and `toResourceJson` for serving: **two implementations of one body**, saying two of the six facts |
 | **envelope extraction** | identifiers, references, indexable paths | a lambda on `TypeRegistration` |
 | **payload codec** | parse and render the wire format | inside the personality |
 | **query compilation** | the domain's query language to engine criteria | inside the personality |
@@ -77,7 +77,7 @@ which makes mapping onto it a cheap bet.
 |---|---|---|
 | `Resource.id` | the object's id | ✅ |
 | `Meta.versionId` | the version | ✅ |
-| `Meta.lastUpdated` | when that version was written | ⚠️ on the serving path only |
+| `Meta.lastUpdated` | when that version was written | ❌ carried beside a read as HTTP metadata, never in the resource |
 | `Meta.source` | **where a copy came from** — a streamed object's upstream | ❌ recorded, never said |
 | `Meta.profile` | **the shape stamp** the object was written under | ❌ |
 | `Meta.security` | **the declared handling class**, which the store enforces on every write | ❌ |
@@ -85,10 +85,10 @@ which makes mapping onto it a cheap bet.
 | `Resource.implicitRules`, `Resource.language` | no engine analogue | face only |
 | `DomainResource.text`, `contained`, `extension`, `modifierExtension` | no engine analogue | face only |
 
-Five engine facts have a standard place to be said. One is said, one is said on one
-of two paths, and three are not said at all — so a client today receives the data but
-not **the classification the store is enforcing on it**. `Meta.security` has existed
-for that since R4, and nothing writes it.
+Six engine facts have a standard place to be said. **Two are said** — the id and the
+version — and four are not, so a client today receives the data but not the
+classification the store is enforcing on it. `Meta.security` has existed for exactly
+that since R4, and nothing writes it.
 
 Two cautions before anyone maps them:
 
@@ -102,10 +102,12 @@ Two cautions before anyone maps them:
   reasons the engine cares what a face does with them.
 
 **And the checklist immediately finds a duplication.** Putting ancestors back onto a
-stored payload happens twice in each personality — `toResourceJson` for serving (id,
-versionId, lastUpdated) and `portableRendering` for export (id, versionId). One
-obligation, two implementations, already differing by one element. That is this
-contract's whole argument, found by reading FHIR rather than the code.
+stored payload happens twice in each personality — `toResourceJson` for serving and
+`portableRendering` for export — with byte-for-byte the same body: parse, set the id,
+set the version, encode. One obligation, two implementations, and **neither writes
+`lastUpdated`**; the timestamp a read carries is HTTP metadata beside the resource,
+not part of it. That is this contract's whole argument, found by reading FHIR rather
+than the code.
 
 ## A face translates; it does not act
 
