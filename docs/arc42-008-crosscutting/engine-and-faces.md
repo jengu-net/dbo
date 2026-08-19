@@ -45,7 +45,7 @@ place, it says so.
 |---|---|---|
 | **coarsening** | how a declared element is made coarser | `core.face.Coarsening`, **declared** via `DeclaredFace` — the reference case |
 | **grain codec** | reassemble a stored form for transport, take a transported form apart | `core.face.GrainCodec`, passed explicitly (#31) |
-| **portable rendering** | the resource form an export hands a stranger | `core.face.PortableRendering`, passed explicitly |
+| **ancestor rendering** | the engine's own facts, said in the domain's words — id, version, when, where from, under what shape, under what handling | `core.face.PortableRendering` for export and `toResourceJson` for serving: **two implementations**, and three of the facts unsaid (see below) |
 | **envelope extraction** | identifiers, references, indexable paths | a lambda on `TypeRegistration` |
 | **payload codec** | parse and render the wire format | inside the personality |
 | **query compilation** | the domain's query language to engine criteria | inside the personality |
@@ -59,6 +59,53 @@ Three of those — audit, attestation, run — are the same shape: **an engine f
 in the domain's vocabulary.** They have no common seam, and two of them are sitting
 outside the contract entirely. That is the clearest argument that this contract is
 worth finishing.
+
+## The ancestors: FHIR drew this line first
+
+FHIR's inheritance chain cuts where this split cuts. `Resource` defines what *any*
+record has irrespective of what it means; `DomainResource` and below define what a
+Patient is. Same seam — FHIR draws it with inheritance, this store draws it with
+composition, because a non-FHIR face has no ancestors and nine production types have
+no FHIR representation at all.
+
+The elements are worth reading as a checklist rather than an analogy, because **the
+set has not changed since R4** — R4, R4B, R5 and R6 all define exactly these, and R6
+records "no changes" to `Meta`. It is the most stable corner of the specification,
+which makes mapping onto it a cheap bet.
+
+| Ancestor element | The engine fact behind it | Said today |
+|---|---|---|
+| `Resource.id` | the object's id | ✅ |
+| `Meta.versionId` | the version | ✅ |
+| `Meta.lastUpdated` | when that version was written | ⚠️ on the serving path only |
+| `Meta.source` | **where a copy came from** — a streamed object's upstream | ❌ recorded, never said |
+| `Meta.profile` | **the shape stamp** the object was written under | ❌ |
+| `Meta.security` | **the declared handling class**, which the store enforces on every write | ❌ |
+| `Meta.tag` | operational labels — streamed origin, shadowing state | ❌ |
+| `Resource.implicitRules`, `Resource.language` | no engine analogue | face only |
+| `DomainResource.text`, `contained`, `extension`, `modifierExtension` | no engine analogue | face only |
+
+Five engine facts have a standard place to be said. One is said, one is said on one
+of two paths, and three are not said at all — so a client today receives the data but
+not **the classification the store is enforcing on it**. `Meta.security` has existed
+for that since R4, and nothing writes it.
+
+Two cautions before anyone maps them:
+
+- **`Meta.profile` is not the storage-format version.** The shape an object was
+  authored under and the format its bytes are stored in are different axes; conflating
+  them breaks at the first R4→R5 move. `payload_version` stays internal.
+- **The face-only elements are not uninteresting to the engine.** `text` is narrative —
+  which is exactly where identifying data hides, so the membrane has a stake in an
+  element it does not define. `contained` puts objects inside an object, which
+  reference extraction has to survive. Neither becomes an engine concept; both are
+  reasons the engine cares what a face does with them.
+
+**And the checklist immediately finds a duplication.** Putting ancestors back onto a
+stored payload happens twice in each personality — `toResourceJson` for serving (id,
+versionId, lastUpdated) and `portableRendering` for export (id, versionId). One
+obligation, two implementations, already differing by one element. That is this
+contract's whole argument, found by reading FHIR rather than the code.
 
 ## A face translates; it does not act
 
@@ -87,10 +134,11 @@ table.
 
 The obligations split cleanly in two, and the split is worth seeing before choosing:
 
-- **Stateless renderings** — coarsening, attestation rendering, run rendering,
-  catalogue projection. Declarable today, exactly as coarsening already is.
-- **Store-holding obligations** — grain codec, audit rendering, portable rendering,
-  identity projection. Not expressible.
+- **Stateless renderings** — coarsening, ancestor rendering, attestation rendering,
+  run rendering, catalogue projection. Declarable today, exactly as coarsening
+  already is.
+- **Store-holding obligations** — grain codec, audit rendering, identity projection.
+  Not expressible.
 
 Either a face becomes per tenant, or the lookup distinguishes the two scopes. The
 first keeps the contract uniform and makes `FhirFace.of` no longer a constant; the
