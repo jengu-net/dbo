@@ -27,10 +27,6 @@ import java.util.TreeSet;
 @Service
 public class TenantListCommand implements Action {
 
-    /** Registered on every per-tenant service by the tenant runtime. */
-    private static final String TENANT_PROPERTY = "tenant";
-    private static final String FHIR_VERSION_PROPERTY = "fhir.version";
-
     @Option(name = "--surfaces",
             description = "Show which services each tenant has registered.")
     private boolean surfaces;
@@ -39,8 +35,7 @@ public class TenantListCommand implements Action {
     public Object execute() throws Exception {
         BundleContext context = FrameworkUtil.getBundle(getClass()).getBundleContext();
 
-        ServiceReference<?>[] references =
-                context.getAllServiceReferences(null, "(" + TENANT_PROPERTY + "=*)");
+        ServiceReference<?>[] references = Tenants.references(context);
         if (references == null || references.length == 0) {
             System.out.println("No tenant is being served. A spec in the tenant directory"
                     + " comes up within a couple of seconds; if one is not appearing, the"
@@ -50,9 +45,9 @@ public class TenantListCommand implements Action {
 
         Map<String, Tenant> tenants = new TreeMap<>();
         for (ServiceReference<?> reference : references) {
-            String code = String.valueOf(reference.getProperty(TENANT_PROPERTY));
+            String code = String.valueOf(reference.getProperty(Tenants.TENANT_PROPERTY));
             Tenant tenant = tenants.computeIfAbsent(code, Tenant::new);
-            Object version = reference.getProperty(FHIR_VERSION_PROPERTY);
+            Object version = reference.getProperty(Tenants.FHIR_VERSION_PROPERTY);
             if (version != null) {
                 tenant.fhirVersion = String.valueOf(version);
             }

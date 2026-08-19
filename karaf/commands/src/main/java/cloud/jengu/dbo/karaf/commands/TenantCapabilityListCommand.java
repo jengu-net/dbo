@@ -3,6 +3,7 @@ package cloud.jengu.dbo.karaf.commands;
 import org.apache.karaf.shell.api.action.Action;
 import org.apache.karaf.shell.api.action.Argument;
 import org.apache.karaf.shell.api.action.Command;
+import org.apache.karaf.shell.api.action.Completion;
 import org.apache.karaf.shell.api.action.Option;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
 import org.apache.karaf.shell.support.table.ShellTable;
@@ -51,6 +52,7 @@ public class TenantCapabilityListCommand implements Action {
 
     @Argument(index = 0, name = "tenant", required = true,
             description = "The tenant code, as dbo-tenant:list reports it.")
+    @Completion(TenantCompleter.class)
     private String tenant;
 
     /**
