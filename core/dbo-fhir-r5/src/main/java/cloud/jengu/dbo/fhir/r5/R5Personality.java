@@ -571,14 +571,7 @@ public final class R5Personality {
      * invented for archives.
      */
     public cloud.jengu.dbo.core.face.PortableRendering portableRendering() {
-        return (payload, id, versionId) -> withTccl(() -> {
-            org.hl7.fhir.r5.model.Resource resource = (org.hl7.fhir.r5.model.Resource)
-                    ctx().newJsonParser()
-                            .parseResource(new String(payload, StandardCharsets.UTF_8));
-            resource.setId(id);
-            resource.getMeta().setVersionId(Long.toString(versionId));
-            return ctx().newJsonParser().encodeResourceToString(resource);
-        });
+        return (payload, id, versionId) -> R5Version.rendered(payload, id, versionId, null, null);
     }
 
     /**
@@ -602,57 +595,61 @@ public final class R5Personality {
     public String toSearchBundle(FeedChunk<StoredObject> chunk, String baseUrl, String typeName,
             Map<String, String> originalParams, List<StoredObject> includedTargets,
             List<String> elements) {
-        return withTccl(() -> {
-            Bundle bundle = new Bundle();
-            bundle.setType(Bundle.BundleType.SEARCHSET);
+        StringBuilder self = new StringBuilder();
+        originalParams.forEach((k, v) ->
+                self.append(self.isEmpty() ? "" : "&").append(k).append('=').append(v));
+        // The self link is not decoration: the specification requires a search
+        // result to say which query produced it, and a client holding a Bundle
+        // with only link[next] cannot repeat, cache or cite the search it ran.
+        String selfUrl = baseUrl + "/" + typeName + (self.isEmpty() ? "" : "?" + self);
+        String nextUrl = null;
+        if (!chunk.drained() && chunk.nextCursor() != null) {
+            StringBuilder qs = new StringBuilder(self);
+            qs.append(qs.isEmpty() ? "" : "&").append("_cursor=").append(chunk.nextCursor());
+            nextUrl = baseUrl + "/" + typeName + "?" + qs;
+        }
+
+        cloud.jengu.dbo.core.face.PayloadFraming framing = R5Version.framing();
+        var frame = framing.frame("searchset",
+                new cloud.jengu.dbo.core.face.PayloadFraming.Facts(null, selfUrl, nextUrl));
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream(4096);
+        try {
+            out.write(frame.prologue());
+            boolean first = true;
             for (StoredObject o : chunk.items()) {
-                Resource resource = (Resource) ctx().newJsonParser()
-                        .parseResource(new String(o.payload(), StandardCharsets.UTF_8));
-                resource.setId(o.id());
-                resource.getMeta().setVersionId(Long.toString(o.versionId()));
-                bundle.addEntry().setResource(resource)
-                        .setFullUrl(baseUrl + "/" + typeName + "/" + o.id())
-                        .getSearch().setMode(Bundle.SearchEntryMode.MATCH);
+                first = writeMember(framing, frame, out, first, o, typeName, baseUrl,
+                        cloud.jengu.dbo.core.face.PayloadFraming.Member.MATCHED, elements);
             }
             if (includedTargets != null) {
                 for (StoredObject o : includedTargets) {
-                    Resource resource = (Resource) ctx().newJsonParser()
-                            .parseResource(new String(o.payload(), StandardCharsets.UTF_8));
-                    resource.setId(o.id());
-                    bundle.addEntry().setResource(resource)
-                            .setFullUrl(baseUrl + "/" + o.typeName() + "/" + o.id())
-                            .getSearch().setMode(Bundle.SearchEntryMode.INCLUDE);
+                    first = writeMember(framing, frame, out, first, o, o.typeName(), baseUrl,
+                            cloud.jengu.dbo.core.face.PayloadFraming.Member.INCLUDED, elements);
                 }
             }
-            // The self link is not decoration: the specification requires a
-            // search result to say which query produced it, and a client
-            // holding a Bundle with only link[next] cannot repeat, cache or
-            // cite the search it just ran.
-            StringBuilder self = new StringBuilder();
-            originalParams.forEach((k, v) ->
-                    self.append(self.isEmpty() ? "" : "&").append(k).append('=').append(v));
-            bundle.addLink().setRelation(org.hl7.fhir.r5.model.Bundle.LinkRelationTypes.SELF)
-                    .setUrl(baseUrl + "/" + typeName + (self.isEmpty() ? "" : "?" + self));
-            if (!chunk.drained() && chunk.nextCursor() != null) {
-                StringBuilder qs = new StringBuilder();
-                originalParams.forEach((k, v) -> qs.append(qs.isEmpty() ? "" : "&").append(k).append('=').append(v));
-                qs.append(qs.isEmpty() ? "" : "&").append("_cursor=").append(chunk.nextCursor());
-                bundle.addLink().setRelation(org.hl7.fhir.r5.model.Bundle.LinkRelationTypes.NEXT)
-                        .setUrl(baseUrl + "/" + typeName + "?" + qs);
-            }
-            var parser = ctx().newJsonParser();
-            if (elements != null) {
-                java.util.Set<String> encode = new java.util.LinkedHashSet<>();
-                encode.add(typeName + ".id");
-                encode.add(typeName + ".meta");
-                for (String el : elements) {
-                    encode.add(typeName + "." + el.trim());
-                }
-                parser.setEncodeElements(encode);
-                parser.setEncodeElementsAppliesToChildResourcesOnly(true);
-            }
-            return parser.encodeResourceToString(bundle);
-        });
+            out.write(frame.epilogue());
+        } catch (java.io.IOException e) {
+            // A ByteArrayOutputStream does not do this; the signature does.
+            throw new java.io.UncheckedIOException(e);
+        }
+        return out.toString(StandardCharsets.UTF_8);
+    }
+
+    /** Writes one member with its separator, and says whether the next is still first. */
+    private boolean writeMember(cloud.jengu.dbo.core.face.PayloadFraming framing,
+            cloud.jengu.dbo.core.face.PayloadFraming.Frame frame,
+            java.io.OutputStream out, boolean first, StoredObject o, String typeName,
+            String baseUrl, String role, List<String> elements) throws java.io.IOException {
+        if (!first) {
+            out.write(frame.separator());
+        }
+        // _elements trims the encoded resource; id and meta are always kept.
+        byte[] payload = elements == null ? o.payload()
+                : R5Version.rendered(o.payload(), o.id(), o.versionId(), typeName, elements)
+                        .getBytes(StandardCharsets.UTF_8);
+        framing.member(new cloud.jengu.dbo.core.face.PayloadFraming.Member(
+                typeName, o.id(), o.versionId(), payload,
+                baseUrl + "/" + typeName + "/" + o.id(), role), out);
+        return false;
     }
 
     /** A count-only searchset Bundle ({@code _summary=count}). */
