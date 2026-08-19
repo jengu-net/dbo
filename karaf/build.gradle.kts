@@ -1,3 +1,5 @@
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.util.Properties
 
 // The development console (docs/plans/karaf-console.md).
@@ -49,10 +51,46 @@ val consoleLauncher = javaToolchains.launcherFor {
 
 val consoleDir = layout.buildDirectory.dir("dbo-console")
 
+// Assembling is destructive: karafHome is a Sync, so it deletes data/ and
+// etc/host.key — the state a running console is living in. Doing that under a
+// live instance leaves it unable to serve a session, and the symptom (nothing
+// works any more) points nowhere near the cause. Karaf writes its pid while it
+// runs; refuse rather than explain this in a README.
+val refuseWhileRunning = tasks.register("refuseWhileRunning") {
+    doLast {
+        val home = consoleDir.get().dir("karaf").asFile
+        val portFile = home.resolve("data/port")
+        if (!portFile.isFile) {
+            return@doLast
+        }
+        // The file alone is not proof: it survives a crash, and a stale one
+        // would block assembly for good. The socket is the liveness test, so a
+        // dead instance's leftovers correct themselves.
+        val port = portFile.readText().trim().toIntOrNull() ?: return@doLast
+        val live = try {
+            Socket().use { socket ->
+                socket.connect(InetSocketAddress("127.0.0.1", port), 500)
+                true
+            }
+        } catch (e: Exception) {
+            false
+        }
+        if (live) {
+            throw GradleException(
+                "A console is running in ${home.path} (shell port $port).\n" +
+                    "Assembling deletes data/ underneath it, which leaves it unable to\n" +
+                    "serve a session. Stop it first:\n" +
+                    "  ${home.path}/bin/stop"
+            )
+        }
+    }
+}
+
 // Stock Karaf, unpacked. The tarball's single top-level directory is stripped
 // so the console lands at a predictable path.
 val karafHome = tasks.register<Sync>("karafHome") {
     description = "Unpacks a stock Karaf for the development console."
+    dependsOn(refuseWhileRunning)
     into(consoleDir.map { it.dir("karaf") })
     from(tarTree(resources.gzip(karafDist.singleFile))) {
         eachFile { relativePath = RelativePath(true, *relativePath.segments.drop(1).toTypedArray()) }
@@ -123,23 +161,15 @@ val console = tasks.register("console") {
         // started against a half-present set. Installing a location that is
         // already installed returns the existing bundle, which is what makes
         // this script safe to re-run after a restart.
+        // The declared set, in install order, for dbo:up to bring up. A
+        // property rather than a script, because before the first install the
+        // container has no way to know what it is meant to hold — and once it
+        // does hold it, every other question is answered by asking the
+        // container instead.
         val coordinates = runtimeModules.map(::moduleCoordinate) +
             runtimeExternal.map(::externalCoordinate)
-
-        home.resolve("dbo.karaf").writeText(
-            buildString {
-                appendLine("# The dbo development console. Re-runnable: installing an")
-                appendLine("# already-installed location returns the existing bundle.")
-                appendLine("#   karaf@root()> shell:source dbo.karaf")
-                appendLine()
-                appendLine("bundle:install -s " + coordinates.joinToString(" "))
-                appendLine()
-                appendLine("# Derives the watch set from what is installed, so this script")
-                appendLine("# carries no second copy of the bundle list to keep in step.")
-                appendLine("dbo:watch")
-                appendLine()
-                appendLine("bundle:list")
-            }
+        home.resolve("etc/system.properties").appendText(
+            "dbo.console.bundles=" + coordinates.joinToString(",") + "\n"
         )
 
         // Felix computes the system bundle's exports from the running JDK's
@@ -193,7 +223,7 @@ val console = tasks.register("console") {
         logger.lifecycle("")
         logger.lifecycle("dbo console assembled: ${home.path}")
         logger.lifecycle("  start it:  ${home.path}/bin/karaf")
-        logger.lifecycle("  then:      shell:source dbo.karaf")
+        logger.lifecycle("  then:      dbo:up")
         logger.lifecycle("  tenants:   ${tenantDir.path}  (*.json, reconciled every 2s)")
         logger.lifecycle("")
     }
