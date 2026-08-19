@@ -47,6 +47,26 @@ public interface FhirStoreFacade {
     /** CapabilityStatement generated from the configured types (REQ-DBO-SRCH-HONEST-CAPABILITY). */
     String capabilityStatement(String baseUrl);
 
+    /**
+     * The operations this store answers, for the router and the statement
+     * alike (#51). One list, two readers — that is the whole point.
+     */
+    default java.util.List<FhirOperation> operations() {
+        return java.util.List.of();
+    }
+
+    /**
+     * The statement, declaring exactly the operations that were registered.
+     *
+     * <p>The list is passed rather than guessed. An earlier attempt threaded a
+     * boolean saying whether terminology was wired, so the generator could
+     * infer what the router would answer — which is how the two drift.
+     */
+    default String capabilityStatement(String baseUrl,
+            java.util.Collection<FhirOperation> served) {
+        return capabilityStatement(baseUrl);
+    }
+
     /** An OperationOutcome document for error responses. */
     /**
      * Would this resource be accepted — answered without writing it (#48).

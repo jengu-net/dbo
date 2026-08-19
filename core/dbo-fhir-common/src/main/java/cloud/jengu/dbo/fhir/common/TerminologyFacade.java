@@ -17,6 +17,13 @@ import java.util.Optional;
  */
 public interface TerminologyFacade {
 
+    /**
+     * The operations this facade answers (#51). A facade that was never wired
+     * is never asked, so nothing it offers is routed or declared — the absence
+     * says itself.
+     */
+    java.util.List<FhirOperation> operations();
+
     /** What an ingest did: the engine's result, and how many concepts landed. */
     record IngestResult(String id, long versionId, long conceptCount) {}
 

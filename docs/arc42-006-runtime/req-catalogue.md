@@ -119,7 +119,7 @@ deliberately have no REQs yet — they get them when scheduled.
 |---|---|
 | REQ-DBO-SRCH-TIER1-PARITY | Every search feature a production healthcare platform actually issues works identically ([inventory](../evidence/search-usage-inventory.md)). (§7.5) |
 | REQ-DBO-SRCH-STRICT-BY-DEFAULT | An unsupported search parameter is rejected, never silently ignored. (§7.5) |
-| REQ-DBO-SRCH-HONEST-CAPABILITY | Each personality's CapabilityStatement is generated from what is actually implemented. (§7.5) |
+| REQ-DBO-SRCH-HONEST-CAPABILITY | The CapabilityStatement is generated from what the server actually serves — the configured types, their supported search parameters, and the operations registered by the facades that were wired. An operation is declared because it is routable: the router and the statement read one list, so neither a served-but-undeclared operation nor a declared-but-unanswered one is expressible. (§1, §7.6) |
 | REQ-DBO-SRCH-TYPED-ORDERING | Sorting and range filtering are typed — numeric, date and token semantics are correct, with matching indexes. (D3) |
 | REQ-DBO-SRCH-DECLARED-INDEXES | Indexing (including side tables for hard parameters) is declared by the personality as part of its search contract, from day one. (§3, §9) |
 | REQ-DBO-SRCH-CUSTOM-PARAMETERS | A tenant or module can register a custom search parameter; extraction, reindex and the new index follow automatically. (§7.5) |

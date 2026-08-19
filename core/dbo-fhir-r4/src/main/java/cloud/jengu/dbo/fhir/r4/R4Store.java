@@ -34,6 +34,44 @@ public final class R4Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
 
     /** Validate then create; returns after the single-transaction commit. */
     /**
+     * What this store answers (#51): {@code $validate}, on every type it serves.
+     *
+     * <p>Registered rather than routed by name, so it is announced by the same
+     * act that makes it reachable.
+     */
+    @Override
+    public java.util.List<cloud.jengu.dbo.fhir.common.FhirOperation> operations() {
+        return java.util.List.of(new cloud.jengu.dbo.fhir.common.FhirOperation() {
+            @Override
+            public String name() {
+                return "validate";
+            }
+
+            @Override
+            public String definition() {
+                return "http://hl7.org/fhir/OperationDefinition/Resource-validate";
+            }
+
+            @Override
+            public java.util.Set<String> types() {
+                return personality.configuredTypes();
+            }
+
+            @Override
+            public Answer answer(String typeName, java.util.Map<String, String> query, String body) {
+                String mode = query.getOrDefault("mode", "create");
+                if (!"create".equals(mode) && !"update".equals(mode)) {
+                    return Answer.status(400, operationOutcome("invalid",
+                            "unsupported $validate mode: " + mode));
+                }
+                // 200 whatever the verdict: a caller who asked correctly did
+                // not make a bad request, and the outcome carries the answer.
+                return Answer.ok(validationOutcome(body));
+            }
+        });
+    }
+
+    /**
      * Would this be accepted (#48) — the first half of {@link #create}, without
      * the second. The verdict is the write's own, so the two cannot drift.
      */
@@ -179,7 +217,13 @@ public final class R4Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
 
     @Override
     public String capabilityStatement(String base) {
-        return personality.capabilityStatement(base);
+        return personality.capabilityStatement(base, java.util.List.of());
+    }
+
+    @Override
+    public String capabilityStatement(String base,
+            java.util.Collection<cloud.jengu.dbo.fhir.common.FhirOperation> served) {
+        return personality.capabilityStatement(base, served);
     }
 
     @Override

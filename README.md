@@ -65,7 +65,8 @@ sharing a family — not two versions of the store.
   substitute. Cold start is about five seconds.
 - **Honest.** Search is strict — an unsupported parameter is a 400, never a
   quietly broader result set — and the CapabilityStatement is generated from
-  what is actually implemented.
+  what is actually served: an operation is declared because it is routable,
+  from the same list the router dispatches on.
 
 ## Status
 
