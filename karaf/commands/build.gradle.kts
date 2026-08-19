@@ -19,6 +19,10 @@ dependencies {
     compileOnly("org.apache.karaf.shell:org.apache.karaf.shell.core:$karafVersion")
     compileOnly("org.apache.karaf.bundle:org.apache.karaf.bundle.core:$karafVersion")
     compileOnly("org.osgi:osgi.core:8.0.0")
+    // JSR-353. The container already exports javax.json (Johnzon, by way of
+    // Karaf), so reading one known document shape needs no parser of ours —
+    // this project already carries five private copies of a minimal one.
+    compileOnly("javax.json:javax.json-api:1.1.4")
 }
 
 tasks.jar {
