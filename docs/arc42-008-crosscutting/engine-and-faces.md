@@ -294,14 +294,13 @@ them.
 public interface PayloadFraming {
     record Member(String typeName, byte[] payload, MemberFacts facts) {}
 
-    Frame open(String frameType, OutputStream out);        // searchset, history, export
+    /** What a document looks like around its members. */
+    record Frame(byte[] prologue, byte[] separator, byte[] epilogue) {}
 
-    interface Frame extends AutoCloseable {
-        void member(Member member);                        // payload passes through untouched
-        @Override void close();                            // closes the document
-    }
+    Frame frame(String frameType, FrameFacts facts);   // total, self, links: known before iterating
+    void member(Member member, OutputStream out);      // wrapper + payload, straight through
 
-    void unframe(InputStream document, MemberSink sink);   // transaction, batch, import
+    Stream<Member> unframe(InputStream document);      // transaction, batch, import
 }
 ```
 
@@ -309,15 +308,29 @@ public interface PayloadFraming {
 the engine knows about a member and the face says in its own vocabulary — which is the
 ancestor-rendering obligation above, not a second one.
 
-**The engine drives, the face spells.** Taking a list and returning a document would hold
-a whole page in memory, which contradicts the reason a set is streamed at all. Handing
-the face a lazy sequence instead would be worse: a lazy sequence over a search is an open
-cursor inside a transaction, so a face that pulls decides how long that transaction lives
-and what becomes of it when the face throws halfway down a page. That is a face acting
-rather than translating, and the rule that the engine never re-enters itself through one
-exists to prevent exactly that. So the engine reads a row, converts it, applies whatever
-the membrane owes it, hands over one member and forgets it. Memory is one member, not one
-page.
+**The face describes the document; the caller writes it.** Taking a list of members and
+returning a document would hold a whole page in memory, which contradicts the reason a set
+is streamed at all. Returning a sink for the caller to fill would be better and still
+wrong in kind: it is a lifecycle, and something with a lifetime spanning a loop is
+something a face could hold a cursor in. So the face says what goes around the members —
+a prologue, a separator, an epilogue — and how one member is spelled, and the caller
+writes the prologue, then a separator before every member but the first, then the
+epilogue. The only state is which member is first, and that is loop bookkeeping rather
+than format knowledge: the separator comes from the face, so nothing above learns that
+one format wants commas and another wants newlines.
+
+Writing a member to a stream rather than returning its bytes is what keeps the payload
+from being copied on its way out — the face writes its wrapper and then the stored bytes
+straight through. Memory is one member, not one page, and the bytes a reader receives are
+the bytes that were authored.
+
+**Unframing may hand back a sequence, and the difference is the point.** The reason a face
+must not pull is that a lazy read over a search is an open cursor inside a transaction, so
+a face that pulls decides how long that transaction lives and what becomes of it when the
+face throws halfway down a page. Unframing reads a document the caller already has — a
+request body, an archive being imported — where there is no cursor and no transaction to
+outlive. The rule is not that a face never pulls; it is that a face never reaches into the
+store, and saying which keeps the seam honest instead of merely symmetrical.
 
 That also puts enrichment where it has to be. Decrypting an identifying element reads the
 vault, and a face must not — so the membrane sits in the engine's loop, between the
@@ -328,12 +341,14 @@ should see.
 unit the whole path wants, and each step is a map over it:
 
 ```java
-try (Stream<Member> rows = engine.page(query);      // cursor-backed; closes with the stream
-     Frame frame = face.open("searchset", out)) {
+Frame frame = face.frame("searchset", facts);
+out.write(frame.prologue());
+try (Stream<Member> rows = engine.page(query)) {     // cursor-backed; closes with the stream
     rows.map(converters::upgrade)                    // per object, pure
         .map(membrane::reveal)                       // reads the vault, so it is the engine's
-        .forEach(frame::member);
+        .forEach(separatedBy(frame.separator(), member -> face.member(member, out)));
 }
+out.write(frame.epilogue());
 ```
 
 Nothing in that stream belongs to the face — it holds the cursor, the transaction and the
