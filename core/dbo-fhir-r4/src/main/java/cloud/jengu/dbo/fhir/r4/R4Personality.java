@@ -81,7 +81,7 @@ public final class R4Personality {
      * contract, as against the outward facade a server calls.
      */
     public cloud.jengu.dbo.core.face.DomainFace face() {
-        return cloud.jengu.dbo.fhir.common.FhirFace.of("r4");
+        return R4Version.face();
     }
 
     public R4Personality(List<FhirTypeConfig> typeConfigs) {
@@ -554,29 +554,11 @@ public final class R4Personality {
      * machine — which is the bug #42 was.
      */
     private ValidationResult validated(IBaseResource resource) {
-        ValidationResult result = validator().validateWithResult(resource);
-        if (issuesFrom(result).stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
-            // A regex that ran out of wall clock found nothing; asking again is
-            // the only answer that is not a guess.
-            result = validator().validateWithResult(resource);
-        }
-        List<String> issues = issuesFrom(result);
-        if (issues.stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
-            // Twice is not a busy moment, and it is still not a finding.
-            throw new cloud.jengu.dbo.fhir.common.ValidationUnavailableException(
-                    resource.fhirType(),
-                    issues.stream().filter(i -> i.contains(REGEX_TIMED_OUT))
-                            .findFirst().orElse(REGEX_TIMED_OUT));
-        }
-        return result;
+        return R4Version.validated(resource);
     }
 
     private static List<String> issuesFrom(ValidationResult result) {
-        return result.getMessages().stream()
-                .filter(m -> m.getSeverity() == ResultSeverityEnum.ERROR
-                        || m.getSeverity() == ResultSeverityEnum.FATAL)
-                .map(m -> m.getSeverity() + " " + m.getLocationString() + ": " + m.getMessage())
-                .toList();
+        return R4Version.issuesFrom(result);
     }
 
     /**
@@ -873,12 +855,7 @@ public final class R4Personality {
      * the two of you has a bug.
      */
     private IBaseResource parse(String resourceJson) {
-        try {
-            return ctx().newJsonParser().parseResource(resourceJson);
-        } catch (ca.uhn.fhir.parser.DataFormatException e) {
-            throw new IllegalArgumentException("body is not parseable FHIR JSON: "
-                    + e.getMessage(), e);
-        }
+        return R4Version.parse(resourceJson);
     }
 
     /** The canonical url of a canonical resource JSON. */
