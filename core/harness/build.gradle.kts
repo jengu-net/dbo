@@ -4,6 +4,8 @@ dependencies {
     testImplementation(project(":core:dbo-test-model"))
     testImplementation(project(":core:dbo-fhir-r4"))
     testImplementation(project(":core:dbo-fhir-r5"))
+    // the element-model face: one implementation, and R6 is its first version
+    testImplementation(project(":core:dbo-fhir-element"))
     testImplementation(project(":core:dbo-rest"))
     testImplementation(project(":core:dbo-sync"))
     testImplementation(project(":core:dbo-maintenance"))
@@ -42,6 +44,7 @@ tasks.test {
         project(":core:dbo-postgres").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
     )
     dependsOn(":core:dbo-terminology:jar", ":core:dbo-fhir-r5:jar", ":core:dbo-fhir-stack:jar",
+        ":core:dbo-fhir-element:jar",
         ":core:dbo-fhir-common:jar", ":core:dbo-subscriptions:jar", ":core:dbo-rest:jar",
         ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar",
         ":core:dbo-tenant-k8s:jar", ":core:dbo-auth:jar", ":core:dbo-pdi:jar", ":core:dbo-policy:jar",
@@ -62,6 +65,7 @@ tasks.test {
         "dbo.auth.jar" to "dbo-auth",
         "dbo.pdi.jar" to "dbo-pdi",
         "dbo.policy.jar" to "dbo-policy",
+        "dbo.fhir.element.jar" to "dbo-fhir-element",
     )) {
         systemProperty(
             prop,

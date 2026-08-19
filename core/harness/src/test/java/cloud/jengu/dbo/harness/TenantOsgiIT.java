@@ -77,7 +77,9 @@ class TenantOsgiIT {
                 // the HL7/HAPI engine both personalities import from
                 "dbo.fhir.stack.jar",
                 "dbo.terminology.jar", "dbo.subscriptions.jar", "dbo.fhir.r4.jar",
-                "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar", "dbo.pdi.jar", "dbo.policy.jar",
+                "dbo.fhir.r5.jar",
+                // one face, carrying every version whose definitions it embeds
+                "dbo.fhir.element.jar", "dbo.rest.jar", "dbo.auth.jar", "dbo.pdi.jar", "dbo.policy.jar",
                 // the manager wires declared content dependencies —
                 // without this bundle the tenant bundle does not resolve
                 "dbo.sync.jar",
@@ -118,10 +120,10 @@ class TenantOsgiIT {
         // learns a version; there is no list to edit.
         ServiceReference<?>[] faces = ctx.getAllServiceReferences(
                 "cloud.jengu.dbo.fhir.common.FhirVersion", null);
-        assertTrue(faces != null && faces.length >= 2,
+        assertTrue(faces != null && faces.length >= 3,
                 "the installed faces must announce themselves: "
                         + (faces == null ? 0 : faces.length));
-        for (String code : List.of("r4", "r5")) {
+        for (String code : List.of("r4", "r5", "r6")) {
             ServiceReference<?>[] one = ctx.getAllServiceReferences(
                     "cloud.jengu.dbo.fhir.common.FhirVersion", "(fhir.version=" + code + ")");
             assertTrue(one != null && one.length == 1,
