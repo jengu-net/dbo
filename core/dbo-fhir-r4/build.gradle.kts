@@ -23,6 +23,8 @@ dependencies {
     // runtime instead of a private one per bundle. compileOnly because
     // it resolves from the slf4j-api bundle at runtime.
     compileOnly("org.slf4j:slf4j-api:2.0.18")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:8.10.1") {
         isTransitive = false
     }
@@ -130,4 +132,11 @@ tasks.jar {
             )
         }
     }
+}
+
+// The R5 core package loads eagerly; a default heap dies as HAPI-2330 with a
+// null message, three frames above an OutOfMemoryError nobody sees.
+tasks.test {
+    useJUnitPlatform()
+    maxHeapSize = "2g"
 }

@@ -75,8 +75,6 @@ public final class R4Personality {
     public static final String PAYLOAD_VERSION = "4.0";
 
     private final Map<String, FhirTypeConfig> types = new LinkedHashMap<>();
-    private volatile FhirContext ctx;
-    private volatile FhirValidator validator;
 
     /**
      * What this personality provides to the engine — the inward
@@ -922,44 +920,16 @@ public final class R4Personality {
         return ctx();
     }
 
-    private synchronized FhirContext ctx() {
-        if (ctx == null) {
-            ctx = withTccl(FhirContext::forR4);
-        }
-        return ctx;
+    /** The version's, not this tenant's — see the version holder for why. */
+    private FhirContext ctx() {
+        return R4Version.context();
     }
 
-    private synchronized FhirValidator validator() {
-        if (validator == null) {
-            validator = withTccl(() -> {
-                FhirContext c = ctx();
-                ValidationSupportChain chain = new ValidationSupportChain(
-                        new DefaultProfileValidationSupport(c),
-                        new InMemoryTerminologyServerValidationSupport(c),
-                        new CommonCodeSystemsTerminologyService(c));
-                FhirValidator v = c.newValidator();
-                v.registerValidatorModule(new FhirInstanceValidator(chain));
-                return v;
-            });
-        }
-        return validator;
+    private FhirValidator validator() {
+        return R4Version.validator();
     }
 
-    /**
-     * HAPI landmine: service discovery is TCCL-based; pin the loader that owns
-     * the stack. Asked for by way of a HAPI class rather than this one, because
-     * the engine lives in a bundle of its own: the ServiceLoader lookup behind
-     * CacheFactory only finds its provider from the loader carrying the engine's
-     * META-INF/services, and that is no longer this personality's loader.
-     */
     private <T> T withTccl(Supplier<T> body) {
-        Thread t = Thread.currentThread();
-        ClassLoader old = t.getContextClassLoader();
-        t.setContextClassLoader(FhirContext.class.getClassLoader());
-        try {
-            return body.get();
-        } finally {
-            t.setContextClassLoader(old);
-        }
+        return R4Version.withTccl(body);
     }
 }
