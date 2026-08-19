@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.fhir.r4;
+package cloud.jengu.dbo.fhir.r5;
 
 import cloud.jengu.dbo.core.api.Identifier;
 import cloud.jengu.dbo.core.api.ObjectStore;
@@ -8,11 +8,11 @@ import cloud.jengu.dbo.fhir.common.TerminologyFacade.IngestResult;
 import cloud.jengu.dbo.terminology.Compose;
 import cloud.jengu.dbo.terminology.Concept;
 import cloud.jengu.dbo.terminology.TerminologyStore;
-import org.hl7.fhir.r4.model.BooleanType;
-import org.hl7.fhir.r4.model.CodeSystem;
-import org.hl7.fhir.r4.model.Parameters;
-import org.hl7.fhir.r4.model.StringType;
-import org.hl7.fhir.r4.model.ValueSet;
+import org.hl7.fhir.r5.model.BooleanType;
+import org.hl7.fhir.r5.model.CodeSystem;
+import org.hl7.fhir.r5.model.Parameters;
+import org.hl7.fhir.r5.model.StringType;
+import org.hl7.fhir.r5.model.ValueSet;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -22,22 +22,22 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * The R4 face of the normalized terminology store (§6): CodeSystem metadata
+ * The R5 face of the normalized terminology store (§6): CodeSystem metadata
  * SHELLS go through the object engine (identity, history, feed), concepts go
  * native; the resource form is a projection reassembled on demand — the
  * declared truth-form inversion (REQ-DBO-CORE-DECLARED-TRUTH-FORM).
  * Public surface: JSON in, JSON out (§7.3).
  */
-public final class R4Terminology implements cloud.jengu.dbo.fhir.common.TerminologyFacade {
+public final class R5Terminology implements cloud.jengu.dbo.fhir.common.TerminologyFacade {
 
     /** Preserves the original CodeSystem.content across the shell round-trip. */
     static final String ORIGINAL_CONTENT_EXT = "https://dbo.dev/fhir/ext/original-content";
 
     private final ObjectStore store;
-    private final R4Personality personality;
+    private final R5Personality personality;
     private final TerminologyStore terminology;
 
-    public R4Terminology(ObjectStore store, R4Personality personality, TerminologyStore terminology) {
+    public R5Terminology(ObjectStore store, R5Personality personality, TerminologyStore terminology) {
         this.store = store;
         this.personality = personality;
         this.terminology = terminology;
@@ -63,10 +63,10 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.Terminol
         if (cs.hasContent()) {
             shell.addExtension(ORIGINAL_CONTENT_EXT, new StringType(cs.getContent().toCode()));
         }
-        shell.setContent(CodeSystem.CodeSystemContentMode.NOTPRESENT);
+        shell.setContent(org.hl7.fhir.r5.model.Enumerations.CodeSystemContentMode.NOTPRESENT);
         String shellJson = personality.ctxInternal().newJsonParser().encodeResourceToString(shell);
 
-        PutResult engineResult = new R4Store(store, personality, "").putCanonical(shellJson);
+        PutResult engineResult = new R5Store(store, personality, "").putCanonical(shellJson);
         long imported = terminology.importSystem(url, cs.getVersion(), flat.iterator());
         return new IngestResult(engineResult.id(), engineResult.versionId(), imported);
     }
@@ -74,14 +74,14 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.Terminol
     @Override
     public PutResult ingestValueSet(String valueSetJson) {
         ValueSet vs = (ValueSet) personality.ctxInternal().newJsonParser().parseResource(valueSetJson);
-        PutResult result = new R4Store(store, personality, "").putCanonical(valueSetJson);
+        PutResult result = new R5Store(store, personality, "").putCanonical(valueSetJson);
 
         List<Compose.Include> includes = new ArrayList<>();
         for (ValueSet.ConceptSetComponent inc : vs.getCompose().getInclude()) {
             String isA = null;
             for (ValueSet.ConceptSetFilterComponent f : inc.getFilter()) {
                 if ("concept".equals(f.getProperty())
-                        && f.getOp() == ValueSet.FilterOperator.ISA) {
+                        && f.getOp() == org.hl7.fhir.r5.model.Enumerations.FilterOperator.ISA) {
                     isA = f.getValue();
                 }
             }
@@ -133,7 +133,7 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.Terminol
                 .parseResource(new String(shells.get(0).payload(), StandardCharsets.UTF_8));
         var originalContent = shell.getExtensionByUrl(ORIGINAL_CONTENT_EXT);
         if (originalContent != null) {
-            shell.setContent(CodeSystem.CodeSystemContentMode
+            shell.setContent(org.hl7.fhir.r5.model.Enumerations.CodeSystemContentMode
                     .fromCode(originalContent.getValue().primitiveValue()));
             shell.getExtension().removeIf(e -> ORIGINAL_CONTENT_EXT.equals(e.getUrl()));
         }
@@ -202,7 +202,7 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.Terminol
             TerminologyStore.Expansion expansion = terminology.expand(compose, filter, offset, count);
             ValueSet vs = new ValueSet();
             vs.setUrl(valueSetUrl);
-            vs.setStatus(org.hl7.fhir.r4.model.Enumerations.PublicationStatus.ACTIVE);
+            vs.setStatus(org.hl7.fhir.r5.model.Enumerations.PublicationStatus.ACTIVE);
             ValueSet.ValueSetExpansionComponent exp = vs.getExpansion();
             exp.setTotal((int) expansion.total());
             exp.setOffset(offset);
