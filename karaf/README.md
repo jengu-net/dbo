@@ -51,7 +51,10 @@ already running.
 updated and refreshed in place. Nothing else has to happen for a change to
 reach the running container.
 
-`dbo-console:watch` registers the set, and `dbo-console:up` finishes by calling it. It derives it from what is installed rather than
+`dbo-console:watch` registers the set, and `dbo-console:up` finishes by calling
+it. The logging binding and any fragment are never watched: re-reading the
+binding is how the container goes quiet, and a container that has gone quiet
+cannot tell you so. It derives it from what is installed rather than
 from a list, so a new bundle needs nothing remembered, and it skips the ones
 carrying a heavy embedded stack — a publish rewrites every jar, and re-reading
 a hundred megabytes on each one buys nothing when the change is almost never in
@@ -120,6 +123,63 @@ not know which operations were actually registered, and the security block is
 added at the serving edge — so the registry would report less than the tenant
 actually promises. `/metadata` is the one path the guard exempts, so this needs
 no token.
+
+## Worth knowing
+
+**Tenants are live.** The spec directory is reconciled every two seconds, so a
+`*.json` dropped into `karaf/dev/tenants` brings a tenant up and removing it
+takes one down. `karaf/dev/tenants/dev.json` is an R4 tenant with a Patient and
+an Observation.
+
+**What to look at when something breaks.** `bundle:diag` names unsatisfied
+requirements, `package:exports` and `bundle:tree-show` explain who wires to
+whom. That is the whole point of the console: the characteristic failure here
+resolves at build time and dies on first use, and a red test says only that it
+happened.
+
+**The container's own startup line** reports the posture it resolved —
+provisioner, authority, bind address, spec directory. If it disagrees with what
+you expected, the disagreement is the finding.
+
+**This is not the distribution's logging.** The console keeps Karaf's
+pax-logging rather than installing `dbo-logging` and its slf4j-api host. So
+`log:tail` and `log:set` work here — including changing a level while it runs,
+which the product's own arrangement cannot do at all, since `DboLogging` reads
+its level into a `static final` once and has no per-logger filtering. The cost
+is that a fault in the real logging arrangement is invisible here.
+
+`-Pdbo.karaf.logging=dbo` assembles the console with the distribution's
+arrangement instead — slf4j-api, `dbo-logging`, and SPI-Fly as a dynamic bundle
+rather than the framework extension the distribution uses, because an extension
+can only attach at framework init.
+
+`-Pdbo.karaf.logging=dbo` assembles the console on the distribution's own
+arrangement instead: slf4j-api, `dbo-logging`, SPI-Fly, and **no features
+service**. It works — Karaf boots, the shell comes up, `dbo-console:up` brings
+the store up, and the log is the product's own writer.
+
+It is featureless because subtracting pax-logging from a feature-based Karaf
+does not converge. pax-logging exports `org.slf4j` at 1.7 *and* 2.0 at once and
+Karaf's plumbing is built across both, so every boot feature reaches for it:
+`wrap` reinstalls it as a dependency and quietly undoes the substitution, and
+dropping `wrap` moves the failure to `management`, then `jaas`. So the startup
+set is written out directly — the whole runtime in start-level order, resolved
+at build time in a list you can read.
+
+What that costs, beyond `log:set` and `log:tail`: no `feature:*` commands, no
+`kar`, no `instance`, no `management`/JMX. What it keeps: the shell over ssh,
+`bundle:*` including the watcher, `config:*`, `service:*`, `package:*`, and the
+`dbo-*` commands.
+
+Four things had to be true, each a way Karaf differs from the distribution:
+SPI-Fly must be the **framework extension** (the dynamic bundle carries no ASM
+and imports it from a container that has none); the Felix **Log Service**
+supplies `org.osgi.service.log`, which only pax-logging otherwise exports; the
+**JCL bridge** carries Karaf's JAAS modules into slf4j; and `karaf/slf4j-compat`
+re-exports slf4j-api's own packages at 1.7 versions, because pax-url-aether —
+the `mvn:` handler `bundle:watch` reads through — wants `org.slf4j.spi;[1.7,2.0)`
+and supplying the real 1.7 API beside the 2.x one puts two class spaces in one
+wiring and dies on `ILoggerFactory`.
 
 ## Worth knowing
 

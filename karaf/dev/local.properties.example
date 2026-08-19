@@ -30,3 +30,9 @@ dbo.tenant.auth.issuer.base=http://127.0.0.1:8090
 # text, because a person is reading this one. The distribution defaults to json.
 dbo.log.level=info
 dbo.log.format=text
+
+# dbo.log.level governs this product's own loggers; everything else is WARN, so
+# a library's routine chatter stays out of the stream. Karaf's bundle watcher is
+# one of the few foreign loggers worth hearing from — it says when a republished
+# bundle reached the container, which is the whole loop.
+dbo.log.level.org.apache.karaf.bundle=info

@@ -57,6 +57,15 @@ final class ConsoleBundles {
         return ours;
     }
 
+    /**
+     * The bundle carrying the slf4j binding, identified by the capability that
+     * makes it the binding rather than by its name.
+     */
+    static boolean isLoggingBinding(Bundle bundle) {
+        String provided = bundle.getHeaders().get(Constants.PROVIDE_CAPABILITY);
+        return provided != null && provided.contains("SLF4JServiceProvider");
+    }
+
     /** A fragment has no lifecycle of its own; starting one throws. */
     static boolean isFragment(Bundle bundle) {
         return bundle.getHeaders().get(Constants.FRAGMENT_HOST) != null;
