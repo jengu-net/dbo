@@ -63,6 +63,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
              */
             cloud.jengu.dbo.core.face.GrainCodec grain) {}
 
+    /**
+     * A dependent reached before its upstream. Not a failure: the scan comes
+     * round again, and by then the upstream is up. It exists so the log can
+     * say that rather than reporting an error that fixes itself.
+     */
+    static final class UpstreamNotReady extends IllegalStateException {
+        UpstreamNotReady(String dependent, String upstream) {
+            super("tenant '" + dependent + "' declares a dependency on '" + upstream
+                    + "', which is not up yet — waiting for the next scan");
+        }
+    }
+
     public interface Listener {
         void tenantUp(TenantRuntime runtime);
 
@@ -194,6 +206,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             // that will never parse would otherwise write the
                             // same stack until the disk filled — burying the
                             // one line that mattered.
+                            if (e instanceof UpstreamNotReady notReady) {
+                                // Expected on the way up, so it is not an error
+                                // and does not enter the suppression set: the
+                                // next scan is where it resolves.
+                                LOG.debug("{}", notReady.getMessage());
+                                return;
+                            }
                             String signature = f.getFileName() + ":" + e;
                             if (reportedFailures.add(signature)) {
                                 LOG.error("tenant bring-up failed: spec={} (further identical "
@@ -366,6 +385,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> engines = new java.util.ArrayList<>();
         for (TenantSpec.Dependency dependency : spec.dependencies()) {
             TenantRuntime upstream = runtimes.get(dependency.name());
+            if (upstream == null) {
+                // Bring-up order comes from Files.list, so a dependent can be
+                // reached before the tenant it streams from. That is normal and
+                // temporary — the scan retries — but the null used to travel to
+                // upstream.feed() and arrive as a NullPointerException naming a
+                // local variable. Say which tenant is waiting for which.
+                throw new UpstreamNotReady(spec.code(), dependency.name());
+            }
             engines.add(new cloud.jengu.dbo.sync.ContentSyncEngine(
                     new cloud.jengu.dbo.sync.ContentDependency(
                             dependency.name(), dependency.types()),

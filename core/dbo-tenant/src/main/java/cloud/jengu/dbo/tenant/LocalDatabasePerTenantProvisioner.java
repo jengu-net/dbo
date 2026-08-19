@@ -80,14 +80,67 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
         this.rpClientId = clientId;
     }
 
+    /**
+     * How long a caller asking for a secret waits for provisioning to produce
+     * one. Generous, because it is only ever spent when the answer would
+     * otherwise have been wrong.
+     */
+    static final java.time.Duration SECRET_WAIT = java.time.Duration.ofSeconds(10);
+
     /** Dev/test convenience: the generated relying-party client secret. */
     public String rpClientSecret(String tenantCode) {
-        return rpSecrets.get(tenantCode);
+        return awaitSecret(rpSecrets, tenantCode, "relying-party", SECRET_WAIT);
     }
 
     /** Dev/test convenience: the generated bootstrap-client secret (§13). */
     public String bootstrapClientSecret(String tenantCode) {
-        return bootstrapSecrets.get(tenantCode);
+        return awaitSecret(bootstrapSecrets, tenantCode, "bootstrap", SECRET_WAIT);
+    }
+
+    /**
+     * Waits for the secret, then refuses to invent one.
+     *
+     * <p>Both of these used to answer {@code null} for a tenant whose
+     * provisioning had not finished, and a scan returning is not provisioning
+     * having finished. The null then travelled — into {@code URLEncoder.encode},
+     * which reports a null string rather than a missing tenant, so the
+     * diagnosis arrived two frames from the cause and named neither the tenant
+     * nor the reason.
+     *
+     * <p>So: wait for the condition rather than for the call, and if it never
+     * arrives, say which tenant and which secret. A caller cannot do anything
+     * useful with a null here — every one of them is about to put it in a
+     * request.
+     */
+    private static String awaitSecret(java.util.Map<String, String> secrets, String tenantCode,
+            String which, java.time.Duration wait) {
+        long deadline = System.nanoTime() + wait.toNanos();
+        while (true) {
+            String secret = secrets.get(tenantCode);
+            if (secret != null) {
+                return secret;
+            }
+            if (System.nanoTime() >= deadline) {
+                throw new IllegalStateException("tenant '" + tenantCode + "' has no " + which
+                        + " secret after " + wait.toMillis() + "ms: it has not been provisioned"
+                        + " (a scan that returned is not provisioning that finished)");
+            }
+            try {
+                Thread.sleep(25);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("interrupted waiting for tenant '"
+                        + tenantCode + "' to be provisioned", interrupted);
+            }
+        }
+    }
+
+    /**
+     * As above, with the caller's own deadline — for a caller that would rather
+     * be told quickly than wait the default out.
+     */
+    public String bootstrapClientSecret(String tenantCode, java.time.Duration wait) {
+        return awaitSecret(bootstrapSecrets, tenantCode, "bootstrap", wait);
     }
 
     /**
