@@ -386,6 +386,35 @@ things, so framing and unframing may be offered over streams as well as arrays w
 the abstraction lying about what it can do. The single resource stays an array; the set
 is where the stream belongs, along with blobs.
 
+**A face is a service, and a capability is ordered rather than held.** These functions are
+passive: a caller asks the face for one when it needs it, and what stands behind it — a
+pooled parser, a thread, a cache — is the providing bundle's business and nobody else's.
+The thing to ask is the face itself, registered in the service registry under its code,
+with capabilities looked up by type the way `DeclaredFace` was built for. That is also
+what turns the closed list of versions into a question with an answer: a tenant declaring
+a face the container has no service for is refused because nothing provides it, not
+because a validator names two strings.
+
+Three things follow from the provider being free behind the service, and each is a way to
+get it wrong.
+
+*A capability is not held across service dynamics.* A personality bundle can be stopped or
+updated — the development console does that on every republish — and a field still
+holding a capability from the previous revision is an object with a dead classloader
+behind it, failing later as something that looks like anything but that. Ask per
+operation, or track the service.
+
+*Internal concurrency must not become visible concurrency.* Writing a member goes into the
+caller's stream, so whatever a provider does behind the scenes it returns having written,
+in the order it was called. The engine owns order and back-pressure because a page is
+ordered and the reader is the brake; a provider that parallelised its way to out-of-order
+entries would be correct alone and wrong in the pipeline.
+
+*Nothing outlives the call.* A face may use a thread to compute; it may not keep work
+running past the call that asked, because then its lifetime stops being the engine's to
+reason about. That is the translator-not-an-actor rule in the one form it does not
+currently spell out.
+
 **They are version-scoped, which is why they are capabilities.** A codec, a validator and
 a converter know what a version defines and nothing about a tenant, so they sit in set 1
 and `DeclaredFace` fits them exactly. Envelope extraction does not: it depends on the
