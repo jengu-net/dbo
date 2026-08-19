@@ -57,7 +57,17 @@ public class WatchCommand implements Action {
 
         List<String> toWatch = new ArrayList<>();
         List<String> skipped = new ArrayList<>();
+        List<String> unwatchable = new ArrayList<>();
         for (Bundle bundle : ConsoleBundles.installed(context)) {
+            // A fragment cannot be updated in place — its host has to refresh —
+            // and the logging binding must not be updated at all: re-reading it
+            // is exactly how the container goes quiet, and a container that has
+            // gone quiet cannot tell you that it has. Neither is a candidate
+            // however small it is, so this is decided before the size is.
+            if (ConsoleBundles.isFragment(bundle) || ConsoleBundles.isLoggingBinding(bundle)) {
+                unwatchable.add(bundle.getSymbolicName());
+                continue;
+            }
             long embedded = ConsoleBundles.embeddedBytes(bundle);
             if (!all && embedded > limit) {
                 skipped.add(bundle.getSymbolicName()
@@ -86,6 +96,10 @@ public class WatchCommand implements Action {
 
         System.out.println("Watching " + toWatch.size() + " dbo bundles ("
                 + added + " newly added).");
+        if (!unwatchable.isEmpty()) {
+            System.out.println("Not watchable: " + String.join(", ", unwatchable)
+                    + " — a fragment, or the logging binding itself.");
+        }
         if (!skipped.isEmpty()) {
             System.out.println("Skipped, embedding more than " + maxEmbeddedMegabytes
                     + "M: " + String.join(", ", skipped));

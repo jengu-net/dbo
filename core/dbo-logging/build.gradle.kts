@@ -12,7 +12,11 @@
 dependencies {
     compileOnly("org.slf4j:slf4j-api:2.0.18")
     compileOnly("org.osgi:osgi.core:8.0.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
+
+tasks.test { useJUnitPlatform() }
 
 tasks.jar {
     manifest {

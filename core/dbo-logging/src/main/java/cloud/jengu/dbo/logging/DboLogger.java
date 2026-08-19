@@ -42,6 +42,9 @@ final class DboLogger extends LegacyAbstractLogger {
     @Override
     protected void handleNormalizedLoggingCall(Level level, Marker marker, String messagePattern,
             Object[] arguments, Throwable throwable) {
+        if (!DboLogging.enabled(name, DboLogging.Level.valueOf(level.name()))) {
+            return;
+        }
         String message = MessageFormatter.basicArrayFormat(messagePattern, arguments);
         synchronized (OUT) {
             if (DboLogging.json()) {
@@ -114,26 +117,26 @@ final class DboLogger extends LegacyAbstractLogger {
 
     @Override
     public boolean isTraceEnabled() {
-        return DboLogging.enabled(DboLogging.Level.TRACE);
+        return DboLogging.enabled(name, DboLogging.Level.TRACE);
     }
 
     @Override
     public boolean isDebugEnabled() {
-        return DboLogging.enabled(DboLogging.Level.DEBUG);
+        return DboLogging.enabled(name, DboLogging.Level.DEBUG);
     }
 
     @Override
     public boolean isInfoEnabled() {
-        return DboLogging.enabled(DboLogging.Level.INFO);
+        return DboLogging.enabled(name, DboLogging.Level.INFO);
     }
 
     @Override
     public boolean isWarnEnabled() {
-        return DboLogging.enabled(DboLogging.Level.WARN);
+        return DboLogging.enabled(name, DboLogging.Level.WARN);
     }
 
     @Override
     public boolean isErrorEnabled() {
-        return DboLogging.enabled(DboLogging.Level.ERROR);
+        return DboLogging.enabled(name, DboLogging.Level.ERROR);
     }
 }

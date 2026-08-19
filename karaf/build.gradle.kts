@@ -59,6 +59,11 @@ val spiFlyExtension = rootProject.extra["dboLoggingExtension"] as String
 // arrangement, just what the host requires to stand up around it.
 val logServiceApi = "org.apache.felix:org.apache.felix.log:1.3.0"
 
+// Karaf's JAAS modules log through commons-logging, which pax-logging also
+// provided. The bridge routes it into slf4j and so into the product's binding,
+// rather than adding a second place log lines can come out of.
+val commonsLoggingBridge = "org.slf4j:jcl-over-slf4j:2.0.18"
+
 // pax-url-aether is the mvn: URL handler, and so the thing bundle:watch reads
 // through — Karaf cannot start without it and the console's whole loop rests on
 // it. It is built against slf4j 1.7 and imports org.slf4j.spi;[1.7,2.0), which
@@ -88,7 +93,7 @@ val dboLoggingBundles: Configuration by configurations.creating
 val dboLegacySlf4j: Configuration by configurations.creating
 
 @Suppress("UNCHECKED_CAST")
-val loggingGavs = (rootProject.extra["dboLoggingBundles"] as List<String>) + spiFlyExtension + logServiceApi
+val loggingGavs = (rootProject.extra["dboLoggingBundles"] as List<String>) + spiFlyExtension + logServiceApi + commonsLoggingBridge
 
 dependencies {
     karafDist("org.apache.karaf:apache-karaf:$karafVersion@tar.gz")
@@ -224,6 +229,7 @@ val console = tasks.register("console") {
             "dbo.tenant.admin.url", "dbo.tenant.admin.user", "dbo.tenant.admin.password",
             "dbo.tenant.auth.kek", "dbo.tenant.auth.issuer.base",
             "dbo.log.level", "dbo.log.format",
+            "dbo.log.level.org.apache.karaf.bundle",
         ).mapNotNull { key -> settings.getProperty(key)?.let { value -> "$key=$value" } }
         home.resolve("etc/system.properties").appendText(
             "\n# dbo development console\n" + props.joinToString("\n") + "\n"
@@ -273,7 +279,7 @@ val console = tasks.register("console") {
         )
 
         if (loggingPosture == "dbo") {
-            installDboLogging(home)
+            installFeaturelessConsole(home)
         } else if (loggingPosture != "karaf") {
             throw GradleException(
                 "dbo.karaf.logging=$loggingPosture — expected 'karaf' or 'dbo'."
@@ -316,20 +322,28 @@ val console = tasks.register("console") {
 
 
 /**
- * Replaces Karaf's logging with the one the distribution ships.
+ * Assembles the console WITHOUT Karaf's features service, on the distribution's
+ * own logging.
  *
- * <p>Three places name it, and all three have to agree or the bundles arrive
- * twice: the startup set the launcher installs, the `framework` feature that
- * defines the base runtime, and the boot feature list — `log` is Karaf's own
- * log commands, which are pax-logging's and have nothing to bind to once it is
- * gone.
+ * <p>Subtracting pax-logging from a feature-based Karaf does not converge. It
+ * exports org.slf4j at 1.7 AND 2.0 at once and Karaf's plumbing is built across
+ * both, so every boot feature reaches for it: `wrap` reinstalls it as a
+ * dependency and undoes the substitution, and dropping `wrap` moves the failure
+ * to management, then jaas, then the next one.
+ *
+ * <p>So the features service goes instead of pax-logging's dependents. The
+ * startup set is written out directly — what a console needs and nothing else —
+ * which is the minimal assembly the plan document has wanted throughout. The
+ * bundles are the ones the `shell`, `bundle`, `jaas`, `ssh`, `system`,
+ * `service`, `package` and `diagnostic` features name, resolved here at build
+ * time rather than by a resolver at boot.
  */
-fun installDboLogging(home: File) {
-    val coordinates = mutableListOf<String>()
+fun installFeaturelessConsole(home: File) {
     val projectVersion = project.version.toString()
+    val ours = mutableListOf<String>()
 
-    // Startup bundles resolve from Karaf's own system/ repository, laid out
-    // the Maven way, so each jar has to land at its coordinate's path.
+    // Startup bundles resolve from Karaf's own system/ repository, laid out the
+    // Maven way, so anything this project supplies has to land at its path.
     val available = dboLoggingBundles.files + dboLegacySlf4j.files
     (loggingGavs.map {
         val (group, artifact, version) = it.split(":")
@@ -340,49 +354,72 @@ fun installDboLogging(home: File) {
         val fileName = "$artifact-$version.jar"
         val jar = available.firstOrNull { it.name == fileName }
             ?: throw GradleException("$fileName is not in the logging configuration")
-        val into = home.resolve(
-            "system/${group.replace('.', '/')}/$artifact/$version/$fileName")
+        val into = home.resolve("system/${group.replace('.', '/')}/$artifact/$version/$fileName")
         into.parentFile.mkdirs()
         jar.copyTo(into, overwrite = true)
-        coordinates.add("mvn:$group/$artifact/$version")
+        ours.add("mvn:$group/$artifact/$version")
     }
 
-    // The launcher's startup set. Level 8 is where pax-logging sat: before
-    // anything that logs, after the framework's own plumbing.
-    val startup = home.resolve("etc/startup.properties")
-    val kept = startup.readLines().filterNot { it.contains("pax-logging") }
-    startup.writeText(
-        (kept + coordinates.map { "${it.replace(":", "\\:")} = 8" }).joinToString("\n") + "\n"
+    val k = karafVersion
+    // Levels matter only in as much as logging must precede anything that logs
+    // and the mvn: handler must precede anything resolved through it.
+    val startup = linkedMapOf(
+        4 to ours,
+        5 to listOf("mvn:org.ops4j.pax.url/pax-url-aether/2.7.1"),
+        8 to listOf(
+            "mvn:org.fusesource.jansi/jansi/2.4.3",
+            "mvn:org.jline/jline/3.30.9"),
+        9 to listOf(
+            "mvn:org.apache.felix/org.apache.felix.fileinstall/3.7.4",
+            "mvn:org.osgi/org.osgi.util.function/1.2.0",
+            "mvn:org.osgi/org.osgi.util.promise/1.3.0",
+            "mvn:org.apache.felix/org.apache.felix.coordinator/1.0.2",
+            "mvn:org.apache.felix/org.apache.felix.converter/1.0.14",
+            "mvn:org.apache.felix/org.apache.felix.metatype/1.2.4"),
+        10 to listOf("mvn:org.apache.felix/org.apache.felix.configadmin/1.9.26"),
+        11 to listOf(
+            "mvn:org.apache.felix/org.apache.felix.configurator/1.0.16",
+            "mvn:org.apache.sling/org.apache.sling.commons.johnzon/1.2.16",
+            "mvn:org.apache.felix/org.apache.felix.cm.json/1.0.8",
+            "mvn:org.apache.felix/org.apache.felix.configadmin.plugin.interpolation/1.2.8",
+            "mvn:org.apache.karaf.config/org.apache.karaf.config.core/$k"),
+        // The console proper. jaas because the shell authenticates against it,
+        // bundle.core because it owns the BundleWatcher dbo-console:watch drives.
+        20 to listOf(
+            // Karaf's login audit posts EventAdmin events and warns on every
+            // login when there is nowhere to post them.
+            "mvn:org.apache.karaf.services/org.apache.karaf.services.eventadmin/$k",
+            "mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.config/$k",
+            "mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.modules/$k",
+            "mvn:org.apache.karaf.shell/org.apache.karaf.shell.core/$k",
+            "mvn:org.apache.karaf.shell/org.apache.karaf.shell.commands/$k",
+            "mvn:org.apache.karaf.bundle/org.apache.karaf.bundle.core/$k",
+            "mvn:org.apache.karaf.system/org.apache.karaf.system.core/$k",
+            "mvn:org.apache.karaf.service/org.apache.karaf.service.core/$k",
+            "mvn:org.apache.karaf.package/org.apache.karaf.package.core/$k",
+            "mvn:org.bouncycastle/bcprov-jdk18on/1.84",
+            "mvn:org.bouncycastle/bcutil-jdk18on/1.84",
+            "mvn:org.bouncycastle/bcpkix-jdk18on/1.84",
+            "mvn:org.apache.sshd/sshd-osgi/2.17.1",
+            "mvn:org.apache.sshd/sshd-scp/2.17.1",
+            "mvn:org.apache.sshd/sshd-sftp/2.17.1",
+            "mvn:org.apache.karaf.shell/org.apache.karaf.shell.ssh/$k"),
     )
 
-    // The framework feature, which would otherwise install pax-logging again
-    // the moment features come up. Only the first occurrences: the same pair
-    // appears further down under framework-logback, which nothing boots.
-    val features = home.resolve(
-        "system/org/apache/karaf/features/framework/$karafVersion/framework-$karafVersion-features.xml")
-    var xml = features.readText()
-    val paxLine = Regex("""\s*<bundle start-level="8">mvn:org\.ops4j\.pax\.logging/pax-logging-api/[^<]*</bundle>""")
-    val paxImpl = Regex("""\s*<bundle start-level="8">mvn:org\.ops4j\.pax\.logging/pax-logging-log4j2/[^<]*</bundle>""")
-    xml = paxLine.replaceFirst(xml, coordinates.joinToString("") {
-        "\n        <bundle start-level=\"8\">$it</bundle>"
-    })
-    xml = paxImpl.replaceFirst(xml, "")
-    features.writeText(xml)
-
-    // Two boot features have to go. `log` is Karaf's own log commands, which are
-    // pax-logging's and have nothing to bind to once it is gone. `wrap` is the
-    // wrap: URL handler, which a development console never uses and which drags
-    // pax-logging-api back in as a dependency — it wants the 1.7-era packages
-    // too, and the resolver reaches for the bundle that exports both
-    // generations. Left in, it undoes the whole substitution: Karaf boots,
-    // pax-logging is Active again, and slf4j reports no provider.
-    val featuresCfg = home.resolve("etc/org.apache.karaf.features.cfg")
-    featuresCfg.writeText(
-        featuresCfg.readText()
-            .replace("    log/$karafVersion, \\\n", "")
-            .replace("    wrap/2.7.1, \\\n", "")
+    home.resolve("etc/startup.properties").writeText(
+        buildString {
+            appendLine("# Generated by :karaf:console. The features service is not here:")
+            appendLine("# this is the whole runtime, in start-level order.")
+            startup.forEach { (level, coordinates) ->
+                coordinates.forEach { appendLine("${it.replace(":", "\\:")} = $level") }
+            }
+        }
     )
 
-    logger.lifecycle("dbo: logging posture = dbo (the distribution's binding; "
-        + "no log:set, no log:tail, one global level from dbo.log.level)")
+    // Nothing reads these without the features service, and leaving them would
+    // suggest a boot list that no longer boots anything.
+    home.resolve("etc/org.apache.karaf.features.cfg").delete()
+
+    logger.lifecycle("dbo: featureless console on the distribution's logging "
+        + "(no features service, no log:set — one global level from dbo.log.level)")
 }
