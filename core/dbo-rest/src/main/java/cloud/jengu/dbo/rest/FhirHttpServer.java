@@ -302,7 +302,14 @@ public final class FhirHttpServer implements AutoCloseable {
                         }
                     }
                     case "PUT" -> {
-                        PutResult result = store.update(id, ifMatchVersion(exchange), readBody(exchange));
+                        String updateBody = readBody(exchange);
+                        // an update has to reach the native form for the same
+                        // reason a create does: a CodeSystem updated the
+                        // ordinary way would leave yesterday's concepts in
+                        // place while the resource claims today's
+                        PutResult result = terminology != null && isTerminology(type)
+                                ? ingest(type, updateBody)
+                                : store.update(id, ifMatchVersion(exchange), updateBody);
                         exchange.getResponseHeaders().set("ETag", etag(result.versionId()));
                         respond(exchange, result.created() ? 201 : 200, store.read(type, id));
                     }

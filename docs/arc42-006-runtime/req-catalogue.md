@@ -180,6 +180,7 @@ deliberately have no REQs yet — they get them when scheduled.
 |---|---|
 | REQ-DBO-SYNC-DECLARED-ONLY | Cross-tenant content synchronization happens only for declared dependencies; nothing syncs undeclared. (§6) |
 | REQ-DBO-SYNC-ANY-TYPE | Any resource type can be declared as a cross-tenant dependency; each type defines its grain — for terminology, the CodeSystem together with its related ValueSets. (§6) |
+| REQ-DBO-SYNC-TERMINOLOGY-GRAIN-SURVIVES | A streamed terminology dependency rebuilds the receiving tenant's native form: the source sends the whole CodeSystem even though it stores a shell, and the dependent takes it apart into its own concepts. After catch-up the dependent answers `$lookup` and `$expand` locally, which is the only proof that the grain survived the hop — a copy's stored payload never contains a concept at either end. (§6) |
 | REQ-DBO-SYNC-CONVERT-ON-APPLY | Streamed objects are converted at apply into the receiving tenant's FHIR version and object shape by the registered converter chains; an unconvertible object dead-letters visibly and degrades the dependency, never silently skips. (§6, §2) |
 | REQ-DBO-SYNC-PROVENANCE-COPIES | Streamed copies are read-only and provenance-tagged with source tenant and version; updates and retirements propagate through the same stream. (§6) |
 | REQ-DBO-SYNC-LOCAL-SHADOWING | A tenant's own object with the same base identity overrides the streamed copy — version-neutrally, across FHIR versions and business versions; removing the override falls back to the live upstream version. (§6, §12) |
