@@ -76,8 +76,44 @@ extra["dboLoggingBundles"] = dboLoggingBundles
 extra["dboLoggingModules"] = dboLoggingModules
 extra["dboLoggingExtension"] = dboLoggingExtension
 
+/**
+ * The HL7 core, pinned apart from HAPI's own version, for every module and
+ * every configuration.
+ *
+ * <p>They are two families with two numbers: `ca.uhn.fhir.*` is HAPI, and
+ * `org.hl7.fhir.*` is the HL7 core it ships — 8.10.1 carries 6.9.12. Taking
+ * HAPI's transitive cannot serve R6: 6.9.12's `FHIRVersion` enum stops at
+ * `6.0.0-ballot3`, so loading the current R6 definitions fails on the first
+ * StructureDefinition it reads with `Unknown FHIRVersion code
+ * '6.0.0-ballot5'`. That coupling is permanent — **a ballot needs a core
+ * release that knows its code** — so this number and the definition packages
+ * move together (#58).
+ *
+ * <p>Here rather than in the stack bundle because the bundle is not the only
+ * consumer. `dbo-fhir-stack` embeds the core and exports it; the harness, the
+ * bench and every module compiling against it resolve their own graph, where
+ * HAPI's transitive would win. Pinned in one configuration, the jar carries
+ * one version and the classpath another — two truths about the same class,
+ * which is how a test passes and a container fails.
+ *
+ * <p>By module name rather than a list: the family is not fixed. 6.9 split
+ * `org.hl7.fhir.model` and `.support` out mid-line, and a hand-written list
+ * would have left one of them behind at the old version.
+ */
+val hl7CoreVersion = "6.10.2"
+extra["hl7CoreVersion"] = hl7CoreVersion
+
 subprojects {
     apply(plugin = "java-library")
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "ca.uhn.hapi.fhir"
+                && requested.name.startsWith("org.hl7.fhir.")) {
+                useVersion(hl7CoreVersion)
+                because("the HL7 core carries the version codes a FHIR version is served under")
+            }
+        }
+    }
     the<JavaPluginExtension>().toolchain.languageVersion.set(JavaLanguageVersion.of(21))
     group = "cloud.jengu.dbo"
     // Snapshots on main; a release build passes -Pdbo.version=X.Y.Z (the

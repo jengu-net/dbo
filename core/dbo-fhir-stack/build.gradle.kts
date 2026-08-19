@@ -45,6 +45,9 @@ dependencies {
 // suite exercising validation, conversion and terminology ingestion, not a
 // green compile.
 configurations.named("embedded") {
+    // The HL7 core's version is pinned for every module in the root build:
+    // this bundle embeds it, and everything compiling against the bundle
+    // resolves it too, so the two must not be pinned in different places.
     // slf4j-api arrives as a transitive of the HL7 core stack and must NOT ride
     // along: this bundle imports `org.slf4j` from the shared slf4j-api bundle,
     // and an embedded copy beside it splits the API in two — `org.slf4j` from
