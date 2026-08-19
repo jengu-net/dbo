@@ -2,6 +2,7 @@ package cloud.jengu.dbo.maintenance;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -38,6 +39,24 @@ public record ArchiveManifest(List<Entry> entries, String root) {
      * attesting, so it appears in this list like everything else.
      */
     public static final String MANIFEST_ENTRY = "digests.json";
+
+    /**
+     * The root of a SEALED archive: what a signer is about to sign.
+     *
+     * <p>The first step of the ceremony, and until now everyone wrote it
+     * themselves — open the seal, find the digest list, take the root. Three
+     * places had their own copy of those four lines, which is three chances to
+     * sign something subtly different from what the store will verify.
+     *
+     * <p>Takes the owner key because the archive is sealed under it: a signer
+     * who cannot open the archive has no business attesting to its contents.
+     */
+    public static String rootOfSealed(InputStream sealed, byte[] ownerMasterKey)
+            throws IOException {
+        try (InputStream plain = SealedArchive.opening(sealed, ownerMasterKey)) {
+            return of(plain.readAllBytes()).root();
+        }
+    }
 
     /**
      * Digests every entry of a plain (unsealed) archive except the manifest
