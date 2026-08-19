@@ -93,6 +93,10 @@ Observation as store-assigned, and a store-assigned id has nothing to key a
 conditional write on. The table is where a declaration in a spec file becomes
 visible as a promise to clients.
 
+The tenant argument completes on TAB, from the registry rather than a cached
+list — tenants come and go while the console is open, so what completes is what
+the command can actually act on.
+
 `--search-params` lists parameters one per row instead of counting them by
 kind. Karaf wants options before the argument, so it is
 `dbo-tenant:capability-list --search-params dev`.
