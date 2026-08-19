@@ -47,6 +47,17 @@ public final class FhirHttpServer implements AutoCloseable {
      */
     private final Map<String, cloud.jengu.dbo.fhir.common.FhirOperation> operations =
             new LinkedHashMap<>();
+    /**
+     * The same operations, once each, for the statement to declare.
+     *
+     * <p>Held apart from the routing map because the two want different keys.
+     * A route is per type — {@code Patient/$validate} and
+     * {@code Observation/$validate} dispatch separately — so the routing map
+     * holds one operation once per type it covers, and declaring from its
+     * values announced $validate as many times as there were types.
+     */
+    private final java.util.List<cloud.jengu.dbo.fhir.common.FhirOperation> declaredOperations =
+            new java.util.ArrayList<>();
     /** §15.4: the tenant's declared policies, named in the capability statement. */
     public volatile String policyNote;
     /** §15.1: when set, /AuditEvent is served as a projection of the trail. */
@@ -106,6 +117,7 @@ public final class FhirHttpServer implements AutoCloseable {
             declared.addAll(terminology.operations());
         }
         for (cloud.jengu.dbo.fhir.common.FhirOperation operation : declared) {
+            declaredOperations.add(operation);
             for (String type : operation.types()) {
                 operations.put(type + "/$" + operation.name(), operation);
             }
@@ -208,7 +220,7 @@ public final class FhirHttpServer implements AutoCloseable {
         if (segments.length == 1 && "metadata".equals(segments[0]) && "GET".equals(method)) {
             // anonymous by REQ-DBO-AUTH-OPEN-CAPABILITY; declares the auth mode
             respond(exchange, 200, securityDeclared(
-                    store.capabilityStatement(baseUrl(), operations.values())));
+                    store.capabilityStatement(baseUrl(), declaredOperations)));
             return;
         }
         if (authenticator != null) {

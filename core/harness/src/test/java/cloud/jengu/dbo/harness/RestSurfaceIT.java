@@ -250,6 +250,65 @@ class RestSurfaceIT {
         assertTrue(body.contains("\"4.0.1\""));
     }
 
+    /**
+     * REQ-DBO-SRCH-HONEST-CAPABILITY: a statement that says a thing twice is
+     * not honest about it either.
+     *
+     * <p>Both halves of this were true when it was written. $validate was
+     * declared once per configured type, because the router's map is keyed by
+     * {@code Type/$name} and its values — the same operation once per type —
+     * were handed over as the list to declare. And _id, _lastUpdated and
+     * _profile were each added twice, once from the shared meta-parameter map
+     * and once from the hand-written lines that map was introduced to replace.
+     * Neither is visible to a reader of the document; both are obvious to a
+     * counter.
+     */
+    @Test
+    void theStatementNamesNothingTwice() throws Exception {
+        HttpResponse<String> metadata = send(req(base + "/metadata").GET().build());
+        assertEquals(200, metadata.statusCode());
+
+        // One assertion over every name the block carries — search parameters
+        // and operations alike. Splitting them would need the reader to know
+        // which kind a repeat belonged to, and a repeat is wrong either way.
+        for (String type : List.of("Patient", "Observation")) {
+            String block = resourceBlock(metadata.body(), type);
+            assertNoRepeats(type, names(block, "\"name\":\""));
+        }
+    }
+
+    /** The slice of the statement devoted to one resource type. */
+    private static String resourceBlock(String statement, String type) {
+        int at = statement.indexOf("\"type\":\"" + type + "\"");
+        assertTrue(at > 0, type + " is not in the statement at all: " + statement);
+        int next = statement.indexOf("{\"type\":\"", at);
+        return next > 0 ? statement.substring(at, next) : statement.substring(at);
+    }
+
+    private static List<String> names(String block, String marker) {
+        List<String> found = new java.util.ArrayList<>();
+        int at = block.indexOf(marker);
+        while (at >= 0) {
+            int from = at + marker.length();
+            int to = block.indexOf('"', from);
+            found.add(block.substring(from, to));
+            at = block.indexOf(marker, to);
+        }
+        return found;
+    }
+
+    private static void assertNoRepeats(String what, List<String> names) {
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        java.util.Set<String> repeated = new java.util.TreeSet<>();
+        for (String name : names) {
+            if (!seen.add(name)) {
+                repeated.add(name);
+            }
+        }
+        assertTrue(repeated.isEmpty(),
+                what + " names something more than once: " + repeated + " (in " + names + ")");
+    }
+
     /** Terminology operations answer over HTTP from the native concept store. */
     @Test
     void terminologyOperationsOverHttp() throws Exception {
