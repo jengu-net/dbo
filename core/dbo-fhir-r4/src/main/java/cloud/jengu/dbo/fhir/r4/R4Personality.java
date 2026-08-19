@@ -569,14 +569,14 @@ public final class R4Personality {
         });
     }
 
+    /**
+     * Serving and export ask the same question — what does this stored payload
+     * look like with the engine's own facts put back — so they get the same
+     * answer from one place. Two copies of this body drifted apart the moment
+     * either learned a fact the other did not.
+     */
     public String toResourceJson(StoredObject stored) {
-        return withTccl(() -> {
-            Resource resource = (Resource) ctx().newJsonParser()
-                    .parseResource(new String(stored.payload(), StandardCharsets.UTF_8));
-            resource.setId(stored.id());
-            resource.getMeta().setVersionId(Long.toString(stored.versionId()));
-            return ctx().newJsonParser().encodeResourceToString(resource);
-        });
+        return portableRendering().render(stored.payload(), stored.id(), stored.versionId());
     }
 
     // ------------------------------------------------------- bundle framing
