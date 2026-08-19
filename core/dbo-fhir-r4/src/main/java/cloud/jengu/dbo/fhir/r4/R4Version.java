@@ -13,12 +13,16 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import ca.uhn.fhir.validation.ValidationResult;
 import ca.uhn.fhir.validation.ResultSeverityEnum;
 import cloud.jengu.dbo.core.face.DomainFace;
+import cloud.jengu.dbo.core.face.PayloadFraming;
 import cloud.jengu.dbo.core.face.Payloads;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.List;
 import cloud.jengu.dbo.fhir.common.FhirFace;
 
 import java.nio.charset.StandardCharsets;
 
-import java.util.List;
 import java.util.function.Supplier;
 
 /**
@@ -160,12 +164,114 @@ final class R4Version {
         }
     };
 
+
+    /**
+     * A stored payload with the engine's own facts put back — the one place
+     * that happens, so serving, export and framing cannot drift apart.
+     *
+     * @param elements when given, the only elements encoded (id and meta are
+     *                 always kept), which is what a caller asking for a subset
+     *                 of a resource gets
+     */
+    static String rendered(byte[] payload, String id, long versionId,
+            String typeName, List<String> elements) {
+        return withTccl(() -> {
+            org.hl7.fhir.r4.model.Resource resource = (org.hl7.fhir.r4.model.Resource)
+                    context().newJsonParser()
+                            .parseResource(new String(payload, java.nio.charset.StandardCharsets.UTF_8));
+            resource.setId(id);
+            resource.getMeta().setVersionId(Long.toString(versionId));
+            var parser = context().newJsonParser();
+            if (elements != null && typeName != null) {
+                java.util.Set<String> encode = new java.util.LinkedHashSet<>();
+                encode.add(typeName + ".id");
+                encode.add(typeName + ".meta");
+                for (String el : elements) {
+                    encode.add(typeName + "." + el.trim());
+                }
+                parser.setEncodeElements(encode);
+            }
+            return parser.encodeResourceToString(resource);
+        });
+    }
+
+    /**
+     * Framing a document around members the engine already holds as bytes.
+     *
+     * <p>The members' payloads are rendered rather than passed through, which
+     * is what today's assembly does too — the ancestors have to be put back and
+     * nothing here can do that without reading the resource. What changes when
+     * a face gains a schema-aware normaliser is this method and nothing else.
+     */
+    private static final PayloadFraming FRAMING = new PayloadFraming() {
+
+        @Override
+        public Frame frame(String frameType, Facts facts) {
+            StringBuilder head = new StringBuilder(128)
+                    .append("{\"resourceType\":\"Bundle\",\"type\":\"").append(frameType).append('"');
+            if (facts.total() != null) {
+                head.append(",\"total\":").append(facts.total());
+            }
+            StringBuilder links = new StringBuilder();
+            if (facts.selfUrl() != null) {
+                links.append("{\"relation\":\"self\",\"url\":").append(quoted(facts.selfUrl())).append('}');
+            }
+            if (facts.nextUrl() != null) {
+                links.append(links.isEmpty() ? "" : ",")
+                        .append("{\"relation\":\"next\",\"url\":").append(quoted(facts.nextUrl())).append('}');
+            }
+            if (!links.isEmpty()) {
+                head.append(",\"link\":[").append(links).append(']');
+            }
+            head.append(",\"entry\":[");
+            return new Frame(bytes(head.toString()), bytes(","), bytes("]}"));
+        }
+
+        @Override
+        public void member(Member member, OutputStream out) throws IOException {
+            out.write(bytes("{\"fullUrl\":" + quoted(member.url()) + ",\"resource\":"));
+            out.write(bytes(rendered(member.payload(), member.id(), member.versionId(),
+                    member.typeName(), null)));
+            out.write(bytes(",\"search\":{\"mode\":\""
+                    + (Member.INCLUDED.equals(member.role()) ? "include" : "match") + "\"}}"));
+        }
+    };
+
+    static PayloadFraming framing() {
+        return FRAMING;
+    }
+
     /** One face for the version, not one per tenant that happens to be on it. */
     private static final DomainFace FACE = FhirFace.describing("r4")
             .providing(Payloads.class, PAYLOADS)
+            .providing(PayloadFraming.class, FRAMING)
             .build();
 
     static DomainFace face() {
         return FACE;
+    }
+
+    private static byte[] bytes(String s) {
+        return s.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /** JSON string literal — the only escaping a frame does, since payloads pass whole. */
+    private static String quoted(String s) {
+        StringBuilder b = new StringBuilder(s.length() + 2).append('"');
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '"' -> b.append("\\\"");
+                case '\\' -> b.append("\\\\");
+                default -> {
+                    if (c < 0x20) {
+                        b.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        b.append(c);
+                    }
+                }
+            }
+        }
+        return b.append('"').toString();
     }
 }
