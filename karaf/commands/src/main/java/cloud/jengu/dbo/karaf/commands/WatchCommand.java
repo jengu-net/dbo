@@ -27,7 +27,7 @@ import java.util.List;
  * embedded, not the fact of embedding. A module can carry a small private jar
  * and still be one of the ones worth watching.
  */
-@Command(scope = "dbo", name = "watch",
+@Command(scope = "dbo-console", name = "watch",
         description = "Watches the installed dbo bundles for republished changes.")
 @Service
 public class WatchCommand implements Action {
@@ -50,7 +50,7 @@ public class WatchCommand implements Action {
         return null;
     }
 
-    /** Shared with {@code dbo:up}, which finishes by doing exactly this. */
+    /** Shared with {@code dbo-console:up}, which finishes by doing exactly this. */
     static void watch(BundleContext context, BundleWatcher watcher,
             boolean all, long maxEmbeddedMegabytes) {
         long limit = maxEmbeddedMegabytes * ConsoleBundles.MEGABYTE;
@@ -70,7 +70,7 @@ public class WatchCommand implements Action {
         if (toWatch.isEmpty()) {
             System.out.println("No dbo bundles are installed from "
                     + ConsoleBundles.LOCATION_PREFIX + " — nothing to watch."
-                    + " dbo:up installs them.");
+                    + " dbo-console:up installs them.");
             return;
         }
 

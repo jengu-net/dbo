@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * What the console knows about the bundles it serves.
  *
- * <p>The declared set — what {@code dbo:up} installs — arrives as a property
+ * <p>The declared set — what {@code dbo-console:up} installs — arrives as a property
  * the assembly writes, because before the first install the container has no
  * way to know what it is meant to hold. Everything after that is read from the
  * container itself.

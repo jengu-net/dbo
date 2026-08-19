@@ -33,10 +33,13 @@ karaf/build/dbo-console/karaf/bin/karaf
 and at the prompt, once:
 
 ```
-dbo:up
+dbo-console:up
 ```
 
 which installs the bundle set, starts it, and watches what is worth watching.
+Commands are grouped by subsystem the way Karaf's own are — `dbo-console:` for
+the console's own lifecycle, `dbo-tenant:` for what the node is serving — so
+each scope is also a subshell you can enter and complete inside.
 Safe to repeat: installing a location that is already installed returns the
 existing bundle, so it is also how a session picks up a container that is
 already running.
@@ -48,7 +51,7 @@ already running.
 updated and refreshed in place. Nothing else has to happen for a change to
 reach the running container.
 
-`dbo:watch` registers the set, and `dbo:up` finishes by calling it. It derives it from what is installed rather than
+`dbo-console:watch` registers the set, and `dbo-console:up` finishes by calling it. It derives it from what is installed rather than
 from a list, so a new bundle needs nothing remembered, and it skips the ones
 carrying a heavy embedded stack — a publish rewrites every jar, and re-reading
 a hundred megabytes on each one buys nothing when the change is almost never in
@@ -88,7 +91,7 @@ logging arrangement is invisible here by construction.
 **Reassembly is destructive.** `:karaf:console` re-unpacks Karaf, which drops
 `data/` — installed bundle state and the ssh host key with it. It refuses to
 run while a console is up rather than leaving that to be remembered; stop the
-console, reassemble, start it again, `dbo:up`.
+console, reassemble, start it again, `dbo-console:up`.
 
 **Ports.** 8090 serves FHIR, 8101 is the Karaf ssh port, and the console user
 is `karaf`/`karaf`. All loopback, all development-only.
