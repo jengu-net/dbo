@@ -36,8 +36,11 @@ final class ElementEnvelopes {
     }
 
     static Envelope extract(SimpleWorkerContext context, List<SearchParameter> parameters,
-            Element document) {
+            Element document, boolean canonical) {
         FHIRPathEngine fhirPath = new FHIRPathEngine(context);
+        // A search parameter may say `.where(resolve() is Patient)`, and an
+        // engine with no host fails the whole expression rather than the test.
+        fhirPath.setHostServices(new ElementHostServices(context));
         Envelope envelope = new Envelope();
         for (SearchParameter parameter : parameters) {
             List<Base> hits;
@@ -49,6 +52,17 @@ final class ElementEnvelopes {
             String path = pathName(parameter.getCode());
             for (Base hit : hits) {
                 add(envelope, parameter.getType(), path, hit);
+            }
+        }
+        if (canonical) {
+            // The canonical identity: a type whose identity IS its url is found
+            // by it, not merely indexed under it — conditional writes and every
+            // reassembly from a native form go through the identity index
+            // (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS).
+            String url = document.getNamedChildValue("url");
+            if (url != null) {
+                envelope.identifier(cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url);
+                envelope.value("url", EnvelopeValue.of(url));
             }
         }
         return envelope;

@@ -32,8 +32,13 @@ class DefinitionsTravelWithTheFaceTest {
 
         assertTrue(carried.stream().anyMatch(c -> c.id().equals("hl7.fhir.r6.core#6.0.0-ballot5")),
                 "the version's own definitions must travel with it: " + carried);
-        assertEquals("hl7.fhir.r6.core", carried.get(0).name(),
-                "a version's core package is loaded first — the rest resolve against it");
+        assertTrue(carried.stream().anyMatch(c -> c.id().equals("hl7.fhir.r4.core#4.0.1")),
+                "and every version this face serves brings its own: " + carried);
+        for (String version : CarriedDefinitions.versions()) {
+            assertEquals("hl7.fhir." + version + ".core",
+                    CarriedDefinitions.forVersion(version).get(0).name(),
+                    "a version's core package is loaded first — the rest resolve against it");
+        }
     }
 
     @Test
@@ -55,7 +60,7 @@ class DefinitionsTravelWithTheFaceTest {
     @DisplayName("a version this face does not carry is refused, not downloaded")
     void anUncarriedVersionIsRefused() {
         CarriedDefinitions.NotCarried refusal = assertThrows(CarriedDefinitions.NotCarried.class,
-                () -> CarriedDefinitions.contextFor("r4"));
+                () -> CarriedDefinitions.contextFor("dstu2"));
 
         assertTrue(refusal.getMessage().contains("r6"),
                 "a refusal that does not say what is carried cannot be acted on: "

@@ -8,22 +8,32 @@ import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
 import cloud.jengu.dbo.fhir.common.FhirTerminology;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.common.FhirVersion;
+import cloud.jengu.dbo.fhir.element.ElementFhirVersion;
 import cloud.jengu.dbo.terminology.TerminologyStore;
 
 import javax.sql.DataSource;
 import java.util.List;
 
 /**
- * FHIR R4 as the tenant runtime asks for it.
+ * FHIR R4 as the tenant runtime asks for it — served by the shared face (#58).
  *
- * <p>Everything here already existed; what is new is that a caller can have it
- * without naming a class of this bundle. That is the whole of the change: the
- * wiring resolves a version under its code and builds the same objects it used
- * to build inside an {@code if}.
+ * <p>Reading, validating, framing, extracting and serving are the element
+ * face's, over R4's own definitions: one implementation for every version
+ * rather than one per version. What stays R4's own is what genuinely differs —
+ * terminology, whose native form is this version's, and subscriptions, whose
+ * criteria strings are R4 semantics rather than an R4 model.
+ *
+ * <p>The payload version stays {@code 4.0} rather than becoming the
+ * definitions' {@code 4.0.1}: it is the coordinate stored rows and the
+ * converters already agree on, and a released version's coordinate is not this
+ * work's to change.
  */
 public final class R4FhirVersion implements FhirVersion {
 
     public static final R4FhirVersion INSTANCE = new R4FhirVersion();
+
+    private final ElementFhirVersion served =
+            ElementFhirVersion.serving(R4Personality.DOMAIN, R4Personality.PAYLOAD_VERSION);
 
     @Override
     public String code() {
@@ -42,44 +52,43 @@ public final class R4FhirVersion implements FhirVersion {
 
     @Override
     public DomainFace face() {
-        return R4Version.face();
+        return served.face();
     }
 
     @Override
     public ForTypes forTypes(List<FhirTypeConfig> types) {
-        return new Tenant(new R4Personality(types));
+        return new Tenant(served.forTypes(types), new R4Personality(types));
     }
 
-    /**
-     * One tenant's declared types, and the personality built from them held
-     * once — the pieces of a bring-up share it rather than each constructing
-     * their own, which is what used to make a tenant cost two.
-     */
-    private record Tenant(R4Personality personality) implements ForTypes {
+    /** The shared half, and the half that is still this version's. */
+    private record Tenant(ForTypes served, R4Personality personality) implements ForTypes {
 
         @Override
         public List<TypeRegistration> registrations() {
-            return personality.registrations();
+            return served.registrations();
         }
 
         @Override
         public List<TypeRegistration> registrations(String domain) {
-            return personality.registrations(domain);
+            return served.registrations(domain);
         }
 
         @Override
         public FhirStoreFacade store(ObjectStore engine, String baseUrl) {
-            return new R4Store(engine, personality, baseUrl);
+            return served.store(engine, baseUrl);
         }
 
         @Override
         public FhirTerminology terminology(ObjectStore engine, DataSource dataSource) {
+            // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is this
+            // version's, and reassembling it is not something definitions
+            // describe — so this half has not moved.
             return new R4Terminology(engine, personality, new TerminologyStore(dataSource));
         }
 
         @Override
         public PortableRendering portableRendering() {
-            return personality.portableRendering();
+            return served.portableRendering();
         }
     }
 }

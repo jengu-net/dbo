@@ -107,13 +107,23 @@ public final class ElementVersion {
      * a capability is refused by name rather than answering wrongly (§1).
      */
     public EnvelopeExtractor extractor(String typeName) {
-        List<SearchParameter> parameters = parametersFor(typeName);
-        return (type, payload) -> extract(parameters, payload);
+        return extractor(typeName, false);
     }
 
-    private Envelope extract(List<SearchParameter> parameters, byte[] payload) {
+    /**
+     * @param canonical whether this type's identity is its {@code url}, which
+     *                  the definitions do not say — it is the tenant's
+     *                  declaration about the type, and the envelope is where an
+     *                  identity is claimed
+     */
+    public EnvelopeExtractor extractor(String typeName, boolean canonical) {
+        List<SearchParameter> parameters = parametersFor(typeName);
+        return (type, payload) -> extract(parameters, payload, canonical);
+    }
+
+    private Envelope extract(List<SearchParameter> parameters, byte[] payload, boolean canonical) {
         Element document = payloads.read(null, payload);
-        return ElementEnvelopes.extract(context, parameters, document);
+        return ElementEnvelopes.extract(context, parameters, document, canonical);
     }
 
     /** Every search parameter this version defines over a type, expression first. */
@@ -150,8 +160,10 @@ public final class ElementVersion {
         List<String[]> targets = new ArrayList<>();
         List<org.hl7.fhir.r5.model.Base> hits;
         try {
-            hits = new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context)
-                    .evaluate(element, parameter.getExpression());
+            org.hl7.fhir.r5.fhirpath.FHIRPathEngine fhirPath =
+                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context);
+            fhirPath.setHostServices(new ElementHostServices(context));
+            hits = fhirPath.evaluate(element, parameter.getExpression());
         } catch (Exception e) {
             return List.of();
         }
@@ -173,6 +185,17 @@ public final class ElementVersion {
             }
         }
         return targets;
+    }
+
+    /** The canonical url of a canonical resource — its identity, for a conditional write. */
+    String canonicalUrlOf(Object document) {
+        if (document instanceof Element element) {
+            String url = element.getNamedChildValue("url");
+            if (url != null) {
+                return url;
+            }
+        }
+        throw new IllegalArgumentException("canonical resource without url");
     }
 
     SimpleWorkerContext context() {

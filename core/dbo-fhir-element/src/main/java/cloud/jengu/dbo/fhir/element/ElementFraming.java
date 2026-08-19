@@ -55,7 +55,7 @@ final class ElementFraming implements PayloadFraming {
     public void member(Member member, OutputStream out) throws IOException {
         out.write(bytes("{\"fullUrl\":" + quoted(member.url()) + ",\"resource\":"));
         out.write(ElementAncestors.rendered(context, member.payload(), member.id(),
-                member.versionId()));
+                member.versionId(), member.elements()));
         out.write(bytes(",\"search\":{\"mode\":\""
                 + (Member.INCLUDED.equals(member.role()) ? "include" : "match") + "\"}}"));
     }
