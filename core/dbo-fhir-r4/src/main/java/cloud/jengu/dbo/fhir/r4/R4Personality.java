@@ -831,10 +831,6 @@ public final class R4Personality {
                 META_SEARCH_PARAMS.forEach((name, kind) ->
                         resource.addSearchParam().setName(name).setType(
                                 org.hl7.fhir.r4.model.Enumerations.SearchParamType.fromCode(kind)));
-                resource.addSearchParam().setName("_profile").setType(
-                        org.hl7.fhir.r4.model.Enumerations.SearchParamType.URI);
-                resource.addSearchParam().setName("_lastUpdated").setType(
-                        org.hl7.fhir.r4.model.Enumerations.SearchParamType.DATE);
                 // declared because registered, not because remembered (#51)
                 for (var operation : served) {
                     if (operation.types().contains(typeName)) {
@@ -842,8 +838,6 @@ public final class R4Personality {
                                 .setDefinition(operation.definition());
                     }
                 }
-                resource.addSearchParam().setName("_id").setType(
-                        org.hl7.fhir.r4.model.Enumerations.SearchParamType.TOKEN);
             }
             return ctx().newJsonParser().encodeResourceToString(cs);
         });

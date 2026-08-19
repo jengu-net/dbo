@@ -229,4 +229,7 @@ val console = tasks.register("console") {
     }
 }
 
-tasks.named("build") { dependsOn(console) }
+// Deliberately NOT wired into `build`. Assembling unpacks a Karaf distribution,
+// which no ordinary build needs — and since assembling refuses while a console
+// is running, wiring it in would mean a running console broke the project build.
+
