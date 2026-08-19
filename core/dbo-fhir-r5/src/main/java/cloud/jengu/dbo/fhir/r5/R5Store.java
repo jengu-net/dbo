@@ -116,6 +116,22 @@ public final class R5Store implements cloud.jengu.dbo.fhir.common.FhirStoreFacad
 
     /** Strict FHIR search over one type; returns a searchset Bundle with link[next]. */
     @Override
+    public void search(String typeName, Map<String, String> params, String cursor,
+            java.io.OutputStream out) throws java.io.IOException {
+        R5Personality.CompiledSearch compiled = personality.compileSearch(typeName, params);
+        if (compiled.byId() == null && !compiled.countOnly()
+                && compiled.includeRefParams().isEmpty()) {
+            // the ordinary page: nothing to gather first, so nothing to hold
+            personality.writeSearchBundle(store.page(compiled.criteria(), cursor), baseUrl,
+                    typeName, params, null, compiled.elements(), out);
+            return;
+        }
+        // by id, count-only and _include each need the whole answer in hand
+        out.write(search(typeName, params, cursor)
+                .getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Override
     public String search(String typeName, Map<String, String> params, String cursor) {
         R5Personality.CompiledSearch compiled = personality.compileSearch(typeName, params);
 

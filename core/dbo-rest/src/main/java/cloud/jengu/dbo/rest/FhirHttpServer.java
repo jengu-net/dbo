@@ -304,7 +304,7 @@ public final class FhirHttpServer implements AutoCloseable {
                 switch (method) {
                     case "GET" -> {
                         String cursor = query.remove("_cursor");
-                        respond(exchange, 200, store.search(type, query, cursor));
+                        respondStreaming(exchange, out -> store.search(type, query, cursor, out));
                     }
                     case "POST" -> {
                         String body = readBody(exchange);
@@ -470,6 +470,81 @@ public final class FhirHttpServer implements AutoCloseable {
     private String readBody(HttpExchange exchange) throws IOException {
         try (InputStream in = exchange.getRequestBody()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    /** Something that writes a response body as it produces it. */
+    private interface BodyWriter {
+        void writeTo(OutputStream out) throws IOException;
+    }
+
+    /**
+     * Answers 200 without knowing how long the answer is.
+     *
+     * <p>A content length of zero tells the JDK server to chunk, so the first
+     * bytes reach the reader while the rest is still being read from the
+     * database — and the reader is the brake, since writing blocks when it
+     * stops draining.
+     *
+     * <p><b>The status waits for the first byte.</b> A search that refuses —
+     * an unknown parameter, a malformed cursor — refuses while compiling,
+     * before anything is produced, and that has to stay answerable as 400
+     * rather than as a 200 containing an apology. So the headers are sent when
+     * the body first writes, and until then a failure is an ordinary failure.
+     * Once a byte is out the status is spent: a failure after that can only
+     * close the response, which is the real cost of not holding a page.
+     */
+    private void respondStreaming(HttpExchange exchange, BodyWriter body) throws IOException {
+        try (OutputStream out = new HeadersOnFirstWrite(exchange)) {
+            body.writeTo(out);
+            out.flush();
+        }
+    }
+
+    /** Sends 200 and opens the response body when something is actually written. */
+    private final class HeadersOnFirstWrite extends OutputStream {
+
+        private final HttpExchange exchange;
+        private OutputStream body;
+
+        private HeadersOnFirstWrite(HttpExchange exchange) {
+            this.exchange = exchange;
+        }
+
+        private OutputStream body() throws IOException {
+            if (body == null) {
+                exchange.getResponseHeaders().set("Content-Type", FHIR_JSON);
+                exchange.sendResponseHeaders(200, 0);
+                body = exchange.getResponseBody();
+            }
+            return body;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            body().write(b);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            body().write(b, off, len);
+        }
+
+        @Override
+        public void flush() throws IOException {
+            if (body != null) {
+                body.flush();
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            // Nothing written and nothing failed means an empty 200 is still
+            // the answer; a body that threw closes without one, and the caller
+            // has already sent a status.
+            if (body != null) {
+                body.close();
+            }
         }
     }
 
