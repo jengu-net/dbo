@@ -24,7 +24,7 @@ import java.util.List;
  * nothing, so this is also how a session picks up a container that is already
  * running.
  */
-@Command(scope = "dbo", name = "up",
+@Command(scope = "dbo-console", name = "up",
         description = "Installs, starts and watches the dbo bundle set.")
 @Service
 public class UpCommand implements Action {

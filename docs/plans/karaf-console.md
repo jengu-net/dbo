@@ -63,7 +63,7 @@ each item is a way the two containers differ.
   `dboRuntimeModules`; the serving distribution and the console both generate
   from it. Two hand-maintained copies would drift, and the drift would appear
   as "works in the console, dies on first use in the distribution". The watch
-  set is not a second list either: `dbo:watch`, the first `dbo:` command,
+  set is not a second list either: `dbo-console:watch`, the first command of its own,
   derives it from the bundles the container has installed and drops the ones
   whose embedded stack is too heavy to re-read on every publish. Measured
   weight rather than a name list, because the names would drift the same way —

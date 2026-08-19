@@ -161,7 +161,7 @@ val console = tasks.register("console") {
         // started against a half-present set. Installing a location that is
         // already installed returns the existing bundle, which is what makes
         // this script safe to re-run after a restart.
-        // The declared set, in install order, for dbo:up to bring up. A
+        // The declared set, in install order, for dbo-console:up to bring up. A
         // property rather than a script, because before the first install the
         // container has no way to know what it is meant to hold — and once it
         // does hold it, every other question is answered by asking the
@@ -223,7 +223,7 @@ val console = tasks.register("console") {
         logger.lifecycle("")
         logger.lifecycle("dbo console assembled: ${home.path}")
         logger.lifecycle("  start it:  ${home.path}/bin/karaf")
-        logger.lifecycle("  then:      dbo:up")
+        logger.lifecycle("  then:      dbo-console:up")
         logger.lifecycle("  tenants:   ${tenantDir.path}  (*.json, reconciled every 2s)")
         logger.lifecycle("")
     }
