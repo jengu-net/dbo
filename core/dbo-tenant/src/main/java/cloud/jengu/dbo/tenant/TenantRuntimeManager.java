@@ -3,12 +3,9 @@ package cloud.jengu.dbo.tenant;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
-import cloud.jengu.dbo.fhir.r4.R4Personality;
-import cloud.jengu.dbo.fhir.r4.R4Store;
-import cloud.jengu.dbo.fhir.r4.R4Terminology;
-import cloud.jengu.dbo.fhir.r5.R5Personality;
-import cloud.jengu.dbo.fhir.r5.R5Store;
-import cloud.jengu.dbo.fhir.r5.R5Terminology;
+import cloud.jengu.dbo.fhir.common.FhirTerminology;
+import cloud.jengu.dbo.fhir.common.FhirVersion;
+import cloud.jengu.dbo.fhir.common.FhirVersions;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.rest.FhirHttpServer;
@@ -88,6 +85,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final String host;
     private final Map<String, TenantRuntime> runtimes = new ConcurrentHashMap<>();
     private final AuthorityConfig authorityConfig;
+
+    /**
+     * The versions this container can serve. A tenant's declared version is
+     * resolved here (R6) — the wiring no longer knows which ones exist, so a
+     * new one is a bundle rather than another branch.
+     */
+    private final FhirVersions versions;
     private final Map<String, String> authorityContexts = new ConcurrentHashMap<>();
     private volatile cloud.jengu.dbo.auth.IdentityHub identityHub;
     private final Map<String, javax.sql.DataSource> tenantDataSources = new ConcurrentHashMap<>();
@@ -131,6 +135,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     public TenantRuntimeManager(Path directory, TenantDatabaseProvisioner provisioner,
             String host, int port, Listener listener, AuthorityConfig authorityConfig) {
+        this(directory, provisioner, host, port, listener, authorityConfig,
+                FhirVersions.installed());
+    }
+
+    /**
+     * @param versions what this container can serve. The container passes the
+     *                 service registry's view, which changes as face bundles
+     *                 come and go; the constructors above ask the classpath,
+     *                 which is what a test or a single-jar assembly has.
+     */
+    public TenantRuntimeManager(Path directory, TenantDatabaseProvisioner provisioner,
+            String host, int port, Listener listener, AuthorityConfig authorityConfig,
+            FhirVersions versions) {
+        this.versions = versions;
         this.authorityConfig = authorityConfig;
         this.directory = directory;
         this.provisioner = provisioner;
@@ -251,10 +269,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return;
         }
         lastRollup = shape;
-        LOG.info("tenants: serving={} r4={} r5={} pdi={}",
+        // Counted by whatever versions are actually being served: naming two of
+        // them here would go quietly wrong the day a third is installed, and a
+        // rollup that under-reports is worse than one that says nothing.
+        String byVersion = runtimes.values().stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        r -> r.spec().fhirVersion(), java.util.TreeMap::new,
+                        java.util.stream.Collectors.counting()))
+                .entrySet().stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .collect(java.util.stream.Collectors.joining(" "));
+        LOG.info("tenants: serving={} {} pdi={}",
                 runtimes.size(),
-                runtimes.values().stream().filter(r -> "r4".equals(r.spec().fhirVersion())).count(),
-                runtimes.values().stream().filter(r -> "r5".equals(r.spec().fhirVersion())).count(),
+                byVersion.isEmpty() ? "versions=none" : byVersion,
                 runtimes.values().stream().filter(r -> r.spec().pdi()).count());
     }
 
@@ -268,6 +295,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         + "' is not up yet — retrying on the next scan");
             }
         }
+        // Resolved before anything is created. A tenant declaring a version
+        // nothing provides is refused because nothing provides it, and asking
+        // first means the refusal leaves no database behind to clean up.
+        FhirVersion version = versions.require(spec.fhirVersion());
         TenantDatabaseProvisioner.TenantDatabase db = provisioner.provision(spec);
         tenantDataSources.put(spec.code(), db.dataSource());
         String base = baseUrl(spec.code());
@@ -308,53 +339,34 @@ public final class TenantRuntimeManager implements AutoCloseable {
             guard = new cloud.jengu.dbo.auth.AuthorityAuthenticator(authority);
         }
         final cloud.jengu.dbo.auth.TenantAuthority authority = tenantAuthority;
-        TenantRuntime runtime;
-        if ("r4".equals(spec.fhirVersion())) {
-            R4Personality personality = new R4Personality(spec.types());
-            cloud.jengu.dbo.policy.PolicyObjectStore engine = policyWrapped(spec, db, personality.registrations(), R4Personality.DOMAIN);
-            if (authority != null) {
-                authority.attachSubjects(engine); // §16.1: subjects are the tenant's records
-            }
-            FhirStoreFacade store = new R4Store(engine, personality, base);
-            // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is per tenant,
-            // so the facade is built here rather than shared — a tenant answers
-            // $expand from its own concepts or it is a second-class reader.
-            R4Terminology terminology = new R4Terminology(engine, personality,
-                    new cloud.jengu.dbo.terminology.TerminologyStore(db.dataSource()));
-            runtime = new TenantRuntime(spec, engine, store,
-                    new PgChangeFeed(db.dataSource(), R4Personality.DOMAIN),
-                    withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
-                            terminology, "/t/" + spec.code() + "/fhir", guard), spec), spec, engine),
-                    terminology);
-        } else {
-            R5Personality personality = new R5Personality(spec.types());
-            cloud.jengu.dbo.policy.PolicyObjectStore engine = policyWrapped(spec, db, personality.registrations(), R5Personality.DOMAIN);
-            if (authority != null) {
-                authority.attachSubjects(engine);
-            }
-            FhirStoreFacade store = new R5Store(engine, personality, base);
-            R5Terminology terminology = new R5Terminology(engine, personality,
-                    new cloud.jengu.dbo.terminology.TerminologyStore(db.dataSource()));
-            runtime = new TenantRuntime(spec, engine, store,
-                    new PgChangeFeed(db.dataSource(), R5Personality.DOMAIN),
-                    withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
-                            terminology, "/t/" + spec.code() + "/fhir", guard), spec), spec, engine),
-                    terminology);
+        // Built once and shared by everything this bring-up wires. It used to
+        // be built twice — the maintenance surface constructed a second one —
+        // which is how a tenant came to cost two of the heaviest object here.
+        FhirVersion.ForTypes declared = version.forTypes(spec.types());
+        cloud.jengu.dbo.policy.PolicyObjectStore engine =
+                policyWrapped(spec, db, declared.registrations(), version.domain());
+        if (authority != null) {
+            authority.attachSubjects(engine); // §16.1: subjects are the tenant's records
         }
+        FhirStoreFacade store = declared.store(engine, base);
+        // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is per tenant,
+        // so the facade is built here rather than shared — a tenant answers
+        // $expand from its own concepts or it is a second-class reader.
+        FhirTerminology terminology = declared.terminology(engine, db.dataSource());
+        TenantRuntime runtime = new TenantRuntime(spec, engine, store,
+                new PgChangeFeed(db.dataSource(), version.domain()),
+                withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
+                        terminology, "/t/" + spec.code() + "/fhir", guard), spec), spec, engine),
+                terminology);
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no
         // way to say who is asking.
         if (authority != null) {
             String adminPath = "/t/" + spec.code() + "/admin";
-            String domain = "r4".equals(spec.fhirVersion())
-                    ? R4Personality.DOMAIN : R5Personality.DOMAIN;
-            boolean r4 = "r4".equals(spec.fhirVersion());
-            R4Personality r4Face = r4 ? new R4Personality(spec.types()) : null;
-            R5Personality r5Face = r4 ? null : new R5Personality(spec.types());
             sharedServer.createContext(adminPath, new MaintenanceHandler(authority,
-                    db.dataSource(), domain,
-                    r4 ? r4Face.registrations() : r5Face.registrations(),
-                    r4 ? r4Face.portableRendering() : r5Face.portableRendering(),
+                    db.dataSource(), version.domain(),
+                    declared.registrations(),
+                    declared.portableRendering(),
                     adminPath,
                     new AuditedImportLedger(
                             (cloud.jengu.dbo.policy.PolicyObjectStore) runtime.engine())));
@@ -379,9 +391,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (spec.dependencies().isEmpty()) {
             return;
         }
-        boolean r4 = "r4".equals(spec.fhirVersion());
-        String domain = r4 ? R4Personality.DOMAIN : R5Personality.DOMAIN;
-        String payloadVersion = r4 ? "4.0" : "5.0";
+        FhirVersion version = versions.require(spec.fhirVersion());
+        String domain = version.domain();
+        String payloadVersion = version.payloadVersion();
         java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> engines = new java.util.ArrayList<>();
         for (TenantSpec.Dependency dependency : spec.dependencies()) {
             TenantRuntime upstream = runtimes.get(dependency.name());

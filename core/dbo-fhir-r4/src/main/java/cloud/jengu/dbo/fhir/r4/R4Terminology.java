@@ -28,8 +28,7 @@ import java.util.Optional;
  * declared truth-form inversion (REQ-DBO-CORE-DECLARED-TRUTH-FORM).
  * Public surface: JSON in, JSON out (§7.3).
  */
-public final class R4Terminology implements cloud.jengu.dbo.fhir.common.TerminologyFacade,
-        cloud.jengu.dbo.core.face.GrainCodec {
+public final class R4Terminology implements cloud.jengu.dbo.fhir.common.FhirTerminology {
 
     /** Preserves the original CodeSystem.content across the shell round-trip. */
     static final String ORIGINAL_CONTENT_EXT = "https://dbo.dev/fhir/ext/original-content";

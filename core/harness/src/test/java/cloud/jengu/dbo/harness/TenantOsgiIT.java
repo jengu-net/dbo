@@ -112,6 +112,22 @@ class TenantOsgiIT {
         assertTrue(ctx.getAllServiceReferences(
                 "cloud.jengu.dbo.tenant.TenantDatabaseProvisioner", null).length >= 1);
 
+        // Each face bundle announces the version it serves, and the wiring
+        // resolves under that code rather than choosing between versions it
+        // was compiled against (R6). Installing a bundle is how a container
+        // learns a version; there is no list to edit.
+        ServiceReference<?>[] faces = ctx.getAllServiceReferences(
+                "cloud.jengu.dbo.fhir.common.FhirVersion", null);
+        assertTrue(faces != null && faces.length >= 2,
+                "the installed faces must announce themselves: "
+                        + (faces == null ? 0 : faces.length));
+        for (String code : List.of("r4", "r5")) {
+            ServiceReference<?>[] one = ctx.getAllServiceReferences(
+                    "cloud.jengu.dbo.fhir.common.FhirVersion", "(fhir.version=" + code + ")");
+            assertTrue(one != null && one.length == 1,
+                    "exactly one face must serve " + code);
+        }
+
         // drop a spec: the manager provisions and registers the service set
         Files.writeString(dir.resolve("konteiner.json"), """
                 {"code":"konteiner","fhirVersion":"r4","types":[

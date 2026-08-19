@@ -245,4 +245,48 @@ class TenantRuntimeIT {
         }
         assertFalse(manager.codes().contains("aiakas"));
     }
+
+    /**
+     * A version is served because a face is installed, not because a validator
+     * was taught to accept the string (R6).
+     *
+     * <p>The spec no longer refuses an unknown version — which is what let it
+     * reject R6 by the name of the requirement asking for it — so the answer
+     * moves to where it is known. A tenant declaring a face this container does
+     * not have simply does not come up, and the one beside it does, which is
+     * how the test tells "refused" apart from "the scan did not get to it".
+     */
+    @Test
+    @Order(5)
+    void aTenantOnAnUninstalledFaceDoesNotComeUp() throws Exception {
+        Files.writeString(dir.resolve("olemas.json"), """
+                {"code":"olemas","fhirVersion":"r4","types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}""");
+        Files.writeString(dir.resolve("puudub.json"), """
+                {"code":"puudub","fhirVersion":"kuues","types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}""");
+
+        UntilServed.scan(manager, up -> up.contains("olemas"));
+
+        assertTrue(manager.runtime("olemas").isPresent(),
+                "a tenant on an installed face must come up");
+        assertTrue(manager.runtime("puudub").isEmpty(),
+                "a tenant on a face nothing provides must not be served by another one");
+        // and nothing was created for it: the version is resolved before the
+        // database is provisioned, so a refusal leaves nothing to clean up
+        try (Connection c = DriverManager.getConnection(
+                jdbcUrl, postgres.getUsername(), postgres.getPassword());
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT count(*) FROM pg_database WHERE datname = 'tenant_puudub'");
+             ResultSet rs = ps.executeQuery()) {
+            rs.next();
+            assertEquals(0, rs.getLong(1),
+                    "a refused tenant must not leave a provisioned database behind");
+        }
+
+        Files.delete(dir.resolve("olemas.json"));
+        Files.delete(dir.resolve("puudub.json"));
+        manager.scanOnce();
+        provisioner.deprovision("olemas");
+    }
 }
