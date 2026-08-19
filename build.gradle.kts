@@ -26,6 +26,51 @@ val moduleBlurbs = mapOf(
     "dbo-test-model" to "A non-FHIR model used to prove the engine holds no FHIR knowledge.",
 )
 
+// The runtime bundle set, in install order. ONE list: the serving
+// distribution installs it and the Karaf development console installs it, and
+// two hand-maintained copies would drift — a drift that surfaces as "resolves
+// in one container, dies on first use in the other", which is this project's
+// characteristic failure and the one a green build does not catch.
+val dboRuntimeModules = listOf(
+    ":core:dbo-core", ":core:dbo-fhir-common", ":core:dbo-postgres",
+    // the HL7/HAPI engine, once, for every personality after it
+    ":core:dbo-fhir-stack",
+    ":core:dbo-terminology", ":core:dbo-subscriptions", ":core:dbo-fhir-r4",
+    ":core:dbo-fhir-r5", ":core:dbo-rest", ":core:dbo-auth", ":core:dbo-pdi",
+    ":core:dbo-policy", ":core:dbo-sync",
+    // dbo-tenant imports it for the maintenance surface
+    ":core:dbo-maintenance", ":core:dbo-tenant", ":core:dbo-tenant-k8s",
+)
+
+// The JDBC driver is itself an OSGi bundle.
+val dboRuntimeExternalBundles = listOf("org.postgresql:postgresql:42.7.11")
+
+// One logging arrangement for the runtime: the API as a bundle every module
+// imports, dbo-logging as a FRAGMENT of it carrying the binding, and the
+// ServiceLoader mediator slf4j-api requires by manifest. The mediator is a
+// framework EXTENSION — it attaches to the system bundle rather than starting,
+// so it has to be present before anything requiring the extender resolves.
+// Separated from the runtime set because a host container may bring its own
+// logging: the Karaf console does, and installing this beside it would put two
+// providers of org.slf4j in one framework.
+val dboLoggingBundles = listOf("org.slf4j:slf4j-api:2.0.18")
+val dboLoggingModules = listOf(":core:dbo-logging")
+val dboLoggingExtension =
+    "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.7"
+
+// Development mode: set `dbo.dev=true` in ~/.gradle/gradle.properties. It is a
+// machine-local convenience for the Karaf console loop and never reaches CI,
+// which passes no such property. Its only effect is to skip javadoc, because
+// every library module carries a javadoc jar and generating seventeen of them
+// turns a four-second republish into a minute.
+val dboDevMode = (findProperty("dbo.dev") as String?) == "true"
+
+extra["dboRuntimeModules"] = dboRuntimeModules
+extra["dboRuntimeExternalBundles"] = dboRuntimeExternalBundles
+extra["dboLoggingBundles"] = dboLoggingBundles
+extra["dboLoggingModules"] = dboLoggingModules
+extra["dboLoggingExtension"] = dboLoggingExtension
+
 subprojects {
     apply(plugin = "java-library")
     the<JavaPluginExtension>().toolchain.languageVersion.set(JavaLanguageVersion.of(21))
@@ -40,7 +85,10 @@ subprojects {
     // of them would put a test rig on Maven Central under a name that
     // promises a library.
     val notALibrary = setOf(
-        ":core:harness", ":core:dbo-server", ":core:conformance", ":bench:runner")
+        ":core:harness", ":core:dbo-server", ":core:conformance", ":bench:runner",
+        // the development console: a stock Karaf pointed at the bundle set,
+        // not an artifact anyone consumes
+        ":karaf")
     if (project.path !in notALibrary) {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")
@@ -50,6 +98,10 @@ subprojects {
         // API that is deliberately small.
         the<JavaPluginExtension>().withSourcesJar()
         the<JavaPluginExtension>().withJavadocJar()
+
+        if (dboDevMode) {
+            tasks.withType<Javadoc>().configureEach { enabled = false }
+        }
 
         configure<PublishingExtension> {
             repositories {
@@ -155,6 +207,25 @@ subprojects {
                 useInMemoryPgpKeys(signingKey, signingPassword)
                 sign(the<PublishingExtension>().publications["maven"])
             }
+        }
+    }
+}
+
+// The development loop's one command: publish the runtime bundle set to the
+// local Maven repository, where the Karaf console's bundle:watch is looking.
+// Karaf only watches bundles installed from an mvn: location and re-reads them
+// from the local repository, so this publish IS the pipe between an edit and a
+// running container. Nothing else about the loop needs a human.
+tasks.register("dev") {
+    group = "development"
+    description = "Publishes the runtime bundle set to ~/.m2 for the Karaf console."
+    dependsOn((dboRuntimeModules + dboLoggingModules).map { "$it:publishToMavenLocal" })
+    doFirst {
+        if (!dboDevMode) {
+            logger.lifecycle(
+                "dbo: running without dbo.dev=true — javadoc will be generated for every " +
+                    "module. Put `dbo.dev=true` in ~/.gradle/gradle.properties to skip it."
+            )
         }
     }
 }

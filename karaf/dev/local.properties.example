@@ -1,0 +1,32 @@
+# The development console's local settings. Copy to local.properties (which is
+# git-ignored) and point it at your own Postgres.
+#
+# These become system properties in the Karaf instance; the container reads them
+# through BundleContext.getProperty exactly as it reads the ones bin/dbo-server
+# maps from the environment.
+
+# Where tenant specs are read from. The manager reconciles this directory every
+# two seconds, so a *.json dropped here brings a tenant up live — and removing
+# it takes the tenant down.
+dbo.tenant.dir=karaf/dev/tenants
+
+dbo.tenant.http.host=127.0.0.1
+dbo.tenant.http.port=8090
+
+# Your Postgres. The admin connection is what provisions a database per tenant,
+# so it needs CREATE DATABASE. Nothing here is shared with any other instance.
+dbo.tenant.admin.url=jdbc:postgresql://127.0.0.1:5432/postgres
+dbo.tenant.admin.user=postgres
+dbo.tenant.admin.password=postgres
+
+# A development key-encryption key: base64, 32 bytes. Without it the tenant
+# authority is not wired at all and the surface serves unauthenticated, which is
+# a different runtime from the one being developed. This value is a fixed
+# development constant on purpose — it protects nothing and must never appear in
+# a deployment.
+dbo.tenant.auth.kek=ZGJvLWRldmVsb3BtZW50LW9ubHktbm90LXNlY3JldCE=
+dbo.tenant.auth.issuer.base=http://127.0.0.1:8090
+
+# text, because a person is reading this one. The distribution defaults to json.
+dbo.log.level=info
+dbo.log.format=text
