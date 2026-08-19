@@ -21,10 +21,44 @@ import java.util.Properties
 
 val karafVersion = rootProject.extra["dboKarafVersion"] as String
 
+// Which logging arrangement the console runs.
+//
+//   karaf (default) — Karaf's own pax-logging. log:set and log:tail work, and
+//                     levels can be changed per logger while it runs.
+//   dbo             — the arrangement the distribution ships: slf4j-api as a
+//                     shared bundle, dbo-logging as its fragment carrying the
+//                     binding. What the product actually does, including the
+//                     way it fails. Costs log:set and log:tail, and dbo-logging
+//                     decides its level once at startup by design, so changing
+//                     verbosity means reassembling with a different
+//                     dbo.log.level. Karaf's own bundles import
+//                     org.slf4j;version="[2.0,3)", which slf4j-api 2.0.18
+//                     satisfies — so Karaf's own messages come out through the
+//                     product's writer, at the product's single global level.
+val loggingPosture = (findProperty("dbo.karaf.logging") as String?) ?: "karaf"
+
+// The distribution installs SPI-Fly as a framework EXTENSION, which attaches to
+// the system bundle at framework init — past the point a running Karaf can
+// reach. The dynamic bundle is the same mediator packaged to be installed
+// normally, and what slf4j-api actually requires is the osgi.serviceloader
+// extender capability, which both provide. Noted because it is the one place
+// this console's wiring is not the distribution's.
+val spiFlyDynamicBundle =
+    "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:1.3.7"
+
 val karafDist: Configuration by configurations.creating
+val dboLoggingBundles: Configuration by configurations.creating
+
+@Suppress("UNCHECKED_CAST")
+val loggingGavs = (rootProject.extra["dboLoggingBundles"] as List<String>) + spiFlyDynamicBundle
 
 dependencies {
     karafDist("org.apache.karaf:apache-karaf:$karafVersion@tar.gz")
+    loggingGavs.forEach { dboLoggingBundles(it) { isTransitive = false } }
+    @Suppress("UNCHECKED_CAST")
+    (rootProject.extra["dboLoggingModules"] as List<String>).forEach {
+        dboLoggingBundles(project(it)) { isTransitive = false }
+    }
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -199,6 +233,14 @@ val console = tasks.register("console") {
                 "_g_\\:admingroup = group,admin,manager,viewer,systembundles,ssh\n"
         )
 
+        if (loggingPosture == "dbo") {
+            installDboLogging(home)
+        } else if (loggingPosture != "karaf") {
+            throw GradleException(
+                "dbo.karaf.logging=$loggingPosture — expected 'karaf' or 'dbo'."
+            )
+        }
+
         // The console's own commands go through deploy/, not the local Maven
         // repository: they are development tooling and nothing should resolve
         // them by coordinate. Karaf re-deploys a changed jar here on its own,
@@ -233,3 +275,64 @@ val console = tasks.register("console") {
 // which no ordinary build needs — and since assembling refuses while a console
 // is running, wiring it in would mean a running console broke the project build.
 
+
+/**
+ * Replaces Karaf's logging with the one the distribution ships.
+ *
+ * <p>Three places name it, and all three have to agree or the bundles arrive
+ * twice: the startup set the launcher installs, the `framework` feature that
+ * defines the base runtime, and the boot feature list — `log` is Karaf's own
+ * log commands, which are pax-logging's and have nothing to bind to once it is
+ * gone.
+ */
+fun installDboLogging(home: File) {
+    val coordinates = mutableListOf<String>()
+    val projectVersion = project.version.toString()
+
+    // Startup bundles resolve from Karaf's own system/ repository, laid out
+    // the Maven way, so each jar has to land at its coordinate's path.
+    (loggingGavs.map {
+        val (group, artifact, version) = it.split(":")
+        Triple(group, artifact, version)
+    } + listOf(Triple("cloud.jengu.dbo", "dbo-logging", projectVersion))).forEach { (group, artifact, version) ->
+        val fileName = "$artifact-$version.jar"
+        val jar = dboLoggingBundles.files.firstOrNull { it.name == fileName }
+            ?: throw GradleException("$fileName is not in the logging configuration")
+        val into = home.resolve(
+            "system/${group.replace('.', '/')}/$artifact/$version/$fileName")
+        into.parentFile.mkdirs()
+        jar.copyTo(into, overwrite = true)
+        coordinates.add("mvn:$group/$artifact/$version")
+    }
+
+    // The launcher's startup set. Level 8 is where pax-logging sat: before
+    // anything that logs, after the framework's own plumbing.
+    val startup = home.resolve("etc/startup.properties")
+    val kept = startup.readLines().filterNot { it.contains("pax-logging") }
+    startup.writeText(
+        (kept + coordinates.map { "${it.replace(":", "\\:")} = 8" }).joinToString("\n") + "\n"
+    )
+
+    // The framework feature, which would otherwise install pax-logging again
+    // the moment features come up. Only the first occurrences: the same pair
+    // appears further down under framework-logback, which nothing boots.
+    val features = home.resolve(
+        "system/org/apache/karaf/features/framework/$karafVersion/framework-$karafVersion-features.xml")
+    var xml = features.readText()
+    val paxLine = Regex("""\s*<bundle start-level="8">mvn:org\.ops4j\.pax\.logging/pax-logging-api/[^<]*</bundle>""")
+    val paxImpl = Regex("""\s*<bundle start-level="8">mvn:org\.ops4j\.pax\.logging/pax-logging-log4j2/[^<]*</bundle>""")
+    xml = paxLine.replaceFirst(xml, coordinates.joinToString("") {
+        "\n        <bundle start-level=\"8\">$it</bundle>"
+    })
+    xml = paxImpl.replaceFirst(xml, "")
+    features.writeText(xml)
+
+    // Karaf's log commands are pax-logging's.
+    val featuresCfg = home.resolve("etc/org.apache.karaf.features.cfg")
+    featuresCfg.writeText(
+        featuresCfg.readText().replace("    log/$karafVersion, \\\n", "")
+    )
+
+    logger.lifecycle("dbo: logging posture = dbo (the distribution's binding; "
+        + "no log:set, no log:tail, one global level from dbo.log.level)")
+}

@@ -139,11 +139,25 @@ provisioner, authority, bind address, spec directory. If it disagrees with what
 you expected, the disagreement is the finding.
 
 **This is not the distribution's logging.** The console keeps Karaf's
-pax-logging rather than installing `dbo-logging` and its slf4j-api host: two
-providers of `org.slf4j` in one framework is a race, and the binding this
-project ships is a fragment plus a framework extension that can only attach at
-framework init. So `log:tail` and `log:set` work here, and a fault in the real
-logging arrangement is invisible here by construction.
+pax-logging rather than installing `dbo-logging` and its slf4j-api host. So
+`log:tail` and `log:set` work here — including changing a level while it runs,
+which the product's own arrangement cannot do at all, since `DboLogging` reads
+its level into a `static final` once and has no per-logger filtering. The cost
+is that a fault in the real logging arrangement is invisible here.
+
+`-Pdbo.karaf.logging=dbo` assembles the console with the distribution's
+arrangement instead — slf4j-api, `dbo-logging`, and SPI-Fly as a dynamic bundle
+rather than the framework extension the distribution uses, because an extension
+can only attach at framework init.
+
+**It does not currently complete boot.** Every bundle installs, including
+`features.core`, slf4j-api, SPI-Fly and `dbo-logging`, and the framework reaches
+start level 100 — but no boot feature comes up and the ssh port never opens.
+Nothing says why, which is the point worth recording: the diagnostics that would
+report it are Karaf's, and they are what the posture replaces. Karaf 4.4.11's own
+bundles import `org.slf4j;version="[2.0,3)"`, which slf4j-api 2.0.18 satisfies,
+so the version ranges are not the obstacle. Use the default posture until this is
+understood.
 
 **Reassembly is destructive.** `:karaf:console` re-unpacks Karaf, which drops
 `data/` — installed bundle state and the ssh host key with it. It refuses to
