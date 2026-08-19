@@ -57,6 +57,11 @@ class ValidationUnavailableIT {
         }
 
         @Override
+        public String validationOutcome(String resourceJson) {
+            throw failure;
+        }
+
+        @Override
         public String read(String typeName, String id) {
             return null;
         }

@@ -110,6 +110,7 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-VER-CONCURRENT-VERSIONS | Tenants (and domains within a tenant) on different FHIR versions run concurrently in one container. (R6) |
 | REQ-DBO-VER-PERSONALITY-OWNS-MEANING | Parsing, validation, search-parameter extraction and subscription evaluation are personality responsibilities, per version. (§1) |
 | REQ-DBO-VER-SPECIFIED-VALIDATION | Profile-resolution and validation semantics are specified by DBO — a malformed or versioned canonical reference can never silently disable validation. (§7.6, §9.3) |
+| REQ-DBO-VER-VALIDATION-WITHOUT-WRITING | A caller can ask whether a resource would be accepted without writing it (`[Type]/$validate`), and the answer is the write path's own: what it accepts a write accepts, what it rejects a write rejects. Issues carry the locations a refusal carries, so a caller is told what to fix. The verdict is the resource's shape — state a write settles (an identity already claimed, a version moved on) is not promised. (§1, §7.6) |
 | REQ-DBO-VER-TRANSITION-BY-CONVERTERS | Moving a tenant between FHIR versions is converters plus reindex, not a data migration ceremony. (§2, R6) |
 
 ## SRCH — search

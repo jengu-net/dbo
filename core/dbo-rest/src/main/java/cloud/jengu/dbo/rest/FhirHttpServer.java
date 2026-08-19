@@ -229,6 +229,29 @@ public final class FhirHttpServer implements AutoCloseable {
             return;
         }
 
+        // [Type]/$validate — would this be accepted, without writing it (#48).
+        // Before the terminology branch because it needs no terminology facade,
+        // and it is not a mutation: the authorization above already classifies
+        // a POST to an operation as a read, which is what this is.
+        if (segments.length == 2 && "$validate".equals(segments[1]) && "POST".equals(method)) {
+            String mode = query.getOrDefault("mode", "create");
+            if (!"create".equals(mode) && !"update".equals(mode)) {
+                respond(exchange, 400, store.operationOutcome("invalid",
+                        "unsupported $validate mode: " + mode));
+                return;
+            }
+            if (!store.knowsType(segments[0])) {
+                respond(exchange, 404, store.operationOutcome("not-supported",
+                        "unknown resource type: " + segments[0]));
+                return;
+            }
+            // 200 whatever the verdict: the question was answered. Whether the
+            // resource is acceptable is what the OperationOutcome says, and a
+            // caller asking a question correctly did not make a bad request.
+            respond(exchange, 200, store.validationOutcome(readBody(exchange)));
+            return;
+        }
+
         // terminology operations
         if (terminology != null && segments.length == 2 && segments[1].startsWith("$")) {
             switch (segments[0] + "/" + segments[1]) {

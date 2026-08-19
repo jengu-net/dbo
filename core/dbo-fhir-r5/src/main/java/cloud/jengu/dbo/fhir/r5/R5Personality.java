@@ -495,26 +495,50 @@ public final class R5Personality {
 
     /** ERROR/FATAL issue lines; empty = valid. */
     public List<String> validate(String resourceJson) {
+        return withTccl(() -> issuesFrom(validated(parse(resourceJson))));
+    }
+
+    /**
+     * The same validation, rendered as the domain's own OperationOutcome (#48).
+     *
+     * <p>One call, two renderings — deliberately. A caller asking whether a
+     * resource would be accepted, and the write that accepts or refuses it,
+     * must not be able to disagree, so they share the ValidationResult rather
+     * than each running the validator their own way.
+     */
+    public String validationOutcome(String resourceJson) {
         return withTccl(() -> {
             IBaseResource resource = parse(resourceJson);
-            List<String> issues = issuesFrom(validator().validateWithResult(resource));
-            if (issues.stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
-                // A regex that ran out of wall clock found nothing; asking
-                // again is the only answer that is not a guess.
-                issues = issuesFrom(validator().validateWithResult(resource));
-            }
-            // Twice is not a busy moment, and it is still not a finding. The
-            // machine could not answer, so it says that instead of calling the
-            // resource invalid — a caller who retries succeeds, and nobody
-            // spends an afternoon on a data-quality report about a regex.
-            if (issues.stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
-                throw new cloud.jengu.dbo.fhir.common.ValidationUnavailableException(
-                        resource.fhirType(),
-                        issues.stream().filter(i -> i.contains(REGEX_TIMED_OUT))
-                                .findFirst().orElse(REGEX_TIMED_OUT));
-            }
-            return issues;
+            ValidationResult result = validated(resource);
+            return ctx().newJsonParser().encodeResourceToString(
+                    (IBaseResource) result.toOperationOutcome());
         });
+    }
+
+    /**
+     * The write path's validation, with the timeout policy in one place.
+     *
+     * <p>Runs under a TCCL the caller has already pinned. The retry and the
+     * refusal to answer live here rather than in each entry point, because a
+     * second entry point that forgot them would answer "invalid" on a busy
+     * machine — which is the bug #42 was.
+     */
+    private ValidationResult validated(IBaseResource resource) {
+        ValidationResult result = validator().validateWithResult(resource);
+        if (issuesFrom(result).stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
+            // A regex that ran out of wall clock found nothing; asking again is
+            // the only answer that is not a guess.
+            result = validator().validateWithResult(resource);
+        }
+        List<String> issues = issuesFrom(result);
+        if (issues.stream().anyMatch(i -> i.contains(REGEX_TIMED_OUT))) {
+            // Twice is not a busy moment, and it is still not a finding.
+            throw new cloud.jengu.dbo.fhir.common.ValidationUnavailableException(
+                    resource.fhirType(),
+                    issues.stream().filter(i -> i.contains(REGEX_TIMED_OUT))
+                            .findFirst().orElse(REGEX_TIMED_OUT));
+        }
+        return result;
     }
 
     private static List<String> issuesFrom(ValidationResult result) {
