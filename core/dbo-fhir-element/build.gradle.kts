@@ -39,11 +39,30 @@ data class Definitions(
     val sha256: String,
     /** false while a package is understood but not yet chosen — see the epic. */
     val carried: Boolean = true,
+    /**
+     * Whether this bundle announces itself as the face for that version.
+     *
+     * Carrying a version's definitions and owning its face are different
+     * things: R4's definitions are carried so that `dbo-fhir-r4` can serve
+     * through this facade while keeping the halves that are genuinely R4's —
+     * terminology and subscriptions. Announcing it here as well would register
+     * two faces under one code, and which one served a tenant would depend on
+     * ordering.
+     */
+    val announced: Boolean = true,
 )
 
 // Pinned. A ballot moves with the core's version codes (#59), so these two
 // numbers are changed together and never one of them.
 val definitions = listOf(
+    // R4 — the version most of the world speaks, and the one with an incumbent
+    // to match rather than a promise to make.
+    Definitions("r4", "hl7.fhir.r4.core", "4.0.1",
+        "b090bf929e1f665cf2c91583720849695bc38d2892a7c5037c56cb00817fb091", announced = false),
+    Definitions("r4", "hl7.terminology.r4", "7.3.0",
+        "1a1ef2aa22ecc820341267f2bdba3b2d1f4adafb9bdddfc9e51c611cd64f3b54", announced = false),
+    Definitions("r4", "hl7.fhir.uv.tools.r4", "1.1.2",
+        "a1f166f8808629a40c4acabc16a4fbfd164d9f38f9db95b6f4b38bb69155dfe4", announced = false),
     Definitions("r6", "hl7.fhir.r6.core", "6.0.0-ballot5",
         "dbea14a39ebbcbaec53fe7cfb805048bf1aed023384e43c9f070c9c6cfd705b0"),
     // The terminology a version's value sets bind to, and the tooling
@@ -66,7 +85,8 @@ val definitionsDir = layout.buildDirectory.dir("definitions")
 val fetchDefinitions by tasks.registering {
     description = "Fetches the pinned FHIR definition packages and verifies their digests."
     val carried = definitions.filter { it.carried }
-    inputs.property("packages", carried.map { "${it.name}#${it.version}:${it.sha256}" })
+    inputs.property("packages",
+        carried.map { "${it.name}#${it.version}:${it.sha256}:${it.announced}" })
     outputs.dir(definitionsDir)
     doLast {
         val out = definitionsDir.get().asFile
@@ -85,7 +105,8 @@ val fetchDefinitions by tasks.registering {
                 error("${pkg.name}#${pkg.version}: expected sha256 ${pkg.sha256}, got $actual — " +
                     "the registry served something other than what this build pins")
             }
-            index.append("${pkg.fhirVersion}|${pkg.name}|${pkg.version}|${file.name}\n")
+            index.append("${pkg.fhirVersion}|${pkg.name}|${pkg.version}|${file.name}" +
+                "|${pkg.announced}\n")
         }
         File(out, "index").writeText(index.toString())
         logger.lifecycle("definitions: ${carried.size} packages, " +

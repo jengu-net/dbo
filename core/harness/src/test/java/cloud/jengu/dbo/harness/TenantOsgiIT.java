@@ -76,10 +76,10 @@ class TenantOsgiIT {
         for (String prop : List.of("dbo.core.jar", "dbo.fhir.common.jar", "dbo.postgres.jar",
                 // the HL7/HAPI engine both personalities import from
                 "dbo.fhir.stack.jar",
-                "dbo.terminology.jar", "dbo.subscriptions.jar", "dbo.fhir.r4.jar",
-                "dbo.fhir.r5.jar",
-                // one face, carrying every version whose definitions it embeds
-                "dbo.fhir.element.jar", "dbo.rest.jar", "dbo.auth.jar", "dbo.pdi.jar", "dbo.policy.jar",
+                "dbo.terminology.jar", "dbo.subscriptions.jar",
+                // the shared facade, before the faces that import it
+                "dbo.fhir.element.jar",
+                "dbo.fhir.r4.jar", "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar", "dbo.pdi.jar", "dbo.policy.jar",
                 // the manager wires declared content dependencies —
                 // without this bundle the tenant bundle does not resolve
                 "dbo.sync.jar",

@@ -29,7 +29,18 @@ final class ElementAncestors {
     private ElementAncestors() {
     }
 
-    static byte[] rendered(SimpleWorkerContext context, byte[] payload, String id, long versionId) {
+    static byte[] rendered(SimpleWorkerContext context, byte[] payload, String id,
+            long versionId) {
+        return rendered(context, payload, id, versionId, null);
+    }
+
+    /**
+     * @param elements when given, the only elements encoded — the store's own
+     *                 slots always survive, because a resource a client cannot
+     *                 reference is not a smaller resource, it is a broken one
+     */
+    static byte[] rendered(SimpleWorkerContext context, byte[] payload, String id, long versionId,
+            java.util.List<String> elements) {
         try {
             Element document = Manager.parseSingle(context, new ByteArrayInputStream(payload),
                     Manager.FhirFormat.JSON);
@@ -39,6 +50,16 @@ final class ElementAncestors {
                 meta = document.makeElement("meta");
             }
             meta.setChildValue("versionId", Long.toString(versionId));
+            if (elements != null && !elements.isEmpty()) {
+                java.util.Set<String> keep = new java.util.LinkedHashSet<>();
+                elements.forEach(element -> keep.add(element.trim()));
+                for (Element child : new java.util.ArrayList<>(document.getChildren())) {
+                    if (!keep.contains(child.getName()) && !"id".equals(child.getName())
+                            && !"meta".equals(child.getName())) {
+                        document.removeChild(child);
+                    }
+                }
+            }
             ByteArrayOutputStream out = new ByteArrayOutputStream(payload.length + 64);
             Manager.compose(context, document, out, Manager.FhirFormat.JSON,
                     IParser.OutputStyle.NORMAL, null);

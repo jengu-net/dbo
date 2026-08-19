@@ -33,7 +33,10 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
-    maxHeapSize = "2g"
+    // Two versions' definitions can be resident at once now — the R4 face and
+    // the R6 one are tens of megabytes of parsed StructureDefinitions each,
+    // and the suite holds a container and a distribution beside them.
+    maxHeapSize = "4g"
     dependsOn(":core:dbo-core:jar", ":core:dbo-postgres:jar", ":core:dbo-fhir-r4:jar")
     systemProperty(
         "dbo.core.jar",

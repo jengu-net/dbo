@@ -122,6 +122,21 @@ public final class ElementStore implements FhirStoreFacade {
         return store.putIfAbsent(ref, PutRequest.create(accepted.type(), accepted.payload()));
     }
 
+    /**
+     * Conditional upsert of a canonical artifact by its url.
+     *
+     * <p>Not on the facade: a canonical resource is one whose identity is its
+     * {@code url}, and the caller that writes one — terminology ingest — knows
+     * that about it. A caller that does not know cannot use this correctly.
+     */
+    public PutResult putCanonical(String resourceJson) {
+        Accepted accepted = accepted(resourceJson);
+        Object document = payloads.read(null, accepted.payload());
+        String url = version.canonicalUrlOf(document);
+        return store.putConditional(IdentityRef.canonical(url),
+                PutRequest.create(accepted.type(), accepted.payload()));
+    }
+
     @Override
     public void delete(String typeName, String id, Long expectedVersion) {
         store.delete(typeName, id, expectedVersion);
@@ -157,7 +172,7 @@ public final class ElementStore implements FhirStoreFacade {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         write("history", new PayloadFraming.Facts((long) history.size(),
                 baseUrl + "/" + typeName + "/" + id + "/_history", null),
-                history, null, out);
+                history, null, null, out);
         return out.toString(StandardCharsets.UTF_8);
     }
 
@@ -188,7 +203,7 @@ public final class ElementStore implements FhirStoreFacade {
             List<StoredObject> hit = store.get(typeName, compiled.byId())
                     .map(List::of).orElse(List.of());
             write("searchset", new PayloadFraming.Facts((long) hit.size(), selfUrl(typeName, params),
-                    null), hit, null, out);
+                    null), hit, null, compiled.elements(), out);
             return;
         }
         if (compiled.countOnly()) {
@@ -200,7 +215,8 @@ public final class ElementStore implements FhirStoreFacade {
         FeedChunk<StoredObject> chunk = store.page(compiled.criteria(), cursor);
         List<StoredObject> included = included(compiled, chunk);
         write("searchset", new PayloadFraming.Facts(null, selfUrl(typeName, params),
-                nextUrl(typeName, params, chunk)), chunk.items(), included, out);
+                nextUrl(typeName, params, chunk)), chunk.items(), included, compiled.elements(),
+                out);
     }
 
     /**
@@ -232,7 +248,7 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     private void write(String frameType, PayloadFraming.Facts facts, List<StoredObject> members,
-            List<StoredObject> included, OutputStream out) {
+            List<StoredObject> included, List<String> elements, OutputStream out) {
         try {
             PayloadFraming.Frame frame = framing.frame(frameType, facts);
             out.write(frame.prologue());
@@ -242,7 +258,7 @@ public final class ElementStore implements FhirStoreFacade {
                     out.write(frame.separator());
                 }
                 first = false;
-                framing.member(member(member, PayloadFraming.Member.MATCHED), out);
+                framing.member(member(member, PayloadFraming.Member.MATCHED, elements), out);
             }
             if (included != null) {
                 for (StoredObject member : included) {
@@ -250,7 +266,7 @@ public final class ElementStore implements FhirStoreFacade {
                         out.write(frame.separator());
                     }
                     first = false;
-                    framing.member(member(member, PayloadFraming.Member.INCLUDED), out);
+                    framing.member(member(member, PayloadFraming.Member.INCLUDED, elements), out);
                 }
             }
             out.write(frame.epilogue());
@@ -259,9 +275,11 @@ public final class ElementStore implements FhirStoreFacade {
         }
     }
 
-    private PayloadFraming.Member member(StoredObject stored, String role) {
+    private PayloadFraming.Member member(StoredObject stored, String role,
+            List<String> elements) {
         return new PayloadFraming.Member(stored.typeName(), stored.id(), stored.versionId(),
-                stored.payload(), baseUrl + "/" + stored.typeName() + "/" + stored.id(), role);
+                stored.payload(), baseUrl + "/" + stored.typeName() + "/" + stored.id(), role,
+                elements);
     }
 
     private String selfUrl(String typeName, Map<String, String> params) {
@@ -270,7 +288,10 @@ public final class ElementStore implements FhirStoreFacade {
 
     private String nextUrl(String typeName, Map<String, String> params,
             FeedChunk<StoredObject> chunk) {
-        if (chunk.nextCursor() == null || chunk.items().isEmpty()) {
+        if (chunk.drained() || chunk.nextCursor() == null) {
+            // Drained matters as much as the cursor: a page that emptied the
+            // selection still has a position after its last row, and offering
+            // it sends a reader round again for nothing.
             return null;
         }
         String query = query(params);

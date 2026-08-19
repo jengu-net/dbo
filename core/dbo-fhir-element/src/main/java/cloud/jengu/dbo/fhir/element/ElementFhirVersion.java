@@ -29,6 +29,7 @@ import java.util.List;
 public class ElementFhirVersion implements FhirVersion {
 
     private final String code;
+    private final String payloadVersion;
 
     /**
      * The definitions are loaded when something asks this version to do
@@ -42,7 +43,23 @@ public class ElementFhirVersion implements FhirVersion {
      * as far from its cause as a failure gets.
      */
     protected ElementFhirVersion(String code) {
+        this(code, null);
+    }
+
+    /**
+     * @param payloadVersion the coordinate payloads are stored under, when it
+     *                       is not the one the definitions declare. A released
+     *                       version has a stable coordinate the store and its
+     *                       converters already agree on — R4 is {@code 4.0},
+     *                       not {@code 4.0.1} — and changing it would mean
+     *                       stored rows and converter pairs disagreeing about
+     *                       what a payload is. A version at ballot has no such
+     *                       agreement and is recorded exactly
+     *                       (REQ-DBO-VER-BALLOT-RECORDED-PER-VERSION).
+     */
+    protected ElementFhirVersion(String code, String payloadVersion) {
         this.code = code;
+        this.payloadVersion = payloadVersion;
     }
 
     private ElementVersion version() {
@@ -51,7 +68,12 @@ public class ElementFhirVersion implements FhirVersion {
 
     /** One version, by the code its carried definitions are indexed under. */
     public static ElementFhirVersion serving(String code) {
-        return new ElementFhirVersion(code);
+        return new ElementFhirVersion(code, null);
+    }
+
+    /** The same, for a version whose stored coordinate is not the definitions'. */
+    public static ElementFhirVersion serving(String code, String payloadVersion) {
+        return new ElementFhirVersion(code, payloadVersion);
     }
 
     @Override
@@ -71,7 +93,7 @@ public class ElementFhirVersion implements FhirVersion {
 
     @Override
     public String payloadVersion() {
-        return version().payloadVersion();
+        return payloadVersion != null ? payloadVersion : version().payloadVersion();
     }
 
     @Override
@@ -81,10 +103,11 @@ public class ElementFhirVersion implements FhirVersion {
 
     @Override
     public ForTypes forTypes(List<FhirTypeConfig> types) {
-        return new Tenant(version(), List.copyOf(types));
+        return new Tenant(version(), List.copyOf(types), payloadVersion());
     }
 
-    private record Tenant(ElementVersion version, List<FhirTypeConfig> types) implements ForTypes {
+    private record Tenant(ElementVersion version, List<FhirTypeConfig> types,
+            String payloadVersion) implements ForTypes {
 
         @Override
         public List<TypeRegistration> registrations() {
@@ -97,8 +120,10 @@ public class ElementFhirVersion implements FhirVersion {
             for (FhirTypeConfig type : types) {
                 out.add(new TypeRegistration(type.typeName(), domain, type.identityClass(),
                         type.identitySystems(), type.handling(),
-                        version.extractor(type.typeName()), indexes(type.typeName()),
-                        version.payloadVersion()));
+                        version.extractor(type.typeName(),
+                                type.identityClass() == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL),
+                        indexes(type.typeName()),
+                        payloadVersion));
             }
             return out;
         }

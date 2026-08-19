@@ -78,7 +78,9 @@ class EmbeddedContainerIT {
         for (String name : List.of("dbo.core", "dbo.fhir.common", "dbo.postgres", "dbo.terminology",
                 // the HL7/HAPI engine, once, for both personalities after it
                 "dbo.fhir.stack",
-                "dbo.subscriptions", "dbo.fhir.r4", "dbo.fhir.r5", "dbo.rest")) {
+                // the shared facade the versions are served through
+                "dbo.subscriptions", "dbo.fhir.element", "dbo.fhir.r4", "dbo.fhir.r5",
+                "dbo.rest")) {
             String path = System.getProperty(name + ".jar");
             java.util.Objects.requireNonNull(path, name + ".jar system property missing");
             bundles.put(name, ctx.installBundle("file:" + path));

@@ -92,6 +92,11 @@ public final class R4Personality {
 
     // -------------------------------------------------------- registrations
 
+    /** The tenant's declared types, as they were declared. */
+    public List<FhirTypeConfig> typeConfigs() {
+        return List.copyOf(types.values());
+    }
+
     /** The types this personality is configured for — what an operation applies to. */
     public java.util.Set<String> configuredTypes() {
         return java.util.Set.copyOf(types.keySet());

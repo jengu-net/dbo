@@ -40,7 +40,8 @@ public final class CarriedDefinitions {
     }
 
     /** One carried package: which version it belongs to, and what it is. */
-    public record Carried(String fhirVersion, String name, String version, String file) {
+    public record Carried(String fhirVersion, String name, String version, String file,
+            boolean announced) {
 
         /** {@code hl7.fhir.r6.core#6.0.0-ballot5} — how a package is named everywhere else. */
         public String id() {
@@ -64,7 +65,8 @@ public final class CarriedDefinitions {
                     continue;
                 }
                 String[] parts = line.split("\\|");
-                out.add(new Carried(parts[0], parts[1], parts[2], parts[3]));
+                out.add(new Carried(parts[0], parts[1], parts[2], parts[3],
+                        Boolean.parseBoolean(parts[4])));
             }
         } catch (IOException e) {
             throw new UncheckedIOException("cannot read the carried definitions index", e);
@@ -76,6 +78,21 @@ public final class CarriedDefinitions {
     public static Set<String> versions() {
         Set<String> versions = new LinkedHashSet<>();
         carried().forEach(c -> versions.add(c.fhirVersion()));
+        return versions;
+    }
+
+    /**
+     * The versions this bundle announces itself as the face for.
+     *
+     * <p>Carrying a version's definitions and owning its face are different
+     * things: another bundle may serve a version through this facade while
+     * keeping the halves that are genuinely its own. Announcing those too
+     * would register two faces under one code, and which one served a tenant
+     * would depend on ordering.
+     */
+    public static Set<String> announced() {
+        Set<String> versions = new LinkedHashSet<>();
+        carried().stream().filter(Carried::announced).forEach(c -> versions.add(c.fhirVersion()));
         return versions;
     }
 

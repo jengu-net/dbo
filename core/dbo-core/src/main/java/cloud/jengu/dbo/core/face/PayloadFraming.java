@@ -43,13 +43,24 @@ public interface PayloadFraming {
      *             match. A word about the document, not about FHIR.
      */
     record Member(String typeName, String id, long versionId, byte[] payload,
-            String url, String role) {
+            String url, String role, java.util.List<String> elements) {
 
         /** A member that was matched rather than included. */
         public static final String MATCHED = "matched";
 
         /** A member present because something matched referred to it. */
         public static final String INCLUDED = "included";
+
+        /**
+         * The whole member, which is what a document asks for unless a caller
+         * asked for less. {@code elements} names what to keep when they did —
+         * the face's business, since which slots are the store's own and must
+         * survive a projection is a domain question rather than a frame's.
+         */
+        public Member(String typeName, String id, long versionId, byte[] payload,
+                String url, String role) {
+            this(typeName, id, versionId, payload, url, role, null);
+        }
     }
 
     Frame frame(String frameType, Facts facts);

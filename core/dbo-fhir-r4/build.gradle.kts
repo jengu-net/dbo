@@ -19,6 +19,9 @@ dependencies {
     api(project(":core:dbo-terminology"))
     // HAPI on the compile classpath, and at runtime the one bundle that owns it
     api(project(":core:dbo-fhir-stack"))
+    // the shared facade: reading, framing, extracting and serving are one
+    // implementation for every version now
+    api(project(":core:dbo-fhir-element"))
     // slf4j-api is SHARED, not embedded: one binding for the whole
     // runtime instead of a private one per bundle. compileOnly because
     // it resolves from the slf4j-api bundle at runtime.
@@ -99,6 +102,7 @@ tasks.jar {
                     "cloud.jengu.dbo.core.api.feed;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.core;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.fhir.common;version=\"[0.1,1)\"",
+                    "cloud.jengu.dbo.fhir.element;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.subscriptions;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.terminology;version=\"[0.1,1)\"",
                     "javax.naming;resolution:=optional",
