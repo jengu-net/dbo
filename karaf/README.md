@@ -93,12 +93,24 @@ Observation as store-assigned, and a store-assigned id has nothing to key a
 conditional write on. The table is where a declaration in a spec file becomes
 visible as a promise to clients.
 
-The tenant argument completes on TAB, from the registry rather than a cached
-list — tenants come and go while the console is open, so what completes is what
-the command can actually act on.
+A second argument names one capability and narrows to it. A summarised row
+opens into what it summarised; a stated one prints bare, so a single fact can
+be read by eye or by a script without a table to cut apart.
 
-`--search-params` lists parameters one per row instead of counting them by
-kind. Karaf wants options before the argument, so it is
+```
+dbo-tenant:capability-list dev Observation.conditionalCreate   ->  false
+dbo-tenant:capability-list dev Patient.searchParam.identifier  ->  token
+dbo-tenant:capability-list dev Patient.searchParam             ->  a table of the 30
+```
+
+Both arguments complete on TAB. Tenants come from the registry rather than a
+cached list, because they come and go while the console is open. Capability
+names come from the statement of the tenant already typed — the union across
+tenants would offer facts a tenant does not have — so nothing completes until
+a tenant is on the line.
+
+`--search-params` expands every entity at once instead of one. Karaf wants
+options before arguments, so it is
 `dbo-tenant:capability-list --search-params dev`.
 
 It reads the tenant's own `/metadata` rather than the store facade. The facade

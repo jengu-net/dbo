@@ -9,41 +9,19 @@ import org.apache.karaf.shell.api.action.lifecycle.Service;
 import org.apache.karaf.shell.support.table.ShellTable;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.ServiceReference;
 
-import javax.json.Json;
-import javax.json.JsonArray;
 import javax.json.JsonObject;
-import javax.json.JsonReader;
-import javax.json.JsonString;
-import javax.json.JsonValue;
 
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.io.StringReader;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 /**
- * A tenant's CapabilityStatement, flattened into one row per fact.
+ * A tenant's CapabilityStatement as a table of facts, or one fact from it.
  *
  * <p>The statement is generated from what each configured type declares rather
- * than from a list applied to every type, so reading it back is how you see a
- * spec file's declarations as the promises clients are given: a type whose
- * identity is store-assigned has nothing to key a conditional write on, and
- * that shows up here as {@code conditionalCreate false}.
- *
- * <p>Read over the tenant's own {@code /metadata}, which is what a client sees.
- * The store facade can also produce a statement, but its single-argument form
- * is the one that does not know which operations were actually registered —
- * the two-argument form exists precisely because that list is passed rather
- * than guessed — and the security block is added at the serving edge. Reading
- * the registry would therefore report less than the tenant actually promises.
- * {@code /metadata} is the one path the guard exempts, so this needs no token.
+ * than from a list applied to every type, so reading it back is how a spec
+ * file's declarations become visible as the promises clients are given: a type
+ * whose identity is store-assigned has nothing to key a conditional write on,
+ * and that shows up here as {@code conditionalCreate false}.
  */
 @Command(scope = "dbo-tenant", name = "capability-list",
         description = "Shows a tenant's CapabilityStatement as a table of facts.")
@@ -55,201 +33,74 @@ public class TenantCapabilityListCommand implements Action {
     @Completion(TenantCompleter.class)
     private String tenant;
 
-    /**
-     * The row categories. A small closed vocabulary in the first column, so the
-     * second can be a path — {@code Patient.versioning} — rather than the first
-     * column carrying resource names and the second carrying field names, which
-     * leaves nowhere to put a fact that is about neither.
-     */
-    private static final String SERVER = "server";
-    private static final String ENTITY = "entity";
+    @Argument(index = 1, name = "capability", required = false,
+            description = "One capability name. A *.searchParam name opens into its"
+                    + " parameters; anything else prints just the value.")
+    @Completion(CapabilityNameCompleter.class)
+    private String capability;
 
     @Option(name = "--search-params",
             description = "One row per search parameter instead of a count by kind.")
     private boolean searchParams;
 
-    private ShellTable table;
-
     @Override
     public Object execute() throws Exception {
         BundleContext context = FrameworkUtil.getBundle(getClass()).getBundleContext();
 
-        ServiceReference<?>[] references =
-                context.getAllServiceReferences(null, "(tenant=" + tenant + ")");
-        if (references == null || references.length == 0) {
+        if (!Tenants.codes(context).contains(tenant)) {
             System.out.println("No tenant '" + tenant + "' is being served."
                     + " dbo-tenant:list shows the ones that are.");
             return null;
         }
 
-        String base = "http://" + property(context, "dbo.tenant.http.host", "127.0.0.1")
-                + ":" + property(context, "dbo.tenant.http.port", "8090")
-                + "/t/" + tenant + "/fhir";
-
-        String statement;
+        String base = Capabilities.baseUrl(context, tenant);
+        JsonObject statement;
         try {
-            statement = get(base + "/metadata");
+            statement = Capabilities.fetch(base);
         } catch (Exception e) {
             System.out.println("Could not read " + base + "/metadata: " + e);
             return null;
         }
 
-        table = new ShellTable();
-        table.column("TYPE");
-        table.column("NAME");
-        table.column("VALUE");
-        try (JsonReader reader = Json.createReader(new StringReader(statement))) {
-            flatten(reader.readObject());
+        if (capability == null) {
+            print(Capabilities.rows(statement, searchParams));
+            return null;
         }
-        table.print(System.out);
+
+        // A summarised row can be opened; a stated one has nothing behind it.
+        if (capability.endsWith("." + Capabilities.SEARCH_PARAM)) {
+            String entity = capability.substring(
+                    0, capability.length() - Capabilities.SEARCH_PARAM.length() - 1);
+            List<Capabilities.Row> detail = Capabilities.searchParams(statement, entity);
+            if (detail.isEmpty()) {
+                System.out.println("No search parameters under '" + capability + "'.");
+                return null;
+            }
+            print(detail);
+            return null;
+        }
+
+        // Bare, so a single fact can be read by eye or by a script without a
+        // table to cut apart.
+        for (Capabilities.Row row : Capabilities.rows(statement, true)) {
+            if (row.name().equals(capability)) {
+                System.out.println(row.value());
+                return null;
+            }
+        }
+        System.out.println("No capability '" + capability + "' for tenant '" + tenant
+                + "'. Run without it to see the names.");
         return null;
     }
 
-    private static String get(String url) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
-        connection.setRequestProperty("Accept", "application/fhir+json");
-        connection.setConnectTimeout(5_000);
-        connection.setReadTimeout(15_000);
-        try {
-            int status = connection.getResponseCode();
-            if (status != 200) {
-                throw new IllegalStateException("HTTP " + status);
-            }
-            try (InputStream body = connection.getInputStream()) {
-                return new String(body.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-            }
-        } finally {
-            connection.disconnect();
+    private static void print(List<Capabilities.Row> rows) {
+        ShellTable table = new ShellTable();
+        table.column("TYPE");
+        table.column("NAME");
+        table.column("VALUE");
+        for (Capabilities.Row row : rows) {
+            table.addRow().addContent(row.type(), row.name(), row.value());
         }
-    }
-
-    private void flatten(JsonObject statement) {
-        for (String field : new String[] {"status", "kind", "fhirVersion", "date"}) {
-            string(statement, field).ifPresent(value -> row(SERVER, field, value));
-        }
-        for (JsonValue format : statement.getJsonArray("format")) {
-            row(SERVER, "format", text(format));
-        }
-
-        JsonArray rests = statement.getJsonArray("rest");
-        if (rests == null) {
-            return;
-        }
-        for (JsonValue value : rests) {
-            rest(value.asJsonObject());
-        }
-    }
-
-    private void rest(JsonObject rest) {
-        string(rest, "mode").ifPresent(mode -> row(SERVER, "rest.mode", mode));
-
-        JsonObject security = rest.getJsonObject("security");
-        if (security != null) {
-            JsonArray services = security.getJsonArray("service");
-            if (services != null) {
-                for (JsonValue service : services) {
-                    JsonArray codings = service.asJsonObject().getJsonArray("coding");
-                    if (codings != null) {
-                        for (JsonValue coding : codings) {
-                            string(coding.asJsonObject(), "code").ifPresent(
-                                    code -> row(SERVER, "security.service", code));
-                        }
-                    }
-                }
-            }
-            string(security, "description").ifPresent(
-                    description -> row(SERVER, "security.description", description));
-        }
-
-        JsonArray resources = rest.getJsonArray("resource");
-        if (resources == null) {
-            return;
-        }
-        for (JsonValue resource : resources) {
-            resource(resource.asJsonObject());
-        }
-    }
-
-    private void resource(JsonObject resource) {
-        String type = string(resource, "type").orElse("?");
-
-        JsonArray interactions = resource.getJsonArray("interaction");
-        if (interactions != null) {
-            List<String> codes = new ArrayList<>();
-            for (JsonValue interaction : interactions) {
-                string(interaction.asJsonObject(), "code").ifPresent(codes::add);
-            }
-            if (!codes.isEmpty()) {
-                row(ENTITY, type + ".interactions", String.join(", ", codes));
-            }
-        }
-
-        for (String field : new String[] {
-                "versioning", "readHistory", "updateCreate",
-                "conditionalCreate", "conditionalUpdate", "conditionalDelete"}) {
-            JsonValue value = resource.get(field);
-            if (value != null) {
-                row(ENTITY, type + "." + field, text(value));
-            }
-        }
-
-        JsonArray operations = resource.getJsonArray("operation");
-        if (operations != null) {
-            List<String> names = new ArrayList<>();
-            for (JsonValue operation : operations) {
-                string(operation.asJsonObject(), "name").ifPresent(names::add);
-            }
-            if (!names.isEmpty()) {
-                row(ENTITY, type + ".operations", String.join(", ", names));
-            }
-        }
-
-        JsonArray declared = resource.getJsonArray("searchParam");
-        if (declared == null || declared.isEmpty()) {
-            return;
-        }
-        if (searchParams) {
-            for (JsonValue searchParam : declared) {
-                JsonObject object = searchParam.asJsonObject();
-                row(ENTITY, type + ".searchParam." + string(object, "name").orElse("?"),
-                        string(object, "type").orElse(""));
-            }
-            return;
-        }
-        // Counted by kind rather than listed: the interesting question at a
-        // glance is what a client can search on, not the roll-call. Counted by
-        // ENTRY, so a statement that names a parameter twice reads as two —
-        // summarising a defect away would defeat the point of looking.
-        Map<String, Integer> byKind = new TreeMap<>();
-        for (JsonValue searchParam : declared) {
-            String kind = string(searchParam.asJsonObject(), "type").orElse("?");
-            byKind.merge(kind, 1, Integer::sum);
-        }
-        String breakdown = byKind.entrySet().stream()
-                .sorted((a, b) -> b.getValue() - a.getValue() != 0
-                        ? b.getValue() - a.getValue()
-                        : a.getKey().compareTo(b.getKey()))
-                .map(entry -> entry.getKey() + " " + entry.getValue())
-                .collect(Collectors.joining(", "));
-        row(ENTITY, type + ".searchParam", declared.size() + " (" + breakdown + ")");
-    }
-
-    private void row(String type, String name, String value) {
-        table.addRow().addContent(type, name, value);
-    }
-
-    private static java.util.Optional<String> string(JsonObject object, String field) {
-        JsonValue value = object.get(field);
-        return value == null ? java.util.Optional.empty() : java.util.Optional.of(text(value));
-    }
-
-    /** Rendered as it reads, not as JSON: a quoted "true" is noise in a table. */
-    private static String text(JsonValue value) {
-        return value instanceof JsonString string ? string.getString() : value.toString();
-    }
-
-    private static String property(BundleContext context, String key, String fallback) {
-        String value = context.getProperty(key);
-        return value == null || value.isBlank() ? fallback : value;
+        table.print(System.out);
     }
 }
