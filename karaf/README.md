@@ -150,6 +150,76 @@ arrangement instead — slf4j-api, `dbo-logging`, and SPI-Fly as a dynamic bundl
 rather than the framework extension the distribution uses, because an extension
 can only attach at framework init.
 
+**It binds, and Karaf does not yet stand up without pax-logging.** `dbo-logging`
+becomes the binding and reports container failures as `ERROR dbo.container - …`
+in the product's own format — which is how everything below was found rather
+than guessed.
+
+Settled, each one a way Karaf differs from the distribution:
+
+- **SPI-Fly must be the framework extension.** The extension embeds ASM and the
+  weaver; the dynamic bundle embeds neither and imports them from a container
+  that has neither, so it never resolved and nothing provided the
+  `osgi.serviceloader` extender — which silenced the very thing that would have
+  said so. It attaches fine from Karaf's startup set.
+- **`org.osgi.service.log`** is imported by Karaf's metatype, config and features
+  bundles and comes only from pax-logging in a stock Karaf. The Felix Log Service
+  supplies it.
+- **Karaf's plumbing wants slf4j 1.7.** pax-url-aether — the `mvn:` handler
+  `bundle:watch` reads through — imports `org.slf4j.spi;[1.7,2.0)`. Supplying the
+  real 1.7 API beside the 2.x one is wrong: pax-url then took `org.slf4j` from
+  2.0.18 and `org.slf4j.impl` from the 1.7 binding and died with a loader
+  constraint violation on `ILoggerFactory`, two class spaces in one wiring.
+  `karaf/slf4j-compat` re-exports the host's own packages at 1.7 versions
+  instead — one class space, both ranges satisfied.
+- **The bundle cache hides configuration changes.** Start levels and ordering in
+  `startup.properties` apply at install; editing them under a populated `data/`
+  changes nothing and looks like a failed experiment.
+
+Open, and the reason this is not finished:
+
+- Boot features reach for pax-logging because it exports both slf4j generations
+  at once. `wrap` pulls it back as a dependency, and with it present Karaf boots
+  and the binding is NOP; drop `wrap` and the resolution failure moves to
+  `management` → `jaas` → the next thing. The cascade suggests the way through is
+  a **featureless assembly** — the shell listed directly in the startup set,
+  with the features service out of the picture — which is the minimal assembly
+  the plan document has wanted all along.
+- With the compat fragment attached, slf4j finds no provider and defaults to NOP.
+  That worked before the fragment existed, so the fragment is implicated and
+  unexplained.
+
+Use the default posture.
+
+## Worth knowing
+
+**Tenants are live.** The spec directory is reconciled every two seconds, so a
+`*.json` dropped into `karaf/dev/tenants` brings a tenant up and removing it
+takes one down. `karaf/dev/tenants/dev.json` is an R4 tenant with a Patient and
+an Observation.
+
+**What to look at when something breaks.** `bundle:diag` names unsatisfied
+requirements, `package:exports` and `bundle:tree-show` explain who wires to
+whom. That is the whole point of the console: the characteristic failure here
+resolves at build time and dies on first use, and a red test says only that it
+happened.
+
+**The container's own startup line** reports the posture it resolved —
+provisioner, authority, bind address, spec directory. If it disagrees with what
+you expected, the disagreement is the finding.
+
+**This is not the distribution's logging.** The console keeps Karaf's
+pax-logging rather than installing `dbo-logging` and its slf4j-api host. So
+`log:tail` and `log:set` work here — including changing a level while it runs,
+which the product's own arrangement cannot do at all, since `DboLogging` reads
+its level into a `static final` once and has no per-logger filtering. The cost
+is that a fault in the real logging arrangement is invisible here.
+
+`-Pdbo.karaf.logging=dbo` assembles the console with the distribution's
+arrangement instead — slf4j-api, `dbo-logging`, and SPI-Fly as a dynamic bundle
+rather than the framework extension the distribution uses, because an extension
+can only attach at framework init.
+
 **It binds, and it does not yet finish booting.** `dbo-logging` is the binding:
 container failures arrive as `ERROR dbo.container - …` in the product's own
 format, which is how each of the following was found. Four blockers are cleared
