@@ -68,14 +68,14 @@ The console's own commands live in `deploy/`, which Karaf re-deploys on change
 
 ```
 dbo-tenant:list
-dbo-tenant:capabilities dev
+dbo-tenant:capability-list dev
 ```
 
 `dbo-tenant:list` reads the service registry, so it answers "what is serving",
 not "what was declared" — a spec that failed to come up is absent here, and the
 log is where that belongs.
 
-`dbo-tenant:capabilities` flattens the tenant's CapabilityStatement into one
+`dbo-tenant:capability-list` flattens the tenant's CapabilityStatement into one
 row per fact: a category, a path, a value.
 
 ```
@@ -95,7 +95,7 @@ visible as a promise to clients.
 
 `--search-params` lists parameters one per row instead of counting them by
 kind. Karaf wants options before the argument, so it is
-`dbo-tenant:capabilities --search-params dev`.
+`dbo-tenant:capability-list --search-params dev`.
 
 It reads the tenant's own `/metadata` rather than the store facade. The facade
 can render a statement too, but its single-argument form is the one that does
