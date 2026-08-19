@@ -112,6 +112,8 @@ fun digest(file: File): String {
 tasks.named<ProcessResources>("processResources") {
     dependsOn(fetchDefinitions)
     from(definitionsDir) { into("definitions") }
+    // How a version is discovered where there is no service registry
+    from("src/main/resources-services")
 }
 
 val stackJar = project(":core:dbo-fhir-stack").tasks.named<Jar>("jar")
@@ -134,6 +136,8 @@ tasks.jar {
             attributes(
                 "Bundle-ManifestVersion" to "2",
                 "Bundle-SymbolicName" to "cloud.jengu.dbo.fhir.element",
+                // The bundle announces every version it carries; see Activator.
+                "Bundle-Activator" to "cloud.jengu.dbo.fhir.element.Activator",
                 "Bundle-Version" to project.version.toString().replace("-", "."),
                 "Export-Package" to "cloud.jengu.dbo.fhir.element;version=\"0.1.0\"",
                 "Import-Package" to (listOf(
