@@ -1,0 +1,18 @@
+{
+  "code": "dev",
+  "fhirVersion": "r4",
+  "pdi": false,
+  "types": [
+    {
+      "name": "Patient",
+      "identity": "identifier",
+      "systems": ["urn:dbo:dev:mrn"],
+      "handling": "operational"
+    },
+    {
+      "name": "Observation",
+      "identity": "internal",
+      "handling": "operational"
+    }
+  ]
+}

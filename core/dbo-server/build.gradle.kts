@@ -10,31 +10,24 @@ val bundles: Configuration by configurations.creating
 
 dependencies {
     felix("org.apache.felix:org.apache.felix.main:7.0.5") { isTransitive = false }
-    // module bundles only — their dependencies ride embedded (lib/) or are
-    // other bundles in this list; transitive=false keeps stray jars out
-    listOf(
-        ":core:dbo-core", ":core:dbo-fhir-common", ":core:dbo-postgres",
-        // the HL7/HAPI engine, once, for every personality after it
-        ":core:dbo-fhir-stack",
-        ":core:dbo-terminology", ":core:dbo-subscriptions", ":core:dbo-fhir-r4",
-        ":core:dbo-fhir-r5", ":core:dbo-rest", ":core:dbo-auth", ":core:dbo-pdi", ":core:dbo-policy", ":core:dbo-sync",
-        // dbo-tenant imports it for the maintenance surface
-        ":core:dbo-maintenance", ":core:dbo-tenant", ":core:dbo-tenant-k8s",
-    ).forEach { bundles(project(it)) { isTransitive = false } }
-    // the JDBC driver is itself an OSGi bundle
-    bundles("org.postgresql:postgresql:42.7.11") { isTransitive = false }
-    // One logging arrangement for the runtime: the API as a bundle every
-    // module imports, and dbo-logging as a FRAGMENT of it carrying the
-    // binding. Five private bindings meant five configurations and no
-    // hierarchy; this is one of each.
-    bundles("org.slf4j:slf4j-api:2.0.18") { isTransitive = false }
-    bundles(project(":core:dbo-logging")) { isTransitive = false }
-    // The ServiceLoader mediator slf4j-api requires by manifest. A framework
-    // extension: it attaches to the system bundle rather than starting, which
-    // is why it has to be present before anything requiring the extender
-    // tries to resolve.
-    bundles("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.7") {
-        isTransitive = false
+
+    // The bundle set lives in the root build — see dboRuntimeModules there for
+    // why it is one list. module bundles only: their dependencies ride
+    // embedded (lib/) or are other bundles in this list, and transitive=false
+    // keeps stray jars out.
+    @Suppress("UNCHECKED_CAST")
+    val runtimeModules = rootProject.extra["dboRuntimeModules"] as List<String>
+    @Suppress("UNCHECKED_CAST")
+    val runtimeExternal = rootProject.extra["dboRuntimeExternalBundles"] as List<String>
+    @Suppress("UNCHECKED_CAST")
+    val loggingBundles = rootProject.extra["dboLoggingBundles"] as List<String>
+    @Suppress("UNCHECKED_CAST")
+    val loggingModules = rootProject.extra["dboLoggingModules"] as List<String>
+    val loggingExtension = rootProject.extra["dboLoggingExtension"] as String
+
+    (runtimeModules + loggingModules).forEach { bundles(project(it)) { isTransitive = false } }
+    (runtimeExternal + loggingBundles + loggingExtension).forEach {
+        bundles(it) { isTransitive = false }
     }
 }
 

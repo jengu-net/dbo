@@ -29,6 +29,8 @@ Structured per [arc42](https://arc42.org/).
 - [evidence/](evidence/) — the measured usage grounding the specification
 - [plans/implementation-status.md](plans/implementation-status.md) — **the living
   status page**: what is built, what proves it, what is only specified
+- [plans/karaf-console.md](plans/karaf-console.md) — proposal: a Karaf console for
+  seeing inside the container (development and operator tooling; not production)
 
 **§-numbering note:** the spec grew as one document; its section numbers
 (§1–§17) are preserved in the titles above, so cross-references like "(§7.4)"
