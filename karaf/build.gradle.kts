@@ -17,7 +17,7 @@ import java.util.Properties
 // while reading this console's log: the arrangement writing these lines is
 // pax-logging, not the one the distribution ships.
 
-val karafVersion = (findProperty("dbo.karaf.version") as String?) ?: "4.4.11"
+val karafVersion = rootProject.extra["dboKarafVersion"] as String
 
 val karafDist: Configuration by configurations.creating
 
@@ -29,11 +29,6 @@ dependencies {
 val runtimeModules = rootProject.extra["dboRuntimeModules"] as List<String>
 @Suppress("UNCHECKED_CAST")
 val runtimeExternal = rootProject.extra["dboRuntimeExternalBundles"] as List<String>
-
-// The fat bundles carry their private stacks as nested jars — the HL7/HAPI
-// engine, DBOS — and rebuild slowly for changes that are almost never in them.
-// Installed like everything else, just not watched.
-val notWatched = setOf("dbo-fhir-stack", "dbo-subscriptions")
 
 fun moduleCoordinate(path: String) =
     "mvn:cloud.jengu.dbo/${path.substringAfterLast(':')}/${project.version}"
@@ -74,7 +69,7 @@ val karafHome = tasks.register<Sync>("karafHome") {
 val console = tasks.register("console") {
     group = "development"
     description = "Assembles the Karaf development console into build/dbo-console."
-    dependsOn(karafHome)
+    dependsOn(karafHome, ":karaf:commands:jar")
 
     val local = file("dev/local.properties")
     val example = file("dev/local.properties.example")
@@ -130,9 +125,6 @@ val console = tasks.register("console") {
         // this script safe to re-run after a restart.
         val coordinates = runtimeModules.map(::moduleCoordinate) +
             runtimeExternal.map(::externalCoordinate)
-        val watched = runtimeModules
-            .filter { it.substringAfterLast(':') !in notWatched }
-            .map(::moduleCoordinate)
 
         home.resolve("dbo.karaf").writeText(
             buildString {
@@ -142,10 +134,9 @@ val console = tasks.register("console") {
                 appendLine()
                 appendLine("bundle:install -s " + coordinates.joinToString(" "))
                 appendLine()
-                appendLine("# Watched: the thin bundles, where the work happens. The fat ones")
-                appendLine("# (${notWatched.joinToString(", ")}) carry embedded stacks and are")
-                appendLine("# installed but not watched.")
-                appendLine("bundle:watch " + watched.joinToString(" "))
+                appendLine("# Derives the watch set from what is installed, so this script")
+                appendLine("# carries no second copy of the bundle list to keep in step.")
+                appendLine("dbo:watch")
                 appendLine()
                 appendLine("bundle:list")
             }
@@ -177,6 +168,13 @@ val console = tasks.register("console") {
             "\nkaraf = karaf,_g_:admingroup\n" +
                 "_g_\\:admingroup = group,admin,manager,viewer,systembundles,ssh\n"
         )
+
+        // The console's own commands go through deploy/, not the local Maven
+        // repository: they are development tooling and nothing should resolve
+        // them by coordinate. Karaf re-deploys a changed jar here on its own,
+        // which is the same loop the watched bundles get.
+        val commandsJar = project(":karaf:commands").tasks.named("jar").get().outputs.files.singleFile
+        commandsJar.copyTo(home.resolve("deploy/${commandsJar.name}"), overwrite = true)
 
         // bin/setenv is the launcher's own hook, sourced before the JVM is
         // chosen. JAVA_MAX_MEM because the R5 validator loads the FHIR core

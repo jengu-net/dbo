@@ -46,12 +46,18 @@ existing bundle.
 updated and refreshed in place. Nothing else has to happen for a change to
 reach the running container.
 
-The thin bundles are watched. `dbo-fhir-stack` and `dbo-subscriptions` carry
-embedded stacks as nested jars — installed, not watched, because they rebuild
-slowly for changes that are almost never in them.
+`dbo:watch` registers the set. It derives it from what is installed rather than
+from a list, so a new bundle needs nothing remembered, and it skips the ones
+carrying a heavy embedded stack — a publish rewrites every jar, and re-reading
+a hundred megabytes on each one buys nothing when the change is almost never in
+there. It prints what it skipped and what the line was; `--all` and
+`--max-embedded` move it.
 
 Expect `dbo-core` to behave like a restart: everything imports it, so
 refreshing it cascades through the whole set.
+
+The console's own commands live in `deploy/`, which Karaf re-deploys on change
+— so developing a command has the same loop as developing a bundle.
 
 ## Worth knowing
 
