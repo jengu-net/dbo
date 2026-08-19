@@ -108,7 +108,7 @@ class SpecDeclaredSyncIT {
         Files.writeString(dir.resolve("sync-hogwarts.json"), dependentSpec("sync-hogwarts"));
         manager.scanOnce();
         String copy = awaitCopy("sync-hogwarts", "green");
-        assertTrue(copy.contains("green"), copy);
+        assertTrue(copy.contains("$lookup → 200"), copy);
         // REQ-DBO-SYNC-DECLARED-ONLY at the spec grain: ValueSet undeclared
         HttpResponse<String> undeclared = get(
                 manager.baseUrl("sync-hogwarts") + "/ValueSet?_summary=count");
@@ -139,13 +139,24 @@ class SpecDeclaredSyncIT {
                                  "concept":[{"code":"green"},{"code":"crimson"}]}""")).build(),
                 HttpResponse.BodyHandlers.ofString());
         assertTrue(updated.statusCode() < 300, updated.body());
-        assertTrue(awaitCopy("sync-hogwarts", "crimson").contains("crimson"));
+        assertTrue(awaitCopy("sync-hogwarts", "crimson").contains("$lookup → 200"),
+                "an update's new concept never reached the dependent's native form");
     }
 
     /**
      * The feed only publishes events its snapshot considers settled, so a
      * single round after a write proves nothing — poll until the copy
      * carries what we are waiting for (the timing-immunity rule).
+     */
+    /**
+     * Waits until the dependent can ANSWER for a code, not until its stored
+     * bytes mention one (REQ-DBO-SYNC-TERMINOLOGY-GRAIN-SURVIVES).
+     *
+     * <p>A received CodeSystem is stored the way this store keeps one — a shell
+     * whose concepts live in the native form — so the copy's payload never
+     * contains a concept, at either end. Asking $lookup is what proves the
+     * grain survived the hop: an answer can only come from concepts that
+     * arrived and were rebuilt here.
      */
     private String awaitCopy(String tenant, String expected) throws Exception {
         long deadline = System.currentTimeMillis() + 60_000;
@@ -154,13 +165,17 @@ class SpecDeclaredSyncIT {
             manager.syncRound();
             HttpResponse<String> copy =
                     get(manager.baseUrl(tenant) + "/CodeSystem/" + codeSystemId);
-            body = copy.body();
-            if (copy.statusCode() == 200 && body.contains(expected)) {
-                return body;
+            if (copy.statusCode() == 200) {
+                HttpResponse<String> answer = get(manager.baseUrl(tenant)
+                        + "/CodeSystem/$lookup?system=https://ee.ee/cs/colors&code=" + expected);
+                body = copy.body() + "\n$lookup → " + answer.statusCode() + " " + answer.body();
+                if (answer.statusCode() == 200) {
+                    return body;
+                }
             }
             Thread.sleep(250);
         }
-        throw new AssertionError(tenant + " never received '" + expected + "': " + body);
+        throw new AssertionError(tenant + " cannot answer for '" + expected + "': " + body);
     }
 
     @Test

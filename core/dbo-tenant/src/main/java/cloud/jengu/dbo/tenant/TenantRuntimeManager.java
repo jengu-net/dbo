@@ -54,7 +54,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
             ObjectStore engine,
             FhirStoreFacade store,
             ChangeFeed feed,
-            FhirHttpServer endpoint) {}
+            FhirHttpServer endpoint,
+            /**
+             * This tenant's own grain codec. A stream between two tenants needs
+             * BOTH ends' — reassembly reads the source's native form and the
+             * destination writes its own — so each runtime carries its own
+             * rather than the wiring building one from whichever store is handy.
+             */
+            cloud.jengu.dbo.core.face.GrainCodec grain) {}
 
     public interface Listener {
         void tenantUp(TenantRuntime runtime);
@@ -298,7 +305,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R4Personality.DOMAIN),
                     withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
-                            terminology, "/t/" + spec.code() + "/fhir", guard), spec), spec, engine));
+                            terminology, "/t/" + spec.code() + "/fhir", guard), spec), spec, engine),
+                    terminology);
         } else {
             R5Personality personality = new R5Personality(spec.types());
             cloud.jengu.dbo.policy.PolicyObjectStore engine = policyWrapped(spec, db, personality.registrations(), R5Personality.DOMAIN);
@@ -311,7 +319,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             runtime = new TenantRuntime(spec, engine, store,
                     new PgChangeFeed(db.dataSource(), R5Personality.DOMAIN),
                     withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
-                            terminology, "/t/" + spec.code() + "/fhir", guard), spec), spec, engine));
+                            terminology, "/t/" + spec.code() + "/fhir", guard), spec), spec, engine),
+                    terminology);
         }
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no
@@ -363,7 +372,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     upstream.feed(), runtime.engine(), db.dataSource(),
                     domain, payloadVersion,
                     java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter()),
-                    "sync." + dependency.name() + "." + spec.code()));
+                    "sync." + dependency.name() + "." + spec.code(),
+                    // the upstream reassembles from ITS concepts; this tenant
+                    // takes the result apart into its own
+                    upstream.grain(), runtime.grain()));
         }
         syncEngines.put(spec.code(), java.util.List.copyOf(engines));
     }

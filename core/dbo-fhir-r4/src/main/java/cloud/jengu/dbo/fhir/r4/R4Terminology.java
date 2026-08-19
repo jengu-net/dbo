@@ -28,7 +28,8 @@ import java.util.Optional;
  * declared truth-form inversion (REQ-DBO-CORE-DECLARED-TRUTH-FORM).
  * Public surface: JSON in, JSON out (§7.3).
  */
-public final class R4Terminology implements cloud.jengu.dbo.fhir.common.TerminologyFacade {
+public final class R4Terminology implements cloud.jengu.dbo.fhir.common.TerminologyFacade,
+        cloud.jengu.dbo.core.face.GrainCodec {
 
     /** Preserves the original CodeSystem.content across the shell round-trip. */
     static final String ORIGINAL_CONTENT_EXT = "https://dbo.dev/fhir/ext/original-content";
@@ -55,16 +56,8 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.Terminol
         List<Concept> flat = new ArrayList<>();
         flatten(cs.getConcept(), null, flat);
 
-        CodeSystem shell = cs.copy();
-        shell.setConcept(List.of());
-        shell.setCount(flat.size());
-        // the shell honestly declares its concepts live elsewhere; the original
-        // content mode rides an extension for faithful reassembly
-        if (cs.hasContent()) {
-            shell.addExtension(ORIGINAL_CONTENT_EXT, new StringType(cs.getContent().toCode()));
-        }
-        shell.setContent(CodeSystem.CodeSystemContentMode.NOTPRESENT);
-        String shellJson = personality.ctxInternal().newJsonParser().encodeResourceToString(shell);
+        String shellJson = personality.ctxInternal().newJsonParser()
+                .encodeResourceToString(shellOf(cs));
 
         PutResult engineResult = new R4Store(store, personality, "").putCanonical(shellJson);
         long imported = terminology.importSystem(url, cs.getVersion(), flat.iterator());
@@ -76,6 +69,13 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.Terminol
         ValueSet vs = (ValueSet) personality.ctxInternal().newJsonParser().parseResource(valueSetJson);
         PutResult result = new R4Store(store, personality, "").putCanonical(valueSetJson);
 
+        putCompose(vs);
+        return result;
+    }
+
+
+    /** A ValueSet's compose, into the native form — shared by ingest and receive. */
+    private void putCompose(ValueSet vs) {
         List<Compose.Include> includes = new ArrayList<>();
         for (ValueSet.ConceptSetComponent inc : vs.getCompose().getInclude()) {
             String isA = null;
@@ -95,7 +95,22 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.Terminol
                     ex.getConcept().stream().map(ValueSet.ConceptReferenceComponent::getCode).toList()));
         }
         terminology.putValueSet(vs.getUrl(), vs.getVersion(), new Compose(includes, excludes));
-        return result;
+    }
+
+    /** The stored form: metadata, a count, and an honest {@code not-present}. */
+    private CodeSystem shellOf(CodeSystem cs) {
+        List<Concept> flat = new ArrayList<>();
+        flatten(cs.getConcept(), null, flat);
+        CodeSystem shell = cs.copy();
+        shell.setConcept(List.of());
+        shell.setCount(flat.size());
+        // the shell honestly declares its concepts live elsewhere; the original
+        // content mode rides an extension for faithful reassembly
+        if (cs.hasContent() && shell.getExtensionByUrl(ORIGINAL_CONTENT_EXT) == null) {
+            shell.addExtension(ORIGINAL_CONTENT_EXT, new StringType(cs.getContent().toCode()));
+        }
+        shell.setContent(CodeSystem.CodeSystemContentMode.NOTPRESENT);
+        return shell;
     }
 
     private void flatten(List<CodeSystem.ConceptDefinitionComponent> concepts, String parent,
@@ -211,5 +226,55 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.Terminol
             }
             return personality.ctxInternal().newJsonParser().encodeResourceToString(vs);
         });
+    }
+
+    // ---------------------------------------------------------- sync grain
+
+    /**
+     * The two types this face keeps in a form smaller than the wire's
+     * (REQ-DBO-SYNC-TERMINOLOGY-GRAIN-SURVIVES).
+     */
+    @Override
+    public boolean handles(String typeName) {
+        return "CodeSystem".equals(typeName) || "ValueSet".equals(typeName);
+    }
+
+    /**
+     * A shell goes out whole. A ValueSet is already whole — its compose IS its
+     * content — so it travels untouched; only the CodeSystem has concepts
+     * living somewhere the stream cannot see.
+     */
+    @Override
+    public byte[] forTransport(String typeName, byte[] storedPayload) {
+        if (!"CodeSystem".equals(typeName)) {
+            return storedPayload;
+        }
+        CodeSystem shell = (CodeSystem) personality.ctxInternal().newJsonParser()
+                .parseResource(new String(storedPayload, StandardCharsets.UTF_8));
+        return codeSystemResource(shell.getUrl())
+                .map(json -> json.getBytes(StandardCharsets.UTF_8))
+                // a shell whose system this store has no concepts for is sent
+                // as it is: an empty system is a fact, not a failure
+                .orElse(storedPayload);
+    }
+
+    /**
+     * The concepts land in this store's native form, and the shell goes back to
+     * the engine — which writes it under the source's identity, as it does for
+     * every other type.
+     */
+    @Override
+    public byte[] receive(String typeName, byte[] transportedPayload) {
+        String json = new String(transportedPayload, StandardCharsets.UTF_8);
+        if ("ValueSet".equals(typeName)) {
+            putCompose((ValueSet) personality.ctxInternal().newJsonParser().parseResource(json));
+            return transportedPayload;
+        }
+        CodeSystem cs = (CodeSystem) personality.ctxInternal().newJsonParser().parseResource(json);
+        List<Concept> flat = new ArrayList<>();
+        flatten(cs.getConcept(), null, flat);
+        terminology.importSystem(cs.getUrl(), cs.getVersion(), flat.iterator());
+        return personality.ctxInternal().newJsonParser().encodeResourceToString(shellOf(cs))
+                .getBytes(StandardCharsets.UTF_8);
     }
 }

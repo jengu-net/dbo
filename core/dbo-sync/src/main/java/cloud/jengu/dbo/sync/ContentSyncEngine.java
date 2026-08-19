@@ -2,6 +2,7 @@ package cloud.jengu.dbo.sync;
 
 import cloud.jengu.dbo.core.api.IdentityConflictException;
 import cloud.jengu.dbo.core.api.ObjectStore;
+import cloud.jengu.dbo.core.face.GrainCodec;
 import cloud.jengu.dbo.core.api.PayloadConverter;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.feed.ChangeFeed;
@@ -50,6 +51,8 @@ public final class ContentSyncEngine {
     private final DataSource targetDs;
     private final String targetDomain;
     private final String targetPayloadVersion;
+    private final GrainCodec sourceGrain;
+    private final GrainCodec targetGrain;
     private final String consumer;
     private final Map<String, PayloadConverter> convertersByFrom = new LinkedHashMap<>();
 
@@ -68,6 +71,24 @@ public final class ContentSyncEngine {
     public ContentSyncEngine(ContentDependency dependency, ChangeFeed sourceFeed,
             ObjectStore targetStore, DataSource targetDataSource, String targetDomain,
             String targetPayloadVersion, List<PayloadConverter> converters, String consumer) {
+        this(dependency, sourceFeed, targetStore, targetDataSource, targetDomain,
+                targetPayloadVersion, converters, consumer, null, null);
+    }
+
+    /**
+     * With the grain codecs of both ends
+     * (REQ-DBO-SYNC-TERMINOLOGY-GRAIN-SURVIVES).
+     *
+     * <p>Two, not one: reassembly reads the SOURCE's native form and the
+     * destination writes its own. One codec would be one store's, and the
+     * dependent would rebuild from concepts it does not hold.
+     */
+    public ContentSyncEngine(ContentDependency dependency, ChangeFeed sourceFeed,
+            ObjectStore targetStore, DataSource targetDataSource, String targetDomain,
+            String targetPayloadVersion, List<PayloadConverter> converters, String consumer,
+            GrainCodec sourceGrain, GrainCodec targetGrain) {
+        this.sourceGrain = sourceGrain;
+        this.targetGrain = targetGrain;
         if (!DOMAIN.matcher(targetDomain).matches()) {
             throw new IllegalArgumentException("invalid domain: " + targetDomain);
         }
@@ -135,7 +156,14 @@ public final class ContentSyncEngine {
             recordOrigin(item, null);
             return true;
         }
-        byte[] payload = item.payload();
+        // REQ-DBO-SYNC-TERMINOLOGY-GRAIN-SURVIVES: what the source STORES is not
+        // always what a dependent needs to receive. A CodeSystem is kept as a
+        // shell with its concepts in the native form, and a shell alone cannot
+        // be rebuilt into anything a dependent can answer with. The stream
+        // carries the whole thing; each end keeps its own form.
+        byte[] payload = sourceGrain != null && sourceGrain.handles(item.typeName())
+                ? sourceGrain.forTransport(item.typeName(), item.payload())
+                : item.payload();
         String version = item.payloadVersion();
         try {
             for (int hops = 0; hops < 8 && !version.equals(targetPayloadVersion); hops++) {
@@ -162,7 +190,13 @@ public final class ContentSyncEngine {
             // whichever credential happened to be in play, which would make
             // the shield depend on deployment wiring rather than on what the
             // code is doing.
-            targetStore.put(new PutRequest(item.typeName(), item.objectId(), null, payload),
+            // the destination takes the wire form apart into its own: concepts
+            // to the native store, and the shell back here to be written under
+            // the source's identity like everything else
+            byte[] stored = targetGrain != null && targetGrain.handles(item.typeName())
+                    ? targetGrain.receive(item.typeName(), payload)
+                    : payload;
+            targetStore.put(new PutRequest(item.typeName(), item.objectId(), null, stored),
                     cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
             recordOrigin(item, version);
             return true;
