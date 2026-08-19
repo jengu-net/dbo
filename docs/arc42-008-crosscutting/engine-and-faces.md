@@ -324,6 +324,35 @@ vault, and a face must not — so the membrane sits in the engine's loop, betwee
 converter and the frame, and the face is handed a member that is already what a reader
 should see.
 
+**The engine's half of it is an ordinary stream.** A row arrives as bytes, which is the
+unit the whole path wants, and each step is a map over it:
+
+```java
+try (Stream<Member> rows = engine.page(query);      // cursor-backed; closes with the stream
+     Frame frame = face.open("searchset", out)) {
+    rows.map(converters::upgrade)                    // per object, pure
+        .map(membrane::reveal)                       // reads the vault, so it is the engine's
+        .forEach(frame::member);
+}
+```
+
+Nothing in that stream belongs to the face — it holds the cursor, the transaction and the
+order, and the face is the terminal. Handing the stream over instead of the sink is the
+same mistake in a different position, and `java.util.stream` makes it a natural thing to
+type. Three hazards come with it and are worth naming: the stream owns a cursor and must
+be closed, so try-with-resources is not optional; `.parallel()` is one word away and is
+wrong twice over on a cursor in a transaction and on results whose order is a page; and
+checked exceptions do not pass through `map`, so how a conversion failure travels is a
+decision rather than a discovery. Back-pressure needs no mechanism — the terminal writes
+to a blocking output, so the pipeline pulls no faster than the reader drains.
+
+**And the outward facade has to admit it.** `FhirStoreFacade.search` and `historyBundle`
+return a `String` today, so a page is assembled whole before a reader sees a byte of it.
+Streaming behind a facade that materialises would buy nothing: the streaming form writes
+into an output rather than returning a document, which keeps bytes at the edge as §7.3
+requires and makes a search page, a portable archive and a stream between tenants one
+path rather than three.
+
 **Converters stay per object for the same reason.** A converter is a pure function from
 one payload to one payload, which is what lets it compose into this loop, be tested on a
 single object, and be reordered. A stream-to-stream converter would add nothing the loop
