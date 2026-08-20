@@ -278,8 +278,20 @@ public final class R5Personality {
                 case "_elements" -> elements = List.of(value.split(","));
                 case "_include" -> includes.add(compileInclude(typeName, known, value));
                 case "_id" -> byId = value;
-                case "_lastUpdated" -> criteria.lastUpdated(prefixOp(typeName, name, value),
-                        java.time.Instant.parse(stripPrefix(value)));
+                case "_lastUpdated" -> {
+                    Criteria.RangeOp op = tryPrefixOp(value);
+                    DateKeys.Window when =
+                            DateKeys.window(op == null ? value : stripPrefix(value));
+                    if (op == null) {
+                        criteria.lastUpdated(Criteria.RangeOp.GE, when.from())
+                                .lastUpdated(Criteria.RangeOp.LT, when.until());
+                    } else {
+                        criteria.lastUpdated(op, switch (op) {
+                            case GT, LE -> when.until();
+                            case GE, LT -> when.from();
+                        });
+                    }
+                }
                 case "_tag" -> compileToken(criteria, "_tag", value, false);
                 case "_tag:not" -> compileToken(criteria, "_tag", value, true);
                 case "_profile" -> criteria.eq("_profile", EnvelopeValue.of(value));
@@ -377,11 +389,24 @@ public final class R5Personality {
             }
             case DATE -> {
                 Criteria.RangeOp op = tryPrefixOp(value);
+                // A date names a span at whatever precision it was written,
+                // and no prefix means the whole span (#53). The same reading
+                // the serving compiler uses, so a subscription's criteria and
+                // a search agree about what a date means.
+                cloud.jengu.dbo.core.api.DateKeys.Window window =
+                        DateKeys.window(op == null ? value : stripPrefix(value));
                 if (op == null) {
-                    throw new UnknownSearchParameterException(typeName,
-                            base + "=" + value + " (date search requires a gt/lt/ge/le prefix in this slice)");
+                    criteria.range(path, ValueKind.DATE, Criteria.RangeOp.GE,
+                                    DateKeys.of(window.from()))
+                            .range(path, ValueKind.DATE, Criteria.RangeOp.LT,
+                                    DateKeys.of(window.until()));
+                } else {
+                    criteria.range(path, ValueKind.DATE, op, DateKeys.of(
+                            switch (op) {
+                                case GT, LE -> window.until();
+                                case GE, LT -> window.from();
+                            }));
                 }
-                criteria.range(path, ValueKind.DATE, op, DateKeys.ofSearchValue(stripPrefix(value)));
             }
             case REFERENCE -> {
                 int slash = value.indexOf('/');
