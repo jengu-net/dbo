@@ -12,6 +12,8 @@ import java.util.zip.ZipFile
 val embedded: Configuration by configurations.creating
 configurations.implementation.get().extendsFrom(embedded)
 
+val hapi = rootProject.extra["hapiVersion"] as String
+
 dependencies {
     api(project(":core:dbo-core"))
     api(project(":core:dbo-fhir-common"))
@@ -30,7 +32,7 @@ dependencies {
     compileOnly("org.osgi:osgi.core:8.0.0")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    embedded("ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:8.10.1") {
+    embedded("ca.uhn.hapi.fhir:hapi-fhir-validation-resources-r4:$hapi") {
         isTransitive = false
     }
 }
