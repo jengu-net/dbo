@@ -239,6 +239,9 @@ public final class Activator implements BundleActivator {
                         }
                     }
                 }, authority, registered(ctx));
+        // #67: a runtime can be asked what it is serving, when a deployment has
+        // said who may ask.
+        manager.serveRuntimeState(ctx.getProperty("dbo.tenant.ops.token"));
         manager.start(2_000);
     }
 
