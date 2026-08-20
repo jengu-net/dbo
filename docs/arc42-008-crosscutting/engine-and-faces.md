@@ -149,11 +149,11 @@ place, it says so.
 |---|---|---|
 | **coarsening** | how a declared element is made coarser | `core.face.Coarsening`, **declared** via `DeclaredFace` — the reference case |
 | **grain codec** | reassemble a stored form for transport, take a transported form apart | `core.face.GrainCodec`, passed explicitly (#31) |
-| **ancestor rendering** | the engine's own facts, said in the domain's words — id, version, when, where from, under what shape, under what handling | one body on the version, shared by serving, export and framing; still saying two of the six facts |
+| **ancestor rendering** | the engine's own facts, said in the domain's words — id, version, when, where from, under what shape, under what handling | one body, shared by serving, export and framing: the stored document copied token for token with the slots replaced; still saying two of the six facts |
 | **envelope extraction** | identifiers, references, indexable paths | a lambda on `TypeRegistration`, reading through the face's payload codec so a payload is read once |
 | **payload codec** | parse and render the wire format | `core.face.Payloads`, **declared** via `DeclaredFace` |
 | **document equivalence** | what counts as the same object, so a re-import can skip one | **misplaced** — `Names.flatten` in `dbo-maintenance`, an engine module deciding it with a newline replacement |
-| **framing** | many objects as one document — a page, a history, an export | `core.face.PayloadFraming`, **declared**; members rendered rather than passed through until a normaliser exists |
+| **framing** | many objects as one document — a page, a history, an export | `core.face.PayloadFraming`, **declared**; a member's payload passes through with only the ancestor slots replaced |
 | **query compilation** | the domain's query language to engine criteria | inside the personality |
 | **audit rendering** | engine facts as the domain's audit resource | **misplaced** — `FhirAuditProjection` hand-builds AuditEvent JSON inside `dbo-policy`, an engine module |
 | **attestation rendering** | an archive's root and signatures as a domain resource | **outside the contract** — `ArchiveProvenance`, a loose static in `dbo-fhir-common` (#34) |
@@ -446,6 +446,23 @@ cheaply.
 
 So a reader receives exactly the stored form, and the ancestor slots, which were never
 the author's.
+
+**And the model may not be the normaliser, which is a measured answer rather than a
+preference.** Putting the ancestors in by reading a payload into the element model and
+writing it back is the obvious way to set two fields, and it loses data: a model writes
+what the version's StructureDefinitions describe, so an element the version does not
+define is dropped — a Patient stored carrying `instantiatesCanonical` under R4 comes back
+without it. Nothing is lost in storage, since the payload is kept as it arrived, but a
+reader is handed less than was written, silently. That is
+REQ-DBO-VER-NORMALISING-LOSES-NOTHING's own round trip, failed: a face that cannot pass
+it may not declare a normalized truth form, and this one cannot.
+
+So a read copies the stored document **token for token** — every field, in the order it
+was written, numbers spelled as they were spelled, including the elements this version
+has never heard of — and replaces `id` and `meta.versionId` as they pass. Replace rather
+than insert, because a payload may already carry either and appending a second would
+produce a document with two ids. Framing then passes a member's payload through the same
+one body, so a page is the stored documents with the store's own slots filled in.
 
 **What the stored form is, though, is declared rather than assumed.** Byte-for-byte what
 the author wrote is the default and not a law:

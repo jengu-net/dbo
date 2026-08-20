@@ -10,6 +10,9 @@ import java.util.jar.JarFile
 // digest, and embedded in the bundle
 // (REQ-DBO-VER-DEFINITIONS-TRAVEL-WITH-THE-FACE).
 
+val embedded: Configuration by configurations.creating
+configurations.implementation.get().extendsFrom(embedded)
+
 dependencies {
     api(project(":core:dbo-core"))
     api(project(":core:dbo-fhir-common"))
@@ -17,6 +20,12 @@ dependencies {
     api(project(":core:dbo-fhir-stack"))
     compileOnly("org.slf4j:slf4j-api:2.0.18")
     compileOnly("org.osgi:osgi.core:8.0.0")
+    // A token-level JSON copier, so a stored payload reaches a reader with the
+    // ancestor slots replaced and nothing else touched. Embedded PRIVATELY:
+    // the shared stack has its own copy inside and exports none of it, and a
+    // second exporter of com.fasterxml.jackson.core would be a split package
+    // over a library two bundles use for different things.
+    embedded("com.fasterxml.jackson.core:jackson-core:2.22.1")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     // the engine logs; compileOnly above is the runtime's arrangement, and a
     // test has no bundle to import it from
@@ -159,11 +168,14 @@ fun engineImports(): List<String> =
 
 tasks.jar {
     dependsOn(stackJar)
+    into("lib") { from(embedded) }
     into("META-INF") { from(rootProject.file("THIRD-PARTY.md")) }
     doFirst {
+        val libs = embedded.resolve().joinToString(",") { "lib/${it.name}" }
         manifest {
             attributes(
                 "Bundle-ManifestVersion" to "2",
+                "Bundle-ClassPath" to ".,$libs",
                 "Bundle-SymbolicName" to "cloud.jengu.dbo.fhir.element",
                 // The bundle announces every version it carries; see Activator.
                 "Bundle-Activator" to "cloud.jengu.dbo.fhir.element.Activator",
