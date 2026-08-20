@@ -309,6 +309,43 @@ different sentence from "nothing is declared". The trap worth naming: **a
 caught-up participant's cursor does not move either**, so silence with nothing
 waiting is not absence, and only silence with work waiting is.
 
+### Two appliances of one tenant
+
+An edge and its cloud hold **one tenant on two appliances** — same code, same
+declarations, different local settings (ADR 0062). So a lane between them is
+same-version replication: no converter chain, and the stored bytes travel as
+they are.
+
+**dbo builds no channel.** It hands a caller a batch and takes one back; a
+connector outside dbo carries the bytes, authenticates and reconnects. What is
+dbo's is store-level and nothing else: what the far side does not have, an apply
+that is idempotent under replay **and safe under reorder** (source version wins,
+so neither property depends on the connector being careful), the **epoch** that
+makes a cursor resumed from a restored copy detectable, and the **marker** each
+side keeps about where the other said it had reached.
+
+**Data before work**, so nothing arrives pointing at something absent. **Bounded
+by what the work names**, never by following references as far as they go —
+Patient → Encounter → Observation → everything is how a bench ends up holding a
+register.
+
+**A record arrives with a piece of work and leaves with it.** What brought it is
+noted, and a revocation pass removes what no open run still names — locally,
+because the appliance holds the runs and can see for itself, and because a
+withdrawal that had to arrive would leave a bench holding a register every time
+the link was down. A card still open counts as work still needing the record;
+somebody has to be able to look at what they are fixing.
+
+**A mirrored run is filed under the appliance that authored it.** Two appliances
+running the same task write the same run key, and without the namespace the
+second arrival silently replaces the first — which is exactly the comparison
+this makes possible: *applied 46/46 here, 44/46 there, same correlation*.
+
+**The lane declares which processes travel.** `dbo.config.applied` does, because
+its outcome is the tenant's business on every appliance. `dbo.tenant.serving`
+does not: an appliance's account of its own bring-up is housekeeping, and
+mirroring it would put an edge's answer to "what is serving" into the cloud's.
+
 **A step declares the actions it contains.** Open a task, close it, reopen a
 closed one. Roles narrow *actions within* a step — an operator works the open
 tasks, a supervisor also reaches the closed ones — so without declared actions
