@@ -168,6 +168,13 @@ fun engineImports(): List<String> =
 
 tasks.jar {
     dependsOn(stackJar)
+    // And it is an INPUT, not only an order: this manifest is computed FROM
+    // the stack's exports, so a change there has to rebuild this jar. Ordered
+    // but not declared, Gradle called this task up to date after the stack's
+    // exports changed underneath it — and the bundle then asked the container
+    // for a package nothing exports any more, which fails at bring-up in a
+    // test nobody would connect to a build-cache decision (#32).
+    inputs.file(stackJar.get().archiveFile)
     into("lib") { from(embedded) }
     into("META-INF") { from(rootProject.file("THIRD-PARTY.md")) }
     doFirst {
