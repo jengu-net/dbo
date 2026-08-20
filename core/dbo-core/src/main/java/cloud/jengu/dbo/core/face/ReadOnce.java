@@ -85,6 +85,19 @@ public final class ReadOnce<D> implements Payloads<D> {
         return delegate.validate(typeName, document);
     }
 
+    /**
+     * Against a named shape (#71), passed through like everything else.
+     *
+     * <p>A decorator that did not forward this would answer the interface's
+     * default — "this face cannot check a named shape" — for a face that can,
+     * and a step's precondition would quietly become a message about the
+     * precondition.
+     */
+    @Override
+    public List<String> validate(String typeName, D document, String shapeReference) {
+        return delegate.validate(typeName, document, shapeReference);
+    }
+
     @Override
     public byte[] write(D document) {
         return delegate.write(document);

@@ -50,6 +50,30 @@ public interface Payloads<D> {
     List<String> validate(String typeName, D document);
 
     /**
+     * The same, against the shape a <b>step</b> declares it consumes or
+     * produces (#71, #49).
+     *
+     * <p>Not new machinery, deliberately: this face already validates a
+     * document against the shape the document itself claims, and this is the
+     * same act with the shape named by somebody else. A separate step-validation
+     * path would be a second answer to "is this acceptable", and second answers
+     * drift from the first.
+     *
+     * <p>{@code shapeReference} is <b>opaque to the engine</b>, which cannot
+     * compare a shape any more than it can name one. What it means is the
+     * face's: for a FHIR face it is a profile canonical, for another domain it
+     * is whatever that domain pins shapes with.
+     *
+     * <p>A face that cannot resolve the reference says so as an issue rather
+     * than passing the document: a shape nobody can find is not a shape a
+     * document conformed to.
+     */
+    default List<String> validate(String typeName, D document, String shapeReference) {
+        return List.of("this face validates against a document's own shape and not against "
+                + "a named one, so '" + shapeReference + "' cannot be checked here");
+    }
+
+    /**
      * Renders a document back to bytes.
      *
      * <p>Not the way to answer a read: a payload that was stored is returned as

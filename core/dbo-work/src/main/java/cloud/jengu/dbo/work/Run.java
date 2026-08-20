@@ -17,7 +17,7 @@ import java.util.Optional;
 public record Run(String id, long versionId, String key, String process, String step,
         RunKind kind, Holder holder, String parent, String correlation,
         Map<String, Long> tally, Item item, java.util.List<String> domains,
-        Assignment assignment, Produced produced) {
+        Assignment assignment, Produced produced, String stepVersion) {
 
     /**
      * What this run changed (#82).
@@ -104,6 +104,18 @@ public record Run(String id, long versionId, String key, String process, String 
      */
     public record Item(String reference, Failure failure, String message) {}
 
+    /**
+     * The version of the step declaration this run ran under (#71), or null for
+     * a run whose step nobody has declared yet.
+     *
+     * <p>Beside the executor's version rather than instead of it: reproducing a
+     * decision needs the definition and the runner, and a run that names only
+     * one of them explains half of what happened.
+     */
+    public String stepVersion() {
+        return stepVersion;
+    }
+
     /** Whether anybody is owed anything. */
     public boolean open() {
         return holder != Holder.NOBODY;
@@ -141,7 +153,7 @@ public record Run(String id, long versionId, String key, String process, String 
                 RunKind.of(Json.str(json, "kind")), Holder.of(Json.str(json, "holder")),
                 optional(json, "parent"), optional(json, "correlation"),
                 Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment(json),
-                produced(json));
+                produced(json), optional(json, "stepVersion"));
     }
 
     @SuppressWarnings("unchecked")

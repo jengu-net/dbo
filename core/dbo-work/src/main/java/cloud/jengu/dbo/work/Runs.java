@@ -44,7 +44,26 @@ public final class Runs {
     public Run pipeline(String process, String step, String key, List<String> domains) {
         return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.PIPELINE,
                 Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains), null,
-                Run.Produced.NOTHING)));
+                Run.Produced.NOTHING, null)));
+    }
+
+    /**
+     * A run of a <b>declared</b> step (#71).
+     *
+     * <p>The run records the step's version alongside the executor's, because
+     * reproducing last year's decision needs the definition as well as the
+     * runner — and retrofitting that later means every run written before the
+     * retrofit cannot be reproduced at all.
+     *
+     * <p>The domains come from the declaration rather than from the caller: a
+     * step says what it reads and writes, and a run that claimed others would
+     * be a second answer to the same question.
+     */
+    public Run of(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind, String scope) {
+        String key = step.id() + "/" + scope;
+        return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
+                step.id().step(), kind, Holder.AUTOMATION, null, null, Map.of(), null,
+                List.copyOf(step.writes()), null, Run.Produced.NOTHING, step.version())));
     }
 
     /**
@@ -77,7 +96,7 @@ public final class Runs {
         String key = process + "/" + step + "/" + scope;
         return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.SWEEP,
                 Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains), null,
-                Run.Produced.NOTHING)));
+                Run.Produced.NOTHING, null)));
     }
 
     /** A pass over a sweep: what this round found, and what it therefore closes. */
@@ -105,7 +124,7 @@ public final class Runs {
         return write(new State(UuidV7.newId(), parent.process(), parent.step(), parent.kind(),
                 failure.holder(), parent.key(), parent.correlation(), Map.of(),
                 new Run.Item(reference, failure, message), parent.domains(),
-                parent.assignment(), Run.Produced.NOTHING));
+                parent.assignment(), Run.Produced.NOTHING, parent.stepVersion()));
     }
 
     /**
@@ -449,7 +468,7 @@ public final class Runs {
     private State state(Run run) {
         return new State(run.key(), run.process(), run.step(), run.kind(), run.holder(),
                 run.parent(), run.correlation(), run.tally(), run.item(), run.domains(),
-                run.assignment(), run.produced());
+                run.assignment(), run.produced(), run.stepVersion());
     }
 
     private Run write(State state) {
@@ -470,31 +489,32 @@ public final class Runs {
     /** The payload shape, in one place, so no caller authors a run by hand. */
     private record State(String key, String process, String step, RunKind kind, Holder holder,
             String parent, String correlation, Map<String, Long> tally, Run.Item item,
-            List<String> domains, Run.Assignment assignment, Run.Produced produced) {
+            List<String> domains, Run.Assignment assignment, Run.Produced produced,
+            String stepVersion) {
 
         State withHolder(Holder holder) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced);
+                    domains, assignment, produced, stepVersion);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, holder, parent, correlation,
-                    Map.copyOf(tally), item, domains, assignment, produced);
+                    Map.copyOf(tally), item, domains, assignment, produced, stepVersion);
         }
 
         State withAssignment(Run.Assignment assignment) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced);
+                    domains, assignment, produced, stepVersion);
         }
 
         State withProduced(Run.Produced produced) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced);
+                    domains, assignment, produced, stepVersion);
         }
 
         State withCorrelation(String correlation) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced);
+                    domains, assignment, produced, stepVersion);
         }
 
         byte[] payload() {
@@ -541,6 +561,9 @@ public final class Runs {
                     json.append(",\"until\":")
                             .append(Json.quoted(assignment.until().toString()));
                 }
+            }
+            if (stepVersion != null) {
+                json.append(",\"stepVersion\":").append(Json.quoted(stepVersion));
             }
             if (produced != null && produced.counted() > 0) {
                 json.append(",\"produced\":{\"counted\":").append(produced.counted());

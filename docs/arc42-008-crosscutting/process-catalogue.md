@@ -237,6 +237,36 @@ and how a holder is said in it, is a face's business
 A run over a domain no face claims — `identity`, a config domain — renders nowhere, and
 the reader is told so rather than handed an empty document.
 
+### What a step declares
+
+A step says what it is **before anything runs it**: its id, its version, the
+storage domains it reads and writes, opaque references to the shapes it consumes
+and produces, and whether anybody else may override it. Manual is the baseline —
+a step nobody has automated is not an absent step, it is one held by a human, and
+automating it later changes the holder and nothing else.
+
+**A step id is `<module>.<process>.<step>`, opaque and globally stable.**
+Cross-module references need no compile-time coupling, and a run may name a step
+that has no declaration yet — which is why the scheme was fixed with the record
+rather than with the catalogue. Two modules declaring one id is a collision
+rather than an override, and a step referenced but not installed is refused **by
+name**: silently doing nothing is the failure that rule exists to prevent.
+
+**Modules contribute by being installed**, the same rule faces follow — nothing
+maintains a central list that can disagree with what is deployed.
+
+**Shapes are opaque to the engine.** It can no more compare a shape than name
+one, so what it does with a shape reference is hand it to the face. Validating a
+payload against a step's declared shape is therefore an **overload on the
+existing payload capability**, not new machinery: the same validator, held to a
+profile somebody else named. A shape the face cannot resolve is an issue rather
+than a pass — treating it as nothing-wrong is how a precondition quietly stops
+being one.
+
+**A run records the step version it ran under**, beside the executor's version
+and provider. Reproducing a decision made last year needs the definition as well
+as the runner, and a run naming only one of them explains half of what happened.
+
 ### How work reaches whoever does it
 
 A run says who holds it; a **participant** is how a holder gets it — a service, an

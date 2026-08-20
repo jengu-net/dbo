@@ -14,7 +14,14 @@ tasks.jar {
     bundle {
         bnd(mapOf(
             "Bundle-SymbolicName" to "cloud.jengu.dbo.core",
-            "Export-Package" to "cloud.jengu.dbo.core.api.*;version=0.1.0,cloud.jengu.dbo.core.face;version=0.1.0,cloud.jengu.dbo.core;version=0.1.0",
+            // Every package the engine offers outward, named rather than
+            // globbed: a package added here and not exported resolves on the
+            // classpath and fails in the container, which is a failure that
+            // only shows up in the tests that build one (#71).
+            "Export-Package" to "cloud.jengu.dbo.core.api.*;version=0.1.0"
+                + ",cloud.jengu.dbo.core.face;version=0.1.0"
+                + ",cloud.jengu.dbo.core.process;version=0.1.0"
+                + ",cloud.jengu.dbo.core;version=0.1.0",
         ))
     }
 }
