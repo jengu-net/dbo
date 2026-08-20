@@ -279,6 +279,55 @@ class Tier1SearchIT {
 
     // ------------------------------------------------------------- plumbing
 
+    /**
+     * A date parameter reads a date as the span it names, at whatever precision
+     * the caller wrote it (#53).
+     *
+     * <p>Read as an instant instead, a bare date means midnight exactly and so
+     * finds nothing that happened during the day it names — the failure that
+     * looks most like working, since the search succeeds and answers nothing.
+     */
+    @Test
+    void aDateParameterAcceptsEveryPrecisionAndMeansTheWholeSpan() {
+        PutResult subject = fhir.create(patient("11101010012", "Dated"));
+        for (String day : List.of("2031-03-01", "2031-03-15", "2031-04-02")) {
+            fhir.create("""
+                    {"resourceType":"Observation","status":"final",
+                     "subject":{"reference":"Patient/%s"},
+                     "code":{"coding":[{"system":"http://loinc.org","code":"777-7"}]},
+                     "effectiveDateTime":"%sT09:30:00Z"}""".formatted(subject.id(), day));
+        }
+        Map<String, String> base = Map.of("subject", "Patient/" + subject.id(), "code", "777-7");
+
+        assertEquals(1, entryCount(fhir.search("Observation", withDate(base, "2031-03-15"), null)),
+                "a bare date is the whole day, not midnight");
+        assertEquals(2, entryCount(fhir.search("Observation", withDate(base, "2031-03"), null)),
+                "a bare month is the whole month");
+        assertEquals(3, entryCount(fhir.search("Observation", withDate(base, "2031"), null)),
+                "a bare year is the whole year");
+        assertEquals(1, entryCount(fhir.search("Observation", withDate(base, "gt2031-03"), null)),
+                "after a month means after all of it, not after its first instant");
+        assertEquals(2, entryCount(fhir.search("Observation", withDate(base, "ge2031-03-15"), null)));
+        assertEquals(1, entryCount(fhir.search("Observation", withDate(base, "lt2031-03-15"), null)));
+        assertEquals(2, entryCount(fhir.search("Observation", withDate(base, "le2031-03-15"), null)));
+    }
+
+    /** And a date that is not one is refused as the caller's mistake, not the store's. */
+    @Test
+    void nonsenseInADateIsRefusedRatherThanThrown() {
+        assertThrows(IllegalArgumentException.class,
+                () -> fhir.search("Observation", Map.of("date", "2031-13-45"), null),
+                "a DateTimeParseException here answers 500 — the server did not break");
+        assertThrows(IllegalArgumentException.class,
+                () -> fhir.search("Observation", Map.of("_lastUpdated", "whenever"), null));
+    }
+
+    private static Map<String, String> withDate(Map<String, String> base, String date) {
+        Map<String, String> params = new java.util.LinkedHashMap<>(base);
+        params.put("date", date);
+        return params;
+    }
+
     private static int entryCount(String bundleJson) {
         Matcher m = Pattern.compile("\"fullUrl\"").matcher(bundleJson);
         int n = 0;

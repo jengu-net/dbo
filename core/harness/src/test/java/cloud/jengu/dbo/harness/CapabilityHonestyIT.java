@@ -153,27 +153,19 @@ class CapabilityHonestyIT {
     @Timeout(300)
     @DisplayName("every meta parameter the statement declares is one the store accepts")
     void declaredMetaParametersAreAccepted() {
-        for (String name : List.of("_tag", "_profile", "_id")) {
+        for (String name : List.of("_tag", "_profile", "_id", "_lastUpdated")) {
             assertTrue(blockFor("Observation").contains("\"name\":\"" + name + "\""),
                     name + " is accepted but undeclared: " + blockFor("Observation"));
             // accepted means it compiles rather than being refused as unknown.
             // _id takes this store's own id shape: a non-UUID raises rather
             // than returning no results, noted on #53.
-            store.search("Observation", Map.of(name,
-                    name.equals("_id") ? "01a01576-cf32-771c-a65c-e606c803d157" : "x"), null);
+            store.search("Observation", Map.of(name, switch (name) {
+                case "_id" -> "01a01576-cf32-771c-a65c-e606c803d157";
+                // a bare date, which is what a conformant client sends (#53)
+                case "_lastUpdated" -> "2020-01-01";
+                default -> "x";
+            }), null);
         }
-
-        // _lastUpdated is declared and is NOT checked here, because it does not
-        // keep the promise: a bare date is refused and `ge2020-01-01` answers
-        // 500 (#53). Carved out by name rather than quietly excluded, and this
-        // assertion fails the day it is fixed — which is how the carve-out gets
-        // removed by somebody reading it.
-        assertTrue(blockFor("Observation").contains("\"name\":\"_lastUpdated\""),
-                blockFor("Observation"));
-        assertThrows(RuntimeException.class,
-                () -> store.search("Observation", Map.of("_lastUpdated", "2020-01-01"), null),
-                "_lastUpdated now accepts a bare date — #53 is fixed, so fold it back "
-                        + "into the loop above and delete this carve-out");
 
         // and one nobody accepts is refused rather than quietly widening the result
         assertThrows(cloud.jengu.dbo.fhir.common.UnknownSearchParameterException.class,

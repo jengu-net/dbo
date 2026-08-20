@@ -64,8 +64,7 @@ final class ElementSearch {
                 case "_elements" -> elements = List.of(value.split(","));
                 case "_include" -> includes.add(include(typeName, known, value));
                 case "_id" -> byId = value;
-                case "_lastUpdated" -> criteria.lastUpdated(prefixOp(typeName, name, value),
-                        Instant.parse(stripPrefix(value)));
+                case "_lastUpdated" -> lastUpdated(criteria, value);
                 case "_tag" -> token(criteria, "_tag", value, false);
                 case "_tag:not" -> token(criteria, "_tag", value, true);
                 case "_profile" -> criteria.eq("_profile", EnvelopeValue.of(value));
@@ -161,14 +160,7 @@ final class ElementSearch {
                     criteria.eq(path, EnvelopeValue.of(new java.math.BigDecimal(value)));
                 }
             }
-            case DATE -> {
-                Criteria.RangeOp op = tryPrefixOp(value);
-                if (op == null) {
-                    throw new UnknownSearchParameterException(typeName,
-                            base + "=" + value + " (date search requires a gt/lt/ge/le prefix)");
-                }
-                criteria.range(path, ValueKind.DATE, op, DateKeys.ofSearchValue(stripPrefix(value)));
-            }
+            case DATE -> date(criteria, path, value);
             case REFERENCE -> {
                 int slash = value.indexOf('/');
                 if (slash < 0) {
@@ -230,6 +222,61 @@ final class ElementSearch {
                 new Criteria.ChainTarget.ByEq(pathName(targetParam), targetValue));
     }
 
+    /**
+     * A date parameter, at whatever precision the caller wrote it.
+     *
+     * <p>A FHIR date names a span — {@code 2020} is a year, {@code 2020-01-01}
+     * a day — and a prefix says how the caller's span relates to the stored
+     * moment. No prefix means {@code eq}, which is the whole span and not its
+     * first instant: read as an instant, a bare date matches midnight exactly
+     * and so matches nothing that happened during the day it names.
+     */
+    private static void date(Criteria criteria, String path, String value) {
+        Criteria.RangeOp op = tryPrefixOp(value);
+        DateKeys.Window window = DateKeys.window(op == null ? value : stripPrefix(value));
+        switch (op == null ? Bound.EQ : bound(op)) {
+            case EQ -> criteria.range(path, ValueKind.DATE, Criteria.RangeOp.GE,
+                            DateKeys.of(window.from()))
+                    .range(path, ValueKind.DATE, Criteria.RangeOp.LT,
+                            DateKeys.of(window.until()));
+            // after the span, not after its start: gt2020 is 2021 onward
+            case AFTER -> criteria.range(path, ValueKind.DATE, Criteria.RangeOp.GE,
+                    DateKeys.of(window.until()));
+            case FROM -> criteria.range(path, ValueKind.DATE, Criteria.RangeOp.GE,
+                    DateKeys.of(window.from()));
+            case BEFORE -> criteria.range(path, ValueKind.DATE, Criteria.RangeOp.LT,
+                    DateKeys.of(window.from()));
+            case UNTIL -> criteria.range(path, ValueKind.DATE, Criteria.RangeOp.LT,
+                    DateKeys.of(window.until()));
+        }
+    }
+
+    /** The same, for the engine's own last-updated moment. */
+    private static void lastUpdated(Criteria criteria, String value) {
+        Criteria.RangeOp op = tryPrefixOp(value);
+        DateKeys.Window window = DateKeys.window(op == null ? value : stripPrefix(value));
+        switch (op == null ? Bound.EQ : bound(op)) {
+            case EQ -> criteria.lastUpdated(Criteria.RangeOp.GE, window.from())
+                    .lastUpdated(Criteria.RangeOp.LT, window.until());
+            case AFTER -> criteria.lastUpdated(Criteria.RangeOp.GE, window.until());
+            case FROM -> criteria.lastUpdated(Criteria.RangeOp.GE, window.from());
+            case BEFORE -> criteria.lastUpdated(Criteria.RangeOp.LT, window.from());
+            case UNTIL -> criteria.lastUpdated(Criteria.RangeOp.LT, window.until());
+        }
+    }
+
+    /** Which end of the caller's span a prefix asks about. */
+    private enum Bound { EQ, AFTER, FROM, BEFORE, UNTIL }
+
+    private static Bound bound(Criteria.RangeOp op) {
+        return switch (op) {
+            case GT -> Bound.AFTER;
+            case GE -> Bound.FROM;
+            case LT -> Bound.BEFORE;
+            case LE -> Bound.UNTIL;
+        };
+    }
+
     private static void token(Criteria criteria, String path, String value, boolean negate) {
         EnvelopeValue token;
         int pipe = value.indexOf('|');
@@ -252,15 +299,6 @@ final class ElementSearch {
         if (parameter.getType() != expected) {
             throw new UnknownSearchParameterException(typeName, display);
         }
-    }
-
-    private static Criteria.RangeOp prefixOp(String typeName, String name, String value) {
-        Criteria.RangeOp op = tryPrefixOp(value);
-        if (op == null) {
-            throw new UnknownSearchParameterException(typeName,
-                    name + "=" + value + " (gt/lt/ge/le prefix required)");
-        }
-        return op;
     }
 
     private static Criteria.RangeOp tryPrefixOp(String value) {
