@@ -19,6 +19,7 @@ dependencies {
     testImplementation(project(":core:dbo-auth"))
     testImplementation(project(":core:dbo-pdi"))
     testImplementation(project(":core:dbo-policy"))
+    testImplementation(project(":core:dbo-work"))
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
     testImplementation("org.testcontainers:testcontainers-k3s:2.0.5")
     testImplementation("org.postgresql:postgresql:42.7.11")
