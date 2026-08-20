@@ -55,6 +55,11 @@ public final class ElementVersion {
                 // a Task, an audit entry as an AuditEvent. The domain a version
                 // claims is its own code (ElementFhirVersion.domain()).
                 .providing(RecordProjection.class, new ElementRecordProjection(code, code))
+                // whether two documents say the same thing — a domain question,
+                // and the engine's own answer (compare the bytes) says they
+                // differ because a tool wrote the fields in another order
+                .providing(cloud.jengu.dbo.core.face.DocumentEquivalence.class,
+                        ElementEquivalence.INSTANCE)
                 .build();
     }
 

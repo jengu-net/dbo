@@ -99,7 +99,7 @@ public final class TenantImport {
     public static PortableResult importVerified(ObjectStore target, ArchiveSource source,
             byte[] ownerMasterKey, ArchiveAttestation attestation,
             byte[] vendorPublicKey, byte[] tenantPublicKey, HistoryMode history,
-            ImportLedger ledger)
+            ImportLedger ledger, cloud.jengu.dbo.core.face.DocumentEquivalence equivalence)
             throws IOException {
         Objects.requireNonNull(ledger, "an import records what it accepted, or does not happen");
         // Pass one: read to the tag, digest every entry, check the signatures.
@@ -113,7 +113,7 @@ public final class TenantImport {
         PortableResult result;
         try (InputStream sealed = source.open();
              InputStream plain = SealedArchive.opening(sealed, ownerMasterKey)) {
-            result = applyPortable(target, plain, history);
+            result = applyPortable(target, plain, history, equivalence);
         }
         // Recorded after the objects land: a root recorded for an import that
         // then failed would be a claim about data the tenant does not have.
@@ -125,8 +125,25 @@ public final class TenantImport {
     }
 
 
+    /**
+     * What a caller with no face gets: two documents are the same when their
+     * bytes are, once the archive's single-lining is undone.
+     *
+     * <p>Which is <b>not</b> what "the same object" means. A tool that writes a
+     * resource's fields in another order has changed nothing, and this says it
+     * has — so a re-import rewrites every object and a tenant gets a version
+     * bump for a no-op. It is here because an engine cannot answer the question
+     * itself, and a caller with no face is entitled to the honest, worse
+     * answer rather than a silently wrong better one.
+     */
+    public static cloud.jengu.dbo.core.face.DocumentEquivalence comparingBytes() {
+        return document -> Names.flatten(new String(document, StandardCharsets.UTF_8))
+                .getBytes(StandardCharsets.UTF_8);
+    }
+
     private static PortableResult applyPortable(ObjectStore target, InputStream plain,
-            HistoryMode history) throws IOException {
+            HistoryMode history, cloud.jengu.dbo.core.face.DocumentEquivalence equivalence)
+            throws IOException {
         long imported = 0;
         long skipped = 0;
         try (ZipInputStream zip = new ZipInputStream(plain)) {
@@ -162,11 +179,11 @@ public final class TenantImport {
                         continue;
                     }
 
-                    // compare through the same flattening the export applied
-                    if (existing.isPresent() && Arrays.equals(
-                            Names.flatten(new String(existing.get().payload(), StandardCharsets.UTF_8))
-                                    .getBytes(StandardCharsets.UTF_8),
-                            resource)) {
+                    // Whether these are the same object is the domain's
+                    // question, not this module's: a face answers it, and what
+                    // it answers about is a document rather than a byte string.
+                    if (existing.isPresent()
+                            && equivalence.same(existing.get().payload(), resource)) {
                         skipped++;
                         continue; // same tenant re-import: a no-op
                     }
