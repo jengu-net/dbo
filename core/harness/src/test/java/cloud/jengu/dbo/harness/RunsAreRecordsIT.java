@@ -107,6 +107,24 @@ class RunsAreRecordsIT {
     }
 
     @Test
+    @DisplayName("a large run is a tally and a handful of children, not one child per item")
+    void childrenAreExceptionsNotAnEnumeration() {
+        Run ingest = runs.pipeline("dbo.terminology.ingest", "import");
+        // forty thousand concepts, three of which nobody can accept
+        runs.item(ingest, "CodeSystem/snomed#ambiguous", Failure.RECORD, "two displays");
+        runs.item(ingest, "CodeSystem/snomed#orphan", Failure.RECORD, "parent not in this system");
+        runs.item(ingest, "CodeSystem/snomed#duplicate", Failure.RECORD, "code twice");
+        Run counted = runs.tally(ingest, Map.of("read", 40_000L, "applied", 39_997L,
+                "skipped", 3L));
+
+        assertEquals(3, runs.items(counted).size(),
+                "a child per item processed would be forty thousand records, forty thousand "
+                        + "feed events, and a history nobody can page through");
+        assertEquals(40_000L, counted.tally().get("read"),
+                "what everything did is the tally's job; what somebody must act on is a child's");
+    }
+
+    @Test
     @DisplayName("the sweep is found again rather than started again")
     void aSweepIsOnePerScope() {
         Run first = runs.sweep("dbo.policy.retention", "sweep", "hogwarts");
