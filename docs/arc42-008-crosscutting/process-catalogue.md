@@ -237,6 +237,39 @@ and how a holder is said in it, is a face's business
 A run over a domain no face claims — `identity`, a config domain — renders nowhere, and
 the reader is told so rather than handed an empty document.
 
+### How work reaches whoever does it
+
+A run says who holds it; a **participant** is how a holder gets it — a service, an
+edge, a hospital's own system, a person at a screen. It is the change feed's
+fifth use rather than a sixth mechanism: a named consumer, a cursor, an ack
+(`REQ-DBO-FEED-ONE-PRIMITIVE`), which is also why each participant's backlog and
+lag are observable without anything being built for them.
+
+**Pull, never push.** dbo holding a client for every external system is the shape
+ADR 0060 rejected, and participants are precisely the things behind NAT, on
+edges, and offline for a weekend. Pulling makes an offline participant a lagging
+cursor rather than an outage.
+
+**A claim is a conditional write with a deadline.** At-most-one actor needs no
+lease service: two participants racing one run produce one winner and one version
+conflict, and the loser takes the next run rather than coordinating about this
+one. The deadline exists because a participant that dies must not hold work for
+ever, and nothing but the clock is going to notice. **The claim is also the dedup
+point** — delivery is at-least-once, so a participant will see the same run
+twice, and its own bookkeeping must not be what saves it.
+
+**A claim is extended by checkpoint, never by heartbeat.** A tick proves a
+process is alive, and what a deadline protects against is a process that is alive
+and getting nowhere. Counts are the evidence, and they are on the record anyway.
+
+**Released is not done.** A run that says done because whoever held it stopped
+answering is the failure a deadline exists to prevent, so a lapsed claim is
+handed back saying exactly that.
+
+**You scale by adding claimants, never by relaxing the claim.** Partitioning is
+the second lever and is not built: competition is fine at small N, and a
+partition hint belongs on the run only once one step has measurably outgrown it.
+
 **A step declares the actions it contains.** Open a task, close it, reopen a
 closed one. Roles narrow *actions within* a step — an operator works the open
 tasks, a supervisor also reaches the closed ones — so without declared actions
