@@ -18,6 +18,7 @@ dependencies {
     implementation(project(":core:dbo-maintenance"))
     implementation(project(":core:dbo-pdi"))
     api(project(":core:dbo-policy"))
+    implementation(project(":core:dbo-work"))
     compileOnly("org.osgi:osgi.core:8.0.0")
     embedded("com.zaxxer:HikariCP:7.1.0")
     // the PG driver comes from the DRIVER BUNDLE at runtime — compile-only
@@ -59,6 +60,7 @@ tasks.jar {
                     "cloud.jengu.dbo.auth;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.pdi;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.policy;version=\"[0.1,1)\"",
+                    "cloud.jengu.dbo.work;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.sync;version=\"[0.1,1)\"",
                     // the native terminology form, which each tenant's facade
                     // is built over (REQ-DBO-TERM-EVERY-TENANT-ANSWERS)

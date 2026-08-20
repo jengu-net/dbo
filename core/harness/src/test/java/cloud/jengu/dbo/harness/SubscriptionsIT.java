@@ -7,6 +7,9 @@ import cloud.jengu.dbo.fhir.r4.R4Subscriptions;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.work.Holder;
+import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.subscriptions.RestHookTransport;
 import cloud.jengu.dbo.subscriptions.SubscriptionEngine;
 import com.sun.net.httpserver.HttpServer;
@@ -47,6 +50,7 @@ class SubscriptionsIT {
     // per-path behaviour: attempts counter + failures to inject before success
     static final Map<String, AtomicInteger> attempts = new ConcurrentHashMap<>();
     static final Map<String, AtomicInteger> failuresRemaining = new ConcurrentHashMap<>();
+    static PgObjectStore store;
     static final Map<String, List<String>> received = new ConcurrentHashMap<>();
 
     @BeforeAll
@@ -61,7 +65,7 @@ class SubscriptionsIT {
         R4Personality personality = new R4Personality(List.of(
                 FhirTypeConfig.internal("Observation"),
                 FhirTypeConfig.internal("Subscription")));
-        PgObjectStore store = new PgObjectStore(pg, personality.registrations());
+        store = new PgObjectStore(pg, Registrations.withRuns(personality.registrations()));
         fhir = new R4Store(store, personality, "https://dbo.test/fhir");
         feed = new PgChangeFeed(pg, R4Personality.DOMAIN);
 
@@ -207,6 +211,17 @@ class SubscriptionsIT {
         await("dead letter recorded", () -> engine.deadLetters().stream()
                 .anyMatch(d -> d.subscriptionId().equals(brokenSub)));
         assertEquals(4, attempts.get("/hook4-broken").get(), "maxAttempts exhausted");
+
+        // #69: and it is a RECORD, not a private row — a card in front of a
+        // person, in the tenant's own store, with the endpoint it could not
+        // reach on it. The old dead-letter table could be read by nothing but
+        // the engine that wrote it.
+        List<Run> waiting = new Runs(store).holding(Holder.PERSON);
+        assertTrue(waiting.stream().anyMatch(run ->
+                        run.process().equals("dbo.subscriptions.delivery")
+                                && run.item() != null
+                                && run.item().reference().equals(baseEndpoint + "/hook4-broken")),
+                "an exhausted delivery is a run needing a person: " + waiting);
     }
 
     /** REQ-DBO-EVT-IN-PROCESS-SURFACE: a local listener sees the same matched events. */

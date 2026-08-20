@@ -76,7 +76,10 @@ class TenantOsgiIT {
         for (String prop : List.of("dbo.core.jar", "dbo.fhir.common.jar", "dbo.postgres.jar",
                 // the HL7/HAPI engine both personalities import from
                 "dbo.fhir.stack.jar",
-                "dbo.terminology.jar", "dbo.subscriptions.jar",
+                "dbo.terminology.jar",
+                // run records, before subscriptions and policy, which write them
+                "dbo.work.jar",
+                "dbo.subscriptions.jar",
                 // the shared facade, before the faces that import it
                 "dbo.fhir.element.jar",
                 "dbo.fhir.r4.jar", "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar", "dbo.pdi.jar", "dbo.policy.jar",

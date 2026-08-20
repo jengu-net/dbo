@@ -127,7 +127,7 @@ class ImportDoesNotRedeliverIT {
         TenantExport.export(sourceDs, R4Personality.DOMAIN, OWNER_KEY, archive);
 
         R4Personality p = personality();
-        PgObjectStore destination = new PgObjectStore(destinationDs, p.registrations());
+        PgObjectStore destination = new PgObjectStore(destinationDs, Registrations.withRuns(p.registrations()));
         CoSignedArchive.over(archive.toByteArray(), OWNER_KEY)
                 .importInto(destination, OWNER_KEY, TenantImport.HistoryMode.FRESH);
 

@@ -37,8 +37,20 @@ public final class Runs {
      * item is terminal.
      */
     public Run pipeline(String process, String step) {
-        return write(new State(UuidV7.newId(), process, step, RunKind.PIPELINE,
-                Holder.AUTOMATION, null, null, Map.of(), null));
+        return pipeline(process, step, UuidV7.newId());
+    }
+
+    /**
+     * A pipeline run over something that already has a name — a delivery, an
+     * import of a named file, a job somebody can point at.
+     *
+     * <p>Found rather than started, like a sweep, and for the same reason: the
+     * work that calls this can be re-executed after a crash, and a second run
+     * for the same attempt would double every count taken from it.
+     */
+    public Run pipeline(String process, String step, String key) {
+        return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.PIPELINE,
+                Holder.AUTOMATION, null, null, Map.of(), null)));
     }
 
     /**

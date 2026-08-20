@@ -79,6 +79,8 @@ class EmbeddedContainerIT {
                 // the HL7/HAPI engine, once, for both personalities after it
                 "dbo.fhir.stack",
                 // the shared facade the versions are served through
+                // run records, before the module that writes them
+                "dbo.work",
                 "dbo.subscriptions", "dbo.fhir.element", "dbo.fhir.r4", "dbo.fhir.r5",
                 "dbo.rest")) {
             String path = System.getProperty(name + ".jar");

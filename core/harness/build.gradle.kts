@@ -52,6 +52,7 @@ tasks.test {
         ":core:dbo-fhir-common:jar", ":core:dbo-subscriptions:jar", ":core:dbo-rest:jar",
         ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar",
         ":core:dbo-tenant-k8s:jar", ":core:dbo-auth:jar", ":core:dbo-pdi:jar", ":core:dbo-policy:jar",
+        ":core:dbo-work:jar",
         ":core:dbo-server:installDist")
     systemProperty(
         "dbo.server.dist",
@@ -69,6 +70,7 @@ tasks.test {
         "dbo.auth.jar" to "dbo-auth",
         "dbo.pdi.jar" to "dbo-pdi",
         "dbo.policy.jar" to "dbo-policy",
+        "dbo.work.jar" to "dbo-work",
         "dbo.fhir.element.jar" to "dbo-fhir-element",
     )) {
         systemProperty(

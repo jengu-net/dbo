@@ -91,7 +91,7 @@ class TopicSubscriptionsIT {
                 FhirTypeConfig.internal("Observation"),
                 FhirTypeConfig.internal("Subscription"),
                 FhirTypeConfig.canonical("SubscriptionTopic")));
-        r5Engine = new PgObjectStore(ds5, p5.registrations());
+        r5Engine = new PgObjectStore(ds5, Registrations.withRuns(p5.registrations()));
         r5 = new R5Store(r5Engine, p5, "https://dbo.test/r5");
         engine5 = new SubscriptionEngine(ds5, R5Personality.DOMAIN, r5Engine,
                 new PgChangeFeed(ds5, R5Personality.DOMAIN),
@@ -106,7 +106,7 @@ class TopicSubscriptionsIT {
         R4Personality p4 = new R4Personality(List.of(
                 FhirTypeConfig.internal("Observation"),
                 FhirTypeConfig.internal("Subscription")));
-        PgObjectStore r4Engine = new PgObjectStore(ds4, p4.registrations());
+        PgObjectStore r4Engine = new PgObjectStore(ds4, Registrations.withRuns(p4.registrations()));
         r4 = new R4Store(r4Engine, p4, "https://dbo.test/r4");
         List<TopicSpec> configuredTopics = List.of(new TopicSpec(TOPIC_R4, "Observation",
                 Set.of(ChangeKind.CREATED), Set.of("code")));

@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -56,6 +57,7 @@ class PolicyIT {
     static PostgreSQLContainer<?> postgres;
     static String jdbcUrl;
     static PGSimpleDataSource ds;
+    static PgObjectStore engine;
     static PolicyObjectStore store;
     static TenantPolicies policies;
     static byte[] ownerKey = new byte[32];
@@ -83,7 +85,10 @@ class PolicyIT {
         List<cloud.jengu.dbo.core.api.TypeRegistration> registrations =
                 new ArrayList<>(personality.registrations());
         registrations.addAll(AuditModel.registrations());
-        store = new PolicyObjectStore(new PgObjectStore(ds, registrations), policies);
+        // the sweep is a run, and a run is a record in this tenant's store
+        registrations.addAll(cloud.jengu.dbo.work.WorkModel.registrations());
+        engine = new PgObjectStore(ds, registrations);
+        store = new PolicyObjectStore(engine, policies);
     }
 
     @AfterAll
@@ -184,8 +189,22 @@ class PolicyIT {
         ByteArrayOutputStream archive = new ByteArrayOutputStream();
         TenantExport.export(ds, R4Personality.DOMAIN, ownerKey, archive);
 
-        RetentionSweep sweep = new RetentionSweep(ds, R4Personality.DOMAIN, policies, store);
+        cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(engine);
+        RetentionSweep sweep = new RetentionSweep(ds, R4Personality.DOMAIN, policies, store, runs);
         assertTrue(sweep.sweepOnce() >= 1);
+
+        // #69: the count went somewhere. A sweep is one durable run per scope,
+        // found rather than started, and what it removed is a checkpoint on it
+        // — not a return value handed to a caller who has already gone.
+        cloud.jengu.dbo.work.Run swept = runs.byKey(
+                RetentionSweep.PROCESS + "/" + RetentionSweep.STEP + "/" + R4Personality.DOMAIN)
+                .orElseThrow(() -> new AssertionError("the sweep left no run"));
+        assertEquals(cloud.jengu.dbo.work.RunKind.SWEEP, swept.kind());
+        assertTrue(swept.tally().getOrDefault("removed", 0L) >= 1,
+                "the sweep's own account of what it removed: " + swept.tally());
+        assertFalse(swept.needsAPerson(), "nothing went wrong, so nobody is holding it");
+        sweep.sweepOnce();
+        assertEquals(cloud.jengu.dbo.work.RunKind.SWEEP, runs.byKey(swept.key()).orElseThrow().kind());
 
         assertTrue(store.get("Observation", old.id()).isEmpty(), "expired object gone from state");
         assertEquals(0, store.history("Observation", old.id()).size(), "and from history");

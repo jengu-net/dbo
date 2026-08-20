@@ -10,6 +10,8 @@ configurations.implementation.get().extendsFrom(embedded)
 
 dependencies {
     api(project(":core:dbo-core"))
+    // an exhausted delivery is a run, not a private table (#69)
+    api(project(":core:dbo-work"))
     embedded("dev.dbos:transact:1.0.0")
     // slf4j-api is SHARED, not embedded: one binding for the whole
     // runtime instead of a private one per bundle. compileOnly because
@@ -36,6 +38,7 @@ tasks.jar {
                     "org.slf4j",
                     "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.core.api.feed;version=\"[0.1,1)\"",
+                    "cloud.jengu.dbo.work;version=\"[0.1,1)\"",
                     "javax.sql",
                     "javax.naming;resolution:=optional",
                     "javax.net.ssl;resolution:=optional",

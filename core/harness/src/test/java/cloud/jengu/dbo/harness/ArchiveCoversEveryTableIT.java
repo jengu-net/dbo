@@ -113,7 +113,6 @@ class ArchiveCoversEveryTableIT {
         // the guard keeps its value: an exclusion has to be a line somebody
         // wrote, and any OTHER table going missing still fails this test.
         missing.removeAll(List.of(R4Personality.DOMAIN + "_consumer",
-                R4Personality.DOMAIN + "_subscription_dlq",
                 R4Personality.DOMAIN + "_topic_counter"));
         assertEquals(List.of(), missing,
                 "these tables exist in the tenant and are not in its backup — a table missing "

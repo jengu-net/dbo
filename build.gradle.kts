@@ -40,6 +40,8 @@ val dboRuntimeModules = listOf(
     // it carries — before the faces that import it
     ":core:dbo-fhir-element",
     ":core:dbo-fhir-r4", ":core:dbo-fhir-r5", ":core:dbo-rest", ":core:dbo-auth", ":core:dbo-pdi",
+    // run records, before the modules that write them
+    ":core:dbo-work",
     ":core:dbo-policy", ":core:dbo-sync",
     // dbo-tenant imports it for the maintenance surface
     ":core:dbo-maintenance", ":core:dbo-tenant", ":core:dbo-tenant-k8s",
