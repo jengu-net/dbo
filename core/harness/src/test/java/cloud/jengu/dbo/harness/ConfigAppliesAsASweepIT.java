@@ -26,11 +26,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Applying a declaration is a sweep, and the two it could not apply do not take
- * the other forty-four with them (#73, jengu-platform#893).
+ * the other forty-four with them (#73).
  *
  * <p>The sentence this proves — <i>read 46, applied 44, skipped 2 with
  * reasons</i> — is the one that had nowhere to live but a log line, which is why
- * a partial application presented as "my configuration had no effect".
+ * a partial application presented as "my configuration had no effect" to the
+ * consumer whose loader applies a zone's declarations.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
