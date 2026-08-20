@@ -1054,6 +1054,146 @@ public final class TenantAuthority {
         return true;
     }
 
+    // ------------------------------------------------------- one-time grants
+
+    /**
+     * Mints a one-time grant for a subject to set their own first secret
+     * (#68).
+     *
+     * <p><b>The authority never sends anything.</b> Recovery needs a second
+     * channel this authority does not have, and acquiring one would put mail
+     * inside the trust root, where ticket machinery grows next
+     * (REQ-DBO-AUTH-RECOVERY-IS-AN-OPERATOR-ACT). So the ceremony is split from
+     * the delivery: this mints and redeems, and the consumer — which already
+     * owns mail, and already owns the address — delivers. Nothing about
+     * delivery enters the trust root.
+     *
+     * <p><b>It looks up nothing, and that is how it stays enumeration-safe.</b>
+     * A mint that resolved the subject would answer differently, or take
+     * differently long, for a login nobody holds — and this authority is the
+     * only party that knows, which is exactly why it must not say
+     * (REQ-DBO-AUTH-NO-SUBJECT-ENUMERATION). Whether the subject exists, could
+     * hold a password at all, or was retired this morning is decided at
+     * redemption, in front of the person rather than in front of the caller.
+     *
+     * <p>What comes back is a bearer secret for its short life. The store keeps
+     * only its fingerprint: a grant an operator could read out of a backup and
+     * redeem is a credential in a channel nobody controls, which is the posture
+     * this exists to avoid.
+     *
+     * <p>A plain digest rather than a password hash, deliberately. A password
+     * is hashed with a salt and a work factor because it is short and human;
+     * this is 256 bits from {@code SecureRandom}, so there is no dictionary to
+     * run and nothing a work factor would buy — and a salted hash cannot be
+     * looked up at all, which is how the first version of this refused every
+     * grant it had just minted.
+     *
+     * <p>First-secret and lost-secret are the same ceremony. They differ in who
+     * asks, not in what it is — two ceremonies would be two things to keep
+     * enumeration-safe.
+     */
+    public String mintSecretGrant(String login, java.time.Duration lifetime) {
+        byte[] raw = new byte[32];
+        new java.security.SecureRandom().nextBytes(raw);
+        String grant = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(raw);
+        java.time.Instant expires = java.time.Instant.now().plus(lifetime);
+        String payload = "{\"grantHash\":\"" + fingerprint(grant) + "\""
+                + ",\"login\":\"" + (login == null ? "" : login) + "\""
+                + ",\"expiresAt\":\"" + expires + "\""
+                + ",\"status\":\"issued\"}";
+        store.putIfAbsent(IdentityRef.identifier(IdentityModel.GRANT_SYSTEM, fingerprint(grant)),
+                PutRequest.create("SecretGrant", payload.getBytes(StandardCharsets.UTF_8)));
+        return grant;
+    }
+
+    /**
+     * The holder presents the grant and the secret they have chosen (#68).
+     *
+     * <p><b>Burnt on presentation, not on success.</b> A grant spent only when
+     * it worked is a grant somebody can keep trying — against a weak-password
+     * rule, against a race, against anything that made the first attempt fail.
+     * One use means one attempt.
+     *
+     * <p><b>Every refusal is the same refusal</b>, in body and in timing: a
+     * grant nobody minted, one that expired, one already spent, a login that
+     * does not exist, a subject who cannot hold a password because they
+     * federate, a credential retired this morning. The work is done either way
+     * (REQ-DBO-AUTH-NO-SUBJECT-ENUMERATION).
+     *
+     * <p><b>A grant is not a credential.</b> It authenticates nothing,
+     * authorises nothing but this, and there is no path from here to a token.
+     *
+     * <p>Only the password moves: a bench PIN somebody set for themselves is a
+     * different factor with a different life.
+     */
+    public boolean redeemSecretGrant(String grant, String chosenSecret) {
+        String presented = grant == null ? "" : grant;
+        Optional<StoredObject> found = store.getByIdentifier("SecretGrant",
+                List.of(new Identifier(IdentityModel.GRANT_SYSTEM, fingerprint(presented))))
+                .stream().findFirst();
+        // Spent before anything is decided. A grant that survives a refusal is
+        // a grant with more than one attempt in it.
+        found.ifPresent(this::burn);
+        // Looked up either way, against a login nobody holds when there is no
+        // grant to read one from: a grant nobody minted must cost what a spent
+        // one costs, and skipping the second lookup is a difference somebody
+        // can measure.
+        String login = found.map(g -> field(g, "login")).filter(l -> !l.isBlank())
+                .orElse("a-login-nobody-holds");
+        Optional<StoredObject> credential = store.getByIdentifier("LocalCredential",
+                List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login)))
+                .stream().findFirst()
+                .filter(c -> found.isPresent());
+        boolean live = found.isPresent()
+                && "issued".equals(field(found.get(), "status"))
+                && java.time.Instant.parse(field(found.get(), "expiresAt"))
+                        .isAfter(java.time.Instant.now());
+        // A subject who federates holds no local credential to set a password
+        // on, which is §13.6's factor rule arriving without a second signal to
+        // read: there is nothing here to set.
+        boolean settable = credential.isPresent()
+                && "active".equals(field(credential.get(), "status"));
+        if (!live || !settable || chosenSecret == null || chosenSecret.isBlank()) {
+            return false;
+        }
+        StoredObject stored = credential.get();
+        String keptFactors = factorsOf(stored);
+        String payload = "{\"login\":\"" + field(stored, "login") + "\""
+                + ",\"secretHash\":\"" + SecretHash.hash(chosenSecret) + "\""
+                + (keptFactors == null ? "" : ",\"factors\":" + keptFactors)
+                + ",\"personId\":\"" + field(stored, "personId") + "\""
+                + ",\"status\":\"active\"}";
+        store.put(PutRequest.update("LocalCredential", stored.id(), stored.versionId(),
+                payload.getBytes(StandardCharsets.UTF_8)));
+        return true;
+    }
+
+    /**
+     * The lookup key for a grant: a plain SHA-256 of 256 random bits.
+     *
+     * <p>Not a password hash, and not for the same job — see
+     * {@link #mintSecretGrant}.
+     */
+    private static String fingerprint(String grant) {
+        try {
+            return java.util.Base64.getEncoder().encodeToString(
+                    java.security.MessageDigest.getInstance("SHA-256")
+                            .digest(grant.getBytes(StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 is not available", impossible);
+        }
+    }
+
+    /** Marks a grant spent. Never deleted: what was minted and used is a fact. */
+    private void burn(StoredObject grant) {
+        String payload = "{\"grantHash\":\"" + field(grant, "grantHash") + "\""
+                + ",\"login\":\"" + field(grant, "login") + "\""
+                + ",\"expiresAt\":\"" + field(grant, "expiresAt") + "\""
+                + ",\"status\":\"spent\"}";
+        store.put(PutRequest.update("SecretGrant", grant.id(), grant.versionId(),
+                payload.getBytes(StandardCharsets.UTF_8)));
+    }
+
     /**
      * A credential is retired — every factor at once, and never deleted
      * (REQ-DBO-AUTH-DEACTIVATION-RETIRES-CREDENTIALS).

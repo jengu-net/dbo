@@ -25,6 +25,15 @@ public final class IdentityModel {
     public static final String ROLE_CODE_SYSTEM = "urn:dbo:auth:role-code";
     public static final String LOGIN_SYSTEM = "urn:dbo:auth:login";
 
+    /**
+     * A one-time grant, found by the hash of what the holder presents (#68).
+     *
+     * <p>The grant itself is never stored: it is a bearer secret for its short
+     * life, and a store that holds one holds something an operator reading a
+     * backup could redeem.
+     */
+    public static final String GRANT_SYSTEM = "urn:dbo:auth:secret-grant";
+
     private IdentityModel() {
     }
 
@@ -138,6 +147,19 @@ public final class IdentityModel {
                         java.util.Set.of(ROLE_CODE_SYSTEM), Handling.storeAuthored(), roleGrant, List.of()),
                 new TypeRegistration("LocalCredential", DOMAIN, IdentityClass.IDENTIFIER,
                         java.util.Set.of(LOGIN_SYSTEM), Handling.storeAuthored(), credential, List.of()),
+                // A grant is not a credential: it authenticates nothing and
+                // authorises nothing but its own redemption. It is here because
+                // it is short-lived state about a subject, and it dies with
+                // them like everything else in this domain.
+                new TypeRegistration("SecretGrant", DOMAIN, IdentityClass.IDENTIFIER,
+                        java.util.Set.of(GRANT_SYSTEM), Handling.storeAuthored(),
+                        (type, payload) -> {
+                            Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
+                            Envelope e = new Envelope();
+                            e.identifier(GRANT_SYSTEM, Json.str(n, "grantHash"));
+                            e.value("status", EnvelopeValue.of(Json.str(n, "status")));
+                            return e;
+                        }, List.of()),
                 new TypeRegistration("Delegation", DOMAIN, IdentityClass.INTERNAL,
                         java.util.Set.of(), Handling.storeAuthored(), (type, payload) -> {
                             Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
