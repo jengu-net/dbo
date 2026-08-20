@@ -106,6 +106,27 @@ final class ElementEnvelopes {
         }
     }
 
+    /**
+     * A token in the three shapes a search can ask for it.
+     *
+     * <p>FHIR's token syntax is three questions, not one: {@code sys|code} is
+     * this code in this system, {@code code} is this code in any system, and
+     * {@code sys|} is <b>anything at all</b> in this system. The index answers
+     * by containment, so a form it does not carry is a search that silently
+     * finds nothing — which is worse than an error, because a count of zero
+     * looks like an answer (#81).
+     */
+    private static void tokenForms(Envelope envelope, String path, String system, String code) {
+        if (code == null) {
+            return;
+        }
+        if (system != null) {
+            envelope.value(path, EnvelopeValue.token(system, code));
+            envelope.value(path, new EnvelopeValue.Token(system, null)); // "sys|"
+        }
+        envelope.value(path, new EnvelopeValue.Token(null, code)); // bare code
+    }
+
     private static void token(Envelope envelope, String path, Base hit) {
         if (!(hit instanceof Element element)) {
             String value = primitive(hit);
@@ -119,7 +140,7 @@ final class ElementEnvelopes {
                 String system = element.getNamedChildValue("system");
                 String value = element.getNamedChildValue("value");
                 if (value != null) {
-                    envelope.value(path, EnvelopeValue.token(system, value));
+                    tokenForms(envelope, path, system, value);
                     envelope.identifier(system, value);
                 }
             }
@@ -129,12 +150,8 @@ final class ElementEnvelopes {
                 codings.forEach(coding -> coding(envelope, path, coding));
             }
             case "Coding" -> coding(envelope, path, element);
-            case "ContactPoint" -> {
-                String value = element.getNamedChildValue("value");
-                if (value != null) {
-                    envelope.value(path, EnvelopeValue.token(element.getNamedChildValue("system"), value));
-                }
-            }
+            case "ContactPoint" -> tokenForms(envelope, path,
+                    element.getNamedChildValue("system"), element.getNamedChildValue("value"));
             default -> {
                 String value = element.primitiveValue();
                 if (value != null) {
@@ -145,10 +162,8 @@ final class ElementEnvelopes {
     }
 
     private static void coding(Envelope envelope, String path, Element coding) {
-        String code = coding.getNamedChildValue("code");
-        if (code != null) {
-            envelope.value(path, EnvelopeValue.token(coding.getNamedChildValue("system"), code));
-        }
+        tokenForms(envelope, path, coding.getNamedChildValue("system"),
+                coding.getNamedChildValue("code"));
     }
 
     private static void reference(Envelope envelope, String path, Base hit) {
@@ -170,8 +185,9 @@ final class ElementEnvelopes {
             Element identifier = element.getNamedChild("identifier");
             if (identifier != null && identifier.getNamedChildValue("system") != null) {
                 // logical reference: the :identifier modifier's target
-                envelope.value(path + "_identifier",
-                        EnvelopeValue.token(identifier.getNamedChildValue("system"), identifier.getNamedChildValue("value")));
+                tokenForms(envelope, path + "_identifier",
+                        identifier.getNamedChildValue("system"),
+                        identifier.getNamedChildValue("value"));
             }
         }
     }

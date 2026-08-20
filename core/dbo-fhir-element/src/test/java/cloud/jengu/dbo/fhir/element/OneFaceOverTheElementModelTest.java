@@ -93,7 +93,13 @@ class OneFaceOverTheElementModelTest {
         assertTrue(envelope.paths().containsKey("identifier"),
                 "the parameters this version defines are not being evaluated: "
                         + envelope.paths().keySet());
-        assertEquals(List.of(new EnvelopeValue.Token("https://ee.ee/eid", "38001010001")),
+        // All three shapes a token search can ask for, because the index
+        // answers by containment and a shape it does not carry is a search
+        // that silently finds nothing (#81): sys|code, sys| — anything in that
+        // system — and the bare code in whatever system it is in.
+        assertEquals(List.of(new EnvelopeValue.Token("https://ee.ee/eid", "38001010001"),
+                        new EnvelopeValue.Token("https://ee.ee/eid", null),
+                        new EnvelopeValue.Token(null, "38001010001")),
                 envelope.paths().get("identifier"));
         assertEquals(List.of(new cloud.jengu.dbo.core.api.Identifier(
                         "https://ee.ee/eid", "38001010001")), envelope.identifiers(),

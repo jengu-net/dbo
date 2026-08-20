@@ -256,8 +256,39 @@ class RestConformanceTest {
                     HttpResponse<String> r = get(base + "/Patient?identifier="
                             + urlEncode(EID + "|" + value));
                     expect(r.statusCode() == 200, "status " + r.statusCode());
-                    expect(r.body().contains(value), "the identifier was not found");
+                    // On the entries, never on the body: the self link repeats
+                    // the query, so a bundle with no results contains the value
+                    // that was searched for.
+                    expect(r.body().contains("\"resource\""),
+                            "the identifier was not found: " + r.body());
                     return "200, matched on system|value";
+                });
+
+        c.check(SEARCH, "A system-only token matches every value in that system",
+                "search.html#token", () -> {
+                    String value = "conf-sys-" + System.nanoTime();
+                    post(base + "/Patient", patientWithIdentifier(value));
+                    HttpResponse<String> r = get(base + "/Patient?_summary=count&identifier="
+                            + urlEncode(EID + "|"));
+                    expect(r.statusCode() == 200, "status " + r.statusCode());
+                    // The shape a caller uses precisely because it discloses
+                    // nothing but a number: how many carry an identifier in
+                    // this system at all.
+                    expect(!r.body().contains("\"total\":0"),
+                            "a system-only token answered zero for a resource that carries "
+                                    + "an identifier in that system: " + r.body());
+                    return "200, counted on system|";
+                });
+
+        c.check(SEARCH, "A bare-code token matches whatever system it is in",
+                "search.html#token", () -> {
+                    String value = "conf-bare-" + System.nanoTime();
+                    post(base + "/Patient", patientWithIdentifier(value));
+                    HttpResponse<String> r = get(base + "/Patient?identifier=" + urlEncode(value));
+                    expect(r.statusCode() == 200, "status " + r.statusCode());
+                    expect(r.body().contains("\"resource\""),
+                            "a code with no system found nothing: " + r.body());
+                    return "200, matched on the code alone";
                 });
 
         c.check(SEARCH, "`_summary=count` answers a count without entries",
