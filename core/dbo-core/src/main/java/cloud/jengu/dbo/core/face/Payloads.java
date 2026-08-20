@@ -41,6 +41,44 @@ public interface Payloads<D> {
     String typeOf(D document);
 
     /**
+     * One thing a face has to say about a document.
+     *
+     * @param severity {@code error}, {@code warning} or {@code information} —
+     *                 the distinction a binding's strength turns on: a required
+     *                 binding violated is a refusal, a preferred one is advice,
+     *                 and answering both as "error" is worse than answering
+     *                 neither, because callers learn to ignore the outcome
+     * @param location where in the document, so somebody can find it
+     */
+    record Issue(String severity, String location, String message) {
+
+        public static final String ERROR = "error";
+
+        public boolean refuses() {
+            return ERROR.equals(severity);
+        }
+    }
+
+    /**
+     * Everything a face has to say about a document, at every severity (#50).
+     *
+     * <p>{@link #validate} is the refusing half of this and nothing else: a
+     * write is held to the errors, and a caller asking {@code $validate} is
+     * told the rest as well. One evaluation, two readings — two evaluations
+     * would disagree eventually, which is the property this pair exists to
+     * keep.
+     *
+     * @param shapeReference the shape to hold it to, or null for the shape the
+     *                       document claims
+     */
+    default List<Issue> check(String typeName, D document, String shapeReference) {
+        return (shapeReference == null ? validate(typeName, document)
+                : validate(typeName, document, shapeReference)).stream()
+                .map(message -> new Issue(Issue.ERROR, typeName, message))
+                .toList();
+    }
+
+    /**
      * What is wrong with a document, worst first; empty means nothing is.
      *
      * <p>A list rather than a thrown refusal, because the caller asking

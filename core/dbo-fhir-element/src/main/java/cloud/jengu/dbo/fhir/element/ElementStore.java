@@ -377,8 +377,11 @@ public final class ElementStore implements FhirStoreFacade {
     @Override
     public String validationOutcome(String resourceJson) {
         Object document = payloads.read(null, resourceJson.getBytes(StandardCharsets.UTF_8));
-        List<String> issues = payloads.validate(payloads.typeOf(document), document);
-        return ElementOutcomes.validation(issues);
+        // Everything the face has to say, not only what would refuse the write
+        // (#50): a caller asking whether this is acceptable is also asking what
+        // is questionable about it.
+        return ElementOutcomes.issues(payloads.check(payloads.typeOf(document), document, null),
+                null);
     }
 
     /**
@@ -416,8 +419,8 @@ public final class ElementStore implements FhirStoreFacade {
             shape = step.get().consumes().get();
         }
         Object document = payloads.read(null, resourceJson.getBytes(StandardCharsets.UTF_8));
-        List<String> issues = payloads.validate(payloads.typeOf(document), document, shape);
-        return ElementOutcomes.validation(issues, shape);
+        return ElementOutcomes.issues(payloads.check(payloads.typeOf(document), document, shape),
+                shape);
     }
 
     @Override

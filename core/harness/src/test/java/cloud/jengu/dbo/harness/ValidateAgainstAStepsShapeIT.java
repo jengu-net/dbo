@@ -52,11 +52,13 @@ class ValidateAgainstAStepsShapeIT {
     @DisplayName("a resource can pass the type's shape and fail the step's")
     void theStepsShapeIsTheNarrowerQuestion() {
         String againstTheType = fhir.validationOutcome(PLAIN_OBSERVATION);
-        assertTrue(againstTheType.contains("No issues detected"),
+        // Valid, which is not the same as unremarkable: the local code system
+        // is unresolvable here, and the outcome says so as advice (#50).
+        assertFalse(againstTheType.contains("\"severity\":\"error\""),
                 "it is a valid Observation: " + againstTheType);
 
         String againstTheStep = fhir.validationOutcome(PLAIN_OBSERVATION, HarnessSteps.VITALS);
-        assertFalse(againstTheStep.contains("No issues detected"),
+        assertTrue(againstTheStep.contains("\"severity\":\"error\""),
                 "and it is not what the step will accept — which is the answer the caller "
                         + "actually needed: " + againstTheStep);
         assertTrue(againstTheStep.contains("vitalsigns"),
@@ -83,9 +85,10 @@ class ValidateAgainstAStepsShapeIT {
         String outcome = fhir.validationOutcome(PLAIN_OBSERVATION,
                 "http://example.test/StructureDefinition/somebody-elses-ig");
 
-        assertFalse(outcome.contains("No issues detected"),
+        assertTrue(outcome.contains("\"severity\":\"error\""),
                 "a caller wanting an arbitrary published IG is asking for a validation "
-                        + "service, not for this store's opinion about its own content");
+                        + "service, not for this store's opinion about its own content: "
+                        + outcome);
         assertTrue(outcome.contains("somebody-elses-ig"), outcome);
     }
 }
