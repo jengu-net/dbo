@@ -124,6 +124,30 @@ accumulated**: it comes from the configuration repository at provisioning, so
 recovery is that provisioning running again, or an operator writing one through
 the system-write surface. **Recovery is an operator action, deliberately.**
 
+**The ceremony is split from the delivery, and only the delivery was the
+problem.** An operator setting a first secret and handing it over is a shared
+secret in a channel nobody controls, for every new person — a worse posture than
+what it replaces, arrived at as a side effect. So the authority **mints and
+redeems a one-time grant** and never sends anything: it learns no address, holds
+no template, and retries no delivery. The consumer delivers, because it already
+owns the mail and already owns the address. Nothing about delivery enters the
+trust root, and what enters is an object with a lifetime and a single use — the
+same kind of thing as an authorization code, living beside one.
+
+**Minting looks nothing up.** A mint that resolved the subject would answer
+differently, or take differently long, for a login nobody holds. Whether the
+subject exists, could hold a `pwd` at all, or was retired this morning is decided
+at redemption — in front of the person rather than in front of the caller.
+
+**A grant is burnt on presentation, not on success.** A grant spent only when it
+worked is a grant somebody can keep trying: against a weak-secret rule, against a
+race, against whatever made the first attempt fail. One use is one attempt.
+
+**A grant is not a credential.** It authenticates nothing, authorises nothing but
+its own redemption, and there is no path from it to a token. First-secret and
+lost-secret are the same ceremony, differing in who asks rather than in what it
+is — two ceremonies would be two things to keep enumeration-safe.
+
 **Deactivating a subject retires its credentials — all factors, at once.** Not
 deletes: history and audit need the record, and a login that vanishes cannot be
 told from one that was never there. Sign-in already refuses anything but

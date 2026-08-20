@@ -476,6 +476,116 @@ class HumanAuthIT {
         assertTrue(signsIn("albus", "kaljuke9"), "provisioning is how recovery works");
     }
 
+    /**
+     * A person sets their own first secret, and nobody else ever knows it
+     * (#68).
+     *
+     * <p>The alternative it replaces is an operator setting a secret and
+     * handing it over — a shared secret, in a channel nobody controls, for
+     * every new person. The authority mints and redeems; the consumer, which
+     * owns the address and the mail, delivers. Nothing about delivery enters
+     * the trust root.
+     */
+    @Test
+    @Order(10)
+    void aPersonSetsTheirOwnFirstSecretFromAOneTimeGrant() throws Exception {
+        String service = serviceToken("arst");
+        // provisioning adds the person with no secret anybody could hand over
+        assertEquals(200, http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/admin/credentials"))
+                        .header("Authorization", "Bearer " + service)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"login\":\"minerva\",\"secret\":\"" + java.util.UUID.randomUUID()
+                                        + "\",\"personId\":\"" + personId + "\"}")).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode());
+
+        String grant = mintGrant(service, "minerva");
+        assertEquals(204, redeem(grant, "kass9tabby"), "the holder sets their own");
+        assertTrue(signsIn("minerva", "kass9tabby"), "and it signs them in");
+
+        assertEquals(403, redeem(grant, "teine9paroolimees"),
+                "single use: a grant that works twice is a credential with a long life");
+    }
+
+    /**
+     * Asking for a grant tells the caller nothing about the subject (#68), and
+     * every refusal on the way back is the same refusal.
+     */
+    @Test
+    @Order(11)
+    void aGrantSaysNothingAboutWhoExists() throws Exception {
+        String service = serviceToken("arst");
+
+        String forSomebodyReal = mintGrant(service, "minerva");
+        String forNobody = mintGrant(service, "kedagi-pole-siin");
+        assertEquals(forSomebodyReal.length(), forNobody.length(),
+                "a mint that looked the subject up would answer differently for one that is "
+                        + "not there, and this authority is the only party that knows");
+
+        assertEquals(403, redeem(forNobody, "paroolimees9"),
+                "and the refusal comes at redemption, in front of the person rather than "
+                        + "in front of the caller");
+        assertEquals(403, redeem("a-grant-nobody-minted", "paroolimees9"));
+
+        // burnt on presentation, not on success: an attempt that failed for
+        // any other reason cannot be retried
+        String spentOnAFailure = mintGrant(service, "minerva");
+        assertEquals(403, redeem(spentOnAFailure, ""), "a blank secret is not a secret");
+        assertEquals(403, redeem(spentOnAFailure, "paroolimees9"),
+                "and the grant went with the attempt");
+
+        // a retired credential is refused like everything else is
+        assertEquals(204, retire(service, "minerva"));
+        assertEquals(403, redeem(mintGrant(service, "minerva"), "paroolimees9"),
+                "retirement holds against a ceremony as against a sign-in");
+    }
+
+    /** A grant authenticates nothing and cannot be exchanged for a token (#68). */
+    @Test
+    @Order(12)
+    void aGrantIsNotACredential() throws Exception {
+        String grant = mintGrant(serviceToken("arst"), "albus");
+
+        HttpResponse<String> asAToken = http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/token"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "grant_type=client_credentials&client_id=dbo-rp&client_secret="
+                                        + URLEncoder.encode(grant, StandardCharsets.UTF_8))).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertFalse(asAToken.body().contains("access_token"),
+                "a grant authorises its own redemption and nothing else: " + asAToken.body());
+
+        HttpResponse<String> asAPassword = frontChannelLogin("albus", grant);
+        assertTrue(asAPassword.headers().firstValue("Location").orElse("").contains("error="),
+                "and it is not a password either");
+    }
+
+    private String mintGrant(String serviceToken, String login) throws Exception {
+        HttpResponse<String> minted = http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/admin/secret-grants"))
+                        .header("Authorization", "Bearer " + serviceToken)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"login\":\"" + login + "\",\"minutes\":\"30\"}")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, minted.statusCode(), minted.body());
+        Matcher grant = Pattern.compile("\"grant\":\"([^\"]+)\"").matcher(minted.body());
+        assertTrue(grant.find(), minted.body());
+        return grant.group(1);
+    }
+
+    private int redeem(String grant, String chosen) throws Exception {
+        return http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/secret-grants/redeem"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString("grant="
+                                + URLEncoder.encode(grant, StandardCharsets.UTF_8)
+                                + "&new_secret=" + URLEncoder.encode(chosen, StandardCharsets.UTF_8)))
+                        .build(), HttpResponse.BodyHandlers.ofString()).statusCode();
+    }
+
     private int changeSecret(String token, String login, String current, String replacement)
             throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create(base("arst") + "/oidc/credentials"))

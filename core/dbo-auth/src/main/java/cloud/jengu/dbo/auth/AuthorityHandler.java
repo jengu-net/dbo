@@ -45,6 +45,8 @@ public final class AuthorityHandler implements HttpHandler {
                 case "credentials" -> credentials(exchange);
                 case "admin/credentials" -> adminCredentials(exchange);
                 case "admin/edge-factors" -> adminEdgeFactors(exchange);
+                case "admin/secret-grants" -> adminSecretGrants(exchange);
+                case "secret-grants/redeem" -> redeemSecretGrant(exchange);
                 default -> {
                     if (relative.startsWith("delegation/") && "DELETE".equals(exchange.getRequestMethod())) {
                         endDelegation(exchange, relative.substring("delegation/".length()));
@@ -294,6 +296,65 @@ public final class AuthorityHandler implements HttpHandler {
         boolean changed = authority.changeOwnSecret(bearerOf(exchange), form.get("login"),
                 form.get("current_secret"), form.get("new_secret"));
         if (changed) {
+            respond(exchange, 204, "");
+        } else {
+            respond(exchange, 403, "{\"error\":\"access_denied\"}");
+        }
+    }
+
+    /**
+     * Mints a one-time grant for a subject to set their own first secret
+     * (#68).
+     *
+     * <p>Privileged, because asking for one is an administrative act. It
+     * answers identically whether or not the subject exists, whether or not
+     * they could hold a password, and whether or not their credential was
+     * retired this morning — the caller learns nothing by asking, which is the
+     * property {@code REQ-DBO-AUTH-NO-SUBJECT-ENUMERATION} exists to keep.
+     *
+     * <p><b>The authority does not deliver it.</b> What comes back goes to the
+     * consumer, which owns the address and the mail; nothing about delivery
+     * enters the trust root.
+     */
+    private void adminSecretGrants(HttpExchange exchange) throws IOException {
+        if (!systemWrite(exchange)) {
+            return;
+        }
+        Object body = Json.parse(new String(
+                exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        String login = Json.strOpt(body, "login");
+        long minutes = 60;
+        String requested = Json.strOpt(body, "minutes");
+        if (requested != null) {
+            try {
+                minutes = Math.max(1, Math.min(24 * 60, Long.parseLong(requested)));
+            } catch (NumberFormatException notANumber) {
+                // The default stands. A lifetime somebody mistyped is not a
+                // reason to refuse an onboarding.
+                minutes = 60;
+            }
+        }
+        String grant = authority.mintSecretGrant(login, java.time.Duration.ofMinutes(minutes));
+        respond(exchange, 200, "{\"grant\":\"" + grant + "\"}");
+    }
+
+    /**
+     * The holder presents the grant and the secret they chose (#68).
+     *
+     * <p>Unauthenticated by design: whoever holds the grant is who this is for,
+     * and requiring a token would mean the person needed a credential in order
+     * to set their first one. One answer for every refusal — a grant nobody
+     * minted, one already spent, a subject who federates — because the shapes
+     * of the refusals are what an enumeration reads.
+     */
+    private void redeemSecretGrant(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            respond(exchange, 405, "{\"error\":\"invalid_request\"}");
+            return;
+        }
+        Map<String, String> form = parseForm(new String(
+                exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        if (authority.redeemSecretGrant(form.get("grant"), form.get("new_secret"))) {
             respond(exchange, 204, "");
         } else {
             respond(exchange, 403, "{\"error\":\"access_denied\"}");
