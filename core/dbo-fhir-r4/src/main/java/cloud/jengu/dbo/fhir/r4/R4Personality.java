@@ -76,13 +76,6 @@ public final class R4Personality {
 
     private final Map<String, FhirTypeConfig> types = new LinkedHashMap<>();
 
-    /**
-     * What this personality provides to the engine — the inward
-     * contract, as against the outward facade a server calls.
-     */
-    public cloud.jengu.dbo.core.face.DomainFace face() {
-        return R4Version.face();
-    }
 
     public R4Personality(List<FhirTypeConfig> typeConfigs) {
         for (FhirTypeConfig t : typeConfigs) {
@@ -130,7 +123,7 @@ public final class R4Personality {
     }
 
     private Envelope extract(String typeName, byte[] payload) {
-        IBaseResource resource = document(typeName, payload);
+        IBaseResource resource = parse(new String(payload, StandardCharsets.UTF_8));
         Envelope e = new Envelope();
         IFhirPath fhirPath = ctx().newFhirPath();
 
@@ -532,22 +525,6 @@ public final class R4Personality {
         return withTccl(() -> issuesFrom(validated(parse(resourceJson))));
     }
 
-    /**
-     * The same validation, rendered as the domain's own OperationOutcome (#48).
-     *
-     * <p>One call, two renderings — deliberately. A caller asking whether a
-     * resource would be accepted, and the write that accepts or refuses it,
-     * must not be able to disagree, so they share the ValidationResult rather
-     * than each running the validator their own way.
-     */
-    public String validationOutcome(String resourceJson) {
-        return withTccl(() -> {
-            IBaseResource resource = parse(resourceJson);
-            ValidationResult result = validated(resource);
-            return ctx().newJsonParser().encodeResourceToString(
-                    (IBaseResource) result.toOperationOutcome());
-        });
-    }
 
     /**
      * The write path's validation, with the timeout policy in one place.
@@ -565,135 +542,13 @@ public final class R4Personality {
         return R4Version.issuesFrom(result);
     }
 
-    /**
-     * One stored object rendered as the FHIR resource a client expects:
-     * the stored payload with its envelope {@code id} and
-     * {@code meta.versionId} put back.
-     *
-     * <p>The payload is the truth and does not carry them — a create without
-     * an id in the body is stored exactly as sent, which is the point. But a
-     * resource served without {@code Resource.id} is not a FHIR resource a
-     * client can use: it cannot be referenced, re-read, or matched to what
-     * the search that found it returned. The bundle paths have always put
-     * both back; read did not, so the same object had an id in a search hit
-     * and none when fetched directly.
-     *
-     * <p>Costs a parse and a re-serialise on every read. That is the price of
-     * payload-is-truth, and it is the same price the bundle framing already
-     * pays for every entry.
-     */
-    /**
-     * The face's answer to "give me one line somebody else's tools can read"
-     * — a FHIR resource carrying its own id and version,
-     * which is what FHIR Bulk Data is.
-     *
-     * <p>The same projection {@link #toResourceJson} performs for every read.
-     * A portable export shows a reader what a client would see, not a shape
-     * invented for archives.
-     */
-    public cloud.jengu.dbo.core.face.PortableRendering portableRendering() {
-        return (payload, id, versionId) -> R4Version.rendered(payload, id, versionId, null, null);
-    }
 
-    /**
-     * Serving and export ask the same question — what does this stored payload
-     * look like with the engine's own facts put back — so they get the same
-     * answer from one place. Two copies of this body drifted apart the moment
-     * either learned a fact the other did not.
-     */
-    public String toResourceJson(StoredObject stored) {
-        return portableRendering().render(stored.payload(), stored.id(), stored.versionId());
-    }
 
     // ------------------------------------------------------- bundle framing
 
-    /**
-     * A searchset Bundle over one page; when the chunk continues, link[next]
-     * carries the opaque keyset cursor as {@code _cursor}. Included resources
-     * ride with {@code search.mode=include}; {@code _elements} trims encoded
-     * entry resources (id and meta always kept).
-     */
-    public String toSearchBundle(FeedChunk<StoredObject> chunk, String baseUrl, String typeName,
-            Map<String, String> originalParams, List<StoredObject> includedTargets,
-            List<String> elements) {
-        java.io.ByteArrayOutputStream buffered = new java.io.ByteArrayOutputStream(4096);
-        try {
-            writeSearchBundle(chunk, baseUrl, typeName, originalParams, includedTargets,
-                    elements, buffered);
-        } catch (java.io.IOException e) {
-            throw new java.io.UncheckedIOException(e);
-        }
-        return buffered.toString(StandardCharsets.UTF_8);
-    }
 
-    /**
-     * The same page, written as it is produced. A caller with somewhere to
-     * write it does not need it assembled first (REQ-DBO-SRCH-RESULTS-STREAM).
-     */
-    public void writeSearchBundle(FeedChunk<StoredObject> chunk, String baseUrl, String typeName,
-            Map<String, String> originalParams, List<StoredObject> includedTargets,
-            List<String> elements, java.io.OutputStream out) throws java.io.IOException {
-        StringBuilder self = new StringBuilder();
-        originalParams.forEach((k, v) ->
-                self.append(self.isEmpty() ? "" : "&").append(k).append('=').append(v));
-        // The self link is not decoration: the specification requires a search
-        // result to say which query produced it, and a client holding a Bundle
-        // with only link[next] cannot repeat, cache or cite the search it ran.
-        String selfUrl = baseUrl + "/" + typeName + (self.isEmpty() ? "" : "?" + self);
-        String nextUrl = null;
-        if (!chunk.drained() && chunk.nextCursor() != null) {
-            StringBuilder qs = new StringBuilder(self);
-            qs.append(qs.isEmpty() ? "" : "&").append("_cursor=").append(chunk.nextCursor());
-            nextUrl = baseUrl + "/" + typeName + "?" + qs;
-        }
 
-        cloud.jengu.dbo.core.face.PayloadFraming framing = R4Version.framing();
-        var frame = framing.frame("searchset",
-                new cloud.jengu.dbo.core.face.PayloadFraming.Facts(null, selfUrl, nextUrl));
-        {
-            out.write(frame.prologue());
-            boolean first = true;
-            for (StoredObject o : chunk.items()) {
-                first = writeMember(framing, frame, out, first, o, typeName, baseUrl,
-                        cloud.jengu.dbo.core.face.PayloadFraming.Member.MATCHED, elements);
-            }
-            if (includedTargets != null) {
-                for (StoredObject o : includedTargets) {
-                    first = writeMember(framing, frame, out, first, o, o.typeName(), baseUrl,
-                            cloud.jengu.dbo.core.face.PayloadFraming.Member.INCLUDED, elements);
-                }
-            }
-            out.write(frame.epilogue());
-        }
-    }
 
-    /** Writes one member with its separator, and says whether the next is still first. */
-    private boolean writeMember(cloud.jengu.dbo.core.face.PayloadFraming framing,
-            cloud.jengu.dbo.core.face.PayloadFraming.Frame frame,
-            java.io.OutputStream out, boolean first, StoredObject o, String typeName,
-            String baseUrl, String role, List<String> elements) throws java.io.IOException {
-        if (!first) {
-            out.write(frame.separator());
-        }
-        // _elements trims the encoded resource; id and meta are always kept.
-        byte[] payload = elements == null ? o.payload()
-                : R4Version.rendered(o.payload(), o.id(), o.versionId(), typeName, elements)
-                        .getBytes(StandardCharsets.UTF_8);
-        framing.member(new cloud.jengu.dbo.core.face.PayloadFraming.Member(
-                typeName, o.id(), o.versionId(), payload,
-                baseUrl + "/" + typeName + "/" + o.id(), role), out);
-        return false;
-    }
-
-    /** A count-only searchset Bundle ({@code _summary=count}). */
-    public String countBundle(long total) {
-        return withTccl(() -> {
-            Bundle bundle = new Bundle();
-            bundle.setType(Bundle.BundleType.SEARCHSET);
-            bundle.setTotal((int) total);
-            return ctx().newJsonParser().encodeResourceToString(bundle);
-        });
-    }
 
     /** (targetType, targetId) pairs referenced by the resource at a reference search param. */
     public List<String[]> referencedTargets(String resourceJson, String refParamName) {
@@ -716,147 +571,11 @@ public final class R4Personality {
     }
 
 
-    /** History Bundle (type=history), oldest first. */
-    public String toHistoryBundle(java.util.List<StoredObject> versions, String baseUrl, String typeName) {
-        return withTccl(() -> {
-            Bundle bundle = new Bundle();
-            bundle.setType(Bundle.BundleType.HISTORY);
-            bundle.setTotal(versions.size());
-            for (StoredObject o : versions) {
-                Resource resource = (Resource) ctx().newJsonParser()
-                        .parseResource(new String(o.payload(), StandardCharsets.UTF_8));
-                resource.setId(o.id());
-                resource.getMeta().setVersionId(Long.toString(o.versionId()));
-                bundle.addEntry().setResource(resource)
-                        .setFullUrl(baseUrl + "/" + typeName + "/" + o.id());
-            }
-            return ctx().newJsonParser().encodeResourceToString(bundle);
-        });
-    }
 
-    /**
-     * REQ-DBO-SRCH-HONEST-CAPABILITY: generated from the configured types and
-     * their actually-supported search parameters — never hand-maintained.
-     */
-    public String capabilityStatement(String baseUrl) {
-        return capabilityStatement(baseUrl, java.util.List.of());
-    }
 
-    /**
-     * As above, declaring exactly the operations that were registered (#51).
-     *
-     * <p>The list is given rather than inferred: this personality cannot see
-     * which facades the serving layer wired, and a generator that guessed would
-     * announce an operation nobody answers — which a client would then call.
-     */
-    public String capabilityStatement(String baseUrl,
-            java.util.Collection<cloud.jengu.dbo.fhir.common.FhirOperation> served) {
-        return withTccl(() -> {
-            var cs = new org.hl7.fhir.r4.model.CapabilityStatement();
-            cs.setStatus(org.hl7.fhir.r4.model.Enumerations.PublicationStatus.ACTIVE);
-            cs.setKind(org.hl7.fhir.r4.model.CapabilityStatement.CapabilityStatementKind.INSTANCE);
-            cs.setDate(new java.util.Date());
-            cs.setFhirVersion(org.hl7.fhir.r4.model.Enumerations.FHIRVersion
-                    .fromCode(ctx().getVersion().getVersion().getFhirVersionString()));
-            cs.addFormat(RENDERED_FORMAT); // what it renders, not a wish
-            var rest = cs.addRest();
-            rest.setMode(org.hl7.fhir.r4.model.CapabilityStatement.RestfulCapabilityMode.SERVER);
-            for (String typeName : types.keySet()) {
-                var resource = rest.addResource();
-                resource.setType(typeName);
-                // #52: derived from what the type DECLARES, not a list applied to
-                // every type. The engine already refuses a tenant write to a
-                // replicated type and any change to an append-only one; a
-                // statement announcing create for those told a client something
-                // the store answers with 403.
-                FhirTypeConfig config = types.get(typeName);
-                Handling handling = config.handling();
-                boolean writable = handling.isWritableBy(Handling.Authority.TENANT_USERS);
-                boolean mayChange = handling.mutability() == Handling.Mutability.FULL
-                        || handling.mutability() == Handling.Mutability.REPLACE_IN_PLACE;
-                boolean keepsHistory = handling.durability() == Handling.Durability.VERSIONED;
 
-                java.util.List<String> interactions = new ArrayList<>(
-                        java.util.List.of("read", "search-type"));
-                if (writable) {
-                    interactions.add("create");
-                    if (mayChange) {
-                        interactions.add("update");
-                        interactions.add("delete");
-                    }
-                }
-                if (keepsHistory) {
-                    interactions.add("history-instance");
-                    interactions.add("vread");
-                }
-                for (var interaction : interactions) {
-                    resource.addInteraction().setCode(
-                            org.hl7.fhir.r4.model.CapabilityStatement.TypeRestfulInteraction
-                                    .fromCode(interaction));
-                }
 
-                // A conditional write must be keyed on the type's own identity
-                // (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS), so a store-assigned
-                // id has nothing to key on and the store refuses one.
-                resource.setConditionalCreate(
-                        writable && config.identityClass() != IdentityClass.INTERNAL);
 
-                // History is the durability declaration, said in FHIR's words.
-                // Not VERSIONED_UPDATE: If-Match is honoured, never required.
-                resource.setVersioning(keepsHistory
-                        ? org.hl7.fhir.r4.model.CapabilityStatement.ResourceVersionPolicy.VERSIONED
-                        : org.hl7.fhir.r4.model.CapabilityStatement.ResourceVersionPolicy.NOVERSION);
-                resource.setReadHistory(keepsHistory);
-                for (RuntimeSearchParam sp : searchParams(typeName)) {
-                    var supported = switch (sp.getParamType()) {
-                        case TOKEN, STRING, DATE, NUMBER, REFERENCE, URI -> true;
-                        default -> false;
-                    };
-                    if (supported) {
-                        resource.addSearchParam().setName(sp.getName()).setType(
-                                org.hl7.fhir.r4.model.Enumerations.SearchParamType
-                                        .fromCode(sp.getParamType().getCode()));
-                    }
-                }
-                // One list, checked against the compiler by CapabilityHonestyIT —
-                // these used to be written out here, in the extractor and in the
-                // search switch, so a fifth would have updated two of three.
-                META_SEARCH_PARAMS.forEach((name, kind) ->
-                        resource.addSearchParam().setName(name).setType(
-                                org.hl7.fhir.r4.model.Enumerations.SearchParamType.fromCode(kind)));
-                // declared because registered, not because remembered (#51)
-                for (var operation : served) {
-                    if (operation.types().contains(typeName)) {
-                        resource.addOperation().setName(operation.name())
-                                .setDefinition(operation.definition());
-                    }
-                }
-            }
-            return ctx().newJsonParser().encodeResourceToString(cs);
-        });
-    }
-
-    /** An OperationOutcome document for error responses. */
-    public String operationOutcome(String issueCode, String diagnostics) {
-        return withTccl(() -> {
-            var outcome = new org.hl7.fhir.r4.model.OperationOutcome();
-            var issue = outcome.addIssue();
-            issue.setSeverity(org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity.ERROR);
-            issue.setCode(org.hl7.fhir.r4.model.OperationOutcome.IssueType.fromCode(issueCode));
-            issue.setDiagnostics(diagnostics);
-            return ctx().newJsonParser().encodeResourceToString(outcome);
-        });
-    }
-
-    /** True when the type is configured in this personality. */
-    public boolean knowsType(String typeName) {
-        return types.containsKey(typeName);
-    }
-
-    /** The resource type of a raw resource JSON (for generic write endpoints). */
-    public String resourceTypeOf(String resourceJson) {
-        return withTccl(() -> parse(resourceJson).fhirType());
-    }
 
     /**
      * Parses, and treats a body that is not FHIR as the client's mistake.
@@ -871,27 +590,7 @@ public final class R4Personality {
         return R4Version.parse(resourceJson);
     }
 
-    /**
-     * The document behind a payload, asked of the face rather than parsed here,
-     * so that a payload the write path has already read is read once
-     * (REQ-DBO-VER-ONE-READ-PER-REQUEST).
-     */
-    private IBaseResource document(String typeName, byte[] payload) {
-        return R4Version.document(typeName, payload);
-    }
 
-    /** The canonical url of a canonical resource JSON. */
-    public String canonicalUrlOf(String resourceJson) {
-        return withTccl(() -> {
-            IBaseResource resource = ctx().newJsonParser().parseResource(resourceJson);
-            List<IPrimitiveType> urls = ctx().newFhirPath()
-                    .evaluate(resource, resource.fhirType() + ".url", IPrimitiveType.class);
-            if (urls.isEmpty()) {
-                throw new IllegalArgumentException("canonical resource without url");
-            }
-            return urls.get(0).getValueAsString();
-        });
-    }
 
     // -------------------------------------------------------------- plumbing
 

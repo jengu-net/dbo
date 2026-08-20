@@ -63,6 +63,14 @@ val definitions = listOf(
         "1a1ef2aa22ecc820341267f2bdba3b2d1f4adafb9bdddfc9e51c611cd64f3b54", announced = false),
     Definitions("r4", "hl7.fhir.uv.tools.r4", "1.1.2",
         "a1f166f8808629a40c4acabc16a4fbfd164d9f38f9db95b6f4b38bb69155dfe4", announced = false),
+    // R5 — the version the store's own converters hop to, and the last of the
+    // three to move onto this facade.
+    Definitions("r5", "hl7.fhir.r5.core", "5.0.0",
+        "74b27cd1bfce9e80eaceac431edf230b0945a443564fbf5512f82e5fa50a80d4", announced = false),
+    Definitions("r5", "hl7.terminology.r5", "7.3.0",
+        "c2ee6bccc9d0130d0a90db5967e7adbf9dd175df7a3351c531642c3dce102d10", announced = false),
+    Definitions("r5", "hl7.fhir.uv.tools.r5", "1.1.2",
+        "fcdcec5e65283969a2073a8ab8bc3ef18dc7dcb16e716a7cc49ea5dfbff83f60", announced = false),
     Definitions("r6", "hl7.fhir.r6.core", "6.0.0-ballot5",
         "dbea14a39ebbcbaec53fe7cfb805048bf1aed023384e43c9f070c9c6cfd705b0"),
     // The terminology a version's value sets bind to, and the tooling
