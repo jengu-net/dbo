@@ -24,11 +24,31 @@ statement rather than as packaging:
   names a resource, a version or a domain.
 - `dbo-fhir-common` — what every FHIR face shares. **A module of its own, deliberately
   not part of core**, because the store is not only for FHIR.
-- `dbo-fhir-r4`, `dbo-fhir-r5` — two faces of one family, not two versions of the store.
+- `dbo-fhir-element` — the FHIR face itself, over the definitions it carries. One
+  implementation for every version: reading, validating, framing, extracting a searchable
+  envelope and serving are the same code for R4, R5 and R6, differing only in which
+  package of StructureDefinitions and SearchParameters it was given.
+- `dbo-fhir-r4`, `dbo-fhir-r5` — what is genuinely a version's own beside that face:
+  terminology, whose native form is the version's, and subscriptions, whose criteria
+  strings and topics are that version's semantics rather than its model.
 
-The families are open on purpose. `fhir-r4` and `fhir-r5` are two; a profile-constrained
-face over R4, or a face for a domain with no clinical vocabulary at all, are more of the
-same kind of thing.
+The families are open on purpose. R4, R5 and R6 are three; a profile-constrained face
+over R4, or a face for a domain with no clinical vocabulary at all, are more of the same
+kind of thing.
+
+**Why one implementation can serve versions released years apart.** The element model
+reads an instance against StructureDefinitions rather than into generated classes, and a
+search parameter is an expression and a type in the definitions rather than a method on a
+model. So a version is a pair — a definition package and a version code — and R6 is the
+proof: it has no generated Java model in any released HL7 core, and it is served through
+the same code as the other two.
+
+**Definitions travel with the face.** They are pinned by version, verified by digest at
+build time and embedded in the bundle: bringing a tenant up fetches nothing and needs no
+writable cache (REQ-DBO-VER-DEFINITIONS-TRAVEL-WITH-THE-FACE). Carrying a version's
+definitions and announcing its face are separate — R4's packages ride in the element
+bundle so its own face can serve through it, and announcing them in both places would
+register two faces under one code.
 
 **How a version is chosen.** A face bundle announces the version it serves, as a
 `FhirVersion` service registered under its code, and the tenant wiring resolves a
