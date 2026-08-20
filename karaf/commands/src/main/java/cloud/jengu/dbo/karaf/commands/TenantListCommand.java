@@ -37,9 +37,7 @@ public class TenantListCommand implements Action {
 
         ServiceReference<?>[] references = Tenants.references(context);
         if (references == null || references.length == 0) {
-            System.out.println("No tenant is being served. A spec in the tenant directory"
-                    + " comes up within a couple of seconds; if one is not appearing, the"
-                    + " reason is in the log.");
+            System.out.println(Tenants.whyNothingIsServed(context));
             return null;
         }
 
