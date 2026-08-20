@@ -298,8 +298,14 @@ class EmbeddedContainerIT {
      */
     @Test
     void handWrittenImportsCoverEveryCrossBundlePackageReferenced() throws Exception {
-        for (String bundle : List.of("dbo.fhir.r4", "dbo.fhir.r5", "dbo.subscriptions",
-                "dbo.tenant", "dbo.tenant.k8s")) {
+        // Every bundle that hand-writes its imports, and the list is the
+        // weakness: dbo.fhir.element was missing from it, so the face that
+        // hand-writes the longest import list was the one nothing checked —
+        // and a package it referenced but did not import failed at bring-up
+        // rather than here (#49).
+        for (String bundle : List.of("dbo.fhir.element", "dbo.fhir.r4", "dbo.fhir.r5",
+                "dbo.fhir.common", "dbo.fhir.stack", "dbo.rest", "dbo.sync", "dbo.maintenance",
+                "dbo.terminology", "dbo.subscriptions", "dbo.tenant", "dbo.tenant.k8s")) {
             String path = System.getProperty(bundle + ".jar");
             java.util.Objects.requireNonNull(path, bundle + ".jar system property missing");
             Set<String> referenced = new java.util.TreeSet<>();

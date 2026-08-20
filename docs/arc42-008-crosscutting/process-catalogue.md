@@ -263,6 +263,19 @@ profile somebody else named. A shape the face cannot resolve is an issue rather
 than a pass — treating it as nothing-wrong is how a precondition quietly stops
 being one.
 
+**A caller can ask the narrower question before committing.** `$validate` takes
+the operation's own `profile` parameter, and a **step id is accepted where a
+profile is expected** — because *would this be accepted as the input to this
+step* is the question a caller actually has, and making them look the canonical
+up first asks them to know what the catalogue already knows. The outcome names
+the shape it was held to: told only "invalid" against an unnamed profile, a
+caller cannot tell whether they used the wrong shape or the wrong data, and
+those have different fixes in different people's hands.
+
+A profile this store does not carry is refused rather than fetched. A caller who
+wants an arbitrary published IG is asking for a validation service, not for this
+store's opinion about its own content.
+
 **A run records the step version it ran under**, beside the executor's version
 and provider. Reproducing a decision made last year needs the definition as well
 as the runner, and a run naming only one of them explains half of what happened.

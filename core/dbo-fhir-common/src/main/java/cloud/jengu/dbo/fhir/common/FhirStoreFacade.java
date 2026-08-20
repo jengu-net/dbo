@@ -107,6 +107,27 @@ public interface FhirStoreFacade {
      */
     String validationOutcome(String resourceJson);
 
+    /**
+     * The same question against a <b>named</b> shape (#49).
+     *
+     * <p>A resource is often assembled <em>for a step</em>, and the step's
+     * shape is narrower than the type's — so a caller who can only ask the
+     * weaker question gets a resource that passes {@code $validate} and is then
+     * refused by the step that receives it. That is the same "two answers, and
+     * the one you asked was not the one that mattered" this operation exists to
+     * remove, one level up.
+     *
+     * @param profile a shape this store knows: a canonical the face carries, or
+     *                the id of a declared step, whose input shape it resolves
+     *                to. A profile nothing here declares is refused rather than
+     *                fetched — a caller wanting an arbitrary published IG is
+     *                asking for a validation service, not for this store's
+     *                opinion about its own content.
+     */
+    default String validationOutcome(String resourceJson, String profile) {
+        return validationOutcome(resourceJson);
+    }
+
     String operationOutcome(String issueCode, String diagnostics);
 
     /** True when the type is configured in this store's personality. */

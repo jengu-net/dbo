@@ -34,6 +34,32 @@ final class ElementOutcomes {
         return out.append("]}").toString();
     }
 
+    /**
+     * The same verdict, naming the shape it was held to (#49).
+     *
+     * <p>A caller told "invalid" against an unnamed profile cannot tell whether
+     * they used the wrong shape or the wrong data — and the two have different
+     * fixes, in different people's hands.
+     */
+    static String validation(List<String> issues, String profile) {
+        if (issues.isEmpty()) {
+            return "{\"resourceType\":\"OperationOutcome\",\"issue\":[{\"severity\":\"information\","
+                    + "\"code\":\"informational\",\"diagnostics\":"
+                    + quoted("No issues detected against " + profile) + "}]}";
+        }
+        StringBuilder out = new StringBuilder("{\"resourceType\":\"OperationOutcome\",\"issue\":[");
+        boolean first = true;
+        for (String issue : issues) {
+            if (!first) {
+                out.append(',');
+            }
+            first = false;
+            out.append("{\"severity\":\"error\",\"code\":\"invalid\",\"diagnostics\":")
+                    .append(quoted(issue + " (against " + profile + ")")).append('}');
+        }
+        return out.append("]}").toString();
+    }
+
     static String outcome(String issueCode, String diagnostics) {
         return "{\"resourceType\":\"OperationOutcome\",\"issue\":[{\"severity\":\"error\",\"code\":"
                 + quoted(issueCode) + ",\"diagnostics\":" + quoted(diagnostics) + "}]}";

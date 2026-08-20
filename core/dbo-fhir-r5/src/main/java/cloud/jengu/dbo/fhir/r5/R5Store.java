@@ -43,36 +43,18 @@ public final class R5Store implements FhirStoreFacade {
      * <p>Registered rather than routed by name, so it is announced by the same
      * act that makes it reachable.
      */
+    /**
+     * What this store answers (#51), which is what the face it is served by
+     * answers.
+     *
+     * <p>It used to be declared here, in each personality, while the runtime
+     * built the face's store — so the operation was announced twice and
+     * reachable through neither (#49). One implementation, for every version
+     * the face serves.
+     */
     @Override
     public List<FhirOperation> operations() {
-        return List.of(new FhirOperation() {
-            @Override
-            public String name() {
-                return "validate";
-            }
-
-            @Override
-            public String definition() {
-                return "http://hl7.org/fhir/OperationDefinition/Resource-validate";
-            }
-
-            @Override
-            public java.util.Set<String> types() {
-                return personality.configuredTypes();
-            }
-
-            @Override
-            public Answer answer(String typeName, Map<String, String> query, String body) {
-                String mode = query.getOrDefault("mode", "create");
-                if (!"create".equals(mode) && !"update".equals(mode)) {
-                    return Answer.status(400, operationOutcome("invalid",
-                            "unsupported $validate mode: " + mode));
-                }
-                // 200 whatever the verdict: a caller who asked correctly did
-                // not make a bad request, and the outcome carries the answer.
-                return Answer.ok(validationOutcome(body));
-            }
-        });
+        return served.operations();
     }
 
     /** Conditional upsert of a canonical artifact by its url (validated). */
@@ -139,6 +121,11 @@ public final class R5Store implements FhirStoreFacade {
     @Override
     public String validationOutcome(String resourceJson) {
         return served.validationOutcome(resourceJson);
+    }
+
+    @Override
+    public String validationOutcome(String resourceJson, String profile) {
+        return served.validationOutcome(resourceJson, profile);
     }
 
     @Override

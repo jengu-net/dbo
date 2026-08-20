@@ -150,6 +150,12 @@ public class ElementFhirVersion implements FhirVersion {
         }
 
         @Override
+        public FhirStoreFacade store(ObjectStore engine, String baseUrl,
+                cloud.jengu.dbo.core.process.Steps steps) {
+            return new ElementStore(engine, version, types, baseUrl, steps);
+        }
+
+        @Override
         public FhirTerminology terminology(ObjectStore engine, DataSource dataSource) {
             return new ElementTerminology(version.code());
         }

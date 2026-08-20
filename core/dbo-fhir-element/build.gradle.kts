@@ -187,6 +187,7 @@ tasks.jar {
                 ) + engineImports() + listOf(
                     "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.core.face;version=\"[0.1,1)\"",
+                    "cloud.jengu.dbo.core.process;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.core.api.feed;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.core;version=\"[0.1,1)\"",
                     "cloud.jengu.dbo.fhir.common;version=\"[0.1,1)\"",
