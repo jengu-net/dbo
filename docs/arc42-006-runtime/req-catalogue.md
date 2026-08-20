@@ -204,6 +204,15 @@ deliberately have no REQs yet — they get them when scheduled.
 |---|---|
 | REQ-DBO-PROC-CATALOGUE-IN-STORE | Process and step definitions (with profiles, planes and projections) are part of DBO's own vocabulary; projections are generated, never hand-edited. (§8) |
 | REQ-DBO-PROC-DOMAIN-CODE-FILTER | Every process and step carries a free-string process-domain code; views and projections filter by it. (§8) |
+| REQ-DBO-PROC-RUN-HAS-A-RECORD | Every run of a step is a record in a tenant's own store — a registered type, so it is envelope-queryable, versioned, carried by the backup and dropped with the tenant. A run in a private table has none of those, and cannot be seen or acted on. (§8) |
+| REQ-DBO-PROC-RUN-SAYS-WHO-HOLDS-IT | A run's load-bearing field is who holds it now: automation running, automation with a retry scheduled, a person, or nobody. Every other field answers a question somebody asks after that one. (§8) |
+| REQ-DBO-PROC-RUN-TALLY-AND-ITEM-OUTCOMES | A run over N items where K fail records one run with a tally and K item outcomes, and does not abandon the remaining N−K. (§8) |
+| REQ-DBO-PROC-ESCALATION-BY-FAILURE-CLASS | A record that is wrong reaches a person; a store that is unavailable is a retry and nobody's card. Only record-class failures make work, or the queue becomes a graveyard and stops being read. (§8) |
+| REQ-DBO-PROC-CLOSE-BY-RE-EVALUATION | Where a condition is machine-checkable, fixing the cause closes the run on the next pass; closing by hand exists only for conditions nothing can re-check. Closing by click is how a card reads resolved while the fault is live. (§8) |
+| REQ-DBO-PROC-RUN-KINDS | A pipeline closes when every item is terminal; a sweep closes when the world agrees. A reconciler modelled as a pipeline never ends, and its needs-a-person queue fills with work that is merely still converging. (§8) |
+| REQ-DBO-PROC-ONE-PARENT-NEVER-ACROSS-A-BOUNDARY | A run has at most one parent, and parenthood never crosses a domain or a system: items are children, subprocesses and continuations are references. A parent's close must mean something for its children, and cannot across a boundary this runtime does not control. (§8) |
+| REQ-DBO-PROC-CORRELATION-TRAVELS-OPAQUE | A correlation carried from another system is echoed and never interpreted, so a cross-system join is queryable from either side without that system's vocabulary entering the engine. (§8, ADR 0060) |
+| REQ-DBO-PROC-RUN-ENVELOPE-DISCLOSES-STATE-NOT-SUBJECT | A run's envelope carries holder, step, state and counts — never item references or messages. The envelope is a disclosure surface, and progress must not name what was being processed. (§8, ADR 0058) |
 | REQ-DBO-PROC-NETWORK-MAP | The network answers which processes are known and running, where and in which version — scanned from bundles and accumulated across nodes. (§8) |
 | REQ-DBO-PROC-TRACE-JOIN | From any process instance, the steps and the exact resource diffs and audit records they produced are navigable. (§8) |
 
