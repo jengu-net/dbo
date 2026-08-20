@@ -34,6 +34,10 @@ public class RunDescribeCommand implements Action {
 
     @Override
     public Object execute() {
+        if (!Runs.available()) {
+            Runs.explainAbsence();
+            return null;
+        }
         BundleContext context = FrameworkUtil.getBundle(getClass()).getBundleContext();
         for (Map.Entry<String, cloud.jengu.dbo.work.Runs> entry
                 : Runs.byTenant(context, tenant).entrySet()) {

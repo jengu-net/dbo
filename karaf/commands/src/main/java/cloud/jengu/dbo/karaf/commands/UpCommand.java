@@ -87,6 +87,35 @@ public class UpCommand implements Action {
         System.out.println("Installed " + installed.size() + " bundles ("
                 + fresh + " newly), started " + started + ".");
         WatchCommand.watch(context, watcher, all, maxEmbeddedMegabytes);
+        rewireSelf(context);
         return null;
+    }
+
+    /**
+     * Re-reads this bundle against the set that just arrived.
+     *
+     * <p>The console's own commands are installed from {@code deploy/} before
+     * any dbo bundle exists, so the packages some of them read runs through are
+     * optional and unwired at that point. Resolution happened once, at startup,
+     * and nothing re-does it on its own: without this, {@code dbo-run:list}
+     * would keep saying the bundles are not here while they sat in the list
+     * above it.
+     *
+     * <p>Asynchronous by contract — the framework refreshes after this command
+     * returns, which is also why it is the last thing {@code up} does.
+     */
+    private static void rewireSelf(BundleContext context) {
+        if (Runs.available()) {
+            return;
+        }
+        Bundle self = FrameworkUtil.getBundle(UpCommand.class);
+        org.osgi.framework.wiring.FrameworkWiring wiring =
+                context.getBundle(0).adapt(org.osgi.framework.wiring.FrameworkWiring.class);
+        if (wiring == null) {
+            return;
+        }
+        System.out.println("Re-reading the console's own commands against the set — "
+                + "dbo-run:list needs a moment.");
+        wiring.refreshBundles(List.of(self));
     }
 }

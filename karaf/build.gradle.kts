@@ -224,7 +224,19 @@ val console = tasks.register("console") {
         tenantDir.mkdirs()
         settings.setProperty("dbo.tenant.dir", tenantDir.absolutePath)
 
+        // #74: the tenant this node's own history lives in. Outside the
+        // watched directory on purpose — the scan loop that retracts
+        // undeclared tenants must not retract the thing recording
+        // retractions — so the console declares it the way a deployment does,
+        // by configuration. Without it a development console records nothing
+        // about itself, and dbo-run:list has nothing to show.
+        val managementSpec = rootProject.file(
+            settings.getProperty("dbo.tenant.management.spec") ?: "karaf/dev/management/haldur.json"
+        )
+        settings.setProperty("dbo.tenant.management.spec", managementSpec.absolutePath)
+
         val props = listOf(
+            "dbo.tenant.management.spec",
             "dbo.tenant.dir", "dbo.tenant.http.host", "dbo.tenant.http.port",
             "dbo.tenant.admin.url", "dbo.tenant.admin.user", "dbo.tenant.admin.password",
             "dbo.tenant.auth.kek", "dbo.tenant.auth.issuer.base",

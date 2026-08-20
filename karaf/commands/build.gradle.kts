@@ -39,6 +39,18 @@ tasks.jar {
             // this header names; without it the bundle starts and contributes
             // nothing, which looks exactly like a broken command.
             "Karaf-Commands" to "cloud.jengu.dbo.karaf.commands",
+            // The dbo packages are OPTIONAL, and that is a startup-ordering
+            // fact rather than a preference. This bundle lands in deploy/ and
+            // is installed by the container before anything else; the dbo set
+            // is installed by dbo-console:up, which is a command IN this
+            // bundle. A hard import would leave it unresolved at startup, so
+            // the command that installs the thing it needs would be the first
+            // casualty — and every other dbo command with it.
+            "Import-Package" to listOf(
+                "cloud.jengu.dbo.core.api;resolution:=optional",
+                "cloud.jengu.dbo.work;resolution:=optional",
+                "*",
+            ).joinToString(","),
         ))
     }
 }
