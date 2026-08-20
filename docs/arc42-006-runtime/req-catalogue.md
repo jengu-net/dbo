@@ -212,6 +212,7 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ | Promise |
 |---|---|
 | REQ-DBO-OPS-TENANT-BLOB-STORAGE | Binary content lives in per-tenant blob storage provisioned credential-blind; erasure-by-drop extends to it; small deployments fall back to Postgres behind the same interface. (§9) |
+| REQ-DBO-OPS-RUNTIME-SAYS-WHAT-IT-SERVES | A runtime can be asked which tenants it is serving, and what it is doing about the ones it is not: serving, coming up, failed to come up — one state per tenant it has been told about. The answer comes from runtime state, never from re-reading the declarations, so a caller comparing the two can find a disagreement rather than confirming its own writes. Cross-tenant, so no tenant credential buys it. (§9) |
 | REQ-DBO-OPS-MIGRATION-AS-DEPLOYMENT | Schema and engine upgrades ride rolling deployment: the highest-version node leads, migrates, and older nodes passivate. (D5) |
 
 ## MNT — maintenance

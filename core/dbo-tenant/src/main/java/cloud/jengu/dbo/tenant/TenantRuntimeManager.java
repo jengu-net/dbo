@@ -19,6 +19,7 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -45,6 +46,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /** Bring-up failures already reported, so a permanent one is said once. */
     private final Set<String> reportedFailures = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /**
+     * What this runtime is doing about each tenant it has been told about
+     * (#67) — kept as the scan goes rather than derived afterwards.
+     *
+     * <p>Derived afterwards, it would have to re-read the spec directory, and
+     * the answer would agree with the configuration by construction: the
+     * caller asking is comparing this against that directory, so an answer
+     * taken from it is a report that can only ever say "no drift".
+     */
+    private final Map<String, TenantState.State> states = new ConcurrentHashMap<>();
 
     public record TenantRuntime(
             TenantSpec spec,
@@ -204,9 +216,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         try {
                             TenantSpec spec = TenantSpec.parse(Files.readString(f));
                             declared.add(spec.code());
+                            states.putIfAbsent(spec.code(), TenantState.State.COMING_UP);
                             if (!runtimes.containsKey(spec.code())) {
                                 long began = System.nanoTime();
                                 bringUp(spec);
+                                states.put(spec.code(), TenantState.State.SERVING);
                                 reportedFailures.removeIf(k -> k.startsWith(f.getFileName() + ":"));
                                 LOG.info("tenant up: code={} fhir={} pdi={} in {}ms",
                                         spec.code(), spec.fhirVersion(), spec.pdi(),
@@ -224,6 +238,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             // that will never parse would otherwise write the
                             // same stack until the disk filled — burying the
                             // one line that mattered.
+                            // The code is known when the spec parsed, which is
+                            // the case an operator asks about: a tenant that was
+                            // declared and did not come up. A file that never
+                            // parsed has no tenant to be a state of.
+                            codeOf(f).ifPresent(code -> states.put(code,
+                                    e instanceof UpstreamNotReady
+                                            ? TenantState.State.COMING_UP
+                                            : TenantState.State.FAILED));
                             if (e instanceof UpstreamNotReady notReady) {
                                 // Expected on the way up, so it is not an error
                                 // and does not enter the suppression set: the
@@ -247,8 +269,100 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 takeDown(code);
             }
         }
+        // A tenant nobody declares any more is not a tenant this runtime has a
+        // state about: retraction is not a failure, and reporting it as one
+        // would make every removal look like a fault.
+        states.keySet().retainAll(declared);
         rollup();
         return codes();
+    }
+
+    /**
+     * Serves the runtime's own state at {@code /runtime/tenants} (#67).
+     *
+     * <p>Registered only when a token is configured, so a deployment that has
+     * not decided who may ask does not have a surface to be asked through —
+     * the same posture as the tenant endpoints, which refuse without an
+     * authority rather than serving openly.
+     *
+     * <p>Cross-tenant on purpose, and therefore <b>not</b> a tenant's to reach:
+     * the codes this answers with are other tenants' existence, which no tenant
+     * credential may buy. It is a deployment-level answer to a
+     * deployment-level question, and the token is the deployment's.
+     */
+    public void serveRuntimeState(String opsToken) {
+        if (opsToken == null || opsToken.isBlank()) {
+            return;
+        }
+        byte[] expected = opsToken.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        sharedServer.createContext("/runtime/tenants", exchange -> {
+            try {
+                String presented = exchange.getRequestHeaders().getFirst("Authorization");
+                byte[] offered = presented == null || !presented.startsWith("Bearer ")
+                        ? new byte[0]
+                        : presented.substring(7).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                if (!java.security.MessageDigest.isEqual(expected, offered)) {
+                    respond(exchange, 401, "{\"error\":\"unauthorized\"}");
+                    return;
+                }
+                if (!"GET".equals(exchange.getRequestMethod())) {
+                    respond(exchange, 405, "{\"error\":\"invalid_request\"}");
+                    return;
+                }
+                StringBuilder json = new StringBuilder("{\"tenants\":[");
+                boolean first = true;
+                for (TenantState state : tenantStates()) {
+                    if (!first) {
+                        json.append(',');
+                    }
+                    first = false;
+                    json.append("{\"code\":\"").append(state.code())
+                            .append("\",\"state\":\"").append(state.state().wire()).append("\"}");
+                }
+                respond(exchange, 200, json.append("]}").toString());
+            } finally {
+                exchange.close();
+            }
+        });
+        LOG.info("runtime state: serving /runtime/tenants");
+    }
+
+    private static void respond(com.sun.net.httpserver.HttpExchange exchange, int status,
+            String body) throws IOException {
+        byte[] bytes = body.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.sendResponseHeaders(status, bytes.length);
+        exchange.getResponseBody().write(bytes);
+    }
+
+    /** The tenant a spec file declares, when it parses — for a state to belong to. */
+    private Optional<String> codeOf(Path spec) {
+        try {
+            return Optional.of(TenantSpec.parse(Files.readString(spec)).code());
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * What this runtime is doing about each tenant it has been told about
+     * (#67).
+     *
+     * <p>Serving, coming up and failed are different facts, and the third is
+     * the one an operator most wants: a list that silently omitted a tenant
+     * that failed would answer "which tenants are fine" while looking like it
+     * answered "which tenants exist".
+     *
+     * <p>From runtime state, never from re-reading the spec directory. The
+     * caller is comparing this answer against that directory, so an answer
+     * taken from it agrees by construction and can only ever say "no drift".
+     */
+    public List<TenantState> tenantStates() {
+        List<TenantState> out = new java.util.ArrayList<>();
+        states.forEach((code, state) -> out.add(new TenantState(code,
+                runtimes.containsKey(code) ? TenantState.State.SERVING : state)));
+        out.sort(java.util.Comparator.comparing(TenantState::code));
+        return List.copyOf(out);
     }
 
     /**

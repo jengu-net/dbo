@@ -63,5 +63,6 @@ exec java \
   ${DBO_BROKER_SUBJECT_STRIP:+-Ddbo.tenant.auth.broker.subject.strip="${DBO_BROKER_SUBJECT_STRIP}"} \
   ${DBO_AUTH_SUBJECT_SYSTEM:+-Ddbo.tenant.auth.subject.system="${DBO_AUTH_SUBJECT_SYSTEM}"} \
   ${DBO_BROKER_SECRETS:+-Ddbo.tenant.auth.broker.secrets="${DBO_BROKER_SECRETS}"} \
+  ${DBO_OPS_TOKEN:+-Ddbo.tenant.ops.token="${DBO_OPS_TOKEN}"} \
   ${DBO_JAVA_OPTS:-} \
   -jar bin/felix.jar
