@@ -103,6 +103,35 @@ public final class Activator implements BundleActivator {
      * no other bundle's providers — so the container never takes it.
      */
     private static cloud.jengu.dbo.fhir.common.FhirVersions registered(BundleContext ctx) {
+        cloud.jengu.dbo.fhir.common.FhirVersions live = fromRegistry(ctx);
+        if (!Boolean.parseBoolean(ctx.getProperty("dbo.face.watch"))) {
+            return live;
+        }
+        // Gated on purpose (#55): the check costs a volatile read per call and
+        // a stack walk per hand-out, and what it catches is a deployment fault
+        // rather than a daily one — a tenant still being served by a face
+        // bundle nobody can see any more. Worth paying for while a container's
+        // dynamics are being changed.
+        cloud.jengu.dbo.fhir.common.WatchedVersions watched =
+                new cloud.jengu.dbo.fhir.common.WatchedVersions(live);
+        new ServiceTracker<cloud.jengu.dbo.fhir.common.FhirVersion,
+                cloud.jengu.dbo.fhir.common.FhirVersion>(ctx,
+                cloud.jengu.dbo.fhir.common.FhirVersion.class, null) {
+            @Override
+            public void removedService(
+                    ServiceReference<cloud.jengu.dbo.fhir.common.FhirVersion> ref,
+                    cloud.jengu.dbo.fhir.common.FhirVersion version) {
+                Object code = ref.getProperty("fhir.version");
+                if (code != null) {
+                    watched.withdrawn(code.toString());
+                }
+                super.removedService(ref, version);
+            }
+        }.open();
+        return watched;
+    }
+
+    private static cloud.jengu.dbo.fhir.common.FhirVersions fromRegistry(BundleContext ctx) {
         return new cloud.jengu.dbo.fhir.common.FhirVersions() {
             @Override
             public java.util.Optional<cloud.jengu.dbo.fhir.common.FhirVersion> byCode(String code) {
