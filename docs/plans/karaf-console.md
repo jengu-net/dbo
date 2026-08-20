@@ -215,6 +215,14 @@ this bundle is not in the serving distribution. Whoever runs it already holds
 the database credentials. A console that ships reads this through the
 authenticated surface with a session behind it, not through the registry.
 
+`dbo:context` and `dbo:login` (#76) are the session: a position, and an
+identity when it acts. The position is where commands about a tenant take their
+tenant from; the identity is assumed through the tenant's own authority, by the
+same request an HTTP caller makes, so a refusal is the authority's. The secret
+is prompted and masked and no token is ever printed. Reads need neither — the
+operator could open psql, so requiring a session to look is friction with
+nothing behind it.
+
 They read and never act. Retrying, closing and reassigning are declared step
 actions carrying their own provenance; a console that acts is an actor nobody
 audited.

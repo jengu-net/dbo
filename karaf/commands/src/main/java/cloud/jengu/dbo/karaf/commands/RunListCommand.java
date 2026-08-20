@@ -3,7 +3,9 @@ package cloud.jengu.dbo.karaf.commands;
 import org.apache.karaf.shell.api.action.Action;
 import org.apache.karaf.shell.api.action.Command;
 import org.apache.karaf.shell.api.action.Option;
+import org.apache.karaf.shell.api.action.lifecycle.Reference;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
+import org.apache.karaf.shell.api.console.Session;
 import org.osgi.framework.FrameworkUtil;
 
 /**
@@ -41,14 +43,18 @@ public class RunListCommand implements Action {
     @Option(name = "--limit", description = "How many rows per tenant.")
     private int limit = 50;
 
+    @Reference
+    private Session session;
+
     @Override
     public Object execute() {
         if (!Wiring.available()) {
             Wiring.explainAbsence();
             return null;
         }
+        // where the console is standing, unless this line said otherwise
         RunView.list(FrameworkUtil.getBundle(getClass()).getBundleContext(),
-                tenant, process, step, holder, limit);
+                ConsoleSession.tenantOr(session, tenant), process, step, holder, limit);
         return null;
     }
 }

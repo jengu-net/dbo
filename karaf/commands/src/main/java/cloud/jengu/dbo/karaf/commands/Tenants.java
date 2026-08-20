@@ -85,6 +85,18 @@ final class Tenants {
         };
     }
 
+    /** A tenant's own issuer, which is where its authority answers. */
+    static String oidcBase(BundleContext context, String code) {
+        return "http://" + property(context, "dbo.tenant.http.host", "127.0.0.1")
+                + ":" + property(context, "dbo.tenant.http.port", "8090")
+                + "/t/" + code + "/oidc";
+    }
+
+    private static String property(BundleContext context, String key, String fallback) {
+        String value = context.getProperty(key);
+        return value == null ? fallback : value;
+    }
+
     static ServiceReference<?>[] references(BundleContext context) {
         try {
             return context.getAllServiceReferences(null, "(" + TENANT_PROPERTY + "=*)");
