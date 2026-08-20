@@ -188,5 +188,7 @@ tasks.test {
     useJUnitPlatform()
     // A version's definitions are tens of megabytes of JSON parsed into a
     // context; the default worker heap is not enough to hold one.
-    maxHeapSize = "2g"
+    // Every carried version's definitions can be resident at once: the gate
+    // holds all three to the same claim in one run.
+    maxHeapSize = "4g"
 }
