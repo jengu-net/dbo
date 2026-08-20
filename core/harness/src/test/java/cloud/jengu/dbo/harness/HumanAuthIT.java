@@ -420,6 +420,123 @@ class HumanAuthIT {
                 HttpResponse.BodyHandlers.ofString()).statusCode());
     }
 
+    /**
+     * A subject changes their own password, and nothing else is on offer
+     * (§13.6).
+     *
+     * <p>Self-service change is the one credential ceremony a subject performs:
+     * they prove they hold the current secret and are holding a token this
+     * authority issued. Recovery is deliberately not here — it needs a channel
+     * the authority does not have — and retirement is an operator's act.
+     *
+     * <p>The property this inherits rather than rediscovers is that no answer
+     * distinguishes a subject that exists from one that does not
+     * (REQ-DBO-AUTH-NO-SUBJECT-ENUMERATION). An authority is the only party
+     * that knows, which is exactly why it must not say.
+     */
+    @Test
+    @Order(9)
+    void aSubjectChangesTheirOwnSecretAndAnOperatorRetiresIt() throws Exception {
+        String humanToken = codeFlowAccessToken();
+
+        // a wrong current secret, and a login nobody holds, answer identically
+        assertEquals(403, changeSecret(humanToken, "albus", "not-the-one", "uus9paroolimees"));
+        assertEquals(403, changeSecret(humanToken, "nobody-here", "kaljuke9", "uus9paroolimees"));
+        // and so does a machine: a client token belongs to no person, and a
+        // person is what a credential binds to
+        assertEquals(403, changeSecret(serviceToken("arst"), "albus", "kaljuke9", "uus9"));
+
+        assertEquals(204, changeSecret(humanToken, "albus", "kaljuke9", "uus9paroolimees"),
+                "a subject holding the current secret changes their own");
+        // and any of their own: poppy is this person's second login, so it is
+        // theirs to change — the binding is to the person, not to the login
+        assertEquals(204, changeSecret(humanToken, "poppy", "pomfrey8", "pomfrey9"));
+        assertTrue(signsIn("albus", "uus9paroolimees"), "the new secret signs in");
+        assertFalse(signsIn("albus", "kaljuke9"), "and the old one does not");
+
+        // retirement is the operator's act, and it is not deletion
+        String service = serviceToken("arst");
+        assertEquals(204, retire(service, "poppy"));
+        assertFalse(signsIn("poppy", "pomfrey9"), "a retired credential signs in no more");
+        assertEquals(204, retire(service, "a-login-that-never-was"),
+                "and retiring what was never there says as much as retiring what was");
+
+        // Recovery is the operator's, deliberately (§13.6): a subject who
+        // cannot sign in is put back by provisioning writing the credential
+        // again, not by a ceremony this authority offers them. Which is also
+        // how an ordered class stays idempotent.
+        assertEquals(200, http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/admin/credentials"))
+                        .header("Authorization", "Bearer " + service)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"login\":\"albus\",\"secret\":\"kaljuke9\",\"personId\":\""
+                                        + personId + "\"}")).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertTrue(signsIn("albus", "kaljuke9"), "provisioning is how recovery works");
+    }
+
+    private int changeSecret(String token, String login, String current, String replacement)
+            throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(base("arst") + "/oidc/credentials"))
+                        .header("Authorization", "Bearer " + token)
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString("login=" + login
+                                + "&current_secret=" + URLEncoder.encode(current, StandardCharsets.UTF_8)
+                                + "&new_secret=" + URLEncoder.encode(replacement, StandardCharsets.UTF_8)))
+                        .build(), HttpResponse.BodyHandlers.ofString()).statusCode();
+    }
+
+    private int retire(String serviceToken, String login) throws Exception {
+        return http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/admin/credentials"))
+                        .header("Authorization", "Bearer " + serviceToken)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"login\":\"" + login + "\",\"status\":\"retired\"}")).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode();
+    }
+
+    /**
+     * Whether a front-channel sign-in succeeded.
+     *
+     * <p>A refused sign-in is an OAuth error redirect rather than a status
+     * (RFC 6749 §4.1.2.1) — 302 either way, and what differs is whether the
+     * location carries a code or an error. Asserting the status would pass on
+     * both.
+     */
+    private boolean signsIn(String login, String password) throws Exception {
+        HttpResponse<String> attempt = frontChannelLogin(login, password);
+        String location = attempt.headers().firstValue("Location").orElse("");
+        return attempt.statusCode() == 302 && location.contains("code=")
+                && !location.contains("error=");
+    }
+
+    private HttpResponse<String> frontChannelLogin(String login, String password) throws Exception {
+        return http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/authorize/login"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "client_id=dbo-rp&redirect_uri="
+                                        + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
+                                        + "&login=" + login + "&password="
+                                        + URLEncoder.encode(password, StandardCharsets.UTF_8))).build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    private String codeFlowAccessToken(String login, String password) throws Exception {
+        String code = frontChannelLogin(login, password).headers().firstValue("Location")
+                .orElseThrow().replaceAll(".*code=([^&]+).*", "$1");
+        return http.send(HttpRequest.newBuilder(URI.create(base("arst") + "/oidc/token"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "grant_type=authorization_code&client_id=dbo-rp&code=" + code
+                                        + "&redirect_uri="
+                                        + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8))).build(),
+                HttpResponse.BodyHandlers.ofString())
+                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+    }
+
     private String codeFlowAccessToken() throws Exception {
         HttpResponse<String> login = http.send(HttpRequest.newBuilder(
                         URI.create(base("arst") + "/oidc/authorize/login"))

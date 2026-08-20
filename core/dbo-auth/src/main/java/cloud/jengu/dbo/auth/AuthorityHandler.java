@@ -42,6 +42,7 @@ public final class AuthorityHandler implements HttpHandler {
                 case "delegation" -> delegation(exchange);
                 case "federated" -> federated(exchange);
                 case "admin/role-grants" -> adminRoleGrants(exchange);
+                case "credentials" -> credentials(exchange);
                 case "admin/credentials" -> adminCredentials(exchange);
                 case "admin/edge-factors" -> adminEdgeFactors(exchange);
                 default -> {
@@ -272,6 +273,34 @@ public final class AuthorityHandler implements HttpHandler {
     }
 
     /**
+     * A subject changes their own password (§13.6).
+     *
+     * <p>The one credential ceremony that is self-service. Recovery is not:
+     * it needs a channel this authority does not have, and acquiring one would
+     * put delivery inside the trust root — so a subject who cannot sign in is
+     * recovered by provisioning or by an operator, deliberately.
+     *
+     * <p>One answer for every refusal, and the same work behind it. A caller
+     * learns whether their own change succeeded and nothing about anybody
+     * else's login (REQ-DBO-AUTH-NO-SUBJECT-ENUMERATION).
+     */
+    private void credentials(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            respond(exchange, 405, "{\"error\":\"invalid_request\"}");
+            return;
+        }
+        Map<String, String> form = parseForm(new String(
+                exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        boolean changed = authority.changeOwnSecret(bearerOf(exchange), form.get("login"),
+                form.get("current_secret"), form.get("new_secret"));
+        if (changed) {
+            respond(exchange, 204, "");
+        } else {
+            respond(exchange, 403, "{\"error\":\"access_denied\"}");
+        }
+    }
+
+    /**
      * §16.3 provisioning surface: the tenant-bootstrap M2M client writes
      * RoleGrant defaults (from the git config repo) and dev LocalCredentials
      * over the SAME authenticated REST path in every deployment shape —
@@ -335,6 +364,19 @@ public final class AuthorityHandler implements HttpHandler {
         // permissions problem rather than a wiring one.
         String personId = Json.strOpt(body, "personId");
         String edgePin = Json.strOpt(body, "edgePin");
+        String status = Json.strOpt(body, "status");
+        // Retirement is an operator act, and the same act recovery uses in the
+        // other direction (§13.6): a deactivated subject's credential is
+        // retired rather than deleted, because history and audit need the
+        // record and a login that vanishes cannot be told from one that never
+        // existed.
+        if ("retired".equals(status) && login != null) {
+            authority.retireCredential(login);
+            // 204 whether or not that login existed: an operator acting on a
+            // name they already hold learns nothing they did not bring.
+            respond(exchange, 204, "");
+            return;
+        }
         if (login == null || (secret == null && edgePin == null)) {
             respond(exchange, 400, "{\"error\":\"invalid_request\"}");
             return;

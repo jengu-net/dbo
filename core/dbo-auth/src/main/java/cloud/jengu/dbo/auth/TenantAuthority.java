@@ -997,6 +997,94 @@ public final class TenantAuthority {
     }
 
     /** §16.2 dev/embedded fallback: LocalCredential records in the identity store. */
+    /**
+     * A subject replaces their own password, having proved they hold the
+     * current one (REQ-DBO-AUTH-SELF-SERVICE-CHANGE).
+     *
+     * <p>The smallest useful ceremony, and the only one with a clear answer: no
+     * ticket, no second channel, and the subject is already holding a token
+     * this authority issued. Recovery — a subject who cannot sign in — is
+     * deliberately not here (REQ-DBO-AUTH-RECOVERY-IS-AN-OPERATOR-ACT).
+     *
+     * <p><b>Every refusal is the same refusal.</b> A login nobody holds, a
+     * wrong current secret, a token for somebody else's credential: one answer,
+     * and the work is done either way so the time does not say which
+     * (REQ-DBO-AUTH-NO-SUBJECT-ENUMERATION). This authority is the only party
+     * that knows whether a subject exists, which is exactly why it must not
+     * say — and a ceremony written the natural way, resolving the subject and
+     * refusing if absent, is a regression nothing fails on.
+     *
+     * <p>Only the password moves. A bench PIN somebody set for themselves is a
+     * different factor with a different life, and rewriting the record would
+     * take it with it.
+     */
+    public boolean changeOwnSecret(String subjectToken, String login, String currentSecret,
+            String replacement) {
+        Optional<AuthContext> subject = validate(subjectToken);
+        Optional<StoredObject> credential = login == null ? Optional.empty()
+                : store.getByIdentifier("LocalCredential",
+                        List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login)))
+                .stream().findFirst();
+        // Verified against a decoy when there is nothing to verify against, so
+        // that "no such login" costs what "wrong secret" costs. The hash is a
+        // real one of a value nobody holds.
+        String hash = credential.map(c -> field(c, "secretHash")).orElse(DECOY_HASH);
+        boolean holdsIt = SecretHash.verify(currentSecret == null ? "" : currentSecret, hash);
+        // The token's subject is the person; fhirUser is the capacity they act
+        // in. A credential binds to the person, so the person is what has to
+        // match — comparing the capacity would let somebody holding one role's
+        // token change a credential belonging to another person who happens to
+        // hold the same role.
+        boolean theirs = credential.isPresent() && subject.isPresent()
+                && subject.get().clientId() != null
+                && subject.get().clientId().equals(field(credential.get(), "personId"));
+        boolean active = credential.isPresent() && "active".equals(field(credential.get(), "status"));
+        if (!holdsIt || !theirs || !active || replacement == null || replacement.isBlank()) {
+            return false;
+        }
+        StoredObject stored = credential.get();
+        String keptFactors = factorsOf(stored);
+        String payload = "{\"login\":\"" + login + "\""
+                + ",\"secretHash\":\"" + SecretHash.hash(replacement) + "\""
+                + (keptFactors == null ? "" : ",\"factors\":" + keptFactors)
+                + ",\"personId\":\"" + field(stored, "personId") + "\""
+                + ",\"status\":\"active\"}";
+        store.put(PutRequest.update("LocalCredential", stored.id(), stored.versionId(),
+                payload.getBytes(StandardCharsets.UTF_8)));
+        return true;
+    }
+
+    /**
+     * A credential is retired — every factor at once, and never deleted
+     * (REQ-DBO-AUTH-DEACTIVATION-RETIRES-CREDENTIALS).
+     *
+     * <p>Not deleted because history and audit need the record, and because a
+     * login that vanishes cannot be told from one that was never there. Sign-in
+     * already refuses anything but {@code active}, so retiring is a state to
+     * set rather than a new check to write.
+     *
+     * <p>The answer says nothing about whether the login existed: an operator
+     * acting on a name they hold learns nothing they did not bring.
+     */
+    public void retireCredential(String login) {
+        store.getByIdentifier("LocalCredential",
+                        List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login)))
+                .stream().findFirst().ifPresent(stored -> {
+                    String payload = new String(stored.payload(), StandardCharsets.UTF_8)
+                            .replace("\"status\":\"active\"", "\"status\":\"retired\"");
+                    store.put(PutRequest.update("LocalCredential", stored.id(),
+                            stored.versionId(), payload.getBytes(StandardCharsets.UTF_8)));
+                });
+    }
+
+    /**
+     * A hash of a value nobody holds, so verifying against nothing costs what
+     * verifying against something costs. Computed once: the point is the work
+     * per attempt, not the work at startup.
+     */
+    private static final String DECOY_HASH = SecretHash.hash(
+            "a secret nobody holds, so that having none costs what having one costs");
+
     private final class LocalCredentialAuthenticator implements HumanAuthenticator {
         @Override
         public Optional<String> authenticate(String login, String secret) {

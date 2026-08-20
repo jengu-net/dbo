@@ -80,3 +80,64 @@ database; the name is deployment config.
 — the tenant unit trusts itself. Validation is local (cached JWKS,
 refresh-on-unknown-kid); a serving deployment with the authority disabled
 and no explicit dev flag refuses to serve (`REQ-DBO-AUTH-DENY-BY-DEFAULT`).
+
+## 13.6 What a credential's life is
+
+An authority holds the credential, so it owns what can be done to one. The
+surface was written for a credential being *created* and said nothing about one
+being changed, forgotten or retired — which meant the answers were whatever the
+code happened to do, and a consumer filled the gap by putting reset tickets in a
+record store. This is the decision, taken from what an authority ought to do
+rather than from what was missing.
+
+**A factor is a kind, and the rules are per kind.** A local credential is not one
+thing: it carries factors named by their RFC 8176 `amr` value — `pwd`, `pin`, and
+whatever comes next. Asking "may this subject hold a local credential" produced
+no clean answer because it is two questions.
+
+- **`pwd` — only where the tenant is the identity provider for that subject.**
+  Where sign-in federates, the credential this authority could offer is a second
+  way in, weaker than the first and not disableable from the identity provider
+  that owns the subject. A person's account is only as strong as its weakest
+  door.
+- **`pin` — may coexist with federation.** It authenticates at a bench that
+  cannot reach a broker, which is the case federation cannot serve, and it is
+  scoped to that. This is why the rule is per factor: a rule about "credentials"
+  would have had to make the bench an exception.
+
+The `pwd` rule is decided here and **not yet enforced**: refusing one needs a
+per-subject signal — a binding to an external identity, rather than the tenant
+having federation configured at all — and enforcing it on the coarser signal
+would refuse the local credential every dev and bench tenant is provisioned
+with. Stated so that the rule is the rule when the signal exists, rather than
+being rediscovered then.
+
+**Self-service change is a ceremony; recovery is not.** A signed-in subject
+replacing their own `pwd` needs no ticket and no second channel: they prove
+possession of the current secret and are already holding a token this authority
+issued. That is the smallest useful thing and the only one with a clear answer.
+
+Recovery — a subject who *cannot* sign in — needs a channel the authority does
+not have. Acquiring one would put mail delivery inside the trust root, and
+ticket machinery is what grows there next. A local credential is **declared, not
+accumulated**: it comes from the configuration repository at provisioning, so
+recovery is that provisioning running again, or an operator writing one through
+the system-write surface. **Recovery is an operator action, deliberately.**
+
+**Deactivating a subject retires its credentials — all factors, at once.** Not
+deletes: history and audit need the record, and a login that vanishes cannot be
+told from one that was never there. Sign-in already refuses anything but
+`active`, so retirement is a state to *set*, and setting it is the operator act
+that recovery uses in the other direction.
+
+**No answer distinguishes a subject that exists from one that does not.** The
+flow being retired elsewhere carried that property, and it is inherited here
+rather than rediscovered: an unknown login and a wrong secret get the same
+answer, and take the same time to give it. An authority is the only party that
+knows whether a subject exists, which is exactly why it must not say — a
+ceremony written naturally (resolve the subject, refuse if absent) is a
+regression nothing fails on until somebody enumerates an account list.
+
+**And credential state never leaves.** What crosses the authority's edge about a
+factor is a verification, or a hash for a bench to verify offline — never a
+secret, and never a store's record of one.
