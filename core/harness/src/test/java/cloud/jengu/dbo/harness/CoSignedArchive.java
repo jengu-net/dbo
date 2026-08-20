@@ -51,12 +51,22 @@ record CoSignedArchive(byte[] sealed, ArchiveAttestation attestation,
         return importInto(target, ownerMasterKey, history, accepted -> { });
     }
 
+    /** As above, asking a face whether two documents are the same object. */
+    TenantImport.PortableResult importInto(cloud.jengu.dbo.core.api.ObjectStore target,
+            byte[] ownerMasterKey, TenantImport.HistoryMode history,
+            cloud.jengu.dbo.core.face.DocumentEquivalence equivalence) throws IOException {
+        return TenantImport.importVerified(target, source(), ownerMasterKey,
+                attestation, vendorPublicKey, tenantPublicKey, history, accepted -> { },
+                equivalence);
+    }
+
     /** As above, with the ledger the destination records into. */
     TenantImport.PortableResult importInto(cloud.jengu.dbo.core.api.ObjectStore target,
             byte[] ownerMasterKey, TenantImport.HistoryMode history,
             cloud.jengu.dbo.maintenance.ImportLedger ledger) throws IOException {
         return TenantImport.importVerified(target, source(), ownerMasterKey,
-                attestation, vendorPublicKey, tenantPublicKey, history, ledger);
+                attestation, vendorPublicKey, tenantPublicKey, history, ledger,
+                TenantImport.comparingBytes());
     }
 
     /** Byte-faithful restore into an empty tenant, attested as production requires. */

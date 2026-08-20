@@ -152,7 +152,7 @@ place, it says so.
 | **ancestor rendering** | the engine's own facts, said in the domain's words — id, version, when, where from, under what shape, under what handling | one body, shared by serving, export and framing: the stored document copied token for token with the slots replaced; still saying two of the six facts |
 | **envelope extraction** | identifiers, references, indexable paths | a lambda on `TypeRegistration`, reading through the face's payload codec so a payload is read once |
 | **payload codec** | parse and render the wire format | `core.face.Payloads`, **declared** via `DeclaredFace` |
-| **document equivalence** | what counts as the same object, so a re-import can skip one | **misplaced** — `Names.flatten` in `dbo-maintenance`, an engine module deciding it with a newline replacement |
+| **document equivalence** | what counts as the same object, so a re-import can skip one | `core.face.DocumentEquivalence`, **declared**; a canonical form over the JSON tree rather than the resource model, so nothing is interpreted and nothing can be lost |
 | **framing** | many objects as one document — a page, a history, an export | `core.face.PayloadFraming`, **declared**; a member's payload passes through with only the ancestor slots replaced |
 | **query compilation** | the domain's query language to engine criteria | inside the personality |
 | **audit rendering** | engine facts as the domain's audit resource | `core.face.RecordProjection`, **declared**; the surface that answers audit queries holds no shape and never learns the name of what it serves |
@@ -163,6 +163,16 @@ place, it says so.
 
 Three of those — audit, attestation, run — are the same shape: **an engine fact said
 in the domain's vocabulary.** Two of them now share one seam, and the third does not.
+
+**Document equivalence went the other way**, and is worth reading beside them: not an
+engine fact said in the domain's words, but a *domain question the engine was answering
+anyway* — by comparing bytes, which says a resource changed because a tool wrote its
+fields in another order. It is now the face's, over the JSON tree rather than the
+resource model: the element model writes what a version's definitions describe and drops
+what they do not, so canonicalising through it would call two documents equal because it
+had thrown away the field they differ in. A tree canonicaliser interprets nothing. Object
+keys sort, arrays do not — order is meaningful in FHIR — and a decimal keeps its written
+form, because a trailing zero is precision rather than noise.
 
 `RecordProjection` is that seam: a record and whatever belongs to it go in, a document
 comes out, and the reverse direction reads what a posted document means without the

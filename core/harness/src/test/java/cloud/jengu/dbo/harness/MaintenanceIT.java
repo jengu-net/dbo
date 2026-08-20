@@ -137,7 +137,9 @@ class MaintenanceIT {
     void reimportIntoTheSameTenantIsANoOp() throws Exception {
         long versionBefore = engineA.get("Patient", patientId).orElseThrow().versionId();
         var result = CoSignedArchive.over(archive, OWNER_KEY)
-                .importInto(engineA, OWNER_KEY, TenantImport.HistoryMode.FRESH);
+                .importInto(engineA, OWNER_KEY, TenantImport.HistoryMode.FRESH,
+                        cloud.jengu.dbo.fhir.r4.R4FhirVersion.INSTANCE.face()
+                                .require(cloud.jengu.dbo.core.face.DocumentEquivalence.class));
         assertEquals(0, result.imported());
         assertEquals(2, result.skippedIdentical());
         assertEquals(versionBefore, engineA.get("Patient", patientId).orElseThrow().versionId(),

@@ -186,7 +186,8 @@ class ExportStreamsIT {
                 new java.util.ArrayList<>();
         var first = TenantImport.importVerified(destination, source, OWNER_KEY, attestation,
                 vendor.getPublic().getEncoded(), tenant.getPublic().getEncoded(),
-                TenantImport.HistoryMode.PRESERVED, recorded::add);
+                TenantImport.HistoryMode.PRESERVED, recorded::add,
+                TenantImport.comparingBytes());
         assertEquals(400, first.imported());
 
         // REQ-DBO-MNT-ACCEPTED-ROOT-RECORDED: the destination wrote down what it
@@ -201,7 +202,8 @@ class ExportStreamsIT {
         // the interrupted-and-restarted case: same archive, nothing duplicated
         var second = TenantImport.importVerified(destination, source, OWNER_KEY, attestation,
                 vendor.getPublic().getEncoded(), tenant.getPublic().getEncoded(),
-                TenantImport.HistoryMode.PRESERVED, recorded::add);
+                TenantImport.HistoryMode.PRESERVED, recorded::add,
+                TenantImport.comparingBytes());
         assertEquals(0, second.imported(), "a resumed move must not rewrite what already landed");
         assertEquals(400, second.skippedIdentical());
 
