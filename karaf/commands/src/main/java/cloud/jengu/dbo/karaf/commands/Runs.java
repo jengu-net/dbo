@@ -29,6 +29,30 @@ final class Runs {
     private Runs() {
     }
 
+    /**
+     * Whether the run classes are wired here yet.
+     *
+     * <p>They arrive with the dbo bundle set, which {@code dbo-console:up}
+     * installs — and this bundle is installed before it, so at startup they are
+     * legitimately absent. Absent is a sentence to print, not a command that
+     * disappeared.
+     */
+    static boolean available() {
+        try {
+            Class.forName("cloud.jengu.dbo.work.Runs", false, Runs.class.getClassLoader());
+            return true;
+        } catch (Throwable notHereYet) {
+            return false;
+        }
+    }
+
+    /** What to say when they are not. */
+    static void explainAbsence() {
+        System.out.println("The dbo bundles are not wired into the console yet, so there is"
+                + " nowhere to read runs from. Run dbo-console:up — it installs the set and"
+                + " re-reads this bundle against it.");
+    }
+
     /** Every tenant's store, by code. */
     static Map<String, cloud.jengu.dbo.work.Runs> byTenant(BundleContext context, String only) {
         Map<String, cloud.jengu.dbo.work.Runs> stores = new TreeMap<>();

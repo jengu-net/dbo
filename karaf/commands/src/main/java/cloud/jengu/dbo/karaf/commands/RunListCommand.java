@@ -47,6 +47,10 @@ public class RunListCommand implements Action {
 
     @Override
     public Object execute() {
+        if (!Runs.available()) {
+            Runs.explainAbsence();
+            return null;
+        }
         BundleContext context = FrameworkUtil.getBundle(getClass()).getBundleContext();
         Map<String, cloud.jengu.dbo.work.Runs> byTenant = Runs.byTenant(context, tenant);
         if (byTenant.isEmpty()) {
