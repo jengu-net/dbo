@@ -299,6 +299,22 @@ class RestConformanceTest {
                     return "200, total present";
                 });
 
+        c.check(SEARCH, "`$validate` accepts the profile to validate against",
+                "operation-resource-validate.html", () -> {
+                    HttpResponse<String> r = post(base
+                            + "/Patient/$validate?profile="
+                            + urlEncode("http://hl7.org/fhir/StructureDefinition/Patient"),
+                            patient("Profiled", "1980-01-01"));
+                    expect(r.statusCode() == 200, "status " + r.statusCode());
+                    expect(r.body().contains("OperationOutcome"), "no OperationOutcome");
+                    // Named in the answer, because "invalid" against an unnamed
+                    // shape does not tell a caller whether they used the wrong
+                    // shape or the wrong data.
+                    expect(r.body().contains("StructureDefinition/Patient"),
+                            "the outcome does not name the profile it was held to: " + r.body());
+                    return "200, outcome names the profile";
+                });
+
         c.check(SEARCH, "An unsupported search parameter is refused, not ignored",
                 "search.html#errors", () -> {
                     HttpResponse<String> r = get(base + "/Patient?nonsense=1");

@@ -46,8 +46,24 @@ public final class ElementStore implements FhirStoreFacade {
     private final PayloadFraming framing;
 
     @SuppressWarnings("unchecked")
+    /**
+     * What is declared here, so a step id can be asked about (#49, #71).
+     *
+     * <p>Given rather than discovered. A face inside a bundle scanning the
+     * classpath finds whatever is on it and cannot load half of it, which is
+     * exactly how this arrived: a ServiceLoader in a field initialiser turned a
+     * container's tenant bring-up into "not a subtype".
+     */
+    private final cloud.jengu.dbo.core.process.Steps steps;
+
     ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
             String baseUrl) {
+        this(store, version, types, baseUrl, cloud.jengu.dbo.core.process.Steps.of());
+    }
+
+    ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
+            String baseUrl, cloud.jengu.dbo.core.process.Steps steps) {
+        this.steps = steps;
         this.store = store;
         this.version = version;
         this.types = List.copyOf(types);
@@ -315,11 +331,93 @@ public final class ElementStore implements FhirStoreFacade {
 
     // ------------------------------------------------------------- telling
 
+    /**
+     * What this store answers (#51): {@code $validate}, on every type it
+     * serves, on every version this face serves.
+     *
+     * <p>It lives here rather than in each personality because the face is one
+     * implementation for all three versions — and because a store that declared
+     * no operations was how {@code $validate} came to be announced by two
+     * personalities and reachable through neither: the runtime builds this
+     * store, and this store returned an empty list (#49).
+     */
+    @Override
+    public List<FhirOperation> operations() {
+        return List.of(new FhirOperation() {
+            @Override
+            public String name() {
+                return "validate";
+            }
+
+            @Override
+            public String definition() {
+                return "http://hl7.org/fhir/OperationDefinition/Resource-validate";
+            }
+
+            @Override
+            public java.util.Set<String> types() {
+                return types.stream().map(FhirTypeConfig::typeName)
+                        .collect(java.util.stream.Collectors.toCollection(java.util.TreeSet::new));
+            }
+
+            @Override
+            public Answer answer(String typeName, Map<String, String> query, String body) {
+                String mode = query.getOrDefault("mode", "create");
+                if (!"create".equals(mode) && !"update".equals(mode)) {
+                    return Answer.status(400, operationOutcome("invalid",
+                            "unsupported $validate mode: " + mode));
+                }
+                // 200 whatever the verdict: a caller who asked correctly did
+                // not make a bad request, and the outcome carries the answer.
+                return Answer.ok(validationOutcome(body, query.get("profile")));
+            }
+        });
+    }
+
     @Override
     public String validationOutcome(String resourceJson) {
         Object document = payloads.read(null, resourceJson.getBytes(StandardCharsets.UTF_8));
         List<String> issues = payloads.validate(payloads.typeOf(document), document);
         return ElementOutcomes.validation(issues);
+    }
+
+    /**
+     * Against a named shape: a canonical this face carries, or a declared
+     * step's input shape (#49, #71).
+     *
+     * <p>A step id is accepted where a profile is expected because that is the
+     * question a caller actually has — <em>would this be accepted as the input
+     * to this step</em> — and making them look the canonical up first would be
+     * asking them to know something the catalogue already knows.
+     *
+     * <p><b>The refusal names the profile.</b> Told only "invalid" against an
+     * unnamed shape, a caller cannot tell whether they used the wrong shape or
+     * the wrong data, and those have different fixes.
+     */
+    @Override
+    public String validationOutcome(String resourceJson, String profile) {
+        if (profile == null || profile.isBlank()) {
+            return validationOutcome(resourceJson);
+        }
+        String shape = profile;
+        if (profile.matches("[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*")) {
+            java.util.Optional<cloud.jengu.dbo.core.process.StepDeclaration> step =
+                    steps.byId(profile);
+            if (step.isEmpty()) {
+                return ElementOutcomes.outcome("not-found",
+                        "no step '" + profile + "' is declared here, so there is no shape to "
+                                + "validate against");
+            }
+            if (step.get().consumes().isEmpty()) {
+                return ElementOutcomes.outcome("not-supported",
+                        "step '" + profile + "' declares no input shape, so there is nothing "
+                                + "for a resource to conform to");
+            }
+            shape = step.get().consumes().get();
+        }
+        Object document = payloads.read(null, resourceJson.getBytes(StandardCharsets.UTF_8));
+        List<String> issues = payloads.validate(payloads.typeOf(document), document, shape);
+        return ElementOutcomes.validation(issues, shape);
     }
 
     @Override

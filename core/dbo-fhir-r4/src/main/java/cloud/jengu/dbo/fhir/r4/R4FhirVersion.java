@@ -79,6 +79,12 @@ public final class R4FhirVersion implements FhirVersion {
         }
 
         @Override
+        public FhirStoreFacade store(ObjectStore engine, String baseUrl,
+                cloud.jengu.dbo.core.process.Steps steps) {
+            return served.store(engine, baseUrl, steps);
+        }
+
+        @Override
         public FhirTerminology terminology(ObjectStore engine, DataSource dataSource) {
             // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is this
             // version's, and reassembling it is not something definitions

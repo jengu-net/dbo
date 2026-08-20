@@ -65,6 +65,19 @@ public interface FhirVersion {
         FhirStoreFacade store(ObjectStore engine, String baseUrl);
 
         /**
+         * The same, knowing the steps this container has (#49, #71).
+         *
+         * <p>Passed in rather than discovered: a face inside a bundle that
+         * scanned the classpath for catalogues would find whatever happened to
+         * be on it and fail to load classes it cannot see — the same reason
+         * versions are handed to the runtime rather than looked up by it.
+         */
+        default FhirStoreFacade store(ObjectStore engine, String baseUrl,
+                cloud.jengu.dbo.core.process.Steps steps) {
+            return store(engine, baseUrl);
+        }
+
+        /**
          * The tenant's own terminology, built per tenant because the native
          * form is (REQ-DBO-TERM-EVERY-TENANT-ANSWERS). The data source is the
          * tenant's; what is kept in it is this version's business.
