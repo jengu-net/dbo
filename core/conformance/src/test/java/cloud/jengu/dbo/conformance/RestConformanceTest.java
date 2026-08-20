@@ -1,10 +1,9 @@
 package cloud.jengu.dbo.conformance;
 
+import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
-import cloud.jengu.dbo.fhir.r4.R4Personality;
-import cloud.jengu.dbo.fhir.r4.R4Store;
-import cloud.jengu.dbo.fhir.r5.R5Personality;
-import cloud.jengu.dbo.fhir.r5.R5Store;
+import cloud.jengu.dbo.fhir.common.FhirVersion;
+import cloud.jengu.dbo.fhir.common.FhirVersions;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.rest.FhirHttpServer;
 import org.junit.jupiter.api.AfterAll;
@@ -53,10 +52,14 @@ class RestConformanceTest {
     private static HttpClient http = HttpClient.newBuilder()
             .connectTimeout(TIMEOUT).build();
 
-    private FhirHttpServer r4Server;
-    private FhirHttpServer r5Server;
-    private String r4Base;
-    private String r5Base;
+    /**
+     * One server per version, wired the way a tenant is (#58): the version is
+     * resolved by its code and asked for what a bring-up asks for. So a report
+     * says what the store actually serves rather than what a rig assembled for
+     * the occasion — and a third version is a line in a list.
+     */
+    private final java.util.Map<String, FhirHttpServer> servers = new java.util.LinkedHashMap<>();
+    private final java.util.Map<String, String> bases = new java.util.LinkedHashMap<>();
 
     @BeforeAll
     void up() {
@@ -67,45 +70,53 @@ class RestConformanceTest {
         pg.setUser(postgres.getUsername());
         pg.setPassword(postgres.getPassword());
 
-        int r4Port = freePort();
-        int r5Port = freePort();
-        r4Base = "http://127.0.0.1:" + r4Port + "/fhir";
-        r5Base = "http://127.0.0.1:" + r5Port + "/fhir";
-
-        R4Personality p4 = new R4Personality(List.of(
-                FhirTypeConfig.identifier("Patient", EID),
-                FhirTypeConfig.internal("Observation")));
-        R4Store store4 = new R4Store(new PgObjectStore(pg, p4.registrations()), p4, r4Base);
-        r4Server = new FhirHttpServer(store4, null, "127.0.0.1", r4Port, "/fhir");
-
-        R5Personality p5 = new R5Personality(List.of(
-                FhirTypeConfig.identifier("Patient", EID),
-                FhirTypeConfig.internal("Observation")));
-        R5Store store5 = new R5Store(new PgObjectStore(pg, p5.registrations()), p5, r5Base);
-        r5Server = new FhirHttpServer(store5, null, "127.0.0.1", r5Port, "/fhir");
+        for (String code : List.of("r4", "r5", "r6")) {
+            serve(code);
+        }
     }
 
     @AfterAll
     void down() {
-        if (r4Server != null) {
-            r4Server.close();
-        }
-        if (r5Server != null) {
-            r5Server.close();
-        }
+        servers.values().forEach(FhirHttpServer::close);
         if (postgres != null) {
             postgres.stop();
         }
     }
 
+    /** Each version's own store, on its own port, over one database. */
+    private void serve(String code) {
+        int port = freePort();
+        String base = "http://127.0.0.1:" + port + "/fhir";
+        FhirVersion version = FhirVersions.installed().require(code);
+        FhirVersion.ForTypes declared = version.forTypes(List.of(
+                FhirTypeConfig.identifier("Patient", EID),
+                FhirTypeConfig.internal("Observation")));
+        FhirStoreFacade store = declared.store(
+                new PgObjectStore(pg, declared.registrations()), base);
+        servers.put(code, new FhirHttpServer(store, null, "127.0.0.1", port, "/fhir"));
+        bases.put(code, base);
+    }
+
     @Test
     void reportR4() throws Exception {
-        writeReport("R4", r4Base);
+        writeReport("R4", bases.get("r4"));
     }
 
     @Test
     void reportR5() throws Exception {
-        writeReport("R5", r5Base);
+        writeReport("R5", bases.get("r5"));
+    }
+
+    /**
+     * R6 answers for the same catalogue.
+     *
+     * <p>A version still at ballot is held to the rules the released two are
+     * held to: a rule it cannot meet is recorded as failed, or declared out of
+     * scope with its reason, and never quietly left out of the run.
+     */
+    @Test
+    void reportR6() throws Exception {
+        writeReport("R6", bases.get("r6"));
     }
 
     private void writeReport(String version, String base) throws Exception {
