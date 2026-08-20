@@ -157,10 +157,19 @@ dbo runs on this model rather than beside it. Two of its own, one of each kind:
 | --- | --- | --- | --- |
 | `dbo.subscriptions.delivery` | `post` | pipeline | one attempt at one notification; retries are the step's, and an attempt that runs out of them leaves a child item **held by a person** — the endpoint is wrong, gone or refusing, and no amount of clock fixes any of those |
 | `dbo.policy.retention` | `remove` | sweep | one durable run per tenant domain, found rather than started; each pass tallies what it removed and names any rule it could not apply, and a rule a pass stops finding is closed by that pass |
+| `dbo.config.applied` | `apply` | sweep | one durable run per declared scope; *read N, applied M, skipped K with reasons*, one card per declaration nobody can apply, and the correlation the declaration carried echoed on the run. One bad record never takes the rest of the zone with it |
+| `dbo.sync.stream` | `apply` | sweep | one durable run per declared dependency, converging on the upstream's head. A parked shadow — an upstream version a local override is holding off — is a card held by a person and closes itself on the pass that stops finding it; an unreachable upstream is a retry and nobody's card |
 
-The delivery run is keyed by subscription and sequence and the sweep by domain,
-so a step re-executed after a crash finds its run rather than starting a second
-one — a duplicate would double every count taken from it.
+The delivery run is keyed by subscription and sequence and the sweeps by their
+scope, so a step re-executed after a crash finds its run rather than starting a
+second one — a duplicate would double every count taken from it.
+
+A stream's run belongs to the **dependent** tenant, because it is their work.
+The upstream is named on it and never parented: parenthood cannot cross a tenant,
+and a tenant is a legal person (ADR 0061). Nothing reaches back either — whoever
+declared the configuration closes their own run by re-evaluating against what
+this one reports, rather than dbo calling them and requiring both systems to be
+up at once (ADR 0060).
 
 ### Who runs a step
 

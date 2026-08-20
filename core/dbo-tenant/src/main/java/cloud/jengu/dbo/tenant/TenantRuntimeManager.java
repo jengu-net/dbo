@@ -112,6 +112,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, String> maintenanceContexts = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<String, java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine>> syncEngines =
             new ConcurrentHashMap<>();
+    /** Where a tenant's runs are written: the engine, under the policy decorator. */
+    private final Map<String, ObjectStore> runStores = new ConcurrentHashMap<>();
     private volatile long lastSweepMillis;
     private volatile Thread scanner;
     private volatile boolean running;
@@ -520,7 +522,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // local variable. Say which tenant is waiting for which.
                 throw new UpstreamNotReady(spec.code(), dependency.name());
             }
-            engines.add(new cloud.jengu.dbo.sync.ContentSyncEngine(
+            engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
                     new cloud.jengu.dbo.sync.ContentDependency(
                             dependency.name(), dependency.types()),
                     upstream.feed(), runtime.engine(), db.dataSource(),
@@ -529,15 +531,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     "sync." + dependency.name() + "." + spec.code(),
                     // the upstream reassembles from ITS concepts; this tenant
                     // takes the result apart into its own
-                    upstream.grain(), runtime.grain()));
+                    upstream.grain(), runtime.grain())));
         }
         syncEngines.put(spec.code(), java.util.List.copyOf(engines));
     }
 
     /**
+     * The stream, recording what it does in the dependent tenant's own store
+     * (#73) — so a parked shadow is a card somebody can see rather than a row
+     * in a table nothing reads.
+     */
+    private cloud.jengu.dbo.sync.ContentSyncEngine withRuns(TenantSpec spec,
+            cloud.jengu.dbo.sync.ContentSyncEngine engine) {
+        ObjectStore store = runStores.get(spec.code());
+        return store == null ? engine : engine.withRuns(new cloud.jengu.dbo.work.Runs(store));
+    }
+
+    /**
      * One sync round over every wired stream (declared changes applied,
-     * parked shadows re-attempted). The scan loop calls this continuously;
-     * tests call it for determinism. Returns events seen.
+     * parked shadows re-attempted, and what is left recorded). The scan loop
+     * calls this continuously; tests call it for determinism. Returns events
+     * seen.
      */
     public int syncRound() {
         int seen = 0;
@@ -549,7 +563,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         events = engine.syncOnce(500);
                         seen += events;
                     } while (events > 0);
-                    engine.reconcile();
+                    // one recorded round: re-attempt what is parked and say
+                    // what is left, which is the part a person can act on
+                    engine.pass(500);
                 } catch (RuntimeException e) {
                     // one stream's failure never blocks the others; the
                     // next round retries from the acked cursor
@@ -604,15 +620,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // queryable and versioned and dropped with it (#46).
         all.addAll(cloud.jengu.dbo.work.WorkModel.registrations());
         ObjectStore engine = pdiWrapped(spec, db, all);
+        // Runs go to the engine rather than through the policy decorator, and
+        // everything that records them for this tenant uses the same one.
+        runStores.put(spec.code(), engine);
         cloud.jengu.dbo.policy.PolicyObjectStore policyStore =
                 new cloud.jengu.dbo.policy.PolicyObjectStore(engine, spec.policies());
         if (!spec.policies().retention().isEmpty()) {
             cloud.jengu.dbo.policy.RetentionSweep sweep = new cloud.jengu.dbo.policy.RetentionSweep(
                     db.dataSource(), domain, spec.policies(), policyStore,
-                    // runs go to the engine rather than through the policy
-                    // decorator: an audit entry per checkpoint would record the
-                    // runtime interacting with its own bookkeeping, doubling
-                    // the writes to say nothing about a caller
+                    // an audit entry per checkpoint would record the runtime
+                    // interacting with its own bookkeeping, doubling the writes
+                    // to say nothing about a caller
                     new cloud.jengu.dbo.work.Runs(engine));
             sweep.sweepOnce();
             sweeps.put(spec.code(), sweep);

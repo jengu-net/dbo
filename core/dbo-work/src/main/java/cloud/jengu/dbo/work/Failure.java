@@ -26,14 +26,23 @@ public enum Failure {
      * The class of a thrown failure.
      *
      * <p>An {@link IllegalArgumentException} — which is what a refusal to accept
-     * a payload arrives as here — is the record's. Anything else is treated as
-     * transient, which is the safe direction: a transient fault wrongly called a
-     * record fault puts a card in front of a person who can do nothing about it,
-     * and does it once per occurrence.
+     * a payload arrives as here — is the record's, and so is every refusal the
+     * engine states in its own words: an unknown type, a handling rule, a policy,
+     * an identity that belongs to something else. None of them changes by being
+     * tried again, and a retry that can only fail identically is a person's card
+     * arriving late.
+     *
+     * <p>Anything else is treated as transient, which is the safe direction: a
+     * transient fault wrongly called a record fault puts a card in front of a
+     * person who can do nothing about it, once per occurrence.
      */
     public static Failure of(Throwable cause) {
         for (Throwable t = cause; t != null; t = t.getCause()) {
-            if (t instanceof IllegalArgumentException) {
+            if (t instanceof IllegalArgumentException
+                    || t instanceof cloud.jengu.dbo.core.api.UnknownTypeException
+                    || t instanceof cloud.jengu.dbo.core.api.HandlingRefusedException
+                    || t instanceof cloud.jengu.dbo.core.api.PolicyViolationException
+                    || t instanceof cloud.jengu.dbo.core.api.IdentityConflictException) {
                 return RECORD;
             }
         }
