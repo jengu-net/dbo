@@ -266,6 +266,24 @@ and getting nowhere. Counts are the evidence, and they are on the record anyway.
 answering is the failure a deadline exists to prevent, so a lapsed claim is
 handed back saying exactly that.
 
+**One participant, embeddable, that automates nothing.** Every place that does
+work needs the same three things — pull, claim, report — and none of them should
+be written twice: a hospital integrating with dbo embeds a participant, not a
+FHIR client plus a webhook plus a queue. Its job is to carry work to wherever the
+work is actually done and carry the result back, and the run afterwards reads as
+it would if dbo had done the work itself. An integration is not a second kind of
+history.
+
+**Two layers own different failures.** Whatever runs the work locally owns local
+durability — resuming its own half-finished work after a restart. The
+participation client owns the global truth: what is owed, by whom, and what
+happened. With only the first, work is durable and invisible to everybody else;
+with only the second, a crashed runner loses its half. The contract line falls
+between them, which is why **no orchestrator is named** in it — the same
+participant runs as a service, on an edge with none, and as a workplace with a
+person inside it, where opening a run is the claim and finishing it is the
+report.
+
 **You scale by adding claimants, never by relaxing the claim.** Partitioning is
 the second lever and is not built: competition is fine at small N, and a
 partition hint belongs on the run only once one step has measurably outgrown it.

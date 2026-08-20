@@ -52,6 +52,22 @@ class EngineKnowsNoFaceIT {
                         + "without naming a domain, and this is where that stops being true");
     }
 
+    @Test
+    @DisplayName("the participant bundle names no orchestrator, so the same one runs on an edge")
+    void theParticipantNamesNoOrchestrator() throws Exception {
+        List<String> imports = importPackagesOf("cloud.jengu.dbo.work");
+
+        assertTrue(imports.stream().anyMatch(i -> i.startsWith("java.")),
+                "the manifest must have been read and carry real imports: " + imports);
+        assertEquals(List.of(), imports.stream()
+                        .filter(i -> i.startsWith("dev.dbos") || i.startsWith("org.hl7.fhir")
+                                || i.startsWith("ca.uhn.fhir") || i.startsWith("cloud.jengu.dbo.fhir"))
+                        .toList(),
+                "a participant that imported an orchestrator would not be the same binary on "
+                        + "an edge that has none, and #46 requires a step to be runnable by a "
+                        + "DBOS workflow, by a synchronous call, or by neither");
+    }
+
     /** Whether this header exports exactly that package, rather than mentioning it. */
     private static boolean exports(String header, String packageName) {
         for (String clause : header.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")) {
@@ -60,6 +76,11 @@ class EngineKnowsNoFaceIT {
             }
         }
         return false;
+    }
+
+    /** The package a bundle exports, for the marker this test asked about. */
+    private static String exportedPackage(String markerPackage) {
+        return markerPackage.endsWith(".core") ? markerPackage + ".face" : markerPackage;
     }
 
     /** Reads Import-Package from the manifest of the bundle exporting a package. */
@@ -76,7 +97,7 @@ class EngineKnowsNoFaceIT {
                 // these types around, so a substring match picks whichever of
                 // them the classpath happens to put first — and then this test
                 // reports that bundle's imports as the engine's.
-                if (exported == null || !exports(exported, markerPackage + ".face")) {
+                if (exported == null || !exports(exported, exportedPackage(markerPackage))) {
                     continue;
                 }
                 String imported = manifest.getMainAttributes().getValue("Import-Package");
