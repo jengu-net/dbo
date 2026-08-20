@@ -3,6 +3,12 @@
 # standard Felix launcher. Exactly one provisioner mode should be set:
 #   DBO_K8S_NAMESPACE            in-cluster (secrets-backed provisioner)
 #   DBO_ADMIN_JDBC_URL/USER/PASSWORD  local default (database-per-tenant)
+#
+# DBO_MANAGEMENT_SPEC points at the spec of the tenant this deployment's own
+# history lives in — the juridical body operating it (ADR 0061). Outside
+# DBO_TENANT_DIR on purpose: the scan loop that retracts undeclared tenants
+# must not be able to retract the thing recording retractions. A deployment
+# whose management tenant will not come up serves nothing.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -64,5 +70,6 @@ exec java \
   ${DBO_AUTH_SUBJECT_SYSTEM:+-Ddbo.tenant.auth.subject.system="${DBO_AUTH_SUBJECT_SYSTEM}"} \
   ${DBO_BROKER_SECRETS:+-Ddbo.tenant.auth.broker.secrets="${DBO_BROKER_SECRETS}"} \
   ${DBO_OPS_TOKEN:+-Ddbo.tenant.ops.token="${DBO_OPS_TOKEN}"} \
+  ${DBO_MANAGEMENT_SPEC:+-Ddbo.tenant.management.spec="${DBO_MANAGEMENT_SPEC}"} \
   ${DBO_JAVA_OPTS:-} \
   -jar bin/felix.jar
