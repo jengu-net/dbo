@@ -83,6 +83,35 @@ final class ElementPayloads implements Payloads<Element> {
                     .toList();
         }
 
+        /**
+         * Against the profile a step declares (#71).
+         *
+         * <p>The same validator and the same message shape — what changes is
+         * which definition it is held to. A profile this face does not carry is
+         * an issue rather than a pass: a shape nobody can resolve is not a
+         * shape a document conformed to, and treating an unresolvable profile
+         * as "nothing wrong" is how a step's precondition quietly stops being
+         * one.
+         */
+        @Override
+        public List<String> validate(String typeName, Element document, String shapeReference) {
+            if (shapeReference == null || shapeReference.isBlank()) {
+                return validate(typeName, document);
+            }
+            if (context.fetchResource(org.hl7.fhir.r5.model.StructureDefinition.class,
+                    shapeReference) == null) {
+                return List.of("ERROR " + document.fhirType() + ": the shape '" + shapeReference
+                        + "' is not one this face carries, so nothing was checked against it");
+            }
+            List<ValidationMessage> messages = new ArrayList<>();
+            validator().validate(null, messages, document.fhirType(), document, shapeReference);
+            return messages.stream()
+                    .filter(m -> m.getLevel() == ValidationMessage.IssueSeverity.ERROR
+                            || m.getLevel() == ValidationMessage.IssueSeverity.FATAL)
+                    .map(m -> m.getLevel() + " " + m.getLocation() + ": " + m.getMessage())
+                    .toList();
+        }
+
         @Override
         public byte[] write(Element document) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -140,6 +169,12 @@ final class ElementPayloads implements Payloads<Element> {
     @Override
     public List<String> validate(String typeName, Element document) {
         return reading.validate(typeName, document);
+    }
+
+    /** Against a step's declared shape (#71) — the same validator, held to a named profile. */
+    @Override
+    public List<String> validate(String typeName, Element document, String shapeReference) {
+        return reading.validate(typeName, document, shapeReference);
     }
 
     @Override

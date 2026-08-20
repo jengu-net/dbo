@@ -204,6 +204,9 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ | Promise |
 |---|---|
 | REQ-DBO-PROC-CATALOGUE-IN-STORE | Process and step definitions (with profiles, planes and projections) are part of DBO's own vocabulary; projections are generated, never hand-edited. (§8) |
+| REQ-DBO-PROC-STEP-DECLARES-ITSELF | A step declares its id, version, the storage domains it reads and writes, opaque shape references for what it consumes and produces, and whether it may be overridden. Ids are `<module>.<process>.<step>`, globally stable, contributed by being installed, and a step referenced but not installed is refused by name. (§8, ADR 0057) |
+| REQ-DBO-PROC-RUN-NAMES-THE-STEP-VERSION | A run records the version of the step declaration it ran under, beside the executor's version and provider: reproducing a decision needs the definition as well as the runner. (§8) |
+| REQ-DBO-PROC-STEP-SHAPE-VALIDATION | A payload is validated against the shape a step declares through the face's existing payload capability, and a shape the face cannot resolve is an issue rather than a pass. (§8) |
 | REQ-DBO-PROC-DOMAIN-CODE-FILTER | Every process and step carries a free-string process-domain code; views and projections filter by it. (§8) |
 | REQ-DBO-PROC-RUN-HAS-A-RECORD | Every run of a step is a record in a tenant's own store — a registered type, so it is envelope-queryable, versioned, carried by the backup and dropped with the tenant. A run in a private table has none of those, and cannot be seen or acted on. (§8) |
 | REQ-DBO-PROC-RUN-SAYS-WHO-HOLDS-IT | A run's load-bearing field is who holds it now: automation running, automation with a retry scheduled, a person, or nobody. Every other field answers a question somebody asks after that one. (§8) |
