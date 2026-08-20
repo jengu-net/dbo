@@ -10,6 +10,8 @@ plugins {
 dependencies {
     api(project(":core:dbo-core"))
     api(project(":core:dbo-rest"))
+    // the retention sweep IS a sweep run (#69)
+    api(project(":core:dbo-work"))
 }
 
 tasks.jar {

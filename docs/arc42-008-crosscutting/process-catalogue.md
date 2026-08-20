@@ -56,9 +56,8 @@ A step that runs leaves a **run record**, and that record is an ordinary
 registered type in a tenant's own store rather than a private table. The
 difference is the whole point: registration is what confers an envelope to query
 it by, a history, feed events, a place in the backup and erasure with the tenant.
-A private table confers none of those, which is why a dead-letter row is
-unreachable today — visible in the sense that it exists, and invisible in every
-sense that matters.
+A private table confers none of those: it is visible in the sense that its rows
+exist, and invisible in every sense that matters.
 
 **Who holds it now is the load-bearing field.** Automation running, automation
 with a retry scheduled, **a person**, or nobody. Every other field answers a
@@ -107,6 +106,19 @@ system's vocabulary inside the engine (ADR 0060).
 item references or messages. Progress that reveals what was being processed is a
 disclosure decision rather than a convenience (ADR 0058), and the record itself
 still holds what a person needs in order to act.
+
+### dbo's own processes
+
+dbo runs on this model rather than beside it. Two of its own, one of each kind:
+
+| Process | Step | Kind | What a run is |
+| --- | --- | --- | --- |
+| `dbo.subscriptions.delivery` | `post` | pipeline | one attempt at one notification; retries are the step's, and an attempt that runs out of them leaves a child item **held by a person** — the endpoint is wrong, gone or refusing, and no amount of clock fixes any of those |
+| `dbo.policy.retention` | `remove` | sweep | one durable run per tenant domain, found rather than started; each pass tallies what it removed and names any rule it could not apply, and a rule a pass stops finding is closed by that pass |
+
+The delivery run is keyed by subscription and sequence and the sweep by domain,
+so a step re-executed after a crash finds its run rather than starting a second
+one — a duplicate would double every count taken from it.
 
 **A step declares the actions it contains.** Open a task, close it, reopen a
 closed one. Roles narrow *actions within* a step — an operator works the open

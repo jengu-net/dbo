@@ -598,12 +598,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
         java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> all =
                 new java.util.ArrayList<>(registrations);
         all.addAll(cloud.jengu.dbo.policy.AuditModel.registrations());
+        // Runs join them for the same reason audit entries do: what this
+        // deployment did about a tenant belongs in that tenant's own store,
+        // queryable and versioned and dropped with it (#46).
+        all.addAll(cloud.jengu.dbo.work.WorkModel.registrations());
         ObjectStore engine = pdiWrapped(spec, db, all);
         cloud.jengu.dbo.policy.PolicyObjectStore policyStore =
                 new cloud.jengu.dbo.policy.PolicyObjectStore(engine, spec.policies());
         if (!spec.policies().retention().isEmpty()) {
             cloud.jengu.dbo.policy.RetentionSweep sweep = new cloud.jengu.dbo.policy.RetentionSweep(
-                    db.dataSource(), domain, spec.policies(), policyStore);
+                    db.dataSource(), domain, spec.policies(), policyStore,
+                    // runs go to the engine rather than through the policy
+                    // decorator: an audit entry per checkpoint would record the
+                    // runtime interacting with its own bookkeeping, doubling
+                    // the writes to say nothing about a caller
+                    new cloud.jengu.dbo.work.Runs(engine));
             sweep.sweepOnce();
             sweeps.put(spec.code(), sweep);
         }

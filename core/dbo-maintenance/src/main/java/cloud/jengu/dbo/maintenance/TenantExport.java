@@ -456,8 +456,10 @@ public final class TenantExport {
      *
      * <p>A subscription is two things wearing one name: the declaration — who
      * wants what — is durable configuration and travels as an ordinary object;
-     * the cursor, the dead letters and the counters are how far delivery has
-     * got, and they are true for a moment.
+     * the cursor and the counters are how far delivery has got, and they are
+     * true for a moment. An exhausted delivery is neither: it is a run record
+     * in the tenant's own store, and it travels because what somebody still
+     * has to do about a failed delivery outlives the position of a cursor.
      *
      * <p>Carrying them is the sharpest failure in the whole backup design,
      * because it does not look like one. Delivery lags the feed by design, so
@@ -468,7 +470,6 @@ public final class TenantExport {
      */
     private static boolean isDeliveryState(String domain, String table) {
         return table.equals(domain + "_consumer")
-                || table.equals(domain + "_subscription_dlq")
                 || table.equals(domain + "_topic_counter");
     }
 

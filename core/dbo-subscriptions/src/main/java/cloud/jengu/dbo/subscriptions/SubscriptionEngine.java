@@ -2,6 +2,11 @@ package cloud.jengu.dbo.subscriptions;
 
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.ObjectStore;
+import cloud.jengu.dbo.work.Failure;
+import cloud.jengu.dbo.work.Holder;
+import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.Runs;
+import cloud.jengu.dbo.work.WorkModel;
 import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 import cloud.jengu.dbo.core.api.feed.ChangeKind;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
@@ -50,6 +55,12 @@ public final class SubscriptionEngine implements AutoCloseable {
     private static final String CONSUMER = "subscriptions.dispatch";
     private static final String QUEUE = "dbo.notify";
 
+    /** Delivery, as the run catalogue names it. */
+    private static final String PROCESS = "dbo.subscriptions.delivery";
+
+    /** Its one step: the POST that either lands or does not. */
+    private static final String STEP = "post";
+
     private final DataSource ds;
     private final String domain;
     private final ObjectStore store;
@@ -57,6 +68,7 @@ public final class SubscriptionEngine implements AutoCloseable {
     private final SubscriptionSource source;
     private final Function<String, Criteria> criteriaCompiler;
     private final NotificationTransport transport;
+    private final Runs runs;
     private final DBOS dbos;
     private final DeliveryWorkflows deliveryProxy;
     private final List<BiConsumer<SubscriptionSpec, String>> localListeners = new CopyOnWriteArrayList<>();
@@ -81,7 +93,13 @@ public final class SubscriptionEngine implements AutoCloseable {
         this.source = source;
         this.criteriaCompiler = criteriaCompiler;
         this.transport = transport;
-        ensureDlqTable();
+        this.runs = new Runs(store);
+        // Exhausted deliveries are runs in this tenant's store, so the type has
+        // to be registered there. Asking now turns a missing registration into
+        // a refusal to start, rather than into a delivery that fails twice at
+        // three in the morning — once on the wire and once on the way to the
+        // record of it.
+        store.count(Criteria.of(WorkModel.TYPE));
 
         DBOSConfig cfg = DBOSConfig.defaults("dbo-subscriptions-" + domain)
                 .withDatabaseUrl(dbUrl)
@@ -289,54 +307,55 @@ public final class SubscriptionEngine implements AutoCloseable {
 
     // --------------------------------------------------------- dead letters
 
+    /**
+     * A delivery that ran out of attempts.
+     *
+     * <p>A view over the runs, not a table of its own (#69): what is left of a
+     * failed delivery is a card in front of a person, and a private row is a
+     * card nobody can be shown — nothing queries it, nothing versions it,
+     * nothing carries it into the backup.
+     */
     public record DeadLetter(String subscriptionId, String endpoint, long seq, String reason) {}
 
     public List<DeadLetter> deadLetters() {
-        List<DeadLetter> out = new ArrayList<>();
-        try (Connection c = ds.getConnection();
-             PreparedStatement ps = c.prepareStatement(
-                     "SELECT subscription_id, endpoint, seq, reason FROM state.%s_subscription_dlq ORDER BY seq"
-                             .formatted(domain));
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                out.add(new DeadLetter(rs.getString(1), rs.getString(2), rs.getLong(3), rs.getString(4)));
-            }
-        } catch (SQLException e) {
-            throw new IllegalStateException("dlq read failed", e);
-        }
-        return out;
+        return runs.holding(Holder.PERSON).stream()
+                .filter(run -> PROCESS.equals(run.process()) && run.item() != null
+                        && run.parent() != null)
+                .map(SubscriptionEngine::deadLetterOf)
+                .sorted(java.util.Comparator.comparingLong(DeadLetter::seq))
+                .toList();
     }
 
+    /**
+     * Exhaustion, recorded: the delivery is the run, and the outcome somebody
+     * must see is its item. Idempotent both ways — the run is found by its own
+     * key and the item by what it names — because the step that calls this can
+     * be re-executed after a crash, and a person does not want the same failure
+     * twice on their list.
+     */
     private void deadLetter(String subscriptionId, String endpoint, long seq, String reason) {
-        try (Connection c = ds.getConnection();
-             PreparedStatement ps = c.prepareStatement("""
-                     INSERT INTO state.%s_subscription_dlq (subscription_id, endpoint, seq, reason)
-                     VALUES (?, ?, ?, ?) ON CONFLICT (subscription_id, seq) DO NOTHING"""
-                     .formatted(domain))) {
-            ps.setString(1, subscriptionId);
-            ps.setString(2, endpoint);
-            ps.setLong(3, seq);
-            ps.setString(4, reason);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new IllegalStateException("dlq write failed", e);
+        Run delivery = runs.pipeline(PROCESS, STEP, deliveryKey(subscriptionId, seq));
+        boolean already = runs.items(delivery).stream()
+                .anyMatch(item -> endpoint.equals(item.item().reference()));
+        if (!already) {
+            // A record that will not go anywhere is a person's job: the
+            // endpoint is wrong, gone or refusing, and no amount of clock
+            // fixes any of those (REQ-DBO-PROC-ESCALATION-BY-FAILURE-CLASS).
+            runs.item(delivery, endpoint, Failure.RECORD, reason);
         }
     }
 
-    private void ensureDlqTable() {
-        try (Connection c = ds.getConnection();
-             PreparedStatement ps = c.prepareStatement("""
-                     CREATE TABLE IF NOT EXISTS state.%s_subscription_dlq (
-                       subscription_id text NOT NULL,
-                       endpoint text NOT NULL,
-                       seq bigint NOT NULL,
-                       reason text NOT NULL,
-                       created_at timestamptz NOT NULL DEFAULT now(),
-                       PRIMARY KEY (subscription_id, seq)
-                     )""".formatted(domain))) {
-            ps.execute();
-        } catch (SQLException e) {
-            throw new IllegalStateException("dlq setup failed", e);
-        }
+    private static String deliveryKey(String subscriptionId, long seq) {
+        return PROCESS + "/" + subscriptionId + "/" + seq;
+    }
+
+    private static DeadLetter deadLetterOf(Run item) {
+        String parent = item.parent();
+        int lastSlash = parent.lastIndexOf('/');
+        int previousSlash = parent.lastIndexOf('/', lastSlash - 1);
+        return new DeadLetter(parent.substring(previousSlash + 1, lastSlash),
+                item.item().reference(),
+                Long.parseLong(parent.substring(lastSlash + 1)),
+                item.item().message());
     }
 }
