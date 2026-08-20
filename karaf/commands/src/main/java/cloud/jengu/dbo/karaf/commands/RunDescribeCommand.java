@@ -1,17 +1,12 @@
 package cloud.jengu.dbo.karaf.commands;
 
-import cloud.jengu.dbo.work.Run;
 import org.apache.karaf.shell.api.action.Action;
 import org.apache.karaf.shell.api.action.Argument;
 import org.apache.karaf.shell.api.action.Command;
+import org.apache.karaf.shell.api.action.Completion;
 import org.apache.karaf.shell.api.action.Option;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
-import org.apache.karaf.shell.support.table.ShellTable;
-import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * One run in full: what it did, what is left, who ran it, and what it was
@@ -20,6 +15,9 @@ import java.util.Map;
  * <p>Item outcomes name a record and a reason, which is what somebody needs in
  * order to act. Nothing else here names anything: the envelope is a disclosure
  * surface and a console line must not become the one it is not allowed to be.
+ *
+ * <p>Nothing here names a dbo type — see {@link Wiring} for why that is a rule
+ * rather than a style.
  */
 @Command(scope = "dbo-run", name = "describe",
         description = "Shows one run: tally, item outcomes, executor and correlation.")
@@ -27,7 +25,7 @@ import java.util.Map;
 public class RunDescribeCommand implements Action {
 
     @Argument(index = 0, description = "The run's key. Without one, the keys there are.")
-    @org.apache.karaf.shell.api.action.Completion(RunKeyCompleter.class)
+    @Completion(RunKeyCompleter.class)
     private String key;
 
     @Option(name = "--tenant", description = "Where to look; every tenant by default.")
@@ -35,105 +33,11 @@ public class RunDescribeCommand implements Action {
 
     @Override
     public Object execute() {
-        if (!Runs.available()) {
-            Runs.explainAbsence();
+        if (!Wiring.available()) {
+            Wiring.explainAbsence();
             return null;
         }
-        BundleContext context = FrameworkUtil.getBundle(getClass()).getBundleContext();
-        if (key == null) {
-            // A key is a path nobody memorises, and this is the only place it
-            // exists. Refusing the command and naming the missing argument
-            // tells somebody what they typed wrong; showing the keys tells them
-            // what to type next.
-            offerKeys(context);
-            return null;
-        }
-        for (Map.Entry<String, cloud.jengu.dbo.work.Runs> entry
-                : Runs.byTenant(context, tenant).entrySet()) {
-            java.util.Optional<Run> found = entry.getValue().byKey(key);
-            if (found.isPresent()) {
-                print(entry.getKey(), entry.getValue(), found.get());
-                return null;
-            }
-        }
-        System.out.println("No run with that key is recorded"
-                + (tenant == null ? " in any tenant this node serves." : " in " + tenant + "."));
+        RunView.describe(FrameworkUtil.getBundle(getClass()).getBundleContext(), tenant, key);
         return null;
-    }
-
-    /** What there is to describe, when somebody has not said which. */
-    private void offerKeys(BundleContext context) {
-        ShellTable table = new ShellTable();
-        table.column("TENANT");
-        table.column("HOLDER");
-        table.column("KEY");
-        int rows = 0;
-        for (Map.Entry<String, cloud.jengu.dbo.work.Runs> entry
-                : Runs.byTenant(context, tenant).entrySet()) {
-            for (Run run : entry.getValue().matching(null, null, null, 20)) {
-                rows++;
-                table.addRow().addContent(entry.getKey(), run.holder().wire(), run.key());
-            }
-        }
-        if (rows == 0) {
-            System.out.println("Nothing is recorded here yet, so there is nothing to describe.");
-            return;
-        }
-        System.out.println("Which run? Newest first" + (tenant == null ? "" : " in " + tenant)
-                + " — tab completes these:");
-        System.out.println();
-        table.print(System.out);
-    }
-
-    private static void print(String tenant, cloud.jengu.dbo.work.Runs runs, Run run) {
-        ShellTable facts = new ShellTable();
-        facts.column("FACT");
-        facts.column("VALUE");
-        facts.addRow().addContent("tenant", tenant);
-        facts.addRow().addContent("process", run.process());
-        facts.addRow().addContent("step", run.step());
-        facts.addRow().addContent("kind", run.kind().wire());
-        facts.addRow().addContent("holder", run.holder().wire());
-        facts.addRow().addContent("domains", String.join(", ", run.domains()));
-        facts.addRow().addContent("tally", Runs.tally(run.tally()));
-        run.correlated().ifPresent(correlation ->
-                // echoed, never interpreted: it is the other system's word
-                facts.addRow().addContent("correlation", correlation));
-        if (run.assignment() != null) {
-            Run.Assignment assignment = run.assignment();
-            if (assignment.at() != null) {
-                facts.addRow().addContent("at", assignment.at().wire());
-            }
-            if (assignment.executor() != null) {
-                facts.addRow().addContent("executor", assignment.executor().name() + " "
-                        + assignment.executor().version() + " ("
-                        + assignment.executor().provider() + ") from "
-                        + assignment.executor().scope().wire());
-            }
-            if (assignment.note() != null) {
-                facts.addRow().addContent("note", assignment.note());
-            }
-        }
-        facts.print(System.out);
-
-        List<Run> items = runs.items(run);
-        if (items.isEmpty()) {
-            return;
-        }
-        System.out.println();
-        ShellTable outcomes = new ShellTable();
-        outcomes.column("HOLDER");
-        outcomes.column("CLASS");
-        outcomes.column("REFERENCE");
-        outcomes.column("REASON");
-        for (Run item : items) {
-            if (item.item() == null) {
-                continue;
-            }
-            outcomes.addRow().addContent(item.holder().wire(),
-                    item.item().failure() == null ? "" : item.item().failure().wire(),
-                    item.item().reference(), item.item().message());
-        }
-        outcomes.print(System.out);
     }
 }

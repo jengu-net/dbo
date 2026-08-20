@@ -1,17 +1,10 @@
 package cloud.jengu.dbo.karaf.commands;
 
-import cloud.jengu.dbo.work.Holder;
-import cloud.jengu.dbo.work.Run;
 import org.apache.karaf.shell.api.action.Action;
 import org.apache.karaf.shell.api.action.Command;
 import org.apache.karaf.shell.api.action.Option;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
-import org.apache.karaf.shell.support.table.ShellTable;
-import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
-
-import java.util.Locale;
-import java.util.Map;
 
 /**
  * What this node is holding: automation running, retries scheduled, and — the
@@ -23,6 +16,9 @@ import java.util.Map;
  * <p><b>Reads, never acts.</b> Retrying, closing and reassigning are declared
  * step actions carrying their own provenance; a console that acts is an actor
  * nobody audited.
+ *
+ * <p>Nothing here names a dbo type — see {@link Wiring} for why that is a rule
+ * rather than a style.
  */
 @Command(scope = "dbo-run", name = "list",
         description = "Lists runs on this node by holder — by default the ones waiting for a person.")
@@ -47,47 +43,12 @@ public class RunListCommand implements Action {
 
     @Override
     public Object execute() {
-        if (!Runs.available()) {
-            Runs.explainAbsence();
+        if (!Wiring.available()) {
+            Wiring.explainAbsence();
             return null;
         }
-        BundleContext context = FrameworkUtil.getBundle(getClass()).getBundleContext();
-        Map<String, cloud.jengu.dbo.work.Runs> byTenant = Runs.byTenant(context, tenant);
-        if (byTenant.isEmpty()) {
-            System.out.println("There are no runs to read: runs live in the tenant whose work"
-                    + " they are, and no tenant is being served here.");
-            System.out.println(Tenants.whyNothingIsServed(context));
-            return null;
-        }
-        Holder wanted = "any".equalsIgnoreCase(holder) ? null
-                : Holder.valueOf(holder.toUpperCase(Locale.ROOT));
-
-        ShellTable table = new ShellTable();
-        table.column("TENANT");
-        table.column("PROCESS");
-        table.column("STEP");
-        table.column("KIND");
-        table.column("HOLDER");
-        table.column("TALLY");
-        table.column("KEY");
-        int rows = 0;
-        for (Map.Entry<String, cloud.jengu.dbo.work.Runs> entry : byTenant.entrySet()) {
-            for (Run run : entry.getValue().matching(process, step, wanted, limit)) {
-                rows++;
-                table.addRow().addContent(entry.getKey(), run.process(), run.step(),
-                        run.kind().wire(), run.holder().wire(),
-                        Runs.tally(run.tally()), run.key());
-            }
-        }
-        if (rows == 0) {
-            System.out.println("Nothing is " + (wanted == null ? "recorded" : "held by "
-                    + wanted.wire()) + " here.");
-            return null;
-        }
-        table.print(System.out);
-        System.out.println();
-        System.out.println("dbo-run:describe <key> for the outcomes, the executor and the "
-                + "correlation.");
+        RunView.list(FrameworkUtil.getBundle(getClass()).getBundleContext(),
+                tenant, process, step, holder, limit);
         return null;
     }
 }
