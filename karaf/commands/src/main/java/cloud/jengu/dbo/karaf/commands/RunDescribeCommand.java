@@ -5,7 +5,9 @@ import org.apache.karaf.shell.api.action.Argument;
 import org.apache.karaf.shell.api.action.Command;
 import org.apache.karaf.shell.api.action.Completion;
 import org.apache.karaf.shell.api.action.Option;
+import org.apache.karaf.shell.api.action.lifecycle.Reference;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
+import org.apache.karaf.shell.api.console.Session;
 import org.osgi.framework.FrameworkUtil;
 
 /**
@@ -31,13 +33,17 @@ public class RunDescribeCommand implements Action {
     @Option(name = "--tenant", description = "Where to look; every tenant by default.")
     private String tenant;
 
+    @Reference
+    private Session session;
+
     @Override
     public Object execute() {
         if (!Wiring.available()) {
             Wiring.explainAbsence();
             return null;
         }
-        RunView.describe(FrameworkUtil.getBundle(getClass()).getBundleContext(), tenant, key);
+        // where the console is standing, unless this line said otherwise
+        RunView.describe(FrameworkUtil.getBundle(getClass()).getBundleContext(), ConsoleSession.tenantOr(session, tenant), key);
         return null;
     }
 }

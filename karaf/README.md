@@ -67,6 +67,30 @@ refreshing it cascades through the whole set.
 The console's own commands live in `deploy/`, which Karaf re-deploys on change
 — so developing a command has the same loop as developing a bundle.
 
+## Standing somewhere, and being somebody
+
+`dbo:context <tenant>` stands in a tenant, and every command about one takes it
+from there — `dbo-run:list` without `--tenant` means where you are standing. With
+a single tenant on the node, `dbo:context` with no argument stands in it: there
+is no choice to make, and asking somebody to state it is ceremony. The prompt
+carries the position, because a view that silently belongs to somebody else is
+worse than no view.
+
+`dbo:login` assumes an identity you already hold, through the tenant's own
+authority — the same client-credentials request an HTTP caller makes, so a
+refusal is the authority's refusal rather than this command's opinion about it.
+**The secret is prompted for and masked**, never taken as an argument: a console
+logs its commands and keeps a history, so a secret on a command line is a
+credential in a file. A token somebody already issued can be read from a path
+with `--token-file`; it is checked for being this tenant's and still in date,
+which is structure rather than authority — whether it is accepted is decided
+where it is used.
+
+Nothing prints a token. `dbo:logout` puts the identity down and leaves the
+position, because **reads need no identity**: somebody who can run this console
+can run `psql`, and requiring a session to look is friction with nothing behind
+it. Identity is for provenance, and it starts mattering when commands act.
+
 ## Seeing what a tenant is
 
 ```
