@@ -39,9 +39,18 @@ public final class WorkModel {
     private WorkModel() {
     }
 
+    /**
+     * The work domain's types: what ran, and who said they could run it
+     * ({@link ExecutorModel}). Together, because a store that holds runs and
+     * cannot hold declarations can only ever be executed by whatever is
+     * installed beside it.
+     */
     public static List<TypeRegistration> registrations() {
-        return List.of(new TypeRegistration(TYPE, DOMAIN, IdentityClass.IDENTIFIER,
-                Set.of(KEY_SYSTEM), handling(), extractor(), List.of()));
+        List<TypeRegistration> all = new java.util.ArrayList<>(List.of(
+                new TypeRegistration(TYPE, DOMAIN, IdentityClass.IDENTIFIER,
+                        Set.of(KEY_SYSTEM), handling(), extractor(), List.of())));
+        all.addAll(ExecutorModel.registrations());
+        return List.copyOf(all);
     }
 
     /**
