@@ -85,10 +85,15 @@ the person fixes the world and the next pass finds nothing to say. Closing by
 hand is the fallback for conditions nothing can re-check, and never the default —
 a card closed by click reads *resolved* while the fault is live.
 
-**Item work lives in child runs.** Every update is a version, a history link and
-a feed event, so a busy run must not rewrite one large document per item; and a
-person fixes one thing at a time, which a single card saying "two problems"
-cannot express. **A run has at most one parent, and parenthood never crosses a
+**Item work lives in child runs, and children are exceptions rather than an
+enumeration.** Every update is a version, a history link and a feed event, so a
+busy run must not rewrite one large document per item; and a person fixes one
+thing at a time, which a single card saying "two problems" cannot express. But a
+child per item *processed* is the same cost in the other direction: an ingest
+over forty thousand concepts would be forty thousand records, forty thousand feed
+events and a history nobody can page through. It records a tally of forty
+thousand and three children, because three of them need a person. What everything
+did is the tally's; what somebody must act on is a child's. **A run has at most one parent, and parenthood never crosses a
 domain or a system:** items are children, while a subprocess or a continuation
 elsewhere is a reference. A parent's close has to mean something for its
 children, and it cannot mean anything across a boundary this runtime does not

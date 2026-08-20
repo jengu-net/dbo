@@ -59,7 +59,16 @@ public final class Runs {
     }
 
     /**
-     * One item of a run, as a child run.
+     * One <b>outcome somebody must see</b>, as a child run.
+     *
+     * <p><b>Children are exceptions, not an enumeration.</b> A run over forty
+     * thousand concepts records a tally of forty thousand and three children,
+     * because three of them need a person. One child per item processed would
+     * make a large run forty thousand records, forty thousand feed events and a
+     * history nobody can page through — every advance is a version, a history
+     * link and a feed event, and that is the cost of being a record rather than
+     * a row. What everything did is the tally's job; what somebody must act on
+     * is a child's.
      *
      * <p>The failure class decides who holds it: a record that is wrong is a
      * person's, a store that was unavailable is a retry and nobody's card
@@ -138,7 +147,12 @@ public final class Runs {
             }
         }
 
-        /** This item is still wrong, or wrong for the first time. */
+        /**
+         * This item is still wrong, or wrong for the first time.
+         *
+         * <p>Only what somebody must see: a pass over ten thousand things
+         * counts ten thousand and names the handful that need acting on.
+         */
         public Pass item(String reference, Failure failure, String message) {
             seen.add(reference);
             Run existing = before.get(reference);
