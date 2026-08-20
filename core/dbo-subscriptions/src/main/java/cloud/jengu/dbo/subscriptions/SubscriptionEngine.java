@@ -334,7 +334,10 @@ public final class SubscriptionEngine implements AutoCloseable {
      * twice on their list.
      */
     private void deadLetter(String subscriptionId, String endpoint, long seq, String reason) {
-        Run delivery = runs.pipeline(PROCESS, STEP, deliveryKey(subscriptionId, seq));
+        // over this personality's domain, which is what tells a face whether
+        // the run is one it renders at all
+        Run delivery = runs.pipeline(PROCESS, STEP, deliveryKey(subscriptionId, seq),
+                List.of(domain));
         boolean already = runs.items(delivery).stream()
                 .anyMatch(item -> endpoint.equals(item.item().reference()));
         if (!already) {

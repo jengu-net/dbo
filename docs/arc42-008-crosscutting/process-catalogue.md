@@ -120,6 +120,18 @@ The delivery run is keyed by subscription and sequence and the sweep by domain,
 so a step re-executed after a crash finds its run rather than starting a second
 one — a duplicate would double every count taken from it.
 
+### How a run is read
+
+The engine stores a run; a reader asks a face for it. One run and its items render as
+one collection: the run as a `Task` carrying its holder, its process and step, its
+tally and its correlation, and each item as its own `Task` under it with the failure as
+an `OperationOutcome`. The engine never spells any of that — which resource a run is,
+and how a holder is said in it, is a face's business
+(`core.face.RecordProjection`, [engine-and-faces](engine-and-faces.md)).
+
+A run over a domain no face claims — `identity`, a config domain — renders nowhere, and
+the reader is told so rather than handed an empty document.
+
 **A step declares the actions it contains.** Open a task, close it, reopen a
 closed one. Roles narrow *actions within* a step — an operator works the open
 tasks, a supervisor also reaches the closed ones — so without declared actions

@@ -26,7 +26,8 @@ import java.util.Optional;
  * immediately after the audited interaction commits. The AuditEntry
  * registration must be present in the wrapped engine.
  */
-public final class PolicyObjectStore implements ObjectStore {
+public final class PolicyObjectStore implements ObjectStore,
+        cloud.jengu.dbo.rest.AuditProjection.Recorder {
 
     private final ObjectStore inner;
     private final TenantPolicies policies;
@@ -173,6 +174,7 @@ public final class PolicyObjectStore implements ObjectStore {
      *
      * @return the created entry's id
      */
+    @Override
     public String recordCustom(String code, String targetType, String targetId,
             java.util.Map<String, String> detail) {
         return inner.put(PutRequest.create("AuditEntry",

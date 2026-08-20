@@ -470,7 +470,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         TenantRuntime runtime = new TenantRuntime(spec, engine, store,
                 new PgChangeFeed(db.dataSource(), version.domain()),
                 withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
-                        terminology, "/t/" + spec.code() + "/fhir", guard), spec), spec, engine),
+                        terminology, "/t/" + spec.code() + "/fhir", guard), spec),
+                        version.face(), engine),
                 terminology);
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no
@@ -624,11 +625,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return server;
     }
 
-    private static FhirHttpServer withAuditSurface(FhirHttpServer server, TenantSpec spec,
-            ObjectStore engine) {
+    private static FhirHttpServer withAuditSurface(FhirHttpServer server,
+            cloud.jengu.dbo.core.face.DomainFace face, ObjectStore engine) {
         if (engine instanceof cloud.jengu.dbo.policy.PolicyObjectStore policyStore) {
-            server.auditSurface = new cloud.jengu.dbo.policy.FhirAuditProjection(
-                    policyStore, spec.fhirVersion());
+            // the face renders it; the surface only decides which records
+            // answer the query and what a posted document records
+            server.auditSurface = new cloud.jengu.dbo.rest.AuditProjection(
+                    policyStore, policyStore, face);
         }
         return server;
     }

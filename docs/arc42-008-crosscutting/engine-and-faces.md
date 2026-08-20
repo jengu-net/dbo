@@ -155,16 +155,34 @@ place, it says so.
 | **document equivalence** | what counts as the same object, so a re-import can skip one | **misplaced** — `Names.flatten` in `dbo-maintenance`, an engine module deciding it with a newline replacement |
 | **framing** | many objects as one document — a page, a history, an export | `core.face.PayloadFraming`, **declared**; a member's payload passes through with only the ancestor slots replaced |
 | **query compilation** | the domain's query language to engine criteria | inside the personality |
-| **audit rendering** | engine facts as the domain's audit resource | **misplaced** — `FhirAuditProjection` hand-builds AuditEvent JSON inside `dbo-policy`, an engine module |
+| **audit rendering** | engine facts as the domain's audit resource | `core.face.RecordProjection`, **declared**; the surface that answers audit queries holds no shape and never learns the name of what it serves |
 | **attestation rendering** | an archive's root and signatures as a domain resource | **outside the contract** — `ArchiveProvenance`, a loose static in `dbo-fhir-common` (#34) |
-| **run rendering** | an execution record as the domain's work resource | defined in #46 (`Task`, `OperationOutcome`, `Task.partOf`), not built |
+| **run rendering** | an execution record as the domain's work resource | `core.face.RecordProjection`, **declared** — the same capability, and having two consumers is what makes it one |
 | **catalogue projection** | process steps as the domain's definition resources | defined in #46 / ADR 0057 §5 (`PlanDefinition`, `ActivityDefinition`), platform-side today |
 | **identity projection** | a subject identity and its claims as domain resources | does not exist; waits on the identity toolset (#39) |
 
 Three of those — audit, attestation, run — are the same shape: **an engine fact said
-in the domain's vocabulary.** They have no common seam, and two of them are sitting
-outside the contract entirely. That is the clearest argument that this contract is
-worth finishing.
+in the domain's vocabulary.** Two of them now share one seam, and the third does not.
+
+`RecordProjection` is that seam: a record and whatever belongs to it go in, a document
+comes out, and the reverse direction reads what a posted document means without the
+engine learning what the document is called. It renders at read and never during the
+write that records a run, because a face rendering inside a transaction is re-entrancy,
+and two faces over one store could disagree about who wrote what.
+
+**Whether a record projects is not a flag.** A record naming storage domains renders
+where the face claims one of them and nowhere else; a record naming none — an audit
+entry is about an interaction rather than about a domain's records — is every face's.
+Nobody has to remember to set anything, and nobody can set it wrongly. Empty is an
+answer, so a run over `identity` renders nowhere rather than producing an empty
+document that reads like a run with nothing in it.
+
+**One implementation, three versions.** R4, R5 and R6 are served by one face, so the
+projection is written once against carried definitions, and the two places the versions
+genuinely differ — R4's `type`/`subtype` against R5's `category`/`code`, and R6 recasting
+`Task.focus` as a repeating backbone with a required value — are two lines rather than
+two implementations. Each rendered document is validated by the version that produced
+it, which is how those differences were found.
 
 ## The ancestors: FHIR drew this line first
 

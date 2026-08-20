@@ -10,6 +10,7 @@ public final class Caller {
 
     private static final ThreadLocal<String> CURRENT = new ThreadLocal<>();
     private static final ThreadLocal<String> ON_BEHALF_OF = new ThreadLocal<>();
+    private static final ThreadLocal<String> RUN = new ThreadLocal<>();
 
     private Caller() {
     }
@@ -30,6 +31,28 @@ public final class Caller {
         return ON_BEHALF_OF.get();
     }
 
+    /**
+     * The run this work belongs to, so what a run did is navigable from the
+     * run rather than only from the records it touched
+     * (REQ-DBO-PROC-TRACE-JOIN).
+     *
+     * <p>Ambient for the same reason the actor is: a step calls the store the
+     * way anything else does, and threading a run through every write would put
+     * a process concern into every signature the engine has.
+     */
+    public static void setRun(String runKey) {
+        RUN.set(runKey);
+    }
+
+    /** The run in progress on this thread, or null outside one. */
+    public static String run() {
+        return RUN.get();
+    }
+
+    public static void clearRun() {
+        RUN.remove();
+    }
+
     /** Never null: outside an authenticated request the actor is "system". */
     public static String current() {
         String actor = CURRENT.get();
@@ -39,5 +62,6 @@ public final class Caller {
     public static void clear() {
         CURRENT.remove();
         ON_BEHALF_OF.remove();
+        RUN.remove();
     }
 }

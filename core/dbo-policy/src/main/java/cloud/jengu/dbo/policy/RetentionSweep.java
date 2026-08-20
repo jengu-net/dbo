@@ -63,19 +63,26 @@ public final class RetentionSweep {
      * @return ids removed this pass
      */
     public int sweepOnce() {
-        Run sweep = runs.sweep(PROCESS, STEP, domain);
+        Run sweep = runs.sweep(PROCESS, STEP, domain, List.of(domain));
         Runs.Pass pass = runs.pass(sweep);
         int removed = 0;
-        for (Map.Entry<String, TenantPolicies.Retention> rule : policies.retention().entrySet()) {
-            if (rule.getValue().removeAfter() == null) {
-                continue;
+        // Everything this pass audits is part of this run, so the removals are
+        // reachable from the run rather than only from the ids they name.
+        cloud.jengu.dbo.core.api.Caller.setRun(sweep.key());
+        try {
+            for (Map.Entry<String, TenantPolicies.Retention> rule : policies.retention().entrySet()) {
+                if (rule.getValue().removeAfter() == null) {
+                    continue;
+                }
+                Instant ceiling = Instant.now().minus(rule.getValue().removeAfter());
+                try {
+                    removed += sweepType(rule.getKey(), ceiling, rule.getValue());
+                } catch (RuntimeException e) {
+                    pass.item(rule.getKey(), Failure.of(e), String.valueOf(e.getMessage()));
+                }
             }
-            Instant ceiling = Instant.now().minus(rule.getValue().removeAfter());
-            try {
-                removed += sweepType(rule.getKey(), ceiling, rule.getValue());
-            } catch (RuntimeException e) {
-                pass.item(rule.getKey(), Failure.of(e), String.valueOf(e.getMessage()));
-            }
+        } finally {
+            cloud.jengu.dbo.core.api.Caller.clearRun();
         }
         pass.counted("removed", removed).done();
         return removed;

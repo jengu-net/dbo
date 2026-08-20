@@ -52,6 +52,16 @@ class EngineKnowsNoFaceIT {
                         + "without naming a domain, and this is where that stops being true");
     }
 
+    /** Whether this header exports exactly that package, rather than mentioning it. */
+    private static boolean exports(String header, String packageName) {
+        for (String clause : header.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")) {
+            if (clause.split(";")[0].trim().equals(packageName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Reads Import-Package from the manifest of the bundle exporting a package. */
     private static List<String> importPackagesOf(String markerPackage) throws Exception {
         String marker = markerPackage.replace('.', '/') + "/UuidV7.class";
@@ -61,7 +71,12 @@ class EngineKnowsNoFaceIT {
             try (InputStream in = url.openStream()) {
                 Manifest manifest = new Manifest(in);
                 String exported = manifest.getMainAttributes().getValue("Export-Package");
-                if (exported == null || !exported.contains(markerPackage + ".face")) {
+                // The package must be EXPORTED, not merely mentioned: bnd names
+                // it in the uses: clause of every bundle that passes one of
+                // these types around, so a substring match picks whichever of
+                // them the classpath happens to put first — and then this test
+                // reports that bundle's imports as the engine's.
+                if (exported == null || !exports(exported, markerPackage + ".face")) {
                     continue;
                 }
                 String imported = manifest.getMainAttributes().getValue("Import-Package");
