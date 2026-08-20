@@ -83,7 +83,8 @@ class SyncStreamsIT {
 
         PgObjectStore zoneEngine = new PgObjectStore(zoneDs, zoneP.registrations());
         midEngine = new PgObjectStore(midDs, midP.registrations());
-        leafEngine = new PgObjectStore(leafDs, leafP.registrations());
+        // the leaf records what its stream does, in its own store (#73)
+        leafEngine = new PgObjectStore(leafDs, Registrations.withRuns(leafP.registrations()));
         zone = new R4Store(zoneEngine, zoneP, "https://zone.test");
         mid = new R4Store(midEngine, midP, "https://mid.test");
         leaf = new R5Store(leafEngine, leafP, "https://leaf.test");
@@ -97,7 +98,8 @@ class SyncStreamsIT {
                 new ContentDependency("mid", declared),
                 new PgChangeFeed(midDs, R4Personality.DOMAIN),
                 leafEngine, leafDs, R5Personality.DOMAIN, "5.0",
-                List.of(new BoomAwareConverter()));
+                List.of(new BoomAwareConverter()))
+                .withRuns(new cloud.jengu.dbo.work.Runs(leafEngine));
     }
 
     /** R4→R5 hop that refuses payloads carrying the boom marker (dead-letter probe). */
@@ -258,5 +260,107 @@ class SyncStreamsIT {
         assertTrue(new String(leafEngine.get("ValueSet", upstream.id()).orElseThrow().payload(),
                 StandardCharsets.UTF_8).contains("UpstreamContent"));
         assertTrue(midToLeaf.shadowedEvents().isEmpty());
+    }
+
+    /**
+     * A parked shadow is work a person can see, and it closes itself when they
+     * fix the world (#73). The shadow table alone is the dead-letter complaint
+     * one subsystem over: a row exists, and nothing queries it, versions it, or
+     * puts it in front of anybody.
+     */
+    @Test
+    @Order(6)
+    void aParkedShadowIsACardAndClosesItselfWhenTheOverrideGoes() {
+        String url = "https://zone.test/vs/watched";
+        PutResult local = leaf.putCanonical(valueSet(url, "LocalOverride"));
+        zone.putCanonical(valueSet(url, "UpstreamContent"));
+        syncAll();
+
+        cloud.jengu.dbo.work.Run sweep = midToLeaf.pass(100);
+        assertEquals(cloud.jengu.dbo.work.RunKind.SWEEP, sweep.kind());
+        assertEquals(1L, sweep.tally().get("parked"));
+
+        cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(leafEngine);
+        List<cloud.jengu.dbo.work.Run> cards = runs.items(sweep).stream()
+                .filter(cloud.jengu.dbo.work.Run::needsAPerson)
+                .filter(card -> card.item().message().contains("local override"))
+                .toList();
+        assertEquals(1, cards.size(), "the parked event is somebody's to decide: " + cards);
+
+        // the person removes the override; nobody closes anything by hand
+        leaf.delete("ValueSet", local.id(), null);
+        cloud.jengu.dbo.work.Run after = midToLeaf.pass(100);
+
+        assertEquals(0L, after.tally().get("parked"));
+        assertTrue(runs.items(after).stream()
+                        .filter(item -> item.item().message().contains("local override"))
+                        .noneMatch(cloud.jengu.dbo.work.Run::open),
+                "the pass that stops finding it is what closes it");
+    }
+
+    /**
+     * An unreachable upstream is a retry and nobody's card. A queue that
+     * collects "the other tenant was down" stops being read, and then the
+     * override that needed a person is sitting in it.
+     */
+    @Test
+    @Order(7)
+    void anUnreachableUpstreamIsARetryRatherThanACard() {
+        ContentSyncEngine broken = new ContentSyncEngine(
+                new ContentDependency("gone", Set.of("ValueSet")),
+                unreachableFeed(), leafEngine, ds(jdbcUrl.substring(0,
+                        jdbcUrl.lastIndexOf('/') + 1) + "sync_leaf"),
+                R5Personality.DOMAIN, "5.0", List.of())
+                .withRuns(new cloud.jengu.dbo.work.Runs(leafEngine));
+
+        cloud.jengu.dbo.work.Run sweep = broken.pass(100);
+
+        assertFalse(sweep.needsAPerson(), "nobody can do anything about an upstream being down");
+        cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(leafEngine);
+        assertTrue(runs.items(sweep).stream().anyMatch(item ->
+                        item.holder() == cloud.jengu.dbo.work.Holder.RETRY),
+                "and it is a retry, so the next round tries again: " + runs.items(sweep));
+    }
+
+    /** A feed whose upstream is not there — what a tenant being down looks like from here. */
+    private static cloud.jengu.dbo.core.api.feed.ChangeFeed unreachableFeed() {
+        return new cloud.jengu.dbo.core.api.feed.ChangeFeed() {
+            private IllegalStateException down() {
+                return new IllegalStateException(
+                        "connection refused: the upstream tenant is down");
+            }
+
+            @Override
+            public cloud.jengu.dbo.core.api.feed.FeedChunk<cloud.jengu.dbo.core.api.feed.FeedItem>
+                    read(String cursor, int limit) {
+                throw down();
+            }
+
+            @Override
+            public cloud.jengu.dbo.core.api.feed.FeedChunk<cloud.jengu.dbo.core.api.feed.FeedItem>
+                    readFor(String consumer, int limit) {
+                throw down();
+            }
+
+            @Override
+            public void ack(String consumer, String cursor) {
+                throw down();
+            }
+
+            @Override
+            public void resetConsumer(String consumer, String cursor) {
+                throw down();
+            }
+
+            @Override
+            public String cursorOf(String consumer) {
+                return null;
+            }
+
+            @Override
+            public long lag(String consumer) {
+                return 0;
+            }
+        };
     }
 }

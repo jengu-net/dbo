@@ -55,6 +55,7 @@ public final class ContentSyncEngine {
     private final GrainCodec targetGrain;
     private final String consumer;
     private final Map<String, PayloadConverter> convertersByFrom = new LinkedHashMap<>();
+    private volatile cloud.jengu.dbo.work.Runs runs;
 
     public ContentSyncEngine(ContentDependency dependency, ChangeFeed sourceFeed,
             ObjectStore targetStore, DataSource targetDataSource, String targetDomain,
@@ -103,6 +104,82 @@ public final class ContentSyncEngine {
             convertersByFrom.put(converter.fromVersion(), converter);
         }
         ensureTables();
+    }
+
+    /**
+     * Records this stream's rounds as runs in the dependent tenant's store
+     * (#73).
+     *
+     * <p>The run belongs to the <b>dependent</b> — it is their work — with the
+     * upstream named rather than parented, because parenthood cannot cross a
+     * tenant and a tenant is a legal person (ADR 0061).
+     *
+     * <p>Declared rather than assumed: this component is also the stream
+     * mechanic used on its own, and a mechanic with nowhere to write runs is a
+     * different thing from one that has forgotten to.
+     */
+    public ContentSyncEngine withRuns(cloud.jengu.dbo.work.Runs runs) {
+        this.runs = runs;
+        return this;
+    }
+
+    /** What this stream is called wherever runs are read. */
+    public static final String PROCESS = "dbo.sync.stream";
+
+    /** Its one step: applying what the upstream published. */
+    public static final String STEP = "apply";
+
+    /**
+     * One recorded round: read the upstream, re-attempt what is parked, and say
+     * what is left.
+     *
+     * <p>A <b>sweep</b>, because a stream closes when it agrees with its
+     * upstream and never when a list runs out. What is still parked after the
+     * round is an item held by a person — a local override is shadowing an
+     * upstream version, and no amount of retrying decides that — and it closes
+     * itself on the pass that stops finding it, so removing the override closes
+     * the card without anybody clicking resolved.
+     *
+     * <p>An unreachable upstream is a <b>retry</b> and nobody's card. A queue
+     * that collects "the other tenant was down" stops being read, and then the
+     * override that needed a person is in it.
+     */
+    public cloud.jengu.dbo.work.Run pass(int chunkSize) {
+        if (runs == null) {
+            throw new IllegalStateException("this stream was not given anywhere to record runs — "
+                    + "withRuns(...) is how a mechanic becomes a stream somebody can watch");
+        }
+        cloud.jengu.dbo.work.Run sweep = runs.sweep(PROCESS, STEP, dependency.name(),
+                List.of(targetDomain));
+        cloud.jengu.dbo.work.Runs.Pass pass = runs.pass(sweep);
+        long seen = 0;
+        boolean reachable = true;
+        try {
+            seen = syncOnce(chunkSize);
+        } catch (RuntimeException unreachable) {
+            reachable = false;
+            pass.item("upstream:" + dependency.name(),
+                    cloud.jengu.dbo.work.Failure.of(unreachable),
+                    String.valueOf(unreachable.getMessage()));
+        }
+        long applied = reachable ? reconcile() : 0;
+        List<ShadowedEvent> parked = shadowedEvents();
+        for (ShadowedEvent shadow : parked) {
+            pass.item(shadow.typeName() + "/" + shadow.objectId(),
+                    cloud.jengu.dbo.work.Failure.RECORD,
+                    "a local override shadows the upstream version — remove the override and "
+                            + "the upstream version applies again");
+        }
+        List<DeadLetter> undelivered = deadLetters();
+        for (DeadLetter dead : undelivered) {
+            pass.item(dead.typeName() + "/" + dead.objectId(),
+                    cloud.jengu.dbo.work.Failure.RECORD, dead.reason());
+        }
+        return pass.counted("seen", seen)
+                .counted("applied", applied)
+                .counted("parked", parked.size())
+                .counted("undelivered", undelivered.size())
+                .done();
     }
 
     private String consumer() {

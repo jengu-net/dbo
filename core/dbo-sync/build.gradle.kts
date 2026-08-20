@@ -9,6 +9,8 @@ plugins {
 
 dependencies {
     api(project(":core:dbo-core"))
+    // applying a declaration and streaming a dependency are both sweeps (#73)
+    api(project(":core:dbo-work"))
 }
 
 tasks.jar {
