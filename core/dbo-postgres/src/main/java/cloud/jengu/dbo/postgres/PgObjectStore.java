@@ -4,6 +4,7 @@ import cloud.jengu.dbo.core.TypeRegistry;
 import cloud.jengu.dbo.core.UuidV7;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.Envelope;
+import cloud.jengu.dbo.core.api.Caller;
 import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.HandlingRefusedException;
 import cloud.jengu.dbo.core.api.Identifier;
@@ -164,6 +165,16 @@ public final class PgObjectStore implements ObjectStore {
                     "it is published by " + handling.authority() + " and only that lane may "
                             + "write it; an edit made here would be silently overwritten by the "
                             + "next sync, or silently kept");
+        }
+        if (handling.requiresARun() && Caller.run() == null) {
+            // #82: the change would belong to nothing. History would still have
+            // it and audit would still name who, and nobody could say what it
+            // was for — which is also the moment the run stops being a complete
+            // account of what changed, and stops being usable as a manifest.
+            throw new HandlingRefusedException(type.typeName(), "under-a-run",
+                    "every change to it belongs to a piece of work, and this write is inside "
+                            + "none; open a run for it, or declare the type as writable on its "
+                            + "own account");
         }
     }
 

@@ -43,7 +43,8 @@ public final class Runs {
     /** The same over declared storage domains. */
     public Run pipeline(String process, String step, String key, List<String> domains) {
         return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.PIPELINE,
-                Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains), null)));
+                Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains), null,
+                Run.Produced.NOTHING)));
     }
 
     /**
@@ -75,7 +76,8 @@ public final class Runs {
     public Run sweep(String process, String step, String scope, List<String> domains) {
         String key = process + "/" + step + "/" + scope;
         return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.SWEEP,
-                Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains), null)));
+                Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains), null,
+                Run.Produced.NOTHING)));
     }
 
     /** A pass over a sweep: what this round found, and what it therefore closes. */
@@ -103,7 +105,7 @@ public final class Runs {
         return write(new State(UuidV7.newId(), parent.process(), parent.step(), parent.kind(),
                 failure.holder(), parent.key(), parent.correlation(), Map.of(),
                 new Run.Item(reference, failure, message), parent.domains(),
-                parent.assignment()));
+                parent.assignment(), Run.Produced.NOTHING));
     }
 
     /**
@@ -219,6 +221,37 @@ public final class Runs {
                 .filter(run -> run.assignment() != null && run.assignment().until() != null
                         && !run.assignment().until().isAfter(now))
                 .toList();
+    }
+
+    /**
+     * How many versions a run names one by one before it keeps a high-water
+     * mark instead.
+     *
+     * <p>Where a manifest meets "children are exceptions, not an enumeration":
+     * naming every version of a forty-thousand-record run makes the record
+     * itself unreadable, and naming none makes the run a summary of a change
+     * rather than an account of it.
+     */
+    public static final int NAMED_VERSIONS = 200;
+
+    /**
+     * Records a version this run produced (#82).
+     *
+     * <p>Called by whatever wrote it — the store cannot, because a store
+     * writing into the work domain on every content write is the engine
+     * re-entering itself.
+     */
+    public Run produced(Run run, String typeName, String id, long versionId) {
+        Run.Produced before = run.produced();
+        List<String> versions = new ArrayList<>(before.versions());
+        Map<String, Long> watermark = new LinkedHashMap<>(before.watermark());
+        if (versions.size() < NAMED_VERSIONS) {
+            versions.add(typeName + "/" + id + "/" + versionId);
+        } else {
+            watermark.merge(typeName, versionId, Math::max);
+        }
+        return update(run, state(run).withProduced(new Run.Produced(List.copyOf(versions),
+                Map.copyOf(watermark), before.counted() + 1)));
     }
 
     /** A run that succeeded: nothing is owed, and nobody holds it. */
@@ -416,7 +449,7 @@ public final class Runs {
     private State state(Run run) {
         return new State(run.key(), run.process(), run.step(), run.kind(), run.holder(),
                 run.parent(), run.correlation(), run.tally(), run.item(), run.domains(),
-                run.assignment());
+                run.assignment(), run.produced());
     }
 
     private Run write(State state) {
@@ -437,26 +470,31 @@ public final class Runs {
     /** The payload shape, in one place, so no caller authors a run by hand. */
     private record State(String key, String process, String step, RunKind kind, Holder holder,
             String parent, String correlation, Map<String, Long> tally, Run.Item item,
-            List<String> domains, Run.Assignment assignment) {
+            List<String> domains, Run.Assignment assignment, Run.Produced produced) {
 
         State withHolder(Holder holder) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment);
+                    domains, assignment, produced);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, holder, parent, correlation,
-                    Map.copyOf(tally), item, domains, assignment);
+                    Map.copyOf(tally), item, domains, assignment, produced);
         }
 
         State withAssignment(Run.Assignment assignment) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment);
+                    domains, assignment, produced);
+        }
+
+        State withProduced(Run.Produced produced) {
+            return new State(key, process, step, kind, holder, parent, correlation, tally, item,
+                    domains, assignment, produced);
         }
 
         State withCorrelation(String correlation) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment);
+                    domains, assignment, produced);
         }
 
         byte[] payload() {
@@ -503,6 +541,28 @@ public final class Runs {
                     json.append(",\"until\":")
                             .append(Json.quoted(assignment.until().toString()));
                 }
+            }
+            if (produced != null && produced.counted() > 0) {
+                json.append(",\"produced\":{\"counted\":").append(produced.counted());
+                if (!produced.versions().isEmpty()) {
+                    json.append(",\"versions\":[");
+                    for (int i = 0; i < produced.versions().size(); i++) {
+                        json.append(i == 0 ? "" : ",")
+                                .append(Json.quoted(produced.versions().get(i)));
+                    }
+                    json.append(']');
+                }
+                if (!produced.watermark().isEmpty()) {
+                    json.append(",\"watermark\":{");
+                    boolean first = true;
+                    for (Map.Entry<String, Long> mark : produced.watermark().entrySet()) {
+                        json.append(first ? "" : ",").append(Json.quoted(mark.getKey()))
+                                .append(':').append(mark.getValue());
+                        first = false;
+                    }
+                    json.append('}');
+                }
+                json.append('}');
             }
             if (!domains.isEmpty()) {
                 json.append(",\"domains\":[");
