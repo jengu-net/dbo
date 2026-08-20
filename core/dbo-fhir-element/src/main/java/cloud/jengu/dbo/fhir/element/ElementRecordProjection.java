@@ -31,6 +31,7 @@ final class ElementRecordProjection implements RecordProjection {
     private static final String STEP = "urn:dbo:step";
     private static final String TALLY = "urn:dbo:run:tally";
     private static final String CORRELATION = "urn:dbo:correlation";
+    private static final String EXECUTOR = "urn:dbo:executor";
     private static final String AUDIT_CODE_SYSTEM = "urn:dbo:audit";
 
     private final String domain;
@@ -171,7 +172,8 @@ final class ElementRecordProjection implements RecordProjection {
                     .append("\",\"value\":").append(Json.quoted(String.valueOf(run.get("parent"))))
                     .append("}}]");
         }
-        owner(holder, json);
+        owner(run, holder, json);
+        note(run, json);
         focus(run, json);
         output(run, record, json);
         return json.append('}').toString();
@@ -193,12 +195,38 @@ final class ElementRecordProjection implements RecordProjection {
 
     /**
      * Automation owns what it is running; a person-held run names no owner,
-     * because nobody has taken it. Which automation is {@code Device}-shaped
-     * and unnamed until an executor has an identity to give.
+     * because nobody has taken it.
+     *
+     * <p>{@code Device}-shaped, and named by what resolution chose: the name
+     * identifies it, and the display carries the version and the provider,
+     * because a provider can be withdrawn and "which behaviour was that" is the
+     * question a year later.
      */
-    private static void owner(String holder, StringBuilder json) {
-        if ("automation".equals(holder) || "retry".equals(holder)) {
-            json.append(",\"owner\":{\"type\":\"Device\",\"display\":\"dbo\"}");
+    private static void owner(Map<?, ?> run, String holder, StringBuilder json) {
+        if (!"automation".equals(holder) && !"retry".equals(holder)) {
+            return;
+        }
+        json.append(",\"owner\":{\"type\":\"Device\"");
+        if (run.get("executor") instanceof Map<?, ?> executor) {
+            json.append(",\"identifier\":{\"system\":\"").append(EXECUTOR).append("\",\"value\":")
+                    .append(Json.quoted(String.valueOf(executor.get("name")))).append('}')
+                    .append(",\"display\":").append(Json.quoted(
+                            executor.get("name") + " " + executor.get("version")
+                                    + " (" + executor.get("provider") + ")"));
+        } else {
+            json.append(",\"display\":\"dbo\"");
+        }
+        json.append('}');
+    }
+
+    /**
+     * What resolution had to say, where a person reads it: why nothing
+     * automated took this, or what was refused on the way to the one that did.
+     */
+    private static void note(Map<?, ?> run, StringBuilder json) {
+        if (run.get("note") != null) {
+            json.append(",\"note\":[{\"text\":")
+                    .append(Json.quoted(String.valueOf(run.get("note")))).append("}]");
         }
     }
 

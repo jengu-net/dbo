@@ -107,6 +107,48 @@ item references or messages. Progress that reveals what was being processed is a
 disclosure decision rather than a convenience (ADR 0058), and the record itself
 still holds what a person needs in order to act.
 
+### Who runs a step
+
+A step is fully defined — input, output, purpose, who may act — before any runner
+exists. An automated executor is then a rule that claims the cases it can handle, the
+way a mailbox rule does, and everything it does not claim falls through to a person.
+
+**Precedence selects; the step grants the right to override** ([ADR 0059](https://github.com/jengu-net/jengu-platform/blob/main/docs/arc42-009-architecture-decisions/0059-precedence-selects-and-a-step-declares-whether-it-may-be-overridden.md)).
+Resolution walks the overlay chain terminology and configuration already walk — baseline,
+zone, organisation — and offers the work to the most local candidate that is **willing
+and permitted**. Willing is the candidate's answer; permitted is the step's, and **not
+overridable is the default**. Specificity is self-declared, so precedence alone would let
+any party displace a national rule by narrowing its scope. A step that names a class as
+able to override admits everything wider than it too: a step that lets an organisation
+vary it has already accepted that a zone may.
+
+A refused override does not disappear because the step's own executor ran. It is recorded
+on the run, because somebody attempting to displace a rule is a fact about their rule.
+
+**Nothing races.** Candidates are tried one at a time in declared order. Racing them makes
+the same input behave differently under load, doubles external effects — the store makes a
+losing write a no-op, but nothing makes a losing call to somebody else's registry one —
+and splits provenance across two actors, so afterwards nobody can say who did the thing.
+
+**Candidates are asked for, never held.** Existence follows the face registry: a candidate
+is available because something providing it is installed, and a provider can be withdrawn.
+A resolver holding a list keeps selecting an executor that is no longer there.
+
+**The run names what ran it** — the executor, its version, its provider and the scope it
+was chosen at. All four, because a provider can be withdrawn and a scope re-declared, and
+without them a decision made last year cannot be reproduced.
+
+**Whether a step is automated here is declared configuration** on the same chain, and the
+most local declaration wins: an organisation can turn back on what its zone turned off. A
+zone switching automation off is a decision somebody made, not a code path that happens to
+be unreachable.
+
+**What nothing took is a person's, and it is countable** — per step, per zone, off the
+envelope. That number is the automation backlog stated as a fact rather than an opinion,
+and the person holding the work is told which of the three reasons they are looking at:
+nothing claimed it, this zone switched automation off, or a narrower scope tried to
+override a step that does not allow one.
+
 ### dbo's own processes
 
 dbo runs on this model rather than beside it. Two of its own, one of each kind:
@@ -119,6 +161,43 @@ dbo runs on this model rather than beside it. Two of its own, one of each kind:
 The delivery run is keyed by subscription and sequence and the sweep by domain,
 so a step re-executed after a crash finds its run rather than starting a second
 one — a duplicate would double every count taken from it.
+
+### Who runs a step
+
+Manual is the baseline; automation is an attachment. An automated executor is a
+rule that claims the cases it can handle, the way a mailbox rule does, and
+everything it does not claim falls through to a person.
+
+**Precedence selects; the step grants the right to override** ([ADR 0059](https://github.com/jengu-net/jengu-platform/blob/main/docs/arc42-009-architecture-decisions/0059-precedence-selects-and-a-step-declares-whether-it-may-be-overridden.md)).
+Resolution walks the chain terminology and configuration already walk — baseline,
+zone, organisation — and offers the work to the most local candidate that is
+**willing and permitted**. Willing is the candidate's answer; permitted is the
+step's, and *not overridable* is the default. A grant names the most local class
+that may override, and everything wider than it may too: a step that lets an
+organisation vary it has already accepted that a zone may.
+
+**Nothing races.** Candidates are tried one at a time in declared order. Racing
+them makes the same input behave differently under load, doubles external
+effects — the store makes a losing write a no-op, but nothing makes a losing
+call to somebody else's registry one — and splits provenance across two actors.
+
+**Candidates are asked for, never held.** Existence follows the face registry:
+a candidate is available because something providing it is installed, and a
+provider can be withdrawn. A resolver holding a list keeps selecting an executor
+that is no longer there.
+
+**A refused override survives.** When a narrower scope tries to displace a step
+that forbids it, the step's own executor runs and the attempt is recorded on the
+run — a fact about somebody's rule does not stop being one because something
+else ran.
+
+**Whether a step is automated here is declared configuration** on the same
+chain, most local declaration winning. A zone switching automation off is a
+decision somebody made; a step that is simply never reached is not.
+
+**What nothing took is a person's, and countable.** Per step and per zone, that
+number is the automation backlog — a fact rather than an opinion about how much
+is automated.
 
 ### How a run is read
 

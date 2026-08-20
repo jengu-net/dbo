@@ -77,6 +77,15 @@ public final class WorkModel {
                     envelope.value("parent", EnvelopeValue.of(parent)));
             // Echoed, never parsed: a cross-system join queryable from either
             // side, without that system's vocabulary entering the engine.
+            // Where the work happened and what ran it. State, not subject: an
+            // operator counting the fall-through per step and per zone is the
+            // automation backlog, and it must not cost a payload read.
+            field(run, "scope").ifPresent(scope ->
+                    envelope.value("scope", EnvelopeValue.of(scope)));
+            if (((Map<?, ?>) run).get("executor") instanceof Map<?, ?> executor
+                    && executor.get("name") != null) {
+                envelope.value("executor", EnvelopeValue.of(executor.get("name").toString()));
+            }
             field(run, "correlation").ifPresent(correlation ->
                     envelope.value("correlation", EnvelopeValue.of(correlation)));
             counts(run, envelope);

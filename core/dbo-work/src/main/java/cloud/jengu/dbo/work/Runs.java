@@ -43,7 +43,7 @@ public final class Runs {
     /** The same over declared storage domains. */
     public Run pipeline(String process, String step, String key, List<String> domains) {
         return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.PIPELINE,
-                Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains))));
+                Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains), null)));
     }
 
     /**
@@ -75,7 +75,7 @@ public final class Runs {
     public Run sweep(String process, String step, String scope, List<String> domains) {
         String key = process + "/" + step + "/" + scope;
         return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.SWEEP,
-                Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains))));
+                Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains), null)));
     }
 
     /** A pass over a sweep: what this round found, and what it therefore closes. */
@@ -102,7 +102,48 @@ public final class Runs {
     public Run item(Run parent, String reference, Failure failure, String message) {
         return write(new State(UuidV7.newId(), parent.process(), parent.step(), parent.kind(),
                 failure.holder(), parent.key(), parent.correlation(), Map.of(),
-                new Run.Item(reference, failure, message), parent.domains()));
+                new Run.Item(reference, failure, message), parent.domains(),
+                parent.assignment()));
+    }
+
+    /**
+     * What resolution chose, recorded on the run (#72, ADR 0059).
+     *
+     * <p>All four facts, because each answers a different question later:
+     * what ran, which behaviour that was, whose code it was, and under whose
+     * declaration it was chosen.
+     *
+     * @param at where the work is happening — the chain's own tip, which is not
+     *           necessarily the scope the executor was declared at
+     */
+    public Run selected(Run run, Scope at, Executor executor) {
+        return selected(run, at, executor, null);
+    }
+
+    /**
+     * The same, with what resolution refused on the way — an override a
+     * narrower scope attempted against a step that does not allow one. The
+     * step's own executor still ran; that somebody tried to displace it is a
+     * fact about their rule, and a run is where it stays readable.
+     */
+    public Run selected(Run run, Scope at, Executor executor, String note) {
+        return update(run, state(run).withAssignment(new Run.Assignment(at, executor, note)));
+    }
+
+    /**
+     * Nothing automated took it, so a person holds it — and the reason is part
+     * of the record.
+     *
+     * <p>"Nobody automated this step yet", "this zone switched it off" and "a
+     * narrower scope tried to override a step that is not overridable" are
+     * three different facts, and the person holding the work is the one who
+     * needs to know which they are looking at. Counted per step and per zone,
+     * this is the automation backlog.
+     */
+    public Run fellThrough(Run run, Scope at, String reason) {
+        Run recorded = update(run, state(run).withAssignment(
+                new Run.Assignment(at, null, reason)));
+        return held(recorded, Holder.PERSON);
     }
 
     /** A run that succeeded: nothing is owed, and nobody holds it. */
@@ -139,6 +180,19 @@ public final class Runs {
         return store.select(Criteria.of(WorkModel.TYPE)
                         .eq("holder", EnvelopeValue.of(holder.wire()))).stream()
                 .map(Run::of).toList();
+    }
+
+    /**
+     * The automation backlog: work waiting for a person at this step, here
+     * (#72). A number, per step and per zone, rather than an opinion about how
+     * much is automated.
+     */
+    public long backlog(String process, String step, Scope at) {
+        return store.count(Criteria.of(WorkModel.TYPE)
+                .eq("process", EnvelopeValue.of(process))
+                .eq("step", EnvelopeValue.of(step))
+                .eq("scope", EnvelopeValue.of(at.wire()))
+                .eq("holder", EnvelopeValue.of(Holder.PERSON.wire())));
     }
 
     /** The items of a run, open and closed. */
@@ -245,7 +299,8 @@ public final class Runs {
 
     private State state(Run run) {
         return new State(run.key(), run.process(), run.step(), run.kind(), run.holder(),
-                run.parent(), run.correlation(), run.tally(), run.item(), run.domains());
+                run.parent(), run.correlation(), run.tally(), run.item(), run.domains(),
+                run.assignment());
     }
 
     private Run write(State state) {
@@ -266,21 +321,26 @@ public final class Runs {
     /** The payload shape, in one place, so no caller authors a run by hand. */
     private record State(String key, String process, String step, RunKind kind, Holder holder,
             String parent, String correlation, Map<String, Long> tally, Run.Item item,
-            List<String> domains) {
+            List<String> domains, Run.Assignment assignment) {
 
         State withHolder(Holder holder) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains);
+                    domains, assignment);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, holder, parent, correlation,
-                    Map.copyOf(tally), item, domains);
+                    Map.copyOf(tally), item, domains, assignment);
+        }
+
+        State withAssignment(Run.Assignment assignment) {
+            return new State(key, process, step, kind, holder, parent, correlation, tally, item,
+                    domains, assignment);
         }
 
         State withCorrelation(String correlation) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains);
+                    domains, assignment);
         }
 
         byte[] payload() {
@@ -307,6 +367,22 @@ public final class Runs {
                     json.append(Json.quoted(count.getKey())).append(':').append(count.getValue());
                 }
                 json.append('}');
+            }
+            if (assignment != null) {
+                if (assignment.at() != null) {
+                    json.append(",\"scope\":").append(Json.quoted(assignment.at().wire()));
+                }
+                if (assignment.executor() != null) {
+                    Executor executor = assignment.executor();
+                    json.append(",\"executor\":{\"name\":").append(Json.quoted(executor.name()))
+                            .append(",\"version\":").append(Json.quoted(executor.version()))
+                            .append(",\"provider\":").append(Json.quoted(executor.provider()))
+                            .append(",\"scope\":").append(Json.quoted(executor.scope().wire()))
+                            .append('}');
+                }
+                if (assignment.note() != null) {
+                    json.append(",\"note\":").append(Json.quoted(assignment.note()));
+                }
             }
             if (!domains.isEmpty()) {
                 json.append(",\"domains\":[");
