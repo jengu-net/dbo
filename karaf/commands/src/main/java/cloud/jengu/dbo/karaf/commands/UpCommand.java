@@ -105,7 +105,7 @@ public class UpCommand implements Action {
      * returns, which is also why it is the last thing {@code up} does.
      */
     private static void rewireSelf(BundleContext context) {
-        if (Runs.available()) {
+        if (Wiring.available()) {
             return;
         }
         Bundle self = FrameworkUtil.getBundle(UpCommand.class);
