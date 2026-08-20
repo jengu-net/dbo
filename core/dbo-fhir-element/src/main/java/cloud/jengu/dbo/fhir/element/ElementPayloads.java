@@ -1,6 +1,7 @@
 package cloud.jengu.dbo.fhir.element;
 
 import cloud.jengu.dbo.core.face.Payloads;
+import cloud.jengu.dbo.core.face.Payloads.Issue;
 import cloud.jengu.dbo.core.face.ReadOnce;
 import org.hl7.fhir.r5.context.SimpleWorkerContext;
 import org.hl7.fhir.r5.elementmodel.Element;
@@ -71,16 +72,60 @@ final class ElementPayloads implements Payloads<Element> {
 
         @Override
         public List<String> validate(String typeName, Element document) {
+            return refusals(check(typeName, document, null));
+        }
+
+        /**
+         * Everything the validator had to say, at every severity (#50).
+         *
+         * <p>Only the errors used to survive, which threw away the half of the
+         * answer this store is best placed to give: an <b>extensible</b>
+         * binding violated is advice, a <b>preferred</b> one is a suggestion,
+         * and a code from a system nothing here carries is <b>unresolvable</b>
+         * rather than wrong — a different fact, with a different fix, in
+         * somebody else's hands. Reporting all three as errors would be worse
+         * than reporting none, because callers learn to ignore an outcome that
+         * cries wolf; discarding them, which is what happened, taught callers
+         * nothing at all.
+         *
+         * <p>The write path still refuses on errors alone. One evaluation, two
+         * readings.
+         */
+        @Override
+        public List<Issue> check(String typeName, Element document, String shapeReference) {
             List<ValidationMessage> messages = new ArrayList<>();
             // The path a message is reported against: the document's own type,
             // since a caller reading "Patient.name[0]" can find it and a caller
             // reading "[0]" cannot.
-            validator().validate(null, messages, document.fhirType(), document);
-            return messages.stream()
-                    .filter(m -> m.getLevel() == ValidationMessage.IssueSeverity.ERROR
-                            || m.getLevel() == ValidationMessage.IssueSeverity.FATAL)
-                    .map(m -> m.getLevel() + " " + m.getLocation() + ": " + m.getMessage())
+            if (shapeReference == null || shapeReference.isBlank()) {
+                validator().validate(null, messages, document.fhirType(), document);
+            } else {
+                if (context.fetchResource(org.hl7.fhir.r5.model.StructureDefinition.class,
+                        shapeReference) == null) {
+                    // Checked here rather than left to the validator, which
+                    // throws for a profile it cannot locate — an exception the
+                    // caller sees as a broken server rather than as an answer
+                    // about a shape nobody here carries.
+                    return List.of(new Issue(Issue.ERROR, document.fhirType(),
+                            "the shape '" + shapeReference + "' is not one this face carries, "
+                                    + "so nothing was checked against it"));
+                }
+                validator().validate(null, messages, document.fhirType(), document,
+                        shapeReference);
+            }
+            return messages.stream().map(m -> new Issue(severityOf(m),
+                            m.getLocation() == null ? document.fhirType() : m.getLocation(),
+                            m.getMessage()))
                     .toList();
+        }
+
+        /** FHIR's severities, as an outcome spells them. */
+        private static String severityOf(ValidationMessage message) {
+            return switch (message.getLevel()) {
+                case FATAL, ERROR -> Issue.ERROR;
+                case WARNING -> "warning";
+                default -> "information";
+            };
         }
 
         /**
@@ -95,20 +140,13 @@ final class ElementPayloads implements Payloads<Element> {
          */
         @Override
         public List<String> validate(String typeName, Element document, String shapeReference) {
-            if (shapeReference == null || shapeReference.isBlank()) {
-                return validate(typeName, document);
-            }
-            if (context.fetchResource(org.hl7.fhir.r5.model.StructureDefinition.class,
-                    shapeReference) == null) {
-                return List.of("ERROR " + document.fhirType() + ": the shape '" + shapeReference
-                        + "' is not one this face carries, so nothing was checked against it");
-            }
-            List<ValidationMessage> messages = new ArrayList<>();
-            validator().validate(null, messages, document.fhirType(), document, shapeReference);
-            return messages.stream()
-                    .filter(m -> m.getLevel() == ValidationMessage.IssueSeverity.ERROR
-                            || m.getLevel() == ValidationMessage.IssueSeverity.FATAL)
-                    .map(m -> m.getLevel() + " " + m.getLocation() + ": " + m.getMessage())
+            return refusals(check(typeName, document, shapeReference));
+        }
+
+        /** The refusing half: what a write is held to. */
+        private static List<String> refusals(List<Issue> issues) {
+            return issues.stream().filter(Issue::refuses)
+                    .map(issue -> "ERROR " + issue.location() + ": " + issue.message())
                     .toList();
         }
 
@@ -175,6 +213,12 @@ final class ElementPayloads implements Payloads<Element> {
     @Override
     public List<String> validate(String typeName, Element document, String shapeReference) {
         return reading.validate(typeName, document, shapeReference);
+    }
+
+    /** Everything, at every severity (#50). */
+    @Override
+    public List<Issue> check(String typeName, Element document, String shapeReference) {
+        return reading.check(typeName, document, shapeReference);
     }
 
     @Override

@@ -98,6 +98,12 @@ public final class ReadOnce<D> implements Payloads<D> {
         return delegate.validate(typeName, document, shapeReference);
     }
 
+    /** Everything the face has to say, forwarded like the rest (#50). */
+    @Override
+    public List<Issue> check(String typeName, D document, String shapeReference) {
+        return delegate.check(typeName, document, shapeReference);
+    }
+
     @Override
     public byte[] write(D document) {
         return delegate.write(document);

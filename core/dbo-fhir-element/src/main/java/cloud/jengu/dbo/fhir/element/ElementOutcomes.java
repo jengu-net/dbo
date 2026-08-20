@@ -60,6 +60,57 @@ final class ElementOutcomes {
         return out.append("]}").toString();
     }
 
+    /**
+     * The verdict with everything the face had to say, at the severity it said
+     * it (#50).
+     *
+     * <p>What a caller does with a warning is their business; what they cannot
+     * do is act on advice nobody gave them. The code is {@code invalid} for a
+     * refusal and {@code code-invalid} for the rest, because the rest is almost
+     * always a binding — and {@code not-found} when the store could not resolve
+     * the system at all, which is a statement about this store's content rather
+     * than about the caller's data.
+     */
+    static String issues(java.util.List<cloud.jengu.dbo.core.face.Payloads.Issue> issues,
+            String profile) {
+        if (issues.isEmpty()) {
+            return "{\"resourceType\":\"OperationOutcome\",\"issue\":[{\"severity\":\"information\","
+                    + "\"code\":\"informational\",\"diagnostics\":"
+                    + quoted(profile == null ? "No issues detected"
+                            : "No issues detected against " + profile) + "}]}";
+        }
+        StringBuilder out = new StringBuilder("{\"resourceType\":\"OperationOutcome\",\"issue\":[");
+        boolean first = true;
+        for (cloud.jengu.dbo.core.face.Payloads.Issue issue : issues) {
+            if (!first) {
+                out.append(',');
+            }
+            first = false;
+            out.append("{\"severity\":").append(quoted(issue.severity()))
+                    .append(",\"code\":").append(quoted(codeFor(issue)))
+                    .append(",\"expression\":[").append(quoted(issue.location())).append(']')
+                    .append(",\"diagnostics\":").append(quoted(profile == null
+                            ? issue.message() : issue.message() + " (against " + profile + ")"))
+                    .append('}');
+        }
+        return out.append("]}").toString();
+    }
+
+    /**
+     * Unresolvable is not invalid: a code from a system this tenant does not
+     * hold says the store's content is incomplete, and telling a caller their
+     * data is wrong for it sends them to fix the wrong thing.
+     */
+    private static String codeFor(cloud.jengu.dbo.core.face.Payloads.Issue issue) {
+        String message = issue.message() == null ? "" : issue.message().toLowerCase(
+                java.util.Locale.ROOT);
+        if (message.contains("could not be found") || message.contains("unknown code system")
+                || message.contains("not been checked") || message.contains("can't be found")) {
+            return "not-found";
+        }
+        return issue.refuses() ? "invalid" : "code-invalid";
+    }
+
     static String outcome(String issueCode, String diagnostics) {
         return "{\"resourceType\":\"OperationOutcome\",\"issue\":[{\"severity\":\"error\",\"code\":"
                 + quoted(issueCode) + ",\"diagnostics\":" + quoted(diagnostics) + "}]}";
