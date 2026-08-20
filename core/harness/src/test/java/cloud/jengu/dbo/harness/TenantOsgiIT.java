@@ -140,7 +140,16 @@ class TenantOsgiIT {
 
         String base = "http://127.0.0.1:" + httpPort + "/t/konteiner/fhir";
         HttpClient http = HttpClient.newHttpClient();
-        long deadline = System.currentTimeMillis() + 60_000;
+        // A LIVENESS wait, not a budget. What it asserts is that a spec file
+        // alone brings a tenant up in a container — and how long that takes on
+        // a shared CI runner is not this test's subject: the comparable flow in
+        // EmbeddedContainerIT measured 81s there while this gave up at 60,
+        // which made a passing assertion a coin flip on machine speed.
+        //
+        // The budget that IS a subject lives in ServerDistIT, where a cold
+        // start is measured against a number somebody chose. Two waits, two
+        // meanings; only one of them should fail when a runner is busy.
+        long deadline = System.currentTimeMillis() + 180_000;
         int status = 0;
         while (System.currentTimeMillis() < deadline) {
             try {
