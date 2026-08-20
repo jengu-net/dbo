@@ -146,6 +146,81 @@ public final class Runs {
         return held(recorded, Holder.PERSON);
     }
 
+    /**
+     * Takes this run, or does not (#77).
+     *
+     * <p><b>At-most-one actor needs no lease service.</b> The claim is a
+     * conditional write against the version the claimant saw: two participants
+     * racing one run produce one winner and one {@link
+     * cloud.jengu.dbo.core.api.VersionConflictException}, and the loser takes
+     * the next run rather than coordinating about this one.
+     *
+     * <p><b>This is also the dedup point.</b> Delivery is at-least-once, so a
+     * participant will see the same run twice; a run already claimed and still
+     * inside its deadline is refused, including to whoever claimed it. A
+     * participant's own bookkeeping must not be the thing that saves it.
+     *
+     * @param until when the claim lapses. A dead participant must not hold work
+     *              for ever, and nothing but the clock is going to notice.
+     * @return the claimed run, or empty when somebody else holds it
+     */
+    public Optional<Run> claim(Run seen, Executor by, java.time.Instant until) {
+        Run current = byKey(seen.key()).orElse(null);
+        if (current == null || current.claimed(java.time.Instant.now())) {
+            return Optional.empty();
+        }
+        State claimed = state(current).withAssignment(
+                new Run.Assignment(current.assignment() == null ? null : current.assignment().at(),
+                        by, null, until)).withHolder(Holder.AUTOMATION);
+        try {
+            store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
+                    claimed.payload()));
+        } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
+            // Somebody wrote between the read and the write, which for a claim
+            // means somebody else took it. Not an error: it is the answer.
+            return Optional.empty();
+        }
+        return byKey(seen.key());
+    }
+
+    /**
+     * Progress, which is what extends a claim (#77).
+     *
+     * <p>A checkpoint and never a heartbeat: a tick proves a process is alive,
+     * and what a deadline is protecting against is a process that is alive and
+     * getting nowhere. Counts are the evidence, and they are on the record
+     * anyway.
+     */
+    public Run checkpoint(Run run, Map<String, Long> counts, java.time.Instant until) {
+        Run tallied = counts.isEmpty() ? run : tally(run, counts);
+        return update(tallied, state(tallied).withAssignment(new Run.Assignment(
+                tallied.assignment() == null ? null : tallied.assignment().at(),
+                tallied.assignment() == null ? null : tallied.assignment().executor(),
+                tallied.assignment() == null ? null : tallied.assignment().note(), until)));
+    }
+
+    /**
+     * Hands back what a claim no longer holds (#77).
+     *
+     * <p>Released, not done — the difference is the whole point of a deadline.
+     * A run that says "done" because whoever held it stopped answering is the
+     * failure this exists to prevent.
+     */
+    public Run released(Run run, String because) {
+        return update(run, state(run).withAssignment(new Run.Assignment(
+                run.assignment() == null ? null : run.assignment().at(), null, because, null)));
+    }
+
+    /** Claims that have lapsed, so somebody can take them again. */
+    public List<Run> lapsed(java.time.Instant now) {
+        return store.select(Criteria.of(WorkModel.TYPE)
+                        .eq("holder", EnvelopeValue.of(Holder.AUTOMATION.wire()))).stream()
+                .map(Run::of)
+                .filter(run -> run.assignment() != null && run.assignment().until() != null
+                        && !run.assignment().until().isAfter(now))
+                .toList();
+    }
+
     /** A run that succeeded: nothing is owed, and nobody holds it. */
     public Run closed(Run run) {
         return held(run, Holder.NOBODY);
@@ -175,6 +250,11 @@ public final class Runs {
      */
     public Run correlated(Run run, String correlation) {
         return update(run, state(run).withCorrelation(correlation));
+    }
+
+    /** A run by the store's id, which is what a feed event names. */
+    public Optional<Run> byId(String id) {
+        return store.get(WorkModel.TYPE, id).map(Run::of);
     }
 
     /** A run by its own key. */
@@ -418,6 +498,10 @@ public final class Runs {
                 }
                 if (assignment.note() != null) {
                     json.append(",\"note\":").append(Json.quoted(assignment.note()));
+                }
+                if (assignment.until() != null) {
+                    json.append(",\"until\":")
+                            .append(Json.quoted(assignment.until().toString()));
                 }
             }
             if (!domains.isEmpty()) {

@@ -34,8 +34,25 @@ public record Run(String id, long versionId, String key, String process, String 
      *                 it refused on the way to the one that did — a refused
      *                 override is a fact about somebody's rule and does not
      *                 stop being one because the step's own executor ran
+     * @param until    how long the claim holds (#77), or null when nothing is
+     *                 claimed. A deadline rather than a lease service: a
+     *                 participant that dies mid-claim must not hold work for
+     *                 ever, and the only thing that can be relied on to notice
+     *                 is the clock
      */
-    public record Assignment(Scope at, Executor executor, String note) {}
+    public record Assignment(Scope at, Executor executor, String note, java.time.Instant until) {
+
+        /** An assignment nothing is holding to a deadline. */
+        public Assignment(Scope at, Executor executor, String note) {
+            this(at, executor, note, null);
+        }
+    }
+
+    /** Whether somebody is holding this run right now, rather than for ever. */
+    public boolean claimed(java.time.Instant now) {
+        return assignment != null && assignment.until() != null
+                && assignment.until().isAfter(now);
+    }
 
     /**
      * The storage domains this run's work concerned — {@code r4}, {@code
@@ -102,11 +119,14 @@ public record Run(String id, long versionId, String key, String process, String 
             executor = new Executor(str(raw, "name"), str(raw, "version"), str(raw, "provider"),
                     Scope.of(str(raw, "scope")));
         }
-        if (at == null && executor == null && note == null) {
+        if (at == null && executor == null && note == null
+                && ((Map<?, ?>) json).get("until") == null) {
             return null;
         }
+        Object until = ((Map<?, ?>) json).get("until");
         return new Assignment(Scope.of(at == null ? null : at.toString()), executor,
-                note == null ? null : note.toString());
+                note == null ? null : note.toString(),
+                until == null ? null : java.time.Instant.parse(until.toString()));
     }
 
     /** Whether this run is in front of a person because nothing automated took it. */
