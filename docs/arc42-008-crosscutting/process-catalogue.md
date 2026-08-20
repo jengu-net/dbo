@@ -270,6 +270,27 @@ handed back saying exactly that.
 the second lever and is not built: competition is fine at small N, and a
 partition hint belongs on the run only once one step has measurably outgrown it.
 
+### Who can run a step here
+
+**An executor exists because something announced itself**, the way a face is
+served because a bundle providing it is installed. A participant declares
+process › step, scope, version and provider as a record in the tenant's store,
+and resolution walks those declarations rather than this container's bundles — so
+a local implementation and a hospital's own system are two candidates for the
+same step, ordered by the overlay chain rather than by which machine they are on.
+
+**A declaration is a claim to be a candidate, never a grant.** What a participant
+may actually take stays the intersection of its scopes and what the step admits;
+a step cannot grant its executor more than the executor already holds, and a
+record saying otherwise does not change that.
+
+**Presence is derived.** A participant is present while its cursor moves, so a
+declaration whose consumer is behind and unmoving is *declared but not present* —
+skipped by resolution, and shown to an operator as exactly that, which is a
+different sentence from "nothing is declared". The trap worth naming: **a
+caught-up participant's cursor does not move either**, so silence with nothing
+waiting is not absence, and only silence with work waiting is.
+
 **A step declares the actions it contains.** Open a task, close it, reopen a
 closed one. Roles narrow *actions within* a step — an operator works the open
 tasks, a supervisor also reaches the closed ones — so without declared actions
