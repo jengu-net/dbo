@@ -26,7 +26,8 @@ import java.util.Map;
 @Service
 public class RunDescribeCommand implements Action {
 
-    @Argument(index = 0, required = true, description = "The run's key.")
+    @Argument(index = 0, description = "The run's key. Without one, the keys there are.")
+    @org.apache.karaf.shell.api.action.Completion(RunKeyCompleter.class)
     private String key;
 
     @Option(name = "--tenant", description = "Where to look; every tenant by default.")
@@ -39,6 +40,14 @@ public class RunDescribeCommand implements Action {
             return null;
         }
         BundleContext context = FrameworkUtil.getBundle(getClass()).getBundleContext();
+        if (key == null) {
+            // A key is a path nobody memorises, and this is the only place it
+            // exists. Refusing the command and naming the missing argument
+            // tells somebody what they typed wrong; showing the keys tells them
+            // what to type next.
+            offerKeys(context);
+            return null;
+        }
         for (Map.Entry<String, cloud.jengu.dbo.work.Runs> entry
                 : Runs.byTenant(context, tenant).entrySet()) {
             java.util.Optional<Run> found = entry.getValue().byKey(key);
@@ -50,6 +59,30 @@ public class RunDescribeCommand implements Action {
         System.out.println("No run with that key is recorded"
                 + (tenant == null ? " in any tenant this node serves." : " in " + tenant + "."));
         return null;
+    }
+
+    /** What there is to describe, when somebody has not said which. */
+    private void offerKeys(BundleContext context) {
+        ShellTable table = new ShellTable();
+        table.column("TENANT");
+        table.column("HOLDER");
+        table.column("KEY");
+        int rows = 0;
+        for (Map.Entry<String, cloud.jengu.dbo.work.Runs> entry
+                : Runs.byTenant(context, tenant).entrySet()) {
+            for (Run run : entry.getValue().matching(null, null, null, 20)) {
+                rows++;
+                table.addRow().addContent(entry.getKey(), run.holder().wire(), run.key());
+            }
+        }
+        if (rows == 0) {
+            System.out.println("Nothing is recorded here yet, so there is nothing to describe.");
+            return;
+        }
+        System.out.println("Which run? Newest first" + (tenant == null ? "" : " in " + tenant)
+                + " — tab completes these:");
+        System.out.println();
+        table.print(System.out);
     }
 
     private static void print(String tenant, cloud.jengu.dbo.work.Runs runs, Run run) {
