@@ -8,8 +8,10 @@ import cloud.jengu.dbo.fhir.r4.R4FhirVersion;
 import cloud.jengu.dbo.fhir.r5.R5FhirVersion;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.work.Failure;
+import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
+import cloud.jengu.dbo.work.Scope;
 import cloud.jengu.dbo.work.WorkModel;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -91,6 +93,31 @@ class RunsRenderIT {
         Payloads payloads = face.require(Payloads.class);
         Object parsed = payloads.read("Bundle", document.getBytes(StandardCharsets.UTF_8));
         return payloads.validate("Bundle", parsed);
+    }
+
+    @Test
+    @DisplayName("what ran a step, and what it was refused, are on the rendered run too")
+    void theExecutorAndTheNoteRender() {
+        for (String code : List.of("r4", "r5", "r6")) {
+            Run running = runs.pipeline("dbo.claims.adjudication", "adjudicate",
+                    "dbo.claims.adjudication/adjudicate/" + code, List.of(code));
+            Run chosen = runs.selected(running, Scope.organisation("hogwarts"),
+                    new Executor("ee-adjudicator", "2.1", "cloud.jengu.insurance",
+                            Scope.zone("ee")),
+                    "step dbo.claims.adjudication/adjudicate is not overridable, and "
+                            + "organisation:hogwarts tried");
+
+            DomainFace face = faceOf(code);
+            String document = face.require(RecordProjection.class)
+                    .project(runs.asRecord(chosen)).orElseThrow();
+
+            assertTrue(document.contains("ee-adjudicator 2.1 (cloud.jengu.insurance)"),
+                    code + ": which behaviour ran is the question a year later — " + document);
+            assertTrue(document.contains("organisation:hogwarts tried"),
+                    code + ": a refused override is a fact about somebody's rule — " + document);
+            assertEquals(List.of(), validation(face, document),
+                    code + " refused a document its own face built: " + document);
+        }
     }
 
     @Test

@@ -16,7 +16,26 @@ import java.util.Optional;
  */
 public record Run(String id, long versionId, String key, String process, String step,
         RunKind kind, Holder holder, String parent, String correlation,
-        Map<String, Long> tally, Item item, java.util.List<String> domains) {
+        Map<String, Long> tally, Item item, java.util.List<String> domains,
+        Assignment assignment) {
+
+    /**
+     * Who was chosen to run this and where — or, when nobody was, why the work
+     * is in front of a person (#72, ADR 0059).
+     *
+     * <p>Recorded rather than derivable: a provider can be withdrawn and a
+     * scope can be re-declared, so a resolution nobody wrote down is a decision
+     * nobody can reproduce a year later.
+     *
+     * @param at       where the work happened, which is what makes the
+     *                 fall-through countable per zone rather than in total
+     * @param executor what took it, or null when nothing did
+     * @param note     what resolution has to say: why nothing took it, or what
+     *                 it refused on the way to the one that did — a refused
+     *                 override is a fact about somebody's rule and does not
+     *                 stop being one because the step's own executor ran
+     */
+    public record Assignment(Scope at, Executor executor, String note) {}
 
     /**
      * The storage domains this run's work concerned — {@code r4}, {@code
@@ -72,7 +91,28 @@ public record Run(String id, long versionId, String key, String process, String 
                 Json.str(json, "process"), Json.str(json, "step"),
                 RunKind.of(Json.str(json, "kind")), Holder.of(Json.str(json, "holder")),
                 optional(json, "parent"), optional(json, "correlation"),
-                Map.copyOf(tally), item, java.util.List.copyOf(domains));
+                Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment(json));
+    }
+
+    private static Assignment assignment(Object json) {
+        Object at = ((Map<?, ?>) json).get("scope");
+        Object note = ((Map<?, ?>) json).get("note");
+        Executor executor = null;
+        if (((Map<?, ?>) json).get("executor") instanceof Map<?, ?> raw) {
+            executor = new Executor(str(raw, "name"), str(raw, "version"), str(raw, "provider"),
+                    Scope.of(str(raw, "scope")));
+        }
+        if (at == null && executor == null && note == null) {
+            return null;
+        }
+        return new Assignment(Scope.of(at == null ? null : at.toString()), executor,
+                note == null ? null : note.toString());
+    }
+
+    /** Whether this run is in front of a person because nothing automated took it. */
+    public boolean fellThrough() {
+        return assignment != null && assignment.executor() == null
+                && assignment.note() != null;
     }
 
     private static String optional(Object json, String field) {
