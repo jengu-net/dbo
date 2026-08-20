@@ -114,6 +114,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
             new ConcurrentHashMap<>();
     /** Where a tenant's runs are written: the engine, under the policy decorator. */
     private final Map<String, ObjectStore> runStores = new ConcurrentHashMap<>();
+    /** What went wrong for a tenant that is not serving, and whose problem it is. */
+    private final Map<String, Trouble> trouble = new ConcurrentHashMap<>();
+    /** The tenant this deployment's own history lives in (#74, ADR 0061). */
+    private volatile String managementCode;
+
+    /** A tenant that is not serving, and why — the reason a card has to carry. */
+    private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
     private volatile long lastSweepMillis;
     private volatile Thread scanner;
     private volatile boolean running;
@@ -209,6 +216,45 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return Optional.ofNullable(runtimes.get(code));
     }
 
+    /**
+     * Brings up the tenant that records what this deployment does about the
+     * others (#74, ADR 0061).
+     *
+     * <p>The managing party is <b>a tenant like the others</b> — the juridical
+     * body operating the deployment, distinguished by role rather than by
+     * position — so management history is ordinary records in an ordinary
+     * store, inheriting authority, roles, audit, export, feeds and erasure from
+     * machinery that already exists. No plane, no store outside every tenant,
+     * no bespoke retention rule.
+     *
+     * <p>Declared by deployment configuration rather than by a file in the
+     * watched directory, so <b>the scan loop that retracts tenants cannot
+     * retract the thing recording retractions</b>.
+     *
+     * <p>A deployment whose management tenant will not come up serves nothing:
+     * this throws, and that is the one failure with nowhere to be recorded —
+     * it belongs in the log and the exit code.
+     *
+     * <p>Single-tenant deployments are not a special mode. The management
+     * tenant is the tenant, and the serving sweep has one item.
+     */
+    public synchronized String manages(Path specFile) {
+        TenantSpec spec;
+        try {
+            spec = TenantSpec.parse(Files.readString(specFile));
+        } catch (IOException e) {
+            throw new UncheckedIOException("the management tenant's spec cannot be read: "
+                    + specFile, e);
+        }
+        if (!runtimes.containsKey(spec.code())) {
+            bringUp(spec);
+            states.put(spec.code(), TenantState.State.SERVING);
+            LOG.info("management tenant up: code={}", spec.code());
+        }
+        managementCode = spec.code();
+        return spec.code();
+    }
+
     /** One deterministic reconciliation round. Returns codes currently served. */
     public synchronized Set<String> scanOnce() {
         Set<String> declared = new HashSet<>();
@@ -219,6 +265,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             TenantSpec spec = TenantSpec.parse(Files.readString(f));
                             declared.add(spec.code());
                             states.putIfAbsent(spec.code(), TenantState.State.COMING_UP);
+                            trouble.remove(spec.code());
+                            trouble.remove("spec:" + f.getFileName());
                             if (!runtimes.containsKey(spec.code())) {
                                 long began = System.nanoTime();
                                 bringUp(spec);
@@ -248,6 +296,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     e instanceof UpstreamNotReady
                                             ? TenantState.State.COMING_UP
                                             : TenantState.State.FAILED));
+                            // What an operator has to be told, kept where the
+                            // sweep can find it: a spec that will never parse
+                            // has no tenant to be a state of, so it is named by
+                            // the file it is — which is what somebody has to
+                            // open to fix it.
+                            trouble.put(codeOf(f).orElse("spec:" + f.getFileName()),
+                                    new Trouble(e instanceof UpstreamNotReady
+                                            ? cloud.jengu.dbo.work.Failure.TRANSIENT
+                                            : cloud.jengu.dbo.work.Failure.of(e),
+                                            String.valueOf(e)));
                             if (e instanceof UpstreamNotReady notReady) {
                                 // Expected on the way up, so it is not an error
                                 // and does not enter the suppression set: the
@@ -267,15 +325,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
             throw new UncheckedIOException(e);
         }
         for (String code : Set.copyOf(runtimes.keySet())) {
-            if (!declared.contains(code)) {
-                takeDown(code);
+            // The management tenant is declared by configuration and is not in
+            // this directory, so the loop that retracts undeclared tenants
+            // would retract the thing recording retractions.
+            if (!declared.contains(code) && !code.equals(managementCode)) {
+                takeDown(code, "the declaration was withdrawn");
             }
         }
         // A tenant nobody declares any more is not a tenant this runtime has a
         // state about: retraction is not a failure, and reporting it as one
         // would make every removal look like a fault.
+        if (managementCode != null) {
+            declared.add(managementCode);
+        }
         states.keySet().retainAll(declared);
+        trouble.keySet().removeIf(key -> !declared.contains(key) && !key.startsWith("spec:"));
         rollup();
+        recordServing();
         return codes();
     }
 
@@ -716,7 +782,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 .orElse(authorityConfig.subjectSystem());
     }
 
-    private void takeDown(String code) {
+    private void takeDown(String code, String because) {
         TenantRuntime runtime = runtimes.remove(code);
         if (runtime == null) {
             return;
@@ -724,7 +790,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // Retraction, not erasure: the tenant stops being served and its
         // database stays. Deprovision is the destructive one and says so
         // separately.
-        LOG.info("tenant down: code={} reason=undeclared", code);
+        LOG.info("tenant down: code={} reason={}", code,
+                because == null ? "shutdown" : because);
+        if (because != null) {
+            // Shutdown is not a retraction: the deployment stopping is not a
+            // decision about any tenant, and recording one per tenant every
+            // time the process ends would bury the retractions that were.
+            recordRetraction(code, because);
+        }
         listener.tenantDown(code);
         runtime.endpoint().close();
         sweeps.remove(code);
@@ -738,6 +811,145 @@ public final class TenantRuntimeManager implements AutoCloseable {
             sharedServer.removeContext(oidcPath);
         }
         provisioner.release(code);
+    }
+
+    // --------------------------------------------------- management history
+
+    /** Tenant management as a process: observe, serve, retract, erase (#74). */
+    public static final String TENANT_PROCESS = "dbo.tenant.serving";
+
+    /** The sweep: what this deployment is doing about the tenants it was told about. */
+    public static final String SERVE_STEP = "serve";
+
+    /** Stopping serving. The tenant's data is untouched. */
+    public static final String RETRACT_STEP = "retract";
+
+    /** Removing the data. An operator act, and never a sweep's. */
+    public static final String ERASE_STEP = "erase";
+
+    /**
+     * Where this deployment's own history goes, or empty when nobody is
+     * managing — a mechanic with no management tenant records nothing rather
+     * than inventing somewhere to write.
+     */
+    private Optional<cloud.jengu.dbo.work.Runs> managementRuns() {
+        ObjectStore store = managementCode == null ? null : runStores.get(managementCode);
+        return Optional.ofNullable(store).map(cloud.jengu.dbo.work.Runs::new);
+    }
+
+    /**
+     * The serving sweep: one item per tenant that is not serving, in the
+     * management tenant's own store (#74).
+     *
+     * <p>Written from {@link #tenantStates()} rather than from a second walk of
+     * the directory — the three states are the same reasoning, and reasoning
+     * that arrives twice disagrees with itself eventually. {@code
+     * /runtime/tenants} stays deployment-level and keeps answering with the
+     * management tenant down; this is the same answer, recorded.
+     */
+    private void recordServing() {
+        managementRuns().ifPresent(runs -> {
+            try {
+                // Over the work domain and nothing a face claims: what this
+                // deployment does about tenants is not clinical work, and
+                // rendering it beside clinical work is how it would read as
+                // some.
+                cloud.jengu.dbo.work.Run sweep = runs.sweep(TENANT_PROCESS, SERVE_STEP,
+                        "deployment",
+                        java.util.List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN));
+                cloud.jengu.dbo.work.Runs.Pass pass = runs.pass(sweep);
+                long serving = 0;
+                long comingUp = 0;
+                long failed = 0;
+                for (TenantState state : tenantStates()) {
+                    switch (state.state()) {
+                        case SERVING -> serving++;
+                        case COMING_UP -> comingUp++;
+                        case FAILED -> failed++;
+                        default -> { }
+                    }
+                }
+                for (Map.Entry<String, Trouble> entry : trouble.entrySet()) {
+                    pass.item(entry.getKey(), entry.getValue().failure(),
+                            entry.getValue().reason());
+                }
+                // A file that never parsed has no tenant to be a state of, and
+                // is counted where it can be seen rather than nowhere.
+                failed += trouble.keySet().stream().filter(key -> key.startsWith("spec:")).count();
+                pass.counted("serving", serving)
+                        .counted("coming_up", comingUp)
+                        .counted("failed", failed)
+                        .done();
+            } catch (RuntimeException e) {
+                // The deployment keeps serving tenants when its own bookkeeping
+                // cannot be written: management history is a record of the
+                // work, not a condition of it.
+                LOG.warn("the serving sweep could not be recorded; tenants are unaffected", e);
+            }
+        });
+    }
+
+    /**
+     * A retraction, recorded with who did it — or, when nobody did, with what
+     * happened instead (#74).
+     *
+     * <p>"Who retracted that tenant?" had no answer, because the actor was a
+     * process reading a directory. It still is, sometimes, and that is now
+     * something the record says rather than something it omits.
+     */
+    private void recordRetraction(String code, String because) {
+        managementRuns().ifPresent(runs -> {
+            try {
+                cloud.jengu.dbo.work.Run retraction = runs.pipeline(TENANT_PROCESS, RETRACT_STEP,
+                        TENANT_PROCESS + "/" + RETRACT_STEP + "/" + code + "/"
+                                + java.time.Instant.now(),
+                        java.util.List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN));
+                // the recorded run, not the one before it: closing the stale
+                // handle would write its state back over what was just said
+                runs.closed(runs.selected(retraction,
+                        cloud.jengu.dbo.work.Scope.organisation(code), actor(), because));
+            } catch (RuntimeException e) {
+                LOG.warn("a retraction could not be recorded; the tenant is retracted", e);
+            }
+        });
+    }
+
+    /**
+     * Whoever is acting, as an executor names itself: a person with a
+     * credential in the management tenant, or the scan loop when nobody asked.
+     */
+    private static cloud.jengu.dbo.work.Executor actor() {
+        return new cloud.jengu.dbo.work.Executor(
+                cloud.jengu.dbo.core.api.Caller.current(), "1", "cloud.jengu.dbo.tenant",
+                cloud.jengu.dbo.work.Scope.BASELINE);
+    }
+
+    /**
+     * Erasure: the tenant's data is removed (#74).
+     *
+     * <p>An <b>operator act</b>, and deliberately not reachable from the scan
+     * path — nothing in reconciliation calls this, and a spec disappearing
+     * retracts serving and touches no data. The two are separate steps because
+     * they carry different authority, and one of them cannot be undone.
+     */
+    public synchronized void erase(String code) {
+        if (code.equals(managementCode)) {
+            throw new IllegalArgumentException(
+                    "the management tenant holds the record of every erasure, and erasing it "
+                            + "would erase the account of what was erased");
+        }
+        takeDown(code, "erased by " + cloud.jengu.dbo.core.api.Caller.current());
+        managementRuns().ifPresent(runs -> {
+            cloud.jengu.dbo.work.Run erasure = runs.pipeline(TENANT_PROCESS, ERASE_STEP,
+                    TENANT_PROCESS + "/" + ERASE_STEP + "/" + code + "/" + java.time.Instant.now(),
+                    java.util.List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN));
+            runs.closed(runs.selected(erasure, cloud.jengu.dbo.work.Scope.organisation(code),
+                    actor(), "erased on request"));
+        });
+        provisioner.deprovision(code);
+        states.remove(code);
+        trouble.remove(code);
+        LOG.info("tenant erased: code={} by={}", code, cloud.jengu.dbo.core.api.Caller.current());
     }
 
     /** Background reconciliation on a virtual thread. */
@@ -775,7 +987,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             scanner.interrupt();
         }
         for (String code : Set.copyOf(runtimes.keySet())) {
-            takeDown(code);
+            takeDown(code, null);
         }
         sharedServer.stop(0);
     }

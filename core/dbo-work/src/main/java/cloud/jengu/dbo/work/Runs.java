@@ -156,8 +156,16 @@ public final class Runs {
         return update(run, state(run).withHolder(holder));
     }
 
-    /** A checkpoint: what this run has done so far, counted. */
+    /**
+     * A checkpoint: what this run has done so far, counted.
+     *
+     * <p>A count's name becomes an envelope path, so it is checked here rather
+     * than at the write: a hyphen in a name is a mistake the caller made, and
+     * finding out at the write means the whole pass is lost for it.
+     */
     public Run tally(Run run, Map<String, Long> counts) {
+        counts.keySet().forEach(name ->
+                cloud.jengu.dbo.core.api.Paths.requireValid("tally_" + name));
         return update(run, state(run).withTally(counts));
     }
 

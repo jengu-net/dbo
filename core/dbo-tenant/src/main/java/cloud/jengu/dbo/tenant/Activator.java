@@ -239,6 +239,23 @@ public final class Activator implements BundleActivator {
                         }
                     }
                 }, authority, registered(ctx));
+        // #74: the tenant this deployment's own history lives in, brought up
+        // before anything else and declared by configuration rather than by a
+        // file in the watched directory. A deployment whose management tenant
+        // will not come up serves nothing — the one failure with nowhere to be
+        // recorded, so it goes to the log and stops the start.
+        String management = ctx.getProperty("dbo.tenant.management.spec");
+        if (management != null && !management.isBlank()) {
+            try {
+                manager.manages(Path.of(management));
+            } catch (RuntimeException e) {
+                LOG.error("the management tenant did not come up, so this deployment serves "
+                        + "nothing: spec={}", management, e);
+                manager.close();
+                manager = null;
+                throw e;
+            }
+        }
         // #67: a runtime can be asked what it is serving, when a deployment has
         // said who may ask.
         manager.serveRuntimeState(ctx.getProperty("dbo.tenant.ops.token"));
