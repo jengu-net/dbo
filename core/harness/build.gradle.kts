@@ -78,6 +78,10 @@ tasks.test {
             project(":core:$module").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
         )
     }
+    // The versions the stack exports at, so a test can state the range a
+    // consumer built against them would state (#47).
+    systemProperty("dbo.hapi.version", rootProject.extra["hapiVersion"] as String)
+    systemProperty("dbo.hl7.core.version", rootProject.extra["hl7CoreVersion"] as String)
     doFirst {
         systemProperty("pg.driver.jar", configurations.testRuntimeClasspath.get()
             .files.first { it.name.startsWith("postgresql-") }.absolutePath)

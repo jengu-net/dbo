@@ -108,8 +108,24 @@ extra["dboLoggingExtension"] = dboLoggingExtension
 val hl7CoreVersion = "6.10.2"
 extra["hl7CoreVersion"] = hl7CoreVersion
 
+/**
+ * HAPI's own version, in one place for the same reason the HL7 core is.
+ *
+ * <p>It was a literal string in four build files, which is the shape of the
+ * problem one level in: nothing compared them, so a bump that missed one would
+ * have embedded two HAPI versions in one runtime and surfaced as a linkage
+ * error rather than as a build failure (#47).
+ */
+val hapiVersion = "8.10.1"
+extra["hapiVersion"] = hapiVersion
+
 subprojects {
-    apply(plugin = "java-library")
+    // The BOM is a platform, not a library: it publishes constraints and has
+    // no code, and Gradle refuses to be both at once.
+    val isPlatform = project.path == ":dbo-bom"
+    if (!isPlatform) {
+        apply(plugin = "java-library")
+    }
     configurations.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "ca.uhn.hapi.fhir"
@@ -119,7 +135,9 @@ subprojects {
             }
         }
     }
-    the<JavaPluginExtension>().toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    if (!isPlatform) {
+        the<JavaPluginExtension>().toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    }
     group = "cloud.jengu.dbo"
     // Snapshots on main; a release build passes -Pdbo.version=X.Y.Z (the
     // CI derives it from the v-tag) — fixed numbering for bundles AND images.
@@ -141,9 +159,11 @@ subprojects {
 
         // Central requires a sources jar and a javadoc jar beside every
         // artifact. They are cheap here and useful to a consumer reading an
-        // API that is deliberately small.
-        the<JavaPluginExtension>().withSourcesJar()
-        the<JavaPluginExtension>().withJavadocJar()
+        // API that is deliberately small. A platform has no sources to ship.
+        if (!isPlatform) {
+            the<JavaPluginExtension>().withSourcesJar()
+            the<JavaPluginExtension>().withJavadocJar()
+        }
 
         if (dboDevMode) {
             tasks.withType<Javadoc>().configureEach { enabled = false }
@@ -183,7 +203,15 @@ subprojects {
             }
             publications {
                 register<MavenPublication>("maven") {
-                    from(components["java"])
+                    if (isPlatform) {
+                        // The root configures subprojects before their own
+                        // scripts run, so the platform component does not
+                        // exist yet — the library one does, because this block
+                        // applies that plugin itself.
+                        afterEvaluate { from(components["javaPlatform"]) }
+                    } else {
+                        from(components["java"])
+                    }
                     groupId = "cloud.jengu.dbo"
                     artifactId = project.name
 

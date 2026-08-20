@@ -114,6 +114,26 @@ The specification is an [arc42](https://arc42.org/) tree:
 | `dbo-operator` | The Kubernetes provisioning operator |
 | `dbo-server` | The serving distribution |
 
+## Depending on it
+
+dbo's runtime supplies the FHIR classes — the shared stack embeds HAPI and the
+HL7 core and exports them, versioned — so anything wiring to it has to compile
+against the same ones. Import the platform rather than restating the numbers:
+
+```kotlin
+dependencies {
+    implementation(platform("cloud.jengu.dbo:dbo-bom:<version>"))
+    implementation("cloud.jengu.dbo:dbo-core")
+    implementation("ca.uhn.hapi.fhir:hapi-fhir-structures-r4")
+}
+```
+
+They are two families with two numbers — `ca.uhn.fhir.*` is HAPI's, and
+`org.hl7.fhir.*` is the HL7 core it ships — and the BOM carries both. A
+consumer that restates them instead agrees by coincidence, and the coincidence
+holds until one side bumps: then the failure is a resolution error on a box in
+a hospital rather than a build error in CI.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).

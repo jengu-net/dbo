@@ -23,12 +23,14 @@ val embedded: Configuration by configurations.creating
 // this bundle. One dependency declaration, both paths.
 configurations.api.get().extendsFrom(embedded)
 
+val hapi = rootProject.extra["hapiVersion"] as String
+
 dependencies {
     // hapi-fhir-validation drags in the whole engine, structures-r5 included;
     // structures-r4 is the one adapter it does not pull for itself.
-    embedded("ca.uhn.hapi.fhir:hapi-fhir-validation:8.10.1")
-    embedded("ca.uhn.hapi.fhir:hapi-fhir-structures-r4:8.10.1")
-    embedded("ca.uhn.hapi.fhir:hapi-fhir-caching-caffeine:8.10.1")
+    embedded("ca.uhn.hapi.fhir:hapi-fhir-validation:$hapi")
+    embedded("ca.uhn.hapi.fhir:hapi-fhir-structures-r4:$hapi")
+    embedded("ca.uhn.hapi.fhir:hapi-fhir-caching-caffeine:$hapi")
     // Needed by the HL7 engine and declared by nobody who reaches this graph:
     // the worker context builds a terminology cache on construction, and that
     // cache is a commons-collections4 map. Absent, it is a NoClassDefFoundError
