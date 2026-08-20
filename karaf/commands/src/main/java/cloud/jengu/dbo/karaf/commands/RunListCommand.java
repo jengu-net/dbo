@@ -54,8 +54,9 @@ public class RunListCommand implements Action {
         BundleContext context = FrameworkUtil.getBundle(getClass()).getBundleContext();
         Map<String, cloud.jengu.dbo.work.Runs> byTenant = Runs.byTenant(context, tenant);
         if (byTenant.isEmpty()) {
-            System.out.println("No tenant is being served here, so there are no runs to read."
-                    + " Runs live in the tenant whose work they are.");
+            System.out.println("There are no runs to read: runs live in the tenant whose work"
+                    + " they are, and no tenant is being served here.");
+            System.out.println(Tenants.whyNothingIsServed(context));
             return null;
         }
         Holder wanted = "any".equalsIgnoreCase(holder) ? null

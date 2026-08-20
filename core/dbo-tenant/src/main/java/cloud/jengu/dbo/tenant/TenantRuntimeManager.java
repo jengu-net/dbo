@@ -186,7 +186,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         try {
             this.sharedServer = HttpServer.create(new InetSocketAddress(host, port), 0);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            // "Address already in use" with no address in it is the least
+            // useful sentence a bring-up can end on: the whole runtime fails to
+            // start, and what a reader needs is which port and who is likely
+            // holding it — commonly a second dbo on the same box.
+            throw new UncheckedIOException(host + ":" + port + " could not be bound, so this "
+                    + "runtime serves nothing. Something else is on that port — another dbo, "
+                    + "or an application embedding one.", e);
         }
         sharedServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
         sharedServer.start();
