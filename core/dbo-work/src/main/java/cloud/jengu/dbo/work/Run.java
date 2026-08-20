@@ -17,7 +17,39 @@ import java.util.Optional;
 public record Run(String id, long versionId, String key, String process, String step,
         RunKind kind, Holder holder, String parent, String correlation,
         Map<String, Long> tally, Item item, java.util.List<String> domains,
-        Assignment assignment) {
+        Assignment assignment, Produced produced) {
+
+    /**
+     * What this run changed (#82).
+     *
+     * <p>A run that names the versions it produced is a complete account of a
+     * change, and reading runs in order reads the changes in order — which is
+     * what lets another appliance ask for exactly what it is missing instead of
+     * comparing two stores.
+     *
+     * <p><b>Bounded, because a manifest is an enumeration and children are
+     * exceptions.</b> A run over forty thousand records cannot name forty
+     * thousand versions: up to a cap it names them one by one, and past it it
+     * keeps a per-type high-water mark and the count. The far side then reads
+     * the named ones directly and the rest by cursor — less precise, and the
+     * alternative was a record nobody can page through.
+     *
+     * @param versions  {@code Type/id/version}, in the order they were produced
+     * @param watermark the highest version this run produced per type, once it
+     *                  stopped naming them individually
+     * @param counted   how many versions it produced in total, named or not
+     */
+    public record Produced(java.util.List<String> versions, Map<String, Long> watermark,
+            long counted) {
+
+        public static final Produced NOTHING =
+                new Produced(java.util.List.of(), Map.of(), 0);
+
+        /** Whether this run named everything it produced. */
+        public boolean complete() {
+            return counted == versions.size();
+        }
+    }
 
     /**
      * Who was chosen to run this and where — or, when nobody was, why the work
@@ -108,7 +140,30 @@ public record Run(String id, long versionId, String key, String process, String 
                 Json.str(json, "process"), Json.str(json, "step"),
                 RunKind.of(Json.str(json, "kind")), Holder.of(Json.str(json, "holder")),
                 optional(json, "parent"), optional(json, "correlation"),
-                Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment(json));
+                Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment(json),
+                produced(json));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Produced produced(Object json) {
+        if (!(((Map<?, ?>) json).get("produced") instanceof Map<?, ?> raw)) {
+            return Produced.NOTHING;
+        }
+        java.util.List<String> versions = new java.util.ArrayList<>();
+        if (raw.get("versions") instanceof java.util.List<?> named) {
+            named.forEach(version -> versions.add(version.toString()));
+        }
+        Map<String, Long> watermark = new LinkedHashMap<>();
+        if (raw.get("watermark") instanceof Map<?, ?> marks) {
+            marks.forEach((type, version) -> {
+                if (version instanceof Number number) {
+                    watermark.put(type.toString(), number.longValue());
+                }
+            });
+        }
+        long counted = raw.get("counted") instanceof Number number ? number.longValue()
+                : versions.size();
+        return new Produced(java.util.List.copyOf(versions), Map.copyOf(watermark), counted);
     }
 
     private static Assignment assignment(Object json) {

@@ -309,6 +309,34 @@ different sentence from "nothing is declared". The trap worth naming: **a
 caught-up participant's cursor does not move either**, so silence with nothing
 waiting is not absence, and only silence with work waiting is.
 
+### A change belongs to a piece of work
+
+A type may declare that **every change to it happens inside a run** — a
+handling property like the others, refused by the engine when no run is in
+scope. The point is not visibility: history already has the change and audit
+already names who made it. The point is that it **belongs** to something, so
+what happened is one record rather than an assembly job across two that were
+never designed to agree.
+
+**A run then names the versions it produced**, which is what makes work the
+*manifest*: reading runs in order reads the content changes in order, and
+another appliance asks for exactly what it is missing instead of comparing two
+stores. Bounded, because a manifest is an enumeration and children are
+exceptions — individual versions up to a cap, a per-type high-water mark past
+it, and the run says which of the two it is. A run that stopped naming and did
+not say so would let a reader believe it had everything.
+
+**The engine cannot record this itself.** A store writing into the work domain
+on every content write is the engine re-entering itself, so the recording is a
+decorator: the write commits, then the run is told. The honest limit is a crash
+between the two — a version the run does not name, which a far side then reads
+by cursor rather than by manifest, and is behind rather than wrong.
+
+**Bulk paths are runs, not exemptions.** An import, a restore and a replication
+apply open a run and write under it, which is better than being excused from the
+rule: they then appear in the same list as everything else, and what they
+changed is as answerable as anything else.
+
 ### Two appliances of one tenant
 
 An edge and its cloud hold **one tenant on two appliances** — same code, same

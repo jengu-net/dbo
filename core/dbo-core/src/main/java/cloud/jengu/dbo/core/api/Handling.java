@@ -6,17 +6,52 @@ import java.util.Objects;
  * What kind of data a type is: who may write it, whether it may change,
  * whether it is kept, and whether it may leave (§15).
  *
- * <p>Four independent properties rather than a list of kinds. A list grows by
- * one every time somebody asks about a case it does not cover — audit,
- * presence, subscription cursors — and stops being able to place the next one.
- * These four place any of them by answering four questions.
+ * <p>Independent properties rather than a list of kinds. A list grows by one
+ * every time somebody asks about a case it does not cover — audit, presence,
+ * subscription cursors — and stops being able to place the next one. These
+ * place any of them by answering a question each.
  *
  * <p>Declared per <b>type</b>, never per object. An object carrying its own
  * classification is a second truth, and one written with the wrong class gets
  * the wrong protection while appearing protected.
  */
 public record Handling(Authority authority, Mutability mutability,
-                       Durability durability, Travel travel) {
+                       Durability durability, Travel travel, Provenance provenance) {
+
+    /**
+     * Whether a change to it has to belong to a piece of work (#82).
+     *
+     * <p>A change that belongs to nothing can still be seen — history has it,
+     * audit names who — but nobody can say <b>what it was for</b>, and the
+     * account of what happened has to be assembled afterwards from two places
+     * that were never designed to agree.
+     */
+    public enum Provenance {
+
+        /** Written on its own account. Configuration, credentials, bookkeeping. */
+        ANY,
+
+        /**
+         * Written only inside a run, so the run names the versions it produced
+         * and reading the runs in order reads the changes in order.
+         *
+         * <p>The rule is what turns work into the <b>manifest</b>: what must
+         * travel to another appliance becomes derivable from runs rather than
+         * computed by a second mechanism that has to agree with the first.
+         */
+        UNDER_A_RUN
+    }
+
+    /** Four properties, and a change that belongs to nothing in particular. */
+    public Handling(Authority authority, Mutability mutability, Durability durability,
+            Travel travel) {
+        this(authority, mutability, durability, travel, Provenance.ANY);
+    }
+
+    /** The same type, with every change to it belonging to a run. */
+    public Handling underARun() {
+        return new Handling(authority, mutability, durability, travel, Provenance.UNDER_A_RUN);
+    }
 
     /** Who may write it. */
     public enum Authority {
@@ -73,6 +108,7 @@ public record Handling(Authority authority, Mutability mutability,
         Objects.requireNonNull(mutability, "mutability");
         Objects.requireNonNull(durability, "durability");
         Objects.requireNonNull(travel, "travel");
+        Objects.requireNonNull(provenance, "provenance");
 
         // Three combinations that are always mistakes, refused here rather than
         // discovered during a restore — which is where each of them surfaces.
@@ -135,6 +171,11 @@ public record Handling(Authority authority, Mutability mutability,
     /** Whether a write from outside the owning lane must be refused. */
     public boolean isWritableBy(Authority caller) {
         return authority == caller;
+    }
+
+    /** Whether a change to this has to belong to a run. */
+    public boolean requiresARun() {
+        return provenance == Provenance.UNDER_A_RUN;
     }
 
     /** Whether this may be placed in an archive of the given kind. */
