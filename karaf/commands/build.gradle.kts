@@ -23,6 +23,12 @@ dependencies {
     // Karaf), so reading one known document shape needs no parser of ours —
     // this project already carries five private copies of a minimal one.
     compileOnly("javax.json:javax.json-api:1.1.4")
+    // Runs are read TYPED, from the tenant's own store service. There is no
+    // HTTP surface to read them over and there should not be: the store's REST
+    // is never public, and a run over a domain no face claims renders to
+    // nothing on purpose (#70). The console is where that half becomes visible.
+    compileOnly(project(":core:dbo-core"))
+    compileOnly(project(":core:dbo-work"))
 }
 
 tasks.jar {

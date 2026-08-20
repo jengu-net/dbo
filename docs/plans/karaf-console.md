@@ -199,6 +199,26 @@ route, and it arrives by default rather than by anyone choosing it. Command
 logging is off or filtered in the assembly, and console output is held to the
 same anonymity posture as the rest of the store.
 
+## What exists
+
+`dbo-tenant:list` and `dbo-tenant:capabilities` are T0/T1: the registry, and a
+tenant's own `/metadata`.
+
+`dbo-run:list` and `dbo-run:describe` (#75) are the first commands to read a
+tenant's **records**, and they exist because there is nowhere else that answer
+can come from: a run over `identity`, `audit` or a configuration domain renders
+to nothing on purpose, so the surface that shows clinical work cannot show
+operational work at all, and the store's REST is never public. They bind the
+tenant-plane `ObjectStore` from the registry, which is exactly what the ceiling
+above says a shipped console must not do — and they are allowed to only because
+this bundle is not in the serving distribution. Whoever runs it already holds
+the database credentials. A console that ships reads this through the
+authenticated surface with a session behind it, not through the registry.
+
+They read and never act. Retrying, closing and reassigning are declared step
+actions carrying their own provenance; a console that acts is an actor nobody
+audited.
+
 ## Open
 
 - Whether the irreversible ceremonies — erase, shred, archive seal — should be
