@@ -67,6 +67,19 @@ configurations.named("embedded") {
     exclude(group = "org.xerial", module = "sqlite-jdbc")
     exclude(group = "net.sf.saxon", module = "Saxon-HE")
     exclude(group = "org.eclipse.jgit")
+    // R4B is not a version this store serves, and nothing on the paths it does
+    // serve reaches for it — proven by removing it and running the container:
+    // every bundle still resolves, conversion still converts, validation still
+    // validates. 8.7M of a 97M bundle, which is 8.7M in every image and every
+    // edge that pulls one.
+    //
+    // Its neighbours are NOT the same answer, and the evidence is worth
+    // keeping: dstu3 is reached by HAPI's own validation support
+    // (ValidationSupportUtils.extractCodeSystemForCode names
+    // org.hl7.fhir.dstu3.model.ValueSet on the code-lookup path), and dstu2 is
+    // named in what the element face imports wholesale. Dropping either turns
+    // a code lookup into a NoClassDefFoundError.
+    exclude(group = "ca.uhn.hapi.fhir", module = "org.hl7.fhir.r4b")
 }
 
 /**

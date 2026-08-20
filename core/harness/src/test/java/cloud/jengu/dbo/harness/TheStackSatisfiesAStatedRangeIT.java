@@ -68,7 +68,11 @@ class TheStackSatisfiesAStatedRangeIT {
         context.installBundle("file:" + System.getProperty("spifly.jar"));
         context.installBundle("file:" + System.getProperty("slf4j.api.jar"));
         context.installBundle("file:" + System.getProperty("dbo.logging.jar")).start();
-        context.installBundle("file:" + System.getProperty("dbo.fhir.stack.jar")).start();
+        // Installed, not started. What is being asserted is a wire, and a wire
+        // is made at the consumer's resolution — starting the exporter would
+        // unpack ninety megabytes of embedded stack into the framework cache
+        // for nothing, in a JVM shared with every other container test.
+        context.installBundle("file:" + System.getProperty("dbo.fhir.stack.jar"));
     }
 
     @AfterAll
@@ -76,6 +80,12 @@ class TheStackSatisfiesAStatedRangeIT {
         if (framework != null) {
             framework.stop();
             framework.waitForStop(10_000);
+        }
+        // The framework cache holds whatever it unpacked; a test that leaves it
+        // behind charges the next one for it.
+        try (java.util.stream.Stream<Path> paths = Files.walk(work)) {
+            paths.sorted(java.util.Comparator.reverseOrder()).map(Path::toFile)
+                    .forEach(File::delete);
         }
     }
 
