@@ -2,6 +2,7 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.core.api.Caller;
 import cloud.jengu.dbo.core.api.Criteria;
+import cloud.jengu.dbo.core.api.EnvelopeValue;
 import cloud.jengu.dbo.core.api.PolicyViolationException;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.PutResult;
@@ -205,6 +206,18 @@ class PolicyIT {
         assertFalse(swept.needsAPerson(), "nothing went wrong, so nobody is holding it");
         sweep.sweepOnce();
         assertEquals(cloud.jengu.dbo.work.RunKind.SWEEP, runs.byKey(swept.key()).orElseThrow().kind());
+
+        // REQ-DBO-PROC-TRACE-JOIN: from the run to what it did. The removals
+        // are reachable from the sweep rather than only from the ids they name,
+        // which is the difference between an account and a pile of records.
+        List<StoredObject> produced = store.select(
+                Criteria.of("AuditEntry").eq("run", EnvelopeValue.of(swept.key())));
+        assertFalse(produced.isEmpty(), "the sweep's own audit records are not reachable from it");
+        String trail = produced.stream()
+                .map(e -> new String(e.payload(), StandardCharsets.UTF_8))
+                .reduce("", String::concat);
+        assertTrue(trail.contains("retention-remove") && trail.contains(old.id()),
+                "and they name what was removed: " + trail);
 
         assertTrue(store.get("Observation", old.id()).isEmpty(), "expired object gone from state");
         assertEquals(0, store.history("Observation", old.id()).size(), "and from history");

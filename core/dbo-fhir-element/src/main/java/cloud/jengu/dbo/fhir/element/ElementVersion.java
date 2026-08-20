@@ -4,6 +4,7 @@ import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.EnvelopeExtractor;
 import cloud.jengu.dbo.core.face.DomainFace;
 import cloud.jengu.dbo.core.face.PayloadFraming;
+import cloud.jengu.dbo.core.face.RecordProjection;
 import cloud.jengu.dbo.core.face.Payloads;
 import cloud.jengu.dbo.fhir.common.FhirFace;
 import org.hl7.fhir.r5.context.SimpleWorkerContext;
@@ -50,6 +51,10 @@ public final class ElementVersion {
         this.face = FhirFace.describing(code)
                 .providing(Payloads.class, payloads)
                 .providing(PayloadFraming.class, framing)
+                // the engine's own records in this version's words: a run as
+                // a Task, an audit entry as an AuditEvent. The domain a version
+                // claims is its own code (ElementFhirVersion.domain()).
+                .providing(RecordProjection.class, new ElementRecordProjection(code, code))
                 .build();
     }
 

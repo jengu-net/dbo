@@ -35,6 +35,9 @@ public final class AuditModel {
             if (((java.util.Map<?, ?>) n).get("targetId") != null) {
                 e.value("targetId", EnvelopeValue.of(Json.str(n, "targetId")));
             }
+            if (((java.util.Map<?, ?>) n).get("run") != null) {
+                e.value("run", EnvelopeValue.of(Json.str(n, "run")));
+            }
             if (((java.util.Map<?, ?>) n).get("code") != null) {
                 e.value("code", EnvelopeValue.of(Json.str(n, "code")));
             }
@@ -65,6 +68,12 @@ public final class AuditModel {
         }
         if (code != null) {
             sb.append(",\"code\":\"").append(code).append("\"");
+        }
+        String run = cloud.jengu.dbo.core.api.Caller.run();
+        if (run != null) {
+            // what this interaction was part of, so a run's own account and the
+            // trail of what it did are one join (REQ-DBO-PROC-TRACE-JOIN)
+            sb.append(",\"run\":\"").append(run).append("\"");
         }
         String onBehalfOf = cloud.jengu.dbo.core.api.Caller.onBehalfOf();
         if (onBehalfOf != null) {

@@ -40,6 +40,12 @@ public final class Runs {
         return pipeline(process, step, UuidV7.newId());
     }
 
+    /** The same over declared storage domains. */
+    public Run pipeline(String process, String step, String key, List<String> domains) {
+        return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.PIPELINE,
+                Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains))));
+    }
+
     /**
      * A pipeline run over something that already has a name — a delivery, an
      * import of a named file, a job somebody can point at.
@@ -49,8 +55,7 @@ public final class Runs {
      * for the same attempt would double every count taken from it.
      */
     public Run pipeline(String process, String step, String key) {
-        return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.PIPELINE,
-                Holder.AUTOMATION, null, null, Map.of(), null)));
+        return pipeline(process, step, key, List.of());
     }
 
     /**
@@ -60,9 +65,17 @@ public final class Runs {
      * checkpointed.
      */
     public Run sweep(String process, String step, String scope) {
+        return sweep(process, step, scope, List.of());
+    }
+
+    /**
+     * The same over declared storage domains — what a face needs in order to
+     * know whether this run is one it renders at all.
+     */
+    public Run sweep(String process, String step, String scope, List<String> domains) {
         String key = process + "/" + step + "/" + scope;
         return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.SWEEP,
-                Holder.AUTOMATION, null, null, Map.of(), null)));
+                Holder.AUTOMATION, null, null, Map.of(), null, List.copyOf(domains))));
     }
 
     /** A pass over a sweep: what this round found, and what it therefore closes. */
@@ -89,7 +102,7 @@ public final class Runs {
     public Run item(Run parent, String reference, Failure failure, String message) {
         return write(new State(UuidV7.newId(), parent.process(), parent.step(), parent.kind(),
                 failure.holder(), parent.key(), parent.correlation(), Map.of(),
-                new Run.Item(reference, failure, message)));
+                new Run.Item(reference, failure, message), parent.domains()));
     }
 
     /** A run that succeeded: nothing is owed, and nobody holds it. */
@@ -204,11 +217,35 @@ public final class Runs {
         }
     }
 
+    /**
+     * This run and its items, as the record a face renders (#70).
+     *
+     * <p>Assembled here because a face never reaches for the store: rendering
+     * takes the record as data, so whatever belongs to the run has to arrive
+     * with it. Items are children; a subprocess or a continuation elsewhere is
+     * a reference in the payload and is not gathered.
+     */
+    public cloud.jengu.dbo.core.face.RecordProjection.Record asRecord(Run run) {
+        return new cloud.jengu.dbo.core.face.RecordProjection.Record(WorkModel.TYPE, run.id(),
+                run.versionId(), payloadOf(run),
+                items(run).stream().map(item ->
+                        new cloud.jengu.dbo.core.face.RecordProjection.Record(WorkModel.TYPE,
+                                item.id(), item.versionId(), payloadOf(item), item.domains()))
+                        .toList(),
+                run.domains());
+    }
+
+    private byte[] payloadOf(Run run) {
+        return store.get(WorkModel.TYPE, run.id())
+                .orElseThrow(() -> new IllegalStateException("run " + run.key() + " has gone"))
+                .payload();
+    }
+
     // ------------------------------------------------------------- writing
 
     private State state(Run run) {
         return new State(run.key(), run.process(), run.step(), run.kind(), run.holder(),
-                run.parent(), run.correlation(), run.tally(), run.item());
+                run.parent(), run.correlation(), run.tally(), run.item(), run.domains());
     }
 
     private Run write(State state) {
@@ -228,19 +265,22 @@ public final class Runs {
 
     /** The payload shape, in one place, so no caller authors a run by hand. */
     private record State(String key, String process, String step, RunKind kind, Holder holder,
-            String parent, String correlation, Map<String, Long> tally, Run.Item item) {
+            String parent, String correlation, Map<String, Long> tally, Run.Item item,
+            List<String> domains) {
 
         State withHolder(Holder holder) {
-            return new State(key, process, step, kind, holder, parent, correlation, tally, item);
+            return new State(key, process, step, kind, holder, parent, correlation, tally, item,
+                    domains);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, holder, parent, correlation,
-                    Map.copyOf(tally), item);
+                    Map.copyOf(tally), item, domains);
         }
 
         State withCorrelation(String correlation) {
-            return new State(key, process, step, kind, holder, parent, correlation, tally, item);
+            return new State(key, process, step, kind, holder, parent, correlation, tally, item,
+                    domains);
         }
 
         byte[] payload() {
@@ -267,6 +307,13 @@ public final class Runs {
                     json.append(Json.quoted(count.getKey())).append(':').append(count.getValue());
                 }
                 json.append('}');
+            }
+            if (!domains.isEmpty()) {
+                json.append(",\"domains\":[");
+                for (int i = 0; i < domains.size(); i++) {
+                    json.append(i == 0 ? "" : ",").append(Json.quoted(domains.get(i)));
+                }
+                json.append(']');
             }
             if (item != null) {
                 json.append(",\"item\":{\"reference\":").append(Json.quoted(item.reference()))

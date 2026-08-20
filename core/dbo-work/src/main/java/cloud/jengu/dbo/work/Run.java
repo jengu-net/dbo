@@ -16,7 +16,17 @@ import java.util.Optional;
  */
 public record Run(String id, long versionId, String key, String process, String step,
         RunKind kind, Holder holder, String parent, String correlation,
-        Map<String, Long> tally, Item item) {
+        Map<String, Long> tally, Item item, java.util.List<String> domains) {
+
+    /**
+     * The storage domains this run's work concerned — {@code r4}, {@code
+     * identity}, a config domain. What a step will declare once steps are
+     * declared; stamped on the run meanwhile, because it is what decides
+     * whether a face renders this run at all.
+     */
+    public java.util.List<String> domains() {
+        return domains;
+    }
 
     /**
      * One thing a run was over, when the run <em>is</em> that thing: item work
@@ -54,11 +64,15 @@ public record Run(String id, long versionId, String key, String process, String 
                             : Failure.valueOf(str(raw, "failure").toUpperCase(java.util.Locale.ROOT)),
                     str(raw, "message"));
         }
+        java.util.List<String> domains = new java.util.ArrayList<>();
+        if (((Map<?, ?>) json).get("domains") instanceof java.util.List<?> declared) {
+            declared.forEach(domain -> domains.add(domain.toString()));
+        }
         return new Run(stored.id(), stored.versionId(), Json.str(json, "key"),
                 Json.str(json, "process"), Json.str(json, "step"),
                 RunKind.of(Json.str(json, "kind")), Holder.of(Json.str(json, "holder")),
                 optional(json, "parent"), optional(json, "correlation"),
-                Map.copyOf(tally), item);
+                Map.copyOf(tally), item, java.util.List.copyOf(domains));
     }
 
     private static String optional(Object json, String field) {
