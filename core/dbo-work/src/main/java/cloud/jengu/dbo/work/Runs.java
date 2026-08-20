@@ -191,6 +191,34 @@ public final class Runs {
     }
 
     /**
+     * The runs an operator is asking about: newest first, narrowed by whatever
+     * they said and by nothing they did not.
+     *
+     * <p>Every filter is an envelope value, so this is a query rather than a
+     * scan that reads payloads to decide — which also means it says nothing
+     * about what any run was over (REQ-DBO-PROC-RUN-ENVELOPE-DISCLOSES-STATE-NOT-SUBJECT).
+     *
+     * @param process null for any
+     * @param step    null for any
+     * @param holder  null for any
+     * @param limit   how many, because a console that prints ten thousand rows
+     *                has answered nothing
+     */
+    public List<Run> matching(String process, String step, Holder holder, int limit) {
+        Criteria criteria = Criteria.of(WorkModel.TYPE).sortByLastUpdated(false).limit(limit);
+        if (process != null) {
+            criteria.eq("process", EnvelopeValue.of(process));
+        }
+        if (step != null) {
+            criteria.eq("step", EnvelopeValue.of(step));
+        }
+        if (holder != null) {
+            criteria.eq("holder", EnvelopeValue.of(holder.wire()));
+        }
+        return store.select(criteria).stream().map(Run::of).toList();
+    }
+
+    /**
      * The automation backlog: work waiting for a person at this step, here
      * (#72). A number, per step and per zone, rather than an opinion about how
      * much is automated.
