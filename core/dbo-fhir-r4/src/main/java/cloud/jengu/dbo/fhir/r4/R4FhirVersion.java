@@ -78,6 +78,22 @@ public final class R4FhirVersion implements FhirVersion {
             return served.store(engine, baseUrl);
         }
 
+        /**
+         * With the tenant's database, forwarded rather than dropped.
+         *
+         * <p>A personality serves THROUGH the element face, so anything that
+         * face needs the tenant's own data for — its terminology (#50), its
+         * StructureDefinitions (#87) — arrives only if this forwards it. It
+         * did not, which meant a tenant validated against the carried pack
+         * alone the moment it declared r4 or r5, while an r6 tenant beside it
+         * validated against its own.
+         */
+        @Override
+        public FhirStoreFacade store(ObjectStore engine, String baseUrl,
+                javax.sql.DataSource dataSource) {
+            return served.store(engine, baseUrl, dataSource);
+        }
+
         @Override
         public FhirStoreFacade store(ObjectStore engine, String baseUrl,
                 cloud.jengu.dbo.core.process.Steps steps) {

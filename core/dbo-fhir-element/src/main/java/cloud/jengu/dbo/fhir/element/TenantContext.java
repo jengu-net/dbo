@@ -2,6 +2,7 @@ package cloud.jengu.dbo.fhir.element;
 
 import org.hl7.fhir.r5.context.SimpleWorkerContext;
 import org.hl7.fhir.r5.model.CodeSystem;
+import org.hl7.fhir.r5.model.StructureDefinition;
 import org.hl7.fhir.r5.model.CodeableConcept;
 import org.hl7.fhir.r5.model.Coding;
 import org.hl7.fhir.r5.model.ValueSet;
@@ -45,8 +46,71 @@ final class TenantContext extends SimpleWorkerContext {
     private final Terms terms;
 
     TenantContext(SimpleWorkerContext shared, Terms terms) throws IOException {
+        this(shared, terms, List.of());
+    }
+
+    /**
+     * The tenant's own StructureDefinitions join the view (#87).
+     *
+     * <p>Real validation never runs against the standard pack alone: it runs
+     * against the pack PLUS what a tenant defined on top — the profiles its
+     * zone mandates, the shapes its steps declare. They are cached into THIS
+     * tenant's copy, which is why the isolation the copy constructor gives is
+     * load-bearing rather than incidental.
+     *
+     * <p>Snapshots are generated where a profile shipped only a differential,
+     * and that is not a nicety: a differential says what CHANGES from the
+     * base, so a validator handed one without a snapshot checks the handful
+     * of elements the author mentioned and silently passes everything else.
+     */
+    TenantContext(SimpleWorkerContext shared, Terms terms, List<String> profiles)
+            throws IOException {
         super(shared);
         this.terms = terms;
+        for (String profile : profiles) {
+            cacheProfile(profile);
+        }
+    }
+
+    /**
+     * One tenant profile, snapshotted if it needs it.
+     *
+     * <p>A profile that cannot be snapshotted is REFUSED rather than cached
+     * half-formed: caching it would mean validating against the fragment the
+     * author happened to write, and reporting that as conformance. What the
+     * tenant gets instead is the profile absent and the reason said out loud
+     * — a broken profile is a fact about the profile.
+     */
+    private void cacheProfile(String profile) {
+        StructureDefinition definition;
+        try {
+            definition = (StructureDefinition) new org.hl7.fhir.r5.formats.JsonParser()
+                    .parse(profile.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "a stored StructureDefinition could not be read: " + e.getMessage(), e);
+        }
+        if (!definition.hasSnapshot() && definition.hasBaseDefinition()) {
+            StructureDefinition base = fetchResource(StructureDefinition.class,
+                    definition.getBaseDefinition());
+            if (base == null) {
+                throw new IllegalStateException("the profile " + definition.getUrl()
+                        + " is built on " + definition.getBaseDefinition()
+                        + ", which this tenant does not have — nothing can be validated "
+                        + "against it, so it is not offered as if something could");
+            }
+            List<org.hl7.fhir.utilities.validation.ValidationMessage> messages =
+                    new ArrayList<>();
+            try {
+                new org.hl7.fhir.r5.conformance.profile.ProfileUtilities(this, messages, null)
+                        .generateSnapshot(base, definition, definition.getUrl(), null,
+                                definition.getName());
+            } catch (Exception e) {
+                throw new IllegalStateException("the profile " + definition.getUrl()
+                        + " could not be resolved against its base: " + e.getMessage(), e);
+            }
+        }
+        cacheResource(definition);
     }
 
     @Override
