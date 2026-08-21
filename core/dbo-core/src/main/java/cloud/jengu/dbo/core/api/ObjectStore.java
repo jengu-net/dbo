@@ -33,6 +33,21 @@ public interface ObjectStore {
      * Conditional create keyed on primary identity only. Existing object with
      * this identity → returns it untouched ({@code created=false}).
      */
+    /**
+     * Several writes as ONE unit: every request lands or none does, with
+     * data, history and outbox committing in one transaction exactly as a
+     * single {@link #put} does — a transaction bundle's promise is this
+     * method's promise (REQ-DBO-CORE-ATOMIC-TRANSACTION-BUNDLE).
+     *
+     * <p>Results are in request order. The default refuses rather than
+     * looping over {@code put}: N separate transactions pretending to be one
+     * is exactly the lie this seam exists to make impossible.
+     */
+    default List<PutResult> transact(List<PutRequest> requests) {
+        throw new UnsupportedOperationException(
+                "this store cannot apply several writes as one unit");
+    }
+
     PutResult putIfAbsent(IdentityRef identity, PutRequest request);
 
     /** Conditional upsert by identity: create if absent, else update (with optional expected version). */

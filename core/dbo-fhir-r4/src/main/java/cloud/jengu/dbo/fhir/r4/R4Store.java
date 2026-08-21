@@ -129,6 +129,11 @@ public final class R4Store implements FhirStoreFacade {
     }
 
     @Override
+    public String bundle(String bundleJson) {
+        return served.bundle(bundleJson);
+    }
+
+    @Override
     public String operationOutcome(String issueCode, String diagnostics) {
         return served.operationOutcome(issueCode, diagnostics);
     }

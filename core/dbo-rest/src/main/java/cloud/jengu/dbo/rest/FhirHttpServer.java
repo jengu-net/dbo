@@ -197,6 +197,8 @@ public final class FhirHttpServer implements AutoCloseable {
             respond(exchange, 403, store.operationOutcome("forbidden", e.getMessage()));
         } catch (cloud.jengu.dbo.core.api.PolicyViolationException e) {
             respond(exchange, 409, store.operationOutcome("business-rule", e.getMessage()));
+        } catch (UnsupportedOperationException e) {
+            respond(exchange, 400, store.operationOutcome("not-supported", String.valueOf(e.getMessage())));
         } catch (IllegalArgumentException e) {
             respond(exchange, 400, store.operationOutcome("invalid", String.valueOf(e.getMessage())));
         } catch (Exception e) {
@@ -292,7 +294,21 @@ public final class FhirHttpServer implements AutoCloseable {
             return;
         }
 
-        if (segments.length >= 1 && !store.knowsType(segments[0])) {
+        // The base itself. POST is a request bundle (#86); anything else at
+        // the base is refused with its name — the index-out-of-bounds this
+        // replaced told a caller to retry a request that could never work.
+        if (segments.length == 0) {
+            if ("POST".equals(method)) {
+                respond(exchange, 200, store.bundle(readBody(exchange)));
+            } else {
+                respond(exchange, 404, store.operationOutcome("not-supported",
+                        method + " on the base — the base accepts POSTed "
+                                + "transaction and batch bundles"));
+            }
+            return;
+        }
+
+        if (!store.knowsType(segments[0])) {
             respond(exchange, 404, store.operationOutcome("not-supported",
                     "unknown resource type or endpoint: " + relative));
             return;

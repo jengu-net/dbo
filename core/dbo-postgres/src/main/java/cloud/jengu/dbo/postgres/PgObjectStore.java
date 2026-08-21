@@ -110,6 +110,22 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     @Override
+    public List<PutResult> transact(List<PutRequest> requests) {
+        // Resolve every registration BEFORE the transaction opens: an unknown
+        // type refuses the whole unit with nothing begun, rather than half-way.
+        List<TypeRegistration> types = requests.stream()
+                .map(r -> registry.require(r.typeName())).toList();
+        return inTx(c -> {
+            List<PutResult> out = new ArrayList<>();
+            for (int i = 0; i < requests.size(); i++) {
+                out.add(writeObject(c, types.get(i), requests.get(i),
+                        Handling.Authority.TENANT_USERS));
+            }
+            return out;
+        });
+    }
+
+    @Override
     public PutResult putIfAbsent(IdentityRef identity, PutRequest request) {
         TypeRegistration type = registry.require(request.typeName());
         Identifier ident = registry.identityIdentifier(type, identity);
