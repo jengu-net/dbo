@@ -215,8 +215,17 @@ public final class ElementVersion {
      * paid once per tenant at facade construction, never per request.
      */
     ElementPayloads payloadsFor(Terms terms) {
+        return payloadsFor(terms, java.util.List.of());
+    }
+
+    /**
+     * The same, with the tenant's own StructureDefinitions in the view (#87):
+     * validation runs against the carried pack PLUS what this tenant defined
+     * on top of it.
+     */
+    ElementPayloads payloadsFor(Terms terms, java.util.List<String> profiles) {
         try {
-            return new ElementPayloads(new TenantContext(context(), terms), terms);
+            return new ElementPayloads(new TenantContext(context(), terms, profiles), terms);
         } catch (java.io.IOException e) {
             throw new java.io.UncheckedIOException(
                     "cannot derive a tenant context from the shared " + code + " context", e);

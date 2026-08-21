@@ -42,8 +42,15 @@ public final class ElementStore implements FhirStoreFacade {
     private final ElementVersion version;
     private final List<FhirTypeConfig> types;
     private final String baseUrl;
-    private final Payloads<Object> payloads;
+    /**
+     * Not final: a tenant that writes a StructureDefinition has changed what
+     * validation means for it, and the next write is held to the new shape
+     * rather than to whatever was true when the tenant came up (#87).
+     */
+    private volatile Payloads<Object> payloads;
     private final PayloadFraming framing;
+    /** Null when this store validates against carried definitions alone. */
+    private final Terms terms;
 
     @SuppressWarnings("unchecked")
     /**
@@ -80,9 +87,10 @@ public final class ElementStore implements FhirStoreFacade {
         this.version = version;
         this.types = List.copyOf(types);
         this.baseUrl = baseUrl;
+        this.terms = terms;
         this.payloads = terms == null
                 ? (Payloads<Object>) version.face().require(Payloads.class)
-                : (Payloads<Object>) (Payloads<?>) version.payloadsFor(terms);
+                : (Payloads<Object>) (Payloads<?>) version.payloadsFor(terms, storedProfiles(store));
         this.framing = version.face().require(PayloadFraming.class);
     }
 
@@ -110,13 +118,18 @@ public final class ElementStore implements FhirStoreFacade {
     @Override
     public PutResult create(String resourceJson) {
         Accepted accepted = accepted(resourceJson);
-        return store.put(PutRequest.create(accepted.type(), accepted.payload()));
+        PutResult result = store.put(PutRequest.create(accepted.type(), accepted.payload()));
+        rebuiltIfShapesMoved(accepted.type());
+        return result;
     }
 
     @Override
     public PutResult update(String id, Long expectedVersion, String resourceJson) {
         Accepted accepted = accepted(resourceJson);
-        return store.put(new PutRequest(accepted.type(), id, expectedVersion, accepted.payload()));
+        PutResult result = store.put(
+                new PutRequest(accepted.type(), id, expectedVersion, accepted.payload()));
+        rebuiltIfShapesMoved(accepted.type());
+        return result;
     }
 
     /**
@@ -194,6 +207,59 @@ public final class ElementStore implements FhirStoreFacade {
     private String rendered(StoredObject stored) {
         return new String(ElementAncestors.rendered(version.context(), stored.payload(),
                 stored.id(), stored.versionId()), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * A written profile takes effect at once, for this tenant only (#87).
+     *
+     * <p>Rebuilt from the write rather than from a timer or a global refresh:
+     * the tenant that changed its shapes is the tenant whose view moves, and
+     * nobody else pays for it. The shared per-version context — seconds to
+     * build — is untouched; what is rebuilt is the copy over it, which costs
+     * about a tenth of a second.
+     *
+     * <p>A profile the tenant just wrote and cannot be snapshotted leaves the
+     * view as it was and says so, rather than dropping the tenant's whole
+     * validation on the floor over one bad document.
+     */
+    @SuppressWarnings("unchecked")
+    private void rebuiltIfShapesMoved(String typeName) {
+        if (terms == null || !"StructureDefinition".equals(typeName)) {
+            return;
+        }
+        try {
+            payloads = (Payloads<Object>) (Payloads<?>)
+                    version.payloadsFor(terms, storedProfiles(store));
+        } catch (RuntimeException e) {
+            throw new cloud.jengu.dbo.fhir.common.ValidationFailedException("StructureDefinition",
+                    List.of("the profile was stored, and this tenant's validation still uses "
+                            + "the shapes it had: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * The tenant's own StructureDefinitions, read once at construction (#87).
+     *
+     * <p>Read HERE rather than by the face: a face capability is a pure
+     * transformation and never reaches the store, so what a tenant defined
+     * arrives as data the facade fetched. The facade may — it is the thing
+     * that acts.
+     *
+     * <p>A tenant with no StructureDefinition type declared has none, which
+     * is an ordinary answer: it validates against the carried pack alone,
+     * exactly as before.
+     */
+    private static List<String> storedProfiles(ObjectStore engine) {
+        try {
+            return engine.select(cloud.jengu.dbo.core.api.Criteria.of("StructureDefinition")
+                            .limit(500)).stream()
+                    .map(stored -> new String(stored.payload(), StandardCharsets.UTF_8))
+                    .toList();
+        } catch (RuntimeException e) {
+            // A tenant that does not register StructureDefinition is not a
+            // tenant whose bring-up should fail over profiles it never had.
+            return List.of();
+        }
     }
 
     /** The engine, for the one caller that writes several entries as one unit. */

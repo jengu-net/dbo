@@ -109,6 +109,21 @@ final class ElementPayloads implements Payloads<Element> {
         @Override
         public List<Issue> check(String typeName, Element document, String shapeReference) {
             List<ValidationMessage> messages = new ArrayList<>();
+            // A profile the document CLAIMS and nothing here carries is an
+            // answer, not a crash. HAPI resolves meta.profile itself and
+            // throws an Error the request thread does not survive — the
+            // caller gets no bytes at all, which is the one response that
+            // tells them nothing (#87).
+            for (Element claimed : document.getChildrenByName("meta").stream()
+                    .flatMap(meta -> meta.getChildrenByName("profile").stream()).toList()) {
+                String url = claimed.primitiveValue();
+                if (url != null && context.fetchResource(
+                        org.hl7.fhir.r5.model.StructureDefinition.class, url) == null) {
+                    return List.of(new Issue(Issue.ERROR, document.fhirType(),
+                            "the resource claims the profile '" + url + "', which this tenant "
+                                    + "does not have — nothing was checked against it"));
+                }
+            }
             // The path a message is reported against: the document's own type,
             // since a caller reading "Patient.name[0]" can find it and a caller
             // reading "[0]" cannot.
