@@ -461,7 +461,13 @@ public final class ElementStore implements FhirStoreFacade {
 
     @Override
     public String capabilityStatement(String base, Collection<FhirOperation> served) {
-        return ElementCapability.statement(version, types, base, served);
+        return capabilityStatement(base, served, java.util.Map.of());
+    }
+
+    @Override
+    public String capabilityStatement(String base, Collection<FhirOperation> served,
+            java.util.Map<String, java.util.Set<String>> narrowedSearch) {
+        return ElementCapability.statement(version, types, base, served, narrowedSearch);
     }
 
     @Override

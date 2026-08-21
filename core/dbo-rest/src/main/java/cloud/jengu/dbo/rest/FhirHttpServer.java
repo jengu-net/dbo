@@ -221,8 +221,13 @@ public final class FhirHttpServer implements AutoCloseable {
 
         if (segments.length == 1 && "metadata".equals(segments[0]) && "GET".equals(method)) {
             // anonymous by REQ-DBO-AUTH-OPEN-CAPABILITY; declares the auth mode
+            // The audit trail has a surface of its own, so the statement
+            // advertises the parameters THAT surface honours rather than
+            // every one the version defines (#90).
             respond(exchange, 200, securityDeclared(
-                    store.capabilityStatement(baseUrl(), declaredOperations)));
+                    store.capabilityStatement(baseUrl(), declaredOperations,
+                            auditSurface == null ? Map.of()
+                                    : Map.of("AuditEvent", auditSurface.searchParameters()))));
             return;
         }
         if (authenticator != null) {

@@ -67,6 +67,16 @@ public final class AuditProjection implements AuditSurface {
 
     @Override
     public String search(Map<String, String> query, String baseUrl) {
+        // A parameter this surface cannot honour is REFUSED, never ignored.
+        // Ignoring one answers 200 with the unfiltered trail — a wrong answer
+        // wearing the shape of a right one, which a caller cannot detect and
+        // therefore cannot correct (REQ-DBO-SRCH-HONEST-CAPABILITY).
+        for (String parameter : query.keySet()) {
+            if (!searchParameters().contains(parameter) && !"_cursor".equals(parameter)) {
+                throw new cloud.jengu.dbo.fhir.common.UnknownSearchParameterException(
+                        "AuditEvent", parameter);
+            }
+        }
         Criteria criteria = Criteria.of("AuditEntry").sortByLastUpdated(false).limit(100);
         if (query.get("agent") != null) {
             criteria.eq("actor", EnvelopeValue.of(query.get("agent")));

@@ -42,6 +42,18 @@ final class ElementCapability {
 
     static String statement(ElementVersion version, List<FhirTypeConfig> types, String baseUrl,
             Collection<FhirOperation> served) {
+        return statement(version, types, baseUrl, served, Map.of());
+    }
+
+    /**
+     * @param narrowedSearch types served by a surface of their own, mapped to
+     *                       the search parameters that surface honours — for
+     *                       those, the statement advertises exactly those and
+     *                       nothing the version happens to define (#90)
+     */
+    static String statement(ElementVersion version, List<FhirTypeConfig> types, String baseUrl,
+            Collection<FhirOperation> served,
+            Map<String, java.util.Set<String>> narrowedSearch) {
         StringBuilder out = new StringBuilder(2048);
         out.append("{\"resourceType\":\"CapabilityStatement\",\"status\":\"active\",")
                 .append("\"kind\":\"instance\",\"fhirVersion\":")
@@ -56,13 +68,51 @@ final class ElementCapability {
                 out.append(',');
             }
             firstType = false;
-            resource(out, version, type, served);
+            resource(out, version, type, served, narrowedSearch.get(type.typeName()));
+        }
+        // A surface can serve a type the tenant never registered — the audit
+        // trail is served whenever the tenant has a policy layer, whether or
+        // not AuditEvent is one of its declared types. Serving it and not
+        // declaring it is the same dishonesty as declaring filters nothing
+        // runs: a client cannot discover what is there (#90, #91).
+        for (Map.Entry<String, java.util.Set<String>> surfaced : narrowedSearch.entrySet()) {
+            if (types.stream().anyMatch(t -> t.typeName().equals(surfaced.getKey()))) {
+                continue;
+            }
+            if (!firstType) {
+                out.append(',');
+            }
+            firstType = false;
+            surfacedResource(out, surfaced.getKey(), surfaced.getValue());
         }
         return out.append("]}]}").toString();
     }
 
+    /**
+     * A type served by a surface of its own: what it answers, and the
+     * parameters that surface honours. Append-only by construction — the
+     * trail is read, searched and contributed to, never changed.
+     */
+    private static void surfacedResource(StringBuilder out, String typeName,
+            java.util.Set<String> parameters) {
+        out.append("{\"type\":").append(ElementOutcomes.quoted(typeName))
+                .append(",\"interaction\":[{\"code\":\"read\"},{\"code\":\"search-type\"}")
+                .append(",{\"code\":\"create\"}]")
+                .append(",\"versioning\":\"no-version\",\"readHistory\":false")
+                .append(",\"searchParam\":[");
+        boolean first = true;
+        for (String parameter : parameters) {
+            if (!first) {
+                out.append(',');
+            }
+            first = false;
+            out.append("{\"name\":").append(ElementOutcomes.quoted(parameter)).append('}');
+        }
+        out.append("]}");
+    }
+
     private static void resource(StringBuilder out, ElementVersion version, FhirTypeConfig type,
-            Collection<FhirOperation> served) {
+            Collection<FhirOperation> served, java.util.Set<String> narrowed) {
         Handling handling = type.handling();
         boolean writable = handling.isWritableBy(Handling.Authority.TENANT_USERS);
         boolean mayChange = handling.mutability() == Handling.Mutability.FULL
@@ -103,6 +153,20 @@ final class ElementCapability {
                 .append(",\"readHistory\":").append(keepsHistory)
                 .append(",\"searchParam\":[");
         first = true;
+        // A type with a surface of its own advertises what that surface
+        // honours, and nothing else: the version defines a great many
+        // AuditEvent parameters, and the trail filters on four.
+        if (narrowed != null) {
+            for (String parameter : narrowed) {
+                if (!first) {
+                    out.append(',');
+                }
+                first = false;
+                out.append("{\"name\":").append(ElementOutcomes.quoted(parameter)).append('}');
+            }
+            out.append("]}");
+            return;
+        }
         for (SearchParameter parameter : version.parametersFor(type.typeName())) {
             if (!served(parameter.getType())) {
                 continue;
