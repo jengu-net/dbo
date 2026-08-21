@@ -38,7 +38,26 @@ tasks.jar {
                 "Bundle-Activator: cloud.jengu.dbo.tenant.k8s.Activator",
                 "Bundle-ClassPath: ." + jars.joinToString("") { ",lib/${it.name}" },
                 "-includeresource: " + jars.joinToString(",") { "lib/${it.name}=${it.absolutePath}" },
-                "Export-Package: cloud.jengu.dbo.tenant.k8s;version=0.1.0",
+                // NOTHING is exported, and that is the honest answer to what
+                // this bundle is (#85). Its classes are constructed by its own
+                // Activator, which registers TenantDatabaseProvisioner — a
+                // core.api type — as the service other bundles consume. No
+                // bundle imported this package; the export existed only to
+                // publish an API made of fabric8 types the bundle keeps
+                // private, which no OSGi consumer could have called anyway
+                // without importing a package nothing exports.
+                //
+                // The operator dist and the harness tests still compile
+                // against these classes: they are separate JVMs loading the
+                // jar from a classpath, and Export-Package governs OSGi
+                // wiring, not that.
+                "Private-Package: cloud.jengu.dbo.tenant.k8s",
+                // And nothing leaks out sideways either: with no Export-Package
+                // instruction, bnd propagates the headers of the jars riding in
+                // lib/ — the first attempt published netty's shaded jctools
+                // packages, at this bundle's version. A bundle that exports
+                // nothing says so in one line.
+                "-removeheaders: Export-Package",
                 "-noimportjava: true",
                 // No Declarative Services. The Kubernetes client carries DS
                 // component annotations, and bnd reads them off the embedded
