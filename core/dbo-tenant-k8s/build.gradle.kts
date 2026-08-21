@@ -40,6 +40,13 @@ tasks.jar {
                 "-includeresource: " + jars.joinToString(",") { "lib/${it.name}=${it.absolutePath}" },
                 "Export-Package: cloud.jengu.dbo.tenant.k8s;version=0.1.0",
                 "-noimportjava: true",
+                // No Declarative Services. The Kubernetes client carries DS
+                // component annotations, and bnd reads them off the embedded
+                // classes and asks the container for an SCR extender that dbo
+                // does not run — this container wires its services from
+                // activators, so the requirement is unsatisfiable by design
+                // and the bundle simply never resolves.
+                "-dsannotations: ",
                 // A FILTER over what bnd computed, not a list of packages.
                 // cloud.jengu.dbo.* is matched by pattern, so a new reference
                 // to a sibling bundle is picked up on its own. The trailing
