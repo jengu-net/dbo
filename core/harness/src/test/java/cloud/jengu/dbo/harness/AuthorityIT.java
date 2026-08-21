@@ -320,6 +320,26 @@ class AuthorityIT {
         assertEquals(409, refused.statusCode());
         assertTrue(refused.body().contains("append-only"), refused.body());
 
+        // The statement advertises what the trail actually filters on, and a
+        // parameter it cannot honour is REFUSED rather than ignored. Before
+        // this, the statement listed every AuditEvent parameter the version
+        // defines and the surface honoured four — so ?type=X answered 200
+        // with the whole trail, which a caller cannot tell from a real result
+        // (REQ-DBO-SRCH-HONEST-CAPABILITY).
+        String capability = get(fhir("neli") + "/metadata", null).body();
+        String auditEntry = capability.substring(capability.indexOf("\"AuditEvent\""));
+        auditEntry = auditEntry.substring(0, auditEntry.indexOf("]}") + 2);
+        assertTrue(auditEntry.contains("\"agent\"") && auditEntry.contains("\"action\""),
+                "the statement names what the trail filters on: " + auditEntry);
+        assertFalse(auditEntry.contains("\"subtype\"") || auditEntry.contains("\"purpose\""),
+                "and names nothing it does not: " + auditEntry);
+        assertEquals(200, get(fhir("neli") + "/AuditEvent?action=C", token).statusCode(),
+                "an advertised parameter filters");
+        HttpResponse<String> unhonoured = get(fhir("neli") + "/AuditEvent?subtype=x", token);
+        assertEquals(400, unhonoured.statusCode(),
+                "a parameter the trail cannot honour is refused, not ignored: "
+                        + unhonoured.body());
+
         // scope gating: read-only tokens read but cannot contribute
         String readOnly = token("neli", "system/*.read");
         assertEquals(200, get(fhir("neli") + "/AuditEvent", readOnly).statusCode());

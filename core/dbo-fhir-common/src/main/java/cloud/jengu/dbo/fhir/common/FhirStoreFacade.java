@@ -86,6 +86,21 @@ public interface FhirStoreFacade {
         return capabilityStatement(baseUrl);
     }
 
+    /**
+     * The same, told which types are served by a surface of their own and
+     * with which search parameters — the audit trail today (#90).
+     *
+     * <p>Passed in rather than assumed: the thing that implements a filter is
+     * the only honest source for which filters exist, and a capability that
+     * listed every parameter a version defines would be advertising work
+     * nothing does.
+     */
+    default String capabilityStatement(String baseUrl,
+            java.util.Collection<FhirOperation> served,
+            java.util.Map<String, java.util.Set<String>> narrowedSearch) {
+        return capabilityStatement(baseUrl, served);
+    }
+
     /** An OperationOutcome document for error responses. */
     /**
      * Would this resource be accepted — answered without writing it (#48).
