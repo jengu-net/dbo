@@ -1,6 +1,10 @@
 import java.security.MessageDigest
 import java.util.jar.JarFile
 
+plugins {
+    id("biz.aQute.bnd.builder")
+}
+
 // The element-model face and the definitions it serves from.
 //
 // A face is nothing without the definitions it validates and extracts
@@ -175,32 +179,38 @@ tasks.jar {
     // for a package nothing exports any more, which fails at bring-up in a
     // test nobody would connect to a build-cache decision (#32).
     inputs.file(stackJar.get().archiveFile)
-    into("lib") { from(embedded) }
     into("META-INF") { from(rootProject.file("THIRD-PARTY.md")) }
-    doFirst {
-        val libs = embedded.resolve().joinToString(",") { "lib/${it.name}" }
-        manifest {
-            attributes(
-                "Bundle-ManifestVersion" to "2",
-                "Bundle-ClassPath" to ".,$libs",
-                "Bundle-SymbolicName" to "cloud.jengu.dbo.fhir.element",
+    bundle {
+        bnd(provider {
+            val jars = embedded.resolve().sortedBy { it.name }
+            listOf(
+                "Bundle-SymbolicName: cloud.jengu.dbo.fhir.element",
                 // The bundle announces every version it carries; see Activator.
-                "Bundle-Activator" to "cloud.jengu.dbo.fhir.element.Activator",
-                "Bundle-Version" to project.version.toString().replace("-", "."),
-                "Export-Package" to "cloud.jengu.dbo.fhir.element;version=\"0.1.0\"",
-                "Import-Package" to (listOf(
+                "Bundle-Activator: cloud.jengu.dbo.fhir.element.Activator",
+                "Bundle-ClassPath: ." + jars.joinToString("") { ",lib/${it.name}" },
+                "-includeresource: " + jars.joinToString(",") { "lib/${it.name}=${it.absolutePath}" },
+                "Export-Package: cloud.jengu.dbo.fhir.element;version=0.1.0",
+                "-noimportjava: true",
+                // Two halves, computed two ways, and neither written by hand.
+                //
+                // The ENGINE half is named wholesale from the one bundle that
+                // exports it: this face reaches HAPI types it never names, and
+                // an import bytecode analysis did not see resolves and then
+                // throws NoClassDefFoundError on first use.
+                //
+                // The DBO half is bnd's, matched by pattern, so a new
+                // reference to a sibling bundle needs no edit here. This is
+                // the bundle that had the longest hand-kept list in the repo,
+                // and the one whose list went stale in the same commit that
+                // added cloud.jengu.dbo.core.process (#32).
+                "Import-Package: " + (engineImports() + listOf(
+                    "cloud.jengu.dbo.*",
                     "org.slf4j",
-                    "org.osgi.framework;version=\"[1.8,2)\"",
-                ) + engineImports() + listOf(
-                    "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.core.face;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.core.process;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.core.api.feed;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.core;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.fhir.common;version=\"[0.1,1)\"",
+                    "org.osgi.*",
+                    "!*",
                 )).joinToString(","),
-            )
-        }
+            ).joinToString("\n")
+        })
     }
 }
 
