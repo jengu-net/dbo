@@ -536,7 +536,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (authority != null) {
             authority.attachSubjects(engine); // §16.1: subjects are the tenant's records
         }
-        FhirStoreFacade store = declared.store(engine, base);
+        // With the tenant's database: a face that validates against current
+        // data — the tenant's terminology, and in time its own structure
+        // definitions — needs to know where that data lives (#50).
+        FhirStoreFacade store = declared.store(engine, base, db.dataSource());
         // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is per tenant,
         // so the facade is built here rather than shared — a tenant answers
         // $expand from its own concepts or it is a second-class reader.

@@ -107,6 +107,26 @@ public final class TerminologyStore {
         return lookup(system, code).isPresent();
     }
 
+    /**
+     * Whether this store holds the system at all, and at which version — the
+     * question that separates "not a code of X" from "X is not here", which
+     * are different facts with different fixes (#50). Answered from the
+     * system registry rather than by counting concepts, so an imported-empty
+     * system is still a held system.
+     */
+    public Optional<String> systemVersion(String url) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT coalesce(version, '') FROM state.term_system WHERE url = ?")) {
+            ps.setString(1, url);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.of(rs.getString(1)) : Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("system lookup failed", e);
+        }
+    }
+
     public long conceptCount(String system) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(

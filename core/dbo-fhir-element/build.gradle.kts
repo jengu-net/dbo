@@ -22,6 +22,8 @@ dependencies {
     api(project(":core:dbo-fhir-common"))
     // the HL7 engine: this bundle imports it, one exporter for the framework
     api(project(":core:dbo-fhir-stack"))
+    // the native form validation consults for the tenant's own codes (#50)
+    api(project(":core:dbo-terminology"))
     compileOnly("org.slf4j:slf4j-api:2.0.18")
     compileOnly("org.osgi:osgi.core:8.0.0")
     // A token-level JSON copier, so a stored payload reaches a reader with the
