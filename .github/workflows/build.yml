@@ -71,6 +71,12 @@ jobs:
             echo "is_release=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Build and test core
+        env:
+          # The harness runs IT classes concurrently, each with its own Felix
+          # and/or HTTP server; 4 suits a developer machine, and the runner
+          # container's ceiling OOM-killed the executor at that width
+          # (exit 137). Two keeps the same tests, the same world, less peak.
+          DBO_TEST_PARALLELISM: "2"
         run: ./gradlew build ${{ steps.version.outputs.gradle_args }}
       # Gradle already writes JUnit XML; these two steps make it readable
       # WITHOUT scrolling the log (the CI-parity rule: verdicts, not logs).
