@@ -283,13 +283,31 @@ class AuthorityIT {
                  "type":{"system":"urn:example","code":"report-released"},
                  "recorded":"1999-01-01T00:00:00Z",
                  "agent":[{"who":{"display":"evil-impostor"},"requestor":true}],
-                 "entity":[{"what":{"reference":"DocumentReference/doc-9"}}]}""");
+                 "source":{"site":"neli","observer":{"display":"a-consumer"}},
+                 "entity":[{"what":{"reference":"DocumentReference/doc-9"}}],
+                 "extension":[{"url":"urn:example:received-at",
+                               "valueInstant":"2026-01-01T00:00:00Z"}]}""");
         assertEquals(201, posted.statusCode(), posted.body());
         assertTrue(posted.body().contains("\"code\":\"report-released\"")
                 && posted.body().contains("tenant-bootstrap")
                 && posted.body().contains("DocumentReference/doc-9"), posted.body());
         assertFalse(posted.body().contains("evil-impostor"), "claimed agent must be ignored");
         assertFalse(posted.body().contains("1999-01-01"), "claimed time must be ignored");
+
+        // An r4 face answers an r4 client in the client's own words (#90): what
+        // was posted comes back, minus only the two facts the container owns.
+        // Before this, the trail answered in dbo's vocabulary — urn:dbo:audit,
+        // observer "dbo" — and everything else the poster said was discarded,
+        // which made a consumer learn a second API to read its own events.
+        assertTrue(posted.body().contains("urn:example"),
+                "the poster's own coding system survives: " + posted.body());
+        assertFalse(posted.body().contains("urn:dbo:audit"),
+                "dbo does not rename what a domain said: " + posted.body());
+        assertTrue(posted.body().contains("\"site\":\"neli\"")
+                        && posted.body().contains("a-consumer"),
+                "source is the poster's, not dbo's: " + posted.body());
+        assertTrue(posted.body().contains("urn:example:received-at"),
+                "extensions survive the round trip: " + posted.body());
 
         // the trail cannot be deleted, under any discipline
         String id = posted.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");

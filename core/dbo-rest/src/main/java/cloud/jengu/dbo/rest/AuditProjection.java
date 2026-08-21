@@ -54,6 +54,15 @@ public final class AuditProjection implements AuditSurface {
     public interface Recorder {
         String recordCustom(String code, String targetType, String targetId,
                 java.util.Map<String, String> detail);
+
+        /**
+         * The same, carrying what the face read out of a posted document —
+         * bytes the recorder stores and never reads.
+         */
+        default String recordCustom(String code, String targetType, String targetId,
+                java.util.Map<String, String> detail, byte[] contributed) {
+            return recordCustom(code, targetType, targetId, detail);
+        }
     }
 
     @Override
@@ -124,8 +133,13 @@ public final class AuditProjection implements AuditSurface {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "face '" + face.name() + "' reads no posted audit records, so this "
                                 + "document cannot be turned into one"));
+        // The detail map stays empty here on purpose: it is where dbo's OWN
+        // writers put dbo's own coded facts, and lifting pieces out of a
+        // posted document into it would be the engine learning a domain's
+        // shape. What the domain said travels whole, in the face's words,
+        // opaque to everything between here and the face that renders it.
         String id = recorder.recordCustom(posted.code(), posted.targetType(), posted.targetId(),
-                Map.of());
+                Map.of(), posted.contributed());
         return read(id).orElseThrow();
     }
 

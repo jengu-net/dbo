@@ -3,6 +3,8 @@ package cloud.jengu.dbo.fhir.element;
 import cloud.jengu.dbo.core.face.RecordProjection;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -93,7 +95,15 @@ final class ElementRecordProjection implements RecordProjection {
         }
         // agent and recorded are DELIBERATELY not read: the machinery stamps
         // who and when, and a posted claim about either is not evidence.
-        return Optional.of(new Posted(firstCode(posted), targetType, targetId));
+        //
+        // Everything ELSE the document said travels whole. A face that reduced
+        // it to a code and a target would be answering an R4 client in dbo's
+        // vocabulary instead of its own — the poster's coding systems, source,
+        // entity and extensions are what makes the answer an AuditEvent it
+        // recognises (#90, #91). The engine carries these bytes and never
+        // reads them; reading them is this class's, on the way back out.
+        return Optional.of(new Posted(firstCode(posted), targetType, targetId,
+                document.getBytes(StandardCharsets.UTF_8)));
     }
 
     // ------------------------------------------------------------------ runs
@@ -302,9 +312,60 @@ final class ElementRecordProjection implements RecordProjection {
      * the truth form and this is a view of them, so no personality validation
      * applies and nothing here is ever stored.
      */
+    /**
+     * An entry a domain contributed, given back in the domain's own words.
+     *
+     * <p>The poster's document is the answer — its coding systems, its
+     * {@code source}, its {@code entity}, its extensions — with the fields the
+     * container OWNS stamped over whatever it claimed: {@code id},
+     * {@code recorded} and {@code agent}. So a client reads an AuditEvent it
+     * recognises, and the two facts it may not assert are visibly the store's
+     * (REQ-DBO-POL-ACTOR-FROM-AUTHORITY).
+     *
+     * <p>Decoded here and nowhere earlier: the bytes are base64 in the record
+     * because the engine carries them without a shape, and this is the one
+     * place that knows what shape they have.
+     */
+    @SuppressWarnings("unchecked")
+    private String contributedAuditEvent(Map<?, ?> entry, String id) {
+        Map<String, Object> document = (Map<String, Object>) Json.parse(new String(
+                java.util.Base64.getDecoder().decode(String.valueOf(entry.get("contributed"))),
+                StandardCharsets.UTF_8));
+        document.put("id", id);
+        document.put("recorded", entry.get("at"));
+        document.put("agent", agents(entry));
+        return Json.render(document);
+    }
+
+    /** Who the container observed, and the human it was acting for. */
+    private List<Object> agents(Map<?, ?> entry) {
+        List<Object> agents = new ArrayList<>();
+        Map<String, Object> who = new LinkedHashMap<>();
+        who.put("system", "urn:dbo:auth:client-id");
+        who.put("value", String.valueOf(entry.get("actor")));
+        Map<String, Object> identifier = new LinkedHashMap<>();
+        identifier.put("identifier", who);
+        Map<String, Object> agent = new LinkedHashMap<>();
+        agent.put("who", identifier);
+        agent.put("requestor", true);
+        agents.add(agent);
+        if (entry.get("onBehalfOf") != null) {
+            Map<String, Object> reference = new LinkedHashMap<>();
+            reference.put("reference", String.valueOf(entry.get("onBehalfOf")));
+            Map<String, Object> behalf = new LinkedHashMap<>();
+            behalf.put("who", reference);
+            behalf.put("requestor", false);
+            agents.add(behalf);
+        }
+        return agents;
+    }
+
     private String auditEvent(Record record) {
         Map<?, ?> entry = (Map<?, ?>) Json.parse(
                 new String(record.payload(), StandardCharsets.UTF_8));
+        if (entry.get("contributed") != null) {
+            return contributedAuditEvent(entry, record.id());
+        }
         String interaction = String.valueOf(entry.get("interaction"));
         String code = entry.get("code") != null ? String.valueOf(entry.get("code")) : interaction;
         String action = switch (interaction) {

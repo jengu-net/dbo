@@ -78,5 +78,27 @@ public interface RecordProjection {
      * words: never the document itself, because the machinery stamps who and
      * when and a posted claim about either is not evidence.
      */
-    record Posted(String code, String targetType, String targetId) {}
+    record Posted(String code, String targetType, String targetId, byte[] contributed) {
+
+        /** What a face reads when it contributes nothing but the facts. */
+        public Posted(String code, String targetType, String targetId) {
+            this(code, targetType, targetId, null);
+        }
+
+        /**
+         * The domain's own words, serialised by the face — <b>opaque to the
+         * engine</b>, which stores them and hands them back at render time
+         * without ever looking inside.
+         *
+         * <p>Base64 where it is stored, and that is deliberate rather than
+         * fussy: a JSON document nested as a string invites the engine to
+         * parse it one day, and an engine that learned a domain's shape is the
+         * mistake this contract exists to prevent. What the engine keeps
+         * queryable is its OWN record — actor, interaction, target, time —
+         * and nothing lifted out of a document a domain posted.
+         */
+        public byte[] contributed() {
+            return contributed;
+        }
+    }
 }

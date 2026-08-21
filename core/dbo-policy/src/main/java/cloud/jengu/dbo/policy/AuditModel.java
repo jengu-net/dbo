@@ -60,6 +60,20 @@ public final class AuditModel {
     public static byte[] entry(String actor, String interaction, String targetType,
             String targetId, String outcome, String rule, String code,
             java.util.Map<String, String> detail) {
+        return entry(actor, interaction, targetType, targetId, outcome, rule, code, detail, null);
+    }
+
+    /**
+     * The same, carrying what a domain contributed in its own words.
+     *
+     * <p>{@code contributed} is <b>base64 and stays base64</b>: the engine
+     * carries it and never reads it. dbo holds a general envelope over its own
+     * facts — actor, interaction, target, time — and a tenant's document is
+     * not a thing it may learn the shape of.
+     */
+    public static byte[] entry(String actor, String interaction, String targetType,
+            String targetId, String outcome, String rule, String code,
+            java.util.Map<String, String> detail, byte[] contributed) {
         StringBuilder sb = new StringBuilder("{\"actor\":\"").append(actor)
                 .append("\",\"interaction\":\"").append(interaction).append("\"")
                 .append(",\"targetType\":\"").append(targetType).append("\"");
@@ -82,6 +96,11 @@ public final class AuditModel {
         sb.append(",\"outcome\":\"").append(outcome).append("\"");
         if (rule != null) {
             sb.append(",\"rule\":\"").append(rule).append("\"");
+        }
+        if (contributed != null && contributed.length > 0) {
+            sb.append(",\"contributed\":\"")
+                    .append(java.util.Base64.getEncoder().encodeToString(contributed))
+                    .append('"');
         }
         if (!detail.isEmpty()) {
             sb.append(",\"detail\":{");
