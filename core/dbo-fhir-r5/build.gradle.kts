@@ -1,6 +1,10 @@
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 
+plugins {
+    id("biz.aQute.bnd.builder")
+}
+
 // The FHIR R5 personality — deliberate mechanical port of dbo-fhir-r4 with
 // r5 model imports: per-personality compiled units are the target shape.
 // A neutral-API commons (FhirTerser-based) is the known refactor option,
@@ -85,37 +89,39 @@ tasks.jar {
     // test nobody would connect to a build-cache decision (#32).
     inputs.file(stackJar.get().archiveFile)
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    into("lib") { from(embedded) }
     // Whose code rides in this jar, and under what terms. A recipient of
     // the artifact has the artifact, not the repository.
     into("META-INF") { from(rootProject.file("THIRD-PARTY.md")) }
-    doFirst {
-        val libs = embedded.resolve().joinToString(",") { "lib/${it.name}" }
-        manifest {
-            attributes(
-                "Bundle-ManifestVersion" to "2",
-                "Bundle-SymbolicName" to "cloud.jengu.dbo.fhir.r5",
+    bundle {
+        bnd(provider {
+            val jars = embedded.resolve().sortedBy { it.name }
+            listOf(
+                "Bundle-SymbolicName: cloud.jengu.dbo.fhir.r5",
                 // The bundle announces the version it serves; see Activator.
-                "Bundle-Activator" to "cloud.jengu.dbo.fhir.r5.Activator",
-                "Bundle-Version" to project.version.toString().replace("-", "."),
-                "Bundle-ClassPath" to ".,$libs",
-                "Export-Package" to (listOf("cloud.jengu.dbo.fhir.r5;version=\"0.1.0\"")
-                    + resourcePackages(embedded.resolve())).joinToString(","),
-                "Import-Package" to (listOf(
+                "Bundle-Activator: cloud.jengu.dbo.fhir.r5.Activator",
+                "Bundle-ClassPath: ." + jars.joinToString("") { ",lib/${it.name}" },
+                "-includeresource: " + jars.joinToString(",") { "lib/${it.name}=${it.absolutePath}" },
+                "Export-Package: " + (listOf("cloud.jengu.dbo.fhir.r5;version=0.1.0")
+                    + resourcePackages(jars)).joinToString(","),
+                "-noimportjava: true",
+                // Two halves, computed two ways, and neither written by hand.
+                //
+                // The ENGINE half is named wholesale from the one bundle that
+                // exports it, because bytecode analysis cannot see it: this
+                // personality reaches HAPI types it never names, and
+                // ctx.getVersion() returning a ca.uhn.fhir.model.api interface
+                // is the case that taught us. An import bnd did not compute
+                // resolves and then throws NoClassDefFoundError on first use.
+                //
+                // The DBO half is computed by bnd from bytecode, matched by
+                // pattern, so a new reference to a sibling bundle needs no
+                // edit here. The trailing !* drops what the embedded
+                // validation resources reach for and the container does not
+                // provide.
+                "Import-Package: " + (engineImports() + listOf(
+                    "cloud.jengu.dbo.*",
                     "org.slf4j",
-                    "org.osgi.framework;version=\"[1.8,2)\"",
-                ) + engineImports() + listOf(
-                    "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
-                    // the inward contract: what this face implements for the
-                    // engine, as against core.api which is what it calls
-                    "cloud.jengu.dbo.core.face;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.core.process;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.core.api.feed;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.core;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.fhir.common;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.fhir.element;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.subscriptions;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.terminology;version=\"[0.1,1)\"",
+                    "org.osgi.*",
                     "javax.naming;resolution:=optional",
                     "javax.naming.spi;resolution:=optional",
                     "javax.management;resolution:=optional",
@@ -148,9 +154,10 @@ tasks.jar {
                     "org.w3c.dom.ls;resolution:=optional",
                     "org.w3c.dom.events;resolution:=optional",
                     "org.ietf.jgss;resolution:=optional",
+                    "!*",
                 )).joinToString(","),
-            )
-        }
+            ).joinToString("\n")
+        })
     }
 }
 
