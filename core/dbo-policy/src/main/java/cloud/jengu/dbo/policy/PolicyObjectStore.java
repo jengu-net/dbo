@@ -191,10 +191,23 @@ public final class PolicyObjectStore implements ObjectStore,
     @Override
     public String recordCustom(String code, String targetType, String targetId,
             java.util.Map<String, String> detail) {
+        return recordCustom(code, targetType, targetId, detail, null);
+    }
+
+    /**
+     * The same, carrying what a domain contributed in its own words — bytes a
+     * face wrote, which this layer stores and never reads. What stays this
+     * layer's is WHO and WHEN; what a caller said happened is the caller's,
+     * and what it said it in is the face's.
+     */
+    @Override
+    public String recordCustom(String code, String targetType, String targetId,
+            java.util.Map<String, String> detail, byte[] contributed) {
         return inner.put(PutRequest.create("AuditEntry",
                 AuditModel.entry(Caller.current(), "custom",
                         targetType != null ? targetType : "none",
-                        targetId, "ok", null, code, detail != null ? detail : java.util.Map.of())))
+                        targetId, "ok", null, code,
+                        detail != null ? detail : java.util.Map.of(), contributed)))
                 .id();
     }
 
