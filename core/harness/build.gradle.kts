@@ -32,12 +32,36 @@ dependencies {
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.18")
 }
 
+// The distribution suite is its OWN task, and the reason is a sum: the main
+// executor's per-version context cache holds it near its heap ceiling for
+// the whole run, and ServerDistIT boots the dist as a SEPARATE JVM that
+// builds a context of its own. On the CI runner VM the two together exceed
+// the machine. Two tasks run in sequence, so the big executor and the dist
+// JVM never coexist — the driver task needs almost no heap, because the
+// distribution does the remembering.
+val distTest = tasks.register<Test>("distTest") {
+    description = "The tests that boot the shipped distribution as a subprocess."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter.includeTestsMatching("*ServerDistIT")
+    maxHeapSize = "1g"
+}
 tasks.test {
-    useJUnitPlatform()
-    // Two versions' definitions can be resident at once now — the R4 face and
-    // the R6 one are tens of megabytes of parsed StructureDefinitions each,
-    // and the suite holds a container and a distribution beside them.
+    filter.excludeTestsMatching("*ServerDistIT")
+    shouldRunAfter(distTest)
+}
+tasks.check { dependsOn(distTest) }
+
+// Shared shape for BOTH suites: the wiring below (jar paths, ports, the
+// container fixtures) is identical whichever executor asks.
+// The heap is per task, NOT shared: the main suite holds parsed definitions
+// for every version it touches, the dist driver holds nothing worth naming.
+tasks.test {
     maxHeapSize = "4g"
+}
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
     dependsOn(":core:dbo-core:jar", ":core:dbo-postgres:jar", ":core:dbo-fhir-r4:jar")
     systemProperty(
         "dbo.core.jar",
