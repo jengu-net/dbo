@@ -91,7 +91,11 @@ subprojects {
     // moved. -P travels with every invocation, daemon or not.
     afterEvaluate {
         tasks.withType<Test>().configureEach {
-            (findProperty("dboTestHeap") as String?)?.let { maxHeapSize = it }
+            // Only the main suites: a task that fixed its own small heap on
+            // purpose (the dist driver) is not re-inflated by the CI dial.
+            if (name == "test") {
+                (findProperty("dboTestHeap") as String?)?.let { maxHeapSize = it }
+            }
             (findProperty("dboTestParallelism") as String?)?.let {
                 systemProperty(
                     "junit.jupiter.execution.parallel.config.fixed.parallelism", it)
