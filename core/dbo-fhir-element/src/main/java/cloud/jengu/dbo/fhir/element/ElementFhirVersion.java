@@ -151,6 +151,17 @@ public class ElementFhirVersion implements FhirVersion {
 
         @Override
         public FhirStoreFacade store(ObjectStore engine, String baseUrl,
+                javax.sql.DataSource dataSource) {
+            cloud.jengu.dbo.terminology.TerminologyStore terminology =
+                    new cloud.jengu.dbo.terminology.TerminologyStore(dataSource);
+            // the carried baseline becomes tenant data, once — see the class
+            TerminologyBaseline.ensure(terminology, version.code());
+            return new ElementStore(engine, version, types, baseUrl,
+                    cloud.jengu.dbo.core.process.Steps.of(), new StoreTerms(terminology));
+        }
+
+        @Override
+        public FhirStoreFacade store(ObjectStore engine, String baseUrl,
                 cloud.jengu.dbo.core.process.Steps steps) {
             return new ElementStore(engine, version, types, baseUrl, steps);
         }

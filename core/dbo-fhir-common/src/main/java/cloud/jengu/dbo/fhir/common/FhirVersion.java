@@ -65,6 +65,18 @@ public interface FhirVersion {
         FhirStoreFacade store(ObjectStore engine, String baseUrl);
 
         /**
+         * The same, knowing the tenant's database — which is where the
+         * tenant's OWN validation truth lives: its terminology today, its
+         * structure definitions next (#50, #83). The default ignores it, so a
+         * face whose validation reads nothing but carried definitions is
+         * unchanged; a face that validates against current data overrides.
+         */
+        default FhirStoreFacade store(ObjectStore engine, String baseUrl,
+                javax.sql.DataSource dataSource) {
+            return store(engine, baseUrl);
+        }
+
+        /**
          * The same, knowing the steps this container has (#49, #71).
          *
          * <p>Passed in rather than discovered: a face inside a bundle that

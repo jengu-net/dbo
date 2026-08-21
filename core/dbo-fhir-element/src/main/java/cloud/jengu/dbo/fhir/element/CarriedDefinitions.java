@@ -138,7 +138,7 @@ public final class CarriedDefinitions {
     }
 
     /** The package's bytes, from this bundle and nowhere else. */
-    private static InputStream open(Carried carried) {
+    static InputStream open(Carried carried) {
         InputStream bytes = CarriedDefinitions.class
                 .getResourceAsStream("/definitions/" + carried.file());
         if (bytes == null) {
