@@ -41,6 +41,26 @@ public interface RecordProjection {
     Optional<String> project(Record record);
 
     /**
+     * The vocabularies this face publishes, as canonical resources a client
+     * can fetch (#91).
+     *
+     * <p>dbo owns concepts the domain has no word for — a run's holder, the
+     * tally of what a step did — and minting a system for them is how the
+     * domain is meant to be extended. What is not allowed is a client meeting
+     * one and having nowhere to look it up: a consumer learns the domain's
+     * API and nothing else, so dbo's own vocabulary is discovered the way any
+     * implementation guide's is, by fetching the resource that defines it.
+     *
+     * <p>Documents rather than a model: which resource defines a vocabulary
+     * is domain knowledge, and this contract has no business naming one.
+     *
+     * @return the canonical definitions, empty when this face publishes none
+     */
+    default List<String> vocabularies() {
+        return List.of();
+    }
+
+    /**
      * The other direction: what the engine should record, read out of a
      * document somebody posted.
      *
