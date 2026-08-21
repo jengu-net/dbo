@@ -35,9 +35,24 @@ final class ElementPayloads implements Payloads<Element> {
             new java.util.concurrent.atomic.AtomicLong();
 
     private final SimpleWorkerContext context;
+    private final Terms terms;
     private final Payloads<Element> reading;
 
     ElementPayloads(SimpleWorkerContext context) {
+        this(context, null);
+    }
+
+    /**
+     * The tenant form: {@code terms} answers for systems the definitions do
+     * not carry. Two consequences, split by their nature (#50):
+     * value-set membership rides the validator through {@link TenantContext},
+     * where binding strength decides severity — and system membership is
+     * checked here, after the validator, because a code claiming a system the
+     * tenant holds either exists in it or the document is wrong, regardless
+     * of how strongly any binding felt about it.
+     */
+    ElementPayloads(SimpleWorkerContext context, Terms terms) {
+        this.terms = terms;
         this.context = context;
         // One read per request, the same way every face gets it: the engine's
         // envelope extraction asks this face about the bytes the write path
@@ -113,10 +128,45 @@ final class ElementPayloads implements Payloads<Element> {
                 validator().validate(null, messages, document.fhirType(), document,
                         shapeReference);
             }
-            return messages.stream().map(m -> new Issue(severityOf(m),
+            List<Issue> issues = new ArrayList<>(messages.stream()
+                    .map(m -> new Issue(severityOf(m),
                             m.getLocation() == null ? document.fhirType() : m.getLocation(),
                             m.getMessage()))
-                    .toList();
+                    .toList());
+            issues.addAll(heldSystemMembership(document, document.fhirType()));
+            return issues;
+        }
+
+        /**
+         * Every coding in the document whose system the tenant holds and the
+         * definitions do not: the code exists in that system or the element
+         * is in error. Strength-independent by design — binding strength
+         * governs whether a coding must come from a VALUE SET, not whether a
+         * code is real in the system it claims.
+         */
+        private List<Issue> heldSystemMembership(Element element, String path) {
+            if (terms == null) {
+                return List.of();
+            }
+            List<Issue> issues = new ArrayList<>();
+            if ("Coding".equals(element.fhirType())) {
+                String system = element.getNamedChildValue("system");
+                String code = element.getNamedChildValue("code");
+                if (system != null && code != null
+                        && context.fetchResource(
+                                org.hl7.fhir.r5.model.CodeSystem.class, system) == null) {
+                    terms.membership(system, code)
+                            .filter(m -> !m.present())
+                            .ifPresent(m -> issues.add(new Issue(Issue.ERROR, path,
+                                    "Unknown code '" + code + "' in the code system '" + system
+                                            + "' (answered from this tenant's terminology)")));
+                }
+            }
+            for (Element child : element.getChildren()) {
+                issues.addAll(heldSystemMembership(child,
+                        path + "." + child.getName()));
+            }
+            return issues;
         }
 
         /** FHIR's severities, as an outcome spells them. */
