@@ -81,6 +81,23 @@ final class ConformanceReport {
     }
 
     private static String escape(String s) {
-        return s == null ? "" : s.replace("|", "\\|").replace("\n", " ");
+        return s == null ? "" : normalized(s).replace("|", "\\|").replace("\n", " ");
+    }
+
+    /**
+     * The volatile parts of an observation, replaced with placeholders that
+     * keep the SHAPE visible: {@code Location: {base}/Patient/{id}} still
+     * proves the header was there and well-formed, which is the assertion.
+     *
+     * <p>Applied where the report is rendered rather than where each rule is
+     * written, so a new rule inherits it (#84). Without this, every run
+     * changed the ephemeral port and a generated id in three files — and a
+     * report that always differs is a report nobody reads the diff of, so an
+     * actual conformance change arrives in the same shape as the churn.
+     */
+    private static String normalized(String s) {
+        return s.replaceAll("http://127\\.0\\.0\\.1:\\d+", "{base}")
+                .replaceAll("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+                        "{id}");
     }
 }
