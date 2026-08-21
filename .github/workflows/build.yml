@@ -32,7 +32,15 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # SELF-HOSTED because this repository is PRIVATE under a free-tier org:
+    # GitHub-hosted minutes are a monthly budget that one busy day exhausts,
+    # and a job that cannot start looks like a red build to everyone
+    # downstream. Private also means fork PRs from strangers cannot exist,
+    # which is the precondition — if this repository ever goes PUBLIC, these
+    # jobs go back to hosted runners (or gain the pull_request guard the
+    # images job has), because a public fork PR on a self-hosted runner is
+    # arbitrary code execution on the machine that runs it.
+    runs-on: self-hosted
     # the test reporter writes a check run and annotates failing lines
     permissions:
       contents: read
@@ -96,7 +104,8 @@ jobs:
   publish:
     needs: build
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    # self-hosted for the same budget reason as build; never on pull_request
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v5
@@ -263,7 +272,8 @@ jobs:
     # Central Portal, rather than auto-published.
     needs: build
     if: needs.build.outputs.is_release == 'true'
-    runs-on: ubuntu-latest
+    # self-hosted for the same budget reason as build; release tags only
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v5
