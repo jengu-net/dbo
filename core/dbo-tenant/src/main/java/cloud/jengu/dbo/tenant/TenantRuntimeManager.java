@@ -530,7 +530,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // Built once and shared by everything this bring-up wires. It used to
         // be built twice — the maintenance surface constructed a second one —
         // which is how a tenant came to cost two of the heaviest object here.
-        FhirVersion.ForTypes declared = version.forTypes(spec.types());
+        // The face's own vocabulary is served BY the tenant, so the types
+        // that carry it are registered whether or not the tenant listed them:
+        // a client meeting urn:dbo:run:holder must be able to fetch what
+        // defines it, and "the tenant did not ask for CodeSystem" is not an
+        // answer a consumer can act on (#91).
+        FhirVersion.ForTypes declared = version.forTypes(withVocabularyTypes(spec.types(),
+                version.face()));
         cloud.jengu.dbo.policy.PolicyObjectStore engine =
                 policyWrapped(spec, db, declared.registrations(), version.domain());
         if (authority != null) {
@@ -540,6 +546,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // data — the tenant's terminology, and in time its own structure
         // definitions — needs to know where that data lives (#50).
         FhirStoreFacade store = declared.store(engine, base, db.dataSource());
+        publishVocabularies(store, version.face());
         // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is per tenant,
         // so the facade is built here rather than shared — a tenant answers
         // $expand from its own concepts or it is a second-class reader.
@@ -999,5 +1006,74 @@ public final class TenantRuntimeManager implements AutoCloseable {
             takeDown(code, null);
         }
         sharedServer.stop(0);
+    }
+
+    /**
+     * The tenant's declared types, plus the ones the face's vocabulary needs
+     * to be fetchable — added only when absent, and canonical because that is
+     * what a definition is identified by.
+     */
+    private static java.util.List<cloud.jengu.dbo.fhir.common.FhirTypeConfig> withVocabularyTypes(
+            java.util.List<cloud.jengu.dbo.fhir.common.FhirTypeConfig> declared,
+            cloud.jengu.dbo.core.face.DomainFace face) {
+        java.util.Set<String> carried = new java.util.LinkedHashSet<>();
+        for (String definition : face.capability(
+                cloud.jengu.dbo.core.face.RecordProjection.class)
+                .map(cloud.jengu.dbo.core.face.RecordProjection::vocabularies)
+                .orElse(java.util.List.of())) {
+            carried.add(resourceTypeOf(definition));
+        }
+        java.util.List<cloud.jengu.dbo.fhir.common.FhirTypeConfig> all =
+                new java.util.ArrayList<>(declared);
+        for (String typeName : carried) {
+            if (all.stream().noneMatch(t -> t.typeName().equals(typeName))) {
+                all.add(cloud.jengu.dbo.fhir.common.FhirTypeConfig.canonical(typeName));
+            }
+        }
+        return all;
+    }
+
+    /**
+     * The definitions themselves, written once per tenant. Idempotent by
+     * canonical identity — a definition written twice is one record, so a
+     * restart costs a conditional write and nothing else.
+     */
+    private static void publishVocabularies(FhirStoreFacade store,
+            cloud.jengu.dbo.core.face.DomainFace face) {
+        for (String definition : face.capability(
+                cloud.jengu.dbo.core.face.RecordProjection.class)
+                .map(cloud.jengu.dbo.core.face.RecordProjection::vocabularies)
+                .orElse(java.util.List.of())) {
+            try {
+                // Identity-keyed on the canonical url, so a restart rewrites
+                // the same record rather than a second one
+                // (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS).
+                store.conditionalCreate(definition,
+                        java.util.Map.of("url", canonicalUrlOf(definition)));
+            } catch (RuntimeException e) {
+                // A face that publishes a definition this store cannot hold is
+                // a misconfiguration worth naming, not a tenant that fails to
+                // come up: the trail and the runs still serve without it.
+                LOG.warn("could not publish the face's vocabulary: {}", e.toString());
+            }
+        }
+    }
+
+    /** The canonical url a definition is identified by. */
+    private static String canonicalUrlOf(String definition) {
+        return fieldOf(definition, "\"url\"");
+    }
+
+    /** Which resource a definition is, read from the document itself. */
+    private static String resourceTypeOf(String definition) {
+        return fieldOf(definition, "\"resourceType\"");
+    }
+
+    /** One string field, read without a parser: this layer holds documents. */
+    private static String fieldOf(String definition, String field) {
+        int at = definition.indexOf(field);
+        int colon = definition.indexOf(':', at);
+        int open = definition.indexOf('"', colon);
+        return definition.substring(open + 1, definition.indexOf('"', open + 1));
     }
 }

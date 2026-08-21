@@ -35,6 +35,7 @@ final class ElementRecordProjection implements RecordProjection {
     private static final String CORRELATION = "urn:dbo:correlation";
     private static final String EXECUTOR = "urn:dbo:executor";
     private static final String AUDIT_CODE_SYSTEM = "urn:dbo:audit";
+    private static final String AUTH_CLIENT_ID = "urn:dbo:auth:client-id";
 
     private final String domain;
     private final boolean auditIsCategorised;
@@ -58,6 +59,69 @@ final class ElementRecordProjection implements RecordProjection {
     @Override
     public Set<String> projects() {
         return Set.of("Run", "AuditEntry");
+    }
+
+    /**
+     * What dbo says that FHIR has no word for, defined where a client can
+     * fetch it (#91).
+     *
+     * <p>Two resources for two kinds of thing, because conflating them would
+     * be the same imprecision this is fixing: a set of codes is a
+     * {@code CodeSystem}, and a namespace whose values are identifiers — a
+     * run's key, an executor's name — is a {@code NamingSystem}. Where the
+     * codes are dbo's own and closed, they are listed; where a module or an
+     * application supplies them, the definition says {@code not-present}
+     * rather than pretending to an enumeration it does not have.
+     */
+    @Override
+    public List<String> vocabularies() {
+        return List.of(
+                codeSystem(AUDIT_CODE_SYSTEM, "DboAuditEventCodes",
+                        "What an audited interaction was. dbo records its own "
+                                + "(create, update, delete, read) and applications contribute "
+                                + "business-level codes of their own.",
+                        null),
+                codeSystem(HOLDER, "DboRunHolder",
+                        "Whose a run is right now: nobody's while it executes, "
+                                + "nobody's while a retry is scheduled, and a person's "
+                                + "when it needs somebody.",
+                        List.of("AUTOMATION", "RETRY", "PERSON", "NOBODY")),
+                codeSystem(PROCESS, "DboProcess",
+                        "The process a run belongs to, named by the module that declares it.",
+                        null),
+                codeSystem(STEP, "DboStep",
+                        "The step a run is at, named by the module that declares it.", null),
+                codeSystem(TALLY, "DboRunTally",
+                        "What a step counted — the names are the step's own.", null),
+                codeSystem(RUN, "DboRunOutput",
+                        "What a run carries beside its tally.", List.of("outcome")));
+        // The IDENTIFIER namespaces this face also uses — urn:dbo:run for a
+        // run's key, :correlation, :executor, :auth:client-id — are not here
+        // yet, and the reason is a version fact rather than an oversight: FHIR
+        // answers "what is this identifier system" with a NamingSystem, and
+        // R4's NamingSystem has no url, so it cannot take the canonical
+        // identity a definition is fetched by. Publishing them wants a
+        // per-version answer (#91).
+    }
+
+    /** A dbo code system: listed where the codes are dbo's, not-present where they are not. */
+    private static String codeSystem(String url, String name, String description,
+            List<String> codes) {
+        StringBuilder json = new StringBuilder("{\"resourceType\":\"CodeSystem\",\"url\":")
+                .append(Json.quoted(url)).append(",\"name\":").append(Json.quoted(name))
+                .append(",\"status\":\"active\",\"description\":")
+                .append(Json.quoted(description))
+                .append(",\"caseSensitive\":true,\"content\":")
+                .append(codes == null ? "\"not-present\"" : "\"complete\"");
+        if (codes != null) {
+            json.append(",\"count\":").append(codes.size()).append(",\"concept\":[");
+            for (int i = 0; i < codes.size(); i++) {
+                json.append(i > 0 ? "," : "").append("{\"code\":")
+                        .append(Json.quoted(codes.get(i))).append('}');
+            }
+            json.append(']');
+        }
+        return json.append('}').toString();
     }
 
     @Override
@@ -341,7 +405,7 @@ final class ElementRecordProjection implements RecordProjection {
     private List<Object> agents(Map<?, ?> entry) {
         List<Object> agents = new ArrayList<>();
         Map<String, Object> who = new LinkedHashMap<>();
-        who.put("system", "urn:dbo:auth:client-id");
+        who.put("system", AUTH_CLIENT_ID);
         who.put("value", String.valueOf(entry.get("actor")));
         Map<String, Object> identifier = new LinkedHashMap<>();
         identifier.put("identifier", who);
