@@ -38,6 +38,14 @@ tasks.test {
     // the R6 one are tens of megabytes of parsed StructureDefinitions each,
     // and the suite holds a container and a distribution beside them.
     maxHeapSize = "4g"
+    // The class-level parallelism is a MEMORY dial, and whose memory differs:
+    // junit-platform.properties says 4 for a developer machine, and a CI
+    // runner container living under the OrbStack ceiling sets this variable
+    // lower — the suite that was OOM-killed at 4 (exit 137, every test green
+    // until the kill) walks home at 2.
+    System.getenv("DBO_TEST_PARALLELISM")?.let {
+        systemProperty("junit.jupiter.execution.parallel.config.fixed.parallelism", it)
+    }
     dependsOn(":core:dbo-core:jar", ":core:dbo-postgres:jar", ":core:dbo-fhir-r4:jar")
     systemProperty(
         "dbo.core.jar",
