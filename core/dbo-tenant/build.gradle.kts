@@ -1,7 +1,11 @@
 // Tenant runtime wiring: the mandatory TenantDatabaseProvisioner
 // service, the default database-per-tenant implementation, and the manager
-// that turns spec files into live tenant service sets. HikariCP (+slf4j)
-// rides privately in the bundle — the fat-embedding pattern.
+// that turns spec files into live tenant service sets. HikariCP rides
+// privately in the bundle — the fat-embedding pattern.
+
+plugins {
+    id("biz.aQute.bnd.builder")
+}
 
 val embedded: Configuration by configurations.creating
 configurations.implementation.get().extendsFrom(embedded)
@@ -20,62 +24,71 @@ dependencies {
     api(project(":core:dbo-policy"))
     implementation(project(":core:dbo-work"))
     compileOnly("org.osgi:osgi.core:8.0.0")
-    embedded("com.zaxxer:HikariCP:7.1.0")
+    // slf4j-api is SHARED, not embedded: one binding for the whole runtime
+    // instead of a private copy per bundle. HikariCP drags it in
+    // transitively, so it is excluded from what rides in lib/ rather than
+    // shipped and then shadowed by the import that already wires org.slf4j
+    // to the shared bundle. The exclusion is on the dependency and not on
+    // the configuration: configuration-level excludes are inherited through
+    // extendsFrom, and would take slf4j off the compile classpath as well.
+    embedded("com.zaxxer:HikariCP:7.1.0") {
+        exclude(group = "org.slf4j", module = "slf4j-api")
+    }
     // the PG driver comes from the DRIVER BUNDLE at runtime — compile-only
     compileOnly("org.postgresql:postgresql:42.7.11")
-    // slf4j-api is SHARED, not embedded: one binding for the whole
-    // runtime instead of a private one per bundle. compileOnly because
-    // it resolves from the slf4j-api bundle at runtime.
     compileOnly("org.slf4j:slf4j-api:2.0.18")
 }
 
+// bnd COMPUTES Import-Package from the bytecode of this bundle AND of what
+// rides in lib/. What stays written by hand is POLICY rather than inventory:
+// which packages are private, and which imports may go unresolved. The list
+// of packages itself is never written down, so it cannot drift from the code
+// the way a hand-kept list does (#32).
 tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    into("lib") { from(embedded) }
     // Whose code rides in this jar, and under what terms. A recipient of
     // the artifact has the artifact, not the repository.
     into("META-INF") { from(rootProject.file("THIRD-PARTY.md")) }
-    doFirst {
-        val libs = embedded.resolve().joinToString(",") { "lib/${it.name}" }
-        manifest {
-            attributes(
-                "Bundle-ManifestVersion" to "2",
-                "Bundle-SymbolicName" to "cloud.jengu.dbo.tenant",
-                "Bundle-Version" to project.version.toString().replace("-", "."),
-                "Bundle-Activator" to "cloud.jengu.dbo.tenant.Activator",
-                "Bundle-ClassPath" to ".,$libs",
-                "Export-Package" to "cloud.jengu.dbo.tenant;version=\"0.1.0\"",
-                "Import-Package" to listOf(
-                    "org.slf4j",
-                    "org.osgi.framework",
-                    "org.osgi.util.tracker",
-                    "cloud.jengu.dbo.core.api;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.core.face;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.core.api.feed;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.fhir.common;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.fhir.r4;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.fhir.r5;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.postgres;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.rest;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.auth;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.pdi;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.policy;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.work;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.sync;version=\"[0.1,1)\"",
-                    // the native terminology form, which each tenant's facade
-                    // is built over (REQ-DBO-TERM-EVERY-TENANT-ANSWERS)
-                    "cloud.jengu.dbo.terminology;version=\"[0.1,1)\"",
-                    "cloud.jengu.dbo.maintenance;version=\"[0.1,1)\"",
-                    "com.sun.net.httpserver",
-                    "javax.sql",
-                    "org.postgresql",
+    bundle {
+        bnd(provider {
+            val jars = embedded.resolve().sortedBy { it.name }
+            listOf(
+                "Bundle-SymbolicName: cloud.jengu.dbo.tenant",
+                "Bundle-Activator: cloud.jengu.dbo.tenant.Activator",
+                "Bundle-ClassPath: ." + jars.joinToString("") { ",lib/${it.name}" },
+                "-includeresource: " + jars.joinToString(",") { "lib/${it.name}=${it.absolutePath}" },
+                "Export-Package: cloud.jengu.dbo.tenant;version=0.1.0",
+                // The framework delegates java.* to the boot classloader;
+                // importing it is noise at best and a resolution failure at
+                // worst.
+                "-noimportjava: true",
+                "Import-Package: " + listOf(
+                    // HikariCP is private to this bundle: it rides in lib/
+                    // and is reached over Bundle-ClassPath, never imported.
+                    "!com.zaxxer.hikari.*",
+                    // HikariCP ships adapters for metrics backends, an ORM
+                    // and a bytecode library that this runtime does not
+                    // carry. Their classes ride along unused; naming them
+                    // here is what keeps unused code from becoming a wire
+                    // the container has to satisfy.
+                    "!com.codahale.metrics.*",
+                    "!io.micrometer.*",
+                    "!io.dropwizard.*",
+                    "!io.prometheus.*",
+                    "!org.hibernate.*",
+                    "!javassist.*",
+                    "!org.jetbrains.annotations.*",
+                    // the JDK surfaces a bundle may run without
                     "javax.naming;resolution:=optional",
+                    "javax.naming.spi;resolution:=optional",
                     "javax.management;resolution:=optional",
                     "javax.net.ssl;resolution:=optional",
                     "javax.crypto;resolution:=optional",
                     "javax.security.auth;resolution:=optional",
+                    // everything else, computed
+                    "*",
                 ).joinToString(","),
-            )
-        }
+            ).joinToString("\n")
+        })
     }
 }
