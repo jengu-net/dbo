@@ -82,7 +82,7 @@ jobs:
         # heap and width locally, with room the terminology drop (#83) paid
         # for; 4g/width-4 was GitHub-hosted 16g sizing.
         run: >-
-          ./gradlew build -PdboTestHeap=2560m -PdboTestParallelism=1
+          ./gradlew build -PdboTestHeap=2048m -PdboTestParallelism=1
           ${{ steps.version.outputs.gradle_args }}
       # Gradle already writes JUnit XML; these two steps make it readable
       # WITHOUT scrolling the log (the CI-parity rule: verdicts, not logs).
