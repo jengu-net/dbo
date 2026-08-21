@@ -75,6 +75,22 @@ val dboDevMode = (findProperty("dbo.dev") as String?) == "true"
 val dboKarafVersion = (findProperty("dbo.karaf.version") as String?) ?: "4.4.11"
 
 extra["dboKarafVersion"] = dboKarafVersion
+// Every test JVM's ceiling bows to the machine it runs on. The per-module
+// maxHeapSize values are developer-machine sizing (the element face holds a
+// version's definitions, the harness holds a container and a distribution);
+// the CI runner VM holds 6g for EVERYTHING, so the runner sets one variable
+// and every test task obeys it. Local runs without the variable keep the
+// module's own number.
+subprojects {
+    // afterEvaluate, because each module sets its own developer-machine
+    // number in its build script, and an override that runs first is not one.
+    afterEvaluate {
+        tasks.withType<Test>().configureEach {
+            System.getenv("DBO_TEST_HEAP")?.let { maxHeapSize = it }
+        }
+    }
+}
+
 extra["dboRuntimeModules"] = dboRuntimeModules
 extra["dboRuntimeExternalBundles"] = dboRuntimeExternalBundles
 extra["dboLoggingBundles"] = dboLoggingBundles
