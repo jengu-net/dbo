@@ -63,12 +63,26 @@ public final class ElementStore implements FhirStoreFacade {
 
     ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
             String baseUrl, cloud.jengu.dbo.core.process.Steps steps) {
+        this(store, version, types, baseUrl, steps, null);
+    }
+
+    /**
+     * The tenant-terminology form: validation consults {@code terms} for
+     * systems the carried definitions do not answer (#50). Null keeps the
+     * shared, definitions-only payloads — the engine's own extraction path
+     * and every caller with no tenant database stay exactly as they were.
+     */
+    @SuppressWarnings("unchecked")
+    ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
+            String baseUrl, cloud.jengu.dbo.core.process.Steps steps, Terms terms) {
         this.steps = steps;
         this.store = store;
         this.version = version;
         this.types = List.copyOf(types);
         this.baseUrl = baseUrl;
-        this.payloads = (Payloads<Object>) version.face().require(Payloads.class);
+        this.payloads = terms == null
+                ? (Payloads<Object>) version.face().require(Payloads.class)
+                : (Payloads<Object>) (Payloads<?>) version.payloadsFor(terms);
         this.framing = version.face().require(PayloadFraming.class);
     }
 

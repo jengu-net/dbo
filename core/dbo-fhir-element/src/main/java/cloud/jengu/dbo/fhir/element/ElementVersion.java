@@ -208,6 +208,21 @@ public final class ElementVersion {
         throw new IllegalArgumentException("canonical resource without url");
     }
 
+    /**
+     * A payloads view bound to one tenant's terminology: the same definitions,
+     * with code membership answered by the tenant's own store where the
+     * definitions are silent (#50, #83). Costs one context copy (~100ms),
+     * paid once per tenant at facade construction, never per request.
+     */
+    ElementPayloads payloadsFor(Terms terms) {
+        try {
+            return new ElementPayloads(new TenantContext(context(), terms), terms);
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(
+                    "cannot derive a tenant context from the shared " + code + " context", e);
+        }
+    }
+
     SimpleWorkerContext context() {
         return context;
     }
