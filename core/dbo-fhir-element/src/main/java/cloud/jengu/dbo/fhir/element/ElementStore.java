@@ -108,11 +108,82 @@ public final class ElementStore implements FhirStoreFacade {
         byte[] payload = resourceJson.getBytes(StandardCharsets.UTF_8);
         Object document = payloads.read(null, payload);
         String type = payloads.typeOf(document);
+        // A reference that is a question is answered HERE, in the tree that
+        // was already read (#89). Re-reading would be a second read of one
+        // payload, and keeping the original bytes would store a document the
+        // validator never saw. Composed once, and only when something moved.
+        if (document instanceof org.hl7.fhir.r5.elementmodel.Element element
+                && ElementReferences.resolve(element, this::identified)) {
+            payload = payloads.write(document);
+        }
         List<String> issues = payloads.validate(type, document);
         if (!issues.isEmpty()) {
             throw new ValidationFailedException(type, issues);
         }
         return new Accepted(type, payload);
+    }
+
+    /**
+     * What a conditional reference points at, by the type's own identity.
+     *
+     * <p>Held to the same rule as a conditional create
+     * (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS): a reference may ask by the
+     * identity a type is claimed under, never by general search. A store that
+     * resolved references by arbitrary criteria would make a write's meaning
+     * depend on what else happens to match today.
+     *
+     * <p>Several matches refuse rather than choose. Which one is the writer's
+     * to say, and picking here would attach the record to the wrong subject —
+     * the failure a conditional reference is used to avoid.
+     */
+    private java.util.Optional<String> identified(String typeName, String query) {
+        java.util.Map<String, String> condition = conditionOf(typeName, query);
+        java.util.Map.Entry<String, String> only = condition.entrySet().iterator().next();
+        cloud.jengu.dbo.core.api.Identifier identifier = switch (only.getKey()) {
+            case "identifier" -> {
+                int pipe = only.getValue().indexOf('|');
+                if (pipe <= 0 || pipe == only.getValue().length() - 1) {
+                    throw new IllegalArgumentException("a conditional reference's identifier "
+                            + "must be system|value: " + only.getValue());
+                }
+                yield new cloud.jengu.dbo.core.api.Identifier(only.getValue().substring(0, pipe),
+                        only.getValue().substring(pipe + 1));
+            }
+            case "url" -> new cloud.jengu.dbo.core.api.Identifier(
+                    cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, only.getValue());
+            default -> throw new IllegalArgumentException("a reference may ask by the identity "
+                    + "its type is claimed under (identifier=, url=), not by '" + only.getKey()
+                    + "' — a write whose meaning depends on general search means something "
+                    + "different tomorrow");
+        };
+        List<StoredObject> found = store.getByIdentifier(typeName, List.of(identifier));
+        if (found.size() > 1) {
+            throw new IllegalArgumentException("the reference '" + typeName + "?" + query
+                    + "' matches " + found.size() + " records — which one is the writer's to "
+                    + "say, and choosing here would attach this to the wrong one");
+        }
+        return found.stream().findFirst().map(StoredObject::id);
+    }
+
+    /** The one condition a conditional reference may carry. */
+    private static java.util.Map<String, String> conditionOf(String typeName, String query) {
+        java.util.Map<String, String> condition = new java.util.LinkedHashMap<>();
+        for (String pair : query.split("&")) {
+            int equals = pair.indexOf('=');
+            if (equals > 0) {
+                condition.put(
+                        java.net.URLDecoder.decode(pair.substring(0, equals),
+                                StandardCharsets.UTF_8),
+                        java.net.URLDecoder.decode(pair.substring(equals + 1),
+                                StandardCharsets.UTF_8));
+            }
+        }
+        if (condition.size() != 1) {
+            throw new IllegalArgumentException("the reference '" + typeName + "?" + query
+                    + "' must ask by exactly one identity condition, got: "
+                    + condition.keySet());
+        }
+        return condition;
     }
 
     @Override
