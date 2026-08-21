@@ -53,7 +53,8 @@ final class ElementSearch {
             String name = param.getKey();
             String value = param.getValue();
             switch (name) {
-                case "_count" -> criteria.limit(Integer.parseInt(value));
+                case "_count" -> criteria.limit(cloud.jengu.dbo.fhir.common.ResultParameters
+                        .count(value, typeName, 100, 10_000));
                 case "_sort" -> sort(criteria, typeName, known, value);
                 case "_summary" -> {
                     if (!"count".equals(value)) {
@@ -78,8 +79,12 @@ final class ElementSearch {
 
     private static void sort(Criteria criteria, String typeName,
             Map<String, SearchParameter> known, String value) {
-        boolean descending = value.startsWith("-");
-        String sortParam = descending ? value.substring(1) : value;
+        // Spelled once, for every surface (#92): what -date means is not this
+        // path's to decide differently from the trail's.
+        cloud.jengu.dbo.fhir.common.ResultParameters.Sort asked =
+                cloud.jengu.dbo.fhir.common.ResultParameters.sort(value, typeName);
+        boolean descending = asked.descending();
+        String sortParam = asked.field();
         if ("_lastUpdated".equals(sortParam)) {
             criteria.sortByLastUpdated(!descending);
             return;

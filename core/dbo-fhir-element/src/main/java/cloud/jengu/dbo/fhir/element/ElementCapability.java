@@ -61,7 +61,19 @@ final class ElementCapability {
                 .append(",\"format\":[").append(ElementOutcomes.quoted(RENDERED_FORMAT))
                 .append("],\"implementation\":{\"description\":\"dbo\",\"url\":")
                 .append(ElementOutcomes.quoted(baseUrl))
-                .append("},\"rest\":[{\"mode\":\"server\",\"resource\":[");
+                .append("},\"rest\":[{\"mode\":\"server\"")
+                // Declared ONCE, at the server, because that is what they are:
+                // _count and _sort shape a result and mean the same thing
+                // whatever is being read. Per-type they would be repeated for
+                // every resource and still missed by a surface that keeps its
+                // own list — which is exactly how one path came to accept them
+                // and another to refuse them (#92).
+                .append(",\"searchParam\":[{\"name\":\"_count\",\"type\":\"number\"")
+                .append(",\"documentation\":\"How many members a page carries.\"}")
+                .append(",{\"name\":\"_sort\",\"type\":\"string\"")
+                .append(",\"documentation\":\"Which field orders the result, '-' for ")
+                .append("descending. A field a surface cannot order by is refused.\"}]")
+                .append(",\"resource\":[");
         boolean firstType = true;
         for (FhirTypeConfig type : types) {
             if (!firstType) {
