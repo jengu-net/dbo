@@ -70,23 +70,20 @@ jobs:
             echo "image_tag=main-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
             echo "is_release=false" >> "$GITHUB_OUTPUT"
           fi
+      # Daemons accumulate on a persistent runner and each carries heap the
+      # VM cannot spare; the platform workflows learned this in #566.
+      - name: Stop leftover Gradle daemons
+        run: ./gradlew --stop || true
       - name: Build and test core
-        env:
-          # The harness runs IT classes concurrently, each with its own Felix
-          # and/or HTTP server; 4 suits a developer machine, and the runner
-          # container's ceiling OOM-killed the executor at that width
-          # (exit 137). Two keeps the same tests, the same world, less peak.
-          # Width 1: the third self-hosted run was still OOM-killed at
-          # width 2 with a 2560m executor — each concurrent IT class is a
-          # Felix and/or an HTTP server beside a shared Postgres, and the
-          # peak is the product of width and world. One world at a time
-          # costs ~90s of wall clock and fits.
-          DBO_TEST_PARALLELISM: "1"
-          # Every test JVM's ceiling, measured against the runner VM's 6g:
-          # the whole suite is green at this heap locally, terminology no
-          # longer rides in it (#83), and 4g was GitHub-hosted sizing.
-          DBO_TEST_HEAP: "2560m"
-        run: ./gradlew build ${{ steps.version.outputs.gradle_args }}
+        # -P properties, NOT env vars: a long-lived daemon keeps the
+        # environment it was born with, so env dials silently do nothing —
+        # three OOM-killed runs learned that. The values are measured against
+        # the runner VM's 6g-for-everything: the whole suite is green at this
+        # heap and width locally, with room the terminology drop (#83) paid
+        # for; 4g/width-4 was GitHub-hosted 16g sizing.
+        run: >-
+          ./gradlew build -PdboTestHeap=2560m -PdboTestParallelism=1
+          ${{ steps.version.outputs.gradle_args }}
       # Gradle already writes JUnit XML; these two steps make it readable
       # WITHOUT scrolling the log (the CI-parity rule: verdicts, not logs).
       # Both run on failure too — that is the case worth reading.

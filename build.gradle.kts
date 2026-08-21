@@ -84,9 +84,18 @@ extra["dboKarafVersion"] = dboKarafVersion
 subprojects {
     // afterEvaluate, because each module sets its own developer-machine
     // number in its build script, and an override that runs first is not one.
+    // A PROJECT PROPERTY rather than an environment variable, and that is a
+    // lesson with three dead CI runs behind it: a long-lived Gradle daemon
+    // keeps the environment it was born with, so an env var set by a later
+    // step reads as absent inside the build — the dial turned and nothing
+    // moved. -P travels with every invocation, daemon or not.
     afterEvaluate {
         tasks.withType<Test>().configureEach {
-            System.getenv("DBO_TEST_HEAP")?.let { maxHeapSize = it }
+            (findProperty("dboTestHeap") as String?)?.let { maxHeapSize = it }
+            (findProperty("dboTestParallelism") as String?)?.let {
+                systemProperty(
+                    "junit.jupiter.execution.parallel.config.fixed.parallelism", it)
+            }
         }
     }
 }
