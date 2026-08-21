@@ -77,6 +77,10 @@ jobs:
           # container's ceiling OOM-killed the executor at that width
           # (exit 137). Two keeps the same tests, the same world, less peak.
           DBO_TEST_PARALLELISM: "2"
+          # Every test JVM's ceiling, measured against the runner VM's 6g:
+          # the whole suite is green at this heap locally, terminology no
+          # longer rides in it (#83), and 4g was GitHub-hosted sizing.
+          DBO_TEST_HEAP: "2560m"
         run: ./gradlew build ${{ steps.version.outputs.gradle_args }}
       # Gradle already writes JUnit XML; these two steps make it readable
       # WITHOUT scrolling the log (the CI-parity rule: verdicts, not logs).
