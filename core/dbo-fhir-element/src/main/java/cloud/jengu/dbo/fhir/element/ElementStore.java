@@ -89,14 +89,14 @@ public final class ElementStore implements FhirStoreFacade {
     // ------------------------------------------------------------- writing
 
     /** What one read of a body says about it, and the bytes it was read from. */
-    private record Accepted(String type, byte[] payload) {}
+    record Accepted(String type, byte[] payload) {}
 
     /**
      * The type and the verdict from one read, and the bytes carried to the
      * write so the engine's envelope extraction is that same read
      * (REQ-DBO-VER-ONE-READ-PER-REQUEST).
      */
-    private Accepted accepted(String resourceJson) {
+    Accepted accepted(String resourceJson) {
         byte[] payload = resourceJson.getBytes(StandardCharsets.UTF_8);
         Object document = payloads.read(null, payload);
         String type = payloads.typeOf(document);
@@ -194,6 +194,18 @@ public final class ElementStore implements FhirStoreFacade {
     private String rendered(StoredObject stored) {
         return new String(ElementAncestors.rendered(version.context(), stored.payload(),
                 stored.id(), stored.versionId()), StandardCharsets.UTF_8);
+    }
+
+    /** The engine, for the one caller that writes several entries as one unit. */
+    cloud.jengu.dbo.core.api.ObjectStore engine() {
+        return store;
+    }
+
+    @Override
+    public String bundle(String bundleJson) {
+        Object document = payloads.read(null, bundleJson.getBytes(StandardCharsets.UTF_8));
+        return new ElementBundles(this, version.context())
+                .process((org.hl7.fhir.r5.elementmodel.Element) document);
     }
 
     @Override

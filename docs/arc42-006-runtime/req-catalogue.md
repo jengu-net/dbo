@@ -25,6 +25,8 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-CORE-IDENTITY-SURVIVES-CONVERSION | Conversion between FHIR versions or object shapes never changes identity; canonical urls and identity-bearing identifiers are preserved bit-exact and verified after every conversion. (§12) |
 | REQ-DBO-CORE-NO-IMPLICIT-MERGE | Two objects claiming the same identity-bearing identifier are a conflict surfaced to the owner, never an implicit merge. (§12) |
 | REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS | Conditional writes are accepted only when keyed on the type's primary identity; a conditional write on any other criterion is rejected. (§12) |
+| REQ-DBO-CORE-ATOMIC-TRANSACTION-BUNDLE | A transaction bundle lands whole or not at all: every entry validated before anything is written, all writes in one engine transaction with data, history and outbox together, and entries may reference each other by `urn:uuid` — resolved to the allocated ids, never stored dangling. What a transaction does not serve is refused by name with nothing applied. (§1) |
+| REQ-DBO-CORE-BATCH-ANSWERS-PER-ENTRY | A batch bundle applies each entry independently through the same path the standalone request takes, and answers one response entry per request entry, in order, each with its own status — a failing entry says nothing about its neighbours, and the statuses are the ones the standalone requests would have answered. (§1) |
 
 ## CONT — container & embedding
 

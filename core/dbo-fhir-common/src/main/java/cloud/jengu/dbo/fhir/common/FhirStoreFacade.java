@@ -128,6 +128,16 @@ public interface FhirStoreFacade {
         return validationOutcome(resourceJson);
     }
 
+    /**
+     * A transaction or batch Bundle posted to the base, answered as a
+     * response bundle (#86). The default refuses by name — a facade that has
+     * not implemented bundles answers "not offered here", never a 500.
+     */
+    default String bundle(String bundleJson) {
+        throw new UnsupportedOperationException(
+                "this endpoint does not process bundles");
+    }
+
     String operationOutcome(String issueCode, String diagnostics);
 
     /** True when the type is configured in this store's personality. */

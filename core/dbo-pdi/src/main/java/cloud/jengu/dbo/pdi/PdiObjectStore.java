@@ -72,6 +72,21 @@ public final class PdiObjectStore implements ObjectStore {
      * least-privileged default while the caller believed otherwise.
      */
     @Override
+    public java.util.List<PutResult> transact(java.util.List<PutRequest> requests) {
+        // Each person-type request goes through the vault exactly as a single
+        // put would — the unit is atomic below, the isolation is per request.
+        return inner.transact(requests.stream().map(request -> {
+            if (!spec.isPersonType(request.typeName())) {
+                return request;
+            }
+            String id = request.id() != null ? request.id()
+                    : cloud.jengu.dbo.core.UuidV7.newId();
+            return new PutRequest(request.typeName(), id, request.expectedVersion(),
+                    isolate(request.typeName(), id, request.payload()));
+        }).toList());
+    }
+
+    @Override
     public PutResult put(PutRequest request, cloud.jengu.dbo.core.api.Handling.Authority caller) {
         if (!spec.isPersonType(request.typeName())) {
             return inner.put(request, caller);

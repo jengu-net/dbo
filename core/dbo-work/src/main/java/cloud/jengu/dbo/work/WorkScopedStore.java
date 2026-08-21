@@ -49,6 +49,15 @@ public final class WorkScopedStore implements ObjectStore {
     }
 
     @Override
+    public java.util.List<PutResult> transact(java.util.List<PutRequest> requests) {
+        java.util.List<PutResult> results = inner.transact(requests);
+        for (int i = 0; i < results.size(); i++) {
+            recorded(requests.get(i).typeName(), results.get(i));
+        }
+        return results;
+    }
+
+    @Override
     public PutResult put(PutRequest request, Handling.Authority caller) {
         return recorded(request.typeName(), inner.put(request, caller));
     }
