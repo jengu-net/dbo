@@ -340,6 +340,28 @@ class AuthorityIT {
                 "a parameter the trail cannot honour is refused, not ignored: "
                         + unhonoured.body());
 
+        // A bounded, ordered read is the query an audit page IS, and the
+        // surface always did both internally — it just could not be asked.
+        // Refusing a RESULT parameter was the wrong half of refuse-don't-
+        // ignore: an ignored filter returns rows nobody asked for, while an
+        // ignored bound returns more rows, never wrong ones (#92).
+        assertTrue(capability.contains("\"_count\"") && capability.contains("\"_sort\""),
+                "the statement declares the result parameters ONCE, at the server, because "
+                        + "that is what they are: " + capability);
+        String newestFirst = get(fhir("neli") + "/AuditEvent?_count=1&_sort=-date", token).body();
+        assertEquals(1, newestFirst.split("\"resourceType\":\"AuditEvent\"", -1).length - 1,
+                "_count bounds the page: " + newestFirst);
+        assertTrue(newestFirst.contains("report-released"),
+                "-date is newest first, and the contributed event is the newest: " + newestFirst);
+        assertTrue(get(fhir("neli") + "/AuditEvent?_count=1&_sort=date", token).body()
+                        .contains("\"action\":\"C\""),
+                "and ascending is the other end of the same trail");
+
+        // an ordering the trail cannot give is still refused, rather than
+        // silently answered with the one it can
+        assertEquals(400, get(fhir("neli") + "/AuditEvent?_sort=agent", token).statusCode());
+        assertEquals(400, get(fhir("neli") + "/AuditEvent?_count=lots", token).statusCode());
+
         // scope gating: read-only tokens read but cannot contribute
         String readOnly = token("neli", "system/*.read");
         assertEquals(200, get(fhir("neli") + "/AuditEvent", readOnly).statusCode());

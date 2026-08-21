@@ -72,12 +72,18 @@ public final class AuditProjection implements AuditSurface {
         // wearing the shape of a right one, which a caller cannot detect and
         // therefore cannot correct (REQ-DBO-SRCH-HONEST-CAPABILITY).
         for (String parameter : query.keySet()) {
-            if (!searchParameters().contains(parameter) && !"_cursor".equals(parameter)) {
+            if (!searchParameters().contains(parameter)
+                    && !cloud.jengu.dbo.fhir.common.ResultParameters
+                            .shapesTheResult(parameter)) {
                 throw new cloud.jengu.dbo.fhir.common.UnknownSearchParameterException(
                         "AuditEvent", parameter);
             }
         }
-        Criteria criteria = Criteria.of("AuditEntry").sortByLastUpdated(false).limit(100);
+        // Newest first and one page unless the caller says otherwise: what the
+        // trail always did, now sayable.
+        Criteria criteria = Criteria.of("AuditEntry")
+                .sortByLastUpdated(ascending(query.get("_sort")))
+                .limit(bounded(query.get("_count")));
         if (query.get("agent") != null) {
             criteria.eq("actor", EnvelopeValue.of(query.get("agent")));
         }
@@ -123,6 +129,45 @@ public final class AuditProjection implements AuditSurface {
             throw new UncheckedIOException("audit page could not be written", e);
         }
         return out.toString(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * How many, bounded.
+     *
+     * <p>A page the caller did not ask for is 100, as it always was. A bound
+     * the caller DID ask for is honoured up to a ceiling, because an audit
+     * trail is the one collection that grows without limit and "all of it" is
+     * not a page. Anything unreadable as a count is refused rather than
+     * quietly replaced by a number nobody chose.
+     */
+    private static int bounded(String count) {
+        return cloud.jengu.dbo.fhir.common.ResultParameters.count(count, "AuditEvent", 100, 1000);
+    }
+
+    /**
+     * Which way round.
+     *
+     * <p>Only {@code date} orders the trail, and it is the only ordering the
+     * records carry: an audit entry is an interaction at a time. Descending is
+     * the default and the useful one — the last N events — and an ordering
+     * the surface cannot give is refused rather than silently replaced by the
+     * one it can, which would answer a different question than the one asked.
+     */
+    private static boolean ascending(String sort) {
+        cloud.jengu.dbo.fhir.common.ResultParameters.Sort asked =
+                cloud.jengu.dbo.fhir.common.ResultParameters.sort(sort, "AuditEvent");
+        if (asked == null) {
+            return false; // newest first: what the trail always did
+        }
+        if (!"date".equals(asked.field()) && !"_lastUpdated".equals(asked.field())) {
+            // An audit entry is an interaction at a time, so time is the only
+            // ordering the records carry. Refused rather than silently
+            // answered with the ordering the surface can give, which would
+            // answer a different question than the one asked.
+            throw new cloud.jengu.dbo.fhir.common.UnknownSearchParameterException(
+                    "AuditEvent", "_sort=" + sort);
+        }
+        return !asked.descending();
     }
 
     private static String normalized(String date) {
