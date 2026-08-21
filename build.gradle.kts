@@ -96,6 +96,16 @@ subprojects {
                 systemProperty(
                     "junit.jupiter.execution.parallel.config.fixed.parallelism", it)
             }
+            // Say what actually applies, in the plain log: five CI runs died
+            // to dials that LOOKED set, and the cure is the task stating its
+            // own effective numbers where a log reader sees them.
+            doFirst {
+                logger.lifecycle("test jvm: maxHeapSize={} parallelismOverride={}",
+                        maxHeapSize,
+                        systemProperties[
+                            "junit.jupiter.execution.parallel.config.fixed.parallelism"]
+                            ?: "none (junit-platform.properties)")
+            }
         }
     }
 }
