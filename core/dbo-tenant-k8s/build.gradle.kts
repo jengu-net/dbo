@@ -1,3 +1,7 @@
+plugins {
+    id("biz.aQute.bnd.builder")
+}
+
 // In-cluster tenant provisioning seam: KubernetesSecretProvisioner
 // (the mandatory provisioning service, backed by operator-written tenant Secrets)
 // + SpecDirSync (tests / non-pod processes — in a pod the ConfigMap volume
@@ -18,28 +22,32 @@ dependencies {
     compileOnly("org.slf4j:slf4j-api:2.0.18")
 }
 
+// bnd COMPUTES Import-Package from this bundle's bytecode and from what
+// rides in lib/. What is written here is policy — what the container
+// provides, and what may go unresolved — never the list of packages (#32).
 tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    into("lib") { from(embedded) }
     // Whose code rides in this jar, and under what terms. A recipient of
     // the artifact has the artifact, not the repository.
     into("META-INF") { from(rootProject.file("THIRD-PARTY.md")) }
-    doFirst {
-        val libs = embedded.resolve().joinToString(",") { "lib/${it.name}" }
-        manifest {
-            attributes(
-                "Bundle-ManifestVersion" to "2",
-                "Bundle-SymbolicName" to "cloud.jengu.dbo.tenant.k8s",
-                "Bundle-Version" to project.version.toString().replace("-", "."),
-                "Bundle-Activator" to "cloud.jengu.dbo.tenant.k8s.Activator",
-                "Bundle-ClassPath" to ".,$libs",
-                "Export-Package" to "cloud.jengu.dbo.tenant.k8s;version=\"0.1.0\"",
-                "Import-Package" to listOf(
-                    "org.slf4j",
-                    "org.osgi.framework",
-                    "cloud.jengu.dbo.tenant;version=\"[0.1,1)\"",
-                    "org.postgresql",
-                    "javax.sql",
+    bundle {
+        bnd(provider {
+            val jars = embedded.resolve().sortedBy { it.name }
+            listOf(
+                "Bundle-SymbolicName: cloud.jengu.dbo.tenant.k8s",
+                "Bundle-Activator: cloud.jengu.dbo.tenant.k8s.Activator",
+                "Bundle-ClassPath: ." + jars.joinToString("") { ",lib/${it.name}" },
+                "-includeresource: " + jars.joinToString(",") { "lib/${it.name}=${it.absolutePath}" },
+                "Export-Package: cloud.jengu.dbo.tenant.k8s;version=0.1.0",
+                "-noimportjava: true",
+                // A FILTER over what bnd computed, not a list of packages.
+                // cloud.jengu.dbo.* is matched by pattern, so a new reference
+                // to a sibling bundle is picked up on its own. The trailing
+                // !* drops the private stack's reach: the Kubernetes client
+                // carries adapters and codecs for a great deal this runtime
+                // does not provide, and each would otherwise be a wire the
+                // container has to satisfy before the bundle starts.
+                "Import-Package: " + listOf(
                     "javax.naming;resolution:=optional",
                     "javax.net.ssl;resolution:=optional",
                     "javax.crypto;resolution:=optional",
@@ -60,8 +68,16 @@ tasks.jar {
                     "sun.nio.ch;resolution:=optional",
                     "sun.security.x509;resolution:=optional",
                     "jdk.net;resolution:=optional",
+                    // what the container actually provides, computed
+                    "cloud.jengu.dbo.*",
+                    "org.osgi.*",
+                    "org.slf4j",
+                    "org.postgresql",
+                    "javax.sql",
+                    // and nothing else
+                    "!*",
                 ).joinToString(","),
-            )
-        }
+            ).joinToString("\n")
+        })
     }
 }
