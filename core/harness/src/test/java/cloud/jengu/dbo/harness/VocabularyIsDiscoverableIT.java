@@ -144,15 +144,31 @@ class VocabularyIsDiscoverableIT {
                 "an open vocabulary says so rather than pretending: " + audit);
     }
 
+    /**
+     * A real second bring-up, not a rescan.
+     *
+     * <p>The first version of this test called {@code scan} twice and asserted
+     * one definition — which it could not have failed, because a scan brings
+     * up specs that are NEW or CHANGED and leaves a running tenant alone. It
+     * asserted that publishing once publishes once. Retracting the spec and
+     * restoring it makes the tenant actually come up again, which is what a
+     * restart does and what this claims to be about (#93).
+     */
     @Test
     void publishingIsIdempotentAcrossBringUps() throws Exception {
-        String before = get(base + "/CodeSystem?url=urn:dbo:run:holder");
-        assertEquals(1, countEntries(before), "one definition before: " + before);
-        UntilServed.scan(manager, "sonavara");
-        UntilServed.scan(manager, "sonavara");
+        String spec = Files.readString(dir.resolve("sonavara.json"));
+        assertEquals(1, countEntries(get(base + "/CodeSystem?url=urn:dbo:run:holder")),
+                "one definition after the first bring-up");
+
+        Files.delete(dir.resolve("sonavara.json"));
+        UntilServed.scan(manager, up -> !up.contains("sonavara"));
+        Files.writeString(dir.resolve("sonavara.json"), spec);
+        UntilServed.scan(manager, up -> up.contains("sonavara"));
+        base = manager.baseUrl("sonavara");
+
         String after = get(base + "/CodeSystem?url=urn:dbo:run:holder");
         assertEquals(1, countEntries(after),
-                "a restart rewrites the same record rather than adding one: " + after);
+                "a second bring-up rewrites the same record rather than adding one: " + after);
     }
 
     private static int countEntries(String bundle) {

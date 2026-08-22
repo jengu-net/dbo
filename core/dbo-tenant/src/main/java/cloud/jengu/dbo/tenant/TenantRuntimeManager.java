@@ -545,8 +545,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // With the tenant's database: a face that validates against current
         // data — the tenant's terminology, and in time its own structure
         // definitions — needs to know where that data lives (#50).
+        // Bring-up says what it cost, in the plain log. A first boot on a
+        // fresh database does work a later one does not — importing the
+        // terminology baseline, publishing the face's vocabulary, reading the
+        // tenant's profiles — and the budget test measures the SECOND boot on
+        // purpose, so none of this was visible in a number anybody read. It
+        // stopped being invisible the day it quadrupled under memory pressure
+        // and surfaced as a closed connection pool (#93).
+        long facadeAt = System.currentTimeMillis();
         FhirStoreFacade store = declared.store(engine, base, db.dataSource());
-        publishVocabularies(store, version.face());
+        long facadeMillis = System.currentTimeMillis() - facadeAt;
+        long vocabularyAt = System.currentTimeMillis();
+        publishVocabularies(engine, store, version.face());
+        LOG.info("tenant bring-up cost: code={} facade={}ms vocabulary={}ms",
+                spec.code(), facadeMillis, System.currentTimeMillis() - vocabularyAt);
         // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is per tenant,
         // so the facade is built here rather than shared — a tenant answers
         // $expand from its own concepts or it is a second-class reader.
@@ -1038,18 +1050,30 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * canonical identity — a definition written twice is one record, so a
      * restart costs a conditional write and nothing else.
      */
-    private static void publishVocabularies(FhirStoreFacade store,
-            cloud.jengu.dbo.core.face.DomainFace face) {
+    private static void publishVocabularies(cloud.jengu.dbo.core.api.ObjectStore engine,
+            FhirStoreFacade store, cloud.jengu.dbo.core.face.DomainFace face) {
         for (String definition : face.capability(
                 cloud.jengu.dbo.core.face.RecordProjection.class)
                 .map(cloud.jengu.dbo.core.face.RecordProjection::vocabularies)
                 .orElse(java.util.List.of())) {
             try {
-                // Identity-keyed on the canonical url, so a restart rewrites
-                // the same record rather than a second one
+                String url = canonicalUrlOf(definition);
+                // Asked before written. A conditional create is a full
+                // validate and a write every time, and a definition that has
+                // not changed since the last boot needs neither — measured at
+                // ~300ms per bring-up for work already done (#93). The lookup
+                // is on canonical identity, which is indexed, so a warm tenant
+                // pays one read per definition and nothing else.
+                if (!engine.getByIdentifier(resourceTypeOf(definition),
+                        java.util.List.of(new cloud.jengu.dbo.core.api.Identifier(
+                                cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url)))
+                        .isEmpty()) {
+                    continue;
+                }
+                // Identity-keyed on the canonical url, so a race between two
+                // bring-ups rewrites the same record rather than a second one
                 // (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS).
-                store.conditionalCreate(definition,
-                        java.util.Map.of("url", canonicalUrlOf(definition)));
+                store.conditionalCreate(definition, java.util.Map.of("url", url));
             } catch (RuntimeException e) {
                 // A face that publishes a definition this store cannot hold is
                 // a misconfiguration worth naming, not a tenant that fails to

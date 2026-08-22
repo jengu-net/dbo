@@ -155,9 +155,19 @@ public class ElementFhirVersion implements FhirVersion {
             cloud.jengu.dbo.terminology.TerminologyStore terminology =
                     new cloud.jengu.dbo.terminology.TerminologyStore(dataSource);
             // the carried baseline becomes tenant data, once — see the class
+            long baselineAt = System.currentTimeMillis();
             TerminologyBaseline.ensure(terminology, version.code());
-            return new ElementStore(engine, version, types, baseUrl,
+            long baselineMillis = System.currentTimeMillis() - baselineAt;
+            long profilesAt = System.currentTimeMillis();
+            ElementStore store = new ElementStore(engine, version, types, baseUrl,
                     cloud.jengu.dbo.core.process.Steps.of(), new StoreTerms(terminology));
+            // Said out loud because a first boot's cost was a bound inferred
+            // from a task's wall clock, and a bound is not a measurement (#93).
+            org.slf4j.LoggerFactory.getLogger("dbo.face").info(
+                    "face bring-up cost: version={} terminologyBaseline={}ms profiles={}ms",
+                    version.code(), baselineMillis,
+                    System.currentTimeMillis() - profilesAt);
+            return store;
         }
 
         @Override
