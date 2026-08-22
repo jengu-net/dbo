@@ -14,7 +14,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p probe
-          dd if=/dev/urandom of=probe/payload.bin bs=1m count=242 status=none
+          dd if=/dev/urandom of=probe/payload.bin bs=1M count=242 status=none
           ls -l probe/payload.bin
       - name: Upload, timed
         run: echo "start=$(date +%s)" >> "$GITHUB_ENV"
