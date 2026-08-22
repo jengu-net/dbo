@@ -17,6 +17,20 @@ public interface FhirStoreFacade {
 
     PutResult conditionalCreate(String resourceJson, Map<String, String> condition);
 
+    /**
+     * Conditional update (R4 §3.1.0.7.1): {@code PUT [type]?[search]}.
+     *
+     * <p>The primitive for "this resource, identified by its canonical, should
+     * exist with these contents" — absent it is created, present it is
+     * replaced. Conditional CREATE cannot stand in: it is a no-op when the
+     * resource exists, so a definition changed upstream keeps its old
+     * contents and the caller is told it worked, which is worse than a
+     * refusal (#99).
+     */
+    default PutResult conditionalUpdate(String resourceJson, Map<String, String> condition) {
+        throw new UnsupportedOperationException("this store does not accept conditional updates");
+    }
+
     String read(String typeName, String id);
 
     /**
