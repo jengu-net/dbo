@@ -56,9 +56,18 @@ final class TerminologyBaseline {
         }
     }
 
+    /**
+     * One package, in ONE transaction.
+     *
+     * <p>Per system it was one transaction each, and a baseline package
+     * carries some nine hundred of them: 2704ms of writing against 28ms of
+     * parsing, which is round-trip overhead rather than work. Applying a face
+     * is a bulk load, so it is written as one (#93).
+     */
     private static void importPackage(TerminologyStore store, CarriedDefinitions.Carried pkg) {
         try {
             NpmPackage npm = NpmPackage.fromPackage(CarriedDefinitions.open(pkg));
+            List<TerminologyStore.System> systems = new ArrayList<>();
             for (String file : npm.list("package")) {
                 if (!file.startsWith("CodeSystem-") || !file.endsWith(".json")) {
                     continue;
@@ -71,8 +80,10 @@ final class TerminologyBaseline {
                 }
                 List<Concept> flat = new ArrayList<>();
                 flatten(codeSystem.getJsonArray("concept"), null, flat);
-                store.importSystem(url, codeSystem.asString("version"), flat.iterator());
+                systems.add(new TerminologyStore.System(url, codeSystem.asString("version"),
+                        flat));
             }
+            store.importSystems(systems);
         } catch (IOException e) {
             throw new UncheckedIOException(
                     "cannot import the terminology baseline from " + pkg.id(), e);
