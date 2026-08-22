@@ -75,15 +75,12 @@ jobs:
       - name: Stop leftover Gradle daemons
         run: ./gradlew --stop || true
       - name: Build and test core
-        # -P properties, NOT env vars: a long-lived daemon keeps the
-        # environment it was born with, so env dials silently do nothing —
-        # three OOM-killed runs learned that. The values are measured against
-        # the runner VM's 6g-for-everything: the whole suite is green at this
-        # heap and width locally, with room the terminology drop (#83) paid
-        # for; 4g/width-4 was GitHub-hosted 16g sizing.
-        run: >-
-          ./gradlew build -PdboTestHeap=2560m -PdboTestParallelism=1
-          ${{ steps.version.outputs.gradle_args }}
+        # ./verify, not a gradlew line: the dials and the phase order live in
+        # the repository (gradle.properties and ./verify), so a developer can
+        # run THIS check rather than retype it out of a workflow file. Three
+        # commits landed on a red main while a local build was green at twice
+        # this heap and could not fail the way CI fails (#94).
+        run: ./verify ${{ steps.version.outputs.gradle_args }}
       # Gradle already writes JUnit XML; these two steps make it readable
       # WITHOUT scrolling the log (the CI-parity rule: verdicts, not logs).
       # Both run on failure too — that is the case worth reading.

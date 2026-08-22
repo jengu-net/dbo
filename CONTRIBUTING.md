@@ -24,11 +24,23 @@ that break.
 ## Running the suite
 
 ```bash
-./gradlew build          # everything, including the integration suite
+./verify                 # THE check — exactly what CI runs
 ./gradlew test --tests '*FeedIT'
 ```
 
 A container runtime is required. The suite starts what it needs.
+
+`./verify` is two Gradle invocations with the daemon stopped between them,
+because a full build and the distribution test cannot share one daemon on a
+developer machine: the dist test boots the shipped distribution as a second
+JVM on top of the build's resident memory, and the daemon dies mid-task. A
+plain `./gradlew build` will hit that. It is also the reason the order lives
+in a file you can run rather than in `build.yml`.
+
+The test heap and parallelism are in `gradle.properties`, so a bare
+`./gradlew test` already uses CI's numbers. Wanting more is opting in
+(`-PdboTestHeap=4g -PdboTestParallelism=4`), and every test task prints what
+actually applied.
 
 ## Two properties that look like details
 
