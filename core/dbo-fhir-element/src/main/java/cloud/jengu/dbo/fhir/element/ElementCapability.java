@@ -126,9 +126,14 @@ final class ElementCapability {
     private static void resource(StringBuilder out, ElementVersion version, FhirTypeConfig type,
             Collection<FhirOperation> served, java.util.Set<String> narrowed) {
         Handling handling = type.handling();
-        boolean writable = handling.isWritableBy(Handling.Authority.TENANT_USERS);
-        boolean mayChange = handling.mutability() == Handling.Mutability.FULL
-                || handling.mutability() == Handling.Mutability.REPLACE_IN_PLACE;
+        // What the ENGINE would refuse, not who owns the type. Those are
+        // different questions and this asked the second while answering the
+        // first: every lane-owned type was advertised as uncreatable and the
+        // store then accepted the create (#104). A zone's CodeSystem is the
+        // case in the field — the loader posts one against a statement saying
+        // it cannot.
+        boolean writable = handling.refusalFor(Handling.Authority.TENANT_USERS, true) == null;
+        boolean mayChange = handling.refusalFor(Handling.Authority.TENANT_USERS, false) == null;
         boolean keepsHistory = handling.durability() == Handling.Durability.VERSIONED;
 
         List<String> interactions = new ArrayList<>(List.of("read", "search-type"));

@@ -171,16 +171,17 @@ public final class PgObjectStore implements ObjectStore {
             return;
         }
         Handling handling = type.handling();
-        if (handling.mutability() == Handling.Mutability.APPEND_ONLY && !created) {
-            throw new HandlingRefusedException(type.typeName(), "append-only",
-                    "it may be written once and never altered — by anyone, including us");
-        }
-        if (handling.mutability() == Handling.Mutability.READ_ONLY_HERE
-                && !handling.isWritableBy(caller)) {
-            throw new HandlingRefusedException(type.typeName(), "read-only-here",
-                    "it is published by " + handling.authority() + " and only that lane may "
-                            + "write it; an edit made here would be silently overwritten by the "
-                            + "next sync, or silently kept");
+        // The same question the CapabilityStatement asks, so what is advertised
+        // and what is accepted cannot drift apart again (#104).
+        switch (handling.refusalFor(caller, created)) {
+            case APPEND_ONLY -> throw new HandlingRefusedException(type.typeName(),
+                    "append-only", "it may be written once and never altered — by anyone, "
+                            + "including us");
+            case READ_ONLY_HERE -> throw new HandlingRefusedException(type.typeName(),
+                    "read-only-here", "it is published by " + handling.authority()
+                            + " and only that lane may write it; an edit made here would be "
+                            + "silently overwritten by the next sync, or silently kept");
+            case null -> { }
         }
         if (handling.requiresARun() && Caller.run() == null) {
             // #82: the change would belong to nothing. History would still have
@@ -740,16 +741,15 @@ public final class PgObjectStore implements ObjectStore {
             Handling.Authority caller) {
         TypeRegistration type = registry.require(typeName);
         Handling handling = type.handling();
-        if (handling.mutability() == Handling.Mutability.APPEND_ONLY) {
-            throw new HandlingRefusedException(typeName, "append-only",
-                    "it may be written once and never removed — what the system recorded about "
-                            + "who did what stays what it recorded");
-        }
-        if (handling.mutability() == Handling.Mutability.READ_ONLY_HERE
-                && !handling.isWritableBy(caller)) {
-            throw new HandlingRefusedException(typeName, "read-only-here",
-                    "it is published by " + handling.authority() + " and only that lane may "
-                            + "remove it");
+        // A delete is never a create, so append-only refuses it outright.
+        switch (handling.refusalFor(caller, false)) {
+            case APPEND_ONLY -> throw new HandlingRefusedException(typeName, "append-only",
+                    "it may be written once and never removed — what the system recorded "
+                            + "about who did what stays what it recorded");
+            case READ_ONLY_HERE -> throw new HandlingRefusedException(typeName,
+                    "read-only-here", "it is published by " + handling.authority()
+                            + " and only that lane may remove it");
+            case null -> { }
         }
         String d = type.domain();
         UUID uuid = UUID.fromString(id);
