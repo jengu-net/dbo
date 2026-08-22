@@ -1,0 +1,42 @@
+name: artifact-probe
+# TEMPORARY. Measures what carrying build outputs between jobs would cost on
+# this fleet: 242MB of incompressible bytes (jars are already compressed)
+# through GitHub's artifact store, uploaded on one self-hosted runner and
+# downloaded on another. Delete once the number is known.
+on:
+  workflow_dispatch:
+
+jobs:
+  up:
+    runs-on: self-hosted
+    steps:
+      - name: Make 242MB of incompressible bytes
+        run: |
+          set -euo pipefail
+          mkdir -p probe
+          dd if=/dev/urandom of=probe/payload.bin bs=1m count=242 status=none
+          ls -l probe/payload.bin
+      - name: Upload, timed
+        run: echo "start=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: probe
+          path: probe/payload.bin
+          retention-days: 1
+          compression-level: 0
+      - name: Report upload seconds
+        run: echo "UPLOAD_SECONDS=$(( $(date +%s) - start ))"
+
+  down:
+    needs: up
+    runs-on: self-hosted
+    steps:
+      - name: Mark start
+        run: echo "start=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          name: probe
+      - name: Report download seconds
+        run: |
+          echo "DOWNLOAD_SECONDS=$(( $(date +%s) - start ))"
+          ls -l payload.bin
