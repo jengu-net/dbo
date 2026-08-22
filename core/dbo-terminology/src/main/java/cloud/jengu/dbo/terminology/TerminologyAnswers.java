@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.terminology;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -31,15 +33,25 @@ public final class TerminologyAnswers {
      * {@code CodeSystem/$lookup} → Parameters, with the concept's designations
      * and properties as {@code part}s.
      *
-     * <p>A null display answers as the empty string rather than being omitted:
-     * a caller reading {@code display} should not have to distinguish "this
-     * concept has no display" from "this server did not say".
+     * <p>A concept with no display OMITS the parameter, and this is the one
+     * place where all three faces were previously wrong in two different ways.
+     * The typed faces emitted {@code {"name":"display"}} — a parameter with no
+     * value, which fails {@code inv-1} ("one and only one of value, resource,
+     * part"). This one emitted {@code "valueString": ""}, which fails
+     * {@code ele-1}: a FHIR string cannot be empty. Both were refused by this
+     * store's own validator, asked for the first time in #103.
+     *
+     * <p>So absence is the only legal encoding of "no display" — FHIR has no
+     * way to say the display is the empty string, and a caller cannot be given
+     * one.
      */
     public static String lookup(String system, Concept concept) {
         StringBuilder sb = new StringBuilder("{\"resourceType\":\"Parameters\",\"parameter\":[");
         sb.append("{\"name\":\"name\",\"valueString\":").append(Json.quote(system)).append('}');
-        sb.append(",{\"name\":\"display\",\"valueString\":")
-                .append(Json.quote(display(concept))).append('}');
+        if (concept.display() != null && !concept.display().isEmpty()) {
+            sb.append(",{\"name\":\"display\",\"valueString\":")
+                    .append(Json.quote(concept.display())).append('}');
+        }
         for (Map.Entry<String, String> designation : concept.designations().entrySet()) {
             sb.append(",{\"name\":\"designation\",\"part\":[")
                     .append(part("language", designation.getKey())).append(',')
@@ -62,19 +74,29 @@ public final class TerminologyAnswers {
     public static String validateCode(Concept concept) {
         StringBuilder sb = new StringBuilder("{\"resourceType\":\"Parameters\",\"parameter\":[");
         sb.append("{\"name\":\"result\",\"valueBoolean\":").append(concept != null).append('}');
-        if (concept != null) {
+        if (concept != null && concept.display() != null && !concept.display().isEmpty()) {
             sb.append(",{\"name\":\"display\",\"valueString\":")
-                    .append(Json.quote(display(concept))).append('}');
+                    .append(Json.quote(concept.display())).append('}');
         }
         return sb.append("]}").toString();
     }
 
-    /** {@code ValueSet/$expand} → a ValueSet carrying only its expansion. */
+    /**
+     * {@code ValueSet/$expand} → a ValueSet carrying only its expansion.
+     *
+     * <p>The {@code timestamp} is not decoration: it is 1..1 on
+     * {@code ValueSet.expansion}, and every expansion all three faces ever
+     * answered was invalid without it (#103). It says when THIS expansion was
+     * computed, which is now — an expansion is a snapshot of concepts that can
+     * change under it, and a caller keeping one needs to know how old it is.
+     */
     public static String expansion(String valueSetUrl, int offset,
             TerminologyStore.Expansion expansion) {
         StringBuilder sb = new StringBuilder("{\"resourceType\":\"ValueSet\",\"url\":");
         sb.append(Json.quote(valueSetUrl)).append(",\"status\":\"active\",\"expansion\":{");
-        sb.append("\"total\":").append(expansion.total());
+        sb.append("\"timestamp\":")
+                .append(Json.quote(Instant.now().truncatedTo(ChronoUnit.SECONDS).toString()));
+        sb.append(",\"total\":").append(expansion.total());
         sb.append(",\"offset\":").append(offset);
         sb.append(",\"contains\":[");
         List<TerminologyStore.ExpandedConcept> contains = expansion.contains();
@@ -95,9 +117,5 @@ public final class TerminologyAnswers {
 
     private static String part(String name, String value) {
         return "{\"name\":" + Json.quote(name) + ",\"valueString\":" + Json.quote(value) + "}";
-    }
-
-    private static String display(Concept concept) {
-        return concept.display() == null ? "" : concept.display();
     }
 }
