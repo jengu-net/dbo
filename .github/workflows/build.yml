@@ -125,17 +125,36 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v4
-      - name: Publish library modules
-        # SNAPSHOT → maven-snapshots, fixed version → maven-releases; the
-        # repository URL switches on the version suffix.
+      - name: Build the artifacts to compare
+        # assemble, not build: the suite already ran in the build job and
+        # running it twice is what this whole change is about.
+        run: ./gradlew assemble --no-daemon ${{ needs.build.outputs.gradle_args }}
+      - name: Decide what actually changed
+        id: changed
+        run: |
+          set -uo pipefail
+          .github/scripts/modules-to-publish.sh > /tmp/publish-tasks.txt
+          {
+            echo "tasks<<EOF"
+            cat /tmp/publish-tasks.txt
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Publish the modules that changed
+        # ~242MB went to the repository on every push, almost none of it
+        # different: the FHIR stack alone is 88MB and moves a few times a
+        # year. Only what differs from what the repository already serves is
+        # uploaded now — a question that is answerable only because the jars
+        # are reproducible. Every uncertainty publishes; see the script.
+        if: steps.changed.outputs.tasks != ''
         env:
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-        run: >-
-          ./gradlew publishAllPublicationsToJenguRepoRepository --no-daemon
-          ${{ needs.build.outputs.gradle_args }}
+        run: |
+          set -euo pipefail
+          xargs ./gradlew --no-daemon ${{ needs.build.outputs.gradle_args }} \
+            < /tmp/publish-tasks.txt
 
   images:
     needs: build
