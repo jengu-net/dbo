@@ -78,6 +78,11 @@ public final class R5Store implements FhirStoreFacade {
     }
 
     @Override
+    public PutResult conditionalUpdate(String resourceJson, Map<String, String> condition) {
+        return served.conditionalUpdate(resourceJson, condition);
+    }
+
+    @Override
     public String read(String typeName, String id) {
         return served.read(typeName, id);
     }

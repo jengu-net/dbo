@@ -212,13 +212,36 @@ public final class ElementStore implements FhirStoreFacade {
     @Override
     public PutResult conditionalCreate(String resourceJson, Map<String, String> condition) {
         Accepted accepted = accepted(resourceJson);
+        return store.putIfAbsent(identityOf(condition),
+                PutRequest.create(accepted.type(), accepted.payload()));
+    }
+
+    /**
+     * Conditional update: absent it is created, present it is replaced (#99).
+     *
+     * <p>R4 says several matches answer 412. Under the identity-only rule that
+     * cannot arise: an identity resolves through a unique index, so a
+     * condition either names one object or none. The branch is absent because
+     * the state is, not because it is unhandled.
+     */
+    @Override
+    public PutResult conditionalUpdate(String resourceJson, Map<String, String> condition) {
+        Accepted accepted = accepted(resourceJson);
+        PutResult result = store.putConditional(identityOf(condition),
+                PutRequest.create(accepted.type(), accepted.payload()));
+        rebuiltIfShapesMoved(accepted.type());
+        return result;
+    }
+
+    /** The identity a conditional write is keyed on, and nothing else. */
+    private static IdentityRef identityOf(Map<String, String> condition) {
         if (condition.size() != 1) {
             throw new IllegalArgumentException(
-                    "conditional create requires exactly one identity condition, got: "
+                    "a conditional write requires exactly one identity condition, got: "
                             + condition.keySet());
         }
         Map.Entry<String, String> only = condition.entrySet().iterator().next();
-        IdentityRef ref = switch (only.getKey()) {
+        return switch (only.getKey()) {
             case "identifier" -> {
                 int pipe = only.getValue().indexOf('|');
                 if (pipe <= 0 || pipe == only.getValue().length() - 1) {
@@ -230,10 +253,9 @@ public final class ElementStore implements FhirStoreFacade {
             }
             case "url" -> IdentityRef.canonical(only.getValue());
             default -> throw new IllegalArgumentException(
-                    "conditional create accepts only identity conditions (identifier=, url=), got: "
+                    "a conditional write accepts only identity conditions (identifier=, url=), got: "
                             + only.getKey());
         };
-        return store.putIfAbsent(ref, PutRequest.create(accepted.type(), accepted.payload()));
     }
 
     /**

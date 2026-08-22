@@ -334,6 +334,25 @@ public final class FhirHttpServer implements AutoCloseable {
                         String cursor = query.remove("_cursor");
                         respondStreaming(exchange, out -> store.search(type, query, cursor, out));
                     }
+                    // Conditional update (R4 §3.1.0.7.1): the type with a
+                    // condition, no id. Absent it creates, present it
+                    // replaces — the upsert-by-canonical a catalogue needs,
+                    // which conditional create cannot express because it is a
+                    // no-op when the resource exists (#99).
+                    case "PUT" -> {
+                        if (query.isEmpty()) {
+                            respond(exchange, 400, store.operationOutcome("invalid",
+                                    "PUT to a type needs a condition — " + type
+                                            + "?identifier=… or ?url=… — or an id"));
+                            return;
+                        }
+                        PutResult conditional = store.conditionalUpdate(readBody(exchange), query);
+                        exchange.getResponseHeaders().set("Location",
+                                baseUrl() + "/" + type + "/" + conditional.id());
+                        exchange.getResponseHeaders().set("ETag", etag(conditional.versionId()));
+                        respond(exchange, conditional.created() ? 201 : 200,
+                                store.read(type, conditional.id()));
+                    }
                     case "POST" -> {
                         String body = readBody(exchange);
                         String ifNoneExist = exchange.getRequestHeaders().getFirst("If-None-Exist");

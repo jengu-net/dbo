@@ -129,7 +129,8 @@ final class ElementBundles {
     /** The one entry, through the same facade call the typed route makes. */
     private String apply(Entry entry) {
         String[] segments = entry.url().split("/");
-        String type = segments[0];
+        String type = segments[0].contains("?")
+                ? segments[0].substring(0, segments[0].indexOf('?')) : segments[0];
         switch (entry.method()) {
             case "POST" -> {
                 if (segments.length != 1) {
@@ -143,9 +144,23 @@ final class ElementBundles {
                 return succeeded(result.created() ? "201 Created" : "200 OK", type, result);
             }
             case "PUT" -> {
+                // Conditional update (R4 §3.1.0.7.1): PUT [type]?[search] is
+                // "this resource, identified by its canonical, should exist
+                // with these contents". Conditional CREATE cannot stand in —
+                // it is a no-op when the resource is present, so a definition
+                // changed upstream keeps its old contents and the caller is
+                // told it worked (#99).
+                int question = entry.url().indexOf('?');
+                if (question > 0) {
+                    PutResult result = store.conditionalUpdate(json(required(entry)),
+                            query(entry.url().substring(question + 1)));
+                    return succeeded(result.created() ? "201 Created" : "200 OK",
+                            entry.url().substring(0, question), result);
+                }
                 if (segments.length != 2) {
                     throw new IllegalArgumentException("entry[" + entry.index()
-                            + "]: PUT goes to an instance, not '" + entry.url() + "'");
+                            + "]: PUT goes to an instance or a condition, not '"
+                            + entry.url() + "'");
                 }
                 PutResult result = store.update(segments[1], entry.ifMatchVersion(),
                         json(required(entry)));
@@ -268,7 +283,7 @@ final class ElementBundles {
             throw new IllegalArgumentException("entry[" + entry.index() + "]: a "
                     + entry.method() + " entry carries the resource it writes");
         }
-        String urlType = entry.url().split("/")[0];
+        String urlType = entry.url().split("[/?]")[0];
         if (!urlType.equals(entry.resource().fhirType())) {
             throw new IllegalArgumentException("entry[" + entry.index() + "]: the request "
                     + "url names " + urlType + " and the resource is a "
