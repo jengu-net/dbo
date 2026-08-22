@@ -16,6 +16,9 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -215,6 +218,48 @@ class DelegationIT {
         assertTrue(trail.contains("\"value\":\"engine\"")
                         && trail.contains("\"reference\":\"Practitioner/" + practitionerId + "\""),
                 "both identities must be in the rendered AuditEvent");
+    }
+
+    /**
+     * Discovery names every grant the token endpoint serves (#95, #91).
+     *
+     * <p>Token exchange was served all along and discovery did not say so, so
+     * a consumer read `grant_types_supported`, concluded the delegation chain
+     * was unreachable, and reported §16.4's issuing half as unimplemented. It
+     * was implemented and undiscoverable, which for a client is the same
+     * thing: a capability it cannot find is one it does not have.
+     *
+     * <p>Asked of the endpoint rather than of a list in a test: each
+     * advertised grant is POSTed, and none may answer
+     * {@code unsupported_grant_type}. What a grant then says about
+     * credentials or a missing subject token is its own business — the
+     * question here is only whether the server admits to serving it.
+     */
+    @Test
+    @Order(1)
+    void discoveryNamesEveryGrantTheEndpointServes() throws Exception {
+        String discovery = http.send(HttpRequest.newBuilder(
+                        URI.create(base() + "/oidc/.well-known/openid-configuration"))
+                        .GET().build(),
+                HttpResponse.BodyHandlers.ofString()).body();
+        Matcher grants = Pattern.compile("\"grant_types_supported\":\\[([^]]*)]").matcher(discovery);
+        assertTrue(grants.find(), "discovery must declare its grants: " + discovery);
+
+        List<String> advertised = Arrays.stream(grants.group(1).split(","))
+                .map(g -> g.replace("\"", "").trim())
+                .filter(g -> !g.isEmpty())
+                .toList();
+        assertTrue(advertised.contains("urn:ietf:params:oauth:grant-type:token-exchange"),
+                "the grant that carries a delegated identity is the one a consumer must be "
+                        + "able to find: " + advertised);
+
+        for (String grant : advertised) {
+            String answer = post(base() + "/oidc/token",
+                    "grant_type=" + URLEncoder.encode(grant, StandardCharsets.UTF_8)).body();
+            assertFalse(answer.contains("unsupported_grant_type"),
+                    "discovery advertises " + grant + " and the endpoint refuses it as "
+                            + "unknown: " + answer);
+        }
     }
 
     /** A scope the human does not hold cannot be delegated. */
