@@ -231,6 +231,17 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
             shell.getExtension().removeIf(e -> ORIGINAL_CONTENT_EXT.equals(e.getUrl()));
         }
 
+        // The stored form is a SHELL and its concepts live natively — but a
+        // CodeSystem written some other way is stored whole, and appending the
+        // native concepts to the ones already in the document produced a
+        // resource carrying each code twice. On the wire that is a sync round
+        // whose COPY collides with itself on (system, code) and a stream that
+        // never acks, retrying the same item forever (#97).
+        //
+        // So the concepts are REPLACED rather than added to: what this store
+        // holds natively is the answer, whatever the stored document happens
+        // to carry beside it.
+        shell.setConcept(new ArrayList<>());
         Map<String, CodeSystem.ConceptDefinitionComponent> byCode = new LinkedHashMap<>();
         List<Concept> all = terminology.allConcepts(url);
         for (Concept c : all) {
