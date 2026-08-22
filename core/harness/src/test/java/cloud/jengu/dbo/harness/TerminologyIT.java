@@ -1,6 +1,7 @@
 package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.fhir.r4.R4Personality;
+import cloud.jengu.dbo.fhir.r4.R4Store;
 import cloud.jengu.dbo.fhir.r4.R4Terminology;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.postgres.PgObjectStore;
@@ -31,6 +32,7 @@ class TerminologyIT {
     static PgObjectStore store;
     static R4Terminology terminology;
     static TerminologyStore nativeStore;
+    static R4Personality personality;
 
     @BeforeAll
     void up() {
@@ -41,7 +43,7 @@ class TerminologyIT {
         pg.setUser(postgres.getUsername());
         pg.setPassword(postgres.getPassword());
 
-        R4Personality personality = new R4Personality(List.of(
+        personality = new R4Personality(List.of(
                 FhirTypeConfig.canonical("CodeSystem"),
                 FhirTypeConfig.canonical("ValueSet")));
         store = new PgObjectStore(pg, personality.registrations());
@@ -121,6 +123,51 @@ class TerminologyIT {
         int blood = reassembled.indexOf("\"blood\"");
         int cbc = reassembled.indexOf("\"cbc\"");
         assertTrue(panel < blood && blood < cbc, "tree order lost in reassembly");
+    }
+
+    /**
+     * A CodeSystem stored WHOLE still travels with each code once (#97).
+     *
+     * <p>The stored form is meant to be a shell, its concepts living natively —
+     * but a CodeSystem written some other way keeps them in the document, and
+     * transport used to append the native concepts to the ones already there.
+     * Each code went out twice, the receiving COPY collided with itself on
+     * (system, code), and the sync round never acked: the same item retried
+     * from the same cursor forever, thousands of stack traces per boot, with
+     * everything queued behind it on that stream stuck too.
+     *
+     * <p>dbo published its own run vocabulary this way in e217f4c (#91), which
+     * is how a latent shape became a live deadlock — but the fault is in
+     * transport, so this holds transport to it rather than only fixing the
+     * one document that exposed it.
+     */
+    @Test
+    void aCodeSystemStoredWholeTravelsWithEachCodeOnce() {
+        String url = "urn:dbo:test:stored-whole";
+        String whole = """
+                {"resourceType":"CodeSystem","status":"active","content":"complete",
+                 "url":"%s","version":"1","name":"StoredWhole","concept":[
+                   {"code":"AUTOMATION"},{"code":"RETRY"},
+                   {"code":"PERSON"},{"code":"NOBODY"}]}""".formatted(url);
+
+        // The production sequence, and the order is the whole point. A sync
+        // hop ingests the system, so the concepts reach the native form and
+        // the stored document becomes a shell — and then a later bring-up
+        // republishes the vocabulary the ORDINARY way, overwriting that shell
+        // with a document that carries its concepts again. Now both halves
+        // hold the same four codes.
+        terminology.ingestCodeSystem(whole);
+        new R4Store(store, personality, "").putCanonical(whole);
+
+        String onTheWire = new String(terminology.forTransport("CodeSystem",
+                whole.getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                java.nio.charset.StandardCharsets.UTF_8);
+
+        for (String code : List.of("AUTOMATION", "RETRY", "PERSON", "NOBODY")) {
+            assertEquals(1, onTheWire.split("\"" + code + "\"", -1).length - 1,
+                    code + " must appear once on the wire, or the receiver's COPY collides "
+                            + "with itself: " + onTheWire);
+        }
     }
 
     /** $expand flavors: enumerated, is-a descendants, exclude, whole-system paging, prefix filter. */

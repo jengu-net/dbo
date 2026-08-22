@@ -231,6 +231,10 @@ public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
             shell.getExtension().removeIf(e -> ORIGINAL_CONTENT_EXT.equals(e.getUrl()));
         }
 
+        // Replaced, not appended: a CodeSystem stored whole would otherwise
+        // carry every code twice on the wire, and the receiving COPY collides
+        // with itself on (system, code) — a sync stream that never acks (#97).
+        shell.setConcept(new ArrayList<>());
         Map<String, CodeSystem.ConceptDefinitionComponent> byCode = new LinkedHashMap<>();
         List<Concept> all = terminology.allConcepts(url);
         for (Concept c : all) {
