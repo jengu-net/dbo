@@ -94,11 +94,12 @@ val dboKarafVersion = (findProperty("dbo.karaf.version") as String?) ?: "4.4.11"
 
 extra["dboKarafVersion"] = dboKarafVersion
 // Every test JVM's ceiling bows to the machine it runs on. The per-module
-// maxHeapSize values are developer-machine sizing (the element face holds a
-// version's definitions, the harness holds a container and a distribution);
-// the CI runner VM holds 6g for EVERYTHING, so the runner sets one variable
-// and every test task obeys it. Local runs without the variable keep the
-// module's own number.
+// maxHeapSize values are each suite's own minimum (the element face holds a
+// version's definitions, the harness holds a container and a distribution),
+// and they are what applies when no dial is set — an IDE running one module,
+// or a cleared property. The dial itself ships in gradle.properties, because
+// the CI runner VM holds 6g for EVERYTHING and a check whose numbers exist
+// only inside a workflow is a check nobody can run (#94).
 subprojects {
     // A jar built twice from one commit is the same jar. Without this it is
     // not: Gradle stamps entry timestamps and bnd stamps Bnd-LastModified, so
