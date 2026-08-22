@@ -555,14 +555,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
         long facadeAt = System.currentTimeMillis();
         FhirStoreFacade store = declared.store(engine, base, db.dataSource());
         long facadeMillis = System.currentTimeMillis() - facadeAt;
-        long vocabularyAt = System.currentTimeMillis();
-        publishVocabularies(engine, store, version.face());
-        LOG.info("tenant bring-up cost: code={} facade={}ms vocabulary={}ms",
-                spec.code(), facadeMillis, System.currentTimeMillis() - vocabularyAt);
+
         // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is per tenant,
         // so the facade is built here rather than shared — a tenant answers
         // $expand from its own concepts or it is a second-class reader.
         FhirTerminology terminology = declared.terminology(engine, db.dataSource());
+        long vocabularyAt = System.currentTimeMillis();
+        publishVocabularies(engine, store, terminology, version.face());
+        LOG.info("tenant bring-up cost: code={} facade={}ms vocabulary={}ms",
+                spec.code(), facadeMillis, System.currentTimeMillis() - vocabularyAt);
         TenantRuntime runtime = new TenantRuntime(spec, engine, store,
                 new PgChangeFeed(db.dataSource(), version.domain()),
                 withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
@@ -1051,13 +1052,39 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * restart costs a conditional write and nothing else.
      */
     private static void publishVocabularies(cloud.jengu.dbo.core.api.ObjectStore engine,
-            FhirStoreFacade store, cloud.jengu.dbo.core.face.DomainFace face) {
+            FhirStoreFacade store, FhirTerminology terminology,
+            cloud.jengu.dbo.core.face.DomainFace face) {
+        // A face with no terminology surface offers no operations — the
+        // existing signal for "this face cannot hold concepts natively",
+        // rather than a new flag or a caught exception.
+        boolean holdsConceptsNatively = !terminology.operations().isEmpty();
         for (String definition : face.capability(
                 cloud.jengu.dbo.core.face.RecordProjection.class)
                 .map(cloud.jengu.dbo.core.face.RecordProjection::vocabularies)
                 .orElse(java.util.List.of())) {
             try {
                 String url = canonicalUrlOf(definition);
+                // A CodeSystem goes through INGEST where the face can hold
+                // concepts, exactly as a client's would: written the ordinary
+                // way it is stored whole and answers nothing, so $lookup and
+                // $validate-code cannot resolve dbo's own vocabulary even
+                // though the document is fetchable (#98). Ingest is
+                // replace-all and cheap for these — six systems of a few
+                // codes — so it runs every bring-up rather than being skipped,
+                // which also repairs a tenant that stored one whole before.
+                if (holdsConceptsNatively && "CodeSystem".equals(resourceTypeOf(definition))) {
+                    // Ingest is replace-all: the shell through the engine and
+                    // the concepts into the native form. Cheap for one and
+                    // ~500ms for the set, which is not a price to pay on every
+                    // boot for definitions that have not moved — so the stored
+                    // version decides, and it is derived from the vocabulary
+                    // rather than from dbo's release number (#93, #98).
+                    if (!publishedVersionOf(engine, definition).equals(fieldOf(definition,
+                            "\"version\""))) {
+                        terminology.ingestCodeSystem(definition);
+                    }
+                    continue;
+                }
                 // Asked before written. A conditional create is a full
                 // validate and a write every time, and a definition that has
                 // not changed since the last boot needs neither — measured at
@@ -1081,6 +1108,30 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 LOG.warn("could not publish the face's vocabulary: {}", e.toString());
             }
         }
+        if (!holdsConceptsNatively) {
+            // Said out loud rather than left to be discovered: the definitions
+            // are fetchable, and a client cannot resolve a code in them. The
+            // face's terminology surface is the missing half (#50, #98).
+            LOG.warn("face {} holds no terminology natively: its vocabularies are published "
+                    + "as documents, so $lookup and $validate-code answer nothing for them",
+                    face.name());
+        }
+    }
+
+    /** What version of this vocabulary the tenant already holds, or "". */
+    private static String publishedVersionOf(cloud.jengu.dbo.core.api.ObjectStore engine,
+            String definition) {
+        return engine.getByIdentifier(resourceTypeOf(definition),
+                        java.util.List.of(new cloud.jengu.dbo.core.api.Identifier(
+                                cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM,
+                                canonicalUrlOf(definition))))
+                .stream().findFirst()
+                .map(stored -> {
+                    String json = new String(stored.payload(),
+                            java.nio.charset.StandardCharsets.UTF_8);
+                    return json.contains("\"version\"") ? fieldOf(json, "\"version\"") : "";
+                })
+                .orElse("");
     }
 
     /** The canonical url a definition is identified by. */
