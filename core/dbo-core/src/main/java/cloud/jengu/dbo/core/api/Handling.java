@@ -57,6 +57,18 @@ public record Handling(Authority authority, Mutability mutability,
     public enum Authority {
         /** Projected from the configuration repository by its sync lane. */
         CONFIG_LANE,
+        /**
+         * Published by an authority outside this system entirely — a national
+         * terminology, a standards body's vocabulary — and carried here
+         * through our own lane.
+         *
+         * <p>Distinct from {@link #CONFIG_LANE} because the lane says how it
+         * ARRIVES and this says who it BELONGS to, and only the second decides
+         * whether a defect in it can be fixed. Config we author reaches the
+         * store the same way and is entirely ours to correct; a national
+         * vocabulary is not, however it travelled (#100).
+         */
+        EXTERNAL_PUBLISHER,
         /** Published by another tenant — a zone's terminology, replicated here. */
         SOURCE_TENANT,
         /** Authored by the running platform: credentials, enrollments, lifecycle. */
@@ -140,10 +152,52 @@ public record Handling(Authority authority, Mutability mutability,
                 Durability.VERSIONED, Travel.BACKUP_ONLY);
     }
 
+    /**
+     * Whether this store is the author of the content, or merely holds a copy
+     * of somebody else's publication.
+     *
+     * <p>Validation is a gate on <b>authorship</b>. Refusing a resource this
+     * store's own callers author is how bad data is prevented: there is a
+     * writer here who can fix it. Refusing another authority's publication
+     * prevents nothing — it cannot make their publication correct, and it
+     * cannot be fixed here either, because {@link Mutability#READ_ONLY_HERE}
+     * is exactly the statement that nobody here may touch it. The only thing
+     * such a refusal changes is that the vocabulary is absent rather than
+     * imperfect, and a jurisdiction's clinicians lose their diagnosis coding
+     * over a property URI that is not absolute (#100).
+     *
+     * <p>Deliberately narrower than "not authored by this tenant's users":
+     * configuration projected from git is authored by us through a lane, and
+     * keeps every bit of today's strictness.
+     */
+    public boolean authoredElsewhere() {
+        return authority == Authority.SOURCE_TENANT
+                || authority == Authority.EXTERNAL_PUBLISHER;
+    }
+
     /** Published by another tenant: read here, never written here. */
     public static Handling replicated() {
         return new Handling(Authority.SOURCE_TENANT, Mutability.READ_ONLY_HERE,
                 Durability.VERSIONED, Travel.SNAPSHOT_ONLY);
+    }
+
+    /**
+     * Another authority's publication, carried here by our own lane: a
+     * national terminology, a standards body's vocabulary.
+     *
+     * <p>Writable the way projected configuration is — the lane has to be able
+     * to put it there — but not OURS, which is the whole difference. A defect
+     * in it cannot be fixed here and cannot be fixed at the source by us, so
+     * validation records rather than refuses (#100). Correcting it locally
+     * would be worse than holding it as published: our copy of a national
+     * vocabulary would then differ from everyone else's.
+     *
+     * <p>Backup rather than snapshot: it is re-derivable from the publication
+     * it was carried from, exactly like the configuration beside it.
+     */
+    public static Handling mirrored() {
+        return new Handling(Authority.EXTERNAL_PUBLISHER, Mutability.FULL,
+                Durability.VERSIONED, Travel.BACKUP_ONLY);
     }
 
     /**

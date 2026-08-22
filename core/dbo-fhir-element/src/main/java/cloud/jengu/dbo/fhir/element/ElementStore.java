@@ -61,6 +61,9 @@ public final class ElementStore implements FhirStoreFacade {
      * exactly how this arrived: a ServiceLoader in a field initialiser turned a
      * container's tenant bring-up into "not a subtype".
      */
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(ElementStore.class);
+
     private final cloud.jengu.dbo.core.process.Steps steps;
 
     ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
@@ -118,9 +121,45 @@ public final class ElementStore implements FhirStoreFacade {
         }
         List<String> issues = payloads.validate(type, document);
         if (!issues.isEmpty()) {
-            throw new ValidationFailedException(type, issues);
+            if (!authoredElsewhere(type)) {
+                throw new ValidationFailedException(type, issues);
+            }
+            // Held, and said out loud. Silence would read as cleanliness, and
+            // the point of accepting this is that somebody can still see what
+            // arrived imperfect — including the authority that published it.
+            LOG.warn("accepted with findings: type={} identity={} findings={} first={}",
+                    type, identityFor(type, document), issues.size(), issues.get(0));
         }
         return new Accepted(type, payload);
+    }
+
+    /**
+     * Whether this type's content is somebody else's publication, replicated.
+     *
+     * <p>A type nothing declares is NOT treated as replicated: an unknown type
+     * has no handling to consult, and defaulting to the permissive answer would
+     * turn a missing declaration into a silently unvalidated write.
+     */
+    private boolean authoredElsewhere(String typeName) {
+        return types.stream()
+                .filter(t -> t.typeName().equals(typeName))
+                .findFirst()
+                .map(t -> t.handling().authoredElsewhere())
+                .orElse(false);
+    }
+
+    /** Whatever names this document in a log line — its url, or its id. */
+    private String identityFor(String typeName, Object document) {
+        try {
+            String url = version.canonicalUrlOf(document);
+            if (url != null && !url.isBlank()) {
+                return url;
+            }
+        } catch (RuntimeException e) {
+            // not a canonical type, or no url on it: the id will do
+        }
+        return document instanceof org.hl7.fhir.r5.elementmodel.Element element
+                ? String.valueOf(element.getNamedChildValue("id")) : "(unnamed)";
     }
 
     /**
