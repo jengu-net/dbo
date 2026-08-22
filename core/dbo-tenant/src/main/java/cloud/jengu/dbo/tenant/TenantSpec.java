@@ -133,6 +133,7 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
                 case "operational" -> Handling.operational();
                 case "projected-config" -> Handling.projectedConfig();
                 case "replicated" -> Handling.replicated();
+                case "mirrored" -> Handling.mirrored();
                 case "store-authored" -> Handling.storeAuthored();
                 case "audit" -> Handling.audit();
                 case "ephemeral" -> Handling.ephemeral();
