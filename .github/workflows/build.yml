@@ -146,16 +146,13 @@ jobs:
     # a job on this runner, is the whole vulnerability.
     if: github.event_name != 'pull_request'
     runs-on: self-hosted
-    timeout-minutes: 30
-    strategy:
-      matrix:
-        include:
-          - image: dbo-operator
-            dist: ":core:dbo-operator:installDist"
-            context: core/dbo-operator
-          - image: dbo-server
-            dist: ":core:dbo-server:installDist"
-            context: core/dbo-server
+    timeout-minutes: 40
+    # ONE job for both images, not a matrix entry each. The matrix bought
+    # nothing and cost twice: two Gradle bootstraps assembling the same
+    # dependency graph (51s each), two QEMU installs (13s each), and — with
+    # two runners and three downstream jobs — a third job always waiting for
+    # a slot. Both dists come out of one Gradle invocation now, and the two
+    # image builds are steps.
     env:
       # The LAN registry stays the fleet's own source — edge runtimes and the
       # k3s deployments resolve from it, and it must not depend on a public
@@ -164,8 +161,8 @@ jobs:
       # pushes are gated on their secret existing, so a fork builds images
       # without needing any of them.
       REGISTRY: 192.168.1.14:5050
-      GHCR_IMAGE: ghcr.io/jengu-net/${{ matrix.image }}
-      DOCKERHUB_IMAGE: docker.io/jengu/${{ matrix.image }}
+      GHCR_OWNER: ghcr.io/jengu-net
+      DOCKERHUB_OWNER: docker.io/jengu
       # A boolean, never the secret itself, and computed HERE because the
       # `secrets` context does not exist inside an `if:` — a workflow that
       # reaches for it there does not fail the job, it fails to parse, and
@@ -184,8 +181,12 @@ jobs:
         run: chmod +x gradlew
       - name: Stop leftover Gradle daemons
         run: ./gradlew --stop || true
-      - name: Build distribution
-        run: ./gradlew ${{ matrix.dist }} --no-daemon ${{ needs.build.outputs.gradle_args }}
+      - name: Build both distributions
+        # One invocation: the dependency graph is configured and resolved
+        # once for the pair rather than once each.
+        run: >-
+          ./gradlew :core:dbo-operator:installDist :core:dbo-server:installDist
+          --no-daemon ${{ needs.build.outputs.gradle_args }}
       - name: Authenticate to the LAN registry
         env:
           # These are the LAN registry's credentials. The names are historical
@@ -212,34 +213,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Assemble the tag list
-        id: tags
-        run: |
-          set -euo pipefail
-          {
-            echo "public<<EOF"
-            echo "${{ env.GHCR_IMAGE }}:${{ needs.build.outputs.image_tag }}"
-            # On the PUBLIC registries `latest` follows releases only: somebody
-            # who types no tag should not receive an arbitrary commit. The
-            # fleet registry is different on purpose — that is how deployments
-            # there pick up main.
-            if [ "${{ needs.build.outputs.is_release }}" = "true" ]; then
-              echo "${{ env.GHCR_IMAGE }}:latest"
-            fi
-            if [ "$HAVE_DOCKERHUB" = "true" ]; then
-              echo "${{ env.DOCKERHUB_IMAGE }}:${{ needs.build.outputs.image_tag }}"
-              if [ "${{ needs.build.outputs.is_release }}" = "true" ]; then
-                echo "${{ env.DOCKERHUB_IMAGE }}:latest"
-              fi
-            fi
-            echo "EOF"
-            echo "labels<<EOF"
-            echo "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}"
-            echo "org.opencontainers.image.revision=${{ github.sha }}"
-            echo "org.opencontainers.image.version=${{ needs.build.outputs.image_tag }}"
-            echo "org.opencontainers.image.licenses=MIT"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -248,35 +221,65 @@ jobs:
           config-inline: |
             [registry."192.168.1.14:5050"]
               http = true
-      # THE FLEET'S PUSH. Deployments update from this registry, so it goes
-      # first and on its own: a public registry being unreachable, rate
-      # limited or misconfigured must not be able to stop the image an
-      # already-running cluster is waiting for. `latest` moves on every main
-      # push here, which is what makes that update path work.
+      # THE FLEET'S PUSH, both images. Deployments update from this registry,
+      # so it goes first and on its own: a public registry being unreachable,
+      # rate limited or misconfigured must not stop the image an already
+      # running cluster is waiting for. `latest` moves on every main push
+      # here, which is what makes that update path work.
+      #
+      # A loop rather than two copies of the same step, because two copies is
+      # how the tag rules of one image come to differ from the other's by
+      # accident. amd64 stays in the platform list: Hetzner production is
+      # amd64, so it has a consumer.
       - name: Build and push to the fleet registry (multi-arch amd64 + arm64)
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.context }}/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ matrix.image }}:${{ needs.build.outputs.image_tag }}
-            ${{ env.REGISTRY }}/${{ matrix.image }}:latest
-          labels: ${{ steps.tags.outputs.labels }}
-      # The public mirrors, best-effort. Cached layers make this nearly free,
+        run: |
+          set -euo pipefail
+          for image in dbo-operator dbo-server; do
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --file "core/$image/Dockerfile" \
+              --tag "${REGISTRY}/${image}:${IMAGE_TAG}" \
+              --tag "${REGISTRY}/${image}:latest" \
+              --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+              --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+              --label "org.opencontainers.image.version=${IMAGE_TAG}" \
+              --label "org.opencontainers.image.licenses=MIT" \
+              --push "core/$image"
+          done
+        env:
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+      # The public mirrors, best effort. Cached layers make this nearly free,
       # and a failure here is a publishing problem rather than an outage.
+      # `latest` follows RELEASES only on the public registries: somebody who
+      # types no tag should not receive an arbitrary commit.
       - name: Build and push to the public registries
         continue-on-error: true
-        if: steps.tags.outputs.public != ''
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.context }}/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.tags.outputs.public }}
-          labels: ${{ steps.tags.outputs.labels }}
+        run: |
+          set -euo pipefail
+          for image in dbo-operator dbo-server; do
+            tags=(--tag "${GHCR_OWNER}/${image}:${IMAGE_TAG}")
+            if [ "$IS_RELEASE" = "true" ]; then
+              tags+=(--tag "${GHCR_OWNER}/${image}:latest")
+            fi
+            if [ "$HAVE_DOCKERHUB" = "true" ]; then
+              tags+=(--tag "${DOCKERHUB_OWNER}/${image}:${IMAGE_TAG}")
+              if [ "$IS_RELEASE" = "true" ]; then
+                tags+=(--tag "${DOCKERHUB_OWNER}/${image}:latest")
+              fi
+            fi
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --file "core/$image/Dockerfile" \
+              "${tags[@]}" \
+              --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+              --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+              --label "org.opencontainers.image.version=${IMAGE_TAG}" \
+              --label "org.opencontainers.image.licenses=MIT" \
+              --push "core/$image"
+          done
+        env:
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+          IS_RELEASE: ${{ needs.build.outputs.is_release }}
 
   central:
     # Maven Central, release tags only. Immutable once accepted: the bundle is
