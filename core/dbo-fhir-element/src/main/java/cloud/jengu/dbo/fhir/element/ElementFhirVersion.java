@@ -178,7 +178,8 @@ public class ElementFhirVersion implements FhirVersion {
 
         @Override
         public FhirTerminology terminology(ObjectStore engine, DataSource dataSource) {
-            return new ElementTerminology(version.code());
+            return new ElementTerminology(engine, version, types,
+                    new cloud.jengu.dbo.terminology.TerminologyStore(dataSource));
         }
 
         @Override

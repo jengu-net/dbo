@@ -1,0 +1,103 @@
+package cloud.jengu.dbo.terminology;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * The three terminology operations' answers, rendered once for every FHIR
+ * version this store serves.
+ *
+ * <p>This is the part of a terminology facade that is genuinely version-neutral,
+ * and it is worth naming why, because the rest of such a facade is not. A
+ * {@code Parameters} carrying a name and a display, and a {@code ValueSet}
+ * carrying an expansion, have the same JSON in R4, R5 and R6 — the shapes these
+ * operations answer with did not move between versions. What moved is the
+ * <b>reading</b> of a client's CodeSystem: the typed faces parse with their own
+ * model and the element face with the element model, and no seam joins those
+ * two without becoming a third parser.
+ *
+ * <p>So the split is: reading stays in each face, answering lives here. A face
+ * asks its store, and hands the concepts to these methods.
+ *
+ * <p>Written as strings rather than through a model deliberately — this module
+ * has one dependency (the PostgreSQL driver) and gains nothing by taking a FHIR
+ * model to emit four fixed shapes.
+ */
+public final class TerminologyAnswers {
+
+    private TerminologyAnswers() {}
+
+    /**
+     * {@code CodeSystem/$lookup} → Parameters, with the concept's designations
+     * and properties as {@code part}s.
+     *
+     * <p>A null display answers as the empty string rather than being omitted:
+     * a caller reading {@code display} should not have to distinguish "this
+     * concept has no display" from "this server did not say".
+     */
+    public static String lookup(String system, Concept concept) {
+        StringBuilder sb = new StringBuilder("{\"resourceType\":\"Parameters\",\"parameter\":[");
+        sb.append("{\"name\":\"name\",\"valueString\":").append(Json.quote(system)).append('}');
+        sb.append(",{\"name\":\"display\",\"valueString\":")
+                .append(Json.quote(display(concept))).append('}');
+        for (Map.Entry<String, String> designation : concept.designations().entrySet()) {
+            sb.append(",{\"name\":\"designation\",\"part\":[")
+                    .append(part("language", designation.getKey())).append(',')
+                    .append(part("value", designation.getValue())).append("]}");
+        }
+        for (Map.Entry<String, String> property : concept.properties().entrySet()) {
+            sb.append(",{\"name\":\"property\",\"part\":[")
+                    .append(part("code", property.getKey())).append(',')
+                    .append(part("value", property.getValue())).append("]}");
+        }
+        return sb.append("]}").toString();
+    }
+
+    /**
+     * {@code $validate-code} → Parameters with {@code result}.
+     *
+     * <p>A null concept is {@code result: false} and a 200, not a 404: "no" is
+     * the answer to this question rather than a failure to answer it.
+     */
+    public static String validateCode(Concept concept) {
+        StringBuilder sb = new StringBuilder("{\"resourceType\":\"Parameters\",\"parameter\":[");
+        sb.append("{\"name\":\"result\",\"valueBoolean\":").append(concept != null).append('}');
+        if (concept != null) {
+            sb.append(",{\"name\":\"display\",\"valueString\":")
+                    .append(Json.quote(display(concept))).append('}');
+        }
+        return sb.append("]}").toString();
+    }
+
+    /** {@code ValueSet/$expand} → a ValueSet carrying only its expansion. */
+    public static String expansion(String valueSetUrl, int offset,
+            TerminologyStore.Expansion expansion) {
+        StringBuilder sb = new StringBuilder("{\"resourceType\":\"ValueSet\",\"url\":");
+        sb.append(Json.quote(valueSetUrl)).append(",\"status\":\"active\",\"expansion\":{");
+        sb.append("\"total\":").append(expansion.total());
+        sb.append(",\"offset\":").append(offset);
+        sb.append(",\"contains\":[");
+        List<TerminologyStore.ExpandedConcept> contains = expansion.contains();
+        for (int i = 0; i < contains.size(); i++) {
+            TerminologyStore.ExpandedConcept c = contains.get(i);
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append("{\"system\":").append(Json.quote(c.system()))
+                    .append(",\"code\":").append(Json.quote(c.code()));
+            if (c.display() != null) {
+                sb.append(",\"display\":").append(Json.quote(c.display()));
+            }
+            sb.append('}');
+        }
+        return sb.append("]}}").toString();
+    }
+
+    private static String part(String name, String value) {
+        return "{\"name\":" + Json.quote(name) + ",\"valueString\":" + Json.quote(value) + "}";
+    }
+
+    private static String display(Concept concept) {
+        return concept.display() == null ? "" : concept.display();
+    }
+}
