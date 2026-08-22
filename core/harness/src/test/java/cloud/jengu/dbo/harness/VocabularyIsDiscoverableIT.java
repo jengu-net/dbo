@@ -66,6 +66,7 @@ class VocabularyIsDiscoverableIT {
     static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
     static String base;
+    static String elementBase;
 
     @BeforeAll
     void up() throws Exception {
@@ -82,8 +83,23 @@ class VocabularyIsDiscoverableIT {
                 {"code":"sonavara","fhirVersion":"r4",
                  "audit":{"level":"writes"},
                  "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, up -> up.contains("sonavara"));
+        // the SAME tenant on the newest version, because a promise about a
+        // tenant's own vocabulary that only holds on one face is not a promise
+        // about the store (#101)
+        Files.writeString(dir.resolve("sonavara6.json"), """
+                {"code":"sonavara6","fhirVersion":"r6",
+                 "audit":{"level":"writes"},
+                 "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
+        UntilServed.scan(manager, up -> up.contains("sonavara") && up.contains("sonavara6"));
         base = manager.baseUrl("sonavara");
+        elementBase = manager.baseUrl("sonavara6");
+    }
+
+    /** Every version a tenant can be given, for the promises that are per tenant. */
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> tenants() {
+        return java.util.stream.Stream.of(
+                org.junit.jupiter.params.provider.Arguments.of("r4", base),
+                org.junit.jupiter.params.provider.Arguments.of("r6", elementBase));
     }
 
     @AfterAll
@@ -139,9 +155,10 @@ class VocabularyIsDiscoverableIT {
      * code answered nothing while the document sat there looking complete.
      * A vocabulary you can read and cannot ask about is half a vocabulary.
      */
-    @Test
-    void aCodeInAPublishedVocabularyResolvesThroughTheOperationAClientWouldUse()
-            throws Exception {
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0}")
+    @org.junit.jupiter.params.provider.MethodSource("tenants")
+    void aCodeInAPublishedVocabularyResolvesThroughTheOperationAClientWouldUse(
+            String version, String base) throws Exception {
         String looked = get(base
                 + "/CodeSystem/$lookup?system=urn:dbo:run:holder&code=PERSON");
         assertTrue(looked.contains("Parameters"),
@@ -169,8 +186,10 @@ class VocabularyIsDiscoverableIT {
      * means in FHIR: the concepts are not in this document, ask the
      * terminology server. The old assertion was pinning the broken shape.
      */
-    @Test
-    void theDefinitionSaysWhatItKnowsAndWhereTheCodesAre() throws Exception {
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0}")
+    @org.junit.jupiter.params.provider.MethodSource("tenants")
+    void theDefinitionSaysWhatItKnowsAndWhereTheCodesAre(String version, String base)
+            throws Exception {
         // closed: dbo knows every holder there is, and says how many
         String holder = get(base + "/CodeSystem?url=urn:dbo:run:holder");
         assertTrue(holder.contains("\"content\":\"not-present\"") && holder.contains("\"count\":4"),
