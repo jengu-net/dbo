@@ -7,10 +7,9 @@ import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.fhir.common.TerminologyFacade.IngestResult;
 import cloud.jengu.dbo.terminology.Compose;
 import cloud.jengu.dbo.terminology.Concept;
+import cloud.jengu.dbo.terminology.TerminologyAnswers;
 import cloud.jengu.dbo.terminology.TerminologyStore;
-import org.hl7.fhir.r5.model.BooleanType;
 import org.hl7.fhir.r5.model.CodeSystem;
-import org.hl7.fhir.r5.model.Parameters;
 import org.hl7.fhir.r5.model.StringType;
 import org.hl7.fhir.r5.model.ValueSet;
 
@@ -260,54 +259,36 @@ public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
 
     // ----------------------------------------------------------- operations
 
-    /** CodeSystem/$lookup → Parameters JSON. */
+    /**
+     * The three answers, rendered by {@link TerminologyAnswers} rather than
+     * here.
+     *
+     * <p>They are the same JSON in R4, R5 and R6 — those shapes did not move
+     * between versions — so they were three copies of four fixed structures,
+     * and the copies had drifted: a concept with no display came back as a
+     * parameter with no value at all, which fails {@code inv-1}, and every
+     * expansion was missing the {@code timestamp} that {@code ValueSet} makes
+     * 1..1. Both were invalid against this store's own validator, which is what
+     * finally asked (#103).
+     *
+     * <p>Reading a client's CodeSystem stays here: that genuinely differs
+     * between a typed model and the element model, and joining the two would
+     * mean writing a third parser.
+     */
     @Override
     public Optional<String> lookup(String system, String code) {
-        return terminology.lookup(system, code).map(c -> {
-            Parameters p = new Parameters();
-            p.addParameter("name", new StringType(system));
-            p.addParameter("display", new StringType(c.display() == null ? "" : c.display()));
-            c.designations().forEach((lang, value) -> {
-                Parameters.ParametersParameterComponent d = p.addParameter().setName("designation");
-                d.addPart().setName("language").setValue(new StringType(lang));
-                d.addPart().setName("value").setValue(new StringType(value));
-            });
-            c.properties().forEach((propertyCode, value) -> {
-                Parameters.ParametersParameterComponent prop = p.addParameter().setName("property");
-                prop.addPart().setName("code").setValue(new StringType(propertyCode));
-                prop.addPart().setName("value").setValue(new StringType(value));
-            });
-            return personality.ctxInternal().newJsonParser().encodeResourceToString(p);
-        });
+        return terminology.lookup(system, code).map(c -> TerminologyAnswers.lookup(system, c));
     }
 
-    /** $validate-code → Parameters JSON with result + display. */
     @Override
     public String validateCode(String system, String code) {
-        Optional<Concept> concept = terminology.lookup(system, code);
-        Parameters p = new Parameters();
-        p.addParameter("result", new BooleanType(concept.isPresent()));
-        concept.ifPresent(c -> p.addParameter("display",
-                new StringType(c.display() == null ? "" : c.display())));
-        return personality.ctxInternal().newJsonParser().encodeResourceToString(p);
+        return TerminologyAnswers.validateCode(terminology.lookup(system, code).orElse(null));
     }
 
-    /** ValueSet/$expand → ValueSet JSON with expansion.contains. */
     @Override
     public Optional<String> expand(String valueSetUrl, String filter, int offset, int count) {
-        return terminology.valueSetCompose(valueSetUrl).map(compose -> {
-            TerminologyStore.Expansion expansion = terminology.expand(compose, filter, offset, count);
-            ValueSet vs = new ValueSet();
-            vs.setUrl(valueSetUrl);
-            vs.setStatus(org.hl7.fhir.r5.model.Enumerations.PublicationStatus.ACTIVE);
-            ValueSet.ValueSetExpansionComponent exp = vs.getExpansion();
-            exp.setTotal((int) expansion.total());
-            exp.setOffset(offset);
-            for (TerminologyStore.ExpandedConcept c : expansion.contains()) {
-                exp.addContains().setSystem(c.system()).setCode(c.code()).setDisplay(c.display());
-            }
-            return personality.ctxInternal().newJsonParser().encodeResourceToString(vs);
-        });
+        return terminology.valueSetCompose(valueSetUrl).map(compose -> TerminologyAnswers.expansion(
+                valueSetUrl, offset, terminology.expand(compose, filter, offset, count)));
     }
 
     // ---------------------------------------------------------- sync grain

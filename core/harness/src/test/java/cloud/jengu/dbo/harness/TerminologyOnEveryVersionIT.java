@@ -44,6 +44,8 @@ class TerminologyOnEveryVersionIT {
 
     static PostgreSQLContainer<?> postgres;
     static final Map<String, FhirTerminology> FACES = new LinkedHashMap<>();
+    static final Map<String, cloud.jengu.dbo.fhir.common.FhirStoreFacade> STORES =
+            new LinkedHashMap<>();
 
     static List<String> versions() {
         return List.of("r4", "r5", "r6");
@@ -64,6 +66,7 @@ class TerminologyOnEveryVersionIT {
             PgObjectStore engine = new PgObjectStore(pg, declared.registrations());
             new TerminologyStore(pg); // creates the concept tables this tenant answers from
             FACES.put(code, declared.terminology(engine, pg));
+            STORES.put(code, declared.store(engine, "", pg));
         }
     }
 
@@ -77,7 +80,7 @@ class TerminologyOnEveryVersionIT {
     void theShellIsConceptFreeAndReassemblyRestoresTheTree(String code) {
         FhirTerminology terminology = FACES.get(code);
         FhirTerminology.IngestResult result = terminology.ingestCodeSystem(treeCodeSystem());
-        assertEquals(6, result.conceptCount(), "every concept in the tree, flattened");
+        assertEquals(7, result.conceptCount(), "every concept in the tree, flattened");
 
         // What travels is what a client would have posted: the concepts back in
         // the document, each exactly once.
@@ -150,6 +153,52 @@ class TerminologyOnEveryVersionIT {
                 code + ": an unregistered ValueSet is nothing to expand, not an empty expansion");
     }
 
+    /**
+     * Everything this store answers, it accepts.
+     *
+     * <p>The store validates what a client sends and then answers with
+     * resources it never asked itself about — and when this test was written it
+     * turned out two of the three operations were answering INVALID FHIR on all
+     * three faces (#103). A concept with no display came back either as a
+     * parameter with no value ({@code inv-1}) or as an empty string
+     * ({@code ele-1}), and every single expansion was missing the
+     * {@code timestamp} that {@code ValueSet.expansion} makes 1..1.
+     *
+     * <p>None of it was caught by a test asserting what the answers CONTAIN,
+     * because those assertions were all true. The question that found it is a
+     * different one — not "is the display there" but "would this store take
+     * this back" — and it is cheap to keep asking.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("versions")
+    void everyAnswerThisStoreGivesWouldBeAcceptedByIt(String code) {
+        FhirTerminology terminology = FACES.get(code);
+        cloud.jengu.dbo.fhir.common.FhirStoreFacade store = STORES.get(code);
+        terminology.ingestCodeSystem(treeCodeSystem());
+        terminology.ingestValueSet("""
+                {"resourceType":"ValueSet","status":"active","url":"https://vs.dbo.test/every",
+                 "compose":{"include":[{"system":"%s"}]}}""".formatted(SYS));
+
+        // 'bare' carries no display on purpose: the no-display path is where
+        // both renderings were wrong, and a happy-path concept hides it
+        assertValid(code, "$lookup with display", store,
+                terminology.lookup(SYS, "blood").orElseThrow());
+        assertValid(code, "$lookup with NO display", store,
+                terminology.lookup(SYS, "bare").orElseThrow());
+        assertValid(code, "$validate-code true", store, terminology.validateCode(SYS, "cbc"));
+        assertValid(code, "$validate-code false", store, terminology.validateCode(SYS, "nope"));
+        assertValid(code, "$expand", store,
+                terminology.expand("https://vs.dbo.test/every", null, 0, 100).orElseThrow());
+    }
+
+    private static void assertValid(String code, String what,
+            cloud.jengu.dbo.fhir.common.FhirStoreFacade store, String answer) {
+        String outcome = store.validationOutcome(answer);
+        assertFalse(outcome.contains("\"severity\":\"error\""),
+                code + ": " + what + " answered something this store would refuse.\n  answer:  "
+                        + answer + "\n  outcome: " + outcome);
+    }
+
     /** The shell as the engine stored it — what {@code forTransport} is handed. */
     private static byte[] shellOf(FhirTerminology terminology) {
         return ("{\"resourceType\":\"CodeSystem\",\"status\":\"active\","
@@ -177,6 +226,7 @@ class TerminologyOnEveryVersionIT {
                         {"code":"cbc","display":"Complete blood count"},
                         {"code":"lipids","display":"Lipid panel"}]},
                      {"code":"urine","display":"Urine panel"}]},
-                   {"code":"single","display":"Single tests"}]}""".formatted(SYS);
+                   {"code":"single","display":"Single tests"},
+                   {"code":"bare"}]}""".formatted(SYS);
     }
 }
