@@ -227,6 +227,46 @@ public record Handling(Authority authority, Mutability mutability,
         return authority == caller;
     }
 
+    /** Why a write would be refused by handling alone. */
+    public enum WriteRefusal {
+        /** It exists already and may never be altered or removed. */
+        APPEND_ONLY,
+        /** Its owning lane may write it and this caller is not that lane. */
+        READ_ONLY_HERE
+    }
+
+    /**
+     * Whether handling alone refuses this write, and why — the ONE rule, asked
+     * by the engine that enforces it and by the CapabilityStatement that
+     * describes it.
+     *
+     * <p>They had drifted, and in the direction that matters: the statement
+     * asked {@code isWritableBy(TENANT_USERS)} and omitted {@code create} for
+     * every type a lane owns, while the engine happily accepted those creates
+     * — so a store advertised a type as read-only and then wrote it (#104).
+     *
+     * <p>The engine's rule is the deliberate one. {@code replicated()} chose
+     * {@link Mutability#READ_ONLY_HERE} and {@code projectedConfig()} chose
+     * {@link Mutability#FULL}, and that contrast is the design: mutability
+     * answers whether anyone here may write it, authority answers whose it is.
+     * Only the first is a permission. Enforcing ownership instead would erase
+     * a distinction the classifications make on purpose — and would refuse the
+     * lane loads that put configuration and mirrored terminology there at all.
+     *
+     * @param caller   the authority the write is made under
+     * @param creating true for a create, false for an update or a delete;
+     *                 append-only permits the first and refuses the second
+     */
+    public WriteRefusal refusalFor(Authority caller, boolean creating) {
+        if (mutability == Mutability.APPEND_ONLY && !creating) {
+            return WriteRefusal.APPEND_ONLY;
+        }
+        if (mutability == Mutability.READ_ONLY_HERE && !isWritableBy(caller)) {
+            return WriteRefusal.READ_ONLY_HERE;
+        }
+        return null;
+    }
+
     /** Whether a change to this has to belong to a run. */
     public boolean requiresARun() {
         return provenance == Provenance.UNDER_A_RUN;
