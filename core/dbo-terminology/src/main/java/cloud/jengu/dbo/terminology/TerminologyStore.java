@@ -34,6 +34,65 @@ public final class TerminologyStore {
 
     // --------------------------------------------------------------- ingest
 
+    /** One system and the concepts it brings, for a bulk import. */
+    public record System(String url, String version, List<Concept> concepts) {}
+
+    /**
+     * Replace-all import of MANY systems as one unit.
+     *
+     * <p>Same result as calling {@link #importSystem} for each, and a very
+     * different cost. A baseline package carries some nine hundred code
+     * systems and twenty thousand concepts, and per-system it was nine hundred
+     * transactions to move them — measured at 2704ms of writing against 28ms
+     * of parsing, which is round-trip overhead rather than work. Here it is
+     * one transaction and one COPY stream: the system is a column in the row,
+     * so the rows of every system travel together (#93).
+     *
+     * @return how many concepts landed
+     */
+    public long importSystems(List<System> systems) {
+        if (systems.isEmpty()) {
+            return 0;
+        }
+        try (Connection c = ds.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = c.prepareStatement(
+                        "DELETE FROM state.term_concept WHERE system = ANY (?)")) {
+                    ps.setArray(1, c.createArrayOf("text",
+                            systems.stream().map(System::url).toArray()));
+                    ps.executeUpdate();
+                }
+                CopyManager copy = c.unwrap(PGConnection.class).getCopyAPI();
+                long rows = copy.copyIn(
+                        "COPY state.term_concept (system, code, display, parent_code,"
+                                + " designations, properties) FROM STDIN WITH (FORMAT csv)",
+                        new SystemsCsvReader(systems));
+                try (PreparedStatement ps = c.prepareStatement("""
+                        INSERT INTO state.term_system (url, version, concept_count, updated_at)
+                        VALUES (?, ?, ?, now())
+                        ON CONFLICT (url) DO UPDATE SET version = EXCLUDED.version,
+                          concept_count = EXCLUDED.concept_count, updated_at = now()""")) {
+                    for (System system : systems) {
+                        ps.setString(1, system.url());
+                        ps.setString(2, system.version());
+                        ps.setLong(3, system.concepts().size());
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                }
+                c.commit();
+                return rows;
+            } catch (Throwable t) {
+                c.rollback();
+                throw t;
+            }
+        } catch (SQLException | IOException e) {
+            throw new IllegalStateException(
+                    "terminology import failed for " + systems.size() + " systems", e);
+        }
+    }
+
     /** Replace-all import of one system's concepts, streamed through COPY in one transaction. */
     public long importSystem(String systemUrl, String version, Iterator<Concept> concepts) {
         try (Connection c = ds.getConnection()) {
@@ -364,6 +423,36 @@ public final class TerminologyStore {
     }
 
     /** Streams concepts as CSV rows for COPY without materializing the set. */
+    /** Every system's rows, one stream — the system rides in the row. */
+    private static final class SystemsCsvReader extends Reader {
+        private final Iterator<System> systems;
+        private ConceptCsvReader current;
+
+        SystemsCsvReader(List<System> systems) {
+            this.systems = systems.iterator();
+        }
+
+        @Override
+        public int read(char[] buf, int off, int len) {
+            while (true) {
+                if (current != null) {
+                    int n = current.read(buf, off, len);
+                    if (n >= 0) {
+                        return n;
+                    }
+                }
+                if (!systems.hasNext()) {
+                    return -1;
+                }
+                System next = systems.next();
+                current = new ConceptCsvReader(next.url(), next.concepts().iterator());
+            }
+        }
+
+        @Override
+        public void close() {}
+    }
+
     private static final class ConceptCsvReader extends Reader {
         private final String system;
         private final Iterator<Concept> concepts;
