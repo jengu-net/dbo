@@ -47,6 +47,24 @@ val dboRuntimeModules = listOf(
     ":core:dbo-maintenance", ":core:dbo-tenant", ":core:dbo-tenant-k8s",
 )
 
+/**
+ * The publish tasks that exist, for a caller that wants to run only some.
+ *
+ * Which modules are libraries is decided in one place — the notALibrary list
+ * below — and a CI script that re-derived it from directory names would be a
+ * second list, wrong the first time a module is added.
+ */
+tasks.register("listPublishTasks") {
+    group = "publishing"
+    description = "Prints the publish task for every module that publishes."
+    val paths = provider {
+        subprojects.filter { it.plugins.hasPlugin("maven-publish") }.map { it.path }.sorted()
+    }
+    doLast {
+        paths.get().forEach { println("$it:publishAllPublicationsToJenguRepoRepository") }
+    }
+}
+
 // The JDBC driver is itself an OSGi bundle.
 val dboRuntimeExternalBundles = listOf("org.postgresql:postgresql:42.7.11")
 
@@ -81,6 +99,18 @@ extra["dboKarafVersion"] = dboKarafVersion
 // the CI runner VM holds 6g for EVERYTHING, so the runner sets one variable
 // and every test task obeys it. Local runs without the variable keep the
 // module's own number.
+subprojects {
+    // A jar built twice from one commit is the same jar. Without this it is
+    // not: Gradle stamps entry timestamps and bnd stamps Bnd-LastModified, so
+    // every rebuild produces different bytes and the question "did this
+    // module change?" has no answer — which is what a publish that uploads
+    // 242MB on every push is really failing to ask.
+    tasks.withType<Jar>().configureEach {
+        isPreserveFileTimestamps = false
+        isReproducibleFileOrder = true
+    }
+}
+
 subprojects {
     // afterEvaluate, because each module sets its own developer-machine
     // number in its build script, and an override that runs first is not one.
