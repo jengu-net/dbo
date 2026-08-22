@@ -104,11 +104,25 @@ final class ElementRecordProjection implements RecordProjection {
         // per-version answer (#91).
     }
 
+    /** Which content mode a definition declares. */
+    private static String content(List<String> codes) {
+        return codes == null ? "not-present" : "complete";
+    }
+
     /** A dbo code system: listed where the codes are dbo's, not-present where they are not. */
     private static String codeSystem(String url, String name, String description,
             List<String> codes) {
+        // A version that changes when the VOCABULARY changes and not
+        // otherwise, so a bring-up can tell "already published" from
+        // "published something else" with one read (#98). Derived from what
+        // the definition says rather than from dbo's release number, which
+        // moves for reasons a code system does not care about.
+        String version = Integer.toHexString(
+                (url + '|' + content(codes) + '|' + (codes == null ? "" : String.join(",", codes)))
+                        .hashCode());
         StringBuilder json = new StringBuilder("{\"resourceType\":\"CodeSystem\",\"url\":")
-                .append(Json.quoted(url)).append(",\"name\":").append(Json.quoted(name))
+                .append(Json.quoted(url)).append(",\"version\":").append(Json.quoted(version))
+                .append(",\"name\":").append(Json.quoted(name))
                 .append(",\"status\":\"active\",\"description\":")
                 .append(Json.quoted(description))
                 .append(",\"caseSensitive\":true,\"content\":")

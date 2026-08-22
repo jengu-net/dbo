@@ -21,6 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -129,31 +130,62 @@ class VocabularyIsDiscoverableIT {
         }
     }
 
+    /**
+     * Fetchable is not resolvable (#98).
+     *
+     * <p>#91 published the definitions and stopped there: written the ordinary
+     * FHIR way a CodeSystem is stored whole and its concepts never reach the
+     * native form, so the operations a client would actually use to resolve a
+     * code answered nothing while the document sat there looking complete.
+     * A vocabulary you can read and cannot ask about is half a vocabulary.
+     */
     @Test
-    void theDefinitionSaysWhatItKnowsAndWhatItDoesNot() throws Exception {
-        // closed where the codes are dbo's own
-        String holder = get(base + "/CodeSystem?url=urn:dbo:run:holder");
-        assertTrue(holder.contains("\"content\":\"complete\"")
-                        && holder.contains("AUTOMATION") && holder.contains("NOBODY"),
-                "a closed vocabulary lists its codes: " + holder);
+    void aCodeInAPublishedVocabularyResolvesThroughTheOperationAClientWouldUse()
+            throws Exception {
+        String looked = get(base
+                + "/CodeSystem/$lookup?system=urn:dbo:run:holder&code=PERSON");
+        assertTrue(looked.contains("Parameters"),
+                "$lookup must answer for dbo's own vocabulary: " + looked);
 
-        // and open where a module or an application supplies them: saying
-        // not-present is how a definition declines to invent an enumeration
-        String audit = get(base + "/CodeSystem?url=urn:dbo:audit");
-        assertTrue(audit.contains("\"content\":\"not-present\""),
-                "an open vocabulary says so rather than pretending: " + audit);
+        String validated = get(base
+                + "/CodeSystem/$validate-code?system=urn:dbo:run:holder&code=PERSON");
+        assertTrue(validated.contains("\"value\":true") || validated.contains("\"valueBoolean\":true"),
+                "a code dbo published must validate as its own: " + validated);
+
+        String absent = get(base
+                + "/CodeSystem/$validate-code?system=urn:dbo:run:holder&code=NOT-A-HOLDER");
+        assertTrue(absent.contains("\"value\":false") || absent.contains("\"valueBoolean\":false"),
+                "and one it never published must not: " + absent);
     }
 
     /**
-     * A real second bring-up, not a rescan.
+     * A definition says what it knows and what it does not — and where the
+     * codes actually are (#98).
      *
-     * <p>The first version of this test called {@code scan} twice and asserted
-     * one definition — which it could not have failed, because a scan brings
-     * up specs that are NEW or CHANGED and leaves a running tenant alone. It
-     * asserted that publishing once publishes once. Retracting the spec and
-     * restoring it makes the tenant actually come up again, which is what a
-     * restart does and what this claims to be about (#93).
+     * <p>This asserted `content: complete` with the codes inline until the
+     * vocabulary started going through ingest, which is what made $lookup
+     * work. The stored form is now a shell — `not-present`, a count, and the
+     * original content mode on an extension — which is what `not-present`
+     * means in FHIR: the concepts are not in this document, ask the
+     * terminology server. The old assertion was pinning the broken shape.
      */
+    @Test
+    void theDefinitionSaysWhatItKnowsAndWhereTheCodesAre() throws Exception {
+        // closed: dbo knows every holder there is, and says how many
+        String holder = get(base + "/CodeSystem?url=urn:dbo:run:holder");
+        assertTrue(holder.contains("\"content\":\"not-present\"") && holder.contains("\"count\":4"),
+                "the shell says the concepts live elsewhere, and how many: " + holder);
+        assertTrue(holder.contains("\"valueString\":\"complete\""),
+                "and records that the vocabulary it was published from was complete: " + holder);
+
+        // open: the codes are a module's or an application's, and the
+        // definition declines to invent an enumeration it does not have
+        String audit = get(base + "/CodeSystem?url=urn:dbo:audit");
+        assertTrue(audit.contains("\"content\":\"not-present\""), audit);
+        assertFalse(audit.contains("\"valueString\":\"complete\""),
+                "an open vocabulary must not claim it was ever complete: " + audit);
+    }
+
     @Test
     void publishingIsIdempotentAcrossBringUps() throws Exception {
         String spec = Files.readString(dir.resolve("sonavara.json"));
