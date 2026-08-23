@@ -101,6 +101,13 @@ public final class AuditModel {
         if (purpose != null) {
             sb.append(",\"purpose\":\"").append(purpose).append("\"");
         }
+        // What was matched on, as a fingerprint. Taken rather than read, so it
+        // lands on the entry for the search that produced it and on no other
+        // (#115).
+        String matched = cloud.jengu.dbo.core.api.Disclosure.takeMatched();
+        if (matched != null) {
+            sb.append(",\"matched\":\"").append(matched).append("\"");
+        }
         sb.append(",\"outcome\":\"").append(outcome).append("\"");
         if (rule != null) {
             sb.append(",\"rule\":\"").append(rule).append("\"");

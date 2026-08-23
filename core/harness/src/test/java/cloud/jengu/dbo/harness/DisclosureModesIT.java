@@ -237,6 +237,28 @@ class DisclosureModesIT {
                 "both people holding the number are found, and neither is refused a write");
     }
 
+    /**
+     * An auditor asking "did anybody look this person up" can find out, and the
+     * address is nowhere in the answer (#115 point 3).
+     *
+     * <p>The trail is append-only against everyone, so a plaintext address in
+     * it would put an immutable audit and an erasure right in direct conflict.
+     * A fingerprint puts them in no conflict at all: the auditor holds the
+     * address already, computes the same value, and looks.
+     */
+    @Test
+    void aLookupIsAnswerableLaterWithoutTheAddressBeingWrittenDown() throws Exception {
+        Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
+        store.select(Criteria.of("Patient")
+                .eq("email", EnvelopeValue.of("salakas@hogwarts.scot")));
+        Disclosure.clear();
+
+        assertFalse(auditSays("avaldus", "salakas@hogwarts.scot"),
+                "the address itself must never reach a trail nobody can amend");
+        assertTrue(auditSays("avaldus", "\"matched\":\""),
+                "and the fingerprint of what was matched must, or nobody can ask later");
+    }
+
     /** The same lookup without a purpose is still refused — it is still identifying. */
     @Test
     void anExactLookupIsStillAnIdentifyingAccess() {
