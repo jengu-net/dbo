@@ -258,6 +258,48 @@ class VocabularyIsDiscoverableIT {
         }
     }
 
+    /**
+     * The extension this face puts on a served resource has a definition a
+     * client can fetch (#91).
+     *
+     * <p>Asserted rather than assumed, because failing to publish is silent:
+     * {@code publishVocabularies} logs a definition this store cannot hold and
+     * carries on, and a profile that cannot be snapshotted is refused by the
+     * same quiet route. A shell carrying an extension nobody can look up would
+     * have looked exactly like success.
+     */
+    @Test
+    void theExtensionThisFacePutsOnAResourceHasADefinition() throws Exception {
+        for (String tenantBase : new String[] {base, elementBase}) {
+            String found = get(tenantBase
+                    + "/StructureDefinition?url=https://dbo.dev/fhir/ext/original-content");
+            assertTrue(found.contains("\"resourceType\":\"StructureDefinition\"")
+                            && found.contains("\"type\":\"Extension\""),
+                    "the original-content extension has no definition in " + tenantBase
+                            + ": " + found);
+            assertTrue(found.contains("\"expression\":\"CodeSystem\""),
+                    "and it says where it may appear: " + found);
+        }
+    }
+
+    /**
+     * A run's OUTPUT codes and a run's KEY are different things and no longer
+     * share a URI (#91).
+     *
+     * <p>Nothing serves runs yet, so this is asserted at the definition rather
+     * than on the wire — which is the point of doing it now: after the
+     * participation surface ships, splitting them would be a change to a live
+     * API.
+     */
+    @Test
+    void aRunsOutputCodesHaveTheirOwnSystem() throws Exception {
+        String codes = get(base + "/CodeSystem?url=urn:dbo:run:output");
+        assertEquals(1, countEntries(codes),
+                "the run output codes are published under their own url: " + codes);
+        assertEquals(0, countEntries(get(base + "/CodeSystem?url=urn:dbo:run")),
+                "and urn:dbo:run is no longer also a code system — it names a run's key");
+    }
+
     static java.util.stream.Stream<String> identifierNamespaces() {
         return IDENTIFIER_NAMESPACES.stream().sorted();
     }

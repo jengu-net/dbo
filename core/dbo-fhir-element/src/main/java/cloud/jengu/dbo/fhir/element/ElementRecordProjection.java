@@ -28,6 +28,18 @@ final class ElementRecordProjection implements RecordProjection {
 
     /** The run vocabulary, in one place, because a system URL typed twice is two systems. */
     private static final String RUN = "urn:dbo:run";
+    /**
+     * The codes a run's output carries.
+     *
+     * <p>Its own URI, and not {@code urn:dbo:run}, which is the identifier
+     * system of a run's KEY. One URI meaning both a namespace and a code
+     * system left a client meeting it unable to tell which it had met, and
+     * publishing both a NamingSystem and a CodeSystem there described the
+     * ambiguity rather than resolving it (#91). Named like its siblings —
+     * {@code :run:holder}, {@code :run:tally} — which were never ambiguous
+     * because they were never the run's own identifier.
+     */
+    private static final String RUN_OUTPUT = "urn:dbo:run:output";
     private static final String HOLDER = "urn:dbo:run:holder";
     private static final String PROCESS = "urn:dbo:process";
     private static final String STEP = "urn:dbo:step";
@@ -93,7 +105,7 @@ final class ElementRecordProjection implements RecordProjection {
                         "The step a run is at, named by the module that declares it.", null),
                 codeSystem(TALLY, "DboRunTally",
                         "What a step counted — the names are the step's own.", null),
-                codeSystem(RUN, "DboRunOutput",
+                codeSystem(RUN_OUTPUT, "DboRunOutput",
                         "What a run carries beside its tally.", List.of("outcome")),
                 // The IDENTIFIER namespaces, answered the way FHIR answers
                 // "what is this identifier system" — with a NamingSystem, not
@@ -108,7 +120,12 @@ final class ElementRecordProjection implements RecordProjection {
                 namingSystem(EXECUTOR, "DboExecutor",
                         "Which executor claimed and ran a step."),
                 namingSystem(AUTH_CLIENT_ID, "DboAuthClientId",
-                        "The client an access token was issued to, as the store knows it."));
+                        "The client an access token was issued to, as the store knows it."),
+                // The one extension this face puts on a served resource. A dbo
+                // concept that rides in a resource is described by a definition
+                // a client can fetch, or it is a convention somebody has to be
+                // told about (#91).
+                originalContentExtension());
     }
 
     /**
@@ -130,6 +147,37 @@ final class ElementRecordProjection implements RecordProjection {
                 + ",\"date\":\"2026-01-01\",\"description\":" + Json.quoted(description)
                 + ",\"uniqueId\":[{\"type\":\"uri\",\"value\":" + Json.quoted(namespace)
                 + ",\"preferred\":true}]}";
+    }
+
+    /**
+     * The definition of the extension a stored CodeSystem shell carries.
+     *
+     * <p>A shell says {@code content: not-present} because its concepts live
+     * in the native form, and this extension remembers what the publisher
+     * actually declared so the resource can be handed back as it arrived. A
+     * client meets it on every read of a CodeSystem, and until now had nowhere
+     * to look it up.
+     *
+     * <p>Differential only, as an extension definition normally is: the face
+     * generates the snapshot when it caches the profile (#87), the same as for
+     * a tenant's own.
+     */
+    private static String originalContentExtension() {
+        return "{\"resourceType\":\"StructureDefinition\",\"url\":"
+                + Json.quoted(ElementTerminology.ORIGINAL_CONTENT_EXT)
+                + ",\"name\":\"DboOriginalContent\",\"status\":\"active\""
+                + ",\"kind\":\"complex-type\",\"abstract\":false,\"type\":\"Extension\""
+                + ",\"description\":\"What a CodeSystem declared as its content mode before "
+                + "this store held its concepts natively.\""
+                + ",\"baseDefinition\":\"http://hl7.org/fhir/StructureDefinition/Extension\""
+                + ",\"derivation\":\"constraint\""
+                + ",\"context\":[{\"type\":\"element\",\"expression\":\"CodeSystem\"}]"
+                + ",\"differential\":{\"element\":["
+                + "{\"id\":\"Extension\",\"path\":\"Extension\",\"max\":\"1\"},"
+                + "{\"id\":\"Extension.url\",\"path\":\"Extension.url\",\"fixedUri\":"
+                + Json.quoted(ElementTerminology.ORIGINAL_CONTENT_EXT) + "},"
+                + "{\"id\":\"Extension.value[x]\",\"path\":\"Extension.value[x]\""
+                + ",\"min\":1,\"type\":[{\"code\":\"code\"}]}]}}";
     }
 
     /** Which content mode a definition declares. */
@@ -402,7 +450,7 @@ final class ElementRecordProjection implements RecordProjection {
         }
         if (itemOf(record) != null) {
             outputs.append(outputs.isEmpty() ? "" : ",")
-                    .append("{\"type\":{\"coding\":[{\"system\":\"").append(RUN)
+                    .append("{\"type\":{\"coding\":[{\"system\":\"").append(RUN_OUTPUT)
                     .append("\",\"code\":\"outcome\"}]},")
                     .append("\"valueReference\":{\"reference\":\"#outcome\"}}");
         }
