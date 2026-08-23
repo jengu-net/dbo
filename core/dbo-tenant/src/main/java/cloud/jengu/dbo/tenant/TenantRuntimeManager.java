@@ -643,6 +643,72 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
+     * One round of watching each tenant's own change feed for profiles that
+     * arrived without this facade's knowledge (#87, point 2).
+     *
+     * <p>A write THROUGH the facade rebuilds that tenant's validation view at
+     * the write, and always did. A profile that reaches the engine another way
+     * — replicated from a zone, restored from an archive, written by a lane —
+     * left the view holding the shapes it had at bring-up, so a tenant could be
+     * given a profile and go on validating as though it had not been.
+     *
+     * <p>The tenant's own feed is the answer because it records every write
+     * whatever made it: watching the store rather than the writers is what
+     * makes this cover the paths nobody has thought of yet, including the ones
+     * added later.
+     *
+     * <p>One durable consumer per tenant, so an interrupted round resumes
+     * rather than replaying, and a rebuild is driven by the event rather than
+     * by a clock. Reading the tenant's own feed here does not disturb any other
+     * consumer: cursors are per consumer name.
+     *
+     * <p>The first round for a tenant reads its feed from the beginning, which
+     * costs one pass over its history and usually one redundant rebuild. The
+     * cheaper alternative — start the consumer at the head, since bring-up
+     * already read the profiles out of the store — has a gap in it: a profile
+     * written between that read and the consumer's first round would be behind
+     * the head and never seen. A one-time pass is the price of not having a
+     * window where a profile can be missed permanently.
+     *
+     * @return how many tenants rebuilt their view this round
+     */
+    public int shapesRound() {
+        int rebuilt = 0;
+        for (TenantRuntime runtime : runtimes.values()) {
+            String consumer = "shapes." + runtime.spec().code();
+            try {
+                boolean moved = false;
+                cloud.jengu.dbo.core.api.feed.FeedChunk<
+                        cloud.jengu.dbo.core.api.feed.FeedItem> chunk;
+                // Drained rather than sampled: the interesting item is not
+                // necessarily in the first chunk of a busy tenant, and leaving
+                // it behind would defer the rebuild by a round each time.
+                while (!(chunk = runtime.feed().readFor(consumer, 500)).items().isEmpty()) {
+                    for (cloud.jengu.dbo.core.api.feed.FeedItem item : chunk.items()) {
+                        moved |= "StructureDefinition".equals(item.typeName());
+                    }
+                    runtime.feed().ack(consumer, chunk.nextCursor());
+                }
+                if (moved) {
+                    // Acked before rebuilding, deliberately: a rebuild that
+                    // throws is this tenant's broken profile and is reported as
+                    // that, not a reason to re-read the same events forever.
+                    runtime.store().shapesChanged();
+                    rebuilt++;
+                    LOG.info("tenant {} rebuilt its validation view: a profile arrived "
+                            + "without going through its facade", runtime.spec().code());
+                }
+            } catch (RuntimeException e) {
+                // One tenant's broken profile never stops the others, and the
+                // next round retries from the acked cursor.
+                LOG.warn("could not refresh validation shapes for tenant {}",
+                        runtime.spec().code(), e);
+            }
+        }
+        return rebuilt;
+    }
+
+    /**
      * One sync round over every wired stream (declared changes applied,
      * parked shadows re-attempted, and what is left recorded). The scan loop
      * calls this continuously; tests call it for determinism. Returns events
@@ -992,6 +1058,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 try {
                     scanOnce();
                     syncRound();
+                    // AFTER the sync round: a replicated profile arrives in
+                    // that round, and watching before it would leave the
+                    // rebuild a full poll interval behind its own cause.
+                    shapesRound();
                     if (System.currentTimeMillis() - lastSweepMillis > 3_600_000) {
                         lastSweepMillis = System.currentTimeMillis();
                         sweeps.values().forEach(cloud.jengu.dbo.policy.RetentionSweep::sweepOnce);

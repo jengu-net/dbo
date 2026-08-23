@@ -167,6 +167,23 @@ public interface FhirStoreFacade {
                 "this endpoint does not process bundles");
     }
 
+    /**
+     * A StructureDefinition reached this tenant's store by some path other than
+     * this facade — replication from a zone, an archive restored, the engine
+     * written directly — and the shapes this facade validates against are now
+     * older than the store it validates for (#87).
+     *
+     * <p>Writes THROUGH the facade rebuild the view themselves, at the write.
+     * This is the other half, and it exists because a facade cannot notice what
+     * it did not do. The runtime that owns the tenant watches its change feed
+     * and says so; the facade decides what that means.
+     *
+     * <p>A no-op by default: a face whose validation carries no tenant shapes
+     * has nothing to rebuild, and should not be made to pretend otherwise.
+     */
+    default void shapesChanged() {
+    }
+
     String operationOutcome(String issueCode, String diagnostics);
 
     /** True when the type is configured in this store's personality. */
