@@ -102,9 +102,14 @@ class ProfilesArrivingOutOfBandTakeEffectIT {
     void aProfileWrittenPastTheFacadeIsInTheStore() {
         manager.runtime("saabuja").orElseThrow().engine().put(PutRequest.create(
                 "StructureDefinition", PROFILE.getBytes(StandardCharsets.UTF_8)));
-        assertEquals(1, manager.runtime("saabuja").orElseThrow().engine()
+        // The one written here, not the only one there: the face publishes its
+        // own definitions into every tenant, so a count is a statement about
+        // how many OTHER things exist and breaks when one is added.
+        assertTrue(manager.runtime("saabuja").orElseThrow().engine()
                         .select(cloud.jengu.dbo.core.api.Criteria.of("StructureDefinition"))
-                        .size(),
+                        .stream()
+                        .map(o -> new String(o.payload(), StandardCharsets.UTF_8))
+                        .anyMatch(body -> body.contains(CANONICAL)),
                 "the engine holds it — this test is about the facade not knowing");
     }
 
