@@ -200,7 +200,10 @@ public final class ElementVersion {
     /** The canonical url of a canonical resource — its identity, for a conditional write. */
     String canonicalUrlOf(Object document) {
         if (document instanceof Element element) {
-            String url = element.getNamedChildValue("url");
+            // The same rule the envelope claims identity by, asked once: a
+            // write and the index it is found through must not disagree about
+            // what a resource is called.
+            String url = ElementEnvelopes.canonicalIdentity(element);
             if (url != null) {
                 return url;
             }

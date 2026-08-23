@@ -94,14 +94,42 @@ final class ElementRecordProjection implements RecordProjection {
                 codeSystem(TALLY, "DboRunTally",
                         "What a step counted — the names are the step's own.", null),
                 codeSystem(RUN, "DboRunOutput",
-                        "What a run carries beside its tally.", List.of("outcome")));
-        // The IDENTIFIER namespaces this face also uses — urn:dbo:run for a
-        // run's key, :correlation, :executor, :auth:client-id — are not here
-        // yet, and the reason is a version fact rather than an oversight: FHIR
-        // answers "what is this identifier system" with a NamingSystem, and
-        // R4's NamingSystem has no url, so it cannot take the canonical
-        // identity a definition is fetched by. Publishing them wants a
-        // per-version answer (#91).
+                        "What a run carries beside its tally.", List.of("outcome")),
+                // The IDENTIFIER namespaces, answered the way FHIR answers
+                // "what is this identifier system" — with a NamingSystem, not
+                // with a CodeSystem it is not (#91). A client that meets
+                // urn:dbo:run as an identifier's system finds this by asking
+                // the tenant it came from: NamingSystem?value=urn:dbo:run,
+                // which is a search parameter every version defines.
+                namingSystem(RUN, "DboRunKey",
+                        "A run's own key, minted by the store that runs it."),
+                namingSystem(CORRELATION, "DboCorrelation",
+                        "What ties one caller's related work together across runs."),
+                namingSystem(EXECUTOR, "DboExecutor",
+                        "Which executor claimed and ran a step."),
+                namingSystem(AUTH_CLIENT_ID, "DboAuthClientId",
+                        "The client an access token was issued to, as the store knows it."));
+    }
+
+    /**
+     * An identifier namespace, said in FHIR's own words.
+     *
+     * <p>No {@code url}: the element does not exist in R4, and one document
+     * that every served version accepts is worth more than three that differ
+     * by a field nobody reads. Identity comes from the {@code uniqueId} of
+     * type {@code uri} instead, which is the namespace itself and is the same
+     * value in every version.
+     *
+     * <p>The date is fixed rather than the current one. It is required, and a
+     * definition whose content changed on every boot would republish forever
+     * and defeat the check that asks whether anything moved.
+     */
+    private static String namingSystem(String namespace, String name, String description) {
+        return "{\"resourceType\":\"NamingSystem\",\"name\":" + Json.quoted(name)
+                + ",\"status\":\"active\",\"kind\":\"identifier\""
+                + ",\"date\":\"2026-01-01\",\"description\":" + Json.quoted(description)
+                + ",\"uniqueId\":[{\"type\":\"uri\",\"value\":" + Json.quoted(namespace)
+                + ",\"preferred\":true}]}";
     }
 
     /** Which content mode a definition declares. */

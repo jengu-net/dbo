@@ -46,15 +46,15 @@ class VocabularyIsDiscoverableIT {
     private static final Pattern DBO_SYSTEM = Pattern.compile("\"system\":\"(urn:dbo:[^\"]+)\"");
 
     /**
-     * The identifier NAMESPACES, which are not code systems and are not
-     * published yet — named here rather than skipped silently, because a
-     * ratchet with an invisible exception is not a ratchet.
+     * The identifier NAMESPACES, which are not code systems and must not be
+     * published as ones — a CodeSystem for a namespace that has no codes would
+     * be a lie in the shape of a definition.
      *
-     * <p>FHIR answers "what is this identifier system" with a NamingSystem,
-     * and R4's NamingSystem has no url, so it cannot take the canonical
-     * identity a definition is fetched by. That wants a per-version answer
-     * and is the remaining half of #91 — anything NOT on this list must
-     * resolve as a CodeSystem, so a vocabulary added later cannot hide here.
+     * <p>FHIR answers "what is this identifier system" with a NamingSystem, so
+     * these resolve as one. They are still named here rather than skipped
+     * silently, because the assertion for them is different, not absent: a
+     * vocabulary added later and not listed here still has to be a CodeSystem
+     * and cannot hide in this set.
      */
     private static final Set<String> IDENTIFIER_NAMESPACES = Set.of(
             "urn:dbo:run", "urn:dbo:correlation", "urn:dbo:executor",
@@ -137,6 +137,12 @@ class VocabularyIsDiscoverableIT {
 
         for (String system : met) {
             if (IDENTIFIER_NAMESPACES.contains(system)) {
+                // an identifier namespace answers as what it is
+                String named = get(base + "/NamingSystem?value=" + system);
+                assertTrue(named.contains("\"resourceType\":\"NamingSystem\"")
+                                && named.contains(system),
+                        "a client met the identifier system " + system + " on the wire and "
+                                + "cannot look it up: " + named);
                 continue;
             }
             String found = get(base + "/CodeSystem?url=" + system);
@@ -220,9 +226,47 @@ class VocabularyIsDiscoverableIT {
         String after = get(base + "/CodeSystem?url=urn:dbo:run:holder");
         assertEquals(1, countEntries(after),
                 "a second bring-up rewrites the same record rather than adding one: " + after);
+
+        // And the same for a definition identified by something other than a
+        // url. A NamingSystem has none, so its identity is claimed from the
+        // namespace it names — and if that claim is not made, the second
+        // bring-up's conditional write matches nothing and quietly writes a
+        // second copy of every namespace (#91).
+        String namespaces = get(base + "/NamingSystem?value=urn:dbo:run");
+        assertEquals(1, countEntries(namespaces, "NamingSystem"),
+                "a namespace is one record after two bring-ups, not two: " + namespaces);
+    }
+
+    /**
+     * Every identifier namespace this face uses, whether or not a response
+     * happened to carry one today.
+     *
+     * <p>The wire scan above only reaches what the trail put there; a namespace
+     * used by a surface nobody exercised in this test would pass by not being
+     * met. This asks directly.
+     */
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0}")
+    @org.junit.jupiter.params.provider.MethodSource("identifierNamespaces")
+    void everyIdentifierNamespaceIsAnsweredAsANamingSystem(String namespace) throws Exception {
+        for (String tenantBase : new String[] {base, elementBase}) {
+            String named = get(tenantBase + "/NamingSystem?value=" + namespace);
+            assertTrue(named.contains("\"resourceType\":\"NamingSystem\"")
+                            && named.contains(namespace),
+                    namespace + " is not answerable from " + tenantBase + ": " + named);
+            assertTrue(named.contains("\"kind\":\"identifier\""),
+                    namespace + " must say what kind of namespace it is: " + named);
+        }
+    }
+
+    static java.util.stream.Stream<String> identifierNamespaces() {
+        return IDENTIFIER_NAMESPACES.stream().sorted();
     }
 
     private static int countEntries(String bundle) {
-        return bundle.split("\"resourceType\":\"CodeSystem\"", -1).length - 1;
+        return countEntries(bundle, "CodeSystem");
+    }
+
+    private static int countEntries(String bundle, String typeName) {
+        return bundle.split("\"resourceType\":\"" + typeName + "\"", -1).length - 1;
     }
 }

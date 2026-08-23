@@ -59,13 +59,46 @@ final class ElementEnvelopes {
             // by it, not merely indexed under it — conditional writes and every
             // reassembly from a native form go through the identity index
             // (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS).
-            String url = document.getNamedChildValue("url");
+            String url = canonicalIdentity(document);
             if (url != null) {
                 envelope.identifier(cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url);
                 envelope.value("url", EnvelopeValue.of(url));
             }
         }
         return envelope;
+    }
+
+    /**
+     * What a canonical resource is identified BY, which is its {@code url} for
+     * every canonical type but one.
+     *
+     * <p>A {@code NamingSystem} answers "what is this identifier namespace",
+     * and in R4 it has no {@code url} at all — the element does not exist in
+     * that version, so there is nothing to omit and nothing to add. Its
+     * identity is the namespace it names, carried as the {@code uniqueId} of
+     * type {@code uri}, which is present in every version this face serves.
+     *
+     * <p>Taken uniformly rather than "url where the version has one": the same
+     * namespace replicated between an r4 tenant and an r5 tenant has to be the
+     * same object, and it would not be if its identity changed with the
+     * version that happened to store it (#91).
+     */
+    static String canonicalIdentity(Element document) {
+        String url = document.getNamedChildValue("url");
+        if (url != null) {
+            return url;
+        }
+        if (!"NamingSystem".equals(document.fhirType())) {
+            return null;
+        }
+        List<Element> uniqueIds = new java.util.ArrayList<>();
+        document.getNamedChildren("uniqueId", uniqueIds);
+        for (Element uniqueId : uniqueIds) {
+            if ("uri".equals(uniqueId.getNamedChildValue("type"))) {
+                return uniqueId.getNamedChildValue("value");
+            }
+        }
+        return null;
     }
 
     private static void add(Envelope envelope, Enumerations.SearchParamType type, String path,
