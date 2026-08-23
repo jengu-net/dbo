@@ -83,7 +83,8 @@ public final class AuthorityHandler implements HttpHandler {
         TenantAuthority.TokenResult result = switch (String.valueOf(form.get("grant_type"))) {
             case "client_credentials" -> clientId == null || clientSecret == null
                     ? new TenantAuthority.TokenResult.Rejected("invalid_client", "client authentication required")
-                    : authority.token(clientId, clientSecret, form.get("scope"));
+                    : authority.token(clientId, clientSecret, form.get("scope"),
+                            form.get("purpose_of_use"));
             case "authorization_code" -> authority.exchangeCode(form.get("code"),
                     form.get("redirect_uri"), clientId, clientSecret, form.get("code_verifier"));
             case "refresh_token" -> authority.refresh(form.get("refresh_token"));

@@ -33,6 +33,16 @@ public final class AuthorityAuthenticator implements RequestAuthenticator {
             return new Denial(403, null, "insufficient scope for "
                     + (mutation ? "writing " : "reading ") + resourceType);
         }
+        // What the token says this access is for. Absent, the store's default
+        // stands and the read omits identity — a caller that asked for nothing
+        // gets nothing identifying, which is the point of the default (#114).
+        // Present, it selects the disclosing mode and is recorded; it is NOT
+        // what permits the read, which the scopes above already decided (#117).
+        if (context.get().purposeOfUse() != null) {
+            cloud.jengu.dbo.core.api.Disclosure.set(
+                    cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE,
+                    context.get().purposeOfUse());
+        }
         if (context.get().actClient() != null) {
             // §16.4: a process acting in the name of a human — record both
             cloud.jengu.dbo.core.api.Caller.setChain(

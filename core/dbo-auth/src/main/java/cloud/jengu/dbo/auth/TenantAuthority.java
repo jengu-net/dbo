@@ -882,6 +882,22 @@ public final class TenantAuthority {
     }
 
     public TokenResult token(String clientId, String clientSecret, String requestedScope) {
+        return token(clientId, clientSecret, requestedScope, null);
+    }
+
+    /**
+     * @param purposeOfUse what the caller says the access is for, minted into
+     *                     the token as IUA carries it (#117). An assertion
+     *                     rather than a grant — it does not widen what the
+     *                     client may read, and the store records it rather than
+     *                     consulting it. Constraining which purposes a client
+     *                     may claim is the authority's judgement to grow later;
+     *                     issuing what was asked for is the honest starting
+     *                     point, since the alternative is a purpose nobody can
+     *                     ever state.
+     */
+    public TokenResult token(String clientId, String clientSecret, String requestedScope,
+            String purposeOfUse) {
         Optional<StoredObject> client = findClient(clientId);
         if (client.isEmpty()
                 || !"active".equals(field(client.get(), "status"))
@@ -902,6 +918,8 @@ public final class TenantAuthority {
         String claims = "{\"iss\":\"" + issuer + "\",\"sub\":\"" + clientId + "\""
                 + ",\"aud\":\"" + issuer + "\",\"client_id\":\"" + clientId + "\""
                 + ",\"scope\":\"" + scope + "\""
+                + (purposeOfUse == null || purposeOfUse.isBlank() ? ""
+                        : ",\"purpose_of_use\":[\"" + purposeOfUse.trim() + "\"]")
                 + ",\"jti\":\"" + UuidV7.newId() + "\""
                 + ",\"iat\":" + now + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + "}";
         return new TokenResult.Issued(
@@ -920,8 +938,16 @@ public final class TenantAuthority {
     // ------------------------------------------------------------ validation
 
     /** For delegated tokens {@code actClient} names the acting service (§16.4). */
+    /**
+     * @param purposeOfUse what this token says the access is for, or null.
+     *                     IHE's IUA profile carries it as a token claim, which
+     *                     is why nothing about a purpose reaches the wire as a
+     *                     header or a parameter (#117). It is not permission —
+     *                     the scopes are — and the store records it rather than
+     *                     consulting it.
+     */
     public record AuthContext(String clientId, String fhirUser, String actClient,
-            List<String> scopes) {}
+            List<String> scopes, String purposeOfUse) {}
 
     /** Local validation (§13.5): the tenant's own cached keys, refresh on unknown kid. */
     public Optional<AuthContext> validate(String token) {
@@ -951,10 +977,28 @@ public final class TenantAuthority {
             }
             return Optional.of(new AuthContext(Json.str(claims, "sub"),
                     Json.strOpt(claims, "fhirUser"), actClient,
-                    List.of(Json.str(claims, "scope").split(" "))));
+                    List.of(Json.str(claims, "scope").split(" ")),
+                    purposeOf(claims)));
         } catch (RuntimeException invalid) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * The purpose of use a token states, if it states one.
+     *
+     * <p>IUA carries it as a list, because an assertion may name more than one.
+     * A read discloses under ONE purpose or it is two accesses (#117), so the
+     * first is taken and the rest ignored rather than joined into a string
+     * nobody can match on later.
+     */
+    private static String purposeOf(Object claims) {
+        Object purpose = ((Map<?, ?>) claims).get("purpose_of_use");
+        if (purpose instanceof List<?> list) {
+            return list.isEmpty() ? null : String.valueOf(list.get(0));
+        }
+        return purpose == null || String.valueOf(purpose).isBlank()
+                ? null : String.valueOf(purpose);
     }
 
     private void refreshKeyCache() {

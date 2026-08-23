@@ -212,6 +212,10 @@ public final class FhirHttpServer implements AutoCloseable {
                     t.getClass().getSimpleName() + ": " + t.getMessage()));
         } finally {
             cloud.jengu.dbo.core.api.Caller.clear();
+            // Cleared with the caller, and for the same reason: a thread is
+            // reused, and a purpose left behind would disclose the next
+            // request's person under the last one's reason.
+            cloud.jengu.dbo.core.api.Disclosure.clear();
             exchange.close();
         }
     }
