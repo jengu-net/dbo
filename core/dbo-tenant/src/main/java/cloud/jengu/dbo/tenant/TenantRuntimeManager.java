@@ -643,6 +643,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
+     * The wired streams of one tenant — what it is replicating and what has
+     * parked. Ops asks this to see a shadow somebody has to clear; tests ask it
+     * to assert that nothing parked at all.
+     */
+    public java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> streamsOf(String tenantCode) {
+        return syncEngines.getOrDefault(tenantCode, java.util.List.of());
+    }
+
+    /**
      * One round of watching each tenant's own change feed for profiles that
      * arrived without this facade's knowledge (#87, point 2).
      *
