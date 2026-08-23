@@ -260,6 +260,15 @@ public final class ContentSyncEngine {
             deadLetter(item, String.valueOf(conversionFailure.getMessage()));
             return true; // handled (visible); not a shadow
         }
+        // Computed before the try, not inside it: the conflict handler
+        // compares what WOULD have been written against what is already here,
+        // so it has to be in scope where the conflict is caught (#102).
+        // the destination takes the wire form apart into its own: concepts
+        // to the native store, and the shell back here to be written under
+        // the source's identity like everything else
+        byte[] stored = targetGrain != null && targetGrain.handles(item.typeName())
+                ? targetGrain.receive(item.typeName(), payload)
+                : payload;
         try {
             // As the replication lane, which is what this is. A type declared
             // read-only-here refuses every other caller, and the lane that may
@@ -270,9 +279,6 @@ public final class ContentSyncEngine {
             // the destination takes the wire form apart into its own: concepts
             // to the native store, and the shell back here to be written under
             // the source's identity like everything else
-            byte[] stored = targetGrain != null && targetGrain.handles(item.typeName())
-                    ? targetGrain.receive(item.typeName(), payload)
-                    : payload;
             targetStore.put(new PutRequest(item.typeName(), item.objectId(), null, stored),
                     cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
             recordOrigin(item, version);
@@ -281,6 +287,25 @@ public final class ContentSyncEngine {
             if (isStreamedOrigin(conflict.existingId())) {
                 // stale claim from an earlier copy of ours — surface loudly
                 throw conflict;
+            }
+            if (alreadyHeldVerbatim(item.typeName(), conflict.existingId(), stored)) {
+                // Not an override: the same publication, held here already.
+                //
+                // Shadowing exists to protect a local DIFFERENCE — somebody
+                // here decided something other than what upstream says, and
+                // that decision must not be overwritten by a stream. Identical
+                // content has no difference to protect, and parking it made a
+                // shadow nobody could clear: every round re-attempted it, every
+                // round raised a unique-constraint violation in the database
+                // log, and removing "the override" was impossible because
+                // there was none (#102).
+                //
+                // The engine's own vocabulary is how this arises. Every tenant
+                // is given it at bring-up so that urn:dbo: codes resolve in the
+                // tenant that served them; a tenant that also inherits
+                // CodeSystem is given the identical publication twice, once by
+                // each route.
+                return true;
             }
             return false; // local override wins: REQ-DBO-SYNC-LOCAL-SHADOWING
         }
@@ -310,6 +335,23 @@ public final class ContentSyncEngine {
             throw new IllegalStateException("origin read failed", e);
         }
         return out;
+    }
+
+    /**
+     * Whether the object already here is byte-identical to what arrived.
+     *
+     * <p>Byte equality on purpose, rather than "same canonical" — two objects
+     * claiming one canonical are the same THING, but only identical content
+     * makes them the same VERSION of it, and a stream that treated a differing
+     * upstream copy as already-applied would silently drop an update. What is
+     * compared is the stored form on both sides: the payload this tenant holds,
+     * against the payload about to be written after the grain has taken the
+     * wire form apart.
+     */
+    private boolean alreadyHeldVerbatim(String typeName, String existingId, byte[] arriving) {
+        return targetStore.get(typeName, existingId)
+                .map(held -> java.util.Arrays.equals(held.payload(), arriving))
+                .orElse(false);
     }
 
     public boolean isStreamedOrigin(String objectId) {
