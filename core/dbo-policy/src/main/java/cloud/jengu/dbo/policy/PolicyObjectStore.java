@@ -171,7 +171,22 @@ public final class PolicyObjectStore implements ObjectStore,
     }
 
     private void auditRead(String interaction, String typeName, String targetId) {
-        if (policies.auditsReads() && !"AuditEntry".equals(typeName)) {
+        if ("AuditEntry".equals(typeName)) {
+            return;
+        }
+        // A tenant's audit level is a preference about VOLUME — how much of
+        // ordinary traffic to keep. A disclosure record is a requirement: who
+        // saw an identity, and why they said they needed it. Answering both
+        // with one dial is what left an identifying read untraceable at
+        // audit=writes, with the purpose stated to nobody (#114).
+        //
+        // So a read that asked for an identity is recorded whatever the level,
+        // and nothing else changes: a request with no purpose is ordinary
+        // traffic and follows the tenant's choice. The store already asserts
+        // that some audit facts are not the tenant's to choose — the trail is
+        // append-only against everyone including us, and the actor comes from
+        // the authority rather than from the caller.
+        if (policies.auditsReads() || cloud.jengu.dbo.core.api.Disclosure.purpose() != null) {
             record(interaction, typeName, targetId, null);
         }
     }
