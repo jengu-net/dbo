@@ -190,7 +190,7 @@ class AuthorityIT {
      *  while the stored payload is ciphertext. */
     @Test
     @Order(7)
-    void aPdiTenantServesReassembledResourcesOverCiphertextStorage() throws Exception {
+    void aPdiTenantStoresCiphertextAndDisclosesNothingUnasked() throws Exception {
         java.nio.file.Files.writeString(dir.resolve("kolm.json"), """
                 {"code":"kolm","fhirVersion":"r4","pdi":true,"types":[
                   {"name":"Patient","identity":"identifier","systems":["%s"],"handling":"operational"}]}""".formatted(
@@ -205,9 +205,20 @@ class AuthorityIT {
         // authorized read: fully reassembled (id from the Location header)
         String location = created.headers().firstValue("Location").orElseThrow();
         String id = location.replaceAll(".*/Patient/([^/]+).*", "$1");
+        // A read over HTTP states no purpose, because the surface has no way to
+        // state one yet — so it gets what any caller who says nothing gets: the
+        // resource without its identity (#114). That is the intended default
+        // and this asserts it rather than the disclosure that used to happen.
+        //
+        // What this test was written to prove — that storage is ciphertext and
+        // a reader is not handed the ciphertext block — is unchanged and
+        // asserted below. The identifying half returns to this test when the
+        // surface can carry a purpose.
         String read = get(fhir("kolm") + "/Patient/" + id, token).body();
-        assertTrue(read.contains("Peidetud") && read.contains("49001010062"));
-        assertFalse(read.contains("__pdiEnc"));
+        assertFalse(read.contains("Peidetud") || read.contains("49001010062"),
+                "a caller that stated no purpose is not handed an identity: " + read);
+        assertFalse(read.contains("__pdiEnc"),
+                "nor the ciphertext block, which it cannot read: " + read);
         // storage: ciphertext only
         try (java.sql.Connection c = provisioner.provision(cloud.jengu.dbo.tenant.TenantSpec.parse(
                         java.nio.file.Files.readString(dir.resolve("kolm.json")))).dataSource().getConnection();

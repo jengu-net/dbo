@@ -131,19 +131,38 @@ class PdiIT {
                 "and the full date must not be in the clear — it rides encrypted like the rest");
     }
 
+    /**
+     * Reads whole, the way an authorised caller does: a stated purpose and the
+     * mode that goes with it (#114).
+     *
+     * <p>These tests were written when a read with a key returned everything,
+     * so they read plainly and expected identity back. The default is now to
+     * omit it, which is the disruption #114 intended — so what they assert
+     * about an AUTHORISED read they now have to ask for.
+     */
+    private static <T> T reading(java.util.function.Supplier<T> read) {
+        cloud.jengu.dbo.core.api.Disclosure.set(
+                cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE, "TREAT");
+        try {
+            return read.get();
+        } finally {
+            cloud.jengu.dbo.core.api.Disclosure.clear();
+        }
+    }
+
     /** Authorized reads see the full resource; versions reassemble from history. */
     @Test
     @Order(1)
     void splitAndReassembleAreInvisibleToAuthorizedReads() {
         PutResult v1 = store.put(PutRequest.create("Patient", patient(NAME, CODE_37)));
         personId = v1.id();
-        String read = new String(store.get("Patient", personId).orElseThrow().payload(),
-                StandardCharsets.UTF_8);
+        String read = reading(() -> new String(store.get("Patient", personId).orElseThrow()
+                .payload(), StandardCharsets.UTF_8));
         assertTrue(read.contains(NAME) && read.contains(CODE_37) && read.contains("1970-01-01"));
         assertFalse(read.contains("__pdiEnc"), "the ciphertext block never reaches a reader");
 
         store.put(PutRequest.update("Patient", personId, 1, patient("Salakas-Uus", CODE_37)));
-        List<StoredObject> history = store.history("Patient", personId);
+        List<StoredObject> history = reading(() -> store.history("Patient", personId));
         assertEquals(2, history.size());
         assertTrue(new String(history.get(0).payload(), StandardCharsets.UTF_8).contains(NAME));
         assertTrue(new String(history.get(1).payload(), StandardCharsets.UTF_8).contains("Salakas-Uus"));
@@ -183,8 +202,8 @@ class PdiIT {
     void identityStaysUnmergeableVaultSide() {
         assertThrows(IdentityConflictException.class, () ->
                 store.put(PutRequest.create("Patient", patient("Teine", CODE_37))));
-        List<StoredObject> found = store.getByIdentifier("Patient",
-                List.of(new Identifier(EID, CODE_37)));
+        List<StoredObject> found = reading(() -> store.getByIdentifier("Patient",
+                List.of(new Identifier(EID, CODE_37))));
         assertEquals(1, found.size());
         assertTrue(new String(found.get(0).payload(), StandardCharsets.UTF_8).contains("Salakas-Uus"));
     }
@@ -194,11 +213,34 @@ class PdiIT {
     @Order(4)
     void restrictionMakesReadsPseudonymous() {
         vault.restrict(personId, true);
-        assertFalse(new String(store.get("Patient", personId).orElseThrow().payload(),
-                StandardCharsets.UTF_8).contains("Salakas"));
+        // asked for whole, and still pseudonymous: restriction is not a mode a
+        // caller can talk its way past
+        assertFalse(reading(() -> new String(store.get("Patient", personId).orElseThrow()
+                .payload(), StandardCharsets.UTF_8)).contains("Salakas"));
         vault.restrict(personId, false);
-        assertTrue(new String(store.get("Patient", personId).orElseThrow().payload(),
-                StandardCharsets.UTF_8).contains("Salakas-Uus"));
+        assertTrue(reading(() -> new String(store.get("Patient", personId).orElseThrow()
+                .payload(), StandardCharsets.UTF_8)).contains("Salakas-Uus"));
+    }
+
+    /**
+     * The subject's own export states its own purpose rather than inheriting
+     * the request's (#114).
+     *
+     * <p>Article 20 is not satisfied by a pseudonymous file, and ciphertext the
+     * subject holds no key for satisfies it even less — so this path says
+     * PATRQT, which is exactly what it is, and puts the request's own
+     * disclosure back when it is done.
+     */
+    @Test
+    @Order(5)
+    void theSubjectsOwnExportStatesItsPurpose() {
+        cloud.jengu.dbo.core.api.Disclosure.clear();
+        String export = store.exportPerson("Patient", personId, List.of());
+        assertTrue(export.contains("Salakas-Uus"),
+                "the person's own data, whole, because they asked for it: " + export);
+        assertEquals(cloud.jengu.dbo.core.api.Disclosure.Mode.OMIT,
+                cloud.jengu.dbo.core.api.Disclosure.mode(),
+                "and what the request was doing is put back afterwards");
     }
 
     /** Portability: one person's data, no one else's. */
@@ -209,6 +251,38 @@ class PdiIT {
         String export = store.exportPerson("Patient", personId, List.of());
         assertTrue(export.contains("Salakas-Uus"));
         assertFalse(export.contains("Kolmas"));
+    }
+
+    /**
+     * A tenant archive carries the carrier form, and does so by construction
+     * rather than by remembering to ask (#114).
+     *
+     * <p>The export copies rows, so what it holds is what is at rest:
+     * ciphertext and coarse values. That is {@code ENCRYPTED} without anyone
+     * selecting it, and it is the right answer — an archive crosses a boundary
+     * and must not disclose identity to whatever carries it.
+     *
+     * <p>Asserted rather than left implicit, because it is exactly the property
+     * a refactor would break silently: routing the export through the store
+     * would make it inherit the request's disclosure, and a backup taken under
+     * the default would come back pseudonymous with nothing to say it had.
+     */
+    @Test
+    @Order(6)
+    void aTenantArchiveCarriesCiphertextWhateverTheRequestWasDoing() throws Exception {
+        cloud.jengu.dbo.core.api.Disclosure.set(
+                cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE, "TREAT");
+        ByteArrayOutputStream archive = new ByteArrayOutputStream();
+        try {
+            TenantExport.export(ds, R4Personality.DOMAIN, ownerKey, archive);
+        } finally {
+            cloud.jengu.dbo.core.api.Disclosure.clear();
+        }
+
+        String bytes = archive.toString(StandardCharsets.ISO_8859_1);
+        assertFalse(bytes.contains("Salakas-Uus") || bytes.contains(CODE_37),
+                "an archive taken during an authorised read must still carry no plaintext "
+                        + "identity — it is a boundary, not a reader");
     }
 
     /** §14.1+§14.4: shred erases every copy at once; a pre-shred archive cannot resurrect. */

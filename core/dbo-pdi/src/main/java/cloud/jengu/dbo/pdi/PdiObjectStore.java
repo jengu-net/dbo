@@ -245,6 +245,18 @@ public final class PdiObjectStore implements ObjectStore {
         return Json.render(parsed).getBytes(StandardCharsets.UTF_8);
     }
 
+    /**
+     * Whether this person's identity is GONE rather than merely undisclosed.
+     *
+     * <p>Restricted or shredded: there is no key to be had by anybody. That is
+     * a different fact from a caller who was told to omit, and the difference
+     * decides whether a coarse value survives — after an erasure it must not,
+     * and under omission it must.
+     */
+    private boolean erased(String id) {
+        return vault.restricted(id) || vault.keyFor(id, false).isEmpty();
+    }
+
     @SuppressWarnings("unchecked")
     private StoredObject reassembled(String typeName, StoredObject object) {
         if (typeName == null || !spec.isPersonType(typeName)) {
@@ -252,26 +264,48 @@ public final class PdiObjectStore implements ObjectStore {
         }
         Map<String, Object> parsed = (Map<String, Object>) Json.parse(
                 new String(object.payload(), StandardCharsets.UTF_8));
+        cloud.jengu.dbo.core.api.Disclosure.Mode mode =
+                cloud.jengu.dbo.core.api.Disclosure.mode();
+        if (mode == cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE
+                && cloud.jengu.dbo.core.api.Disclosure.purpose() == null) {
+            // Refused before anything is decrypted, and refused rather than
+            // downgraded: a caller handed a pseudonymous resource where it
+            // asked for a whole one carries on as though it had what it asked
+            // for, and nothing records why an identity was seen (#114).
+            throw new cloud.jengu.dbo.core.api.DisclosureRefusedException(typeName);
+        }
+        if (mode == cloud.jengu.dbo.core.api.Disclosure.Mode.ENCRYPTED) {
+            // The carrier form: what was stored, handed back as stored. The
+            // ciphertext block stays where it is and nothing here reads it.
+            return object;
+        }
         Object enc = parsed.remove("__pdiEnc");
         if (enc == null) {
             return object;
         }
-        Optional<byte[]> key = vault.restricted(object.id())
-                ? Optional.empty()
-                : vault.keyFor(object.id(), false);
+        Optional<byte[]> key = mode == cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE
+                && !vault.restricted(object.id())
+                ? vault.keyFor(object.id(), false)
+                : Optional.empty();
         if (key.isPresent()) {
             Map<String, Object> identifying = (Map<String, Object>) Json.parse(new String(
                     vault.decrypt(key.get(), Base64.getDecoder().decode(String.valueOf(enc))),
                     StandardCharsets.UTF_8));
             parsed.putAll(identifying);
         }
-        if (key.isEmpty()) {
+        if (key.isEmpty() && erased(object.id())) {
             // Shredded or restricted, which is not the same as merely lacking
-            // authority. A coarse value is a DISCLOSURE control — what somebody
-            // without the right to see an identity gets instead — and it has no
-            // business surviving an erasure. Leaving a birth year behind after
-            // Article 17 would be retaining personal data in a weaker form and
-            // calling it gone.
+            // authority — and not the same as being told to omit. A coarse
+            // value is a DISCLOSURE control — what somebody without the right
+            // to see an identity gets instead — and it has no business
+            // surviving an erasure. Leaving a birth year behind after Article
+            // 17 would be retaining personal data in a weaker form and calling
+            // it gone.
+            //
+            // Under OMIT the coarse value STAYS: nothing was erased, the caller
+            // simply has no right to the whole. That is the difference the
+            // three modes exist to draw, and conflating them would make a
+            // pseudonymous read indistinguishable from a shredded person.
             for (String element : spec.identifyingElements(typeName)) {
                 if (spec.dispositionOf(typeName, element) == PdiSpec.Disposition.GENERALISE) {
                     parsed.remove(element);
@@ -292,6 +326,25 @@ public final class PdiObjectStore implements ObjectStore {
      * record of the given types that references them (already pseudonymous).
      */
     public String exportPerson(String typeName, String personId,
+            List<LinkedType> linkedTypes) {
+        // The subject's own data, handed to the subject: Article 20 is not
+        // satisfied by a pseudonymous file, and ciphertext they hold no key for
+        // satisfies it even less. So this states its purpose rather than
+        // inheriting whatever the request was doing — PATRQT, which is exactly
+        // what this is, and which the audit entry then carries (#114).
+        cloud.jengu.dbo.core.api.Disclosure.Mode restore =
+                cloud.jengu.dbo.core.api.Disclosure.mode();
+        String restorePurpose = cloud.jengu.dbo.core.api.Disclosure.purpose();
+        cloud.jengu.dbo.core.api.Disclosure.set(
+                cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE, "PATRQT");
+        try {
+            return exportedPerson(typeName, personId, linkedTypes);
+        } finally {
+            cloud.jengu.dbo.core.api.Disclosure.set(restore, restorePurpose);
+        }
+    }
+
+    private String exportedPerson(String typeName, String personId,
             List<LinkedType> linkedTypes) {
         StoredObject person = get(typeName, personId)
                 .orElseThrow(() -> new IllegalArgumentException("no such person"));

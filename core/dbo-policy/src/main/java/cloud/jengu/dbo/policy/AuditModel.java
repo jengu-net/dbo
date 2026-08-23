@@ -93,6 +93,14 @@ public final class AuditModel {
         if (onBehalfOf != null) {
             sb.append(",\"onBehalfOf\":\"").append(onBehalfOf).append("\"");
         }
+        // What the caller said they needed an identity for. Recorded because
+        // the purpose is the only part of a disclosure that outlives the
+        // request: the read is gone, and "who saw this person, and why" is what
+        // somebody asks a year later (#114).
+        String purpose = cloud.jengu.dbo.core.api.Disclosure.purpose();
+        if (purpose != null) {
+            sb.append(",\"purpose\":\"").append(purpose).append("\"");
+        }
         sb.append(",\"outcome\":\"").append(outcome).append("\"");
         if (rule != null) {
             sb.append(",\"rule\":\"").append(rule).append("\"");
