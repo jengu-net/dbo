@@ -294,6 +294,19 @@ public final class PdiObjectStore implements ObjectStore {
 
     @Override
     public FeedChunk<StoredObject> page(Criteria criteria, String cursor) {
+        Optional<List<StoredObject>> lookup = identifyingLookup(criteria);
+        if (lookup.isPresent()) {
+            // One terminal chunk, no continuation. An exact lookup is bounded
+            // by construction — the values it matches on are shared by a
+            // household, not by a population — so there is nothing to page
+            // through and no cursor that would mean anything.
+            //
+            // The cursor argument is ignored rather than refused: a caller can
+            // only have one from a differently shaped query, and answering the
+            // question it asked beats a refusal about bookkeeping. Nothing
+            // loops, because no next cursor goes back.
+            return new FeedChunk<>(lookup.get(), null, true);
+        }
         guardIdentifyingSearch(criteria);
         FeedChunk<StoredObject> chunk = inner.page(criteria, cursor);
         return new FeedChunk<>(chunk.items().stream()

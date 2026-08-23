@@ -26,6 +26,7 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -219,6 +220,35 @@ class DisclosureModesIT {
         assertTrue(new String(found.get(0).payload(), StandardCharsets.UTF_8)
                         .contains("Salakas"),
                 "and comes back disclosed, because a purpose was stated");
+    }
+
+    /**
+     * The same question, through every method a surface might call (#118).
+     *
+     * <p>The lookup was wired into {@code select} and {@code count} and not
+     * into {@code page}, and a FHIR search over REST is a paged read — so the
+     * feature worked everywhere except the one path a consumer actually
+     * reaches, and answered {@code notMatchable} there. The test that covered
+     * it called {@code select} directly, which is why it passed while the
+     * consumer-facing path was broken.
+     *
+     * <p>Asserted together rather than separately, because the asymmetry is
+     * invisible from any one of them.
+     */
+    @Test
+    void everyMethodASurfaceMightCallGivesTheSameAnswer() {
+        Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
+        Criteria byAddress = Criteria.of("Patient")
+                .eq("email", EnvelopeValue.of("salakas@hogwarts.scot"));
+
+        assertEquals(1, store.select(byAddress).size(), "select");
+        assertEquals(1, store.count(byAddress), "count");
+
+        var paged = store.page(byAddress, null);
+        assertEquals(1, paged.items().size(), "page — the one a REST search reaches");
+        assertNull(paged.nextCursor(),
+                "an exact lookup is bounded, so there is nothing to page through");
+        assertTrue(paged.drained(), "and the chunk says so");
     }
 
     /**
