@@ -38,6 +38,58 @@ public record PdiSpec(Map<String, Map<String, Disposition>> personTypes) {
         personTypes = Map.copyOf(copy);
     }
 
+    /**
+     * The search paths that match on an identifying element, which is not the
+     * same list as the elements themselves (#115).
+     *
+     * <p>FHIR reaches one element by several parameter names: {@code email} and
+     * {@code phone} are both {@code telecom}, {@code family} and {@code given}
+     * are both {@code name}. A guard that only knew the element names would
+     * refuse {@code ?name=} and wave {@code ?email=} through — which is worse
+     * than no guard, because it looks like one.
+     *
+     * <p>Declared rather than derived: what a parameter reaches is knowledge
+     * about a domain's shapes, and a list somebody can read is what makes the
+     * next addition visible.
+     */
+    private static final Map<String, String> PATHS_TO_ELEMENTS = Map.ofEntries(
+            Map.entry("identifier", "identifier"),
+            Map.entry("name", "name"),
+            Map.entry("family", "name"),
+            Map.entry("given", "name"),
+            Map.entry("phonetic", "name"),
+            Map.entry("telecom", "telecom"),
+            Map.entry("email", "telecom"),
+            Map.entry("phone", "telecom"),
+            Map.entry("address", "address"),
+            Map.entry("address_city", "address"),
+            Map.entry("address_line", "address"),
+            Map.entry("address_postalcode", "address"),
+            Map.entry("address_state", "address"),
+            Map.entry("address_country", "address"),
+            Map.entry("photo", "photo"),
+            Map.entry("contact", "contact"));
+
+    /**
+     * Which identifying element this search path matches on, or null.
+     *
+     * <p>The base path is taken, so {@code name_xct} — the exact-match twin the
+     * envelope writes beside a string path — answers the same as {@code name}.
+     */
+    public String identifyingElementFor(String typeName, String path) {
+        if (path == null) {
+            return null;
+        }
+        // Envelope paths, which is what a Criteria carries: a parameter's code
+        // with hyphens turned to underscores, and a string parameter's exact
+        // twin written beside it. `Paths.requireValid` refuses the hyphenated
+        // spelling outright, so there is nothing to normalise here — only the
+        // twin to strip, or `name_xct` would slip past a guard on `name`.
+        String base = path.endsWith("_xct") ? path.substring(0, path.length() - 4) : path;
+        String element = PATHS_TO_ELEMENTS.get(base);
+        return element != null && identifyingElements(typeName).contains(element) ? element : null;
+    }
+
     public boolean isPersonType(String typeName) {
         return personTypes.containsKey(typeName);
     }
