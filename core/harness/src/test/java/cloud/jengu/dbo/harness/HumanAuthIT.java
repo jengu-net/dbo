@@ -562,6 +562,74 @@ class HumanAuthIT {
                 "and it is not a password either");
     }
 
+    /**
+     * An appliance is approved and given a credential of its own (#119).
+     *
+     * <p>This is the last step of the consumer's edge-registration path with no
+     * counterpart here, and edge binding happens at boot — so its absence is
+     * not a degraded feature, it is a cloud that does not start.
+     *
+     * <p>The retry is the part worth asserting. Re-approving an appliance after
+     * a failed enrolment is the ordinary case: it must take the same call as
+     * the first attempt and leave the credential the caller holds working,
+     * because the caller's secret is the authoritative one and this store mints
+     * nothing of its own.
+     */
+    @Test
+    @Order(20)
+    void anApplianceIsGivenACredentialOfItsOwnAndApprovingItTwiceIsFine() throws Exception {
+        String service = serviceToken("arst");
+        String secret = "edge-secret-" + java.util.UUID.randomUUID();
+
+        assertEquals(200, registerClient(service, "edge-hogwarts-01", secret).statusCode());
+        assertEquals(200, tokenFor("edge-hogwarts-01", secret).statusCode(),
+                "the appliance authenticates with what it was handed");
+
+        // the enrolment is retried — same call, same secret, still working
+        assertEquals(200, registerClient(service, "edge-hogwarts-01", secret).statusCode());
+        assertEquals(200, tokenFor("edge-hogwarts-01", secret).statusCode(),
+                "a second approval does not invalidate the credential in the field");
+    }
+
+    /** A machine credential with no secret is refused rather than minted here. */
+    @Test
+    @Order(21)
+    void thisStoreDoesNotMintAnAppliancesSecret() throws Exception {
+        HttpResponse<String> refused = http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/admin/clients"))
+                        .header("Authorization", "Bearer " + serviceToken("arst"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"client_id\":\"edge-no-secret\",\"scope\":[]}")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(400, refused.statusCode(), refused.body());
+        assertTrue(refused.body().contains("does not mint"),
+                "two custody paths for one credential is the thing being refused: "
+                        + refused.body());
+    }
+
+    private HttpResponse<String> registerClient(String serviceToken, String clientId,
+            String secret) throws Exception {
+        return http.send(HttpRequest.newBuilder(
+                        URI.create(base("arst") + "/oidc/admin/clients"))
+                        .header("Authorization", "Bearer " + serviceToken)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"client_id\":\"" + clientId + "\",\"secret\":\"" + secret
+                                        + "\",\"scope\":[\"system/*.read\"]}")).build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> tokenFor(String clientId, String secret) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(base("arst") + "/oidc/token"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "grant_type=client_credentials&client_id=" + clientId
+                                        + "&client_secret=" + java.net.URLEncoder.encode(secret,
+                                                StandardCharsets.UTF_8))).build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
     private String mintGrant(String serviceToken, String login) throws Exception {
         HttpResponse<String> minted = http.send(HttpRequest.newBuilder(
                         URI.create(base("arst") + "/oidc/admin/secret-grants"))

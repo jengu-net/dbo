@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +47,7 @@ public final class AuthorityHandler implements HttpHandler {
                 case "admin/credentials" -> adminCredentials(exchange);
                 case "admin/edge-factors" -> adminEdgeFactors(exchange);
                 case "admin/secret-grants" -> adminSecretGrants(exchange);
+                case "admin/clients" -> adminClients(exchange);
                 case "secret-grants/redeem" -> redeemSecretGrant(exchange);
                 default -> {
                     if (relative.startsWith("delegation/") && "DELETE".equals(exchange.getRequestMethod())) {
@@ -317,6 +319,66 @@ public final class AuthorityHandler implements HttpHandler {
      * consumer, which owns the address and the mail; nothing about delivery
      * enters the trust root.
      */
+    /**
+     * Register a machine credential, or a relying party (#119).
+     *
+     * <p>An appliance authenticates with a credential of its own so that one
+     * can be revoked without touching the others, and it has no human and no
+     * interactive step — the enrolment is headless by design. That is a
+     * different thing from {@code admin/secret-grants}, which exists so a
+     * PERSON can set their own secret.
+     *
+     * <p><b>The caller's secret is authoritative</b>, and nothing is generated
+     * here. Whoever approves the appliance generates the secret, records it,
+     * and hands it to the appliance; a store that minted its own would be a
+     * second custody path for one credential, and the two would disagree the
+     * first time an enrolment was retried.
+     *
+     * <p>Idempotent for the same reason: re-approving an appliance after a
+     * failed enrolment is the ordinary case, not an error, and it must not need
+     * a different call from the first attempt.
+     */
+    private void adminClients(HttpExchange exchange) throws IOException {
+        if (!systemWrite(exchange)) {
+            return;
+        }
+        Object body = Json.parse(new String(
+                exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        String clientId = Json.strOpt(body, "client_id");
+        if (clientId == null || clientId.isBlank()) {
+            respond(exchange, 400, "{\"error\":\"invalid_request\","
+                    + "\"error_description\":\"client_id is required\"}");
+            return;
+        }
+        String secret = Json.strOpt(body, "secret");
+        List<String> scopes = Json.strings(body, "scope");
+        String clientType = Json.strOpt(body, "client_type");
+        List<String> redirectUris = Json.strings(body, "redirect_uris");
+        try {
+            if (clientType == null && redirectUris.isEmpty()) {
+                // The machine shape: a secret it holds and the scopes it may
+                // ask for. A confidential client with no redirect anywhere,
+                // because nothing about it is interactive.
+                if (secret == null || secret.isBlank()) {
+                    respond(exchange, 400, "{\"error\":\"invalid_request\","
+                            + "\"error_description\":\"secret is required for a machine "
+                            + "credential — this store does not mint one\"}");
+                    return;
+                }
+                authority.ensureClient(clientId, secret, scopes);
+            } else {
+                authority.ensureClient(clientId, secret, scopes, clientType, redirectUris);
+            }
+        } catch (IllegalArgumentException refused) {
+            // An invalid scope is the caller's mistake and is named, rather
+            // than registering a client that can never ask for anything.
+            respond(exchange, 400, "{\"error\":\"invalid_scope\",\"error_description\":\""
+                    + String.valueOf(refused.getMessage()).replace("\"", "'") + "\"}");
+            return;
+        }
+        respond(exchange, 200, "{\"client_id\":\"" + clientId + "\"}");
+    }
+
     private void adminSecretGrants(HttpExchange exchange) throws IOException {
         if (!systemWrite(exchange)) {
             return;
