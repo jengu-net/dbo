@@ -184,9 +184,11 @@ public class ElementFhirVersion implements FhirVersion {
 
         @Override
         public PortableRendering portableRendering() {
-            return (payload, id, versionId) -> new String(
-                    ElementAncestors.rendered(version.context(), payload, id, versionId),
-                    java.nio.charset.StandardCharsets.UTF_8);
+            // One implementation, declared on the face and reached here. The
+            // method stays because FhirVersion's callers use it; what changed
+            // is that the obligation is now placed rather than duplicated
+            // wherever somebody needs it (#106).
+            return version.face().require(PortableRendering.class);
         }
     }
 }
