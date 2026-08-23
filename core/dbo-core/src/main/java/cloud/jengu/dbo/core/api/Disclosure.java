@@ -44,6 +44,7 @@ public final class Disclosure {
         ENCRYPTED
     }
 
+    private static final ThreadLocal<String> MATCHED = new ThreadLocal<>();
     private static final ThreadLocal<Mode> MODE = new ThreadLocal<>();
     private static final ThreadLocal<String> PURPOSE = new ThreadLocal<>();
 
@@ -79,8 +80,41 @@ public final class Disclosure {
         return PURPOSE.get();
     }
 
+    /**
+     * Record that this request matched a person by an identifying term, as the
+     * fingerprint of that term and never as the term (#115).
+     *
+     * <p>The trail is append-only against everyone, so a plaintext address in
+     * it would force a choice between an immutable audit and an erasure right.
+     * A fingerprint forces neither: an auditor asking <i>did anybody look this
+     * person up</i> computes it and looks, which is exactly their position —
+     * they already hold the address.
+     *
+     * <p>Set where the match happens, which is innermost, and read where the
+     * entry is written, which is outermost. That is the whole reason this is a
+     * seam rather than a parameter.
+     */
+    public static void matched(String fingerprint) {
+        MATCHED.set(fingerprint);
+    }
+
+    /**
+     * The fingerprint this request matched on, taken rather than read.
+     *
+     * <p>Cleared as it is taken so it lands on the entry for the search that
+     * produced it and on no other. A request that looks somebody up and then
+     * reads three of their records should not have the address attached to all
+     * four entries, which is what a plain getter would have done.
+     */
+    public static String takeMatched() {
+        String fingerprint = MATCHED.get();
+        MATCHED.remove();
+        return fingerprint;
+    }
+
     public static void clear() {
         MODE.remove();
         PURPOSE.remove();
+        MATCHED.remove();
     }
 }

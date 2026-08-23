@@ -377,6 +377,21 @@ public final class PersonVault {
         }
     }
 
+    /**
+     * The fingerprint of a value as this vault indexes it — hex of the same
+     * HMAC the index holds, so an auditor who has the value can compute it and
+     * find out whether anybody looked it up (#115).
+     */
+    public String fingerprintOf(String value) {
+        byte[] mac = valueHmac(value);
+        StringBuilder hex = new StringBuilder(mac.length * 2);
+        for (byte b : mac) {
+            hex.append(Character.forDigit((b >> 4) & 0xf, 16))
+                    .append(Character.forDigit(b & 0xf, 16));
+        }
+        return hex.toString();
+    }
+
     private byte[] valueHmac(String value) {
         return hmac(indexKey, value.getBytes(StandardCharsets.UTF_8));
     }

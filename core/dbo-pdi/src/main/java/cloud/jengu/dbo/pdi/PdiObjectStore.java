@@ -257,7 +257,10 @@ public final class PdiObjectStore implements ObjectStore {
             return Optional.empty();
         }
         // The value is hashed on the way in and compared as a hash — the
-        // plaintext is never at rest and never in a query (ADR 0056 §5).
+        // plaintext is never at rest and never in a query (ADR 0056 §5), and
+        // the same fingerprint goes to the trail so the lookup is answerable
+        // later without the address ever being written down.
+        cloud.jengu.dbo.core.api.Disclosure.matched(vault.fingerprintOf(value));
         List<StoredObject> found = new ArrayList<>();
         for (String personId : vault.findAllByIdentifier(TELECOM_SYSTEM, value)) {
             inner.get(criteria.typeName(), personId)
