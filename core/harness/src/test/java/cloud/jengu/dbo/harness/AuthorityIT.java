@@ -101,10 +101,16 @@ class AuthorityIT {
     }
 
     private String token(String code, String scope) throws Exception {
+        return token(code, scope, null);
+    }
+
+    private String token(String code, String scope, String purpose) throws Exception {
         String form = "grant_type=client_credentials&client_id=tenant-bootstrap"
                 + "&client_secret=" + URLEncoder.encode(
                         provisioner.bootstrapClientSecret(code), StandardCharsets.UTF_8)
-                + (scope == null ? "" : "&scope=" + URLEncoder.encode(scope, StandardCharsets.UTF_8));
+                + (scope == null ? "" : "&scope=" + URLEncoder.encode(scope, StandardCharsets.UTF_8))
+                + (purpose == null ? ""
+                        : "&purpose_of_use=" + URLEncoder.encode(purpose, StandardCharsets.UTF_8));
         HttpResponse<String> response = http.send(HttpRequest.newBuilder(URI.create(oidc(code) + "/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
@@ -190,7 +196,7 @@ class AuthorityIT {
      *  while the stored payload is ciphertext. */
     @Test
     @Order(7)
-    void aPdiTenantStoresCiphertextAndDisclosesNothingUnasked() throws Exception {
+    void aPdiTenantDisclosesOnlyWhatTheTokenAsksFor() throws Exception {
         java.nio.file.Files.writeString(dir.resolve("kolm.json"), """
                 {"code":"kolm","fhirVersion":"r4","pdi":true,"types":[
                   {"name":"Patient","identity":"identifier","systems":["%s"],"handling":"operational"}]}""".formatted(
@@ -205,20 +211,24 @@ class AuthorityIT {
         // authorized read: fully reassembled (id from the Location header)
         String location = created.headers().firstValue("Location").orElseThrow();
         String id = location.replaceAll(".*/Patient/([^/]+).*", "$1");
-        // A read over HTTP states no purpose, because the surface has no way to
-        // state one yet — so it gets what any caller who says nothing gets: the
-        // resource without its identity (#114). That is the intended default
-        // and this asserts it rather than the disclosure that used to happen.
-        //
-        // What this test was written to prove — that storage is ciphertext and
-        // a reader is not handed the ciphertext block — is unchanged and
-        // asserted below. The identifying half returns to this test when the
-        // surface can carry a purpose.
+        // This token states no purpose, so it gets what any caller who says
+        // nothing gets: the resource without its identity (#114). The default
+        // is the strict one and a surface cannot leak by inaction.
         String read = get(fhir("kolm") + "/Patient/" + id, token).body();
         assertFalse(read.contains("Peidetud") || read.contains("49001010062"),
                 "a caller that stated no purpose is not handed an identity: " + read);
         assertFalse(read.contains("__pdiEnc"),
                 "nor the ciphertext block, which it cannot read: " + read);
+
+        // A token that DOES state one discloses, and nothing new reached the
+        // wire to say so — the purpose rides the token, as IUA carries it
+        // (#117). The scopes are unchanged: this widens what is disclosed, not
+        // what may be read.
+        String forTreatment = get(fhir("kolm") + "/Patient/" + id,
+                token("kolm", null, "TREAT")).body();
+        assertTrue(forTreatment.contains("Peidetud") && forTreatment.contains("49001010062"),
+                "a stated purpose and the same scopes gets the person: " + forTreatment);
+        assertFalse(forTreatment.contains("__pdiEnc"), forTreatment);
         // storage: ciphertext only
         try (java.sql.Connection c = provisioner.provision(cloud.jengu.dbo.tenant.TenantSpec.parse(
                         java.nio.file.Files.readString(dir.resolve("kolm.json")))).dataSource().getConnection();
