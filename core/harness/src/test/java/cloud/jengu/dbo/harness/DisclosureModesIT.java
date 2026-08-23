@@ -3,6 +3,8 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.Disclosure;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
+import cloud.jengu.dbo.core.api.ObjectStore;
+import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.StoredObject;
 import java.util.List;
 import cloud.jengu.dbo.core.api.DisclosureRefusedException;
@@ -71,7 +73,14 @@ class DisclosureModesIT {
                 {"code":"avaldus","fhirVersion":"r4","pdi":true,
                  "audit":{"level":"full"},"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, up -> up.contains("avaldus"));
+        // The same tenant shape with the ordinary audit level, which is what
+        // made an identifying read untraceable: a disclosure has to be recorded
+        // whatever a tenant chose to keep of ordinary traffic (#114).
+        Files.writeString(dir.resolve("vaikne.json"), """
+                {"code":"vaikne","fhirVersion":"r4","pdi":true,
+                 "audit":{"level":"writes"},"types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}""");
+        UntilServed.scan(manager, up -> up.contains("avaldus") && up.contains("vaikne"));
         store = manager.runtime("avaldus").orElseThrow().engine();
         personId = store.put(PutRequest.create("Patient",
                 PATIENT.getBytes(StandardCharsets.UTF_8))).id();
@@ -257,6 +266,33 @@ class DisclosureModesIT {
                 "the address itself must never reach a trail nobody can amend");
         assertTrue(auditSays("avaldus", "\"matched\":\""),
                 "and the fingerprint of what was matched must, or nobody can ask later");
+    }
+
+    /**
+     * A tenant that keeps no record of ordinary reads still records a
+     * disclosure (#114).
+     *
+     * <p>The level is a preference about volume; the disclosure record is a
+     * requirement. Answering both with one dial left an identifying read at
+     * {@code audit=writes} leaving nothing behind at all — the purpose stated,
+     * and stated to nobody.
+     */
+    @Test
+    void aDisclosureIsRecordedEvenWhereOrdinaryReadsAreNot() throws Exception {
+        ObjectStore quiet = manager.runtime("vaikne").orElseThrow().engine();
+        String id = quiet.put(PutRequest.create("Patient",
+                PATIENT.getBytes(StandardCharsets.UTF_8))).id();
+
+        // an ordinary read: this tenant keeps nothing of those
+        quiet.get("Patient", id);
+        assertFalse(auditSays("vaikne", "\"interaction\":\"read\""),
+                "the tenant's own choice about ordinary traffic still stands");
+
+        Disclosure.set(Disclosure.Mode.INCLUDE, "HRESCH");
+        quiet.get("Patient", id);
+        Disclosure.clear();
+        assertTrue(auditSays("vaikne", "\"purpose\":\"HRESCH\""),
+                "but an identity disclosed leaves why, whatever the level");
     }
 
     /** The same lookup without a purpose is still refused — it is still identifying. */
