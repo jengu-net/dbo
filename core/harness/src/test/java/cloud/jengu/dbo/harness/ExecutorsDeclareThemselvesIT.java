@@ -165,9 +165,25 @@ class ExecutorsDeclareThemselvesIT {
         // Now there is work, and it stays unread.
         runs.pipeline(PROCESS, step, PROCESS + "/" + step + "/unread", List.of(WorkModel.DOMAIN));
         declarations.present(quiet); // the sighting the patience runs from
-        Thread.sleep(20);
 
-        assertFalse(declarations.present(quiet),
+        // Polled, not slept. Absence needs three things to be true at once —
+        // the cursor has not moved, there IS work unread, and the patience has
+        // elapsed — and only the third is about time. The second waits on the
+        // pipeline's write reaching the feed, which a fixed sleep races: this
+        // failed on CI and passed here, which is what that race looks like.
+        //
+        // Polling converges rather than resetting the clock, because a call
+        // re-sights only when the cursor MOVES, and a quiet participant's does
+        // not.
+        boolean absent = false;
+        for (long deadline = System.currentTimeMillis() + 5_000;
+                System.currentTimeMillis() < deadline; Thread.sleep(10)) {
+            if (!declarations.present(quiet)) {
+                absent = true;
+                break;
+            }
+        }
+        assertTrue(absent,
                 "declared and not answering is a different sentence from nothing declared");
         assertTrue(new ExecutorResolution(declarations::candidates)
                         .resolve(StepGrant.of(PROCESS, step).overridableBy(ScopeClass.ZONE),
