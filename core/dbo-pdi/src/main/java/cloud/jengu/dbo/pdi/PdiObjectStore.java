@@ -1,6 +1,7 @@
 package cloud.jengu.dbo.pdi;
 
 import cloud.jengu.dbo.core.api.Criteria;
+import cloud.jengu.dbo.core.api.EnvelopeValue;
 import cloud.jengu.dbo.core.api.Identifier;
 import cloud.jengu.dbo.core.api.IdentityConflictException;
 import cloud.jengu.dbo.core.api.IdentityRef;
@@ -12,6 +13,7 @@ import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -212,16 +214,65 @@ public final class PdiObjectStore implements ObjectStore {
                 throw new cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException(
                         criteria.typeName(), element);
             }
-            // Stated a purpose and this store still cannot match on it. Exact
-            // lookup on the indexed elements is the next slice; until it
-            // exists, saying so beats an empty answer that reads as an absence.
+            // A purpose was stated and this store still cannot match on the
+            // element. Exact lookup covers the indexed ones — see
+            // identifyingLookup — and a name is not among them: matching people
+            // by name is its own problem and an empty answer would have said
+            // nobody matches, which is a different thing.
             throw cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException.notMatchable(
                     criteria.typeName(), element);
         }
     }
 
+    /**
+     * An exact lookup on an indexed identifying value, answered from the vault
+     * rather than from an index that cannot hold it (#115).
+     *
+     * <p>Deliberately narrow: ONE predicate, equality, on an element the vault
+     * indexes. That is a lookup — "who is behind this address" — and not a
+     * search. A query combining an identifying value with other predicates is
+     * refused rather than half-answered, because narrowing a result set the
+     * store cannot fully evaluate is how a wrong answer gets a confident shape.
+     *
+     * <p>Returns empty when this is not such a lookup, and the caller falls
+     * through to the guard.
+     */
+    private Optional<List<StoredObject>> identifyingLookup(Criteria criteria) {
+        if (!spec.isPersonType(criteria.typeName())
+                || criteria.equalsPredicates().size() != 1
+                || !criteria.notEqualsPredicates().isEmpty()
+                || !criteria.startsWithPredicates().isEmpty()
+                || !criteria.rangePredicates().isEmpty()) {
+            return Optional.empty();
+        }
+        Criteria.Eq only = criteria.equalsPredicates().get(0);
+        String element = spec.identifyingElementFor(criteria.typeName(), only.path());
+        if (!"telecom".equals(element)
+                || cloud.jengu.dbo.core.api.Disclosure.purpose() == null) {
+            return Optional.empty();
+        }
+        String value = only.value() instanceof EnvelopeValue.Token token ? token.code()
+                : only.value() instanceof EnvelopeValue.Str str ? str.value() : null;
+        if (value == null) {
+            return Optional.empty();
+        }
+        // The value is hashed on the way in and compared as a hash — the
+        // plaintext is never at rest and never in a query (ADR 0056 §5).
+        List<StoredObject> found = new ArrayList<>();
+        for (String personId : vault.findAllByIdentifier(TELECOM_SYSTEM, value)) {
+            inner.get(criteria.typeName(), personId)
+                    .map(o -> reassembled(criteria.typeName(), o))
+                    .ifPresent(found::add);
+        }
+        return Optional.of(List.copyOf(found));
+    }
+
     @Override
     public List<StoredObject> select(Criteria criteria) {
+        Optional<List<StoredObject>> lookup = identifyingLookup(criteria);
+        if (lookup.isPresent()) {
+            return lookup.get();
+        }
         guardIdentifyingSearch(criteria);
         return inner.select(criteria).stream()
                 .map(o -> reassembled(criteria.typeName(), o))
@@ -230,6 +281,10 @@ public final class PdiObjectStore implements ObjectStore {
 
     @Override
     public long count(Criteria criteria) {
+        Optional<List<StoredObject>> lookup = identifyingLookup(criteria);
+        if (lookup.isPresent()) {
+            return lookup.get().size();
+        }
         guardIdentifyingSearch(criteria);
         return inner.count(criteria);
     }
@@ -259,6 +314,13 @@ public final class PdiObjectStore implements ObjectStore {
         return inner.rebuildEnvelopes(typeName);
     }
 
+    /**
+     * Where a telecom value is indexed, which is inside the vault and nowhere
+     * else. Not a coding system and never rendered — a client neither sees it
+     * nor needs to.
+     */
+    private static final String TELECOM_SYSTEM = "urn:dbo:pdi:telecom";
+
     // ------------------------------------------------------------- split / join
 
     @SuppressWarnings("unchecked")
@@ -279,6 +341,19 @@ public final class PdiObjectStore implements ObjectStore {
                 Object coarse = coarsening.coarsen(typeName, element, value);
                 if (coarse != null) {
                     parsed.put(element, coarse);
+                }
+            }
+        }
+        // Telecom goes into the index and is NEVER claimed: "who is behind
+        // this address" is an ordinary provisioning and sign-in question, and
+        // it is the lookup that breaks first once the plaintext is gone (#115).
+        // Two people share a phone and neither is wrong, so indexing and
+        // exclusivity part company here — the one place they should.
+        Object telecomList = identifying.get("telecom");
+        if (telecomList instanceof List<?> contacts) {
+            for (Object contact : contacts) {
+                if (contact instanceof Map<?, ?> point && point.get("value") != null) {
+                    vault.index(personId, TELECOM_SYSTEM, String.valueOf(point.get("value")));
                 }
             }
         }

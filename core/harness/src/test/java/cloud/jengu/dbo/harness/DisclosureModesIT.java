@@ -1,6 +1,10 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.Disclosure;
+import cloud.jengu.dbo.core.api.EnvelopeValue;
+import cloud.jengu.dbo.core.api.StoredObject;
+import java.util.List;
 import cloud.jengu.dbo.core.api.DisclosureRefusedException;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PutRequest;
@@ -18,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,7 +46,8 @@ class DisclosureModesIT {
 
     private static final String PATIENT = """
             {"resourceType":"Patient","birthDate":"1970-01-01",
-             "name":[{"family":"Salakas"}]}""";
+             "name":[{"family":"Salakas"}],
+             "telecom":[{"system":"email","value":"salakas@hogwarts.scot"}]}""";
 
     static PostgreSQLContainer<?> postgres;
     static Path dir;
@@ -184,6 +190,60 @@ class DisclosureModesIT {
     void searchingBySomethingThatIsNotAnIdentityIsNotRefused() {
         store.select(cloud.jengu.dbo.core.api.Criteria.of("Patient")
                 .eq("gender", cloud.jengu.dbo.core.api.EnvelopeValue.of("male")));
+    }
+
+    /**
+     * "Who is behind this address" is answerable again, from the index rather
+     * than from plaintext (#115 point 2).
+     *
+     * <p>It is the lookup that breaks first when the membrane goes on — an
+     * ordinary provisioning and sign-in question, not an investigative one —
+     * and it is answered by hashing the term and matching hashes, so no
+     * plaintext is at rest or in the query.
+     */
+    @Test
+    void anExactTelecomLookupAnswersFromTheIndex() {
+        Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
+        List<StoredObject> found = store.select(Criteria.of("Patient")
+                .eq("email", EnvelopeValue.of("salakas@hogwarts.scot")));
+        assertEquals(1, found.size(), "the person behind the address is found");
+        assertTrue(new String(found.get(0).payload(), StandardCharsets.UTF_8)
+                        .contains("Salakas"),
+                "and comes back disclosed, because a purpose was stated");
+    }
+
+    /**
+     * Two people share a phone and neither of them is wrong.
+     *
+     * <p>This is why telecom is indexed and never CLAIMED. A store that
+     * refused the second household member would be deciding something it has
+     * no basis to decide, and a lookup that answered with one of them
+     * arbitrarily would be a wrong answer wearing the shape of a right one.
+     */
+    @Test
+    void aSharedAddressFindsEverybodyHoldingIt() {
+        store.put(PutRequest.create("Patient", ("""
+                {"resourceType":"Patient","name":[{"family":"Teine"}],
+                 "telecom":[{"system":"phone","value":"+3725550000"}]}""")
+                .getBytes(StandardCharsets.UTF_8)));
+        store.put(PutRequest.create("Patient", ("""
+                {"resourceType":"Patient","name":[{"family":"Kolmas"}],
+                 "telecom":[{"system":"phone","value":"+3725550000"}]}""")
+                .getBytes(StandardCharsets.UTF_8)));
+
+        Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
+        assertEquals(2, store.select(Criteria.of("Patient")
+                        .eq("phone", EnvelopeValue.of("+3725550000"))).size(),
+                "both people holding the number are found, and neither is refused a write");
+    }
+
+    /** The same lookup without a purpose is still refused — it is still identifying. */
+    @Test
+    void anExactLookupIsStillAnIdentifyingAccess() {
+        assertThrows(cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException.class,
+                () -> store.select(Criteria.of("Patient")
+                        .eq("email", EnvelopeValue.of("salakas@hogwarts.scot"))),
+                "knowing who holds an address is knowing something about them");
     }
 
     /**

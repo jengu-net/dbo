@@ -66,6 +66,21 @@ public final class PersonVault {
                     """
                     CREATE UNIQUE INDEX IF NOT EXISTS pdi_identifier_claim
                         ON pdi.identifier (system, value_hmac)""",
+                    // Lookup WITHOUT a claim, and a table of its own because
+                    // the difference is enforced in the schema rather than in
+                    // code: pdi_identifier_claim above is what makes a claim
+                    // race-safe, and a value several people may hold cannot
+                    // live under it. Keeping them apart says which job each
+                    // row is doing (#115).
+                    """
+                    CREATE TABLE IF NOT EXISTS pdi.lookup (
+                        person_id uuid NOT NULL,
+                        system text NOT NULL,
+                        value_hmac bytea NOT NULL,
+                        PRIMARY KEY (person_id, system, value_hmac))""",
+                    """
+                    CREATE INDEX IF NOT EXISTS pdi_lookup_value
+                        ON pdi.lookup (system, value_hmac)""",
                     """
                     CREATE TABLE IF NOT EXISTS pdi.shred_ledger (
                         person_id uuid PRIMARY KEY,
@@ -167,6 +182,58 @@ public final class PersonVault {
         }
     }
 
+    /**
+     * Index a value for lookup WITHOUT staking a claim on it (#115).
+     *
+     * <p>The identifier index does two jobs and only one is inherent to the
+     * membrane. FINDING a person by a value is what replaces plaintext search
+     * once the plaintext is gone. REFUSING a second person the same value is a
+     * uniqueness policy, and that is a judgement about what the value means: a
+     * national identity number names one human, a telephone number is shared by
+     * a household.
+     *
+     * <p>So telecom is indexed and never claimed. Two people share a phone and
+     * neither is wrong, and refusing the second would be this store deciding
+     * something it has no basis to decide.
+     */
+    public void index(String personId, String system, String value) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "INSERT INTO pdi.lookup (person_id, system, value_hmac)"
+                             + " VALUES (?::uuid, ?, ?) ON CONFLICT DO NOTHING")) {
+            ps.setString(1, personId);
+            ps.setString(2, system);
+            ps.setBytes(3, valueHmac(value));
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault index failed", e);
+        }
+    }
+
+    /**
+     * Every person holding this value, because an unclaimed one may be held by
+     * several — and answering with one of them arbitrarily would be a wrong
+     * answer wearing the shape of a right one.
+     */
+    public List<String> findAllByIdentifier(String system, String value) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT person_id FROM pdi.lookup WHERE system = ? AND value_hmac = ?"
+                             + " ORDER BY person_id")) {
+            ps.setString(1, system);
+            ps.setBytes(2, valueHmac(value));
+            List<String> owners = new java.util.ArrayList<>();
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    owners.add(rs.getString(1));
+                }
+            }
+            return owners;
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault lookup failed", e);
+        }
+    }
+
     public Optional<String> findByIdentifier(String system, String value) {
         try (Connection c = ds.getConnection()) {
             return ownerOf(c, system, value);
@@ -207,6 +274,14 @@ public final class PersonVault {
             }
             try (PreparedStatement ps = c.prepareStatement(
                     "DELETE FROM pdi.identifier WHERE person_id = ?::uuid")) {
+                ps.setString(1, personId);
+                ps.executeUpdate();
+            }
+            // The lookup rows go with them. A hashed address left behind after
+            // an erasure still answers "is this person here", which is the
+            // question Article 17 says nobody may still be able to ask.
+            try (PreparedStatement ps = c.prepareStatement(
+                    "DELETE FROM pdi.lookup WHERE person_id = ?::uuid")) {
                 ps.setString(1, personId);
                 ps.executeUpdate();
             }
