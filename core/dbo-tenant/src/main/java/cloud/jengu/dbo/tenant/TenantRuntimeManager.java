@@ -538,7 +538,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         FhirVersion.ForTypes declared = version.forTypes(withVocabularyTypes(spec.types(),
                 version.face()));
         cloud.jengu.dbo.policy.PolicyObjectStore engine =
-                policyWrapped(spec, db, declared.registrations(), version.domain());
+                policyWrapped(spec, db, declared.registrations(), version.domain(),
+                        version.face());
         if (authority != null) {
             authority.attachSubjects(engine); // §16.1: subjects are the tenant's records
         }
@@ -755,7 +756,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private ObjectStore pdiWrapped(TenantSpec spec,
             TenantDatabaseProvisioner.TenantDatabase db,
-            java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> registrations) {
+            java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> registrations,
+            cloud.jengu.dbo.core.face.DomainFace face) {
         if (!spec.pdi()) {
             return new PgObjectStore(db.dataSource(), registrations);
         }
@@ -766,9 +768,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
         cloud.jengu.dbo.pdi.PdiSpec pdiSpec = cloud.jengu.dbo.pdi.PdiSpec.fhir();
         PgObjectStore inner = new PgObjectStore(db.dataSource(),
                 cloud.jengu.dbo.pdi.PdiSetup.transform(registrations, pdiSpec));
+        // The face's own coarsening, not the absent one. The engine declares
+        // THAT an element is generalised; only a face knows a birth date
+        // reduces to its year. Built without it, every GENERALISE element
+        // silently became a REMOVE — a tenant that asked for a coarse birth
+        // date got none at all, and the capability was published all along
+        // (#114).
         return new cloud.jengu.dbo.pdi.PdiObjectStore(inner,
                 new cloud.jengu.dbo.pdi.PersonVault(db.dataSource(), authorityConfig.kek()),
-                pdiSpec);
+                pdiSpec,
+                face.capability(cloud.jengu.dbo.core.face.Coarsening.class)
+                        .orElse(cloud.jengu.dbo.core.face.Coarsening.NONE));
     }
 
     /**
@@ -781,7 +791,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private cloud.jengu.dbo.policy.PolicyObjectStore policyWrapped(TenantSpec spec,
             TenantDatabaseProvisioner.TenantDatabase db,
             java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> registrations,
-            String domain) {
+            String domain, cloud.jengu.dbo.core.face.DomainFace face) {
         java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> all =
                 new java.util.ArrayList<>(registrations);
         all.addAll(cloud.jengu.dbo.policy.AuditModel.registrations());
@@ -789,7 +799,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // deployment did about a tenant belongs in that tenant's own store,
         // queryable and versioned and dropped with it (#46).
         all.addAll(cloud.jengu.dbo.work.WorkModel.registrations());
-        ObjectStore engine = pdiWrapped(spec, db, all);
+        ObjectStore engine = pdiWrapped(spec, db, all, face);
         // Runs go to the engine rather than through the policy decorator, and
         // everything that records them for this tenant uses the same one.
         runStores.put(spec.code(), engine);
