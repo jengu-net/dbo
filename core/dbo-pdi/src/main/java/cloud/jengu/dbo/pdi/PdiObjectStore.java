@@ -162,8 +162,67 @@ public final class PdiObjectStore implements ObjectStore {
                 .toList();
     }
 
+    /**
+     * Matching on an identifying element is an identifying access, held to the
+     * same rule as reading one (#115).
+     *
+     * <p>Under the membrane those elements never reach the inner payload, so a
+     * query on one matches nothing and comes back empty — indistinguishable
+     * from <i>nobody here is called that</i>. The refusal exists because the
+     * silence is the defect: it is the identifying access that leaves no trace,
+     * since no read happened.
+     *
+     * <p>Applied to every predicate a search can carry, not only equality. A
+     * guard on {@code eq} that let {@code startsWith} through would be a guard
+     * in name only.
+     */
+    private void guardIdentifyingSearch(Criteria criteria) {
+        if (!spec.isPersonType(criteria.typeName())) {
+            return;
+        }
+        // Only a CALLER's search. The store resolves identities on its own
+        // account too — an authority matching a login to authenticate somebody,
+        // a bring-up, a sync lane — and those run before any caller exists and
+        // are not disclosures to anybody. Guarding them broke authentication
+        // outright: the token endpoint answered 500 because minting a token
+        // resolves a Person by identifier, which is exactly the shape this
+        // refuses.
+        //
+        // Caller-presence is the honest discriminator rather than a flag,
+        // because PDI requires the tenant authority to exist at all, so every
+        // request that reaches this store through the serving surface has one
+        // and every internal path does not.
+        if (cloud.jengu.dbo.core.api.Caller.current() == null) {
+            return;
+        }
+        java.util.List<String> paths = new java.util.ArrayList<>();
+        criteria.equalsPredicates().forEach(p -> paths.add(p.path()));
+        criteria.notEqualsPredicates().forEach(p -> paths.add(p.path()));
+        criteria.startsWithPredicates().forEach(p -> paths.add(p.path()));
+        criteria.rangePredicates().forEach(p -> paths.add(p.path()));
+        // `missing` deliberately not guarded: asking whether a person HAS a
+        // telecom is a question about the record's completeness, not about who
+        // they are, and it can be answered from the coarse form.
+        for (String path : paths) {
+            String element = spec.identifyingElementFor(criteria.typeName(), path);
+            if (element == null) {
+                continue;
+            }
+            if (cloud.jengu.dbo.core.api.Disclosure.purpose() == null) {
+                throw new cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException(
+                        criteria.typeName(), element);
+            }
+            // Stated a purpose and this store still cannot match on it. Exact
+            // lookup on the indexed elements is the next slice; until it
+            // exists, saying so beats an empty answer that reads as an absence.
+            throw cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException.notMatchable(
+                    criteria.typeName(), element);
+        }
+    }
+
     @Override
     public List<StoredObject> select(Criteria criteria) {
+        guardIdentifyingSearch(criteria);
         return inner.select(criteria).stream()
                 .map(o -> reassembled(criteria.typeName(), o))
                 .toList();
@@ -171,11 +230,13 @@ public final class PdiObjectStore implements ObjectStore {
 
     @Override
     public long count(Criteria criteria) {
+        guardIdentifyingSearch(criteria);
         return inner.count(criteria);
     }
 
     @Override
     public FeedChunk<StoredObject> page(Criteria criteria, String cursor) {
+        guardIdentifyingSearch(criteria);
         FeedChunk<StoredObject> chunk = inner.page(criteria, cursor);
         return new FeedChunk<>(chunk.items().stream()
                 .map(o -> reassembled(criteria.typeName(), o))
