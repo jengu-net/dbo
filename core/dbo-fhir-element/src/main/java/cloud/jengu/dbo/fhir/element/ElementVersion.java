@@ -6,6 +6,7 @@ import cloud.jengu.dbo.core.face.DomainFace;
 import cloud.jengu.dbo.core.face.PayloadFraming;
 import cloud.jengu.dbo.core.face.RecordProjection;
 import cloud.jengu.dbo.core.face.Payloads;
+import cloud.jengu.dbo.core.face.PortableRendering;
 import cloud.jengu.dbo.fhir.common.FhirFace;
 import org.hl7.fhir.r5.context.SimpleWorkerContext;
 import org.hl7.fhir.r5.elementmodel.Element;
@@ -60,6 +61,15 @@ public final class ElementVersion {
                 // differ because a tool wrote the fields in another order
                 .providing(cloud.jengu.dbo.core.face.DocumentEquivalence.class,
                         ElementEquivalence.INSTANCE)
+                // Version-scoped and pure: putting the ancestors back on a
+                // stored payload needs this version's definitions and nothing
+                // else. It was reachable only through a method on FhirVersion,
+                // which is where an obligation goes when nobody has decided
+                // which kind it is (#106).
+                .providing(PortableRendering.class,
+                        (payload, id, versionId) -> new String(
+                                ElementAncestors.rendered(context, payload, id, versionId),
+                                java.nio.charset.StandardCharsets.UTF_8))
                 .build();
     }
 
