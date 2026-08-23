@@ -201,8 +201,24 @@ public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
             }
             Map<String, String> properties = new LinkedHashMap<>();
             for (CodeSystem.ConceptPropertyComponent prop : c.getProperty()) {
-                if (prop.hasCode() && prop.getValue() != null) {
-                    properties.put(prop.getCode(), prop.getValue().primitiveValue());
+                // A property whose value has no PRIMITIVE form — valueCoding is
+                // the one national terminologies use — answers primitiveValue()
+                // with null while getValue() is plainly not null. That null
+                // travelled into the concept row and came back out of the CSV
+                // writer as an HTTP 500 reading `Cannot invoke
+                // "String.length()" because "s" is null`, for a document whose
+                // only sin was a property type this store had not considered
+                // (#105).
+                //
+                // Dropped rather than refused: the concepts, their displays and
+                // the hierarchy are what anything clinical reads, and losing a
+                // national vocabulary over one property's encoding is the trade
+                // #100 already declined. The concept row carries text; what it
+                // cannot carry it does not pretend to.
+                String value = prop.hasCode() && prop.getValue() != null
+                        ? prop.getValue().primitiveValue() : null;
+                if (value != null) {
+                    properties.put(prop.getCode(), value);
                 }
             }
             out.add(new Concept(c.getCode(), c.getDisplay(), parent, designations, properties));

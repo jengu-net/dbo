@@ -186,6 +186,19 @@ public interface FhirStoreFacade {
 
     String operationOutcome(String issueCode, String diagnostics);
 
+    /**
+     * An outcome for a fault in THIS STORE, as opposed to a finding about the
+     * caller's content (#105).
+     *
+     * <p>The two were indistinguishable without reading the diagnostics string,
+     * so an internal fault was attributed to whoever posted the document. The
+     * default keeps a facade that has not thought about it no worse than it
+     * was; a facade that has says {@code fatal}.
+     */
+    default String internalFault(String diagnostics) {
+        return operationOutcome("exception", diagnostics);
+    }
+
     /** True when the type is configured in this store's personality. */
     boolean knowsType(String typeName);
 }
