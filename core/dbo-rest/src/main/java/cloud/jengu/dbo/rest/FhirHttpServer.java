@@ -202,13 +202,13 @@ public final class FhirHttpServer implements AutoCloseable {
         } catch (IllegalArgumentException e) {
             respond(exchange, 400, store.operationOutcome("invalid", String.valueOf(e.getMessage())));
         } catch (Exception e) {
-            respond(exchange, 500, store.operationOutcome("exception", String.valueOf(e.getMessage())));
+            respond(exchange, 500, store.internalFault(String.valueOf(e.getMessage())));
         } catch (Throwable t) {
             // An Error is not this thread's to die of silently. The toolchain
             // throws one for a canonical it cannot resolve, and a dead handler
             // answers with no bytes at all — which a caller cannot tell from a
             // network fault and cannot act on either (#87).
-            respond(exchange, 500, store.operationOutcome("exception",
+            respond(exchange, 500, store.internalFault(
                     t.getClass().getSimpleName() + ": " + t.getMessage()));
         } finally {
             cloud.jengu.dbo.core.api.Caller.clear();

@@ -199,6 +199,42 @@ class TerminologyOnEveryVersionIT {
                         + answer + "\n  outcome: " + outcome);
     }
 
+    /**
+     * A concept property whose value is not a primitive (#105).
+     *
+     * <p>National terminologies routinely carry {@code valueCoding} properties.
+     * HAPI answers {@code primitiveValue()} with null for those — the value is
+     * present, it simply has no primitive form — and that null travelled into
+     * the concept row and out through the CSV writer as
+     * {@code Cannot invoke "String.length()" because "s" is null}: an HTTP 500
+     * naming a local variable, for a document whose only sin was a property
+     * type the store had not thought about.
+     *
+     * <p>The property is DROPPED rather than the system refused. The concepts,
+     * their displays and the hierarchy are what anything clinical reads, and
+     * losing a whole vocabulary over one property's encoding is the trade #100
+     * already refused to make.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("versions")
+    void aPropertyThatIsNotAPrimitiveDoesNotTakeTheSystemDown(String code) {
+        FhirTerminology terminology = FACES.get(code);
+        terminology.ingestCodeSystem("""
+                {"resourceType":"CodeSystem","status":"active","content":"complete",
+                 "url":"https://terms.dbo.test/coded","version":"1","name":"Coded",
+                 "property":[{"code":"kind","uri":"https://terms.dbo.test/kind",
+                              "type":"Coding"}],
+                 "concept":[{"code":"a","display":"Alpha","property":[
+                   {"code":"kind","valueCoding":{"system":"https://terms.dbo.test/kinds",
+                                                 "code":"letter"}}]}]}""");
+
+        assertTrue(terminology.lookup("https://terms.dbo.test/coded", "a").isPresent(),
+                code + ": the concept is there to be looked up");
+        assertTrue(terminology.validateCode("https://terms.dbo.test/coded", "a")
+                        .contains("\"valueBoolean\":true"),
+                code + ": and it validates as a member of its own system");
+    }
+
     /** The shell as the engine stored it — what {@code forTransport} is handed. */
     private static byte[] shellOf(FhirTerminology terminology) {
         return ("{\"resourceType\":\"CodeSystem\",\"status\":\"active\","

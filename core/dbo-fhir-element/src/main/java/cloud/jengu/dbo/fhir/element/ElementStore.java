@@ -665,6 +665,11 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     @Override
+    public String internalFault(String diagnostics) {
+        return ElementOutcomes.fault(diagnostics);
+    }
+
+    @Override
     public String capabilityStatement(String base) {
         return capabilityStatement(base, List.of());
     }

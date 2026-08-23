@@ -111,6 +111,23 @@ final class ElementOutcomes {
         return issue.refuses() ? "invalid" : "code-invalid";
     }
 
+    /**
+     * A fault in this store, said so that nobody has to read the diagnostics to
+     * know it (#105).
+     *
+     * <p>{@code severity: fatal} is FHIR's own word for it — "the action failed
+     * and no further checking could be performed" — which is exactly what an
+     * internal fault is and exactly what a finding about a document is not. A
+     * caller sorting outcomes can act on the severity alone: {@code fatal}
+     * means open a bug against this store, {@code error} means fix the content.
+     * Before this they were both {@code error, exception} and told apart only
+     * by a message naming a local variable.
+     */
+    static String fault(String diagnostics) {
+        return "{\"resourceType\":\"OperationOutcome\",\"issue\":[{\"severity\":\"fatal\","
+                + "\"code\":\"exception\",\"diagnostics\":" + quoted(diagnostics) + "}]}";
+    }
+
     static String outcome(String issueCode, String diagnostics) {
         return "{\"resourceType\":\"OperationOutcome\",\"issue\":[{\"severity\":\"error\",\"code\":"
                 + quoted(issueCode) + ",\"diagnostics\":" + quoted(diagnostics) + "}]}";
