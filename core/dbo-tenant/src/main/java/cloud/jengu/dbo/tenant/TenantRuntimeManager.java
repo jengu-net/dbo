@@ -1215,7 +1215,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /** The canonical url a definition is identified by. */
     private static String canonicalUrlOf(String definition) {
-        return fieldOf(definition, "\"url\"");
+        String url = fieldOf(definition, "\"url\"");
+        // A NamingSystem carries no url in every version — the element does
+        // not exist in R4 — and is identified by the namespace it names, which
+        // the face claims from its uniqueId. The same value, read the way this
+        // layer reads everything else about a definition it was handed (#91).
+        return url != null ? url : fieldOf(definition, "\"value\"");
     }
 
     /** Which resource a definition is, read from the document itself. */
@@ -1226,6 +1231,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
     /** One string field, read without a parser: this layer holds documents. */
     private static String fieldOf(String definition, String field) {
         int at = definition.indexOf(field);
+        if (at < 0) {
+            // Absent, said as absent. Without this the search for the colon
+            // starts at 0 and the method returns some other field's value
+            // rather than nothing — a wrong answer wearing the shape of a
+            // right one.
+            return null;
+        }
         int colon = definition.indexOf(':', at);
         int open = definition.indexOf('"', colon);
         return definition.substring(open + 1, definition.indexOf('"', open + 1));

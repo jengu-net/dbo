@@ -253,15 +253,42 @@ class AuthorityIT {
         // and the delete ATTEMPT's create was audited with the token's client
         // (audit domain rides the same store; check via the engine service? REST
         // doesn't serve AuditEntry — assert through the feed instead)
-        assertTrue(new cloud.jengu.dbo.postgres.PgChangeFeed(
-                        provisioner.provision(cloud.jengu.dbo.tenant.TenantSpec.parse(
-                                java.nio.file.Files.readString(dir.resolve("neli.json")))).dataSource(),
-                        cloud.jengu.dbo.policy.AuditModel.DOMAIN)
-                .read(null, 10).items().stream()
-                .map(i -> new String(i.payload(), java.nio.charset.StandardCharsets.UTF_8))
-                .anyMatch(e -> e.contains("\"actor\":\"tenant-bootstrap\"")
-                        && e.contains("\"interaction\":\"create\"")),
+        assertTrue(auditedBySomebody("neli", "\"actor\":\"tenant-bootstrap\"",
+                        "\"interaction\":\"create\""),
                 "the create must be audited with the token's client as actor");
+    }
+
+    /**
+     * Whether ANY audit entry this tenant holds says all of these things.
+     *
+     * <p>Drained rather than sampled. This read the first ten entries and
+     * asserted over those, which passed only because bring-up happened to
+     * write fewer than ten before the interesting one — publishing four more
+     * definitions moved the entry out of the window and the test failed
+     * without anything about auditing having changed (#91). A trail is
+     * append-only and a test that cares whether something is IN it must look
+     * at all of it.
+     */
+    private boolean auditedBySomebody(String tenant, String... phrases) throws Exception {
+        cloud.jengu.dbo.postgres.PgChangeFeed feed = new cloud.jengu.dbo.postgres.PgChangeFeed(
+                provisioner.provision(cloud.jengu.dbo.tenant.TenantSpec.parse(
+                        java.nio.file.Files.readString(dir.resolve(tenant + ".json")))).dataSource(),
+                cloud.jengu.dbo.policy.AuditModel.DOMAIN);
+        String cursor = null;
+        for (var chunk = feed.read(null, 200); !chunk.items().isEmpty();
+                chunk = feed.read(cursor, 200)) {
+            for (var item : chunk.items()) {
+                String entry = new String(item.payload(), java.nio.charset.StandardCharsets.UTF_8);
+                if (java.util.Arrays.stream(phrases).allMatch(entry::contains)) {
+                    return true;
+                }
+            }
+            if (chunk.nextCursor() == null || chunk.nextCursor().equals(cursor)) {
+                return false;
+            }
+            cursor = chunk.nextCursor();
+        }
+        return false;
     }
 
     /** The trail over REST, as AuditEvent — readable, contributable,
