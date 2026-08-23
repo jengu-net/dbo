@@ -355,6 +355,18 @@ public final class ElementStore implements FhirStoreFacade {
      * validation on the floor over one bad document.
      */
     @SuppressWarnings("unchecked")
+    /**
+     * Rebuild because somebody else wrote a profile here (#87).
+     *
+     * <p>Unconditional where {@link #rebuiltIfShapesMoved} is conditional: the
+     * caller has already established that a StructureDefinition moved, and it
+     * knows things this facade cannot see — a sync lane's write, a restore.
+     */
+    @Override
+    public void shapesChanged() {
+        rebuiltIfShapesMoved("StructureDefinition");
+    }
+
     private void rebuiltIfShapesMoved(String typeName) {
         if (terms == null || !"StructureDefinition".equals(typeName)) {
             return;
