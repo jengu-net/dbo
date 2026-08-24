@@ -61,9 +61,14 @@ class GeneralisedNotRemovedIT {
 
         // a zone that treats marital status as identifying, and refuses to let
         // a birth date be coarsened at all
+        // The amendment carries the parameters that reach what it added
+        // (#123): only the jurisdiction knows those, and a REMOVE element the
+        // guard cannot see would be stripped from the payload while a search
+        // on it answered empty.
         PdiSpec zone = base.overriddenBy(Map.of("Patient", Map.of(
                 "maritalStatus", PdiSpec.Disposition.REMOVE,
-                "birthDate", PdiSpec.Disposition.REMOVE)));
+                "birthDate", PdiSpec.Disposition.REMOVE)),
+                Map.of("marital_status", "maritalStatus", "birthdate", "birthDate"));
 
         assertTrue(zone.identifyingElements("Patient").contains("maritalStatus"),
                 "what counts as identifying is a question about law, not about data");
@@ -82,5 +87,50 @@ class GeneralisedNotRemovedIT {
         assertTrue("1980".matches("([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)"
                         + "(-(0[1-9]|1[0-2])(-(0[1-9]|[12][0-9]|3[01]))?)?"),
                 "the coarse form must satisfy the FHIR date regex");
+    }
+
+    /**
+     * A zone that declares its own identifying element is refused unless the
+     * search guard can see it (#123).
+     *
+     * <p>`overriddenBy` exists so a jurisdiction can amend what counts as
+     * identifying — and an amendment the guard cannot see is worse than none,
+     * because the element is stripped from the payload while a search on it
+     * answers empty, which reads as "nobody matches". Caught at construction,
+     * naming the element, rather than at a query nobody is watching.
+     */
+    @org.junit.jupiter.api.Test
+    void aZoneElementTheGuardCannotSeeIsRefused() {
+        IllegalArgumentException refused = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                // declared identifying, with no parameter said to reach it
+                () -> PdiSpec.fhir().overriddenBy(java.util.Map.of("Patient",
+                        java.util.Map.of("maritalStatus", PdiSpec.Disposition.REMOVE))));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                refused.getMessage().contains("maritalStatus")
+                        && refused.getMessage().contains("nobody matches"),
+                "the refusal names the element and why it matters: " + refused.getMessage());
+    }
+
+    /** A GENERALISED element needs no path: its coarse form is public by design. */
+    @org.junit.jupiter.api.Test
+    void aGeneralisedZoneElementIsAccepted() {
+        PdiSpec.fhir().overriddenBy(java.util.Map.of("Patient",
+                java.util.Map.of("multipleBirthInteger", PdiSpec.Disposition.GENERALISE)));
+    }
+
+    /** With its paths declared, the guard sees the jurisdiction's element. */
+    @org.junit.jupiter.api.Test
+    void aDeclaredZoneElementIsGuardedByItsOwnParameters() {
+        PdiSpec zone = PdiSpec.fhir().overriddenBy(
+                java.util.Map.of("Patient",
+                        java.util.Map.of("maritalStatus", PdiSpec.Disposition.REMOVE)),
+                java.util.Map.of("marital_status", "maritalStatus"));
+        org.junit.jupiter.api.Assertions.assertEquals("maritalStatus",
+                zone.identifyingElementFor("Patient", "marital_status"),
+                "the parameter the jurisdiction named now reaches the guard");
+        org.junit.jupiter.api.Assertions.assertNull(
+                PdiSpec.fhir().identifyingElementFor("Patient", "marital_status"),
+                "and it is the amendment that added it, not the default");
     }
 }
