@@ -480,14 +480,27 @@ public final class PgObjectStore implements ObjectStore {
             if (i > 0) or.append(" OR ");
             or.append("(i.system = ? AND i.value = ?)");
         }
+        // i.type as well as d.type, and it is not redundant: the identifier
+        // table's key is (type, system, value, object_id), so a query that
+        // constrains only the DATA side leaves the index's leading column
+        // free and Postgres falls back to scanning every identifier row.
+        //
+        // That is O(n) per lookup against a table that grows with every write,
+        // and a transaction resolves hundreds of conditional references — so
+        // ingest cost went quadratic and a store got measurably slower the
+        // fuller it was. Measured on a Pi at 4,019 identifier rows: seq scan
+        // 1.17ms and 67 buffers, index-only scan 0.26ms and 6, and the gap
+        // widens with every row.
         String sql = """
                 SELECT DISTINCT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version
                 FROM state.%s_data d
                 JOIN state.%s_identifier i ON i.object_id = d.id
-                WHERE d.type = ? AND NOT d.deleted AND (%s)""".formatted(type.domain(), type.domain(), or);
+                WHERE d.type = ? AND NOT d.deleted AND i.type = ? AND (%s)"""
+                .formatted(type.domain(), type.domain(), or);
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement(sql)) {
                 int p = 1;
+                ps.setString(p++, typeName);
                 ps.setString(p++, typeName);
                 for (Identifier ident : identifiers) {
                     ps.setString(p++, ident.system());
