@@ -164,18 +164,90 @@ public final class TenantAuthority {
         }
     }
 
-    /** Rotation: the old key stays published (verifies) until retired keys are removed. */
+    /**
+     * Rotation: the old key stays published, and verifies, until it is pruned.
+     *
+     * <p>The retirement is stamped with the moment it happened, because that is
+     * what decides when the key may go: a token signed under it is valid for
+     * {@link #TOKEN_TTL_SECONDS}, so the key has to outlive the last token it
+     * signed and no longer (#122). Without the stamp there is no way to tell a
+     * key retired a minute ago from one retired last year, and the safe reading
+     * of "no idea" is "keep it forever" — which is how a leaked key goes on
+     * verifying indefinitely.
+     */
     public String rotateSigningKey() {
         Optional<StoredObject> active = activeKey();
         String newKid = generateKey();
         active.ifPresent(old -> {
             String payload = new String(old.payload(), StandardCharsets.UTF_8)
-                    .replace("\"status\":\"active\"", "\"status\":\"retired\"");
+                    .replace("\"status\":\"active\"",
+                            "\"status\":\"retired\",\"retiredAt\":"
+                                    + (System.currentTimeMillis() / 1000));
             store.put(PutRequest.update("SigningKey", old.id(), old.versionId(),
                     payload.getBytes(StandardCharsets.UTF_8)));
         });
         return newKid;
     }
+
+    /**
+     * Remove retired keys that can no longer be verifying anything (#122).
+     *
+     * <p>Rotation alone is not rotation: a key that stays published forever
+     * still verifies forever, so a leaked one is never actually retired. The
+     * cut is the last moment a token signed under it could still be live —
+     * its retirement plus the token lifetime, plus a margin for clock skew
+     * between whoever issued the token and whoever checks it.
+     *
+     * <p>A key with no {@code retiredAt} is left alone. It was retired before
+     * this store stamped them, and guessing its age would be choosing between
+     * breaking live sessions and pretending to have pruned.
+     *
+     * @return how many keys were removed
+     */
+    public int pruneRetiredKeys() {
+        return pruneRetiredKeys(System.currentTimeMillis() / 1000);
+    }
+
+    /**
+     * The same rule against a stated moment rather than the wall clock, so a
+     * test can ask what happens an hour after a retirement without waiting an
+     * hour or backdating a stored record.
+     *
+     * @param nowSeconds the moment to judge the retirements against
+     * @return how many keys were removed
+     */
+    public int pruneRetiredKeys(long nowSeconds) {
+        long cutoff = nowSeconds - TOKEN_TTL_SECONDS - RETIREMENT_MARGIN;
+        int removed = 0;
+        for (StoredObject key : allKeys()) {
+            if (!"retired".equals(field(key, "status"))) {
+                continue;
+            }
+            String retiredAt = field(key, "retiredAt");
+            if (retiredAt == null || retiredAt.isBlank()) {
+                continue;
+            }
+            try {
+                if (Long.parseLong(retiredAt.trim()) > cutoff) {
+                    continue;
+                }
+            } catch (NumberFormatException unreadable) {
+                continue; // same reasoning as an absent stamp
+            }
+            store.delete("SigningKey", key.id(), key.versionId());
+            keyCache.remove(field(key, "kid"));
+            removed++;
+        }
+        return removed;
+    }
+
+    /**
+     * Slack between a token's expiry and its key's removal. Ten minutes: the
+     * clocks of whoever issued a token and whoever verifies it are not the
+     * same clock, and a key removed a second too early is an authentication
+     * outage rather than a tidy JWKS.
+     */
+    private static final long RETIREMENT_MARGIN = 600;
 
     private String generateKey() {
         try {
