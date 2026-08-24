@@ -109,6 +109,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, javax.sql.DataSource> tenantDataSources = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.auth.IdentityHub> zoneHubs = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.policy.RetentionSweep> sweeps = new ConcurrentHashMap<>();
+    /**
+     * The tenants' authorities, kept so the sweep can reach them: a retired
+     * signing key has to be REMOVED eventually, or it goes on verifying and
+     * the rotation was only cosmetic (#122).
+     */
+    private final Map<String, cloud.jengu.dbo.auth.TenantAuthority> authorities =
+            new ConcurrentHashMap<>();
     private final Map<String, String> maintenanceContexts = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<String, java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine>> syncEngines =
             new ConcurrentHashMap<>();
@@ -527,6 +534,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
             guard = new cloud.jengu.dbo.auth.AuthorityAuthenticator(authority);
         }
         final cloud.jengu.dbo.auth.TenantAuthority authority = tenantAuthority;
+        if (authority != null) {
+            authorities.put(spec.code(), authority);
+        }
         // Built once and shared by everything this bring-up wires. It used to
         // be built twice — the maintenance surface constructed a second one —
         // which is how a tenant came to cost two of the heaviest object here.
@@ -650,6 +660,34 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     public java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> streamsOf(String tenantCode) {
         return syncEngines.getOrDefault(tenantCode, java.util.List.of());
+    }
+
+    /**
+     * Remove signing keys retired longer ago than any token they signed can
+     * still be live (#122).
+     *
+     * <p>Rotation leaves the old key published so nothing signed a moment
+     * before it breaks. That is correct and it is only half: a key that is
+     * never removed verifies forever, so a leaked one is never actually
+     * retired. This is the other half, on the same hourly beat as the
+     * retention sweeps because it is the same kind of work.
+     *
+     * @return how many keys were removed across all tenants
+     */
+    public int pruneSigningKeys() {
+        int removed = 0;
+        for (Map.Entry<String, cloud.jengu.dbo.auth.TenantAuthority> tenant
+                : authorities.entrySet()) {
+            try {
+                removed += tenant.getValue().pruneRetiredKeys();
+            } catch (RuntimeException e) {
+                // one tenant's failure never stops the others, and the next
+                // hour tries again from the same state
+                LOG.warn("could not prune retired signing keys for tenant {}",
+                        tenant.getKey(), e);
+            }
+        }
+        return removed;
     }
 
     /**
@@ -898,6 +936,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     private void takeDown(String code, String because) {
         TenantRuntime runtime = runtimes.remove(code);
+        // Goes with the runtime: a tenant that is not served has no keys for
+        // the sweep to prune, and holding its authority would keep the whole
+        // object alive for a tenant nobody can reach (#122).
+        authorities.remove(code);
         if (runtime == null) {
             return;
         }
@@ -1084,6 +1126,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     if (System.currentTimeMillis() - lastSweepMillis > 3_600_000) {
                         lastSweepMillis = System.currentTimeMillis();
                         sweeps.values().forEach(cloud.jengu.dbo.policy.RetentionSweep::sweepOnce);
+                        // On the same hourly beat: a key retired longer ago
+                        // than any token it signed can still be live is gone.
+                        // Rotation without this is not rotation (#122).
+                        pruneSigningKeys();
                     }
                     Thread.sleep(pollMillis);
                 } catch (InterruptedException e) {

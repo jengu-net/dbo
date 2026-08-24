@@ -192,6 +192,65 @@ class AuthorityIT {
                 "post-rotation token must verify via unknown-kid refresh");
     }
 
+    /**
+     * An operator can rotate a key, and a key that can verify nothing is
+     * eventually gone (#122).
+     *
+     * <p>The capability existed and nothing deployed could ask for it, so a
+     * store signed every token with a key it could never change. And rotation
+     * is only half of it: a retired key stays published so nothing signed a
+     * moment earlier breaks, and one that is never removed verifies for ever
+     * -- which means a leaked key is never actually retired.
+     */
+    @Test
+    @Order(22)
+    void anOperatorCanRotateAndARetiredKeyIsEventuallyGone() throws Exception {
+        String beforeRotation = token("kaks", null);
+        Matcher kid = Pattern.compile("\"kid\":\"([^\"]+)\"")
+                .matcher(get(oidc("kaks") + "/.well-known/jwks.json", null).body());
+        assertTrue(kid.find());
+        String retiring = kid.group(1);
+
+        HttpResponse<String> rotated = http.send(HttpRequest.newBuilder(
+                        URI.create(oidc("kaks") + "/admin/signing-keys"))
+                        .header("Authorization", "Bearer " + token("kaks", "system/*.write"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString("{}")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, rotated.statusCode(), rotated.body());
+        assertTrue(rotated.body().contains("\"kid\""), rotated.body());
+
+        assertEquals(200, get(fhir("kaks") + "/Patient?_summary=count", beforeRotation).statusCode(),
+                "a token signed a moment before rotation still verifies");
+        assertEquals(200, get(fhir("kaks") + "/Patient?_summary=count",
+                        token("kaks", null)).statusCode(),
+                "and the next token, signed with the new key, verifies too");
+
+        // Pruning now removes nothing: the key was retired seconds ago and a
+        // token it signed is still live. A prune that removed it here would be
+        // an authentication outage, so this assertion is the safety half.
+        assertEquals(0, manager.pruneSigningKeys(),
+                "a key retired seconds ago is still verifying live tokens");
+        assertEquals(200, get(fhir("kaks") + "/Patient?_summary=count", beforeRotation).statusCode(),
+                "so the token minted under it keeps working");
+
+        // An hour later nothing it signed can be alive, and it goes. Asked as a
+        // stated moment rather than by waiting an hour or backdating a record.
+        TenantAuthority authority = new TenantAuthority(
+                new PgObjectStore(provisioner.provision(TenantSpec.parse(
+                        Files.readString(dir.resolve("kaks.json")))).dataSource(),
+                        IdentityModel.registrations()),
+                oidc("kaks"), new KeyProtector(kek));
+        assertEquals(1, authority.pruneRetiredKeys(System.currentTimeMillis() / 1000 + 3600),
+                "an hour after retirement no token it signed can still be live");
+        assertFalse(get(oidc("kaks") + "/.well-known/jwks.json", null).body().contains(retiring),
+                "and it stops being published, which is the whole point: a leaked "
+                        + "key that is never removed was never actually retired");
+        assertEquals(200, get(fhir("kaks") + "/Patient?_summary=count",
+                        token("kaks", null)).statusCode(),
+                "and the current key is untouched -- pruning is not an outage");
+    }
+
     /** §14 wired end-to-end: a pdi tenant serves reassembled resources over REST
      *  while the stored payload is ciphertext. */
     @Test
@@ -310,6 +369,69 @@ class AuthorityIT {
             cursor = chunk.nextCursor();
         }
         return false;
+    }
+
+    /**
+     * An appliance forwards its audit at-least-once, and the trail receives it
+     * once (#120).
+     *
+     * <p>R4 gives {@code AuditEvent} no {@code identifier} element, so there
+     * was nothing on the resource a conditional write could name, and a
+     * forwarder retrying a delivery had no way to say "this is the event I
+     * already sent". The stable id travels in {@code meta.tag}, which is where
+     * an id can actually live on this resource, and the store claims it.
+     *
+     * <p>Stamping an {@code identifier} instead is not a workaround and this
+     * is why: the version's own parser drops an element the resource does not
+     * define, so the write succeeds, the id is silently absent, and the second
+     * delivery lands as a duplicate with nothing saying so.
+     */
+    @Test
+    @Order(23)
+    void aForwardedEventIsReceivedOnceHoweverOftenItIsDelivered() throws Exception {
+        String token = token("neli", null);
+        String event = """
+                {"resourceType":"AuditEvent",
+                 "meta":{"tag":[{"system":"urn:example:edge","code":"edge-01-000042"}]},
+                 "type":{"system":"urn:example","code":"specimen-collected"},
+                 "agent":[{"who":{"display":"edge-01"},"requestor":true}],
+                 "source":{"site":"neli","observer":{"display":"edge-01"}},
+                 "entity":[{"what":{"reference":"Specimen/spec-42"}}]}""";
+
+        HttpResponse<String> first = post(fhir("neli") + "/AuditEvent", token, event);
+        assertEquals(201, first.statusCode(), first.body());
+        String id = first.body().replaceAll("(?s).*?\"id\":\"([^\"]+)\".*", "$1");
+
+        HttpResponse<String> retry = post(fhir("neli") + "/AuditEvent", token, event);
+        assertEquals(200, retry.statusCode(),
+                "a redelivery is not a creation, and the status is how the "
+                        + "forwarder learns it: " + retry.body());
+        assertEquals(id, retry.body().replaceAll("(?s).*?\"id\":\"([^\"]+)\".*", "$1"),
+                "and it lands on the entry already recorded, not beside it");
+
+        String trail = get(fhir("neli") + "/AuditEvent?_count=1000", token).body();
+        assertEquals(1, trail.split("Specimen/spec-42", -1).length - 1,
+                "one event delivered twice is one entry in the trail: " + trail);
+
+        // A different event from the same appliance is a different entry: the
+        // dedup is on the id, not on the appliance or on looking similar.
+        HttpResponse<String> other = post(fhir("neli") + "/AuditEvent", token,
+                event.replace("edge-01-000042", "edge-01-000043")
+                        .replace("spec-42", "spec-43"));
+        assertEquals(201, other.statusCode(), other.body());
+
+        // And an event with no tag still lands, every time: without a stable id
+        // there is nothing to be idempotent about, and appending is right --
+        // for an event this store made itself, every recording IS distinct.
+        String untagged = """
+                {"resourceType":"AuditEvent",
+                 "type":{"system":"urn:example","code":"nothing-stable"},
+                 "entity":[{"what":{"reference":"Specimen/spec-44"}}]}""";
+        assertEquals(201, post(fhir("neli") + "/AuditEvent", token, untagged).statusCode());
+        assertEquals(201, post(fhir("neli") + "/AuditEvent", token, untagged).statusCode());
+        assertEquals(2, get(fhir("neli") + "/AuditEvent?_count=1000", token).body()
+                        .split("Specimen/spec-44", -1).length - 1,
+                "two deliveries with nothing identifying them are two events");
     }
 
     /** The trail over REST, as AuditEvent — readable, contributable,

@@ -48,6 +48,7 @@ public final class AuthorityHandler implements HttpHandler {
                 case "admin/edge-factors" -> adminEdgeFactors(exchange);
                 case "admin/secret-grants" -> adminSecretGrants(exchange);
                 case "admin/clients" -> adminClients(exchange);
+                case "admin/signing-keys" -> adminSigningKeys(exchange);
                 case "secret-grants/redeem" -> redeemSecretGrant(exchange);
                 default -> {
                     if (relative.startsWith("delegation/") && "DELETE".equals(exchange.getRequestMethod())) {
@@ -377,6 +378,26 @@ public final class AuthorityHandler implements HttpHandler {
             return;
         }
         respond(exchange, 200, "{\"client_id\":\"" + clientId + "\"}");
+    }
+
+    /**
+     * Rotate this tenant's signing key (#122).
+     *
+     * <p>A route rather than only a schedule, because the case that cannot
+     * wait for one is a key somebody believes is compromised. The old key
+     * keeps verifying until it is pruned, so nothing signed a moment ago
+     * breaks; what changes is what the next token is signed with.
+     *
+     * <p>The write goes through the tenant's own store, so the rotation lands
+     * in the trail like any other change — which is where a change to how
+     * every token in the tenant is signed belongs.
+     */
+    private void adminSigningKeys(HttpExchange exchange) throws IOException {
+        if (!systemWrite(exchange)) {
+            return;
+        }
+        String kid = authority.rotateSigningKey();
+        respond(exchange, 200, "{\"kid\":\"" + kid + "\"}");
     }
 
     private void adminSecretGrants(HttpExchange exchange) throws IOException {
