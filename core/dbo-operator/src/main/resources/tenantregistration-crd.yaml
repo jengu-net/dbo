@@ -27,7 +27,27 @@ spec:
                   pattern: '^[a-z][a-z0-9_]{0,15}$'
                 fhirVersion:
                   type: string
-                  enum: [r4, r5]
+                  enum: [r4, r5, r6]
+                zone:
+                  type: string
+                broker:
+                  type: string
+                acceptedBrokers:
+                  type: array
+                  items:
+                    type: string
+                dependencies:
+                  type: array
+                  items:
+                    type: object
+                    required: [name, types]
+                    properties:
+                      name:
+                        type: string
+                      types:
+                        type: array
+                        items:
+                          type: string
                 deletionPolicy:
                   type: string
                   enum: [Retain, Delete]
@@ -81,8 +101,8 @@ spec:
                         enum: [identifier, canonical, internal]
                       handling:
                         type: string
-                        enum: [operational, projected-config, replicated,
-                               store-authored, audit, ephemeral]
+                        enum: [operational, projected-config, mirrored,
+                               replicated, store-authored, audit, ephemeral]
                       systems:
                         type: array
                         items:
