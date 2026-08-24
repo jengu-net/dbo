@@ -98,11 +98,38 @@ public interface RecordProjection {
      * words: never the document itself, because the machinery stamps who and
      * when and a posted claim about either is not evidence.
      */
-    record Posted(String code, String targetType, String targetId, byte[] contributed) {
+    record Posted(String code, String targetType, String targetId, byte[] contributed,
+            String dedupKey) {
 
         /** What a face reads when it contributes nothing but the facts. */
         public Posted(String code, String targetType, String targetId) {
-            this(code, targetType, targetId, null);
+            this(code, targetType, targetId, null, null);
+        }
+
+        /** What a face reads from a document that carries no stable id. */
+        public Posted(String code, String targetType, String targetId, byte[] contributed) {
+            this(code, targetType, targetId, contributed, null);
+        }
+
+        /**
+         * The stable id the poster gave this record, or null if it gave none
+         * (#120).
+         *
+         * <p>An appliance forwards its audit at-least-once, and the receiving
+         * side makes that effectively-once by writing each event under the id
+         * the appliance generated. Which element of a posted document carries
+         * that id is the face's knowledge and nobody else's — R4 gives
+         * {@code AuditEvent} no {@code identifier} element, so the id travels
+         * in {@code meta.tag}, and an engine that knew that would have learned
+         * a domain's shape.
+         *
+         * <p>What the engine does with it is the same thing it does with any
+         * exclusive claim: write it once, and on the second delivery hand back
+         * what is already there. No general search is involved, so the rule
+         * that a conditional write names an identity stands untouched.
+         */
+        public String dedupKey() {
+            return dedupKey;
         }
 
         /**

@@ -277,9 +277,16 @@ public final class FhirHttpServer implements AutoCloseable {
                         }
                     }
                 }
-                case "POST" -> respond(exchange, 201, auditSurface.create(
-                        new String(exchange.getRequestBody().readAllBytes(),
-                                java.nio.charset.StandardCharsets.UTF_8)));
+                case "POST" -> {
+                    // 200 when this event had already been delivered: an
+                    // appliance forwards at-least-once, and the status is how
+                    // it learns its retry landed on the entry it already made
+                    // rather than beside it (#120).
+                    AuditSurface.Recorded recorded = auditSurface.record(
+                            new String(exchange.getRequestBody().readAllBytes(),
+                                    java.nio.charset.StandardCharsets.UTF_8));
+                    respond(exchange, recorded.created() ? 201 : 200, recorded.rendered());
+                }
                 default -> throw new cloud.jengu.dbo.core.api.PolicyViolationException(
                         "the audit trail is unconditionally append-only");
             }
