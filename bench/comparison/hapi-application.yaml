@@ -1,0 +1,63 @@
+# HAPI JPA starter, configured for the comparison.
+#
+# R5 because fhirest is R5-pinned and that is the only version all three can
+# serve. Validation OFF on write, matched across all three and PROBED rather
+# than trusted -- a flag that says off while something still validates would
+# put a different amount of work in one server's write path than the others'.
+server:
+  port: 8091
+spring:
+  # The starter's own bean graph has a cycle; its shipped configuration allows
+  # them and a plain --spring.config.location replaces that rather than
+  # merging with it. Restoring the flag, not working around a defect.
+  main:
+    allow-circular-references: true
+  # HAPI's bundled Flyway does not recognise PostgreSQL 17, and the bench Pi
+  # runs 17.10. Hibernate generates the schema instead -- which is what the
+  # starter does when migration is off, and it costs the benchmark nothing:
+  # the schema is created before the first measured write either way.
+  flyway:
+    enabled: false
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/hapi
+    username: hapi
+    password: benchpass
+    driverClassName: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+  jpa:
+    properties:
+      hibernate.dialect: ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgresDialect
+      hibernate.search.enabled: false
+      hibernate.hbm2ddl.auto: update
+hapi:
+  fhir:
+    fhir_version: R5
+    # Every validation hook off. These are the dials that decide how much work
+    # a write does, so they are stated rather than defaulted.
+    validation:
+      requests_enabled: false
+      responses_enabled: false
+    enforce_referential_integrity_on_write: false
+    enforce_referential_integrity_on_delete: false
+    allow_external_references: true
+    allow_placeholder_references: true
+    allow_multiple_delete: true
+    reuse_cached_search_results_millis: -1
+    # Off: a subscription engine polling in the background is load the
+    # benchmark did not ask for and the other two are not carrying.
+    subscription:
+      resthook_enabled: false
+      websocket_enabled: false
+    cr:
+      enabled: false
+    ips:
+      enabled: false
+    openapi_enabled: false
+    advanced_lucene_indexing: false
+    bulk_export_enabled: false
+    bulk_import_enabled: false
+logging:
+  level:
+    root: WARN
+    ca.uhn.fhir: WARN
