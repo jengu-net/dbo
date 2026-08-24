@@ -257,7 +257,38 @@ final class ElementRecordProjection implements RecordProjection {
         // recognises (#90, #91). The engine carries these bytes and never
         // reads them; reading them is this class's, on the way back out.
         return Optional.of(new Posted(firstCode(posted), targetType, targetId,
-                document.getBytes(StandardCharsets.UTF_8)));
+                document.getBytes(StandardCharsets.UTF_8), forwardedId(posted)));
+    }
+
+    /**
+     * The stable id the poster gave this event, from {@code meta.tag} (#120).
+     *
+     * <p>R4 gives {@code AuditEvent} no {@code identifier} element, and
+     * stamping one anyway is not a workaround: the version's own parser drops
+     * an element the resource does not define, so the write succeeds, the id
+     * is silently absent, and the second delivery lands as a duplicate with
+     * nothing saying so. {@code meta.tag} is where an id can actually live on
+     * this resource, so that is where it is read from.
+     *
+     * <p>The first tag only. A resource carries tags for several reasons and
+     * treating all of them as identity would make two events that merely share
+     * a label into one event.
+     */
+    private static String forwardedId(Map<?, ?> posted) {
+        if (!(posted.get("meta") instanceof Map<?, ?> meta)
+                || !(meta.get("tag") instanceof List<?> tags) || tags.isEmpty()
+                || !(tags.get(0) instanceof Map<?, ?> tag)) {
+            return null;
+        }
+        Object system = tag.get("system");
+        Object code = tag.get("code");
+        if (code == null || String.valueOf(code).isBlank()) {
+            return null;
+        }
+        // system|code, the token spelling a client would have written the
+        // condition in — so what the store dedupes on and what the poster
+        // thinks it asked for are the same string.
+        return (system == null ? "" : system) + "|" + code;
     }
 
     // ------------------------------------------------------------------ runs

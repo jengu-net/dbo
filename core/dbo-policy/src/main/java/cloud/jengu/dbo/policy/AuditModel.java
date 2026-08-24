@@ -22,6 +22,17 @@ public final class AuditModel {
 
     public static final String DOMAIN = "audit";
 
+    /**
+     * The system a forwarded entry's own id is claimed under (#120).
+     *
+     * <p>An appliance forwards its audit at-least-once and the receiving side
+     * makes that effectively-once, which needs the forwarder's id to be an
+     * EXCLUSIVE claim in this tenant: the second delivery of one event must
+     * find the first rather than land beside it. An entry this store made
+     * itself carries no such id and claims nothing.
+     */
+    public static final String FORWARDED_SYSTEM = "urn:dbo:audit:forwarded";
+
     private AuditModel() {
     }
 
@@ -41,10 +52,17 @@ public final class AuditModel {
             if (((java.util.Map<?, ?>) n).get("code") != null) {
                 e.value("code", EnvelopeValue.of(Json.str(n, "code")));
             }
+            if (((java.util.Map<?, ?>) n).get("forwarded") != null) {
+                e.identifier(FORWARDED_SYSTEM, Json.str(n, "forwarded"));
+            }
             return e;
         };
-        return List.of(new TypeRegistration("AuditEntry", DOMAIN, IdentityClass.INTERNAL,
-                Set.of(), Handling.audit(), extractor, List.of()));
+        // IDENTIFIER rather than INTERNAL, and only barely: the ONLY system
+        // that identifies an entry is the forwarder's own id, and an entry
+        // this store wrote emits none — so nothing dbo records claims
+        // anything, and a forwarded one claims exactly once (#120).
+        return List.of(new TypeRegistration("AuditEntry", DOMAIN, IdentityClass.IDENTIFIER,
+                Set.of(FORWARDED_SYSTEM), Handling.audit(), extractor, List.of()));
     }
 
     public static byte[] entry(String actor, String interaction, String targetType,
@@ -74,6 +92,20 @@ public final class AuditModel {
     public static byte[] entry(String actor, String interaction, String targetType,
             String targetId, String outcome, String rule, String code,
             java.util.Map<String, String> detail, byte[] contributed) {
+        return entry(actor, interaction, targetType, targetId, outcome, rule, code,
+                detail, contributed, null);
+    }
+
+    /**
+     * The same, carrying the stable id a forwarder gave this event (#120).
+     *
+     * <p>It is written into the record rather than kept beside it because the
+     * envelope is recomputed from the payload: an id that lived only in the
+     * claim would be gone the next time the record was read back.
+     */
+    public static byte[] entry(String actor, String interaction, String targetType,
+            String targetId, String outcome, String rule, String code,
+            java.util.Map<String, String> detail, byte[] contributed, String forwarded) {
         StringBuilder sb = new StringBuilder("{\"actor\":\"").append(actor)
                 .append("\",\"interaction\":\"").append(interaction).append("\"")
                 .append(",\"targetType\":\"").append(targetType).append("\"");
@@ -111,6 +143,9 @@ public final class AuditModel {
         sb.append(",\"outcome\":\"").append(outcome).append("\"");
         if (rule != null) {
             sb.append(",\"rule\":\"").append(rule).append("\"");
+        }
+        if (forwarded != null && !forwarded.isBlank()) {
+            sb.append(",\"forwarded\":\"").append(forwarded).append('"');
         }
         if (contributed != null && contributed.length > 0) {
             sb.append(",\"contributed\":\"")

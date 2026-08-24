@@ -34,4 +34,26 @@ public interface AuditSurface {
 
     /** @return the created entry, rendered — agent/recorded are the machinery's */
     String create(String auditEventJson);
+
+    /**
+     * The same, saying whether this posting created the entry or found one
+     * already recorded under the id the poster gave it (#120).
+     *
+     * @param rendered the entry, whichever of the two it is
+     * @param created  false when an earlier delivery of the same event had
+     *                 already landed — the difference between at-least-once
+     *                 delivery and at-least-once receipt
+     */
+    record Recorded(String rendered, boolean created) {
+    }
+
+    /**
+     * Post an event, effectively-once when the document carries a stable id.
+     *
+     * <p>Default: a surface that only appends says so by reporting every
+     * posting as a creation, which is what it is.
+     */
+    default Recorded record(String auditEventJson) {
+        return new Recorded(create(auditEventJson), true);
+    }
 }

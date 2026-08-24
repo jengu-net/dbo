@@ -218,12 +218,48 @@ public final class PolicyObjectStore implements ObjectStore,
     @Override
     public String recordCustom(String code, String targetType, String targetId,
             java.util.Map<String, String> detail, byte[] contributed) {
-        return inner.put(PutRequest.create("AuditEntry",
+        return recordCustom(code, targetType, targetId, detail, contributed, null);
+    }
+
+    /**
+     * The same, effectively-once when the caller says which event this is
+     * (#120).
+     *
+     * <p>An appliance forwards its audit at-least-once, because a transport
+     * that guarantees less loses events and one that guarantees more does not
+     * exist. The receiving side is what makes the delivery effectively-once,
+     * and it does it by writing under the id the forwarder generated: the
+     * second delivery finds the first and hands it back.
+     *
+     * <p>Without a stable id there is nothing to be idempotent about and the
+     * entry is simply appended — which is right for an event this store made
+     * itself, where every recording IS a distinct interaction.
+     */
+    @Override
+    public String recordCustom(String code, String targetType, String targetId,
+            java.util.Map<String, String> detail, byte[] contributed, String forwarded) {
+        return recordForwarded(code, targetType, targetId, detail, contributed, forwarded).id();
+    }
+
+    @Override
+    public cloud.jengu.dbo.rest.AuditProjection.Recorder.Entry recordForwarded(
+            String code, String targetType, String targetId,
+            java.util.Map<String, String> detail, byte[] contributed, String forwarded) {
+        PutRequest request = PutRequest.create("AuditEntry",
                 AuditModel.entry(Caller.current(), "custom",
                         targetType != null ? targetType : "none",
                         targetId, "ok", null, code,
-                        detail != null ? detail : java.util.Map.of(), contributed)))
-                .id();
+                        detail != null ? detail : java.util.Map.of(), contributed, forwarded));
+        if (forwarded == null || forwarded.isBlank()) {
+            return new cloud.jengu.dbo.rest.AuditProjection.Recorder.Entry(
+                    inner.put(request).id(), true);
+        }
+        cloud.jengu.dbo.core.api.PutResult result = inner.putIfAbsent(
+                cloud.jengu.dbo.core.api.IdentityRef.identifier(
+                        AuditModel.FORWARDED_SYSTEM, forwarded),
+                request);
+        return new cloud.jengu.dbo.rest.AuditProjection.Recorder.Entry(
+                result.id(), result.created());
     }
 
     private static void refuseDirectAuditWrites(String typeName) {

@@ -63,6 +63,42 @@ public final class AuditProjection implements AuditSurface {
                 java.util.Map<String, String> detail, byte[] contributed) {
             return recordCustom(code, targetType, targetId, detail);
         }
+
+        /**
+         * The same, effectively-once under the stable id the poster gave the
+         * event (#120).
+         *
+         * <p>A recorder that cannot dedupe appends, which is the honest
+         * degradation: the entry lands, and the trail carries a duplicate
+         * rather than losing a delivery.
+         */
+        default String recordCustom(String code, String targetType, String targetId,
+                java.util.Map<String, String> detail, byte[] contributed, String forwarded) {
+            return recordCustom(code, targetType, targetId, detail, contributed);
+        }
+
+        /**
+         * What one recording produced.
+         *
+         * @param created false when an earlier delivery of the same event had
+         *                already landed under this id
+         */
+        record Entry(String id, boolean created) {
+        }
+
+        /**
+         * The same recording, saying which of the two happened (#120).
+         *
+         * <p>Default: a recorder that cannot dedupe appends and reports a
+         * creation, which is what it did. Honest degradation — the entry
+         * lands, and the trail carries a duplicate rather than losing a
+         * delivery.
+         */
+        default Entry recordForwarded(String code, String targetType, String targetId,
+                java.util.Map<String, String> detail, byte[] contributed, String forwarded) {
+            return new Entry(recordCustom(code, targetType, targetId, detail,
+                    contributed, forwarded), true);
+        }
     }
 
     @Override
@@ -181,6 +217,11 @@ public final class AuditProjection implements AuditSurface {
 
     @Override
     public String create(String auditEventJson) {
+        return record(auditEventJson).rendered();
+    }
+
+    @Override
+    public Recorded record(String auditEventJson) {
         // What was posted decides the code and the target; who and when are the
         // machinery's, so a posted claim about either is not read at all (§15.1).
         RecordProjection.Posted posted = face.require(RecordProjection.class)
@@ -193,9 +234,12 @@ public final class AuditProjection implements AuditSurface {
         // posted document into it would be the engine learning a domain's
         // shape. What the domain said travels whole, in the face's words,
         // opaque to everything between here and the face that renders it.
-        String id = recorder.recordCustom(posted.code(), posted.targetType(), posted.targetId(),
-                Map.of(), posted.contributed());
-        return read(id).orElseThrow();
+        // The dedup key rides with the rest: WHICH event this is, in the face's
+        // reading of the document. An appliance forwards at-least-once, and
+        // this is where that becomes effectively-once (#120).
+        Recorder.Entry entry = recorder.recordForwarded(posted.code(), posted.targetType(),
+                posted.targetId(), Map.of(), posted.contributed(), posted.dedupKey());
+        return new Recorded(read(entry.id()).orElseThrow(), entry.created());
     }
 
     /**
