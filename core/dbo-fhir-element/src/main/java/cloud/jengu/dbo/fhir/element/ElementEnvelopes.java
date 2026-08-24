@@ -174,7 +174,20 @@ final class ElementEnvelopes {
                 String value = element.getNamedChildValue("value");
                 if (value != null) {
                     tokenForms(envelope, path, system, value);
-                    envelope.identifier(system, value);
+                    // A claim needs a system, and Identifier.system is 0..1 --
+                    // so a legal resource can carry one without. R5's
+                    // Device.biologicalSourceEvent is one that does, and
+                    // claiming it threw a fatal NullPointerException whose
+                    // whole message was the word "system": a valid document
+                    // refused, and refused unreadably.
+                    //
+                    // Still searchable as a token, because the value is real.
+                    // Just not an exclusive claim: the same digits in two
+                    // namespaces are two different things, which is the
+                    // reasoning a conditional reference already refuses on.
+                    if (system != null) {
+                        envelope.identifier(system, value);
+                    }
                 }
             }
             case "CodeableConcept" -> {

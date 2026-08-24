@@ -119,8 +119,11 @@ at "printf '%s\n' '$VERSION' > $REMOTE_DIR/version"
 # benchmark ran against is a fact of the deploy and not of whatever was left
 # on the Pi from last time. r5 because that is the only version all three
 # servers under comparison can serve -- fhirest is R5-pinned.
-# The types are the ones the cohort actually contains -- taken by counting
-# resourceTypes across sample bundles, not guessed. A type a bundle carries
+# The types are the ones the cohort actually contains -- computed across
+# EVERY bundle, not sampled. Sampling three of them missed
+# AllergyIntolerance, and a type a bundle carries that the tenant has not
+# declared fails the whole transaction -- which in a load test reads as the
+# server being slow at refusing rather than as a missing declaration. A type a bundle carries
 # and the tenant has not declared fails the write, which in a load test looks
 # like the server being slow at 4xx rather than like a missing declaration.
 #
@@ -130,7 +133,7 @@ at "printf '%s\n' '$VERSION' > $REMOTE_DIR/version"
 # system. Patient included -- deduplicating patients on their personal code is
 # a real question and NOT this benchmark's, and making it identifier-bearing
 # here would put a claim lookup in every write path being timed.
-TYPES=Patient,Encounter,Observation,Condition,Procedure,DiagnosticReport,DocumentReference,Immunization,MedicationRequest,MedicationAdministration,Medication,CareTeam,CarePlan,ImagingStudy,Provenance,SupplyDelivery,Device,Location,Organization,Practitioner,PractitionerRole
+TYPES=AllergyIntolerance,CarePlan,CareTeam,Condition,Device,DiagnosticReport,DocumentReference,Encounter,ImagingStudy,Immunization,Location,Medication,MedicationAdministration,MedicationRequest,Observation,Organization,Patient,Practitioner,PractitionerRole,Procedure,Provenance,SupplyDelivery
 at "mkdir -p $REMOTE_DIR/tenants" 
 {
     printf '{\"code\":\"%s\",\"fhirVersion\":\"r5\",\"types\":[' "$TENANT"
