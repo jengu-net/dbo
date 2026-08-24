@@ -335,6 +335,23 @@ public final class TenantOperator implements AutoCloseable {
                 sb.append(",\"").append(block).append("\":").append(genericJson(value));
             }
         }
+        // zone/broker/acceptedBrokers/dependencies (#121): the same
+        // pass-through as the §14/§15 blocks above, because a CR whose spec
+        // parses fine without them is a tenant that comes up serving and
+        // healthy without the vocabulary it was supposed to inherit — no
+        // error, no warning, until an expansion resolves to nothing much
+        // later.
+        if (spec.get("zone") instanceof String zone) {
+            sb.append(",\"zone\":").append(jsonString(zone));
+        }
+        if (spec.get("broker") instanceof String broker) {
+            sb.append(",\"broker\":").append(jsonString(broker));
+        }
+        for (String listField : java.util.List.of("acceptedBrokers", "dependencies")) {
+            if (spec.get(listField) instanceof java.util.List<?> value && !value.isEmpty()) {
+                sb.append(",\"").append(listField).append("\":").append(genericJson(value));
+            }
+        }
         sb.append(",\"types\":[");
         List<Map<String, Object>> types = (List<Map<String, Object>>) spec.get("types");
         for (int i = 0; i < types.size(); i++) {

@@ -219,13 +219,33 @@ class OperatorIT {
         poliis.setApiVersion("dbo.jengu.cloud/v1alpha1");
         poliis.setKind("TenantRegistration");
         poliis.setMetadata(new ObjectMetaBuilder().withName("poliis").withNamespace(NS).build());
-        poliis.setAdditionalProperty("spec", Map.of(
-                "code", "poliis", "fhirVersion", "r4", "deletionPolicy", "Delete",
-                "pdi", true,
-                "audit", Map.of("level", "writes"),
-                "writeDiscipline", Map.of("default", "append-only"),
-                "retention", Map.of("perType", Map.of("Observation", Map.of("removeAfter", "P30D"))),
-                "types", List.of(Map.of("name", "Patient", "identity", "internal", "handling", "operational"))));
+        poliis.setAdditionalProperty("spec", Map.ofEntries(
+                Map.entry("code", "poliis"), Map.entry("fhirVersion", "r6"),
+                Map.entry("deletionPolicy", "Delete"),
+                Map.entry("pdi", true),
+                Map.entry("audit", Map.of("level", "writes")),
+                Map.entry("writeDiscipline", Map.of("default", "append-only")),
+                Map.entry("retention",
+                        Map.of("perType", Map.of("Observation", Map.of("removeAfter", "P30D")))),
+                // #121: zone/broker/acceptedBrokers/dependencies are the gap
+                // this test exists to close, on the same round trip as the
+                // §14/§15 blocks above — CRD schema, re-emit, and TenantSpec
+                // all have to agree, or a tenant provisioned through the CR
+                // comes up without the vocabulary it declared.
+                Map.entry("zone", "ee"),
+                Map.entry("broker", "tara"),
+                Map.entry("acceptedBrokers", List.of("tara", "eeid")),
+                Map.entry("dependencies", List.of(
+                        Map.of("name", "ee", "types", List.of("CodeSystem", "ValueSet")))),
+                Map.entry("types", List.of(
+                        // r6, and mirrored: the two enum gaps found alongside
+                        // the missing fields (#100, epic #58) — a CRD that
+                        // silently could not express either would fail the
+                        // same way, at bring-up rather than at the API server.
+                        Map.of("name", "Patient", "identity", "internal",
+                                "handling", "operational"),
+                        Map.of("name", "CodeSystem", "identity", "canonical",
+                                "handling", "mirrored")))));
         client.genericKubernetesResources(TenantOperator.CRD_CONTEXT).inNamespace(NS)
                 .resource(poliis).create();
         // poll-until-condition: a just-created CR may miss the next list on
@@ -245,6 +265,25 @@ class OperatorIT {
                 && specJson.contains("\"append-only\"") && specJson.contains("\"P30D\""), specJson);
         cloud.jengu.dbo.tenant.TenantSpec parsed = cloud.jengu.dbo.tenant.TenantSpec.parse(specJson);
         assertTrue(parsed.pdi() && parsed.policies().auditsWrites());
+
+        // #121: the fields TenantSpec accepts and the CR could not express —
+        // asserted on the PARSED spec, not the JSON string, so a re-emit that
+        // changed shape without changing content would still be caught.
+        assertEquals("r6", parsed.fhirVersion(), "the CRD's enum gap: this store serves r6");
+        assertEquals("ee", parsed.zone());
+        assertEquals("tara", parsed.broker());
+        assertEquals(List.of("tara", "eeid"), parsed.acceptedBrokers());
+        assertEquals(1, parsed.dependencies().size());
+        assertEquals("ee", parsed.dependencies().get(0).name());
+        assertEquals(Set.of("CodeSystem", "ValueSet"), parsed.dependencies().get(0).types());
+        // The CRD's second enum gap: "mirrored" (#100) reaches the parsed
+        // spec as the classification that means "another authority's
+        // publication, carried by our own lane" — not the ownership
+        // "replicated" declares.
+        assertEquals(cloud.jengu.dbo.core.api.Handling.mirrored().authority(),
+                parsed.types().stream()
+                        .filter(t -> "CodeSystem".equals(t.typeName())).findFirst()
+                        .orElseThrow().handling().authority());
         // retract it so later serving tests see only opitenant — poll the
         // retraction for the same reason as the creation
         client.genericKubernetesResources(TenantOperator.CRD_CONTEXT)
