@@ -128,7 +128,12 @@ final class ElementPayloads implements Payloads<Element> {
             // since a caller reading "Patient.name[0]" can find it and a caller
             // reading "[0]" cannot.
             if (shapeReference == null || shapeReference.isBlank()) {
-                validator().validate(null, messages, document.fhirType(), document);
+                InstanceValidator validator = borrowValidator();
+                try {
+                    validator.validate(null, messages, document.fhirType(), document);
+                } finally {
+                    returnValidator(validator);
+                }
             } else {
                 if (context.fetchResource(org.hl7.fhir.r5.model.StructureDefinition.class,
                         shapeReference) == null) {
@@ -140,8 +145,13 @@ final class ElementPayloads implements Payloads<Element> {
                             "the shape '" + shapeReference + "' is not one this face carries, "
                                     + "so nothing was checked against it"));
                 }
-                validator().validate(null, messages, document.fhirType(), document,
-                        shapeReference);
+                InstanceValidator validator = borrowValidator();
+                try {
+                    validator.validate(null, messages, document.fhirType(), document,
+                            shapeReference);
+                } finally {
+                    returnValidator(validator);
+                }
             }
             List<Issue> issues = new ArrayList<>(messages.stream()
                     .map(m -> new Issue(severityOf(m),
@@ -229,11 +239,61 @@ final class ElementPayloads implements Payloads<Element> {
     }
 
     /**
-     * Built per call rather than held: a validator accumulates state about the
-     * instance it is checking, and two tenants' writes sharing one is a defect
-     * that only appears under load.
+     * Validators, lent one at a time (#127).
+     *
+     * <p>Bounded so a burst of concurrent writes cannot retain validators for
+     * a load level that has passed. Above the cap a validator is built, used
+     * and dropped -- the old behaviour, which is the right thing to degrade to.
      */
-    private InstanceValidator validator() {
+    private final java.util.concurrent.ConcurrentLinkedQueue<InstanceValidator> lent =
+            new java.util.concurrent.ConcurrentLinkedQueue<>();
+    private final java.util.concurrent.atomic.AtomicInteger lentCount =
+            new java.util.concurrent.atomic.AtomicInteger();
+    private static final int VALIDATOR_CAP =
+            Math.max(4, Runtime.getRuntime().availableProcessors() * 2);
+
+    /**
+     * Borrow a validator, or build one if none is free.
+     *
+     * <p>Exclusive while borrowed, which is the invariant that matters: a
+     * validator accumulates state about the instance it is checking, so two
+     * concurrent writes sharing one is a defect that only appears under load.
+     * A pool keeps that guarantee -- it hands each caller its own -- while a
+     * thread-local would not, because this server answers every request on a
+     * NEW virtual thread and a thread-local would therefore be built once,
+     * used once and thrown away.
+     *
+     * <p><b>Reuse is safe because the library resets itself.</b>
+     * {@code InstanceValidator} carries {@code fetchCache},
+     * {@code resourceTracker} and {@code xhtmlElementMap} keyed by Element and
+     * assigned only in its constructor; if they merely accumulated, a lent
+     * validator would retain every tree it had ever seen. The validate
+     * overload called here delegates to the one that calls
+     * {@code clearInternalState}, which empties them on entry. Checked in the
+     * bytecode rather than assumed, because the failure mode is a leak that a
+     * short benchmark reports as a win.
+     *
+     * <p>Why it is worth doing: the constructor loads an OID table from CSV,
+     * and under load that parse cost MORE than the validation it exists to
+     * set up -- 79 samples against 52 in a 30-dump profile of the write path.
+     */
+    private InstanceValidator borrowValidator() {
+        InstanceValidator pooled = lent.poll();
+        if (pooled != null) {
+            lentCount.decrementAndGet();
+            return pooled;
+        }
+        return newValidator();
+    }
+
+    private void returnValidator(InstanceValidator validator) {
+        if (lentCount.get() < VALIDATOR_CAP) {
+            lentCount.incrementAndGet();
+            lent.offer(validator);
+        }
+    }
+
+    private InstanceValidator newValidator() {
         InstanceValidator validator = new InstanceValidator(context,
                 new ElementHostServices(context),
                 XVerExtensionManagerFactory.createExtensionManager(context),
