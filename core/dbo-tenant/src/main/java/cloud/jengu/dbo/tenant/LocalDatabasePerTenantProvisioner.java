@@ -39,14 +39,33 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     @Override
     public TenantDatabase provision(TenantSpec spec) {
         String dbName = spec.databaseName(); // Postgres-safe, collision-free
-        try (Connection c = adminConnection();
-             PreparedStatement ps = c.prepareStatement("CREATE DATABASE " + dbName)) {
-            ps.execute();
+        // Asked before created (#124): Postgres has no CREATE DATABASE IF NOT
+        // EXISTS in any version, and it logs an ERROR whenever it raises one,
+        // whether or not the client catches it — so the catch-and-attach path,
+        // correct as it is, put "database already exists" into the server log
+        // on every boot after the first. The common re-attach now asks and
+        // skips; two provisioners racing still land on 42P04, which the
+        // handler below absorbs — the catch is what makes this correct, the
+        // guard only makes it quiet.
+        try (Connection c = adminConnection()) {
+            boolean exists;
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT 1 FROM pg_database WHERE datname = ?")) {
+                ps.setString(1, dbName);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    exists = rs.next();
+                }
+            }
+            if (!exists) {
+                try (PreparedStatement ps = c.prepareStatement("CREATE DATABASE " + dbName)) {
+                    ps.execute();
+                }
+            }
         } catch (SQLException e) {
             if (!DUPLICATE_DATABASE.equals(e.getSQLState())) {
                 throw new IllegalStateException("provisioning failed for " + spec.code(), e);
             }
-            // already provisioned: attach (idempotent)
+            // lost the race to another provisioner: attach (idempotent)
         }
         applyTimeouts(dbName);
         DataSource pool = pools.computeIfAbsent(spec.code(), code -> {
@@ -203,19 +222,32 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
      */
     private void applyTimeouts(String dbName) {
         try (Connection c = adminConnection()) {
-            for (String ddl : new String[] {
-                    "ALTER DATABASE " + dbName + " SET idle_in_transaction_session_timeout = '60s'",
-                    "ALTER DATABASE " + dbName + " SET transaction_timeout = '300s'",
-                    "ALTER ROLE " + quoteIdent(user) + " SET transaction_timeout = '0'",
-            }) {
+            // The server knows its own version, so it is asked once rather
+            // than probed by a statement whose failure it logs (#124):
+            // transaction_timeout arrived in PG17, and an embedding host on
+            // PG16 was collecting an "unrecognized configuration parameter"
+            // ERROR per tenant per boot for a condition the code handles.
+            if (transactionTimeoutSupported == null) {
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT 1 FROM pg_settings WHERE name = 'transaction_timeout'");
+                     java.sql.ResultSet rs = ps.executeQuery()) {
+                    transactionTimeoutSupported = rs.next();
+                }
+            }
+            java.util.List<String> ddls = new java.util.ArrayList<>(java.util.List.of(
+                    "ALTER DATABASE " + dbName + " SET idle_in_transaction_session_timeout = '60s'"));
+            if (transactionTimeoutSupported) {
+                ddls.add("ALTER DATABASE " + dbName + " SET transaction_timeout = '300s'");
+                ddls.add("ALTER ROLE " + quoteIdent(user) + " SET transaction_timeout = '0'");
+            }
+            for (String ddl : ddls) {
                 try (PreparedStatement ps = c.prepareStatement(ddl)) {
                     ps.execute();
                 } catch (SQLException e) {
                     if ("42704".equals(e.getSQLState())) {
-                        // transaction_timeout arrived in PG17. An embedding
-                        // host (runs the platform's own
-                        // PG16) keeps the timeouts its major supports —
-                        // never a bring-up failure.
+                        // the backstop for anything ELSE a major does not
+                        // recognise — a missing timeout is never a bring-up
+                        // failure
                         continue;
                     }
                     throw e;
@@ -225,6 +257,9 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             throw new IllegalStateException("timeout settings failed for " + dbName, e);
         }
     }
+
+    /** Whether this server's major has transaction_timeout — asked once. */
+    private volatile Boolean transactionTimeoutSupported;
 
     private static String quoteIdent(String ident) {
         return "\"" + ident.replace("\"", "\"\"") + "\"";
