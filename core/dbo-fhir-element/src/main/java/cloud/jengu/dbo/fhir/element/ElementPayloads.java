@@ -244,8 +244,19 @@ final class ElementPayloads implements Payloads<Element> {
      * <p>Bounded so a burst of concurrent writes cannot retain validators for
      * a load level that has passed. Above the cap a validator is built, used
      * and dropped -- the old behaviour, which is the right thing to degrade to.
+     *
+     * <p><b>Softly held, because the cap is per tenant and the JVM is not.</b>
+     * One appliance serving one tenant pays for a handful of validators; a
+     * process holding fifty tenants pays fifty times that, and the pool would
+     * be choosing to keep a cache while the work that needs the memory fails.
+     * A soft reference inverts it -- the collector takes them back before it
+     * takes an OutOfMemoryError, and the store degrades to building one per
+     * write, which is exactly what it did before this existed. Found by the
+     * test JVM, which runs many tenants at once and started dying under a
+     * fixed heap where a single-tenant Pi never would have shown it.
      */
-    private final java.util.concurrent.ConcurrentLinkedQueue<InstanceValidator> lent =
+    private final java.util.concurrent.ConcurrentLinkedQueue<
+            java.lang.ref.SoftReference<InstanceValidator>> lent =
             new java.util.concurrent.ConcurrentLinkedQueue<>();
     private final java.util.concurrent.atomic.AtomicInteger lentCount =
             new java.util.concurrent.atomic.AtomicInteger();
@@ -278,10 +289,15 @@ final class ElementPayloads implements Payloads<Element> {
      * set up -- 79 samples against 52 in a 30-dump profile of the write path.
      */
     private InstanceValidator borrowValidator() {
-        InstanceValidator pooled = lent.poll();
-        if (pooled != null) {
+        java.lang.ref.SoftReference<InstanceValidator> held;
+        while ((held = lent.poll()) != null) {
             lentCount.decrementAndGet();
-            return pooled;
+            InstanceValidator pooled = held.get();
+            if (pooled != null) {
+                return pooled;
+            }
+            // Collected under pressure; keep draining rather than rebuilding
+            // on the first cleared slot.
         }
         return newValidator();
     }
@@ -289,7 +305,7 @@ final class ElementPayloads implements Payloads<Element> {
     private void returnValidator(InstanceValidator validator) {
         if (lentCount.get() < VALIDATOR_CAP) {
             lentCount.incrementAndGet();
-            lent.offer(validator);
+            lent.offer(new java.lang.ref.SoftReference<>(validator));
         }
     }
 
