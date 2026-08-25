@@ -55,7 +55,14 @@ public final class IdentityModel {
         EnvelopeExtractor roleGrant = (type, payload) -> {
             Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
             Envelope e = new Envelope();
-            e.identifier(ROLE_CODE_SYSTEM, Json.str(n, "roleCode"));
+            // The claim is role AND place (#126): "clinician" and "clinician
+            // at the main lab" are different grants and may both exist, so the
+            // organisation is part of what identifies one. An unscoped grant
+            // claims the bare code and keeps its old meaning, tenant-wide.
+            String organisation = Json.strOpt(n, "organisation");
+            e.identifier(ROLE_CODE_SYSTEM, organisation == null
+                    ? Json.str(n, "roleCode")
+                    : Json.str(n, "roleCode") + "@" + organisation);
             e.value("status", EnvelopeValue.of(Json.str(n, "status")));
             return e;
         };

@@ -120,19 +120,106 @@ public final class PolicyObjectStore implements ObjectStore,
     @Override
     public Optional<StoredObject> get(String typeName, String id) {
         Optional<StoredObject> result = inner.get(typeName, id);
+        if (result.isPresent() && !withinReach(typeName, id)) {
+            // Absent, not forbidden: a 403 for an id in another organisation
+            // confirms the id exists, which is exactly what a compartment is
+            // supposed to keep from leaking.
+            result = Optional.empty();
+        }
         auditRead("read", typeName, id);
         return result;
     }
 
+    /**
+     * Whether this record is inside the caller's organisational reach (#126).
+     *
+     * <p>Three ways to be inside, in the order they decide: the request is
+     * unbounded (tenant-wide grants, or no caller seam at all — internal
+     * machinery); the type declares no organisation path, so it is shared
+     * rather than somebody's; or the record's declared organisation edge
+     * points at one of the organisations the token was minted for.
+     *
+     * <p>{@code Organization} itself has no edge to consult — its membership
+     * IS its id, so the reach set is checked directly.
+     */
+    private boolean withinReach(String typeName, String id) {
+        java.util.Set<String> reach = cloud.jengu.dbo.core.api.Reach.organisations();
+        if (reach == null) {
+            return true;
+        }
+        if ("Organization".equals(typeName)) {
+            return reach.contains(id);
+        }
+        String path = policies.organisationPathFor(typeName);
+        if (path == null) {
+            return true;
+        }
+        return !inner.select(Criteria.of(typeName).idEquals(id)
+                .referencingAny(path, "Organization", reach).limit(1)).isEmpty();
+    }
+
+    /**
+     * The same reach, applied to a whole query rather than one record: the
+     * criteria gain the compartment predicate, so what comes back is already
+     * only the caller's — a filtered page rather than a page and a filter,
+     * because a post-filtered page would leak the compartment's size through
+     * the gaps in its numbering.
+     */
+    private Criteria reached(Criteria criteria) {
+        java.util.Set<String> reach = cloud.jengu.dbo.core.api.Reach.organisations();
+        if (reach == null) {
+            return criteria;
+        }
+        String path = policies.organisationPathFor(criteria.typeName());
+        if (path != null) {
+            criteria.referencingAny(path, "Organization", reach);
+        }
+        return criteria;
+    }
+
     @Override
     public List<StoredObject> getByIdentifier(String typeName, List<Identifier> identifiers) {
-        List<StoredObject> result = inner.getByIdentifier(typeName, identifiers);
+        List<StoredObject> result = inner.getByIdentifier(typeName, identifiers).stream()
+                .filter(o -> withinReach(typeName, o.id()))
+                .toList();
         auditRead("search", typeName, null);
         return result;
     }
 
+    /**
+     * A select inside the caller's reach. {@code Organization} needs the
+     * post-filter shape — its membership is its id, not an edge — and the
+     * result sets there are tree-sized, so filtering after the query costs a
+     * dozen comparisons rather than a second query form.
+     */
+    private List<StoredObject> selectReached(Criteria criteria) {
+        java.util.Set<String> reach = cloud.jengu.dbo.core.api.Reach.organisations();
+        if (reach != null && "Organization".equals(criteria.typeName())) {
+            return inner.select(criteria).stream()
+                    .filter(o -> reach.contains(o.id()))
+                    .toList();
+        }
+        return inner.select(reached(criteria));
+    }
+
+    private FeedChunk<StoredObject> organisationFiltered(FeedChunk<StoredObject> chunk) {
+        java.util.Set<String> reach = cloud.jengu.dbo.core.api.Reach.organisations();
+        if (reach == null) {
+            return chunk;
+        }
+        List<StoredObject> kept = chunk.items().stream()
+                .filter(o -> !"Organization".equals(o.typeName()) || reach.contains(o.id()))
+                .toList();
+        return kept.size() == chunk.items().size() ? chunk
+                : new FeedChunk<>(kept, chunk.nextCursor(), chunk.drained());
+    }
+
     @Override
     public List<StoredObject> history(String typeName, String id) {
+        if (!withinReach(typeName, id)) {
+            auditRead("history", typeName, id);
+            return List.of();
+        }
         List<StoredObject> result = inner.history(typeName, id);
         auditRead("history", typeName, id);
         return result;
@@ -140,19 +227,23 @@ public final class PolicyObjectStore implements ObjectStore,
 
     @Override
     public List<StoredObject> select(Criteria criteria) {
-        List<StoredObject> result = inner.select(criteria);
+        List<StoredObject> result = selectReached(criteria);
         auditRead("search", criteria.typeName(), null);
         return result;
     }
 
     @Override
     public long count(Criteria criteria) {
-        return inner.count(criteria);
+        if ("Organization".equals(criteria.typeName())) {
+            return selectReached(criteria).size();
+        }
+        return inner.count(reached(criteria));
     }
 
     @Override
     public FeedChunk<StoredObject> page(Criteria criteria, String cursor) {
-        FeedChunk<StoredObject> result = inner.page(criteria, cursor);
+        FeedChunk<StoredObject> result = inner.page(reached(criteria), cursor);
+        result = organisationFiltered(result);
         auditRead("search", criteria.typeName(), null);
         return result;
     }

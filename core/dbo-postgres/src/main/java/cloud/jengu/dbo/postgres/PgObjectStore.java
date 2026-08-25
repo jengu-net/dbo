@@ -632,6 +632,17 @@ public final class PgObjectStore implements ObjectStore {
             params.add(ref.targetType());
             params.add(ref.targetId());
         }
+        for (Criteria.ReferencingAny any : criteria.referencingAnyPredicates()) {
+            sql.append(" AND EXISTS (SELECT 1 FROM state.%s_reference r WHERE r.owner_id = d.id".formatted(d));
+            sql.append(" AND r.ref_type = ? AND r.target_type = ? AND r.target_id IN (");
+            params.add(any.refType());
+            params.add(any.targetType());
+            for (int i = 0; i < any.targetIds().size(); i++) {
+                sql.append(i == 0 ? "?" : ", ?");
+                params.add(any.targetIds().get(i));
+            }
+            sql.append("))");
+        }
         for (Criteria.RefMissing rm : criteria.refMissingPredicates()) {
             sql.append(rm.missing() ? " AND NOT EXISTS" : " AND EXISTS")
                .append(" (SELECT 1 FROM state.%s_reference r WHERE r.owner_id = d.id AND r.ref_type = ?)"

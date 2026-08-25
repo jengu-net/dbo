@@ -43,6 +43,14 @@ public final class AuthorityAuthenticator implements RequestAuthenticator {
                     cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE,
                     context.get().purposeOfUse());
         }
+        if (context.get().organisations() != null) {
+            // The token's reach becomes the request's (#126): the policy layer
+            // constrains what comes back to the organisations the grants were
+            // made at. Absent, nothing is bound — the shape every token had
+            // before organisations became an axis.
+            cloud.jengu.dbo.core.api.Reach.bind(
+                    java.util.Set.copyOf(context.get().organisations()));
+        }
         if (context.get().actClient() != null) {
             // §16.4: a process acting in the name of a human — record both
             cloud.jengu.dbo.core.api.Caller.setChain(
