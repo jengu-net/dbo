@@ -110,6 +110,34 @@ jobs:
       image_tag: ${{ steps.version.outputs.image_tag }}
       is_release: ${{ steps.version.outputs.is_release }}
 
+  dependencies:
+    # The dependency graph, submitted from a runner that exists.
+    #
+    # GitHub's own "Automatic Dependency Submission" targets hosted runners,
+    # which this org does not use for exactly the reason the build job states
+    # above — so it never started, and failed in five seconds on every push
+    # with no runner and no steps. A red X that nobody can act on teaches
+    # people to ignore red Xs, which is the real cost.
+    #
+    # Disable the automatic one in Settings -> Code security once this lands,
+    # or both keep running and only one of them can work.
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: self-hosted
+    # writing the snapshot to the dependency graph is a write
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      # After the suite rather than beside it: resolving every configuration
+      # across a composite build is real work, and this runner has a ceiling
+      # the suite already spends.
+      - uses: gradle/actions/dependency-submission@v4
+
   publish:
     needs: build
     if: github.event_name != 'pull_request'
