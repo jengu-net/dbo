@@ -141,6 +141,41 @@ public record Handling(Authority authority, Mutability mutability,
     }
 
     /** Clinical and business records the tenant's own people create. */
+    /**
+     * The declared class's name on the wire, or null for a handling no spec
+     * can declare (#109).
+     *
+     * <p>Derived by recognition rather than stored, so the record's shape --
+     * and every hand-built instance in tests -- stays untouched. The seven
+     * names here are exactly the seven a tenant spec may declare, which is
+     * the fact a reader is being told: not the five components, but the
+     * classification the tenant chose and this store enforces.
+     */
+    public String wire() {
+        if (equals(operational())) {
+            return "operational";
+        }
+        if (equals(projectedConfig())) {
+            return "projected-config";
+        }
+        if (equals(replicated())) {
+            return "replicated";
+        }
+        if (equals(mirrored())) {
+            return "mirrored";
+        }
+        if (equals(storeAuthored())) {
+            return "store-authored";
+        }
+        if (equals(audit())) {
+            return "audit";
+        }
+        if (equals(ephemeral())) {
+            return "ephemeral";
+        }
+        return null;
+    }
+
     public static Handling operational() {
         return new Handling(Authority.TENANT_USERS, Mutability.FULL,
                 Durability.VERSIONED, Travel.BACKUP_AND_EXPORT);

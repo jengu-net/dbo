@@ -107,6 +107,17 @@ final class ElementRecordProjection implements RecordProjection {
                         "What a step counted — the names are the step's own.", null),
                 codeSystem(RUN_OUTPUT, "DboRunOutput",
                         "What a run carries beside its tally.", List.of("outcome")),
+                // Meta.security stamps carry this system on every served
+                // resource (#109), and a system on the wire must resolve
+                // (#91). The seven codes are exactly the seven handling
+                // classes a tenant spec may declare -- the classification the
+                // reader is being governed by, said where FHIR says it.
+                codeSystem("urn:dbo:handling", "DboHandling",
+                        "The handling class this store enforces on a record: who may "
+                                + "write it, whether it may change, whether it is kept, and "
+                                + "whether it may leave.",
+                        List.of("operational", "projected-config", "replicated", "mirrored",
+                                "store-authored", "audit", "ephemeral")),
                 // The IDENTIFIER namespaces, answered the way FHIR answers
                 // "what is this identifier system" — with a NamingSystem, not
                 // with a CodeSystem it is not (#91). A client that meets

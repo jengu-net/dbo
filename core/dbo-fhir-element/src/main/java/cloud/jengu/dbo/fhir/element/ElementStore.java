@@ -338,7 +338,27 @@ public final class ElementStore implements FhirStoreFacade {
 
     private String rendered(StoredObject stored) {
         return new String(ElementAncestors.rendered(version.context(), stored.payload(),
-                stored.id(), stored.versionId()), StandardCharsets.UTF_8);
+                stored.id(), stored.versionId(), null, stampsFor(stored)), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * The engine's claims about this record, for {@code meta} (#109): the
+     * upstream a streamed copy came from, and the handling class the tenant
+     * declared for its type — which is the classification a reader is being
+     * governed by and was, until now, never told.
+     */
+    private ElementAncestors.Stamps stampsFor(StoredObject stored) {
+        return new ElementAncestors.Stamps(
+                ElementAncestors.sourceUri(stored.origin()),
+                handlingWireFor(stored.typeName()));
+    }
+
+    private String handlingWireFor(String typeName) {
+        return types.stream()
+                .filter(t -> t.typeName().equals(typeName))
+                .findFirst()
+                .map(t -> t.handling().wire())
+                .orElse(null);
     }
 
     /**
@@ -529,9 +549,10 @@ public final class ElementStore implements FhirStoreFacade {
 
     private PayloadFraming.Member member(StoredObject stored, String role,
             List<String> elements) {
+        ElementAncestors.Stamps stamps = stampsFor(stored);
         return new PayloadFraming.Member(stored.typeName(), stored.id(), stored.versionId(),
                 stored.payload(), baseUrl + "/" + stored.typeName() + "/" + stored.id(), role,
-                elements);
+                elements, stamps.source(), stamps.handling());
     }
 
     private String selfUrl(String typeName, Map<String, String> params) {

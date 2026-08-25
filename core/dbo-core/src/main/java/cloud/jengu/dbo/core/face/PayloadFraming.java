@@ -43,7 +43,22 @@ public interface PayloadFraming {
      *             match. A word about the document, not about FHIR.
      */
     record Member(String typeName, String id, long versionId, byte[] payload,
-            String url, String role, java.util.List<String> elements) {
+            String url, String role, java.util.List<String> elements,
+            String source, String handling) {
+
+        /**
+         * @param source   which upstream streamed this copy, or null for the
+         *                 tenant's own record — said as {@code Meta.source} (#109)
+         * @param handling the declared handling class enforced on this record,
+         *                 or null — said as {@code Meta.security}
+         */
+        public Member {
+        }
+
+        public Member(String typeName, String id, long versionId, byte[] payload,
+                String url, String role, java.util.List<String> elements) {
+            this(typeName, id, versionId, payload, url, role, elements, null, null);
+        }
 
         /** A member that was matched rather than included. */
         public static final String MATCHED = "matched";
