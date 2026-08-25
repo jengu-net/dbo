@@ -468,7 +468,8 @@ public final class PdiObjectStore implements ObjectStore {
         // is a clean pseudonymous resource
         return new StoredObject(object.id(), object.typeName(), object.versionId(),
                 object.lastUpdated(), Json.render(parsed).getBytes(StandardCharsets.UTF_8),
-                object.deleted(), object.payloadVersion(), object.origin());
+                object.deleted(), object.payloadVersion(), object.origin(),
+                object.shadowing());
     }
 
     // ------------------------------------------------------------- rights

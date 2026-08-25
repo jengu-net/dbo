@@ -152,6 +152,49 @@ class MetaSaysTheEnginesFactsIT {
                 "while the author's coding still survives: " + again);
     }
 
+    /**
+     * A record locally overriding a parked upstream copy says so (#109): the
+     * shadow used to be visible only to whoever queried the sync engine, and
+     * #102 showed how long one sits there unnoticed. Meta.tag is where the
+     * record itself tells its reader.
+     */
+    @Test
+    void aRecordShadowingAnUpstreamCopySaysSoInMetaTag() throws Exception {
+        // saaja's own local decision at a canonical the upstream also publishes
+        assertEquals(201, post(base("saaja") + "/CodeSystem", """
+                {"resourceType":"CodeSystem","status":"active","content":"complete",
+                 "url":"https://allikas.test/cs/vaidlus",
+                 "concept":[{"code":"kohalik-otsus"}]}""").statusCode());
+        // the upstream publishes DIFFERENT content at the same canonical
+        assertEquals(201, post(base("allikas") + "/CodeSystem", """
+                {"resourceType":"CodeSystem","status":"active","content":"complete",
+                 "url":"https://allikas.test/cs/vaidlus",
+                 "concept":[{"code":"ylemvoim"}]}""").statusCode());
+        manager.syncRound();
+
+        // The document is a shell -- concepts live natively -- so ownership is
+        // proven where concepts answer: the LOCAL code resolves, upstream's
+        // does not (REQ-DBO-SYNC-LOCAL-SHADOWING).
+        assertEquals(200, get(base("saaja") + "/CodeSystem/$lookup"
+                + "?system=https://allikas.test/cs/vaidlus&code=kohalik-otsus").statusCode(),
+                "the local override's concept answers");
+        assertTrue(get(base("saaja") + "/CodeSystem/$lookup"
+                        + "?system=https://allikas.test/cs/vaidlus&code=ylemvoim")
+                        .statusCode() >= 400,
+                "the parked upstream's concept does not");
+        String local = get(base("saaja")
+                + "/CodeSystem?url=https://allikas.test/cs/vaidlus").body();
+        assertTrue(local.contains("\"system\":\"urn:dbo:sync\"")
+                        && local.contains("\"code\":\"shadows\""),
+                "and now SAYS it is standing in front of a parked upstream copy: " + local);
+
+        // a record shadowing nothing carries no such tag
+        String unshadowed = get(base("saaja")
+                + "/CodeSystem?url=https://allikas.test/cs/varvid").body();
+        assertFalse(unshadowed.contains("\"code\":\"shadows\""),
+                "an ordinary copy is not tagged: " + unshadowed);
+    }
+
     /** The system on the wire resolves, per the #91 ratchet. */
     @Test
     void theHandlingSystemResolvesWhereItIsServedFrom() throws Exception {

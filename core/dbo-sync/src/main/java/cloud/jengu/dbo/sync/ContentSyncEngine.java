@@ -212,7 +212,7 @@ public final class ContentSyncEngine {
                     shadowed.sourceVersionId(), shadowed.deleted() ? ChangeKind.DELETED : ChangeKind.UPDATED,
                     java.time.Instant.now(), shadowed.payload(), shadowed.deleted(),
                     shadowed.payloadVersion());
-            if (tryApply(replay)) {
+            if (tryApply(replay) == null) {
                 removeShadow(shadowed.objectId());
                 applied++;
             }
@@ -221,17 +221,24 @@ public final class ContentSyncEngine {
     }
 
     private void applyItem(FeedItem item) {
-        if (!tryApply(item)) {
-            park(item);
+        String shadowedBy = tryApply(item);
+        if (shadowedBy != null) {
+            park(item, shadowedBy);
         }
     }
 
-    /** True when applied; false when shadowed by a local override. */
-    private boolean tryApply(FeedItem item) {
+    /**
+     * Null when applied; otherwise the id of the LOCAL record whose override
+     * shadows this item. Returned rather than swallowed (#109): the shadow row
+     * records which record stands in front of it, so the serving path can say
+     * so on that record -- a parked shadow was visible only to whoever queried
+     * the sync engine, and #102 showed how long one can sit there unnoticed.
+     */
+    private String tryApply(FeedItem item) {
         if (item.kind() == ChangeKind.DELETED || item.deleted()) {
             targetStore.delete(item.typeName(), item.objectId(), null);
             recordOrigin(item, null);
-            return true;
+            return null;
         }
         // REQ-DBO-SYNC-TERMINOLOGY-GRAIN-SURVIVES: what the source STORES is not
         // always what a dependent needs to receive. A CodeSystem is kept as a
@@ -258,7 +265,7 @@ public final class ContentSyncEngine {
         } catch (RuntimeException conversionFailure) {
             // REQ-DBO-SYNC-CONVERT-ON-APPLY: dead-letter visibly, never skip silently
             deadLetter(item, String.valueOf(conversionFailure.getMessage()));
-            return true; // handled (visible); not a shadow
+            return null; // handled (visible); not a shadow
         }
         // Computed before the try, not inside it: the conflict handler
         // compares what WOULD have been written against what is already here,
@@ -267,7 +274,7 @@ public final class ContentSyncEngine {
         // to the native store, and the shell back here to be written under
         // the source's identity like everything else
         byte[] stored = targetGrain != null && targetGrain.handles(item.typeName())
-                ? targetGrain.receive(item.typeName(), payload)
+                ? targetGrain.storedFormOf(item.typeName(), payload)
                 : payload;
         try {
             // As the replication lane, which is what this is. A type declared
@@ -281,14 +288,23 @@ public final class ContentSyncEngine {
             // the source's identity like everything else
             targetStore.put(new PutRequest(item.typeName(), item.objectId(), null, stored),
                     cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
+            // Only now, with the write ACCEPTED, do the parts with their own
+            // home land there (#109): taking a CodeSystem apart before the
+            // engine had ruled replaced a local override's concepts with the
+            // parked publication's -- the shadow protected the document and
+            // lost the answers, and $lookup served the copy shadowing was
+            // built to hold back.
+            if (targetGrain != null && targetGrain.handles(item.typeName())) {
+                targetGrain.keep(item.typeName(), payload);
+            }
             recordOrigin(item, version);
-            return true;
+            return null;
         } catch (IdentityConflictException conflict) {
             if (isStreamedOrigin(conflict.existingId())) {
                 // stale claim from an earlier copy of ours — surface loudly
                 throw conflict;
             }
-            if (alreadyHeldVerbatim(item.typeName(), conflict.existingId(), stored)) {
+            if (alreadyHeldVerbatim(item.typeName(), conflict.existingId(), payload)) {
                 // Not an override: the same publication, held here already.
                 //
                 // Shadowing exists to protect a local DIFFERENCE — somebody
@@ -305,9 +321,9 @@ public final class ContentSyncEngine {
                 // tenant that served them; a tenant that also inherits
                 // CodeSystem is given the identical publication twice, once by
                 // each route.
-                return true;
+                return null;
             }
-            return false; // local override wins: REQ-DBO-SYNC-LOCAL-SHADOWING
+            return conflict.existingId(); // local override wins: REQ-DBO-SYNC-LOCAL-SHADOWING
         }
     }
 
@@ -348,9 +364,24 @@ public final class ContentSyncEngine {
      * against the payload about to be written after the grain has taken the
      * wire form apart.
      */
-    private boolean alreadyHeldVerbatim(String typeName, String existingId, byte[] arriving) {
+    /**
+     * Whether the local claimant already holds this publication, judged on the
+     * WHOLE thing (#109). For a grain type the stored form is a shell, and two
+     * shells are byte-equal whenever their counts are — so comparing stored
+     * forms judged two different code lists to be the same publication, deduped
+     * the arrival, and the shadow that should have said 'a local decision
+     * stands here' was never parked. The local side is reassembled through the
+     * same codec the wire form came through, so identical publications still
+     * compare equal byte for byte.
+     */
+    private boolean alreadyHeldVerbatim(String typeName, String existingId, byte[] arrivingWire) {
         return targetStore.get(typeName, existingId)
-                .map(held -> java.util.Arrays.equals(held.payload(), arriving))
+                .map(held -> {
+                    byte[] local = targetGrain != null && targetGrain.handles(typeName)
+                            ? targetGrain.forTransport(typeName, held.payload())
+                            : held.payload();
+                    return java.util.Arrays.equals(local, arrivingWire);
+                })
                 .orElse(false);
     }
 
@@ -439,18 +470,19 @@ public final class ContentSyncEngine {
         }
     }
 
-    private void park(FeedItem item) {
+    private void park(FeedItem item, String shadowedBy) {
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement("""
                      INSERT INTO state.%s_sync_shadow
-                       (dependency, object_id, type, source_version_id, payload, deleted, payload_version, parked_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, now())
+                       (dependency, object_id, type, source_version_id, payload, deleted, payload_version, parked_at, shadows_object_id)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, now(), ?)
                      ON CONFLICT (dependency, object_id) DO UPDATE SET
                        source_version_id = EXCLUDED.source_version_id,
                        payload = EXCLUDED.payload,
                        deleted = EXCLUDED.deleted,
                        payload_version = EXCLUDED.payload_version,
-                       parked_at = now()""".formatted(targetDomain))) {
+                       parked_at = now(),
+                       shadows_object_id = EXCLUDED.shadows_object_id""".formatted(targetDomain))) {
             ps.setString(1, dependency.name());
             ps.setObject(2, UUID.fromString(item.objectId()));
             ps.setString(3, item.typeName());
@@ -458,6 +490,7 @@ public final class ContentSyncEngine {
             ps.setBytes(5, item.payload());
             ps.setBoolean(6, item.deleted());
             ps.setString(7, item.payloadVersion());
+            ps.setObject(8, UUID.fromString(shadowedBy));
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new IllegalStateException("shadow write failed", e);
@@ -518,8 +551,12 @@ public final class ContentSyncEngine {
                       deleted boolean NOT NULL,
                       payload_version text NOT NULL,
                       parked_at timestamptz NOT NULL,
+                      shadows_object_id uuid,
                       PRIMARY KEY (dependency, object_id)
                     )""".formatted(targetDomain),
+                    // idempotent, for shadow tables that predate the column
+                    "ALTER TABLE state.%s_sync_shadow ADD COLUMN IF NOT EXISTS shadows_object_id uuid"
+                            .formatted(targetDomain),
                     """
                     CREATE TABLE IF NOT EXISTS state.%s_sync_dlq (
                       dependency text NOT NULL,

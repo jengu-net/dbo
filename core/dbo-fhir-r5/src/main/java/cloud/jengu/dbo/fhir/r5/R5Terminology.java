@@ -343,17 +343,26 @@ public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
      * every other type.
      */
     @Override
-    public byte[] receive(String typeName, byte[] transportedPayload) {
+    public byte[] storedFormOf(String typeName, byte[] transportedPayload) {
+        String json = new String(transportedPayload, StandardCharsets.UTF_8);
+        if ("ValueSet".equals(typeName)) {
+            return transportedPayload;
+        }
+        CodeSystem cs = (CodeSystem) personality.ctxInternal().newJsonParser().parseResource(json);
+        return personality.ctxInternal().newJsonParser().encodeResourceToString(shellOf(cs))
+                .getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public void keep(String typeName, byte[] transportedPayload) {
         String json = new String(transportedPayload, StandardCharsets.UTF_8);
         if ("ValueSet".equals(typeName)) {
             putCompose((ValueSet) personality.ctxInternal().newJsonParser().parseResource(json));
-            return transportedPayload;
+            return;
         }
         CodeSystem cs = (CodeSystem) personality.ctxInternal().newJsonParser().parseResource(json);
         List<Concept> flat = new ArrayList<>();
         flatten(cs.getConcept(), null, flat);
         terminology.importSystem(cs.getUrl(), cs.getVersion(), flat.iterator());
-        return personality.ctxInternal().newJsonParser().encodeResourceToString(shellOf(cs))
-                .getBytes(StandardCharsets.UTF_8);
     }
 }

@@ -100,6 +100,19 @@ public final class SchemaManager {
         // without one. The sync engine's own CREATE IF NOT EXISTS remains and
         // is now a no-op.
         execute(c, """
+                CREATE TABLE IF NOT EXISTS state.%s_sync_shadow (
+                  dependency text NOT NULL,
+                  object_id uuid NOT NULL,
+                  type text NOT NULL,
+                  source_version_id bigint NOT NULL,
+                  payload bytea NOT NULL,
+                  deleted boolean NOT NULL,
+                  payload_version text NOT NULL,
+                  parked_at timestamptz NOT NULL,
+                  shadows_object_id uuid,
+                  PRIMARY KEY (dependency, object_id)
+                )""".formatted(d));
+        execute(c, """
                 CREATE TABLE IF NOT EXISTS state.%s_sync_origin (
                   object_id uuid PRIMARY KEY,
                   dependency text NOT NULL,
