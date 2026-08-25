@@ -108,15 +108,31 @@ public final class ElementStore implements FhirStoreFacade {
      * (REQ-DBO-VER-ONE-READ-PER-REQUEST).
      */
     Accepted accepted(String resourceJson) {
+        return accepted(resourceJson, null);
+    }
+
+    /**
+     * The same, with a resolver consulted BEFORE the store (#129): a
+     * transaction's entries may answer a conditional reference the store
+     * cannot — the referent is being created a few lines further down the
+     * document — so the bundle path passes its own claims here. A reference
+     * neither answers reaches the same refusal it always did, just later.
+     */
+    Accepted accepted(String resourceJson, ElementReferences.Resolver first) {
         byte[] payload = resourceJson.getBytes(StandardCharsets.UTF_8);
         Object document = payloads.read(null, payload);
         String type = payloads.typeOf(document);
+        ElementReferences.Resolver resolver = first == null ? this::identified
+                : (typeName, query) -> {
+                    java.util.Optional<String> inBundle = first.resolve(typeName, query);
+                    return inBundle.isPresent() ? inBundle : identified(typeName, query);
+                };
         // A reference that is a question is answered HERE, in the tree that
         // was already read (#89). Re-reading would be a second read of one
         // payload, and keeping the original bytes would store a document the
         // validator never saw. Composed once, and only when something moved.
         if (document instanceof org.hl7.fhir.r5.elementmodel.Element element
-                && ElementReferences.resolve(element, this::identified)) {
+                && ElementReferences.resolve(element, resolver)) {
             payload = payloads.write(document);
         }
         List<String> issues = payloads.validate(type, document);
@@ -175,7 +191,24 @@ public final class ElementStore implements FhirStoreFacade {
      * to say, and picking here would attach the record to the wrong subject —
      * the failure a conditional reference is used to avoid.
      */
-    private java.util.Optional<String> identified(String typeName, String query) {
+    java.util.Optional<String> identified(String typeName, String query) {
+        List<StoredObject> found = store.getByIdentifier(typeName,
+                java.util.List.of(identityOf(typeName, query)));
+        if (found.size() > 1) {
+            throw new IllegalArgumentException("the reference '" + typeName + "?" + query
+                    + "' matches " + found.size() + " records — which one is the writer's to "
+                    + "say, and choosing here would attach this to the wrong one");
+        }
+        return found.stream().findFirst().map(StoredObject::id);
+    }
+
+    /**
+     * The identity a conditional names, parsed the one way (#129): the bundle
+     * path keys its own entries' claims by exactly this, so a reference and
+     * the entry it points at agree on what the identity IS however the query
+     * spells it.
+     */
+    cloud.jengu.dbo.core.api.Identifier identityOf(String typeName, String query) {
         java.util.Map<String, String> condition = conditionOf(typeName, query);
         java.util.Map.Entry<String, String> only = condition.entrySet().iterator().next();
         cloud.jengu.dbo.core.api.Identifier identifier = switch (only.getKey()) {
@@ -195,13 +228,7 @@ public final class ElementStore implements FhirStoreFacade {
                     + "' — a write whose meaning depends on general search means something "
                     + "different tomorrow");
         };
-        List<StoredObject> found = store.getByIdentifier(typeName, List.of(identifier));
-        if (found.size() > 1) {
-            throw new IllegalArgumentException("the reference '" + typeName + "?" + query
-                    + "' matches " + found.size() + " records — which one is the writer's to "
-                    + "say, and choosing here would attach this to the wrong one");
-        }
-        return found.stream().findFirst().map(StoredObject::id);
+        return identifier;
     }
 
     /** The one condition a conditional reference may carry. */

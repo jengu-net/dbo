@@ -192,6 +192,20 @@ final class ElementBundles {
         }
     }
 
+    /**
+     * One spelling for one identity, however the query writes it: parsed by
+     * the same rules a reference is (#129), so an entry claiming
+     * {@code ?identifier=a%7Cb} and a reference asking {@code ?identifier=a|b}
+     * meet at the same key.
+     */
+    private String claimKey(String conditionalUrl) {
+        int q = conditionalUrl.indexOf('?');
+        String type = conditionalUrl.substring(0, q);
+        cloud.jengu.dbo.core.api.Identifier identity =
+                store.identityOf(type, conditionalUrl.substring(q + 1));
+        return type + "\u0000" + identity.system() + "\u0000" + identity.value();
+    }
+
     // ---------------------------------------------------------- transaction
 
     /**
@@ -203,6 +217,11 @@ final class ElementBundles {
     private String transaction(List<Entry> entries) {
         Map<String, String> resolved = new HashMap<>();
         Map<Integer, String> allocated = new HashMap<>();
+        // The document's own claims (#129): identity -> the id it will have.
+        // Collected across EVERY entry before any reference resolves, which is
+        // what makes a parent declared after its child the same tree.
+        Map<String, String> claimed = new HashMap<>();
+        Map<String, Integer> claimants = new HashMap<>();
         for (Entry entry : entries) {
             switch (entry.method()) {
                 case "POST" -> {
@@ -219,7 +238,33 @@ final class ElementBundles {
                     }
                 }
                 case "PUT" -> {
-                    if (entry.fullUrl() != null) {
+                    if (entry.url().indexOf('?') >= 0) {
+                        // A conditional PUT: the entry claims an identity
+                        // (REQ-DBO-CORE-CONDITIONAL-UPSERT, whose "and inside
+                        // a bundle" this path never honoured before). The id
+                        // is the store's where the record exists — the entry
+                        // becomes an update onto it — and minted where it does
+                        // not, exactly as POSTs are minted above. The identity
+                        // unique index backstops the race: another writer
+                        // claiming it between here and commit fails the whole
+                        // transaction, and the retry converges.
+                        String key = claimKey(entry.url());
+                        Integer other = claimants.putIfAbsent(key, entry.index());
+                        if (other != null) {
+                            throw new IllegalArgumentException("entry[" + entry.index()
+                                    + "] and entry[" + other + "] both claim '" + entry.url()
+                                    + "' — one document may claim an identity once "
+                                    + "(REQ-DBO-CORE-NO-IMPLICIT-MERGE)");
+                        }
+                        String type = entry.url().substring(0, entry.url().indexOf('?'));
+                        String query = entry.url().substring(entry.url().indexOf('?') + 1);
+                        String id = store.identified(type, query).orElseGet(UuidV7::newId);
+                        allocated.put(entry.index(), id);
+                        claimed.put(key, id);
+                        if (entry.fullUrl() != null) {
+                            resolved.put(entry.fullUrl(), type + "/" + id);
+                        }
+                    } else if (entry.fullUrl() != null) {
                         resolved.put(entry.fullUrl(), entry.url());
                     }
                 }
@@ -232,13 +277,18 @@ final class ElementBundles {
         for (Entry entry : entries) {
             resolveReferences(required(entry), resolved, entry.index());
         }
+        // The entries' claims answer a conditional reference before the store
+        // (#129, REQ-DBO-CORE-CONDITIONAL-REFERENCES as amended): the referent
+        // may be a few lines further down this document. A question neither
+        // the document nor the store answers refuses exactly as it always did.
+        ElementReferences.Resolver inDocument = (type, query) ->
+                java.util.Optional.ofNullable(claimed.get(claimKey(type + "?" + query)));
         List<PutRequest> requests = new ArrayList<>();
         for (Entry entry : entries) {
-            String[] segments = entry.url().split("/");
             String resourceJson = json(entry.resource());
-            var accepted = store.accepted(resourceJson);
-            String id = entry.method().equals("POST")
-                    ? allocated.get(entry.index()) : segments[1];
+            var accepted = store.accepted(resourceJson, inDocument);
+            String id = allocated.containsKey(entry.index())
+                    ? allocated.get(entry.index()) : entry.url().split("/")[1];
             requests.add(new PutRequest(accepted.type(), id,
                     entry.method().equals("POST") ? null : entry.ifMatchVersion(),
                     accepted.payload()));
