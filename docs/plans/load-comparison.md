@@ -10,7 +10,7 @@ third target, an ingest workload, and machine-resource sampling.
 
 ## 1. What the source data actually is
 
-Measured against `rowling` on `jengu-worker-2` (192.168.1.16), not estimated:
+Measured against the source population on the cluster's database node, not estimated:
 
 | | |
 |---|---|
