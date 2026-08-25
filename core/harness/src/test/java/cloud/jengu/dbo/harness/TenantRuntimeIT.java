@@ -101,7 +101,7 @@ class TenantRuntimeIT {
         Files.writeString(dir.resolve(code + ".json"), """
                 {"code":"%s","fhirVersion":"r4","types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""".formatted(code));
-        assertTrue(manager.scanOnce().contains(code));
+        assertTrue(UntilServed.scan(manager, code).contains(code));
         assertEquals(200, get(manager.baseUrl(code) + "/metadata").statusCode());
         assertTrue(cloud.jengu.dbo.tenant.TenantSpec.databaseName(code).length() <= 63);
         // deterministic: same code, same name, every derivation
@@ -117,7 +117,14 @@ class TenantRuntimeIT {
                 {"code":"teine","fhirVersion":"r5","types":[
                   {"name":"SubscriptionTopic","identity":"canonical","handling":"operational"},
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
-        assertEquals(java.util.Set.of("aiakas", "teine"), manager.scanOnce());
+        // Scanned until served, not once: scanOnce answers with what is BEING
+        // SERVED, and a pass brings up what it can in whatever order the
+        // filesystem hands back. The runtime promises the wait ends, not that
+        // one pass ends it -- so asserting on a single pass asserts something
+        // stronger than the promise, and it failed on CI exactly that way,
+        // with teine absent from an otherwise correct set.
+        assertEquals(java.util.Set.of("aiakas", "teine"),
+                UntilServed.scan(manager, "aiakas", "teine"));
 
         String teine = manager.baseUrl("teine");
         assertEquals(201, post(teine + "/SubscriptionTopic", """
