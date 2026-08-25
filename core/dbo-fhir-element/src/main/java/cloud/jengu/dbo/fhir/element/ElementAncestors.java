@@ -50,9 +50,34 @@ final class ElementAncestors {
     private ElementAncestors() {
     }
 
+    /**
+     * The engine's claims about a record, said in {@code meta} (#109): where a
+     * streamed copy came from ({@code Meta.source}), and the handling class
+     * this store enforces on it ({@code Meta.security}). Facts in, document
+     * out — the face never fetches them.
+     *
+     * @param source   the upstream a copy was streamed from, or null for the
+     *                 tenant's own records
+     * @param handling the declared handling class's wire name, or null when
+     *                 the type's handling is not one a spec can declare
+     */
+    record Stamps(String source, String handling) {
+        static final Stamps NONE = new Stamps(null, null);
+    }
+
+    /** Where a streamed copy's source is a URI: the dependency, namespaced. */
+    static String sourceUri(String dependency) {
+        return dependency == null ? null : "urn:dbo:upstream:" + dependency;
+    }
+
     static byte[] rendered(SimpleWorkerContext context, byte[] payload, String id,
             long versionId) {
-        return rendered(context, payload, id, versionId, null);
+        return rendered(context, payload, id, versionId, null, Stamps.NONE);
+    }
+
+    static byte[] rendered(SimpleWorkerContext context, byte[] payload, String id,
+            long versionId, List<String> elements) {
+        return rendered(context, payload, id, versionId, elements, Stamps.NONE);
     }
 
     /**
@@ -61,7 +86,7 @@ final class ElementAncestors {
      *                 reference is not a smaller resource, it is a broken one
      */
     static byte[] rendered(SimpleWorkerContext context, byte[] payload, String id, long versionId,
-            List<String> elements) {
+            List<String> elements, Stamps stamps) {
         if (elements != null && !elements.isEmpty()) {
             return projected(context, payload, id, versionId, elements);
         }
@@ -84,7 +109,7 @@ final class ElementAncestors {
                         sawId = true;
                     }
                     case "meta" -> {
-                        meta(in, gen, versionId);
+                        meta(in, gen, versionId, stamps);
                         sawMeta = true;
                     }
                     default -> {
@@ -99,6 +124,7 @@ final class ElementAncestors {
             if (!sawMeta) {
                 gen.writeObjectFieldStart("meta");
                 gen.writeStringField("versionId", Long.toString(versionId));
+                stampsInto(gen, stamps, List.of());
                 gen.writeEndObject();
             }
             gen.writeEndObject();
@@ -109,9 +135,11 @@ final class ElementAncestors {
     }
 
     /** The stored meta, with the store's version in it rather than beside it. */
-    private static void meta(JsonParser in, JsonGenerator gen, long versionId) throws IOException {
+    private static void meta(JsonParser in, JsonGenerator gen, long versionId, Stamps stamps)
+            throws IOException {
         gen.writeObjectFieldStart("meta");
         boolean sawVersion = false;
+        List<byte[]> kept = new java.util.ArrayList<>();
         while (in.nextToken() == JsonToken.FIELD_NAME) {
             String field = in.currentName();
             in.nextToken();
@@ -119,6 +147,21 @@ final class ElementAncestors {
                 in.skipChildren();
                 gen.writeStringField("versionId", Long.toString(versionId));
                 sawVersion = true;
+            } else if ("source".equals(field) && stamps.source() != null) {
+                // The engine's fact about custody wins over a claim that rode
+                // in with the bytes -- same replace-not-append rule as
+                // versionId, and for the same reason: a document with two
+                // answers to one question answers neither.
+                in.skipChildren();
+            } else if ("security".equals(field) && stamps.handling() != null) {
+                // Collected, not copied: the author's own security codings and
+                // the engine's stamp belong in ONE array, so the array is
+                // written once, below. Only codings claiming our system are
+                // dropped -- they are re-stamped from the engine's current
+                // fact rather than echoed from bytes that may predate a
+                // handling change, and a served document that comes back in
+                // does not accumulate one coding per round trip.
+                kept.addAll(codingsWithoutOurs(in));
             } else {
                 gen.writeFieldName(field);
                 copy(in, gen);
@@ -127,7 +170,78 @@ final class ElementAncestors {
         if (!sawVersion) {
             gen.writeStringField("versionId", Long.toString(versionId));
         }
+        stampsInto(gen, stamps, kept);
         gen.writeEndObject();
+    }
+
+    /** urn:dbo:handling — the coding system Meta.security stamps carry. */
+    static final String HANDLING_SYSTEM = "urn:dbo:handling";
+
+    private static void stampsInto(JsonGenerator gen, Stamps stamps, List<byte[]> keptSecurity)
+            throws IOException {
+        if (stamps.source() != null) {
+            gen.writeStringField("source", stamps.source());
+        }
+        if (stamps.handling() != null) {
+            gen.writeArrayFieldStart("security");
+            for (byte[] coding : keptSecurity) {
+                gen.writeRawValue(new String(coding, java.nio.charset.StandardCharsets.UTF_8));
+            }
+            gen.writeStartObject();
+            gen.writeStringField("system", HANDLING_SYSTEM);
+            gen.writeStringField("code", stamps.handling());
+            gen.writeEndObject();
+            gen.writeEndArray();
+        }
+    }
+
+    /**
+     * The stored security codings, verbatim as bytes, minus any claiming our
+     * system. Buffered rather than modelled: a coding may carry extensions
+     * this copier must not reshape, so each element is token-copied whole
+     * while its top-level {@code system} is noted in passing.
+     */
+    private static List<byte[]> codingsWithoutOurs(JsonParser in) throws IOException {
+        List<byte[]> kept = new java.util.ArrayList<>();
+        if (in.currentToken() != JsonToken.START_ARRAY) {
+            // not an array: malformed for FHIR, preserved for us -- buffer the
+            // single value and keep it, whatever it is
+            kept.add(buffered(in).bytes());
+            return kept;
+        }
+        while (in.nextToken() != JsonToken.END_ARRAY) {
+            Buffered coding = buffered(in);
+            if (!HANDLING_SYSTEM.equals(coding.topLevelSystem())) {
+                kept.add(coding.bytes());
+            }
+        }
+        return kept;
+    }
+
+    private record Buffered(byte[] bytes, String topLevelSystem) {}
+
+    /** One value token-copied into its own bytes, its top-level system noted. */
+    private static Buffered buffered(JsonParser in) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream(64);
+        String system = null;
+        try (JsonGenerator gen = JSON.createGenerator(buffer)) {
+            if (in.currentToken() == JsonToken.START_OBJECT) {
+                gen.writeStartObject();
+                while (in.nextToken() == JsonToken.FIELD_NAME) {
+                    String name = in.currentName();
+                    gen.writeFieldName(name);
+                    in.nextToken();
+                    if ("system".equals(name) && in.currentToken() == JsonToken.VALUE_STRING) {
+                        system = in.getText();
+                    }
+                    copy(in, gen);
+                }
+                gen.writeEndObject();
+            } else {
+                copy(in, gen);
+            }
+        }
+        return new Buffered(buffer.toByteArray(), system);
     }
 
     /**

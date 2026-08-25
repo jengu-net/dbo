@@ -88,7 +88,7 @@ public final class PgObjectStore implements ObjectStore {
             throw new IllegalStateException("converter chain did not reach " + type.payloadVersion());
         }
         return new StoredObject(stored.id(), stored.typeName(), stored.versionId(),
-                stored.lastUpdated(), payload, stored.deleted(), version);
+                stored.lastUpdated(), payload, stored.deleted(), version, stored.origin());
     }
 
     // ------------------------------------------------------------------ put
@@ -491,8 +491,10 @@ public final class PgObjectStore implements ObjectStore {
         TypeRegistration type = registry.require(typeName);
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT id, type, version_id, last_updated, payload, deleted, payload_version
-                    FROM state.%s_data WHERE id = ? AND type = ? AND NOT deleted""".formatted(type.domain()))) {
+                    SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
+                      (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin
+                    FROM state.%s_data d WHERE d.id = ? AND d.type = ? AND NOT d.deleted"""
+                    .formatted(type.domain(), type.domain()))) {
                 ps.setObject(1, UUID.fromString(id));
                 ps.setString(2, typeName);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -525,11 +527,12 @@ public final class PgObjectStore implements ObjectStore {
         // 1.17ms and 67 buffers, index-only scan 0.26ms and 6, and the gap
         // widens with every row.
         String sql = """
-                SELECT DISTINCT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version
+                SELECT DISTINCT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
+                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin
                 FROM state.%s_data d
                 JOIN state.%s_identifier i ON i.object_id = d.id
                 WHERE d.type = ? AND NOT d.deleted AND i.type = ? AND (%s)"""
-                .formatted(type.domain(), type.domain(), or);
+                .formatted(type.domain(), type.domain(), type.domain(), or);
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement(sql)) {
                 int p = 1;
@@ -549,8 +552,10 @@ public final class PgObjectStore implements ObjectStore {
         TypeRegistration type = registry.require(typeName);
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT id, type, version_id, last_updated, payload, deleted, payload_version
-                    FROM history.%s_history WHERE id = ? ORDER BY version_id""".formatted(type.domain()))) {
+                    SELECT h.id, h.type, h.version_id, h.last_updated, h.payload, h.deleted, h.payload_version,
+                      (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = h.id) AS origin
+                    FROM history.%s_history h WHERE h.id = ? ORDER BY h.version_id"""
+                    .formatted(type.domain(), type.domain()))) {
                 ps.setObject(1, UUID.fromString(id));
                 return readAll(ps);
             }
@@ -562,8 +567,9 @@ public final class PgObjectStore implements ObjectStore {
         TypeRegistration type = registry.require(criteria.typeName());
         String d = type.domain();
         StringBuilder sql = new StringBuilder("""
-                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version
-                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d));
+                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
+                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin
+                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, d));
         List<Object> params = new ArrayList<>();
         params.add(criteria.typeName());
         appendWhere(criteria, d, sql, params);
@@ -733,8 +739,9 @@ public final class PgObjectStore implements ObjectStore {
         String sortExpr = s == null ? "d.last_updated" : Sql.typedPathExpression(s.path(), s.kind());
 
         StringBuilder sql = new StringBuilder("""
-                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version, %s AS sort_key
-                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(sortExpr, d));
+                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
+                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin, %s AS sort_key
+                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, sortExpr, d));
         List<Object> params = new ArrayList<>();
         params.add(criteria.typeName());
         appendWhere(criteria, d, sql, params);
@@ -761,7 +768,11 @@ public final class PgObjectStore implements ObjectStore {
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         items.add(read(rs));
-                        Object sortKey = rs.getObject(8);
+                        // By label, not position: the origin column (#109)
+                        // sits between the fixed seven and this one, and a
+                        // positional read here is how every cursor silently
+                        // became the previous row's origin.
+                        Object sortKey = rs.getObject("sort_key");
                         lastKey[0] = sortKey instanceof Timestamp ts
                                 ? ts.toInstant().toString() : String.valueOf(sortKey);
                         lastKey[1] = rs.getObject(1).toString();
@@ -959,6 +970,15 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     private StoredObject read(ResultSet rs) throws SQLException {
+        // By label rather than position for the origin column only: one query
+        // appends its own sort_key after the fixed seven, so position eight is
+        // not one thing (#109).
+        String origin;
+        try {
+            origin = rs.getString("origin");
+        } catch (SQLException noSuchColumn) {
+            origin = null;
+        }
         return new StoredObject(
                 rs.getObject(1).toString(),
                 rs.getString(2),
@@ -966,7 +986,8 @@ public final class PgObjectStore implements ObjectStore {
                 rs.getTimestamp(4).toInstant(),
                 rs.getBytes(5),
                 rs.getBoolean(6),
-                rs.getString(7));
+                rs.getString(7),
+                origin);
     }
 
     private List<StoredObject> readAll(PreparedStatement ps) throws SQLException {
