@@ -1236,6 +1236,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // bring-ups rewrites the same record rather than a second one
                 // (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS).
                 store.conditionalCreate(definition, java.util.Map.of("url", url));
+            } catch (cloud.jengu.dbo.core.api.HandlingRefusedException refused) {
+                // Anticipated, not wrong (#125): on a tenant whose CodeSystem
+                // is somebody else's publication, the engine's own vocabulary
+                // arrives through the replication lane instead — the source
+                // published the same six at ITS bring-up, and the stream
+                // delivers them. A WARN here cried wolf on every zone
+                // dependent's boot.
+                LOG.info("the face's vocabulary is not this tenant's to write ({}); "
+                        + "it arrives from the source tenant through the replication lane",
+                        refused.getMessage());
             } catch (RuntimeException e) {
                 // A face that publishes a definition this store cannot hold is
                 // a misconfiguration worth naming, not a tenant that fails to

@@ -290,6 +290,20 @@ public final class PgObjectStore implements ObjectStore {
         }
         for (Identifier ident : identifiers) {
             boolean identity = registry.isIdentityBearing(type, ident);
+            if (identity) {
+                // Asked before inserted (#125). An exclusive claim held by
+                // another object is an ANTICIPATED answer — the sync lane
+                // meets it on every first delivery of a publication the
+                // tenant already holds, and resolves it by content. Letting
+                // the INSERT discover it made Postgres log an ERROR for every
+                // handled case, which buries the log's real errors. The
+                // unique index stays as the backstop, so a genuine race still
+                // raises — and that one has earned its log line.
+                Optional<String> holder = resolveIdentity(c, type, ident);
+                if (holder.isPresent() && !holder.get().equals(id.toString())) {
+                    throw identityConflict(c, type, ident, id.toString());
+                }
+            }
             // conflict target scoped to the PK: a duplicate row is a no-op, but a
             // violation of the partial identity-claim index still RAISES —
             // swallowing it would silently merge identities

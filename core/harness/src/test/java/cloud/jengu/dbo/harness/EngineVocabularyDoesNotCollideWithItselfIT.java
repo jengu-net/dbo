@@ -49,9 +49,13 @@ class EngineVocabularyDoesNotCollideWithItselfIT {
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
 
+    /** Where the container log stood before this test's own work. */
+    static int logMark;
+
     @BeforeAll
     void up() throws Exception {
         postgres = SharedPostgres.get();
+        logMark = postgres.getLogs().length();
         dir = Files.createTempDirectory("dbo-tenants-vocabsync");
         provisioner = new LocalDatabasePerTenantProvisioner(
                 SharedPostgres.urlFor("EngineVocabularyDoesNotCollideWithItselfIT"),
@@ -109,6 +113,24 @@ class EngineVocabularyDoesNotCollideWithItselfIT {
         assertEquals(List.of(), parked,
                 "the engine's own vocabulary arriving from upstream is the same publication "
                         + "this tenant already has, not a local override of it");
+
+        // The other half of the harm, measured where it lands (#125): the
+        // dedup used to be DISCOVERED by a failed INSERT, so every first
+        // delivery put a duplicate-key ERROR in the Postgres log — six per
+        // fresh bring-up, one per vocabulary, describing a situation the code
+        // handles. A log that keeps errors for handled situations buries the
+        // ones that matter. Only this test's own slice of the shared
+        // container's log is judged, and only for the engine's systems.
+        String sinceMark = postgres.getLogs().substring(Math.min(logMark,
+                postgres.getLogs().length()));
+        List<String> noise = sinceMark.lines()
+                .filter(line -> line.contains("duplicate key value")
+                        || line.contains("urn:dbo:"))
+                .filter(line -> line.contains("ERROR") || line.contains("DETAIL"))
+                .toList();
+        assertEquals(List.of(), noise,
+                "a handled conflict is resolved by asking, not by failing an insert "
+                        + "the database logs");
     }
 
     /**
