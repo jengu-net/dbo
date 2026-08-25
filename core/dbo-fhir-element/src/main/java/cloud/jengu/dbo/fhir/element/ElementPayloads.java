@@ -249,8 +249,8 @@ final class ElementPayloads implements Payloads<Element> {
             new java.util.concurrent.ConcurrentLinkedQueue<>();
     private final java.util.concurrent.atomic.AtomicInteger lentCount =
             new java.util.concurrent.atomic.AtomicInteger();
-    private static final int VALIDATOR_CAP =
-            Math.max(4, Runtime.getRuntime().availableProcessors() * 2);
+    private static final int VALIDATOR_CAP = Integer.getInteger(
+            "dbo.validator.pool", Runtime.getRuntime().availableProcessors());
 
     /**
      * Borrow a validator, or build one if none is free.
