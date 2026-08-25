@@ -264,7 +264,7 @@ public final class PgObjectStore implements ObjectStore {
         }
 
         replaceIdentifiers(c, type, uuid, envelope.identifiers());
-        replaceReferences(c, d, uuid, envelope.references());
+        replaceReferences(c, d, uuid, envelope.references(), newVersion == 1);
         insertHistory(c, d, uuid, type.typeName(), newVersion, now, request.payload(), false,
                 type.payloadVersion(), chainHash);
         if (!request.isRestore()) {
@@ -329,23 +329,42 @@ public final class PgObjectStore implements ObjectStore {
         }
     }
 
-    private void replaceReferences(Connection c, String d, UUID id, List<Envelope.ReferenceEdge> references)
-            throws SQLException {
-        try (PreparedStatement ps = c.prepareStatement(
-                "DELETE FROM state.%s_reference WHERE owner_id = ?".formatted(d))) {
-            ps.setObject(1, id);
-            ps.executeUpdate();
+    /**
+     * The edges this object points along, replaced as a set.
+     *
+     * <p>One statement prepared once and sent as a batch, rather than one
+     * prepared and executed per edge. Resources carry about four references
+     * each in a real population, so the old shape spent four prepares and four
+     * round trips on every write — the single busiest thing in the storage
+     * path, measured: 23,781 reference rows against 5,860 data rows.
+     *
+     * <p>{@code firstVersion} skips the DELETE. A version 1 has no earlier
+     * edges to clear, and issuing the statement anyway was a round trip per
+     * write to delete nothing.
+     */
+    private void replaceReferences(Connection c, String d, UUID id,
+            List<Envelope.ReferenceEdge> references, boolean firstVersion) throws SQLException {
+        if (!firstVersion) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "DELETE FROM state.%s_reference WHERE owner_id = ?".formatted(d))) {
+                ps.setObject(1, id);
+                ps.executeUpdate();
+            }
         }
-        for (Envelope.ReferenceEdge edge : references) {
-            try (PreparedStatement ps = c.prepareStatement("""
-                    INSERT INTO state.%s_reference (owner_id, ref_type, target_type, target_id)
-                    VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING""".formatted(d))) {
+        if (references.isEmpty()) {
+            return;
+        }
+        try (PreparedStatement ps = c.prepareStatement("""
+                INSERT INTO state.%s_reference (owner_id, ref_type, target_type, target_id)
+                VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING""".formatted(d))) {
+            for (Envelope.ReferenceEdge edge : references) {
                 ps.setObject(1, id);
                 ps.setString(2, edge.refType());
                 ps.setString(3, edge.targetType());
                 ps.setString(4, edge.targetId());
-                ps.executeUpdate();
+                ps.addBatch();
             }
+            ps.executeBatch();
         }
     }
 
@@ -869,7 +888,8 @@ public final class PgObjectStore implements ObjectStore {
                         up.executeUpdate();
                     }
                     replaceIdentifiers(c, type, row.id(), envelope.identifiers());
-                    replaceReferences(c, d, row.id(), envelope.references());
+                    // a reindex rewrites edges for rows that already have them
+                    replaceReferences(c, d, row.id(), envelope.references(), false);
                 }
                 return rows;
             });
