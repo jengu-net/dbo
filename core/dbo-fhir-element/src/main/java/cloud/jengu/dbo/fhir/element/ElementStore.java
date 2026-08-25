@@ -377,7 +377,8 @@ public final class ElementStore implements FhirStoreFacade {
     private ElementAncestors.Stamps stampsFor(StoredObject stored) {
         return new ElementAncestors.Stamps(
                 ElementAncestors.sourceUri(stored.origin()),
-                handlingWireFor(stored.typeName()));
+                handlingWireFor(stored.typeName()),
+                stored.shadowing() != null ? ElementAncestors.SHADOWS : null);
     }
 
     private String handlingWireFor(String typeName) {
@@ -579,7 +580,7 @@ public final class ElementStore implements FhirStoreFacade {
         ElementAncestors.Stamps stamps = stampsFor(stored);
         return new PayloadFraming.Member(stored.typeName(), stored.id(), stored.versionId(),
                 stored.payload(), baseUrl + "/" + stored.typeName() + "/" + stored.id(), role,
-                elements, stamps.source(), stamps.handling());
+                elements, stamps.source(), stamps.handling(), stamps.tag());
     }
 
     private String selfUrl(String typeName, Map<String, String> params) {

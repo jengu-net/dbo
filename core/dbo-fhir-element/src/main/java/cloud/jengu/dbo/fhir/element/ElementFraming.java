@@ -56,7 +56,7 @@ final class ElementFraming implements PayloadFraming {
         out.write(bytes("{\"fullUrl\":" + quoted(member.url()) + ",\"resource\":"));
         out.write(ElementAncestors.rendered(context, member.payload(), member.id(),
                 member.versionId(), member.elements(),
-                new ElementAncestors.Stamps(member.source(), member.handling())));
+                new ElementAncestors.Stamps(member.source(), member.handling(), member.tag())));
         out.write(bytes(",\"search\":{\"mode\":\""
                 + (Member.INCLUDED.equals(member.role()) ? "include" : "match") + "\"}}"));
     }

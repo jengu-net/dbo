@@ -88,7 +88,8 @@ public final class PgObjectStore implements ObjectStore {
             throw new IllegalStateException("converter chain did not reach " + type.payloadVersion());
         }
         return new StoredObject(stored.id(), stored.typeName(), stored.versionId(),
-                stored.lastUpdated(), payload, stored.deleted(), version, stored.origin());
+                stored.lastUpdated(), payload, stored.deleted(), version, stored.origin(),
+                stored.shadowing());
     }
 
     // ------------------------------------------------------------------ put
@@ -492,9 +493,10 @@ public final class PgObjectStore implements ObjectStore {
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement("""
                     SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
-                      (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin
+                      (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
+                  (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
                     FROM state.%s_data d WHERE d.id = ? AND d.type = ? AND NOT d.deleted"""
-                    .formatted(type.domain(), type.domain()))) {
+                    .formatted(type.domain(), type.domain(), type.domain()))) {
                 ps.setObject(1, UUID.fromString(id));
                 ps.setString(2, typeName);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -528,11 +530,12 @@ public final class PgObjectStore implements ObjectStore {
         // widens with every row.
         String sql = """
                 SELECT DISTINCT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
-                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin
+                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
+                  (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
                 FROM state.%s_data d
                 JOIN state.%s_identifier i ON i.object_id = d.id
                 WHERE d.type = ? AND NOT d.deleted AND i.type = ? AND (%s)"""
-                .formatted(type.domain(), type.domain(), type.domain(), or);
+                .formatted(type.domain(), type.domain(), type.domain(), type.domain(), or);
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement(sql)) {
                 int p = 1;
@@ -553,9 +556,10 @@ public final class PgObjectStore implements ObjectStore {
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement("""
                     SELECT h.id, h.type, h.version_id, h.last_updated, h.payload, h.deleted, h.payload_version,
-                      (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = h.id) AS origin
+                      (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = h.id) AS origin,
+                      (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = h.id LIMIT 1) AS shadowing
                     FROM history.%s_history h WHERE h.id = ? ORDER BY h.version_id"""
-                    .formatted(type.domain(), type.domain()))) {
+                    .formatted(type.domain(), type.domain(), type.domain()))) {
                 ps.setObject(1, UUID.fromString(id));
                 return readAll(ps);
             }
@@ -568,8 +572,9 @@ public final class PgObjectStore implements ObjectStore {
         String d = type.domain();
         StringBuilder sql = new StringBuilder("""
                 SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
-                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin
-                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, d));
+                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
+                  (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
+                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, d, d));
         List<Object> params = new ArrayList<>();
         params.add(criteria.typeName());
         appendWhere(criteria, d, sql, params);
@@ -740,8 +745,9 @@ public final class PgObjectStore implements ObjectStore {
 
         StringBuilder sql = new StringBuilder("""
                 SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
-                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin, %s AS sort_key
-                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, sortExpr, d));
+                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
+                  (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing, %s AS sort_key
+                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, d, sortExpr, d));
         List<Object> params = new ArrayList<>();
         params.add(criteria.typeName());
         appendWhere(criteria, d, sql, params);
@@ -974,10 +980,13 @@ public final class PgObjectStore implements ObjectStore {
         // appends its own sort_key after the fixed seven, so position eight is
         // not one thing (#109).
         String origin;
+        String shadowing;
         try {
             origin = rs.getString("origin");
+            shadowing = rs.getString("shadowing");
         } catch (SQLException noSuchColumn) {
             origin = null;
+            shadowing = null;
         }
         return new StoredObject(
                 rs.getObject(1).toString(),
@@ -987,7 +996,8 @@ public final class PgObjectStore implements ObjectStore {
                 rs.getBytes(5),
                 rs.getBoolean(6),
                 rs.getString(7),
-                origin);
+                origin,
+                shadowing);
     }
 
     private List<StoredObject> readAll(PreparedStatement ps) throws SQLException {

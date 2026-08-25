@@ -17,20 +17,30 @@ public record StoredObject(
         byte[] payload,
         boolean deleted,
         String payloadVersion,
-        String origin) {
+        String origin,
+        String shadowing) {
 
     /**
-     * @param origin which dependency streamed this copy here, or null for a
+     * @param origin    which dependency streamed this copy here, or null for a
      *        record this tenant authored (#109). An engine fact carried with
      *        the record so the serving path can SAY it — {@code Meta.source}
      *        is the standard place — without a second read.
+     * @param shadowing which dependency's publication this record locally
+     *        overrides — a shadow is parked behind it — or null. Said as a
+     *        {@code Meta.tag}, because a parked shadow visible only to whoever
+     *        queries the sync engine sits unnoticed (#102, #109).
      */
     public StoredObject {
+    }
+
+    public StoredObject(String id, String typeName, long versionId, Instant lastUpdated,
+            byte[] payload, boolean deleted, String payloadVersion, String origin) {
+        this(id, typeName, versionId, lastUpdated, payload, deleted, payloadVersion, origin, null);
     }
 
     /** The shape every writer uses: a record of this tenant's own. */
     public StoredObject(String id, String typeName, long versionId, Instant lastUpdated,
             byte[] payload, boolean deleted, String payloadVersion) {
-        this(id, typeName, versionId, lastUpdated, payload, deleted, payloadVersion, null);
+        this(id, typeName, versionId, lastUpdated, payload, deleted, payloadVersion, null, null);
     }
 }

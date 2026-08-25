@@ -112,6 +112,11 @@ final class ElementRecordProjection implements RecordProjection {
                 // (#91). The seven codes are exactly the seven handling
                 // classes a tenant spec may declare -- the classification the
                 // reader is being governed by, said where FHIR says it.
+                codeSystem("urn:dbo:sync", "DboSync",
+                        "Operational facts about a record's relation to a sync stream. "
+                                + "'shadows' says this record locally overrides an upstream "
+                                + "publication that is parked behind it.",
+                        List.of("shadows")),
                 codeSystem("urn:dbo:handling", "DboHandling",
                         "The handling class this store enforces on a record: who may "
                                 + "write it, whether it may change, whether it is kept, and "

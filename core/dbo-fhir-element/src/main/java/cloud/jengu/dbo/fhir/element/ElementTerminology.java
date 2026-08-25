@@ -377,17 +377,27 @@ final class ElementTerminology implements FhirTerminology {
     }
 
     @Override
-    public byte[] receive(String typeName, byte[] transportedPayload) {
+    public byte[] storedFormOf(String typeName, byte[] transportedPayload) {
+        if ("ValueSet".equals(typeName)) {
+            return transportedPayload;
+        }
+        Element document = payloads.read(null, transportedPayload);
+        List<Concept> flat = new ArrayList<>();
+        flatten(document, null, flat);
+        return json(shellOf(document, flat.size())).getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public void keep(String typeName, byte[] transportedPayload) {
         Element document = payloads.read(null, transportedPayload);
         if ("ValueSet".equals(typeName)) {
             putCompose(document);
-            return transportedPayload;
+            return;
         }
         List<Concept> flat = new ArrayList<>();
         flatten(document, null, flat);
         terminology.importSystem(document.getNamedChildValue("url"),
                 document.getNamedChildValue("version"), flat.iterator());
-        return json(shellOf(document, flat.size())).getBytes(StandardCharsets.UTF_8);
     }
 
     // ------------------------------------------------------------- payloads

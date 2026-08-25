@@ -16,12 +16,13 @@ package cloud.jengu.dbo.core.face;
  * <ul>
  *   <li>{@link #forTransport} — at the source, the stored form is reassembled
  *       into what a reader expects to receive;</li>
- *   <li>{@link #receive} — at the destination, that is taken apart again: the
- *       parts with their own home are put there, and what comes back is the
- *       form the engine stores.</li>
+ *   <li>{@link #storedFormOf} and {@link #keep} — at the destination, that is
+ *       taken apart again, in two phases: the shell the engine stores is
+ *       derived first, and the parts with their own home land only after the
+ *       engine accepted the write — never for a shadowed item.</li>
  * </ul>
  *
- * <p><b>Why {@code receive} returns the shell instead of writing it.</b> The
+ * <p><b>Why {@code storedFormOf} returns the shell instead of writing it.</b> The
  * sync engine writes the object under the SOURCE's object id, and its origin
  * bookkeeping — which is what shadowing is built on — is keyed by that id. A
  * codec that wrote the object itself would let the destination choose an
@@ -50,8 +51,25 @@ public interface GrainCodec {
     byte[] forTransport(String typeName, byte[] storedPayload);
 
     /**
+     * At the destination, phase one: what the engine should store — the shell —
+     * derived from the wire form and NOTHING ELSE. Pure on purpose (#109):
+     * this runs before the engine has decided whether the write is even
+     * accepted, and a transform that already moved the concepts into the
+     * native form had replaced a local override's answers before shadowing
+     * could protect them — the parked publication answered $lookup while the
+     * protected record could not.
+     */
+    byte[] storedFormOf(String typeName, byte[] transportedPayload);
+
+    /**
+     * At the destination, phase two: the parts with their own home, put there.
+     * Called only after the engine ACCEPTED the write — a shadowed item never
+     * gets here, which is what keeps the local decision's answers its own.
+     */
+    void keep(String typeName, byte[] transportedPayload);
+
+    /**
      * At the destination: the wire form taken apart. Parts with their own home
      * are written there; the returned bytes are what the engine stores.
      */
-    byte[] receive(String typeName, byte[] transportedPayload);
 }

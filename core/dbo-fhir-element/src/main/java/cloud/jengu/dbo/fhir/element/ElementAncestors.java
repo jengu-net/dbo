@@ -61,8 +61,12 @@ final class ElementAncestors {
      * @param handling the declared handling class's wire name, or null when
      *                 the type's handling is not one a spec can declare
      */
-    record Stamps(String source, String handling) {
-        static final Stamps NONE = new Stamps(null, null);
+    record Stamps(String source, String handling, String tag) {
+        static final Stamps NONE = new Stamps(null, null, null);
+
+        Stamps(String source, String handling) {
+            this(source, handling, null);
+        }
     }
 
     /** Where a streamed copy's source is a URI: the dependency, namespaced. */
@@ -124,7 +128,7 @@ final class ElementAncestors {
             if (!sawMeta) {
                 gen.writeObjectFieldStart("meta");
                 gen.writeStringField("versionId", Long.toString(versionId));
-                stampsInto(gen, stamps, List.of());
+                stampsInto(gen, stamps, List.of(), List.of());
                 gen.writeEndObject();
             }
             gen.writeEndObject();
@@ -140,6 +144,7 @@ final class ElementAncestors {
         gen.writeObjectFieldStart("meta");
         boolean sawVersion = false;
         List<byte[]> kept = new java.util.ArrayList<>();
+        List<byte[]> keptTags = new java.util.ArrayList<>();
         while (in.nextToken() == JsonToken.FIELD_NAME) {
             String field = in.currentName();
             in.nextToken();
@@ -161,7 +166,10 @@ final class ElementAncestors {
                 // fact rather than echoed from bytes that may predate a
                 // handling change, and a served document that comes back in
                 // does not accumulate one coding per round trip.
-                kept.addAll(codingsWithoutOurs(in));
+                kept.addAll(codingsWithout(in, HANDLING_SYSTEM));
+            } else if ("tag".equals(field) && stamps.tag() != null) {
+                // same collect-then-write shape, same round-trip reasoning
+                keptTags.addAll(codingsWithout(in, SYNC_SYSTEM));
             } else {
                 gen.writeFieldName(field);
                 copy(in, gen);
@@ -170,29 +178,43 @@ final class ElementAncestors {
         if (!sawVersion) {
             gen.writeStringField("versionId", Long.toString(versionId));
         }
-        stampsInto(gen, stamps, kept);
+        stampsInto(gen, stamps, kept, keptTags);
         gen.writeEndObject();
     }
 
     /** urn:dbo:handling — the coding system Meta.security stamps carry. */
     static final String HANDLING_SYSTEM = "urn:dbo:handling";
 
-    private static void stampsInto(JsonGenerator gen, Stamps stamps, List<byte[]> keptSecurity)
-            throws IOException {
+    /** urn:dbo:sync — the coding system Meta.tag's sync facts carry (#109). */
+    static final String SYNC_SYSTEM = "urn:dbo:sync";
+
+    /** The Meta.tag code: this record locally overrides a parked upstream copy. */
+    static final String SHADOWS = "shadows";
+
+    private static void stampsInto(JsonGenerator gen, Stamps stamps, List<byte[]> keptSecurity,
+            List<byte[]> keptTags) throws IOException {
         if (stamps.source() != null) {
             gen.writeStringField("source", stamps.source());
         }
         if (stamps.handling() != null) {
-            gen.writeArrayFieldStart("security");
-            for (byte[] coding : keptSecurity) {
-                gen.writeRawValue(new String(coding, java.nio.charset.StandardCharsets.UTF_8));
-            }
-            gen.writeStartObject();
-            gen.writeStringField("system", HANDLING_SYSTEM);
-            gen.writeStringField("code", stamps.handling());
-            gen.writeEndObject();
-            gen.writeEndArray();
+            coded(gen, "security", keptSecurity, HANDLING_SYSTEM, stamps.handling());
         }
+        if (stamps.tag() != null) {
+            coded(gen, "tag", keptTags, SYNC_SYSTEM, stamps.tag());
+        }
+    }
+
+    private static void coded(JsonGenerator gen, String field, List<byte[]> keptCodings,
+            String system, String code) throws IOException {
+        gen.writeArrayFieldStart(field);
+        for (byte[] coding : keptCodings) {
+            gen.writeRawValue(new String(coding, java.nio.charset.StandardCharsets.UTF_8));
+        }
+        gen.writeStartObject();
+        gen.writeStringField("system", system);
+        gen.writeStringField("code", code);
+        gen.writeEndObject();
+        gen.writeEndArray();
     }
 
     /**
@@ -201,7 +223,7 @@ final class ElementAncestors {
      * this copier must not reshape, so each element is token-copied whole
      * while its top-level {@code system} is noted in passing.
      */
-    private static List<byte[]> codingsWithoutOurs(JsonParser in) throws IOException {
+    private static List<byte[]> codingsWithout(JsonParser in, String system) throws IOException {
         List<byte[]> kept = new java.util.ArrayList<>();
         if (in.currentToken() != JsonToken.START_ARRAY) {
             // not an array: malformed for FHIR, preserved for us -- buffer the
@@ -211,7 +233,7 @@ final class ElementAncestors {
         }
         while (in.nextToken() != JsonToken.END_ARRAY) {
             Buffered coding = buffered(in);
-            if (!HANDLING_SYSTEM.equals(coding.topLevelSystem())) {
+            if (!system.equals(coding.topLevelSystem())) {
                 kept.add(coding.bytes());
             }
         }
