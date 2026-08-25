@@ -132,10 +132,11 @@ public final class CarriedDefinitions {
                 if (context == null) {
                     context = new SimpleWorkerContext.SimpleWorkerContextBuilder()
                             .withAllowLoadingDuplicates(true)
-                            .fromPackage(npm, ValidatorUtils.loaderForVersion(npm.fhirVersion()), true);
+                            .fromPackage(npm, new WithoutNarrative(
+                                    ValidatorUtils.loaderForVersion(npm.fhirVersion())), true);
                 } else {
-                    context.loadFromPackage(npm,
-                            ValidatorUtils.loaderForVersion(npm.fhirVersion()));
+                    context.loadFromPackage(npm, new WithoutNarrative(
+                            ValidatorUtils.loaderForVersion(npm.fhirVersion())));
                 }
             }
             return context;
