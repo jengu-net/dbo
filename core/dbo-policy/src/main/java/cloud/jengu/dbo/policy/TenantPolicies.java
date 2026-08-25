@@ -13,7 +13,16 @@ public record TenantPolicies(
         AuditLevel audit,
         Discipline writeDiscipline,
         Map<String, Discipline> perTypeDiscipline,
-        Map<String, Retention> retention) {
+        Map<String, Retention> retention,
+        Map<String, String> organisationPaths) {
+
+    /**
+     * Compatibility shape: no organisation partitioning declared.
+     */
+    public TenantPolicies(AuditLevel audit, Discipline writeDiscipline,
+            Map<String, Discipline> perTypeDiscipline, Map<String, Retention> retention) {
+        this(audit, writeDiscipline, perTypeDiscipline, retention, Map.of());
+    }
 
     public enum AuditLevel { NONE, WRITES, FULL }
 
@@ -32,6 +41,27 @@ public record TenantPolicies(
     public TenantPolicies {
         perTypeDiscipline = Map.copyOf(perTypeDiscipline);
         retention = Map.copyOf(retention);
+        organisationPaths = Map.copyOf(organisationPaths);
+    }
+
+    /**
+     * Which reference element says whose a record is (#126): type name to the
+     * reference path holding its owning {@code Organization} — the name the
+     * envelope's reference edges carry, which is the <b>SearchParameter
+     * code</b> with hyphens as underscores: {@code "service_provider"} for an
+     * Encounter, {@code "organization"} for a PractitionerRole. Element names
+     * never reach the index, so declaring one would silently partition
+     * nothing.
+     *
+     * <p><b>A type with no declared path is not partitioned</b> and every
+     * caller sees it, org-bound or not. Deliberate rather than fail-closed:
+     * the undeclared types are the shared ones — terminology, config, the
+     * organisation tree itself — and an org-bound clinician who cannot read a
+     * CodeSystem cannot work. The declaration is where a tenant says which
+     * types are somebody's rather than everybody's.
+     */
+    public String organisationPathFor(String typeName) {
+        return organisationPaths.get(typeName);
     }
 
     public static TenantPolicies defaults() {
@@ -99,7 +129,13 @@ public record TenantPolicies(
                                 ? period(String.valueOf(rule.get("removeAfter"))) : null));
             });
         }
-        return new TenantPolicies(audit, discipline, perType, retention);
+        Map<String, String> organisationPaths = new LinkedHashMap<>();
+        if (root.get("organisations") instanceof Map<?, ?> org
+                && org.get("perType") instanceof Map<?, ?> perTypeOrg) {
+            perTypeOrg.forEach((type, path) ->
+                    organisationPaths.put(String.valueOf(type), String.valueOf(path)));
+        }
+        return new TenantPolicies(audit, discipline, perType, retention, organisationPaths);
     }
 
     /**

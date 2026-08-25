@@ -29,6 +29,17 @@ public final class Criteria {
 
     public record Referencing(String refType, String targetType, String targetId) {}
 
+    /** Owner has an edge of this type to ANY of the targets — the compartment shape (#126). */
+    public record ReferencingAny(String refType, String targetType,
+            java.util.List<String> targetIds) {
+        public ReferencingAny {
+            if (targetIds == null || targetIds.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "an empty reach is a refusal, not a filter matching everything");
+            }
+        }
+    }
+
     /** Presence/absence of any reference edge of the given type. */
     public record RefMissing(String refType, boolean missing) {}
 
@@ -57,6 +68,7 @@ public final class Criteria {
     private final List<Range> ranges = new ArrayList<>();
     private final List<LastUpdatedRange> lastUpdated = new ArrayList<>();
     private final List<Referencing> referencing = new ArrayList<>();
+    private final List<ReferencingAny> referencingAny = new ArrayList<>();
     private final List<RefMissing> refMissing = new ArrayList<>();
     private final List<Chained> chained = new ArrayList<>();
     private Sort sort;
@@ -104,6 +116,13 @@ public final class Criteria {
 
     public Criteria lastUpdated(RangeOp op, Instant value) {
         lastUpdated.add(new LastUpdatedRange(op, value));
+        return this;
+    }
+
+    public Criteria referencingAny(String refType, String targetType,
+            java.util.Collection<String> targetIds) {
+        referencingAny.add(new ReferencingAny(refType, targetType,
+                java.util.List.copyOf(targetIds)));
         return this;
     }
 
@@ -163,6 +182,7 @@ public final class Criteria {
     public List<LastUpdatedRange> lastUpdatedPredicates() { return lastUpdated; }
 
     public List<Referencing> referencingPredicates() { return referencing; }
+    public List<ReferencingAny> referencingAnyPredicates() { return referencingAny; }
 
     public List<RefMissing> refMissingPredicates() { return refMissing; }
 

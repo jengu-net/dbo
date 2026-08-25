@@ -347,22 +347,39 @@ public final class TenantAuthority {
 
     /** Dev/admin surface: the tenant-administered role→scope mapping. */
     public void ensureRoleGrant(String roleCode, List<String> scopes) {
+        ensureRoleGrant(roleCode, null, scopes);
+    }
+
+    /**
+     * The same, granted at ONE organisation rather than tenant-wide (#126):
+     * "clinician" and "clinician at the main lab" are different grants and may
+     * both exist. Where both apply to one relation, the organisation's wins
+     * outright for the role held there — most local wins, as everywhere else.
+     *
+     * @param organisation the organisation's id or an identifier value its
+     *        record carries — grants are configuration and configuration
+     *        names organisations by code, so the code is the usual spelling
+     */
+    public void ensureRoleGrant(String roleCode, String organisation, List<String> scopes) {
         scopes.forEach(scope -> {
             if (!Scopes.isValid(scope)) {
                 throw new IllegalArgumentException("invalid scope: " + scope);
             }
         });
+        String claim = organisation == null ? roleCode : roleCode + "@" + organisation;
         String payload = "{\"roleCode\":\"" + roleCode + "\""
+                + (organisation == null ? ""
+                        : ",\"organisation\":\"" + organisation + "\"")
                 + ",\"scopes\":[" + scopes.stream().map(s -> "\"" + s + "\"")
                         .collect(Collectors.joining(",")) + "]"
                 + ",\"status\":\"active\"}";
         Optional<StoredObject> existing = store.getByIdentifier("RoleGrant",
-                List.of(new Identifier(IdentityModel.ROLE_CODE_SYSTEM, roleCode))).stream().findFirst();
+                List.of(new Identifier(IdentityModel.ROLE_CODE_SYSTEM, claim))).stream().findFirst();
         if (existing.isPresent()) {
             store.put(PutRequest.update("RoleGrant", existing.get().id(),
                     existing.get().versionId(), payload.getBytes(StandardCharsets.UTF_8)));
         } else {
-            store.putIfAbsent(IdentityRef.identifier(IdentityModel.ROLE_CODE_SYSTEM, roleCode),
+            store.putIfAbsent(IdentityRef.identifier(IdentityModel.ROLE_CODE_SYSTEM, claim),
                     PutRequest.create("RoleGrant", payload.getBytes(StandardCharsets.UTF_8)));
         }
     }
@@ -526,7 +543,20 @@ public final class TenantAuthority {
     }
 
     /** The evaluated authorization: SMART scopes AND the role codes behind them. */
-    public record Grants(List<String> scopes, List<String> roles) {}
+    /**
+     * @param organisations the Organization ids the grants were made at,
+     *        expanded through the hierarchy — empty means TENANT-WIDE, because
+     *        at least one applied grant was unscoped. The whole token shares
+     *        one reach: authorization is a union of what a person's relations
+     *        allow, and the SMART scope grammar has no room to bind each
+     *        scope to its own place (#126, noted there as the honest limit).
+     */
+    public record Grants(List<String> scopes, List<String> roles, List<String> organisations) {
+
+        public Grants(List<String> scopes, List<String> roles) {
+            this(scopes, roles, List.of());
+        }
+    }
 
     /** Active PractitionerRoles → role codes → RoleGrants → scopes + roles. */
     /**
@@ -545,10 +575,39 @@ public final class TenantAuthority {
     public Grants evaluateGrants(String personId) {
         java.util.Set<String> scopes = new java.util.LinkedHashSet<>();
         java.util.Set<String> roles = new java.util.LinkedHashSet<>();
+        java.util.Set<String> organisations = new java.util.LinkedHashSet<>();
+        boolean[] tenantWide = {false};
         for (String practitionerId : linkedOfType(personId, "Practitioner")) {
-            grantsFromPractitioner(practitionerId, scopes, roles);
+            grantsFromPractitioner(practitionerId, scopes, roles, organisations, tenantWide);
         }
-        return new Grants(List.copyOf(scopes), List.copyOf(roles));
+        // One unscoped grant anywhere makes the token tenant-wide: reach is a
+        // property of the token, and the widest applied grant sets it.
+        return new Grants(List.copyOf(scopes), List.copyOf(roles),
+                tenantWide[0] ? List.of() : List.copyOf(withDescendants(organisations)));
+    }
+
+    /**
+     * The organisations plus everything under them: a grant at a parent
+     * covers its departments (#126), which is the same most-local-wins chain
+     * rules already walk — walked here once, where the tree is at hand,
+     * rather than on every read.
+     */
+    private java.util.Set<String> withDescendants(java.util.Set<String> organisationIds) {
+        java.util.Set<String> reach = new java.util.LinkedHashSet<>(organisationIds);
+        java.util.ArrayDeque<String> frontier = new java.util.ArrayDeque<>(organisationIds);
+        while (!frontier.isEmpty()) {
+            String parent = frontier.poll();
+            // "partof" is the SearchParameter code, which is what the face
+            // names reference edges by -- element names never reach the index
+            for (StoredObject child : subjectStore.select(
+                    cloud.jengu.dbo.core.api.Criteria.of("Organization")
+                            .referencing("partof", "Organization", parent))) {
+                if (reach.add(child.id())) {
+                    frontier.add(child.id());
+                }
+            }
+        }
+        return reach;
     }
 
     /**
@@ -574,7 +633,8 @@ public final class TenantAuthority {
     }
 
     private void grantsFromPractitioner(String practitionerId,
-            java.util.Set<String> scopes, java.util.Set<String> roles) {
+            java.util.Set<String> scopes, java.util.Set<String> roles,
+            java.util.Set<String> organisations, boolean[] tenantWide) {
         for (StoredObject role : subjectStore.select(
                 cloud.jengu.dbo.core.api.Criteria.of("PractitionerRole")
                         .referencing("practitioner", "Practitioner", practitionerId))) {
@@ -582,23 +642,91 @@ public final class TenantAuthority {
             if (!periodActive(payload)) {
                 continue;
             }
+            // The relation says where it holds (#126): the PractitionerRole
+            // names its organisation, which authorization now reads.
+            String organisationId = organisationOf(payload);
             for (Object code : Json.array(payload, "code")) {
                 for (Object coding : Json.array(code, "coding")) {
                     String roleCode = Json.strOpt(coding, "code");
-                    if (roleCode != null) {
-                        store.getByIdentifier("RoleGrant", List.of(new Identifier(
-                                        IdentityModel.ROLE_CODE_SYSTEM, roleCode))).stream()
-                                .filter(g -> "active".equals(field(g, "status")))
-                                .findFirst()
-                                .ifPresent(g -> {
-                                    roles.add(roleCode);
-                                    scopes.addAll(Json.strings(Json.parse(
-                                            new String(g.payload(), StandardCharsets.UTF_8)), "scopes"));
-                                });
+                    if (roleCode == null) {
+                        continue;
+                    }
+                    // Most local wins, per role at a place: an organisation-
+                    // scoped grant REPLACES the tenant-wide one for the role
+                    // held there rather than unioning with it — union can only
+                    // ever add, so "clinician everywhere, read-only at lab-b"
+                    // would be unsayable. Same rule the ScopeClass chain
+                    // resolves by (ADR 0059), on purpose.
+                    Optional<StoredObject> grant = organisationId == null
+                            ? Optional.empty()
+                            : activeGrant(roleCode, organisationId);
+                    boolean scoped = grant.isPresent();
+                    if (!scoped) {
+                        grant = activeGrant(roleCode, null);
+                    }
+                    if (grant.isEmpty()) {
+                        continue;
+                    }
+                    roles.add(roleCode);
+                    scopes.addAll(Json.strings(Json.parse(
+                            new String(grant.get().payload(), StandardCharsets.UTF_8)), "scopes"));
+                    if (scoped) {
+                        organisations.add(organisationId);
+                    } else {
+                        tenantWide[0] = true;
                     }
                 }
             }
         }
+    }
+
+    /**
+     * The active grant for a role — at one organisation, or tenant-wide.
+     *
+     * <p>The organisation half of the claim is tried by every name the
+     * Organization record answers to: its id, and each identifier value it
+     * carries. Grants are configuration and configuration names organisations
+     * by code; relations reference them by id; both have to find the same
+     * grant or the two languages split the tenant in half.
+     */
+    private Optional<StoredObject> activeGrant(String roleCode, String organisationId) {
+        List<String> qualifiers = new java.util.ArrayList<>();
+        if (organisationId == null) {
+            qualifiers.add(roleCode);
+        } else {
+            qualifiers.add(roleCode + "@" + organisationId);
+            Optional<StoredObject> organisation = subjectStore.get("Organization", organisationId);
+            if (organisation.isPresent()) {
+                Object payload = Json.parse(
+                        new String(organisation.get().payload(), StandardCharsets.UTF_8));
+                for (Object ident : Json.array(payload, "identifier")) {
+                    String value = Json.strOpt(ident, "value");
+                    if (value != null) {
+                        qualifiers.add(roleCode + "@" + value);
+                    }
+                }
+            }
+        }
+        for (String qualifier : qualifiers) {
+            Optional<StoredObject> grant = store.getByIdentifier("RoleGrant",
+                            List.of(new Identifier(IdentityModel.ROLE_CODE_SYSTEM, qualifier)))
+                    .stream()
+                    .filter(g -> "active".equals(field(g, "status")))
+                    .findFirst();
+            if (grant.isPresent()) {
+                return grant;
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** The Organization id a PractitionerRole holds its role at, or null. */
+    private static String organisationOf(Object practitionerRolePayload) {
+        Object organisation = ((Map<?, ?>) practitionerRolePayload).get("organization");
+        String reference = organisation == null ? null : Json.strOpt(organisation, "reference");
+        return reference != null && reference.startsWith("Organization/")
+                ? reference.substring("Organization/".length())
+                : null;
     }
 
     private static boolean periodActive(Object practitionerRolePayload) {
@@ -913,10 +1041,19 @@ public final class TenantAuthority {
         String fhirUser = linkedOfType(personId, "Practitioner").stream().findFirst()
                 .map(id -> "Practitioner/" + id)
                 .orElse("Person/" + personId);
+        // The reach is computed AT MINT from the relations as they stand, not
+        // carried through the authorization dance: a refresh re-derives it, so
+        // a grant revoked at an organisation narrows the next token rather
+        // than surviving until the person logs out (#126). Empty = tenant-wide
+        // and no claim is written, so an unscoped tenant's tokens are
+        // byte-identical to what they were before organisations existed.
+        List<String> reach = evaluateGrants(personId).organisations();
+        String orgClaim = reach.isEmpty() ? ""
+                : ",\"org\":[\"" + String.join("\",\"", reach) + "\"]";
         String base = "\"iss\":\"" + issuer + "\",\"sub\":\"" + personId + "\""
                 + ",\"aud\":\"" + issuer + "\",\"client_id\":\"" + clientId + "\""
                 + ",\"fhirUser\":\"" + fhirUser + "\""
-                + ",\"roles\":" + rolesJson
+                + ",\"roles\":" + rolesJson + orgClaim
                 + ",\"scope\":\"" + scope + "\",\"iat\":" + now;
         String access = "{" + base + ",\"jti\":\"" + UuidV7.newId() + "\""
                 + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + "}";
@@ -1018,8 +1155,20 @@ public final class TenantAuthority {
      *                     the scopes are — and the store records it rather than
      *                     consulting it.
      */
+    /**
+     * @param organisations the reach the token was minted with (#126) — null
+     *        means unbounded, the shape every token had before organisations
+     *        became an axis, so machine tokens and unscoped tenants change
+     *        nothing.
+     */
     public record AuthContext(String clientId, String fhirUser, String actClient,
-            List<String> scopes, String purposeOfUse) {}
+            List<String> scopes, String purposeOfUse, List<String> organisations) {
+
+        public AuthContext(String clientId, String fhirUser, String actClient,
+                List<String> scopes, String purposeOfUse) {
+            this(clientId, fhirUser, actClient, scopes, purposeOfUse, null);
+        }
+    }
 
     /** Local validation (§13.5): the tenant's own cached keys, refresh on unknown kid. */
     public Optional<AuthContext> validate(String token) {
@@ -1047,10 +1196,11 @@ public final class TenantAuthority {
             if (((Map<?, ?>) claims).get("act") instanceof Map<?, ?> act) {
                 actClient = String.valueOf(act.get("sub"));
             }
+            List<String> reach = Json.strings(claims, "org");
             return Optional.of(new AuthContext(Json.str(claims, "sub"),
                     Json.strOpt(claims, "fhirUser"), actClient,
                     List.of(Json.str(claims, "scope").split(" ")),
-                    purposeOf(claims)));
+                    purposeOf(claims), reach.isEmpty() ? null : reach));
         } catch (RuntimeException invalid) {
             return Optional.empty();
         }

@@ -216,6 +216,7 @@ public final class FhirHttpServer implements AutoCloseable {
             // reused, and a purpose left behind would disclose the next
             // request's person under the last one's reason.
             cloud.jengu.dbo.core.api.Disclosure.clear();
+            cloud.jengu.dbo.core.api.Reach.clear();
             exchange.close();
         }
     }
