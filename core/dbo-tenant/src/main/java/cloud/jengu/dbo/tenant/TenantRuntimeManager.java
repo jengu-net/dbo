@@ -494,6 +494,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // nothing provides is refused because nothing provides it, and asking
         // first means the refusal leaves no database behind to clean up.
         FhirVersion version = versions.require(spec.fhirVersion());
+        // The refusing half of the face contract (#107): what this spec
+        // requires, compared against what the face declares, before the
+        // database exists. An absent capability used to surface where it was
+        // first needed — mid-request, or as a quiet degradation.
+        FaceRequirements.refuseUnservable(spec, version.face());
         TenantDatabaseProvisioner.TenantDatabase db = provisioner.provision(spec);
         tenantDataSources.put(spec.code(), db.dataSource());
         String base = baseUrl(spec.code());
