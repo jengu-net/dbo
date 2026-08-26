@@ -32,6 +32,18 @@ public interface Payloads<D> {
     D read(String typeName, byte[] payload);
 
     /**
+     * The shape stamp of one accepted document: for each shape it declares
+     * and the pack publishes a version for, {@code shape|version} as
+     * resolved by the validation that just ran
+     * (REQ-DBO-SHAPE-WRITTEN-UNDER-STAMPED). The default is stampless — a
+     * face over a model with no shape declarations has nothing to say, and
+     * that is an answer, not a defect.
+     */
+    default java.util.List<String> writtenUnder(D document) {
+        return java.util.List.of();
+    }
+
+    /**
      * What this document says it is.
      *
      * <p>Asked of the document rather than of the bytes so a caller that has

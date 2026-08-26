@@ -64,6 +64,9 @@ hit tenant-local envelope indexes; there are no cross-database joins).
 - Chains compose: zone-of-zones flows top-down along the declared chain, each
   hop with the same semantics; a tenant only ever declares against its direct
   upstream.
+  The written-under shape stamp travels the feed beside the storage-format
+  version, so a mirrored copy keeps the stamp of the store that validated it
+  ([shape versioning](shape-versioning.md)); only an authored accept restamps.
 
 **Terminology has a native form.** CodeSystems are among the heaviest-used
 objects in the platform (every lookup, `$expand`, `validate-code`, alias

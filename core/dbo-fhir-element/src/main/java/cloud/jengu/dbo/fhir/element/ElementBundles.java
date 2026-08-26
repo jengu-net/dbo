@@ -291,7 +291,7 @@ final class ElementBundles {
                     ? allocated.get(entry.index()) : entry.url().split("/")[1];
             requests.add(new PutRequest(accepted.type(), id,
                     entry.method().equals("POST") ? null : entry.ifMatchVersion(),
-                    accepted.payload()));
+                    accepted.payload()).stamped(accepted.shape()));
         }
         List<PutResult> results = store.engine().transact(requests);
         List<String> responses = new ArrayList<>();

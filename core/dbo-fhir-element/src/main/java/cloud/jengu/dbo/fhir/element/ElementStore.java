@@ -99,8 +99,12 @@ public final class ElementStore implements FhirStoreFacade {
 
     // ------------------------------------------------------------- writing
 
-    /** What one read of a body says about it, and the bytes it was read from. */
-    record Accepted(String type, byte[] payload) {}
+    /**
+     * What one read of a body says about it, the bytes it was read from, and
+     * the shape stamp the validation resolved
+     * (REQ-DBO-SHAPE-WRITTEN-UNDER-STAMPED).
+     */
+    record Accepted(String type, byte[] payload, java.util.List<String> shape) {}
 
     /**
      * The type and the verdict from one read, and the bytes carried to the
@@ -131,8 +135,23 @@ public final class ElementStore implements FhirStoreFacade {
         // was already read (#89). Re-reading would be a second read of one
         // payload, and keeping the original bytes would store a document the
         // validator never saw. Composed once, and only when something moved.
-        if (document instanceof org.hl7.fhir.r5.elementmodel.Element element
-                && ElementReferences.resolve(element, resolver)) {
+        boolean moved = false;
+        if (document instanceof org.hl7.fhir.r5.elementmodel.Element element) {
+            // The engine's own stamp never enters as content: urn:dbo:shape
+            // is re-stated from the store's fact on every serve, so an echoed
+            // copy is dropped HERE — before validation litigates an
+            // engine-authored extension, and before it pollutes the stored
+            // bytes, which stay the author's own claims
+            // (REQ-DBO-SHAPE-SERVED-BESIDE-THE-CLAIM).
+            for (org.hl7.fhir.r5.elementmodel.Element meta : element.getChildrenByName("meta")) {
+                moved |= meta.getChildren().removeIf(child ->
+                        "extension".equals(child.getName())
+                                && ElementAncestors.SHAPE_URL.equals(
+                                        child.getNamedChildValue("url")));
+            }
+            moved |= ElementReferences.resolve(element, resolver);
+        }
+        if (moved) {
             payload = payloads.write(document);
         }
         List<String> issues = payloads.validate(type, document);
@@ -146,7 +165,7 @@ public final class ElementStore implements FhirStoreFacade {
             LOG.warn("accepted with findings: type={} identity={} findings={} first={}",
                     type, identityFor(type, document), issues.size(), issues.get(0));
         }
-        return new Accepted(type, payload);
+        return new Accepted(type, payload, payloads.writtenUnder(document));
     }
 
     /**
@@ -255,7 +274,7 @@ public final class ElementStore implements FhirStoreFacade {
     @Override
     public PutResult create(String resourceJson) {
         Accepted accepted = accepted(resourceJson);
-        PutResult result = store.put(PutRequest.create(accepted.type(), accepted.payload()));
+        PutResult result = store.put(PutRequest.create(accepted.type(), accepted.payload()).stamped(accepted.shape()));
         rebuiltIfShapesMoved(accepted.type());
         return result;
     }
@@ -264,7 +283,8 @@ public final class ElementStore implements FhirStoreFacade {
     public PutResult update(String id, Long expectedVersion, String resourceJson) {
         Accepted accepted = accepted(resourceJson);
         PutResult result = store.put(
-                new PutRequest(accepted.type(), id, expectedVersion, accepted.payload()));
+                new PutRequest(accepted.type(), id, expectedVersion, accepted.payload())
+                        .stamped(accepted.shape()));
         rebuiltIfShapesMoved(accepted.type());
         return result;
     }
@@ -279,7 +299,7 @@ public final class ElementStore implements FhirStoreFacade {
     public PutResult conditionalCreate(String resourceJson, Map<String, String> condition) {
         Accepted accepted = accepted(resourceJson);
         return store.putIfAbsent(identityOf(condition),
-                PutRequest.create(accepted.type(), accepted.payload()));
+                PutRequest.create(accepted.type(), accepted.payload()).stamped(accepted.shape()));
     }
 
     /**
@@ -294,7 +314,7 @@ public final class ElementStore implements FhirStoreFacade {
     public PutResult conditionalUpdate(String resourceJson, Map<String, String> condition) {
         Accepted accepted = accepted(resourceJson);
         PutResult result = store.putConditional(identityOf(condition),
-                PutRequest.create(accepted.type(), accepted.payload()));
+                PutRequest.create(accepted.type(), accepted.payload()).stamped(accepted.shape()));
         rebuiltIfShapesMoved(accepted.type());
         return result;
     }
@@ -336,7 +356,7 @@ public final class ElementStore implements FhirStoreFacade {
         Object document = payloads.read(null, accepted.payload());
         String url = version.canonicalUrlOf(document);
         return store.putConditional(IdentityRef.canonical(url),
-                PutRequest.create(accepted.type(), accepted.payload()));
+                PutRequest.create(accepted.type(), accepted.payload()).stamped(accepted.shape()));
     }
 
     @Override
@@ -378,7 +398,8 @@ public final class ElementStore implements FhirStoreFacade {
         return new ElementAncestors.Stamps(
                 ElementAncestors.sourceUri(stored.origin()),
                 handlingWireFor(stored.typeName()),
-                stored.shadowing() != null ? ElementAncestors.SHADOWS : null);
+                stored.shadowing() != null ? ElementAncestors.SHADOWS : null,
+                stored.shape());
     }
 
     private String handlingWireFor(String typeName) {
@@ -580,7 +601,7 @@ public final class ElementStore implements FhirStoreFacade {
         ElementAncestors.Stamps stamps = stampsFor(stored);
         return new PayloadFraming.Member(stored.typeName(), stored.id(), stored.versionId(),
                 stored.payload(), baseUrl + "/" + stored.typeName() + "/" + stored.id(), role,
-                elements, stamps.source(), stamps.handling(), stamps.tag());
+                elements, stamps.source(), stamps.handling(), stamps.tag(), stamps.shape());
     }
 
     private String selfUrl(String typeName, Map<String, String> params) {

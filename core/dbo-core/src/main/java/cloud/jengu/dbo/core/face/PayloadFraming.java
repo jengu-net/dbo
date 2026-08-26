@@ -44,7 +44,7 @@ public interface PayloadFraming {
      */
     record Member(String typeName, String id, long versionId, byte[] payload,
             String url, String role, java.util.List<String> elements,
-            String source, String handling, String tag) {
+            String source, String handling, String tag, java.util.List<String> shape) {
 
         /**
          * @param source   which upstream streamed this copy, or null for the
@@ -59,7 +59,15 @@ public interface PayloadFraming {
 
         public Member(String typeName, String id, long versionId, byte[] payload,
                 String url, String role, java.util.List<String> elements) {
-            this(typeName, id, versionId, payload, url, role, elements, null, null, null);
+            this(typeName, id, versionId, payload, url, role, elements, null, null, null, null);
+        }
+
+        /** Compatibility with callers that predate {@code shape} (#131). */
+        public Member(String typeName, String id, long versionId, byte[] payload,
+                String url, String role, java.util.List<String> elements,
+                String source, String handling, String tag) {
+            this(typeName, id, versionId, payload, url, role, elements,
+                    source, handling, tag, null);
         }
 
         /** A member that was matched rather than included. */

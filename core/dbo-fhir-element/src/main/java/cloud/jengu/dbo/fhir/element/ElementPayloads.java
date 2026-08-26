@@ -340,6 +340,32 @@ final class ElementPayloads implements Payloads<Element> {
         return reading.read(typeName, payload);
     }
 
+    /**
+     * One lookup, one truth: the same {@code fetchResource} the validator
+     * resolves a claimed profile through (#87) answers what version of it the
+     * pack currently publishes. A claim the pack does not carry, or a
+     * StructureDefinition without a version, yields no stamp — the store
+     * stamps only shapes the pack publishes a version for.
+     */
+    @Override
+    public java.util.List<String> writtenUnder(Element document) {
+        java.util.List<String> stamps = new java.util.ArrayList<>();
+        for (Element meta : document.getChildrenByName("meta")) {
+            for (Element claimed : meta.getChildrenByName("profile")) {
+                String url = claimed.primitiveValue();
+                if (url == null || url.isBlank()) {
+                    continue;
+                }
+                org.hl7.fhir.r5.model.StructureDefinition sd = context.fetchResource(
+                        org.hl7.fhir.r5.model.StructureDefinition.class, url);
+                if (sd != null && sd.getVersion() != null && !sd.getVersion().isBlank()) {
+                    stamps.add(url + "|" + sd.getVersion());
+                }
+            }
+        }
+        return java.util.List.copyOf(stamps);
+    }
+
     @Override
     public String typeOf(Element document) {
         return reading.typeOf(document);

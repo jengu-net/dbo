@@ -286,7 +286,11 @@ public final class ContentSyncEngine {
             // the destination takes the wire form apart into its own: concepts
             // to the native store, and the shell back here to be written under
             // the source's identity like everything else
-            targetStore.put(new PutRequest(item.typeName(), item.objectId(), null, stored),
+            // The stamp travels with the copy: a mirrored record keeps the
+            // shape stamp of the store that VALIDATED it — the receiving
+            // store never did (REQ-DBO-SHAPE-MIRRORED-KEEPS-ITS-STAMP).
+            targetStore.put(new PutRequest(item.typeName(), item.objectId(), null, stored)
+                            .stamped(item.shape()),
                     cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
             // Only now, with the write ACCEPTED, do the parts with their own
             // home land there (#109): taking a CodeSystem apart before the

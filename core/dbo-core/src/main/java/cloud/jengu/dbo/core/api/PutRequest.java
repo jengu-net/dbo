@@ -27,23 +27,56 @@ import java.util.Objects;
  * answer that is confidently wrong.
  */
 public record PutRequest(String typeName, String id, Long expectedVersion, byte[] payload,
-                         Long recordedVersion, Instant recordedAt, boolean restoring) {
+                         Long recordedVersion, Instant recordedAt, boolean restoring,
+                         java.util.List<String> shape) {
 
     public PutRequest {
         Objects.requireNonNull(typeName, "typeName");
         Objects.requireNonNull(payload, "payload");
+        shape = shape == null ? null : java.util.List.copyOf(shape);
     }
 
     /** An ordinary write: the store assigns the version and the timestamp. */
     public PutRequest(String typeName, String id, Long expectedVersion, byte[] payload) {
-        this(typeName, id, expectedVersion, payload, null, null, false);
+        this(typeName, id, expectedVersion, payload, null, null, false, null);
     }
 
     /** Compatibility with callers that predate {@code restoring}. */
     public PutRequest(String typeName, String id, Long expectedVersion, byte[] payload,
             Long recordedVersion, Instant recordedAt) {
         this(typeName, id, expectedVersion, payload, recordedVersion, recordedAt,
-                recordedVersion != null);
+                recordedVersion != null, null);
+    }
+
+    /** Compatibility with callers that predate {@code shape}. */
+    public PutRequest(String typeName, String id, Long expectedVersion, byte[] payload,
+            Long recordedVersion, Instant recordedAt, boolean restoring) {
+        this(typeName, id, expectedVersion, payload, recordedVersion, recordedAt,
+                restoring, null);
+    }
+
+    /**
+     * The same write with {@code id} and {@code payload} substituted and
+     * everything else carried — for decorators that rewrite bytes on the way
+     * through: a wrapper that rebuilt the request by hand dropped the fields
+     * it did not know about, {@code shape} first among them.
+     */
+    public PutRequest with(String newId, byte[] newPayload) {
+        return new PutRequest(typeName, newId, expectedVersion, newPayload,
+                recordedVersion, recordedAt, restoring, shape);
+    }
+
+    /**
+     * The same write carrying the shape stamp — the versions of the declared
+     * pack profiles this payload was validated against, each entry
+     * {@code profile|version} (REQ-DBO-SHAPE-WRITTEN-UNDER-STAMPED). A fact
+     * of the accept event, stored beside the payload like
+     * {@code payload_version} and {@code chain_hash}; null means the writer
+     * makes no shape claim and the stored stamp is empty.
+     */
+    public PutRequest stamped(java.util.List<String> stamp) {
+        return new PutRequest(typeName, id, expectedVersion, payload,
+                recordedVersion, recordedAt, restoring, stamp);
     }
 
     public static PutRequest create(String typeName, byte[] payload) {
