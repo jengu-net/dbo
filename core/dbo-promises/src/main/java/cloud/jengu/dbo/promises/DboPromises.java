@@ -45,6 +45,22 @@ public enum DboPromises implements Promise {
             + "leading integer major is refused at accept, by name — it would stamp "
             + "objects no version bound can ever match."),
 
+    SHAPE_RESHAPED_IN_PLACE("The store converts stamped objects to a target major in "
+            + "place: each rewrite is an ordinary versioned write, so history keeps the "
+            + "pre-conversion object with its own stamp and the new version carries the "
+            + "new one."),
+
+    SHAPE_RESHAPE_RESUMABLE("A reshape is paged and rate-bounded, hands back a cursor and "
+            + "its counts, and a re-run finds only what is still behind."),
+
+    SHAPE_REFUSED_OBJECT_LEFT_BEHIND("An object no converter covers is named and left "
+            + "behind rather than stranding the rest; the run reports it and the next run "
+            + "tries again."),
+
+    SHAPE_STAMP_OUTLIVES_ITS_PACK("A stamp is a fact about a past accept: withdrawing or "
+            + "re-numbering a pack version leaves stock stamped with it findable, "
+            + "countable and convertible."),
+
     // ── PDI — personal-data isolation ───────────────────────────────────
 
     PDI_STRUCTURAL_VAULT("Identifying elements, declared per type/element, live encrypted "

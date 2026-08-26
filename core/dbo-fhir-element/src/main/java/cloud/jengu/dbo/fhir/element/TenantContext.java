@@ -43,6 +43,9 @@ import java.util.List;
  */
 final class TenantContext extends SimpleWorkerContext {
 
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(TenantContext.class);
+
     private final Terms terms;
 
     TenantContext(SimpleWorkerContext shared, Terms terms) throws IOException {
@@ -65,10 +68,38 @@ final class TenantContext extends SimpleWorkerContext {
      */
     TenantContext(SimpleWorkerContext shared, Terms terms, List<String> profiles)
             throws IOException {
+        this(shared, terms, profiles, List.of());
+    }
+
+    /**
+     * The same, with the tenant's own converters (#133).
+     *
+     * <p>A pack's StructureMaps are pack content exactly as its profiles are
+     * — authored in the tenant's own store, synced with the shapes they
+     * convert — so they belong in the same view. Cached verbatim: unlike a
+     * profile, a map needs no snapshot, and a map this context cannot read
+     * is skipped rather than failing a bring-up over a converter nothing has
+     * asked for yet.
+     */
+    TenantContext(SimpleWorkerContext shared, Terms terms, List<String> profiles,
+            List<String> maps) throws IOException {
         super(shared);
         this.terms = terms;
         for (String profile : profiles) {
             cacheProfile(profile);
+        }
+        for (String map : maps) {
+            cacheMap(map);
+        }
+    }
+
+    private void cacheMap(String map) {
+        try {
+            cacheResource(new org.hl7.fhir.r5.formats.JsonParser()
+                    .parse(map.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (Exception unreadable) {
+            LOG.warn("a stored StructureMap could not be read, so it converts nothing: {}",
+                    unreadable.getMessage());
         }
     }
 

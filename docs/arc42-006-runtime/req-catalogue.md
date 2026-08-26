@@ -96,7 +96,10 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-SHAPE-QUERYABLE-BY-VERSION | Objects are searchable by shape-stamp bound — below, or at and above, a stated major for a stated profile — pageable like any search, on every serving surface. | PROVEN | cloud.jengu.dbo.harness.ShapeStampIT#versionBoundsPartition |
 | REQ-DBO-SHAPE-STOCK-COUNTED | The tenant inventory counts shape stock per type, profile and stamped version — including objects that declare a profile and carry no stamp at all — so the same report runs before and after a migration and diffs line by line. | PROVEN | cloud.jengu.dbo.harness.ShapeStampIT#inventoryCountsTheStock |
 | REQ-DBO-SHAPE-UNPARSEABLE-VERSION-REFUSED | A pack shape whose version has no parseable leading integer major is refused at accept, by name — it would stamp objects no version bound can ever match. | PROVEN | cloud.jengu.dbo.harness.ShapeStampIT#unparseableVersionRefused |
-| FEAT-DBO-GAP-5a13fe61 | *gap: nobody has stated what happens when a pack withdraws or re-numbers a profile version that stamped data still carries* | GAP |  |
+| REQ-DBO-SHAPE-RESHAPED-IN-PLACE | The store converts stamped objects to a target major in place: each rewrite is an ordinary versioned write, so history keeps the pre-conversion object with its own stamp and the new version carries the new one. | PROVEN | cloud.jengu.dbo.harness.ReshapeIT#convertsInPlace |
+| REQ-DBO-SHAPE-RESHAPE-RESUMABLE | A reshape is paged and rate-bounded, hands back a cursor and its counts, and a re-run finds only what is still behind. | PROVEN | cloud.jengu.dbo.harness.ReshapeIT#reRunConvertsNothing |
+| REQ-DBO-SHAPE-REFUSED-OBJECT-LEFT-BEHIND | An object no converter covers is named and left behind rather than stranding the rest; the run reports it and the next run tries again. | PROVEN | cloud.jengu.dbo.harness.ReshapeIT#uncoveredIsNamedAndLeftBehind |
+| REQ-DBO-SHAPE-STAMP-OUTLIVES-ITS-PACK | A stamp is a fact about a past accept: withdrawing or re-numbering a pack version leaves stock stamped with it findable, countable and convertible. | PROVEN | cloud.jengu.dbo.harness.ReshapeIT#stampOutlivesItsPack |
 
 ## PDI — personal-data isolation
 
