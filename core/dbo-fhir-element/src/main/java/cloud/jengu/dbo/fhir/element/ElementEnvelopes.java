@@ -54,6 +54,23 @@ final class ElementEnvelopes {
                 add(envelope, parameter.getType(), path, hit);
             }
         }
+        // The meta dimensions the search surface already dispatches on
+        // (_profile, _tag in ElementSearch). They are engine-level — no
+        // SearchParameter in the pack expresses them — and until #132 nothing
+        // wrote them: a search by profile or tag answered empty, which looks
+        // like "nobody matches" and is not (#81's lesson, found again).
+        for (Element meta : document.getChildren("meta")) {
+            for (Element profile : meta.getChildren("profile")) {
+                String url = profile.primitiveValue();
+                if (url != null && !url.isBlank()) {
+                    envelope.value("_profile", EnvelopeValue.of(url));
+                }
+            }
+            for (Element tag : meta.getChildren("tag")) {
+                tokenForms(envelope, "_tag",
+                        tag.getNamedChildValue("system"), tag.getNamedChildValue("code"));
+            }
+        }
         if (canonical) {
             // The canonical identity: a type whose identity IS its url is found
             // by it, not merely indexed under it — conditional writes and every

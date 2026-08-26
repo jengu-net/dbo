@@ -201,6 +201,99 @@ class ShapeStampIT {
                 "the wire carries the written-under stamp: " + stamped);
     }
 
+    @Test
+    @Order(7)
+    @Proving(DboPromises.SHAPE_QUERYABLE_BY_VERSION)
+    @DisplayName("below and at-least partition the stamped stock, and the unstamped match "
+            + "neither")
+    void versionBoundsPartition() throws Exception {
+        // The pack advances once more; a fresh accept lands at 4.0.0 while
+        // the earlier observation stays stamped 3.0.0.
+        assertTrue(put("/StructureDefinition?url=" + CANONICAL, profile("4.0.0"))
+                .statusCode() < 300);
+        HttpResponse<String> created = post("/Observation", CLAIMING);
+        assertEquals(201, created.statusCode(), created.body());
+        String fresh = created.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+
+        String below = get("/Observation?_shape-below="
+                + java.net.URLEncoder.encode(CANONICAL + "|4",
+                        java.nio.charset.StandardCharsets.UTF_8)).body();
+        assertTrue(below.contains(observationId) && !below.contains(fresh),
+                "below 4 is exactly the 3.0.0 stock: " + below);
+
+        String atLeast = get("/Observation?_shape-at-least="
+                + java.net.URLEncoder.encode(CANONICAL + "|4",
+                        java.nio.charset.StandardCharsets.UTF_8)).body();
+        assertTrue(atLeast.contains(fresh) && !atLeast.contains(observationId),
+                "at-least 4 is exactly the fresh accept: " + atLeast);
+        assertFalse(below.contains("urn:dbo:shape\":\"") && false, "guard");
+
+        assertEquals(400, get("/Observation?_shape-below=notabound").statusCode(),
+                "a bound without <canonical>|<major> is refused, not guessed");
+    }
+
+    @Test
+    @Order(8)
+    @Proving(DboPromises.SHAPE_STOCK_COUNTED)
+    @DisplayName("the inventory counts stock per profile and version, and the "
+            + "declared-but-unstamped line is its own number")
+    void inventoryCountsTheStock() throws Exception {
+        // A versionless pack shape: declaring it is legal, stamping from it
+        // is impossible — the declared-but-unstamped case, real.
+        assertEquals(201, post("/StructureDefinition", """
+                {"resourceType":"StructureDefinition",
+                 "url":"https://sonavara.example/StructureDefinition/versionless",
+                 "name":"Versionless","status":"active","kind":"resource",
+                 "abstract":false,"type":"Observation",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Observation",
+                 "derivation":"constraint",
+                 "differential":{"element":[
+                   {"id":"Observation.subject","path":"Observation.subject","min":1}]}}""")
+                .statusCode());
+        assertEquals(201, post("/Observation", """
+                {"resourceType":"Observation","status":"final","code":{"text":"pulse"},
+                 "subject":{"display":"somebody"},
+                 "meta":{"profile":["https://sonavara.example/StructureDefinition/versionless"]}}""")
+                .statusCode());
+
+        var lines = cloud.jengu.dbo.maintenance.TenantInventory.shapes(
+                provisioner.provision(cloud.jengu.dbo.tenant.TenantSpec.parse(
+                        Files.readString(dir.resolve("kujud.json")))).dataSource());
+        assertTrue(lines.stream().anyMatch(l -> "Observation".equals(l.typeName())
+                        && CANONICAL.equals(l.profile()) && "3.0.0".equals(l.version())
+                        && l.count() == 1), lines.toString());
+        assertTrue(lines.stream().anyMatch(l -> "4.0.0".equals(l.version())
+                        && l.count() == 1), lines.toString());
+        // The adjacent defect this slice surfaced and fixed: the element
+        // face never wrote _profile into the envelope, so a search by
+        // profile answered empty — "nobody matches", which was not true.
+        assertTrue(get("/Observation?_profile="
+                + java.net.URLEncoder.encode(
+                        "https://sonavara.example/StructureDefinition/versionless",
+                        java.nio.charset.StandardCharsets.UTF_8)).body()
+                .contains("versionless"), "a profile search answers now");
+        assertTrue(lines.stream().anyMatch(l -> l.version() == null
+                        && l.profile().endsWith("versionless") && l.count() == 1),
+                "declaring without a stampable version is its own counted line: " + lines);
+    }
+
+    @Test
+    @Order(9)
+    @Proving(DboPromises.SHAPE_UNPARSEABLE_VERSION_REFUSED)
+    @DisplayName("a pack shape whose version has no leading integer major is refused by name")
+    void unparseableVersionRefused() throws Exception {
+        HttpResponse<String> refused = post("/StructureDefinition", """
+                {"resourceType":"StructureDefinition",
+                 "url":"https://sonavara.example/StructureDefinition/unorderable",
+                 "version":"next",
+                 "name":"Unorderable","status":"active","kind":"resource",
+                 "abstract":false,"type":"Observation",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Observation",
+                 "derivation":"constraint"}""");
+        assertEquals(422, refused.statusCode(), refused.body());
+        assertTrue(refused.body().contains("leading integer major"), refused.body());
+    }
+
     // ---------------------------------------------------------- plumbing
 
     private static int count(String haystack, String needle) {

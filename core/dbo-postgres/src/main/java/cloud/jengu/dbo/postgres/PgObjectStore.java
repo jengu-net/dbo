@@ -646,6 +646,20 @@ public final class PgObjectStore implements ObjectStore {
             params.add(sw.path());
             params.add(likePrefix(sw.prefix()));
         }
+        for (Criteria.Shape shape : criteria.shapePredicates()) {
+            // An inequality over majors: GIN answers equality, so this walks
+            // the _shape tokens — one per declared profile, bounded and
+            // cheap. The version's leading segment must parse; stamps are
+            // written from pack versions the accept door already gated
+            // (REQ-DBO-SHAPE-UNPARSEABLE-VERSION-REFUSED), and a legacy
+            // stamp that does not parse simply never matches a bound.
+            sql.append(" AND EXISTS (SELECT 1 FROM jsonb_array_elements(d.envelope -> '_shape') s")
+               .append(" WHERE s->>'s' = ? AND split_part(s->>'v', '.', 1) ~ '^[0-9]+$'")
+               .append(" AND (split_part(s->>'v', '.', 1))::int ")
+               .append(shape.below() ? "< ?)" : ">= ?)");
+            params.add(shape.profile());
+            params.add(shape.major());
+        }
         for (Criteria.Missing m : criteria.missingPredicates()) {
             sql.append(m.missing() ? " AND NOT jsonb_exists(d.envelope, ?)"
                     : " AND jsonb_exists(d.envelope, ?)");

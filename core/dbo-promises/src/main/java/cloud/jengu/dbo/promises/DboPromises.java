@@ -32,6 +32,19 @@ public enum DboPromises implements Promise {
             + "storage-format version, so a mirrored copy keeps the stamp of the store "
             + "that validated it; only an authored accept restamps."),
 
+    SHAPE_QUERYABLE_BY_VERSION("Objects are searchable by shape-stamp bound — below, or "
+            + "at and above, a stated major for a stated profile — pageable like any "
+            + "search, on every serving surface."),
+
+    SHAPE_STOCK_COUNTED("The tenant inventory counts shape stock per type, profile and "
+            + "stamped version — including objects that declare a profile and carry no "
+            + "stamp at all — so the same report runs before and after a migration and "
+            + "diffs line by line."),
+
+    SHAPE_UNPARSEABLE_VERSION_REFUSED("A pack shape whose version has no parseable "
+            + "leading integer major is refused at accept, by name — it would stamp "
+            + "objects no version bound can ever match."),
+
     // ── PDI — personal-data isolation ───────────────────────────────────
 
     PDI_STRUCTURAL_VAULT("Identifying elements, declared per type/element, live encrypted "

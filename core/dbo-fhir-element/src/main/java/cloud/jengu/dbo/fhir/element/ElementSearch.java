@@ -69,12 +69,43 @@ final class ElementSearch {
                 case "_tag" -> token(criteria, "_tag", value, false);
                 case "_tag:not" -> token(criteria, "_tag", value, true);
                 case "_profile" -> criteria.eq("_profile", EnvelopeValue.of(value));
+                case "_shape-below" -> shapeBound(criteria, typeName, value, true);
+                case "_shape-at-least" -> shapeBound(criteria, typeName, value, false);
                 case "_offset" -> throw new UnknownSearchParameterException(typeName,
                         "_offset (DBO paginates by cursor: follow Bundle.link[next])");
                 default -> named(version, criteria, typeName, known, name, value);
             }
         }
         return new Compiled(criteria, countOnly, elements, includes, byId);
+    }
+
+    /**
+     * A shape-stamp bound: {@code <canonical>|<major>}
+     * (REQ-DBO-SHAPE-QUERYABLE-BY-VERSION). Below and at-least both exist
+     * because verification asks both — "nothing left below" and "everything
+     * now at" are different assertions.
+     */
+    private static void shapeBound(Criteria criteria, String typeName, String value,
+            boolean below) {
+        int bar = value.lastIndexOf('|');
+        Integer major = null;
+        if (bar > 0) {
+            try {
+                major = Integer.valueOf(value.substring(bar + 1));
+            } catch (NumberFormatException notANumber) {
+                // fall through to the refusal below
+            }
+        }
+        if (major == null) {
+            throw new UnknownSearchParameterException(typeName,
+                    (below ? "_shape-below" : "_shape-at-least") + "=" + value
+                            + " (expected <canonical>|<major>)");
+        }
+        if (below) {
+            criteria.shapeBelow(value.substring(0, bar), major);
+        } else {
+            criteria.shapeAtLeast(value.substring(0, bar), major);
+        }
     }
 
     private static void sort(Criteria criteria, String typeName,
