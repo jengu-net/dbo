@@ -71,9 +71,14 @@ public final class Registry {
         return catalogues;
     }
 
-    /** The composed graph over every registered catalogue. */
+    /** The composed graph over every registered catalogue, citations unknown. */
     public Model model() {
-        return new Model(catalogues);
+        return new Model(catalogues, Proofs.of(java.util.Map.of()));
+    }
+
+    /** The composed graph joined against the citation index. */
+    public Model model(Proofs proofs) {
+        return new Model(catalogues, proofs);
     }
 
     private static Class<?> catalogueClass(ClassLoader loader, String name, URL index) {
@@ -117,8 +122,10 @@ public final class Registry {
         private final Map<String, MergedArea> areas = new LinkedHashMap<>();
         private final Map<Promise, List<Classified>> declaring = new LinkedHashMap<>();
         private final Map<Promise, String> namespaces = new LinkedHashMap<>();
+        private final Proofs proofs;
 
-        private Model(List<Class<?>> catalogues) {
+        private Model(List<Class<?>> catalogues, Proofs proofs) {
+            this.proofs = proofs;
             for (Class<?> catalogue : catalogues) {
                 String namespace = catalogue.getAnnotation(Catalogue.class).namespace();
                 for (Object constant : catalogue.getEnumConstants()) {
@@ -163,6 +170,49 @@ public final class Registry {
         /** The derived inverse of the down-links. Empty for the undeclared. */
         public List<Classified> declaring(Promise promise) {
             return List.copyOf(declaring.getOrDefault(promise, List.of()));
+        }
+
+        /**
+         * Derived, never asserted (REQ-DBO-PRM-STATUS-IS-DERIVED): cited is
+         * proven — the report is only ever generated from a green build, the
+         * same trust the close-after-CI gate encodes — named-uncited is
+         * planned, an assurance note on the constant is review-based, and a
+         * gap is a gap.
+         */
+        public PromiseStatus statusOf(Promise promise) {
+            if (promise.gap()) {
+                return PromiseStatus.GAP;
+            }
+            if (proofs.cited(promise)) {
+                return PromiseStatus.PROVEN;
+            }
+            return promise.assurance() != null ? PromiseStatus.ASSURED : PromiseStatus.PLANNED;
+        }
+
+        /** The sites proving {@code promise}; empty is the answer "nobody". */
+        public java.util.Set<String> citing(Promise promise) {
+            return proofs.citing(promise);
+        }
+
+        /**
+         * The fold (REQ-DBO-PRM-COVERAGE-IS-A-FOLD): the statuses of the
+         * promises a classification declares, gaps included.
+         */
+        public Map<PromiseStatus, Long> coverage(Classified classified) {
+            Map<PromiseStatus, Long> counts = new java.util.EnumMap<>(PromiseStatus.class);
+            for (Promise promise : classified.promises()) {
+                counts.merge(statusOf(promise), 1L, Long::sum);
+            }
+            return counts;
+        }
+
+        /** An area's coverage: the fold of its classifications' folds. */
+        public Map<PromiseStatus, Long> coverage(Area area) {
+            Map<PromiseStatus, Long> counts = new java.util.EnumMap<>(PromiseStatus.class);
+            for (Classified classified : area.covers()) {
+                coverage(classified).forEach((status, n) -> counts.merge(status, n, Long::sum));
+            }
+            return counts;
         }
 
         /**

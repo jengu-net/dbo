@@ -30,6 +30,17 @@ public interface Promise extends Coded {
     }
 
     /**
+     * A review-based assurance note, or null. Declared on the CONSTANT, not
+     * at a proof site: a promise assured by review rather than by an
+     * executable test carries that fact as its own property — there is no
+     * test to hang it on, and status stays derived
+     * (REQ-DBO-PRM-STATUS-IS-DERIVED).
+     */
+    default String assurance() {
+        return null;
+    }
+
+    /**
      * A promise nobody has stated yet, named by the text of what is missing.
      *
      * <p>Declared inside a classification's promise list — where the hole was
