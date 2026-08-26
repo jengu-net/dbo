@@ -271,6 +271,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /** One deterministic reconciliation round. Returns codes currently served. */
+    /**
+     * What a declared tenant that is not serving would say if asked (#144):
+     * the trouble ledger, code (or {@code spec:<file>} for a spec that never
+     * parsed) to reason. A bring-up failure is caught into this ledger and
+     * the tenant simply never serves — so a caller that only probes the
+     * endpoint meets a bare 404 three steps from the cause. This is the
+     * accessor that closes that distance: harnesses assert against it, and
+     * an operator surface can render it.
+     */
+    public Map<String, String> troubles() {
+        Map<String, String> reasons = new java.util.LinkedHashMap<>();
+        trouble.forEach((code, why) -> reasons.put(code, why.reason()));
+        return reasons;
+    }
+
     /** The tenant's own authority, for tools and tests that mint its clients. */
     public cloud.jengu.dbo.auth.TenantAuthority authority(String code) {
         return authorities.get(code);

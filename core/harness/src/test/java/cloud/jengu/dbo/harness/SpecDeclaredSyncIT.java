@@ -86,7 +86,7 @@ class SpecDeclaredSyncIT {
         Files.writeString(dir.resolve("sync-ee.json"),
                 """
                 {"code":"sync-ee","fhirVersion":"r4","types":%s}""".formatted(CANONICAL_TYPES));
-        manager.scanOnce();
+        UntilServed.scan(manager, "sync-ee");
         HttpResponse<String> created = post(manager.baseUrl("sync-ee") + "/CodeSystem",
                 """
                 {"resourceType":"CodeSystem","url":"https://ee.ee/cs/colors",
@@ -106,7 +106,7 @@ class SpecDeclaredSyncIT {
     @Order(2)
     void aSpecDeclaredDependentCatchesUpFromFullHistory() throws Exception {
         Files.writeString(dir.resolve("sync-hogwarts.json"), dependentSpec("sync-hogwarts"));
-        manager.scanOnce();
+        UntilServed.scan(manager, "sync-hogwarts");
         String copy = awaitCopy("sync-hogwarts", "green");
         assertTrue(copy.contains("$lookup → 200"), copy);
         // REQ-DBO-SYNC-DECLARED-ONLY at the spec grain: ValueSet undeclared
@@ -119,7 +119,7 @@ class SpecDeclaredSyncIT {
     @Order(3)
     void aSecondDependentReceivesTheWholeStreamToo() throws Exception {
         Files.writeString(dir.resolve("sync-beauxbatons.json"), dependentSpec("sync-beauxbatons"));
-        manager.scanOnce();
+        UntilServed.scan(manager, "sync-beauxbatons");
         // a shared ack cursor on the upstream feed would have starved this
         // tenant — hogwarts already acked past the event
         awaitCopy("sync-beauxbatons", "green");
