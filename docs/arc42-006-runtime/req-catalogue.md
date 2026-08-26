@@ -263,3 +263,14 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-MNT-IMPORT-REFUSES-UNATTESTED | Objects enter a store from an archive by one path only: the root recomputes and both signatures verify, or nothing is written. A refusal names what was wrong with the archive rather than failing part-way through it. (§11) |
 | REQ-DBO-MNT-ATTESTATION-READS-AS-FHIR | An archive's attestation renders as a `Provenance` carrying FHIR's `Signature`, so a customer's own tooling can check what it was handed without learning this store's JSON. A view rendered by the face, never the truth form — an archive of a non-FHIR domain is attested the same way and has no Provenance. (§11) |
 | REQ-DBO-MNT-ACCEPTED-ROOT-RECORDED | A destination records the root it accepted and the two keys that signed it, in the tenant's own audit trail, so what was imported and what both parties said it was stays answerable without the archive. (§11, §15.1) |
+
+## PRM — promise (requirements as code)
+
+| REQ | Promise |
+|---|---|
+| REQ-DBO-PRM-NAME-IS-THE-CODE | A promise is declared exactly once, as an enum constant; its code derives from the constant's name and its catalogue's namespace, so a citation cannot drift from a declaration — there is no string to mistype and no generator to trust. (§16) |
+| REQ-DBO-PRM-GAP-IS-FIRST-CLASS | Unstated ground is declared as a gap with plain text; a gap registers, carries a stable code, and counts against coverage until promoted to a named promise. (§16) |
+| REQ-DBO-PRM-REGISTERED-AT-COMPILE-TIME | An annotated catalogue is registered during its own component's compilation — no classpath is swept, and a registration regenerated on every compile cannot drift or be lost. (§16) |
+| REQ-DBO-PRM-CATALOGUE-READ-WHOLE | The registry reads a catalogue's constants whole — proven, planned and gap alike — never as a side effect of what happened to be class-loaded. (§16) |
+| REQ-DBO-PRM-DOWN-LINKS-ONLY | A classification declares the promises that fulfil it; a promise never names its classifications; the inverse is derived. One direction, one truth. (§16) |
+| REQ-DBO-PRM-AREAS-MERGE-BY-CODE | Composition merges same-code areas across catalogues and refuses two with conflicting prose rather than picking one. (§16) |

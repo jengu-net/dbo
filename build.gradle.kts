@@ -24,6 +24,7 @@ val moduleBlurbs = mapOf(
     "dbo-tenant-k8s" to "In-cluster provisioning seam backed by operator-written Kubernetes Secrets.",
     "dbo-operator" to "Kubernetes operator reconciling TenantRegistration resources.",
     "dbo-test-model" to "A non-FHIR model used to prove the engine holds no FHIR knowledge.",
+    "promise" to "Requirements as code: promises declared once, cited everywhere, composed across products.",
 )
 
 // The runtime bundle set, in install order. ONE list: the serving
