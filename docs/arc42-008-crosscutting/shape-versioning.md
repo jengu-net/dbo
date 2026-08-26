@@ -87,14 +87,31 @@ An object stamped **above** the pack's declared version for a profile is one
 the store cannot claim to understand. It is refused with a named error —
 which object, which profile, stamped what, the pack declares what — never
 served best-effort, because a silent misreading is indistinguishable from a
-correct read to whoever holds the result.
+correct read to whoever holds the result. A search whose answer would
+contain such an object is refused **whole**, and the check runs before the
+document begins: a refusal discovered mid-stream cannot become a status
+code, and would arrive as a truncated success.
 
-The same refusal holds at accept: an incoming object carrying a stamp above
-the pack's understanding cannot be created locally — it can only arrive by
-restore or stream from a store running a newer pack, which is exactly when
-the refusal must hold. What a consumer does with a tenant in that state
-(hold it, upgrade the pack) is consumer policy over a store fact; the
-inventory answers "how many sit above" as one question.
+**The refusal lives at the serving seam, not at ingress**, and that is
+deliberate. The accept path strips the engine's own stamp and re-stamps from
+the pack, so an authored write cannot carry a newer one; the paths that can —
+sync apply, restore — bypass the face entirely and must not grow pack
+knowledge, which is a face question. Every arrival path converges at
+serving, so one rule in one place covers all of them, including the ones not
+yet invented.
+
+Stated plainly, because it is a real narrowing: **too-new data can be
+stored; it cannot be read.** That is honest rather than lax — the stock is
+countable in the inventory and cleared by upgrading the pack or converting
+it, and nothing silently operates on it meanwhile. Two things are
+deliberately *not* refusals: unstamped stock (the walk refuses what is
+demonstrably ahead, never what is merely unlabelled) and stock under a shape
+the pack no longer carries at all (a stamp outlives its pack — only a pack
+declaring an *older* version is a conflict).
+
+The refusal is its own answer, distinguishable from a fault, a permission
+and a malformed request, so a consumer can gate on it: upgrade or convert,
+never retry.
 
 ## Version-ahead: a door, kept open
 

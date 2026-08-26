@@ -402,7 +402,52 @@ public final class ElementStore implements FhirStoreFacade {
                 .orElse(null);
     }
 
+    /**
+     * Refuses an object written under a shape newer than the pack carries
+     * (REQ-DBO-SHAPE-NEWER-DATA-REFUSED).
+     *
+     * <p>At the SERVING seam rather than at ingress, and deliberately: the
+     * accept path strips and re-stamps, so an authored write cannot carry a
+     * newer stamp, while the paths that can — sync apply, restore — bypass
+     * the face entirely and must not grow pack knowledge. Every arrival path
+     * converges here, so one rule in one place covers all of them, including
+     * the ones not yet invented.
+     *
+     * <p>Too-new data may therefore be STORED; it may not be read. That is
+     * honest rather than lax: the stock is countable in the inventory and
+     * cleared by upgrading the pack or converting it, and nothing silently
+     * operates on it in the meantime.
+     */
+    private void refuseIfTooNew(StoredObject stored) {
+        if (stored.shape() == null || !(((Object) payloads) instanceof ElementPayloads pack)) {
+            return;
+        }
+        for (String entry : stored.shape()) {
+            int bar = entry.lastIndexOf('|');
+            if (bar <= 0) {
+                continue;
+            }
+            String profile = entry.substring(0, bar);
+            String stamped = entry.substring(bar + 1);
+            String declared = pack.declaredVersionOf(profile);
+            // A shape the pack no longer carries is not a conflict — the
+            // stamp outlives its pack (#133). Only a pack that declares an
+            // OLDER major than the stamp is one.
+            if (declared != null && majorOf(stamped) > majorOf(declared)) {
+                throw new cloud.jengu.dbo.core.api.ShapeTooNewException(
+                        stored.typeName(), stored.id(), profile, stamped, declared);
+            }
+        }
+    }
+
+    /** A version's leading major, or -1 when it has none to compare. */
+    private static int majorOf(String version) {
+        String major = version == null ? "" : version.split("\\.", 2)[0];
+        return major.matches("[0-9]+") ? Integer.parseInt(major) : -1;
+    }
+
     private String rendered(StoredObject stored) {
+        refuseIfTooNew(stored);
         return new String(ElementAncestors.rendered(version.context(), stored.payload(),
                 stored.id(), stored.versionId(), null, stampsFor(stored)), StandardCharsets.UTF_8);
     }
@@ -622,6 +667,18 @@ public final class ElementStore implements FhirStoreFacade {
     private void write(String frameType, PayloadFraming.Facts facts, List<StoredObject> members,
             List<StoredObject> included, List<String> elements, OutputStream out) {
         try {
+            // BEFORE a byte is written: a document is streamed, so a refusal
+            // discovered mid-stream cannot become a status code — it would
+            // arrive as a 200 with a truncated body, which is precisely the
+            // half-answer this refusal exists to prevent (found by the test).
+            for (StoredObject member : members) {
+                refuseIfTooNew(member);
+            }
+            if (included != null) {
+                for (StoredObject member : included) {
+                    refuseIfTooNew(member);
+                }
+            }
             PayloadFraming.Frame frame = framing.frame(frameType, facts);
             out.write(frame.prologue());
             boolean first = true;
@@ -649,6 +706,10 @@ public final class ElementStore implements FhirStoreFacade {
 
     private PayloadFraming.Member member(StoredObject stored, String role,
             List<String> elements) {
+        // A search whose answer would contain a too-new object is refused
+        // WHOLE, naming it. Quietly omitting it is the failure #81 and #115
+        // both named: a short answer looks like an answer.
+        refuseIfTooNew(stored);
         ElementAncestors.Stamps stamps = stampsFor(stored);
         return new PayloadFraming.Member(stored.typeName(), stored.id(), stored.versionId(),
                 stored.payload(), baseUrl + "/" + stored.typeName() + "/" + stored.id(), role,

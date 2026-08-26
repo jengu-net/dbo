@@ -371,6 +371,18 @@ final class ElementPayloads implements Payloads<Element> {
         return context;
     }
 
+    /**
+     * What this tenant's pack declares for {@code profile} today, or null
+     * when it carries no such shape — which is an ordinary answer, not a
+     * conflict: a stamp outlives the pack version that made it (#133).
+     */
+    String declaredVersionOf(String profile) {
+        org.hl7.fhir.r5.model.StructureDefinition sd = context.fetchResource(
+                org.hl7.fhir.r5.model.StructureDefinition.class, profile);
+        return sd == null || sd.getVersion() == null || sd.getVersion().isBlank()
+                ? null : sd.getVersion();
+    }
+
     @Override
     public String typeOf(Element document) {
         return reading.typeOf(document);
