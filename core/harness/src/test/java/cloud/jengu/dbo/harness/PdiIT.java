@@ -1,5 +1,8 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
+
 import cloud.jengu.dbo.core.api.Identifier;
 import cloud.jengu.dbo.core.api.IdentityConflictException;
 import cloud.jengu.dbo.core.api.PutRequest;
@@ -109,6 +112,7 @@ class PdiIT {
     @Test
     @Order(0)
     @DisplayName("the stored payload carries the birth year, and only the year")
+    @Proving({DboPromises.PDI_STRUCTURAL_VAULT})
     void theCoarseValueIsWrittenInTheClear() throws Exception {
         String id = store.put(PutRequest.create("Patient", patient("Coarse", "39001010023"))).id();
 
@@ -171,6 +175,7 @@ class PdiIT {
     /** The identifying values appear NOWHERE in the database in plaintext. */
     @Test
     @Order(2)
+    @Proving(DboPromises.PDI_STRUCTURAL_VAULT)
     void identifyingValuesAreCiphertextEverywhere() throws Exception {
         try (Connection c = ds.getConnection()) {
             for (String probe : List.of(NAME, "Salakas-Uus", CODE_37)) {
@@ -211,6 +216,7 @@ class PdiIT {
     /** Restriction of processing: reads turn pseudonymous, reversibly. */
     @Test
     @Order(4)
+    @Proving(DboPromises.PDI_RIGHTS_AS_OPERATIONS)
     void restrictionMakesReadsPseudonymous() {
         vault.restrict(personId, true);
         // asked for whole, and still pseudonymous: restriction is not a mode a
@@ -233,6 +239,7 @@ class PdiIT {
      */
     @Test
     @Order(5)
+    @Proving(DboPromises.PDI_RIGHTS_AS_OPERATIONS)
     void theSubjectsOwnExportStatesItsPurpose() {
         cloud.jengu.dbo.core.api.Disclosure.clear();
         String export = store.exportPerson("Patient", personId, List.of());
@@ -269,6 +276,7 @@ class PdiIT {
      */
     @Test
     @Order(6)
+    @Proving(DboPromises.PDI_BLIND_OPERATIONS)
     void aTenantArchiveCarriesCiphertextWhateverTheRequestWasDoing() throws Exception {
         cloud.jengu.dbo.core.api.Disclosure.set(
                 cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE, "TREAT");
@@ -288,6 +296,7 @@ class PdiIT {
     /** §14.1+§14.4: shred erases every copy at once; a pre-shred archive cannot resurrect. */
     @Test
     @Order(6)
+    @Proving({DboPromises.PDI_CRYPTO_SHREDDING, DboPromises.PDI_UNFINDABLE_AFTER_ERASURE, DboPromises.PDI_SHRED_LEDGER})
     void shredErasesEverywhereAndRestoreCannotResurrect() throws Exception {
         // archive BEFORE the shred — the resurrection candidate
         ByteArrayOutputStream archive = new ByteArrayOutputStream();
@@ -310,9 +319,12 @@ class PdiIT {
         }
         assertEquals(0, store.getByIdentifier("Patient", List.of(new Identifier(EID, CODE_37))).size(),
                 "an erased person is unfindable");
-        assertThrows(IllegalStateException.class, () ->
+        IllegalStateException refused = assertThrows(IllegalStateException.class, () ->
                 store.put(PutRequest.update("Patient", personId, 2, patient(NAME, CODE_37))),
                 "no new identifying data for a shredded person");
+        assertTrue(refused.getMessage().contains(
+                        DboPromises.PDI_CRYPTO_SHREDDING.code()),
+                "the refusal names the promise it enforces (#140): " + refused.getMessage());
 
         // restore the pre-shred archive: the ledger MERGES and replays
         CoSignedArchive.over(archive.toByteArray(), ownerKey)
@@ -331,6 +343,7 @@ class PdiIT {
      */
     @Test
     @Order(7)
+    @Proving({DboPromises.PDI_UNFINDABLE_AFTER_ERASURE, DboPromises.PDI_EXACT_RESOLUTION})
     void aShreddedPersonIsNotResolvableByIdentifier() {
         cloud.jengu.dbo.core.api.Caller.set("test-client");
         cloud.jengu.dbo.core.api.Disclosure.set(

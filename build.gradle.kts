@@ -26,6 +26,7 @@ val moduleBlurbs = mapOf(
     "dbo-operator" to "Kubernetes operator reconciling TenantRegistration resources.",
     "dbo-test-model" to "A non-FHIR model used to prove the engine holds no FHIR knowledge.",
     "promise" to "Requirements as code: promises declared once, cited everywhere, composed across products.",
+    "dbo-promises" to "The store's own promise catalogue: SHAPE and PDI as the pilot.",
 )
 
 // The runtime bundle set, in install order. ONE list: the serving
@@ -41,6 +42,9 @@ val dboRuntimeModules = listOf(
     // the shared facade every version is served through, and the definitions
     // it carries — before the faces that import it
     ":core:dbo-fhir-element",
+    // the promise framework and the store's catalogue: leaf bundles the
+    // citing modules (dbo-pdi first) import from
+    ":promise", ":core:dbo-promises",
     ":core:dbo-fhir-r4", ":core:dbo-fhir-r5", ":core:dbo-rest", ":core:dbo-auth", ":core:dbo-pdi",
     // the provisioning door: imports auth and pdi, imported by dbo-tenant
     ":core:dbo-scim",

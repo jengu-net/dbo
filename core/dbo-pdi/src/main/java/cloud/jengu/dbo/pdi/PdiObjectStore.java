@@ -415,7 +415,10 @@ public final class PdiObjectStore implements ObjectStore {
         }
         if (!identifying.isEmpty()) {
             byte[] key = vault.keyFor(personId, true).orElseThrow(
-                    () -> new IllegalStateException("person " + personId + " is shredded — no new identifying data"));
+                    () -> new IllegalStateException("person " + personId
+                            + " is shredded — no new identifying data ("
+                            + cloud.jengu.dbo.promises.DboPromises.PDI_CRYPTO_SHREDDING.code()
+                            + ")"));
             parsed.put("__pdiEnc", Base64.getEncoder().encodeToString(
                     vault.encrypt(key, Json.render(identifying).getBytes(StandardCharsets.UTF_8))));
         }

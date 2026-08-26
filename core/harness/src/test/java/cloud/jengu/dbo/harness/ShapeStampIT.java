@@ -1,5 +1,8 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
+
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -96,6 +99,7 @@ class ShapeStampIT {
     @Order(1)
     @DisplayName("an accepted object is stamped with the pack version it was validated under, "
             + "and meta.profile stays the unversioned canonical")
+    @Proving({DboPromises.SHAPE_WRITTEN_UNDER_STAMPED, DboPromises.SHAPE_SERVED_BESIDE_THE_CLAIM})
     void acceptStamps() throws Exception {
         HttpResponse<String> created = post("/Observation", CLAIMING);
         assertEquals(201, created.statusCode(), created.body());
@@ -112,6 +116,7 @@ class ShapeStampIT {
     @Test
     @Order(2)
     @DisplayName("an echoed round trip is stamp-stable: replaced, never accumulated")
+    @Proving({DboPromises.SHAPE_SERVED_BESIDE_THE_CLAIM})
     void echoIsStampStable() throws Exception {
         String served = get("/Observation/" + observationId).body();
         HttpResponse<String> updated = put("/Observation/" + observationId, served);
@@ -127,6 +132,7 @@ class ShapeStampIT {
     @Order(3)
     @DisplayName("a pack bump moves the stamp with the next accept; the old version keeps "
             + "its own stamp in history")
+    @Proving({DboPromises.SHAPE_WRITTEN_UNDER_STAMPED, DboPromises.SHAPE_STAMP_IS_DERIVED})
     void packBumpMovesTheStamp() throws Exception {
         // The pack's shape advances: same canonical, new version, as data.
         assertTrue(put("/StructureDefinition?url=" + CANONICAL, profile("3.0.0"))
@@ -147,6 +153,7 @@ class ShapeStampIT {
     @Test
     @Order(4)
     @DisplayName("no declared pack profile, no stamp — accepted, unstamped")
+    @Proving({DboPromises.SHAPE_WRITTEN_UNDER_STAMPED})
     void undeclaredIsUnstamped() throws Exception {
         HttpResponse<String> created = post("/Observation", PLAIN);
         assertEquals(201, created.statusCode(), created.body());
@@ -158,6 +165,7 @@ class ShapeStampIT {
     @Test
     @Order(5)
     @DisplayName("a reindex rebuilds the shape dimension from the row, losing nothing")
+    @Proving({DboPromises.SHAPE_STAMP_IS_DERIVED})
     void reindexKeepsTheStamp() throws Exception {
         var runtime = manager.runtime("kujud").orElseThrow();
         // the engine rebuild every personality supports: envelope from row
@@ -171,6 +179,7 @@ class ShapeStampIT {
     @Order(6)
     @DisplayName("the stamp travels the feed beside the payload version, so a mirrored copy "
             + "keeps the stamp of the store that validated it")
+    @Proving({DboPromises.SHAPE_MIRRORED_KEEPS_ITS_STAMP})
     void stampRidesTheWire() throws Exception {
         var feed = manager.runtime("kujud").orElseThrow().feed();
         String cursor = null;
