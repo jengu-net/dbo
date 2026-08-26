@@ -17,9 +17,17 @@ public final class Scopes {
     private Scopes() {
     }
 
+    /**
+     * The staff-provisioning scope: admits the SCIM surface and nothing
+     * else. Deliberately OUTSIDE the SMART grammar — {@link #allows} never
+     * sees it, so a directory credential is structurally blind to the
+     * store's resource surface rather than filtered away from it.
+     */
+    public static final String SCIM = "scim";
+
     /** Validates a declared scope string (as stored on a ClientApplication). */
     public static boolean isValid(String scope) {
-        return SCOPE.matcher(scope).matches();
+        return SCIM.equals(scope) || SCOPE.matcher(scope).matches();
     }
 
     public static boolean allows(List<String> granted, String resourceType, boolean mutation) {

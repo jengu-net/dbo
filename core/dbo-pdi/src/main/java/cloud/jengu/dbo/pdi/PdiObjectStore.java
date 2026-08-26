@@ -360,7 +360,7 @@ public final class PdiObjectStore implements ObjectStore {
      * else. Not a coding system and never rendered — a client neither sees it
      * nor needs to.
      */
-    private static final String TELECOM_SYSTEM = "urn:dbo:pdi:telecom";
+    private static final String TELECOM_SYSTEM = PersonVault.TELECOM_SYSTEM;
 
     // ------------------------------------------------------------- split / join
 

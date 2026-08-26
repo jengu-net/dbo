@@ -346,6 +346,28 @@ public final class TenantAuthority {
     // ------------------------------------------------------------ humans (§16)
 
     /** Dev/admin surface: the tenant-administered role→scope mapping. */
+    /**
+     * The active role codes this tenant grants — a read-only directory view
+     * (SCIM Groups render from it; REQ-DBO-SCIM-GROUPS-READ-ONLY). Codes
+     * only: who holds a role is governance's business, walked person-by-
+     * person at token time, and a surface that listed members would be a
+     * different trust decision.
+     */
+    public List<String> activeRoleCodes() {
+        java.util.TreeSet<String> codes = new java.util.TreeSet<>();
+        for (StoredObject grant : store.select(
+                cloud.jengu.dbo.core.api.Criteria.of("RoleGrant")
+                        .eq("status", cloud.jengu.dbo.core.api.EnvelopeValue.of("active")))) {
+            Object parsed = Json.parse(new String(grant.payload(),
+                    java.nio.charset.StandardCharsets.UTF_8));
+            String code = Json.strOpt(parsed, "roleCode");
+            if (code != null) {
+                codes.add(code);
+            }
+        }
+        return List.copyOf(codes);
+    }
+
     public void ensureRoleGrant(String roleCode, List<String> scopes) {
         ensureRoleGrant(roleCode, null, scopes);
     }

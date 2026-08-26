@@ -274,3 +274,15 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-PRM-CATALOGUE-READ-WHOLE | The registry reads a catalogue's constants whole — proven, planned and gap alike — never as a side effect of what happened to be class-loaded. (§16) |
 | REQ-DBO-PRM-DOWN-LINKS-ONLY | A classification declares the promises that fulfil it; a promise never names its classifications; the inverse is derived. One direction, one truth. (§16) |
 | REQ-DBO-PRM-AREAS-MERGE-BY-CODE | Composition merges same-code areas across catalogues and refuses two with conflicting prose rather than picking one. (§16) |
+
+## SCIM — staff provisioning surface
+
+| REQ | Promise |
+|---|---|
+| REQ-DBO-SCIM-DECLARED-PER-TENANT | A tenant serves SCIM 2.0 only when its spec declares it (the block naming the externalId system); absent the block, the endpoints do not exist. (§13, RFC 7643/7644) |
+| REQ-DBO-SCIM-USER-IS-THE-PERSON | A SCIM User is the human: the externalId claimed and identifying data authored on the Person, with a linked Practitioner capacity ensured on create — the same linkage the authority walks at token time. (§14, §16) |
+| REQ-DBO-SCIM-ENUMERATION-STAYS-INSIDE | The by-system enumeration answering the user list is a vault method inside this server; no store API, face or FHIR search gains it, and an enumeration-shaped search stays refused at the front door. (§14) |
+| REQ-DBO-SCIM-DIRECTORY-CREDENTIAL | The SCIM client's scope admits the SCIM surface and nothing else; its token is refused by the FHIR surface and a store token is refused by SCIM. (§13) |
+| REQ-DBO-SCIM-DEPROVISION-IS-A-STATE | Deactivation sets active=false on the person and the capacity; it is never erasure — that remains the vault's own ceremony with its own audit shape. (§14) |
+| REQ-DBO-SCIM-EVERY-OP-IS-A-DISCLOSURE | Every SCIM operation runs with the client as caller and an administrative purpose stated, so it lands in the trail as one recorded provisioning disclosure. (§14, §15) |
+| REQ-DBO-SCIM-GROUPS-READ-ONLY | Groups render from active role grants and refuse writes permanently — who works here is the identity provider's call; who is an admin here is not. (§16) |
