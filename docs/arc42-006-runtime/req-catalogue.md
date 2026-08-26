@@ -86,6 +86,7 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-PDI-BLIND-OPERATIONS | Backup and restore are machinery-driven end to end over ciphertext; the operator can run the whole lifecycle without the ability to read personal data, and opening an archive outside the running system is an owner-only act. (§14, §11) |
 | REQ-DBO-PDI-SHRED-LEDGER | Erasures are recorded without personal data and re-applied on every restore before serving resumes — an old archive cannot silently resurrect an erased person. (§14) |
 | REQ-DBO-PDI-RIGHTS-AS-OPERATIONS | Access, portability and restriction are standard machinery operations over the vault join, not per-request projects. (§14) |
+| REQ-DBO-PDI-EXACT-RESOLUTION | An exact, purpose-stated lookup on a vault-indexed value — a claimed identifier (system\|value) or an indexed contact point — resolves through the vault to the records holding it, served under the caller's disclosure mode. The match runs over keyed hashes (plaintext never at rest, never in a query) and every resolution leaves a value fingerprint in the disclosure trail; after erasure the answer is empty (REQ-DBO-PDI-UNFINDABLE-AFTER-ERASURE). Anything inexact, unsystemed, or combined with other predicates is refused, never half-answered. (§14) |
 
 ## POL — tenant policies (audit & write discipline)
 

@@ -229,8 +229,8 @@ public final class PdiObjectStore implements ObjectStore {
      * rather than from an index that cannot hold it (#115).
      *
      * <p>Deliberately narrow: ONE predicate, equality, on an element the vault
-     * indexes. That is a lookup — "who is behind this address" — and not a
-     * search. A query combining an identifying value with other predicates is
+     * indexes. That is a lookup — "who is behind this address", "which record
+     * claims this identifier" — and not a search. A query combining an identifying value with other predicates is
      * refused rather than half-answered, because narrowing a result set the
      * store cannot fully evaluate is how a wrong answer gets a confident shape.
      *
@@ -247,27 +247,52 @@ public final class PdiObjectStore implements ObjectStore {
         }
         Criteria.Eq only = criteria.equalsPredicates().get(0);
         String element = spec.identifyingElementFor(criteria.typeName(), only.path());
-        if (!"telecom".equals(element)
-                || cloud.jengu.dbo.core.api.Disclosure.purpose() == null) {
+        if (element == null || cloud.jengu.dbo.core.api.Disclosure.purpose() == null) {
             return Optional.empty();
         }
-        String value = only.value() instanceof EnvelopeValue.Token token ? token.code()
-                : only.value() instanceof EnvelopeValue.Str str ? str.value() : null;
-        if (value == null) {
-            return Optional.empty();
+        if ("telecom".equals(element)) {
+            String value = only.value() instanceof EnvelopeValue.Token token ? token.code()
+                    : only.value() instanceof EnvelopeValue.Str str ? str.value() : null;
+            if (value == null) {
+                return Optional.empty();
+            }
+            // The value is hashed on the way in and compared as a hash — the
+            // plaintext is never at rest and never in a query (ADR 0056 §5), and
+            // the same fingerprint goes to the trail so the lookup is answerable
+            // later without the address ever being written down.
+            cloud.jengu.dbo.core.api.Disclosure.matched(vault.fingerprintOf(value));
+            List<StoredObject> found = new ArrayList<>();
+            for (String personId : vault.findAllByIdentifier(TELECOM_SYSTEM, value)) {
+                inner.get(criteria.typeName(), personId)
+                        .map(o -> reassembled(criteria.typeName(), o))
+                        .ifPresent(found::add);
+            }
+            return Optional.of(List.copyOf(found));
         }
-        // The value is hashed on the way in and compared as a hash — the
-        // plaintext is never at rest and never in a query (ADR 0056 §5), and
-        // the same fingerprint goes to the trail so the lookup is answerable
-        // later without the address ever being written down.
-        cloud.jengu.dbo.core.api.Disclosure.matched(vault.fingerprintOf(value));
-        List<StoredObject> found = new ArrayList<>();
-        for (String personId : vault.findAllByIdentifier(TELECOM_SYSTEM, value)) {
-            inner.get(criteria.typeName(), personId)
+        if ("identifier".equals(element)) {
+            // A claimed identifier resolves only as its full (system, value)
+            // pair. A bare value would ask every system at once — enumeration
+            // wearing a smaller coat — so it falls through to the guard's
+            // refusal instead of an answer (#136).
+            if (!(only.value() instanceof EnvelopeValue.Token token)
+                    || token.system() == null || token.system().isBlank()
+                    || token.code() == null || token.code().isBlank()) {
+                return Optional.empty();
+            }
+            cloud.jengu.dbo.core.api.Disclosure.matched(vault.fingerprintOf(token.code()));
+            // Claims, not the shared-value index: an identity system names at
+            // most one person, and the claim table's uniqueness is what makes
+            // this answer at-most-one by construction. Asking by type scopes
+            // the answer for free — a value claimed by a Patient answers
+            // nothing to a Practitioner question.
+            List<StoredObject> found = new ArrayList<>();
+            vault.findByIdentifier(token.system(), token.code())
+                    .flatMap(personId -> inner.get(criteria.typeName(), personId))
                     .map(o -> reassembled(criteria.typeName(), o))
                     .ifPresent(found::add);
+            return Optional.of(List.copyOf(found));
         }
-        return Optional.of(List.copyOf(found));
+        return Optional.empty();
     }
 
     @Override
