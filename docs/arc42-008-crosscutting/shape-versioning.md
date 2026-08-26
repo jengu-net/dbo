@@ -25,9 +25,20 @@ the object's declared profiles against the tenant pack. For every declared
 profile the pack publishes, the store records `profile|version` — the
 `StructureDefinition.version` current in the pack at that write.
 
-- **It rides the envelope** as a dimension, so it is GIN-indexed from birth:
-  shape-grain queries are native searches, not scans, and no bespoke index or
-  tier-2 machinery is involved.
+- **It is a per-version fact of the accept event**, stored as a column beside
+  the payload in both state and history — the `payload_version`/`chain_hash`
+  category, not payload content. Stored bytes stay exactly what the author
+  sent, and every history version keeps its own stamp.
+- **It rides the envelope** as a dimension written from that column (reindex
+  rebuilds it from the row), so it is GIN-indexed from birth: shape-grain
+  queries are native searches, not scans, and no bespoke index or tier-2
+  machinery is involved. The envelope itself stays out of history for the
+  standing reason: it is a derived cache, and derived data in immutable rows
+  either mutates on reindex or goes stale.
+- **On the wire it is the `urn:dbo:shape` complex extension** in
+  `meta.extension` (`profile` canonical + `version` string, one per declared
+  pack profile), joined at serve like the engine's other Meta facts, its
+  definition published and resolvable like every dbo system.
 - **It is served in `meta`** as an engine fact on the reading path, under the
   same replace-not-append rule as the engine's other Meta facts
   ([engine and faces](engine-and-faces.md)): re-stamping replaces prior
@@ -100,15 +111,16 @@ grooming of its slice under the delivery epic
 ([dbo#130](https://github.com/jengu-net/dbo/issues/130)) and written back
 into this doc as it lands:
 
-1. **The wire representation of the served stamp** — the default candidate is
-   a dbo-published complex extension (canonical + published CodeSystem, since
-   every dbo system on the wire must be resolvable).
-2. **Version ordering** — how "below version N" compares pack versions
+1. **Version ordering** — how "below version N" compares pack versions
    (major-prefix vs full ordering); the query and the converter keying must
    share one rule.
-3. **Converter ownership** — pack-shipped StructureMaps executed in-process
+2. **Converter ownership** — pack-shipped StructureMaps executed in-process
    (converters as catalogue data, the default proposal) vs consumer-supplied
    conversion through the API.
-4. **Stamps on streams** — whether a streamed copy's stamp travels with it or
-   is recomputed at apply against the receiving tenant's pack
-   ([eventing and feeds](eventing-and-feeds.md) records the outcome).
+
+Two are already decided (dbo#131's grooming) and stated above: the wire
+representation (`urn:dbo:shape`), and stamps on streams — a mirrored copy
+keeps the stamp of the store that validated it, carried explicitly on the
+sync wire beside the storage-format version; only an authored accept
+restamps. [Eventing and feeds](eventing-and-feeds.md) records the latter
+once the slice lands.
