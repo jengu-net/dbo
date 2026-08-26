@@ -213,16 +213,16 @@ which makes mapping onto it a cheap bet.
 | `Meta.versionId` | the version | ✅ |
 | `Meta.lastUpdated` | when that version was written | ❌ carried beside a read as HTTP metadata, never in the resource |
 | `Meta.source` | **where a copy came from** — a streamed object's upstream | ✅ |
-| `Meta.profile` | **the shape stamp** the object was written under | ❌ waits for the stamp to exist ([shape versioning](shape-versioning.md)) |
+| `Meta.profile` | **the shape stamp** the object was written under | ✅ `urn:dbo:shape` in `meta.extension` ([shape versioning](shape-versioning.md)) |
 | `Meta.security` | **the declared handling class**, which the store enforces on every write | ✅ `urn:dbo:handling` |
 | `Meta.tag` | operational labels — streamed origin, shadowing state | ✅ `urn:dbo:sync` |
 | `Resource.implicitRules`, `Resource.language` | no engine analogue | face only |
 | `DomainResource.text`, `contained`, `extension`, `modifierExtension` | no engine analogue | face only |
 
-Seven engine facts have a standard place to be said. **Five are said** — the id, the
-version, custody, handling and the sync labels — so a client receives the
-classification being enforced on the data. `Meta.lastUpdated` still rides beside a
-read as HTTP metadata, and `Meta.profile` waits for the shape stamp to exist.
+Seven engine facts have a standard place to be said. **Six are said** — the id, the
+version, custody, handling, the sync labels and the written-under shape stamp — so a
+client receives the classification being enforced on the data and the shape version
+that wrote it. `Meta.lastUpdated` still rides beside a read as HTTP metadata.
 
 Two cautions before anyone maps them:
 
