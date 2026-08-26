@@ -366,6 +366,11 @@ final class ElementPayloads implements Payloads<Element> {
         return java.util.List.copyOf(stamps);
     }
 
+    /** This view's definitions — the tenant's, where one was derived. */
+    SimpleWorkerContext context() {
+        return context;
+    }
+
     @Override
     public String typeOf(Element document) {
         return reading.typeOf(document);

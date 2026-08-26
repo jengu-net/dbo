@@ -646,7 +646,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     declared.portableRendering(),
                     adminPath,
                     new AuditedImportLedger(
-                            (cloud.jengu.dbo.policy.PolicyObjectStore) runtime.engine())));
+                            (cloud.jengu.dbo.policy.PolicyObjectStore) runtime.engine()),
+                    // a reshape writes through the tenant's own engine, so it
+                    // is audited, policy-guarded and re-stamped exactly like
+                    // any other write (#133)
+                    runtime.engine(), runtime.store()));
             maintenanceContexts.put(spec.code(), adminPath);
         }
         runtimes.put(spec.code(), runtime);

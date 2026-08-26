@@ -10,6 +10,20 @@ import java.util.Map;
  */
 public interface FhirStoreFacade {
 
+    /**
+     * How this tenant converts stored shapes, when it can (#133).
+     *
+     * <p>Tenant-scoped rather than version-scoped, and that is the whole
+     * reason it lives here: converters ship in the tenant's own pack beside
+     * the shapes they convert, so a conversion resolved against the shared
+     * definitions would answer "no converter" about maps the tenant holds.
+     * Empty means this face has no way to convert its model's shapes at all
+     * — an ordinary answer that a caller turns into a named refusal.
+     */
+    default java.util.Optional<cloud.jengu.dbo.core.face.ShapeConversion> shapeConversion() {
+        return java.util.Optional.empty();
+    }
+
     PutResult create(String resourceJson);
 
     /** {@code expectedVersion} null = unconditional update. */

@@ -93,7 +93,7 @@ public final class ElementStore implements FhirStoreFacade {
         this.terms = terms;
         this.payloads = terms == null
                 ? (Payloads<Object>) version.face().require(Payloads.class)
-                : (Payloads<Object>) (Payloads<?>) version.payloadsFor(terms, storedProfiles(store));
+                : (Payloads<Object>) (Payloads<?>) version.payloadsFor(terms, storedProfiles(store), storedMaps(store));
         this.framing = version.face().require(PayloadFraming.class);
     }
 
@@ -455,13 +455,23 @@ public final class ElementStore implements FhirStoreFacade {
         rebuiltIfShapesMoved("StructureDefinition");
     }
 
+    /** A converter arriving out of band — a sync lane's write, a restore. */
+    public void convertersChanged() {
+        rebuiltIfShapesMoved("StructureMap");
+    }
+
     private void rebuiltIfShapesMoved(String typeName) {
-        if (terms == null || !"StructureDefinition".equals(typeName)) {
+        // A converter moving matters exactly as much as a shape moving: a map
+        // written into the pack must take effect without a restart, or a
+        // reshape answers "no converter" about one the tenant is holding
+        // (#133 — found by the test, not by review).
+        if (terms == null
+                || !("StructureDefinition".equals(typeName) || "StructureMap".equals(typeName))) {
             return;
         }
         try {
             payloads = (Payloads<Object>) (Payloads<?>)
-                    version.payloadsFor(terms, storedProfiles(store));
+                    version.payloadsFor(terms, storedProfiles(store), storedMaps(store));
         } catch (RuntimeException e) {
             throw new cloud.jengu.dbo.fhir.common.ValidationFailedException("StructureDefinition",
                     List.of("the profile was stored, and this tenant's validation still uses "
@@ -481,6 +491,28 @@ public final class ElementStore implements FhirStoreFacade {
      * is an ordinary answer: it validates against the carried pack alone,
      * exactly as before.
      */
+    @Override
+    public java.util.Optional<cloud.jengu.dbo.core.face.ShapeConversion> shapeConversion() {
+        Object view = payloads;
+        return view instanceof ElementPayloads tenant
+                ? java.util.Optional.of(new ElementShapeConversion(tenant))
+                : java.util.Optional.empty();
+    }
+
+    /** The tenant's own converters, alongside its own profiles (#133). */
+    private static List<String> storedMaps(ObjectStore engine) {
+        try {
+            return engine.select(cloud.jengu.dbo.core.api.Criteria.of("StructureMap")
+                            .limit(500)).stream()
+                    .map(stored -> new String(stored.payload(), StandardCharsets.UTF_8))
+                    .toList();
+        } catch (RuntimeException e) {
+            // A tenant that does not register StructureMap has no converters,
+            // which is a shape of tenant, not a broken one.
+            return List.of();
+        }
+    }
+
     private static List<String> storedProfiles(ObjectStore engine) {
         try {
             return engine.select(cloud.jengu.dbo.core.api.Criteria.of("StructureDefinition")

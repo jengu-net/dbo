@@ -237,8 +237,15 @@ public final class ElementVersion {
      * on top of it.
      */
     ElementPayloads payloadsFor(Terms terms, java.util.List<String> profiles) {
+        return payloadsFor(terms, profiles, java.util.List.of());
+    }
+
+    /** The same, with the tenant's own converters in the view too (#133). */
+    ElementPayloads payloadsFor(Terms terms, java.util.List<String> profiles,
+            java.util.List<String> maps) {
         try {
-            return new ElementPayloads(new TenantContext(context(), terms, profiles), terms);
+            return new ElementPayloads(new TenantContext(context(), terms, profiles, maps),
+                    terms);
         } catch (java.io.IOException e) {
             throw new java.io.UncheckedIOException(
                     "cannot derive a tenant context from the shared " + code + " context", e);

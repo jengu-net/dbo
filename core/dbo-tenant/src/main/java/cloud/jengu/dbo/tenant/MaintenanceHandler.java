@@ -57,6 +57,23 @@ public final class MaintenanceHandler implements HttpHandler {
             String domain, List<TypeRegistration> types,
             cloud.jengu.dbo.core.face.PortableRendering rendering, String basePath,
             cloud.jengu.dbo.maintenance.ImportLedger ledger) {
+        this(authority, dataSource, domain, types, rendering, basePath, ledger, null, null);
+    }
+
+    /**
+     * The same, able to run a reshape (#133): the engine to write through and
+     * the face to convert with. Both absent — a tenant whose face declares no
+     * {@link cloud.jengu.dbo.core.face.ShapeConversion} — leaves the
+     * operation refusing by name rather than missing.
+     */
+    public MaintenanceHandler(TenantAuthority authority, DataSource dataSource,
+            String domain, List<TypeRegistration> types,
+            cloud.jengu.dbo.core.face.PortableRendering rendering, String basePath,
+            cloud.jengu.dbo.maintenance.ImportLedger ledger,
+            cloud.jengu.dbo.core.api.ObjectStore engine,
+            cloud.jengu.dbo.fhir.common.FhirStoreFacade facade) {
+        this.engine = engine;
+        this.facade = facade;
         this.authority = authority;
         this.dataSource = dataSource;
         this.domain = domain;
@@ -66,6 +83,9 @@ public final class MaintenanceHandler implements HttpHandler {
         this.ledger = java.util.Objects.requireNonNull(ledger,
                 "the tenant's own trail is where a restore is written down");
     }
+
+    private final cloud.jengu.dbo.core.api.ObjectStore engine;
+    private final cloud.jengu.dbo.fhir.common.FhirStoreFacade facade;
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -82,6 +102,7 @@ public final class MaintenanceHandler implements HttpHandler {
                 case "restore" -> restore(exchange);
                 case "inventory" -> inventory(exchange);
                 case "projection" -> projection(exchange);
+                case "reshape" -> reshape(exchange);
                 default -> fail(exchange, 404, "not_found", "no such maintenance operation");
             }
         } catch (IllegalArgumentException refused) {
@@ -125,6 +146,70 @@ public final class MaintenanceHandler implements HttpHandler {
                 cloud.jengu.dbo.maintenance.TenantInventory.of(dataSource),
                 cloud.jengu.dbo.maintenance.TenantInventory.deliveryOf(dataSource),
                 cloud.jengu.dbo.maintenance.TenantInventory.shapes(dataSource)));
+    }
+
+    /**
+     * Converts stock stamped below a target major, in place (#133).
+     *
+     * <p>Query-parameterised rather than bodied: an operator drives this from
+     * a shell, and a run is a repeatable question — which type, which shape,
+     * which major, how much at a time — not a document.
+     */
+    private void reshape(HttpExchange exchange) throws IOException {
+        java.util.Map<String, String> q = query(exchange);
+        String typeName = q.get("type");
+        String profile = q.get("profile");
+        String target = q.get("target");
+        if (typeName == null || profile == null || target == null) {
+            fail(exchange, 400, "invalid_request",
+                    "reshape needs type, profile and target (the major to converge on)");
+            return;
+        }
+        java.util.Optional<cloud.jengu.dbo.core.face.ShapeConversion> conversion =
+                facade == null ? java.util.Optional.empty() : facade.shapeConversion();
+        if (engine == null || conversion.isEmpty()) {
+            // Named, not silent: "this face cannot convert" and "the operation
+            // is broken" look identical from outside, and only one of them is
+            // something an operator can act on.
+            fail(exchange, 409, "not_convertible", "this tenant's face declares no shape "
+                    + "conversion, so a reshape would have nothing to convert with");
+            return;
+        }
+        cloud.jengu.dbo.maintenance.Reshape.Run run;
+        try {
+            run = cloud.jengu.dbo.maintenance.Reshape.run(engine, conversion.get(),
+                    // the face's own accept path: validated against the pack
+                    // and re-stamped by it, exactly like any other write
+                    (type, id, expected, payload) -> facade.update(id, expected,
+                            new String(payload, java.nio.charset.StandardCharsets.UTF_8)),
+                    typeName, profile, Integer.parseInt(target),
+                    Integer.parseInt(q.getOrDefault("pageSize", "100")),
+                    Integer.parseInt(q.getOrDefault("pages", "10")),
+                    q.get("cursor"));
+        } catch (NumberFormatException notANumber) {
+            fail(exchange, 400, "invalid_request",
+                    "target, pageSize and pages are numbers: " + notANumber.getMessage());
+            return;
+        }
+        respond(exchange, 200, cloud.jengu.dbo.maintenance.Reshape.json(run));
+    }
+
+    /** The request's query parameters, decoded. */
+    private static java.util.Map<String, String> query(HttpExchange exchange) {
+        java.util.Map<String, String> params = new java.util.LinkedHashMap<>();
+        String raw = exchange.getRequestURI().getRawQuery();
+        if (raw != null) {
+            for (String pair : raw.split("&")) {
+                int eq = pair.indexOf('=');
+                if (eq > 0) {
+                    params.put(java.net.URLDecoder.decode(pair.substring(0, eq),
+                                    java.nio.charset.StandardCharsets.UTF_8),
+                            java.net.URLDecoder.decode(pair.substring(eq + 1),
+                                    java.nio.charset.StandardCharsets.UTF_8));
+                }
+            }
+        }
+        return params;
     }
 
     /**

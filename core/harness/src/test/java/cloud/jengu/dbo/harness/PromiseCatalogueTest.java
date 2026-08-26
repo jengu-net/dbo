@@ -48,12 +48,22 @@ class PromiseCatalogueTest {
                 "the citation names the real proof site");
     }
 
+    /**
+     * The gap this feature declared when the catalogue was first written —
+     * what happens to stock stamped under a version the pack withdraws —
+     * was answered by #133 and promoted to a named promise. What the fold
+     * shows now is the point of the mechanism: unstated ground was visible
+     * until somebody stated it, and then it stopped being a gap.
+     */
     @Test
-    @DisplayName("the gap counts against SHAPE_VERSIONING's coverage until somebody states it")
-    void theGapCounts() {
+    @DisplayName("SHAPE_VERSIONING is fully proven — its declared gap was stated and promoted")
+    void theGapWasPromoted() {
         Map<PromiseStatus, Long> coverage = model().coverage(DboFeatures.SHAPE_VERSIONING);
-        assertEquals(7L, coverage.get(PromiseStatus.PROVEN));
-        assertEquals(1L, coverage.get(PromiseStatus.GAP));
+        assertEquals(0L, coverage.getOrDefault(PromiseStatus.GAP, 0L),
+                "the gap became REQ-DBO-SHAPE-STAMP-OUTLIVES-ITS-PACK: " + coverage);
+        assertEquals(PromiseStatus.PROVEN,
+                model().statusOf(DboPromises.SHAPE_STAMP_OUTLIVES_ITS_PACK));
+        assertEquals(0L, coverage.getOrDefault(PromiseStatus.PLANNED, 0L), coverage.toString());
     }
 
     @Test
@@ -83,12 +93,12 @@ class PromiseCatalogueTest {
     }
 
     @Test
-    @DisplayName("the rendered report carries the areas, the codes and the gap, verbatim")
+    @DisplayName("the rendered report carries the areas, the codes and the statuses")
     void reportRenders() {
         String report = Report.render(model());
         assertTrue(report.contains("AREA-GDPR"), report.substring(0, Math.min(600, report.length())));
         assertTrue(report.contains("REQ-DBO-SHAPE-WRITTEN-UNDER-STAMPED | PROVEN"), report);
-        assertTrue(report.contains("nobody has stated what happens when a pack withdraws"),
-                report);
+        assertTrue(report.contains("REQ-DBO-SHAPE-STAMP-OUTLIVES-ITS-PACK | PROVEN"),
+                "the promoted gap now reads as a proven promise: " + report);
     }
 }

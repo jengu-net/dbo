@@ -116,6 +116,27 @@ config time, loud, fixable — never a silently unorderable stamp. The stamp
 records the full version string verbatim; only the comparison collapses to
 the major.
 
+## Reshape
+
+`reshape` converts stock in place: the walk is the stamp bound, the rewrite
+goes through the face's **accept path** — not the engine's write — so the
+pack re-validates the converted form and re-stamps it, which is what makes
+the new stamp true rather than asserted. History therefore keeps the
+pre-conversion version with its own stamp, and a concurrent writer loses the
+version check rather than being overwritten.
+
+A run is paged, rate-bounded and resumable by cursor, and reports what it
+did. **One object no converter covers is named and left behind** — it must
+not strand the rest of a hospital's data, and the next run finds it still
+behind. A run that ends with refusals says so: reaching the end of the walk
+and reaching the target are different facts, and only one of them is
+"complete".
+
+**A stamp outlives the pack that made it.** Withdrawing or re-numbering a
+version changes nothing about stock already stamped with it: the stamp
+records a past accept, so that stock stays findable by bound query,
+countable in the inventory, and convertible when a converter covers the hop.
+
 ## Who converts
 
 **Internal shape conversion is a face capability, not an engine feature.**
@@ -124,11 +145,23 @@ conversion; a face type declares — through the same capability-by-type lookup
 as every other face feature — whether it can execute its model's own
 converter data (the FHIR face can: pack-shipped StructureMaps; a face over a
 model with no in-data converter standard cannot, and that is a truth about
-the model, not a defect). Hand-back through the API is the universal floor:
-the only lane for a non-capable face, and available to a capable one for a
-hop that exceeds its mechanism. The face declares the capability; the
-registry entry declares the lane per converter hop; the round-trip property
-is a registry declaration in both lanes.
+the model, not a defect). Converters are **tenant content**: they ship in the
+tenant's own pack beside the shapes they convert, so the conversion is
+resolved against the tenant's view rather than the version's, and a map
+written into the pack takes effect without a restart exactly as a profile
+does.
+
+A converter declares its hop the way FHIR spells a versioned reference —
+`structure` with mode `source` at `<canonical>|2.1.0` and mode `target` at
+`<canonical>|3.0.0`. Because a breaking shape keeps its canonical and bumps
+its version, a converted object still claims the profile it always claimed:
+the conversion moves its shape, never its identity.
+
+Hand-back through the API is the universal floor — the only lane for a
+non-capable face, and available to a capable one for a hop that exceeds its
+mechanism. The face declares the capability; the registry entry declares the
+lane per converter hop; the round-trip property is a registry declaration in
+both lanes.
 
 ## Decided, stated above
 
