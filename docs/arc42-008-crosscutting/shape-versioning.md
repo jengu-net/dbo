@@ -104,23 +104,39 @@ declared round-trip property — is deliberately **not** part of this concept
 yet. The registry design leaves room for the round-trip declaration so that
 door stays open; nothing else here depends on it.
 
-## Open decisions
+## Version ordering
 
-Recorded here so the doc is honest about its edges; each is decided in the
-grooming of its slice under the delivery epic
-([dbo#130](https://github.com/jengu-net/dbo/issues/130)) and written back
-into this doc as it lands:
+**Major-prefix, refused loudly when unparseable.** Only the leading major
+orders (`2.4 < 3.1`; `3.0` and `3.1` are the same shape for migration
+purposes) — matching what a version bump means (minors are compatible, only
+majors break with a converter) and how converters are keyed (per-major-hop),
+so the "below N" query and the converter registry share one rule. A pack
+profile version with no parseable leading major is refused at pack load —
+config time, loud, fixable — never a silently unorderable stamp. The stamp
+records the full version string verbatim; only the comparison collapses to
+the major.
 
-1. **Version ordering** — how "below version N" compares pack versions
-   (major-prefix vs full ordering); the query and the converter keying must
-   share one rule.
-2. **Converter ownership** — pack-shipped StructureMaps executed in-process
-   (converters as catalogue data, the default proposal) vs consumer-supplied
-   conversion through the API.
+## Who converts
 
-Two are already decided (dbo#131's grooming) and stated above: the wire
-representation (`urn:dbo:shape`), and stamps on streams — a mirrored copy
-keeps the stamp of the store that validated it, carried explicitly on the
-sync wire beside the storage-format version; only an authored accept
-restamps. [Eventing and feeds](eventing-and-feeds.md) records the latter
-once the slice lands.
+**Internal shape conversion is a face capability, not an engine feature.**
+The engine owns the reshape loop unconditionally and knows nothing about
+conversion; a face type declares — through the same capability-by-type lookup
+as every other face feature — whether it can execute its model's own
+converter data (the FHIR face can: pack-shipped StructureMaps; a face over a
+model with no in-data converter standard cannot, and that is a truth about
+the model, not a defect). Hand-back through the API is the universal floor:
+the only lane for a non-capable face, and available to a capable one for a
+hop that exceeds its mechanism. The face declares the capability; the
+registry entry declares the lane per converter hop; the round-trip property
+is a registry declaration in both lanes.
+
+## Decided, stated above
+
+The wire representation (`urn:dbo:shape`), the stamp's carrier (a
+per-version fact column beside the payload), and stamps on streams — a
+mirrored copy keeps the stamp of the store that validated it, carried
+explicitly on the sync wire; only an authored accept restamps.
+[Eventing and feeds](eventing-and-feeds.md) records the stream rule once the
+slice lands. Remaining grooming detail lives with the slices under the
+delivery epic ([dbo#130](https://github.com/jengu-net/dbo/issues/130)): the
+hand-back lease surface and the registry entry shape (#133).
