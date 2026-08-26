@@ -102,6 +102,10 @@ its durable concepts are carried into this design rather than rediscovered:
 - **Two version axes, never conflated** — `payload_version` for the storage
   format, the shape stamp for the tenant-pack profile version an object was
   validated under ([shape versioning](shape-versioning.md)).
+- **Requirements as promises in code** — declared once as enum constants
+  whose names are their codes, cited from tests and implementation alike,
+  with gaps first-class and coverage computed, never asserted
+  ([promise](promise.md)).
 - **Domain as a physical grouping knob** — which object types share a table
   set, tunable for performance.
 - **Version-driven leader election**: the node with the highest application
