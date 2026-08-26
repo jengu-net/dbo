@@ -212,23 +212,24 @@ which makes mapping onto it a cheap bet.
 | `Resource.id` | the object's id | ✅ |
 | `Meta.versionId` | the version | ✅ |
 | `Meta.lastUpdated` | when that version was written | ❌ carried beside a read as HTTP metadata, never in the resource |
-| `Meta.source` | **where a copy came from** — a streamed object's upstream | ❌ recorded, never said |
-| `Meta.profile` | **the shape stamp** the object was written under | ❌ |
-| `Meta.security` | **the declared handling class**, which the store enforces on every write | ❌ |
-| `Meta.tag` | operational labels — streamed origin, shadowing state | ❌ |
+| `Meta.source` | **where a copy came from** — a streamed object's upstream | ✅ |
+| `Meta.profile` | **the shape stamp** the object was written under | ❌ waits for the stamp to exist ([shape versioning](shape-versioning.md)) |
+| `Meta.security` | **the declared handling class**, which the store enforces on every write | ✅ `urn:dbo:handling` |
+| `Meta.tag` | operational labels — streamed origin, shadowing state | ✅ `urn:dbo:sync` |
 | `Resource.implicitRules`, `Resource.language` | no engine analogue | face only |
 | `DomainResource.text`, `contained`, `extension`, `modifierExtension` | no engine analogue | face only |
 
-Six engine facts have a standard place to be said. **Two are said** — the id and the
-version — and four are not, so a client today receives the data but not the
-classification the store is enforcing on it. `Meta.security` has existed for exactly
-that since R4, and nothing writes it.
+Seven engine facts have a standard place to be said. **Five are said** — the id, the
+version, custody, handling and the sync labels — so a client receives the
+classification being enforced on the data. `Meta.lastUpdated` still rides beside a
+read as HTTP metadata, and `Meta.profile` waits for the shape stamp to exist.
 
 Two cautions before anyone maps them:
 
 - **`Meta.profile` is not the storage-format version.** The shape an object was
   authored under and the format its bytes are stored in are different axes; conflating
-  them breaks at the first R4→R5 move. `payload_version` stays internal.
+  them breaks at the first R4→R5 move. `payload_version` stays internal. The two-axes
+  doctrine is [shape versioning](shape-versioning.md)'s to state; this is a pointer.
 - **The face-only elements are not uninteresting to the engine.** `text` is narrative —
   which is exactly where identifying data hides, so the membrane has a stake in an
   element it does not define. `contained` puts objects inside an object, which

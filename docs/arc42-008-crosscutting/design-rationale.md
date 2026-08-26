@@ -99,6 +99,9 @@ its durable concepts are carried into this design rather than rediscovered:
 - The **transactional outbox** as the natural change feed (§6, §10).
 - **Type and version on every stored object**, with upgrade-on-read through
   converters instead of data-rewriting DDL migrations.
+- **Two version axes, never conflated** — `payload_version` for the storage
+  format, the shape stamp for the tenant-pack profile version an object was
+  validated under ([shape versioning](shape-versioning.md)).
 - **Domain as a physical grouping knob** — which object types share a table
   set, tunable for performance.
 - **Version-driven leader election**: the node with the highest application
