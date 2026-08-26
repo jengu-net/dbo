@@ -70,12 +70,18 @@ public final class SchemaManager {
                   payload bytea NOT NULL,
                   deleted boolean NOT NULL DEFAULT false,
                   payload_version text NOT NULL DEFAULT '1',
-                  chain_hash bytea
+                  chain_hash bytea,
+                  shape jsonb
                 )""".formatted(d));
         // Existing domains gain the link column; rows written before it
         // carry null, which the verifier reports as unchained rather than as
         // broken — an honest distinction, since nothing was ever attested.
         execute(c, "ALTER TABLE state.%s_data ADD COLUMN IF NOT EXISTS chain_hash bytea".formatted(d));
+        // The shape stamp: the pack profile versions each version was
+        // validated under — a fact of the accept event, beside the payload
+        // like payload_version and chain_hash (REQ-DBO-SHAPE-*). Rows from
+        // before the column carry null, which reads as unstamped.
+        execute(c, "ALTER TABLE state.%s_data ADD COLUMN IF NOT EXISTS shape jsonb".formatted(d));
         execute(c, "CREATE INDEX IF NOT EXISTS %s_data_type_ix ON state.%s_data (type, last_updated, id)"
                 .formatted(d, d));
         execute(c, "CREATE INDEX IF NOT EXISTS %s_data_env_gin ON state.%s_data USING gin (envelope jsonb_path_ops)"
@@ -167,9 +173,12 @@ public final class SchemaManager {
                   deleted boolean NOT NULL,
                   payload_version text NOT NULL DEFAULT '1',
                   chain_hash bytea,
+                  shape jsonb,
                   PRIMARY KEY (id, version_id)
                 )""".formatted(d));
         execute(c, "ALTER TABLE history.%s_history ADD COLUMN IF NOT EXISTS chain_hash bytea"
+                .formatted(d));
+        execute(c, "ALTER TABLE history.%s_history ADD COLUMN IF NOT EXISTS shape jsonb"
                 .formatted(d));
     }
 

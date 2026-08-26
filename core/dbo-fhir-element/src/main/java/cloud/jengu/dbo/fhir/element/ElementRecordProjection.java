@@ -141,7 +141,12 @@ final class ElementRecordProjection implements RecordProjection {
                 // concept that rides in a resource is described by a definition
                 // a client can fetch, or it is a convention somebody has to be
                 // told about (#91).
-                originalContentExtension());
+                originalContentExtension(),
+                // The written-under stamp (#131): meta carries which pack
+                // profile versions a record was validated under, and a dbo
+                // concept on the wire is described by a definition a client
+                // can fetch (#91).
+                shapeStampExtension());
     }
 
     /**
@@ -194,6 +199,37 @@ final class ElementRecordProjection implements RecordProjection {
                 + Json.quoted(ElementTerminology.ORIGINAL_CONTENT_EXT) + "},"
                 + "{\"id\":\"Extension.value[x]\",\"path\":\"Extension.value[x]\""
                 + ",\"min\":1,\"type\":[{\"code\":\"code\"}]}]}}";
+    }
+
+    /**
+     * The definition of the written-under stamp (REQ-DBO-SHAPE-SERVED-BESIDE-
+     * THE-CLAIM): a complex extension on {@code Meta} — {@code profile}, the
+     * canonical the record declares, and {@code version}, the pack's version
+     * of that shape at the moment the record was validated. One per declared
+     * profile; re-stated from the store's own fact on every serve, never
+     * accumulated.
+     */
+    private static String shapeStampExtension() {
+        return "{\"resourceType\":\"StructureDefinition\",\"url\":"
+                + Json.quoted(ElementAncestors.SHAPE_URL)
+                + ",\"name\":\"DboShape\",\"status\":\"active\""
+                + ",\"kind\":\"complex-type\",\"abstract\":false,\"type\":\"Extension\""
+                + ",\"description\":\"The written-under shape stamp: which version of each "
+                + "declared profile this record was validated against at the moment it was "
+                + "accepted. A fact of the accept event, said by the store that validated it.\""
+                + ",\"baseDefinition\":\"http://hl7.org/fhir/StructureDefinition/Extension\""
+                + ",\"derivation\":\"constraint\""
+                + ",\"context\":[{\"type\":\"element\",\"expression\":\"Meta\"}]"
+                // Minimal on purpose, like DboOriginalContent above: a
+                // hand-authored slicing differential is exactly the kind of
+                // thing the validator litigates, and the sub-extension names
+                // (profile, version) are prose this definition describes
+                // rather than slices it enforces. The stamp is store-authored
+                // on every serve; nothing needs a validator to police it.
+                + ",\"differential\":{\"element\":["
+                + "{\"id\":\"Extension\",\"path\":\"Extension\"},"
+                + "{\"id\":\"Extension.url\",\"path\":\"Extension.url\",\"fixedUri\":"
+                + Json.quoted(ElementAncestors.SHAPE_URL) + "}]}}";
     }
 
     /** Which content mode a definition declares. */

@@ -17,4 +17,16 @@ public record FeedItem(
         Instant committedAt,
         byte[] payload,
         boolean deleted,
-        String payloadVersion) {}
+        String payloadVersion,
+        java.util.List<String> shape) {
+
+    /** Compatibility with callers that predate {@code shape} (#131): the
+     * written-under stamp travels the wire beside {@code payloadVersion}, so
+     * a mirrored copy keeps the stamp of the store that validated it. */
+    public FeedItem(long seq, String objectId, String typeName, long versionId,
+            ChangeKind kind, Instant committedAt, byte[] payload, boolean deleted,
+            String payloadVersion) {
+        this(seq, objectId, typeName, versionId, kind, committedAt, payload, deleted,
+                payloadVersion, null);
+    }
+}

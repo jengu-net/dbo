@@ -4,6 +4,7 @@ import cloud.jengu.dbo.core.TypeRegistry;
 import cloud.jengu.dbo.core.UuidV7;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.Envelope;
+import cloud.jengu.dbo.core.api.EnvelopeValue;
 import cloud.jengu.dbo.core.api.Caller;
 import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.HandlingRefusedException;
@@ -235,7 +236,13 @@ public final class PgObjectStore implements ObjectStore {
         }
 
         Envelope envelope = type.extractor().extract(type.typeName(), request.payload());
+        // The shape dimension derives from the ROW, not from the payload:
+        // the extractor stays a pure function of bytes, and the stamp joins
+        // the envelope here — the same place reindex re-adds it from the
+        // column (REQ-DBO-SHAPE-STAMP-IS-DERIVED).
+        shapeIntoEnvelope(envelope, request.shape());
         String envelopeJson = JsonbCodec.envelopeJson(envelope.paths());
+        String shapeJson = shapeJson(request.shape());
         // Link this version to the one before it. Computed on the ordinary
         // write path, so a restored version is chained exactly as a live one —
         // a restore that skipped chaining would be the hole the chain closes.
@@ -243,8 +250,8 @@ public final class PgObjectStore implements ObjectStore {
                 newVersion, now, false);
 
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.%s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version, chain_hash)
-                VALUES (?, ?, ?, ?, ?::jsonb, ?, false, ?, ?)
+                INSERT INTO state.%s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version, chain_hash, shape)
+                VALUES (?, ?, ?, ?, ?::jsonb, ?, false, ?, ?, ?::jsonb)
                 ON CONFLICT (id) DO UPDATE SET
                   version_id = EXCLUDED.version_id,
                   last_updated = EXCLUDED.last_updated,
@@ -252,7 +259,8 @@ public final class PgObjectStore implements ObjectStore {
                   payload = EXCLUDED.payload,
                   deleted = false,
                   payload_version = EXCLUDED.payload_version,
-                  chain_hash = EXCLUDED.chain_hash""".formatted(d))) {
+                  chain_hash = EXCLUDED.chain_hash,
+                  shape = EXCLUDED.shape""".formatted(d))) {
             ps.setObject(1, uuid);
             ps.setString(2, type.typeName());
             ps.setLong(3, newVersion);
@@ -261,13 +269,14 @@ public final class PgObjectStore implements ObjectStore {
             ps.setBytes(6, request.payload());
             ps.setString(7, type.payloadVersion());
             ps.setBytes(8, chainHash);
+            ps.setString(9, shapeJson);
             ps.executeUpdate();
         }
 
         replaceIdentifiers(c, type, uuid, envelope.identifiers());
         replaceReferences(c, d, uuid, envelope.references(), newVersion == 1);
         insertHistory(c, d, uuid, type.typeName(), newVersion, now, request.payload(), false,
-                type.payloadVersion(), chainHash);
+                type.payloadVersion(), chainHash, shapeJson);
         if (!request.isRestore()) {
             // A restore re-establishes state; it does not change it. The outbox
             // is a log of changes, so restored objects do not belong in it —
@@ -384,11 +393,12 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     private void insertHistory(Connection c, String d, UUID id, String type, long version,
-            Instant at, byte[] payload, boolean deleted, String payloadVersion, byte[] chainHash)
+            Instant at, byte[] payload, boolean deleted, String payloadVersion, byte[] chainHash,
+            String shapeJson)
             throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO history.%s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""".formatted(d))) {
+                INSERT INTO history.%s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)""".formatted(d))) {
             ps.setObject(1, id);
             ps.setLong(2, version);
             ps.setString(3, type);
@@ -397,6 +407,7 @@ public final class PgObjectStore implements ObjectStore {
             ps.setBoolean(6, deleted);
             ps.setString(7, payloadVersion);
             ps.setBytes(8, chainHash);
+            ps.setString(9, shapeJson);
             ps.executeUpdate();
         }
     }
@@ -492,7 +503,7 @@ public final class PgObjectStore implements ObjectStore {
         TypeRegistration type = registry.require(typeName);
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
+                    SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version, d.shape,
                       (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
                   (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
                     FROM state.%s_data d WHERE d.id = ? AND d.type = ? AND NOT d.deleted"""
@@ -529,7 +540,7 @@ public final class PgObjectStore implements ObjectStore {
         // 1.17ms and 67 buffers, index-only scan 0.26ms and 6, and the gap
         // widens with every row.
         String sql = """
-                SELECT DISTINCT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
+                SELECT DISTINCT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version, d.shape,
                   (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
                   (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
                 FROM state.%s_data d
@@ -555,7 +566,7 @@ public final class PgObjectStore implements ObjectStore {
         TypeRegistration type = registry.require(typeName);
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT h.id, h.type, h.version_id, h.last_updated, h.payload, h.deleted, h.payload_version,
+                    SELECT h.id, h.type, h.version_id, h.last_updated, h.payload, h.deleted, h.payload_version, h.shape,
                       (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = h.id) AS origin,
                       (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = h.id LIMIT 1) AS shadowing
                     FROM history.%s_history h WHERE h.id = ? ORDER BY h.version_id"""
@@ -571,7 +582,7 @@ public final class PgObjectStore implements ObjectStore {
         TypeRegistration type = registry.require(criteria.typeName());
         String d = type.domain();
         StringBuilder sql = new StringBuilder("""
-                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
+                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version, d.shape,
                   (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
                   (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
                 FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, d, d));
@@ -744,7 +755,7 @@ public final class PgObjectStore implements ObjectStore {
         String sortExpr = s == null ? "d.last_updated" : Sql.typedPathExpression(s.path(), s.kind());
 
         StringBuilder sql = new StringBuilder("""
-                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version,
+                SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version, d.shape,
                   (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
                   (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing, %s AS sort_key
                 FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, d, sortExpr, d));
@@ -873,7 +884,7 @@ public final class PgObjectStore implements ObjectStore {
                 ps.executeUpdate();
             }
             insertHistory(c, d, uuid, typeName, newVersion, now, lastPayload, true,
-                    lastPayloadVersion, tombstoneChain);
+                    lastPayloadVersion, tombstoneChain, null);
             insertOutbox(c, d, uuid, typeName, newVersion, "D");
             return null;
         });
@@ -900,12 +911,12 @@ public final class PgObjectStore implements ObjectStore {
         UUID after = null;
         while (true) {
             final UUID cursor = after;
-            record Row(UUID id, byte[] payload, String storedVersion) {}
+            record Row(UUID id, byte[] payload, String storedVersion, String shapeJson) {}
             List<Row> batch = inTx(c -> {
                 List<Row> rows = new ArrayList<>();
                 String sql = cursor == null
-                        ? "SELECT id, payload, payload_version FROM state.%s_data WHERE type = ? AND NOT deleted ORDER BY id LIMIT ?"
-                        : "SELECT id, payload, payload_version FROM state.%s_data WHERE type = ? AND NOT deleted AND id > ? ORDER BY id LIMIT ?";
+                        ? "SELECT id, payload, payload_version, shape FROM state.%s_data WHERE type = ? AND NOT deleted ORDER BY id LIMIT ?"
+                        : "SELECT id, payload, payload_version, shape FROM state.%s_data WHERE type = ? AND NOT deleted AND id > ? ORDER BY id LIMIT ?";
                 try (PreparedStatement ps = c.prepareStatement(sql.formatted(d))) {
                     int p = 1;
                     ps.setString(p++, typeName);
@@ -915,7 +926,7 @@ public final class PgObjectStore implements ObjectStore {
                     ps.setInt(p, batchSize);
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
-                            rows.add(new Row((UUID) rs.getObject(1), rs.getBytes(2), rs.getString(3)));
+                            rows.add(new Row((UUID) rs.getObject(1), rs.getBytes(2), rs.getString(3), rs.getString(4)));
                         }
                     }
                 }
@@ -923,6 +934,9 @@ public final class PgObjectStore implements ObjectStore {
                     byte[] current = upgraded(type, new StoredObject(row.id().toString(), typeName,
                             0, Instant.EPOCH, row.payload(), false, row.storedVersion())).payload();
                     Envelope envelope = type.extractor().extract(typeName, current);
+                    // rebuilt from the row: the stamp survives a reindex
+                    // because it never depended on the payload
+                    shapeIntoEnvelope(envelope, shapeOf(row.shapeJson()));
                     try (PreparedStatement up = c.prepareStatement(
                             "UPDATE state.%s_data SET envelope = ?::jsonb WHERE id = ?".formatted(d))) {
                         up.setString(1, JsonbCodec.envelopeJson(envelope.paths()));
@@ -975,18 +989,69 @@ public final class PgObjectStore implements ObjectStore {
         }
     }
 
+    /** The stamp as its column form: a JSONB array of "profile|version". */
+    private static String shapeJson(java.util.List<String> shape) {
+        if (shape == null || shape.isEmpty()) {
+            return null;
+        }
+        StringBuilder json = new StringBuilder("[");
+        for (String entry : shape) {
+            if (json.length() > 1) {
+                json.append(',');
+            }
+            json.append('"').append(entry.replace("\\", "\\\\").replace("\"", "\\\""))
+                    .append('"');
+        }
+        return json.append(']').toString();
+    }
+
+    /** The column form back to entries. Values are canonical|version — no quotes inside. */
+    static java.util.List<String> shapeOf(String shapeJson) {
+        if (shapeJson == null || shapeJson.length() < 3) {
+            return null;
+        }
+        java.util.List<String> entries = new ArrayList<>();
+        for (String piece : shapeJson.substring(1, shapeJson.length() - 1).split(",")) {
+            String trimmed = piece.strip();
+            if (trimmed.length() >= 2) {
+                entries.add(trimmed.substring(1, trimmed.length() - 1));
+            }
+        }
+        return entries.isEmpty() ? null : entries;
+    }
+
+    /** The stamp's search dimension: one token per profile, system|code = profile|version. */
+    private static void shapeIntoEnvelope(Envelope envelope, java.util.List<String> shape) {
+        if (shape == null) {
+            return;
+        }
+        for (String entry : shape) {
+            int bar = entry.lastIndexOf('|');
+            if (bar > 0) {
+                envelope.value("_shape", EnvelopeValue.token(
+                        entry.substring(0, bar), entry.substring(bar + 1)));
+            }
+        }
+    }
+
     private StoredObject read(ResultSet rs) throws SQLException {
         // By label rather than position for the origin column only: one query
         // appends its own sort_key after the fixed seven, so position eight is
         // not one thing (#109).
         String origin;
         String shadowing;
+        String shapeJson;
         try {
             origin = rs.getString("origin");
             shadowing = rs.getString("shadowing");
         } catch (SQLException noSuchColumn) {
             origin = null;
             shadowing = null;
+        }
+        try {
+            shapeJson = rs.getString("shape");
+        } catch (SQLException noSuchColumn) {
+            shapeJson = null;
         }
         return new StoredObject(
                 rs.getObject(1).toString(),
@@ -997,7 +1062,8 @@ public final class PgObjectStore implements ObjectStore {
                 rs.getBoolean(6),
                 rs.getString(7),
                 origin,
-                shadowing);
+                shadowing,
+                shapeOf(shapeJson));
     }
 
     private List<StoredObject> readAll(PreparedStatement ps) throws SQLException {

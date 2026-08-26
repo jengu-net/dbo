@@ -61,11 +61,20 @@ final class ElementAncestors {
      * @param handling the declared handling class's wire name, or null when
      *                 the type's handling is not one a spec can declare
      */
-    record Stamps(String source, String handling, String tag) {
-        static final Stamps NONE = new Stamps(null, null, null);
+    record Stamps(String source, String handling, String tag,
+            java.util.List<String> shape) {
+        static final Stamps NONE = new Stamps(null, null, null, null);
 
         Stamps(String source, String handling) {
-            this(source, handling, null);
+            this(source, handling, null, null);
+        }
+
+        Stamps(String source, String handling, String tag) {
+            this(source, handling, tag, null);
+        }
+
+        boolean stampsShape() {
+            return shape != null && !shape.isEmpty();
         }
     }
 
@@ -128,7 +137,7 @@ final class ElementAncestors {
             if (!sawMeta) {
                 gen.writeObjectFieldStart("meta");
                 gen.writeStringField("versionId", Long.toString(versionId));
-                stampsInto(gen, stamps, List.of(), List.of());
+                stampsInto(gen, stamps, List.of(), List.of(), List.of());
                 gen.writeEndObject();
             }
             gen.writeEndObject();
@@ -145,6 +154,7 @@ final class ElementAncestors {
         boolean sawVersion = false;
         List<byte[]> kept = new java.util.ArrayList<>();
         List<byte[]> keptTags = new java.util.ArrayList<>();
+        List<byte[]> keptExtensions = new java.util.ArrayList<>();
         while (in.nextToken() == JsonToken.FIELD_NAME) {
             String field = in.currentName();
             in.nextToken();
@@ -170,6 +180,13 @@ final class ElementAncestors {
             } else if ("tag".equals(field) && stamps.tag() != null) {
                 // same collect-then-write shape, same round-trip reasoning
                 keptTags.addAll(codingsWithout(in, SYNC_SYSTEM));
+            } else if ("extension".equals(field) && stamps.stampsShape()) {
+                // The written-under stamp rides meta.extension and is
+                // re-stated from the column on every serve; an echoed copy of
+                // our own extension is dropped so a document does not
+                // accumulate one stamp per round trip — the same
+                // replace-not-append rule as versionId, keyed on url.
+                keptExtensions.addAll(extensionsWithout(in, SHAPE_URL));
             } else {
                 gen.writeFieldName(field);
                 copy(in, gen);
@@ -178,9 +195,12 @@ final class ElementAncestors {
         if (!sawVersion) {
             gen.writeStringField("versionId", Long.toString(versionId));
         }
-        stampsInto(gen, stamps, kept, keptTags);
+        stampsInto(gen, stamps, kept, keptTags, keptExtensions);
         gen.writeEndObject();
     }
+
+    /** urn:dbo:shape — the complex extension the written-under stamp rides. */
+    static final String SHAPE_URL = "urn:dbo:shape";
 
     /** urn:dbo:handling — the coding system Meta.security stamps carry. */
     static final String HANDLING_SYSTEM = "urn:dbo:handling";
@@ -192,7 +212,7 @@ final class ElementAncestors {
     static final String SHADOWS = "shadows";
 
     private static void stampsInto(JsonGenerator gen, Stamps stamps, List<byte[]> keptSecurity,
-            List<byte[]> keptTags) throws IOException {
+            List<byte[]> keptTags, List<byte[]> keptExtensions) throws IOException {
         if (stamps.source() != null) {
             gen.writeStringField("source", stamps.source());
         }
@@ -202,6 +222,49 @@ final class ElementAncestors {
         if (stamps.tag() != null) {
             coded(gen, "tag", keptTags, SYNC_SYSTEM, stamps.tag());
         }
+        if (stamps.stampsShape()) {
+            gen.writeArrayFieldStart("extension");
+            for (byte[] extension : keptExtensions) {
+                gen.writeRawValue(new String(extension, java.nio.charset.StandardCharsets.UTF_8));
+            }
+            for (String entry : stamps.shape()) {
+                int bar = entry.lastIndexOf('|');
+                gen.writeStartObject();
+                gen.writeStringField("url", SHAPE_URL);
+                gen.writeArrayFieldStart("extension");
+                gen.writeStartObject();
+                gen.writeStringField("url", "profile");
+                gen.writeStringField("valueCanonical", bar > 0 ? entry.substring(0, bar) : entry);
+                gen.writeEndObject();
+                gen.writeStartObject();
+                gen.writeStringField("url", "version");
+                gen.writeStringField("valueString", bar > 0 ? entry.substring(bar + 1) : "");
+                gen.writeEndObject();
+                gen.writeEndArray();
+                gen.writeEndObject();
+            }
+            gen.writeEndArray();
+        }
+    }
+
+    /**
+     * The stored meta.extension entries, verbatim as bytes, minus any whose
+     * top-level {@code url} is ours — the extension analogue of
+     * {@link #codingsWithout}.
+     */
+    private static List<byte[]> extensionsWithout(JsonParser in, String url) throws IOException {
+        List<byte[]> kept = new java.util.ArrayList<>();
+        if (in.currentToken() != JsonToken.START_ARRAY) {
+            kept.add(buffered(in).bytes());
+            return kept;
+        }
+        while (in.nextToken() != JsonToken.END_ARRAY) {
+            Buffered extension = buffered(in);
+            if (!url.equals(extension.topLevelUrl())) {
+                kept.add(extension.bytes());
+            }
+        }
+        return kept;
     }
 
     private static void coded(JsonGenerator gen, String field, List<byte[]> keptCodings,
@@ -240,12 +303,13 @@ final class ElementAncestors {
         return kept;
     }
 
-    private record Buffered(byte[] bytes, String topLevelSystem) {}
+    private record Buffered(byte[] bytes, String topLevelSystem, String topLevelUrl) {}
 
     /** One value token-copied into its own bytes, its top-level system noted. */
     private static Buffered buffered(JsonParser in) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream(64);
         String system = null;
+        String url = null;
         try (JsonGenerator gen = JSON.createGenerator(buffer)) {
             if (in.currentToken() == JsonToken.START_OBJECT) {
                 gen.writeStartObject();
@@ -256,6 +320,9 @@ final class ElementAncestors {
                     if ("system".equals(name) && in.currentToken() == JsonToken.VALUE_STRING) {
                         system = in.getText();
                     }
+                    if ("url".equals(name) && in.currentToken() == JsonToken.VALUE_STRING) {
+                        url = in.getText();
+                    }
                     copy(in, gen);
                 }
                 gen.writeEndObject();
@@ -263,7 +330,7 @@ final class ElementAncestors {
                 copy(in, gen);
             }
         }
-        return new Buffered(buffer.toByteArray(), system);
+        return new Buffered(buffer.toByteArray(), system, url);
     }
 
     /**

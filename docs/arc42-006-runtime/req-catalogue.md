@@ -128,6 +128,15 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-VER-BALLOT-SERVED-AS-AUTHORED | A version still at ballot promises no normalized truth form and no conversion to or from another version: what an author wrote is what a reader receives. Normalising under a ballot's understanding would bake it into bytes that are never rewritten, and the next ballot moving an element would lose what it moved. (§1, §6) |
 | REQ-DBO-VER-TRANSITION-BY-CONVERTERS | Moving a tenant between FHIR versions is converters plus reindex, not a data migration ceremony. (§2, R6) |
 
+## SHAPE — shape versioning
+
+| REQ | Promise |
+|---|---|
+| REQ-DBO-SHAPE-WRITTEN-UNDER-STAMPED | Every object accepted through the face carries, as a fact of the accept event stored beside the payload, the version of each declared pack profile it was validated against; re-accepting replaces the stamp, never accumulates it. (§2, [shape versioning](../arc42-008-crosscutting/shape-versioning.md)) |
+| REQ-DBO-SHAPE-STAMP-IS-DERIVED | The shape stamp is a per-version fact column in state and history; the envelope's shape dimension is rebuilt from it on reindex, and every history version serves its own stamp. (§2) |
+| REQ-DBO-SHAPE-SERVED-BESIDE-THE-CLAIM | The stamp is served in `meta` as the published `urn:dbo:shape` extension beside the unversioned `meta.profile` canonical; an echoed copy of the engine's own stamp is dropped at accept, so stored bytes stay the author's claims. (§2, §12) |
+| REQ-DBO-SHAPE-MIRRORED-KEEPS-ITS-STAMP | The stamp travels the sync wire beside the storage-format version, so a mirrored copy keeps the stamp of the store that validated it; only an authored accept restamps. (§2, §6) |
+
 ## SRCH — search
 
 | REQ | Promise |

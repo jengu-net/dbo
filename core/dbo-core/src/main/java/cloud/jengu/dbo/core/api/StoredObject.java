@@ -18,7 +18,16 @@ public record StoredObject(
         boolean deleted,
         String payloadVersion,
         String origin,
-        String shadowing) {
+        String shadowing,
+        java.util.List<String> shape) {
+
+    /** Compatibility with callers that predate {@code shape}. */
+    public StoredObject(String id, String typeName, long versionId, Instant lastUpdated,
+            byte[] payload, boolean deleted, String payloadVersion, String origin,
+            String shadowing) {
+        this(id, typeName, versionId, lastUpdated, payload, deleted, payloadVersion,
+                origin, shadowing, null);
+    }
 
     /**
      * @param origin    which dependency streamed this copy here, or null for a
