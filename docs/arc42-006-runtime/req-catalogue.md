@@ -76,17 +76,31 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-AUTH-ONE-CEREMONY-MANY-TENANTS | One national authentication serves every tenant authority in the deployment through the identity hub's session — the upstream broker is invoked once per session, not per tenant; authorization remains strictly per-tenant. (§16.2) |
 | REQ-DBO-AUTH-ON-BEHALF-OF | Automated processes act in the name of a human via token exchange — subject stays the practitioner, an act claim names the client, scopes attenuate; durable workflows delegate through Delegation records that outlive tokens and are revocable by ending their period. Every delegated mutation is attributable to both the process and the person. (§16, §15) |
 
+<!-- promise:begin — generated from the promise catalogue; do not edit. Regenerate: ./gradlew :core:harness:promiseProjection -->
+
+## SHAPE — shape versioning
+
+| REQ | Promise | Status | Proven by |
+|---|---|---|---|
+| REQ-DBO-SHAPE-WRITTEN-UNDER-STAMPED | Every object accepted through the face carries, as a fact of the accept event stored beside the payload, the version of each declared pack profile it was validated against; re-accepting replaces the stamp, never accumulates it. | PROVEN | cloud.jengu.dbo.harness.ShapeStampIT#acceptStamps<br>cloud.jengu.dbo.harness.ShapeStampIT#packBumpMovesTheStamp<br>cloud.jengu.dbo.harness.ShapeStampIT#undeclaredIsUnstamped |
+| REQ-DBO-SHAPE-STAMP-IS-DERIVED | The shape stamp is a per-version fact column in state and history; the envelope's shape dimension is rebuilt from it on reindex, and every history version serves its own stamp. | PROVEN | cloud.jengu.dbo.harness.ShapeStampIT#packBumpMovesTheStamp<br>cloud.jengu.dbo.harness.ShapeStampIT#reindexKeepsTheStamp |
+| REQ-DBO-SHAPE-SERVED-BESIDE-THE-CLAIM | The stamp is served in meta as the published urn:dbo:shape extension beside the unversioned meta.profile canonical; an echoed copy of the engine's own stamp is dropped at accept, so stored bytes stay the author's claims. | PROVEN | cloud.jengu.dbo.harness.ShapeStampIT#acceptStamps<br>cloud.jengu.dbo.harness.ShapeStampIT#echoIsStampStable |
+| REQ-DBO-SHAPE-MIRRORED-KEEPS-ITS-STAMP | The stamp travels the sync wire beside the storage-format version, so a mirrored copy keeps the stamp of the store that validated it; only an authored accept restamps. | PROVEN | cloud.jengu.dbo.harness.ShapeStampIT#stampRidesTheWire |
+| FEAT-DBO-GAP-5a13fe61 | *gap: nobody has stated what happens when a pack withdraws or re-numbers a profile version that stamped data still carries* | GAP |  |
+
 ## PDI — personal-data isolation
 
-| REQ | Promise |
-|---|---|
-| REQ-DBO-PDI-STRUCTURAL-VAULT | Identifying elements, declared per type/element, live encrypted in the tenant's person vault; the main store holds pseudonymous records and the engine reassembles full resources for authorized reads — isolation is beneath the API, not a caller discipline. (§14) |
-| REQ-DBO-PDI-CRYPTO-SHREDDING | Erasure destroys the person's key: history stays byte-immutable, existing archives stay valid as files, and the person's data is cryptographically gone from live store, history, envelopes and archives at once. (§14) |
-| REQ-DBO-PDI-UNFINDABLE-AFTER-ERASURE | Search indexes derived from personal elements are vault-scoped or rebuilt on shred — an erased person is unfindable, not merely unreadable. (§14) |
-| REQ-DBO-PDI-BLIND-OPERATIONS | Backup and restore are machinery-driven end to end over ciphertext; the operator can run the whole lifecycle without the ability to read personal data, and opening an archive outside the running system is an owner-only act. (§14, §11) |
-| REQ-DBO-PDI-SHRED-LEDGER | Erasures are recorded without personal data and re-applied on every restore before serving resumes — an old archive cannot silently resurrect an erased person. (§14) |
-| REQ-DBO-PDI-RIGHTS-AS-OPERATIONS | Access, portability and restriction are standard machinery operations over the vault join, not per-request projects. (§14) |
-| REQ-DBO-PDI-EXACT-RESOLUTION | An exact, purpose-stated lookup on a vault-indexed value — a claimed identifier (system\|value) or an indexed contact point — resolves through the vault to the records holding it, served under the caller's disclosure mode. The match runs over keyed hashes (plaintext never at rest, never in a query) and every resolution leaves a value fingerprint in the disclosure trail; after erasure the answer is empty (REQ-DBO-PDI-UNFINDABLE-AFTER-ERASURE). Anything inexact, unsystemed, or combined with other predicates is refused, never half-answered. (§14) |
+| REQ | Promise | Status | Proven by |
+|---|---|---|---|
+| REQ-DBO-PDI-STRUCTURAL-VAULT | Identifying elements, declared per type/element, live encrypted in the tenant's person vault; the main store holds pseudonymous records and the engine reassembles full resources for authorized reads — isolation is beneath the API, not a caller discipline. | PROVEN | cloud.jengu.dbo.harness.PdiIT#identifyingValuesAreCiphertextEverywhere<br>cloud.jengu.dbo.harness.PdiIT#theCoarseValueIsWrittenInTheClear |
+| REQ-DBO-PDI-CRYPTO-SHREDDING | Erasure destroys the person's key: history stays byte-immutable, existing archives stay valid as files, and the person's data is cryptographically gone from live store, history, envelopes and archives at once. | PROVEN | cloud.jengu.dbo.harness.PdiIT#shredErasesEverywhereAndRestoreCannotResurrect |
+| REQ-DBO-PDI-UNFINDABLE-AFTER-ERASURE | Search indexes derived from personal elements are vault-scoped or rebuilt on shred — an erased person is unfindable, not merely unreadable. | PROVEN | cloud.jengu.dbo.harness.PdiIT#aShreddedPersonIsNotResolvableByIdentifier<br>cloud.jengu.dbo.harness.PdiIT#shredErasesEverywhereAndRestoreCannotResurrect |
+| REQ-DBO-PDI-BLIND-OPERATIONS | Backup and restore are machinery-driven end to end over ciphertext; the operator can run the whole lifecycle without the ability to read personal data, and opening an archive outside the running system is an owner-only act. | PROVEN | cloud.jengu.dbo.harness.PdiIT#aTenantArchiveCarriesCiphertextWhateverTheRequestWasDoing |
+| REQ-DBO-PDI-SHRED-LEDGER | Erasures are recorded without personal data and re-applied on every restore before serving resumes — an old archive cannot silently resurrect an erased person. | PROVEN | cloud.jengu.dbo.harness.PdiIT#shredErasesEverywhereAndRestoreCannotResurrect |
+| REQ-DBO-PDI-RIGHTS-AS-OPERATIONS | Access, portability and restriction are standard machinery operations over the vault join, not per-request projects. | PROVEN | cloud.jengu.dbo.harness.PdiIT#restrictionMakesReadsPseudonymous<br>cloud.jengu.dbo.harness.PdiIT#theSubjectsOwnExportStatesItsPurpose |
+| REQ-DBO-PDI-EXACT-RESOLUTION | An exact, purpose-stated lookup on a vault-indexed value — a claimed identifier (system|value) or an indexed contact point — resolves through the vault to the records holding it, served under the caller's disclosure mode. The match runs over keyed hashes and every resolution leaves a value fingerprint in the disclosure trail; after erasure the answer is empty. Anything inexact, unsystemed, or combined with other predicates is refused, never half-answered. | PROVEN | cloud.jengu.dbo.harness.DisclosureModesIT#aBareIdentifierValueDoesNotResolve<br>cloud.jengu.dbo.harness.DisclosureModesIT#aValueClaimedByAPatientAnswersNothingForAPractitioner<br>cloud.jengu.dbo.harness.DisclosureModesIT#anExactIdentifierLookupResolvesTheClaimingRecord<br>cloud.jengu.dbo.harness.DisclosureModesIT#anIdentifierCombinedWithAnotherPredicateIsRefused<br>cloud.jengu.dbo.harness.DisclosureModesIT#anIdentifierLookupWithoutAPurposeIsRefused<br>cloud.jengu.dbo.harness.DisclosureModesIT#anUnclaimedIdentifierAnswersNobody<br>cloud.jengu.dbo.harness.PdiIT#aShreddedPersonIsNotResolvableByIdentifier |
+
+<!-- promise:end -->
 
 ## POL — tenant policies (audit & write discipline)
 
@@ -127,15 +141,6 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-VER-DEFINITIONS-TRAVEL-WITH-THE-FACE | A face brings the definitions it validates and extracts against. Bringing a tenant up fetches nothing over the network and needs no writable cache outside the store's own state. (§1) |
 | REQ-DBO-VER-BALLOT-SERVED-AS-AUTHORED | A version still at ballot promises no normalized truth form and no conversion to or from another version: what an author wrote is what a reader receives. Normalising under a ballot's understanding would bake it into bytes that are never rewritten, and the next ballot moving an element would lose what it moved. (§1, §6) |
 | REQ-DBO-VER-TRANSITION-BY-CONVERTERS | Moving a tenant between FHIR versions is converters plus reindex, not a data migration ceremony. (§2, R6) |
-
-## SHAPE — shape versioning
-
-| REQ | Promise |
-|---|---|
-| REQ-DBO-SHAPE-WRITTEN-UNDER-STAMPED | Every object accepted through the face carries, as a fact of the accept event stored beside the payload, the version of each declared pack profile it was validated against; re-accepting replaces the stamp, never accumulates it. (§2, [shape versioning](../arc42-008-crosscutting/shape-versioning.md)) |
-| REQ-DBO-SHAPE-STAMP-IS-DERIVED | The shape stamp is a per-version fact column in state and history; the envelope's shape dimension is rebuilt from it on reindex, and every history version serves its own stamp. (§2) |
-| REQ-DBO-SHAPE-SERVED-BESIDE-THE-CLAIM | The stamp is served in `meta` as the published `urn:dbo:shape` extension beside the unversioned `meta.profile` canonical; an echoed copy of the engine's own stamp is dropped at accept, so stored bytes stay the author's claims. (§2, §12) |
-| REQ-DBO-SHAPE-MIRRORED-KEEPS-ITS-STAMP | The stamp travels the sync wire beside the storage-format version, so a mirrored copy keeps the stamp of the store that validated it; only an authored accept restamps. (§2, §6) |
 
 ## SRCH — search
 
@@ -287,6 +292,8 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-PRM-PROOFS-INDEXED-AT-COMPILE-TIME | Citation sites are indexed during the product's own compilation; a renamed or deleted proof site cannot leave a stale citation behind. (§16) |
 | REQ-DBO-PRM-STATUS-IS-DERIVED | A promise's status is computed — cited is proven, named-uncited is planned, assurance is declared on the constant, a gap is a gap — never asserted at a proof site. (§16) |
 | REQ-DBO-PRM-COVERAGE-IS-A-FOLD | A classification's coverage is the fold of its declared promises' statuses, gaps included; an area's is the fold of its classifications. (§16) |
+| REQ-DBO-PRM-PROJECTION-IS-GENERATED | The catalogue's prose form is generated from the composed model, never a second source; a hand-edit or a stale projection fails the build. (§16) |
+| REQ-DBO-PRM-COVERAGE-ON-THE-RESULTS-PAGE | Every CI run's results page leads with the composed promise coverage report. (§16) |
 
 ## SCIM — staff provisioning surface
 
