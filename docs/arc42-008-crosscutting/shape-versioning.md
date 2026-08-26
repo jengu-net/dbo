@@ -138,5 +138,5 @@ mirrored copy keeps the stamp of the store that validated it, carried
 explicitly on the sync wire; only an authored accept restamps.
 [Eventing and feeds](eventing-and-feeds.md) records the stream rule once the
 slice lands. Remaining grooming detail lives with the slices under the
-delivery epic ([dbo#130](https://github.com/jengu-net/dbo/issues/130)): the
+delivery epic ([#130](https://github.com/jengu-net/dbo/issues/130)): the
 hand-back lease surface and the registry entry shape (#133).
