@@ -61,6 +61,14 @@ public enum DboPromises implements Promise {
             + "re-numbering a pack version leaves stock stamped with it findable, "
             + "countable and convertible."),
 
+    SHAPE_NEWER_DATA_REFUSED("An object stamped above what the tenant's pack declares for "
+            + "that shape is refused on every read — naming the object, the stamp and the "
+            + "pack's version — never served best-effort and never silently omitted from a "
+            + "search."),
+
+    SHAPE_TOO_NEW_IS_ITS_OWN_ANSWER("The refusal is a distinct, documented error a consumer "
+            + "can gate on, told apart from a fault, a permission and a malformed request."),
+
     // ── PDI — personal-data isolation ───────────────────────────────────
 
     PDI_STRUCTURAL_VAULT("Identifying elements, declared per type/element, live encrypted "

@@ -195,6 +195,12 @@ public final class FhirHttpServer implements AutoCloseable {
             // anyone, including us — so the answer says which rule refused it
             // rather than implying somebody could authorise their way past.
             respond(exchange, 403, store.operationOutcome("forbidden", e.getMessage()));
+        } catch (cloud.jengu.dbo.core.api.ShapeTooNewException e) {
+            // 409: the tenant's DATA and the tenant's PACK disagree. Not 422
+            // — the request was fine; not 403 — nobody could be granted a way
+            // past it; not 500 — nothing is broken. A consumer gates on this
+            // to know it should upgrade or convert rather than retry.
+            respond(exchange, 409, store.operationOutcome("conflict", e.getMessage()));
         } catch (cloud.jengu.dbo.core.api.PolicyViolationException e) {
             respond(exchange, 409, store.operationOutcome("business-rule", e.getMessage()));
         } catch (UnsupportedOperationException e) {

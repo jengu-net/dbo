@@ -25,7 +25,9 @@ public enum DboFeatures implements Feature {
                     // The gap this feature declared while the catalogue was
                     // being written, now stated: #133 answered it, so it is a
                     // named promise rather than a hole.
-                    DboPromises.SHAPE_STAMP_OUTLIVES_ITS_PACK)),
+                    DboPromises.SHAPE_STAMP_OUTLIVES_ITS_PACK,
+                    DboPromises.SHAPE_NEWER_DATA_REFUSED,
+                    DboPromises.SHAPE_TOO_NEW_IS_ITS_OWN_ANSWER)),
 
     EXACT_IDENTIFIER_RESOLUTION("A known identifier finds the record that claims it, "
             + "without the membrane learning to talk.",

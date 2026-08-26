@@ -100,6 +100,8 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-SHAPE-RESHAPE-RESUMABLE | A reshape is paged and rate-bounded, hands back a cursor and its counts, and a re-run finds only what is still behind. | PROVEN | cloud.jengu.dbo.harness.ReshapeIT#reRunConvertsNothing |
 | REQ-DBO-SHAPE-REFUSED-OBJECT-LEFT-BEHIND | An object no converter covers is named and left behind rather than stranding the rest; the run reports it and the next run tries again. | PROVEN | cloud.jengu.dbo.harness.ReshapeIT#uncoveredIsNamedAndLeftBehind |
 | REQ-DBO-SHAPE-STAMP-OUTLIVES-ITS-PACK | A stamp is a fact about a past accept: withdrawing or re-numbering a pack version leaves stock stamped with it findable, countable and convertible. | PROVEN | cloud.jengu.dbo.harness.ReshapeIT#stampOutlivesItsPack |
+| REQ-DBO-SHAPE-NEWER-DATA-REFUSED | An object stamped above what the tenant's pack declares for that shape is refused on every read — naming the object, the stamp and the pack's version — never served best-effort and never silently omitted from a search. | PROVEN | cloud.jengu.dbo.harness.NewerDataRefusedIT#onlyDemonstrablyAheadIsRefused<br>cloud.jengu.dbo.harness.NewerDataRefusedIT#refusedById<br>cloud.jengu.dbo.harness.NewerDataRefusedIT#searchRefusedRatherThanShortened |
+| REQ-DBO-SHAPE-TOO-NEW-IS-ITS-OWN-ANSWER | The refusal is a distinct, documented error a consumer can gate on, told apart from a fault, a permission and a malformed request. | PROVEN | cloud.jengu.dbo.harness.NewerDataRefusedIT#refusedById |
 
 ## PDI — personal-data isolation
 
