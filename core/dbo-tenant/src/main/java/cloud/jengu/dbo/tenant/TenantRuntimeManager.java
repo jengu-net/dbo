@@ -105,6 +105,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private final FhirVersions versions;
     private final Map<String, String> authorityContexts = new ConcurrentHashMap<>();
+    private final Map<String, String> scimContexts = new ConcurrentHashMap<>();
+    private final Map<String, cloud.jengu.dbo.pdi.PersonVault> vaults = new ConcurrentHashMap<>();
     private volatile cloud.jengu.dbo.auth.IdentityHub identityHub;
     private final Map<String, javax.sql.DataSource> tenantDataSources = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.auth.IdentityHub> zoneHubs = new ConcurrentHashMap<>();
@@ -269,6 +271,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /** One deterministic reconciliation round. Returns codes currently served. */
+    /** The tenant's own authority, for tools and tests that mint its clients. */
+    public cloud.jengu.dbo.auth.TenantAuthority authority(String code) {
+        return authorities.get(code);
+    }
+
     public synchronized Set<String> scanOnce() {
         Set<String> declared = new HashSet<>();
         try (Stream<Path> files = Files.list(directory)) {
@@ -558,6 +565,33 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (authority != null) {
             authority.attachSubjects(engine); // §16.1: subjects are the tenant's records
         }
+        if (spec.scim() != null) {
+            // The provisioning door needs the authority (its scope and its
+            // tokens), the vault (the internal enumeration) and the person
+            // types the mapping writes. Each absence is named: a door that
+            // half-exists answers stranger questions than one that refused.
+            java.util.List<String> missing = new java.util.ArrayList<>();
+            if (authority == null) {
+                missing.add("a tenant authority (scim tokens are its tokens)");
+            }
+            if (vaults.get(spec.code()) == null) {
+                missing.add("the person vault (pdi)");
+            }
+            java.util.Set<String> typeNames = new java.util.HashSet<>();
+            spec.types().forEach(type -> typeNames.add(type.typeName()));
+            if (!typeNames.contains("Person") || !typeNames.contains("Practitioner")) {
+                missing.add("declared Person and Practitioner types (the mapping writes them)");
+            }
+            if (!missing.isEmpty()) {
+                throw new IllegalStateException(spec.code() + ": scim declared but unservable — "
+                        + String.join("; ", missing));
+            }
+            String scimPath = "/t/" + spec.code() + "/scim/v2";
+            sharedServer.createContext(scimPath, new cloud.jengu.dbo.scim.ScimHandler(
+                    authority, engine, vaults.get(spec.code()),
+                    spec.scim().system(), scimPath));
+            scimContexts.put(spec.code(), scimPath);
+        }
         // With the tenant's database: a face that validates against current
         // data — the tenant's terminology, and in time its own structure
         // definitions — needs to know where that data lives (#50).
@@ -817,8 +851,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // silently became a REMOVE — a tenant that asked for a coarse birth
         // date got none at all, and the capability was published all along
         // (#114).
-        return new cloud.jengu.dbo.pdi.PdiObjectStore(inner,
-                new cloud.jengu.dbo.pdi.PersonVault(db.dataSource(), authorityConfig.kek()),
+        cloud.jengu.dbo.pdi.PersonVault vault =
+                new cloud.jengu.dbo.pdi.PersonVault(db.dataSource(), authorityConfig.kek());
+        vaults.put(spec.code(), vault);
+        return new cloud.jengu.dbo.pdi.PdiObjectStore(inner, vault,
                 pdiSpec,
                 face.capability(cloud.jengu.dbo.core.face.Coarsening.class)
                         .orElse(cloud.jengu.dbo.core.face.Coarsening.NONE));
@@ -967,6 +1003,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (adminPath != null) {
             sharedServer.removeContext(adminPath);
         }
+        String scimPath = scimContexts.remove(code);
+        if (scimPath != null) {
+            sharedServer.removeContext(scimPath);
+        }
+        vaults.remove(code);
         String oidcPath = authorityContexts.remove(code);
         if (oidcPath != null) {
             sharedServer.removeContext(oidcPath);

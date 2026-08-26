@@ -20,6 +20,7 @@ val moduleBlurbs = mapOf(
     "dbo-sync" to "Declared content dependencies streamed between tenant stores.",
     "dbo-terminology" to "Concept-per-row terminology with \$expand, \$lookup and \$validate-code.",
     "dbo-maintenance" to "Sealed, attested archives: backup, restore, portable export and import.",
+    "dbo-scim" to "Per-tenant SCIM 2.0 staff provisioning over the person vault (RFC 7643/7644).",
     "dbo-tenant" to "Tenant runtime wiring: spec files to live per-tenant service sets.",
     "dbo-tenant-k8s" to "In-cluster provisioning seam backed by operator-written Kubernetes Secrets.",
     "dbo-operator" to "Kubernetes operator reconciling TenantRegistration resources.",

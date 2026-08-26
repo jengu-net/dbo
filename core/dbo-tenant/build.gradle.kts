@@ -21,6 +21,7 @@ dependencies {
     implementation(project(":core:dbo-auth"))
     implementation(project(":core:dbo-maintenance"))
     implementation(project(":core:dbo-pdi"))
+    implementation(project(":core:dbo-scim"))
     api(project(":core:dbo-policy"))
     implementation(project(":core:dbo-work"))
     compileOnly("org.osgi:osgi.core:8.0.0")

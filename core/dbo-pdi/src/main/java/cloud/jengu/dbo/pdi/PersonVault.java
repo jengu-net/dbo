@@ -210,6 +210,52 @@ public final class PersonVault {
         }
     }
 
+    /** The lookup-index system contact points are indexed under (ADR 0056). */
+    public static final String TELECOM_SYSTEM = "urn:dbo:pdi:telecom";
+
+    /**
+     * Every person claiming ANY identifier in {@code system}, id-ordered and
+     * keyset-paged. The enumeration a provisioning surface needs, exposed on
+     * the vault and nowhere else (REQ-DBO-SCIM-ENUMERATION-STAYS-INSIDE): it
+     * never appears on the store API or any face, so "list every person in
+     * this namespace" exists only for the server inside the membrane.
+     */
+    public List<String> claimantsIn(String system, String afterPersonId, int limit) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT DISTINCT person_id FROM pdi.identifier WHERE system = ?"
+                             + " AND person_id > ?::uuid ORDER BY person_id LIMIT ?")) {
+            ps.setString(1, system);
+            ps.setString(2, afterPersonId == null
+                    ? "00000000-0000-0000-0000-000000000000" : afterPersonId);
+            ps.setInt(3, limit);
+            List<String> ids = new java.util.ArrayList<>();
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ids.add(rs.getString(1));
+                }
+            }
+            return ids;
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault enumeration failed", e);
+        }
+    }
+
+    /** How many persons claim in {@code system} — a list's totalResults. */
+    public long claimantsCount(String system) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT COUNT(DISTINCT person_id) FROM pdi.identifier WHERE system = ?")) {
+            ps.setString(1, system);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault enumeration failed", e);
+        }
+    }
+
     /**
      * Every person holding this value, because an unclaimed one may be held by
      * several — and answering with one of them arbitrarily would be a wrong

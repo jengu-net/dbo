@@ -16,7 +16,30 @@ import java.util.regex.Pattern;
 public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
         boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
         String zone, String broker, List<String> acceptedBrokers,
-        List<Dependency> dependencies) {
+        List<Dependency> dependencies, Scim scim) {
+
+    /** Compatibility: the pre-SCIM shape, still what most specs declare. */
+    public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies) {
+        this(code, fhirVersion, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, null);
+    }
+
+    /**
+     * The tenant's SCIM declaration (REQ-DBO-SCIM-DECLARED-PER-TENANT):
+     * {@code system} is the identifier namespace externalId values are
+     * claimed in. Absent the block, the endpoints do not exist.
+     */
+    public record Scim(String system) {
+        public Scim {
+            if (system == null || system.isBlank()) {
+                throw new IllegalArgumentException(
+                        "scim needs 'system' — the namespace externalId values live in");
+            }
+        }
+    }
 
     /**
      * A declared content dependency (REQ-DBO-SYNC-SPEC-DECLARED):
@@ -145,10 +168,19 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
                 .map(d -> new Dependency(Json.str(d, "name"),
                         Set.copyOf(Json.strings(d, "types"))))
                 .toList();
-        return new TenantSpec(code, fhirVersion, types, Json.bool(root, "pdi"),
+        Object scimNode = Json.objOpt(root, "scim");
+        Scim scim = scimNode == null ? null : new Scim(Json.str(scimNode, "system"));
+        boolean pdi = Json.bool(root, "pdi");
+        if (scim != null && !pdi) {
+            // A staff directory is identifying data by definition; serving it
+            // from a store that keeps identity in the clear would be a quiet
+            // decision about everybody in it.
+            throw new IllegalArgumentException(code + ": scim requires pdi");
+        }
+        return new TenantSpec(code, fhirVersion, types, pdi,
                 cloud.jengu.dbo.policy.TenantPolicies.parse(root),
                 Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),
-                Json.strings(root, "acceptedBrokers"), dependencies);
+                Json.strings(root, "acceptedBrokers"), dependencies, scim);
     }
 
     /**
