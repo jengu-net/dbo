@@ -81,21 +81,28 @@ jobs:
         # commits landed on a red main while a local build was green at twice
         # this heap and could not fail the way CI fails (#94).
         run: ./verify ${{ steps.version.outputs.gradle_args }}
-      # Gradle already writes JUnit XML; these two steps make it readable
+      # The results page LEADS with what the build means — the composed
+      # promise report: which promises are proven, by which tests, and what
+      # ground is still a gap (REQ-DBO-PRM-COVERAGE-ON-THE-RESULTS-PAGE).
+      # A job summary is plain markdown; no report format is faked.
+      - name: Promise coverage on the results page
+        run: |
+          ./gradlew :core:harness:promiseReport -q
+          cat core/harness/build/reports/promise/report.md >> "$GITHUB_STEP_SUMMARY"
+      # Gradle already writes JUnit XML; this step makes failures readable
       # WITHOUT scrolling the log (the CI-parity rule: verdicts, not logs).
-      # Both run on failure too — that is the case worth reading.
+      # It runs on failure too — that is the case worth reading. The method
+      # listing is off: "did it test anything" is now answered above, by
+      # promises PROVEN with their citing sites, which is the meaning of the
+      # run rather than its inventory.
       - name: Publish test results
         if: always()
         uses: mikepenz/action-junit-report@v5
         with:
           report_paths: "**/build/test-results/**/TEST-*.xml"
-          detailed_summary: true
-          # list what RAN, not only what broke — a green run that shows an
-          # empty table cannot tell you whether it tested anything
-          include_passed: true
+          detailed_summary: false
+          include_passed: false
           group_suite: true
-          # durations make the critical path obvious — the suite runs its
-          # classes concurrently, so the slowest class IS the wall clock
           include_time_in_summary: true
           check_name: dbo suite
       - name: Upload HTML test reports

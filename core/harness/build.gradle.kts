@@ -65,6 +65,27 @@ tasks.check { dependsOn(distTest) }
 tasks.test {
     maxHeapSize = "4g"
 }
+
+// The composed promise report and the catalogue projection (#141): both run
+// on the TEST runtime classpath, because that is where the catalogue
+// registration and the citation index live.
+val promiseReport by tasks.registering(JavaExec::class) {
+    group = "documentation"
+    description = "Renders the composed promise report to build/reports/promise/report.md."
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("cloud.jengu.dbo.harness.PromiseProjection")
+    args("report", layout.buildDirectory.file("reports/promise/report.md").get().asFile.absolutePath)
+}
+
+val promiseProjection by tasks.registering(JavaExec::class) {
+    group = "documentation"
+    description = "Rewrites the generated block in docs/arc42-006-runtime/req-catalogue.md."
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("cloud.jengu.dbo.harness.PromiseProjection")
+    args("project", rootProject.file("docs/arc42-006-runtime/req-catalogue.md").absolutePath)
+}
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     dependsOn(":core:dbo-core:jar", ":core:dbo-postgres:jar", ":core:dbo-fhir-r4:jar")

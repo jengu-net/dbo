@@ -65,6 +65,23 @@ class PromiseCatalogueTest {
         assertEquals(6L, coverage.get(PromiseStatus.PROVEN), coverage.toString());
     }
 
+    /**
+     * The ratchet is a unit test: the generated block in req-catalogue.md is
+     * regenerated in memory on every build and compared whole — a hand-edit
+     * and a projection gone stale after a catalogue change are the same
+     * refusal (REQ-DBO-PRM-PROJECTION-IS-GENERATED).
+     */
+    @Test
+    @DisplayName("the catalogue projection matches the model — regenerate, never hand-edit")
+    void projectionIsCurrent() throws Exception {
+        java.nio.file.Path catalogue = java.nio.file.Path.of("../..",
+                "docs/arc42-006-runtime/req-catalogue.md").toAbsolutePath().normalize();
+        String onDisk = java.nio.file.Files.readString(catalogue);
+        assertEquals(PromiseProjection.projected(model(), onDisk), onDisk,
+                "req-catalogue.md's generated block differs from the model — run "
+                        + "./gradlew :core:harness:promiseProjection instead of editing");
+    }
+
     @Test
     @DisplayName("the rendered report carries the areas, the codes and the gap, verbatim")
     void reportRenders() {
