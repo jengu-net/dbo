@@ -1,5 +1,12 @@
 # DBO requirement catalogue
 
+> Promise-managed areas (currently SHAPE and PDI, between the
+> `promise:begin`/`promise:end` markers below) are **generated** from the
+> promise catalogue (`core/dbo-promises`) — edit the enums and run
+> `./gradlew :core:harness:promiseProjection`, never the tables
+> ([promise](../arc42-008-crosscutting/promise.md)). The remaining areas are
+> hand-maintained until they migrate.
+
 The founding requirements ([founding-requirements.md](../arc42-001-introduction/founding-requirements.md)) and concepts
 (the §-numbered sections, see [the docs index](../README.md)) distilled into stable REQ-style IDs, grouped by
 capability area. Each REQ is a business-readable promise; the parenthesized
