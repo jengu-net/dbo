@@ -27,7 +27,7 @@ Identity **excludes** all four version axes:
 1. instance version (`versionId` / ETag — history),
 2. business version (canonical `version` field — a *qualifier*, below),
 3. FHIR version (R4/R5/R6 personality),
-4. tenant object shape (the shape stamp).
+4. tenant object shape (the [shape stamp](shape-versioning.md)).
 
 The same logical artifact expressed in R4-shape-2 and R5-shape-3 has the
 **same identity**. Consequence, stated as an invariant: **conversion never

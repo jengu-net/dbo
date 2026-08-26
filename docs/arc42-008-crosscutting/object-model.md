@@ -19,6 +19,10 @@
   registered by personalities upgrade old payloads lazily, so FHIR version
   transition (R5 → R6) inside a tenant is a converter + reindex, not a big-bang
   migration.
+- **Shape stamp** — the version of each tenant-pack profile the object was
+  validated against at accept, recorded as an envelope dimension and served in
+  `meta`. The second version axis, independent of `payload_version` — see
+  [shape versioning](shape-versioning.md).
 
 ## 3. Postgres layout (per tenant database)
 
