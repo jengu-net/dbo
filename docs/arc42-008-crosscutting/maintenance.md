@@ -38,3 +38,28 @@ not the platform's.)
 Consistency: the state element is cut at a single snapshot (repeatable-read
 or an outbox fence — the feed primitive §10 gives the fence for free: export
 up to cursor C, and an incremental export is simply the feed from C).
+
+## Reshape: the third maintenance operation
+
+Backup and restore move a tenant; **reshape** moves a tenant's data forward
+in place, and it belongs beside them for the same reason — it is machinery an
+operator runs against a live tenant, not a project.
+
+`reshape` converts stock stamped below a target shape major
+([shape versioning](shape-versioning.md)): the store walks the stamp bound,
+converts page by page, writes each result back through the face's **accept**
+path so the pack re-validates and re-stamps it, and reports converted,
+refused and remaining with a cursor. Paged, rate-bounded and resumable — a
+re-run finds only what is still behind — and **one object no converter covers
+is named and left behind** rather than stranding the rest.
+
+The loop is the store's and the transformation is the face's. That split is
+why this is a maintenance operation at all: paging, resumability, rate bounds,
+re-accept-and-restamp and the accounting live in one place for every model,
+where a consumer running the same loop over the API would rebuild all of it
+per runner, outside the store that owns history and identity.
+
+Verification is the inventory it already reports: the shape counts run before
+and after and diff line by line, which is the same counts-not-contents
+discipline the move report uses — a verification that read every object would
+be a second full copy of a hospital's data, performed to check the first one.
