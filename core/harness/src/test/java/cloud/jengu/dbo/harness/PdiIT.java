@@ -323,4 +323,26 @@ class PdiIT {
                 "a pre-shred archive must not resurrect the person");
         assertEquals(0, store.getByIdentifier("Patient", List.of(new Identifier(EID, CODE_37))).size());
     }
+    /**
+     * After erasure, exact identifier resolution answers "nobody" — which is
+     * then the true answer, not a lie (#136). The claim rows went with the
+     * shred, and the pre-shred archive restored in the previous step could
+     * not resurrect them either.
+     */
+    @Test
+    @Order(7)
+    void aShreddedPersonIsNotResolvableByIdentifier() {
+        cloud.jengu.dbo.core.api.Caller.set("test-client");
+        cloud.jengu.dbo.core.api.Disclosure.set(
+                cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE, "TREAT");
+        try {
+            assertEquals(0, store.select(cloud.jengu.dbo.core.api.Criteria.of("Patient")
+                            .eq("identifier", cloud.jengu.dbo.core.api.EnvelopeValue.token(EID, CODE_37)))
+                    .size(), "an erased person is unresolvable, not merely unreadable");
+        } finally {
+            cloud.jengu.dbo.core.api.Disclosure.clear();
+            cloud.jengu.dbo.core.api.Caller.clear();
+        }
+    }
+
 }

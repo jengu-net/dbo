@@ -73,7 +73,8 @@ class DisclosureModesIT {
         Files.writeString(dir.resolve("avaldus.json"), """
                 {"code":"avaldus","fhirVersion":"r4","pdi":true,
                  "audit":{"level":"full"},"types":[
-                  {"name":"Patient","identity":"internal","handling":"operational"}]}""");
+                  {"name":"Patient","identity":"internal","handling":"operational"},
+                  {"name":"Practitioner","identity":"internal","handling":"operational"}]}""");
         // The same tenant shape with the ordinary audit level, which is what
         // made an identifying read untraceable: a disclosure has to be recorded
         // whatever a tenant chose to keep of ordinary traffic (#114).
@@ -211,6 +212,98 @@ class DisclosureModesIT {
      * and it is answered by hashing the term and matching hashes, so no
      * plaintext is at rest or in the query.
      */
+    /**
+     * Exact identifier resolution through the vault (#136): "which record
+     * claims this identifier" is the question every external-identity lane
+     * starts with, and the standard FHIR spelling of it is an exact
+     * identifier token search. The match runs over the claim index's HMACs;
+     * what comes back is served under the caller's disclosure mode like any
+     * other read.
+     */
+    @Test
+    void anExactIdentifierLookupResolvesTheClaimingRecord() {
+        Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
+        String id = store.put(PutRequest.create("Patient", ("""
+                {"resourceType":"Patient","name":[{"family":"Leidja"}],
+                 "identifier":[{"system":"urn:test:scim","value":"ext-leidja"}]}""")
+                .getBytes(StandardCharsets.UTF_8))).id();
+
+        Criteria byIdentifier = Criteria.of("Patient")
+                .eq("identifier", EnvelopeValue.token("urn:test:scim", "ext-leidja"));
+        List<StoredObject> found = store.select(byIdentifier);
+        assertEquals(1, found.size(), "the claiming record is found");
+        assertEquals(id, found.get(0).id(), "and it is the record that claimed the value");
+        assertTrue(new String(found.get(0).payload(), StandardCharsets.UTF_8).contains("Leidja"),
+                "served disclosed, because a purpose was stated");
+
+        assertEquals(1, store.count(byIdentifier), "count agrees");
+        var paged = store.page(byIdentifier, null);
+        assertEquals(1, paged.items().size(), "page — the path a REST search reaches");
+        assertTrue(paged.drained(), "a claim answers at most once, so the chunk is terminal");
+    }
+
+    /** Stating no purpose refuses identifier resolution like any identifying access. */
+    @Test
+    void anIdentifierLookupWithoutAPurposeIsRefused() {
+        assertThrows(cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException.class,
+                () -> store.select(Criteria.of("Patient")
+                        .eq("identifier", EnvelopeValue.token("urn:test:scim", "ext-leidja"))),
+                "knowing which record claims a value is knowing something about them");
+    }
+
+    /**
+     * A bare value asks every system at once — enumeration wearing a smaller
+     * coat — so it stays refused rather than answered or silently empty.
+     */
+    @Test
+    void aBareIdentifierValueDoesNotResolve() {
+        Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
+        assertThrows(cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException.class,
+                () -> store.select(Criteria.of("Patient")
+                        .eq("identifier", EnvelopeValue.of("ext-leidja"))));
+    }
+
+    /**
+     * Narrowing a result set the store cannot fully evaluate is how a wrong
+     * answer gets a confident shape — same rule as every identifying lookup.
+     */
+    @Test
+    void anIdentifierCombinedWithAnotherPredicateIsRefused() {
+        Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
+        assertThrows(cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException.class,
+                () -> store.select(Criteria.of("Patient")
+                        .eq("identifier", EnvelopeValue.token("urn:test:scim", "ext-leidja"))
+                        .eq("gender", EnvelopeValue.of("male"))));
+    }
+
+    /** A value nobody claims answers "nobody" — an empty list, not a refusal. */
+    @Test
+    void anUnclaimedIdentifierAnswersNobody() {
+        Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
+        Criteria unknown = Criteria.of("Patient")
+                .eq("identifier", EnvelopeValue.token("urn:test:scim", "ext-nobody"));
+        assertEquals(0, store.select(unknown).size(), "nobody matches");
+        assertEquals(0, store.count(unknown));
+        assertTrue(store.page(unknown, null).drained());
+    }
+
+    /**
+     * Resolution is type-scoped for free: claims are keyed by the claiming
+     * record's own id, so a value a Patient claims answers nothing to a
+     * Practitioner question — the capacity asked about is the capacity found.
+     */
+    @Test
+    void aValueClaimedByAPatientAnswersNothingForAPractitioner() {
+        Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
+        store.put(PutRequest.create("Patient", ("""
+                {"resourceType":"Patient","name":[{"family":"Patsient"}],
+                 "identifier":[{"system":"urn:test:scim","value":"ext-patsient"}]}""")
+                .getBytes(StandardCharsets.UTF_8)));
+        assertEquals(0, store.select(Criteria.of("Practitioner")
+                        .eq("identifier", EnvelopeValue.token("urn:test:scim", "ext-patsient")))
+                .size(), "the value is claimed, but not by a practitioner");
+    }
+
     @Test
     void anExactTelecomLookupAnswersFromTheIndex() {
         Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
