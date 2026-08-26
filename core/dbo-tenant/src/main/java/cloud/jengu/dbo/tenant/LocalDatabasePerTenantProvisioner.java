@@ -238,20 +238,16 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
                     "ALTER DATABASE " + dbName + " SET idle_in_transaction_session_timeout = '60s'"));
             if (transactionTimeoutSupported) {
                 ddls.add("ALTER DATABASE " + dbName + " SET transaction_timeout = '300s'");
-                ddls.add("ALTER ROLE " + quoteIdent(user) + " SET transaction_timeout = '0'");
+                // The ROLE setting is role-global, not per tenant: every
+                // tenant was re-applying one row, so N concurrent bring-ups
+                // meant N writers on ONE catalogue tuple. Applied once per
+                // process instead — the same end state, without the crowd.
+                if (ROLE_TIMEOUT_APPLIED.compareAndSet(false, true)) {
+                    ddls.add("ALTER ROLE " + quoteIdent(user) + " SET transaction_timeout = '0'");
+                }
             }
             for (String ddl : ddls) {
-                try (PreparedStatement ps = c.prepareStatement(ddl)) {
-                    ps.execute();
-                } catch (SQLException e) {
-                    if ("42704".equals(e.getSQLState())) {
-                        // the backstop for anything ELSE a major does not
-                        // recognise — a missing timeout is never a bring-up
-                        // failure
-                        continue;
-                    }
-                    throw e;
-                }
+                applyWithRetry(c, ddl);
             }
         } catch (SQLException e) {
             throw new IllegalStateException("timeout settings failed for " + dbName, e);
@@ -260,6 +256,55 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
 
     /** Whether this server's major has transaction_timeout — asked once. */
     private volatile Boolean transactionTimeoutSupported;
+
+    /**
+     * The role-wide timeout, applied once per process.
+     *
+     * <p>Static rather than per provisioner: a test JVM builds several
+     * provisioners against one server, and the setting they were each
+     * applying is the same row for all of them.
+     */
+    private static final java.util.concurrent.atomic.AtomicBoolean ROLE_TIMEOUT_APPLIED =
+            new java.util.concurrent.atomic.AtomicBoolean();
+
+    /**
+     * One settings DDL, retried through a concurrent catalogue write.
+     *
+     * <p>{@code ALTER DATABASE/ROLE ... SET} rewrites a row in
+     * {@code pg_db_role_setting}, and Postgres does not serialise those for
+     * us: two bring-ups landing together get {@code tuple concurrently
+     * updated} — an internal error, not a conflict the caller did anything
+     * to cause. It is transient by construction, so it is retried rather
+     * than failing a tenant's bring-up over a race between two tenants.
+     *
+     * <p>Matched on the message because the SQLState is the catch-all
+     * {@code XX000}: gating on that alone would swallow unrelated internal
+     * errors, which is how a real fault becomes an infinite retry.
+     */
+    private static void applyWithRetry(java.sql.Connection c, String ddl) throws SQLException {
+        for (int attempt = 1; ; attempt++) {
+            try (PreparedStatement ps = c.prepareStatement(ddl)) {
+                ps.execute();
+                return;
+            } catch (SQLException e) {
+                if ("42704".equals(e.getSQLState())) {
+                    // the backstop for anything a major does not recognise —
+                    // a missing timeout is never a bring-up failure
+                    return;
+                }
+                boolean raced = String.valueOf(e.getMessage()).contains("tuple concurrently updated");
+                if (!raced || attempt >= 5) {
+                    throw e;
+                }
+                try {
+                    Thread.sleep(20L * attempt);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+            }
+        }
+    }
 
     private static String quoteIdent(String ident) {
         return "\"" + ident.replace("\"", "\"\"") + "\"";
