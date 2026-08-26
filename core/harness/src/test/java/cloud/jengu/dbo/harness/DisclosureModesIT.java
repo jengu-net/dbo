@@ -1,5 +1,8 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
+
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.Disclosure;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
@@ -221,6 +224,7 @@ class DisclosureModesIT {
      * other read.
      */
     @Test
+    @Proving({DboPromises.PDI_EXACT_RESOLUTION})
     void anExactIdentifierLookupResolvesTheClaimingRecord() {
         Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
         String id = store.put(PutRequest.create("Patient", ("""
@@ -244,6 +248,7 @@ class DisclosureModesIT {
 
     /** Stating no purpose refuses identifier resolution like any identifying access. */
     @Test
+    @Proving({DboPromises.PDI_EXACT_RESOLUTION})
     void anIdentifierLookupWithoutAPurposeIsRefused() {
         assertThrows(cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException.class,
                 () -> store.select(Criteria.of("Patient")
@@ -256,6 +261,7 @@ class DisclosureModesIT {
      * coat — so it stays refused rather than answered or silently empty.
      */
     @Test
+    @Proving({DboPromises.PDI_EXACT_RESOLUTION})
     void aBareIdentifierValueDoesNotResolve() {
         Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
         assertThrows(cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException.class,
@@ -268,6 +274,7 @@ class DisclosureModesIT {
      * answer gets a confident shape — same rule as every identifying lookup.
      */
     @Test
+    @Proving({DboPromises.PDI_EXACT_RESOLUTION})
     void anIdentifierCombinedWithAnotherPredicateIsRefused() {
         Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
         assertThrows(cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException.class,
@@ -278,6 +285,7 @@ class DisclosureModesIT {
 
     /** A value nobody claims answers "nobody" — an empty list, not a refusal. */
     @Test
+    @Proving({DboPromises.PDI_EXACT_RESOLUTION})
     void anUnclaimedIdentifierAnswersNobody() {
         Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
         Criteria unknown = Criteria.of("Patient")
@@ -293,6 +301,7 @@ class DisclosureModesIT {
      * Practitioner question — the capacity asked about is the capacity found.
      */
     @Test
+    @Proving({DboPromises.PDI_EXACT_RESOLUTION})
     void aValueClaimedByAPatientAnswersNothingForAPractitioner() {
         Disclosure.set(Disclosure.Mode.INCLUDE, "TREAT");
         store.put(PutRequest.create("Patient", ("""

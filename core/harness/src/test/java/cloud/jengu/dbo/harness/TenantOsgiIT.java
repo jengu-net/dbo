@@ -82,7 +82,11 @@ class TenantOsgiIT {
                 "dbo.subscriptions.jar",
                 // the shared facade, before the faces that import it
                 "dbo.fhir.element.jar",
-                "dbo.fhir.r4.jar", "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar", "dbo.pdi.jar",
+                "dbo.fhir.r4.jar", "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar",
+                // the promise framework and the store's catalogue — dbo-pdi
+                // imports the catalogue to name promises in refusals (#140)
+                "dbo.promise.jar", "dbo.promises.jar",
+                "dbo.pdi.jar",
                 // the provisioning door the manager mounts — imports auth
                 // and pdi, imported by the tenant bundle
                 "dbo.scim.jar",
