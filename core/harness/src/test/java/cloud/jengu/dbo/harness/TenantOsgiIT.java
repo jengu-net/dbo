@@ -82,7 +82,11 @@ class TenantOsgiIT {
                 "dbo.subscriptions.jar",
                 // the shared facade, before the faces that import it
                 "dbo.fhir.element.jar",
-                "dbo.fhir.r4.jar", "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar", "dbo.pdi.jar", "dbo.policy.jar",
+                "dbo.fhir.r4.jar", "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar", "dbo.pdi.jar",
+                // the provisioning door the manager mounts — imports auth
+                // and pdi, imported by the tenant bundle
+                "dbo.scim.jar",
+                "dbo.policy.jar",
                 // the manager wires declared content dependencies —
                 // without this bundle the tenant bundle does not resolve
                 "dbo.sync.jar",
