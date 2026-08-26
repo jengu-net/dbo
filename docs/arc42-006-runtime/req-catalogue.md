@@ -274,6 +274,10 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-PRM-CATALOGUE-READ-WHOLE | The registry reads a catalogue's constants whole — proven, planned and gap alike — never as a side effect of what happened to be class-loaded. (§16) |
 | REQ-DBO-PRM-DOWN-LINKS-ONLY | A classification declares the promises that fulfil it; a promise never names its classifications; the inverse is derived. One direction, one truth. (§16) |
 | REQ-DBO-PRM-AREAS-MERGE-BY-CODE | Composition merges same-code areas across catalogues and refuses two with conflicting prose rather than picking one. (§16) |
+| REQ-DBO-PRM-CITATION-IS-TYPED | A test cites promises through its product's own enum-typed annotation, recognised by meta-annotation — a mistyped citation is a compile error, and the framework never learns a product's types. (§16) |
+| REQ-DBO-PRM-PROOFS-INDEXED-AT-COMPILE-TIME | Citation sites are indexed during the product's own compilation; a renamed or deleted proof site cannot leave a stale citation behind. (§16) |
+| REQ-DBO-PRM-STATUS-IS-DERIVED | A promise's status is computed — cited is proven, named-uncited is planned, assurance is declared on the constant, a gap is a gap — never asserted at a proof site. (§16) |
+| REQ-DBO-PRM-COVERAGE-IS-A-FOLD | A classification's coverage is the fold of its declared promises' statuses, gaps included; an area's is the fold of its classifications. (§16) |
 
 ## SCIM — staff provisioning surface
 

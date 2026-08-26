@@ -13,7 +13,18 @@ enum TestPromises implements Promise {
         public String text() {
             return "a promise whose constant has a body";
         }
-    };
+    },
+
+    /** Assured by recorded review — no executable test exists. */
+    REVIEWED_PROMISE("a promise a policy file keeps") {
+        @Override
+        public String assurance() {
+            return "asserted by quarterly key-custody review";
+        }
+    },
+
+    /** Declared, cited by nothing: intent, parked where it is visible. */
+    QUIET_PROMISE("a promise nobody has proven yet");
 
     private final String text;
 
