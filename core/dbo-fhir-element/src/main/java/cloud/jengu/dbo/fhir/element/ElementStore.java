@@ -155,6 +155,25 @@ public final class ElementStore implements FhirStoreFacade {
             payload = payloads.write(document);
         }
         List<String> issues = payloads.validate(type, document);
+        // The ordering rule's own door (REQ-DBO-SHAPE-UNPARSEABLE-VERSION-
+        // REFUSED): dbo's pack is data, so "refused at pack load" means
+        // refused HERE, when a shape arrives. A version whose leading
+        // segment is not an integer has no major to order by — accepting it
+        // would plant a stamp no bound can ever match, discovered
+        // mid-migration instead of now. Joined to the validation issues so a
+        // replicated copy is warned-and-held like any other finding while an
+        // authored write refuses.
+        if ("StructureDefinition".equals(type)
+                && document instanceof org.hl7.fhir.r5.elementmodel.Element sd) {
+            String declared = sd.getNamedChildValue("version");
+            if (declared != null && !declared.isBlank()
+                    && !declared.split("\\.", 2)[0].matches("[0-9]+")) {
+                issues = new java.util.ArrayList<>(issues);
+                issues.add("version '" + declared + "' has no leading integer major — "
+                        + "the ordering rule compares majors, and a shape without one "
+                        + "would stamp objects no version bound can ever match");
+            }
+        }
         if (!issues.isEmpty()) {
             if (!authoredElsewhere(type)) {
                 throw new ValidationFailedException(type, issues);

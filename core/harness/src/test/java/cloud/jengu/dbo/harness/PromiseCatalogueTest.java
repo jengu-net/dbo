@@ -52,7 +52,7 @@ class PromiseCatalogueTest {
     @DisplayName("the gap counts against SHAPE_VERSIONING's coverage until somebody states it")
     void theGapCounts() {
         Map<PromiseStatus, Long> coverage = model().coverage(DboFeatures.SHAPE_VERSIONING);
-        assertEquals(4L, coverage.get(PromiseStatus.PROVEN));
+        assertEquals(7L, coverage.get(PromiseStatus.PROVEN));
         assertEquals(1L, coverage.get(PromiseStatus.GAP));
     }
 

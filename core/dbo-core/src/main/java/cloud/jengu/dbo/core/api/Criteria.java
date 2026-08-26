@@ -16,6 +16,15 @@ public final class Criteria {
 
     public record Eq(String path, EnvelopeValue value) {}
 
+    /**
+     * A shape-stamp bound (REQ-DBO-SHAPE-QUERYABLE-BY-VERSION): objects whose
+     * written-under stamp for {@code profile} sits below — or at/above — the
+     * stated major. Majors, not full versions, because only a major is
+     * breaking-with-converter under the ratchet, and the converter registry
+     * keys the same way; the query and the keying share one rule.
+     */
+    public record Shape(String profile, int major, boolean below) {}
+
     public record NotEq(String path, EnvelopeValue value) {}
 
     public record StartsWith(String path, String prefix) {}
@@ -66,6 +75,7 @@ public final class Criteria {
     private final List<StartsWith> startsWith = new ArrayList<>();
     private final List<Missing> missing = new ArrayList<>();
     private final List<Range> ranges = new ArrayList<>();
+    private final List<Shape> shapes = new ArrayList<>();
     private final List<LastUpdatedRange> lastUpdated = new ArrayList<>();
     private final List<Referencing> referencing = new ArrayList<>();
     private final List<ReferencingAny> referencingAny = new ArrayList<>();
@@ -82,6 +92,18 @@ public final class Criteria {
 
     public static Criteria of(String typeName) {
         return new Criteria(typeName);
+    }
+
+    /** Objects stamped below {@code major} for {@code profile}. */
+    public Criteria shapeBelow(String profile, int major) {
+        shapes.add(new Shape(profile, major, true));
+        return this;
+    }
+
+    /** Objects stamped at or above {@code major} for {@code profile}. */
+    public Criteria shapeAtLeast(String profile, int major) {
+        shapes.add(new Shape(profile, major, false));
+        return this;
     }
 
     public Criteria eq(String path, EnvelopeValue value) {
@@ -178,6 +200,7 @@ public final class Criteria {
     public List<Missing> missingPredicates() { return missing; }
 
     public List<Range> rangePredicates() { return ranges; }
+    public List<Shape> shapePredicates() { return shapes; }
 
     public List<LastUpdatedRange> lastUpdatedPredicates() { return lastUpdated; }
 

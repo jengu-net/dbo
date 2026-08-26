@@ -123,7 +123,8 @@ public final class MaintenanceHandler implements HttpHandler {
     private void inventory(HttpExchange exchange) throws IOException {
         respond(exchange, 200, cloud.jengu.dbo.maintenance.TenantInventory.json(
                 cloud.jengu.dbo.maintenance.TenantInventory.of(dataSource),
-                cloud.jengu.dbo.maintenance.TenantInventory.deliveryOf(dataSource)));
+                cloud.jengu.dbo.maintenance.TenantInventory.deliveryOf(dataSource),
+                cloud.jengu.dbo.maintenance.TenantInventory.shapes(dataSource)));
     }
 
     /**

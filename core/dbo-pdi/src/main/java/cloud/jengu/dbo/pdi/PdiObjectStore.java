@@ -242,7 +242,8 @@ public final class PdiObjectStore implements ObjectStore {
                 || criteria.equalsPredicates().size() != 1
                 || !criteria.notEqualsPredicates().isEmpty()
                 || !criteria.startsWithPredicates().isEmpty()
-                || !criteria.rangePredicates().isEmpty()) {
+                || !criteria.rangePredicates().isEmpty()
+                || !criteria.shapePredicates().isEmpty()) {
             return Optional.empty();
         }
         Criteria.Eq only = criteria.equalsPredicates().get(0);

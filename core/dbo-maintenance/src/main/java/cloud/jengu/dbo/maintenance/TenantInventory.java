@@ -38,6 +38,56 @@ public final class TenantInventory {
     public record Line(String domain, String typeName, long total, long identified,
                        long versions) {}
 
+    /**
+     * One shape-stock line (REQ-DBO-SHAPE-STOCK-COUNTED): how many live
+     * objects of this type are stamped with this profile at this version —
+     * or, when {@code version} is null, DECLARE the profile and carry no
+     * stamp at all, which is the number a migration actually cares about.
+     * The same report runs before and after one and diffs line by line.
+     */
+    public record ShapeLine(String domain, String typeName, String profile, String version,
+                            long count) {}
+
+    /** Counts the shape stock in every domain the tenant holds. */
+    public static List<ShapeLine> shapes(DataSource ds) {
+        List<ShapeLine> lines = new ArrayList<>();
+        try (Connection c = ds.getConnection()) {
+            for (String domain : TenantExport.domainsOf(c)) {
+                try (PreparedStatement ps = c.prepareStatement("""
+                        SELECT d.type, s.entry, count(*)
+                        FROM state.%s_data d, jsonb_array_elements_text(d.shape) s(entry)
+                        WHERE NOT d.deleted GROUP BY 1, 2 ORDER BY 1, 2""".formatted(domain));
+                     ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String entry = rs.getString(2);
+                        int bar = entry.lastIndexOf('|');
+                        lines.add(new ShapeLine(domain, rs.getString(1),
+                                bar > 0 ? entry.substring(0, bar) : entry,
+                                bar > 0 ? entry.substring(bar + 1) : "",
+                                rs.getLong(3)));
+                    }
+                }
+                // Declared-but-unstamped: the profile claim is in the
+                // envelope, the stamp column is empty. Counted from the same
+                // rows the query bounds walk, so query and report agree.
+                try (PreparedStatement ps = c.prepareStatement("""
+                        SELECT d.type, p->>'v', count(*)
+                        FROM state.%s_data d, jsonb_array_elements(d.envelope->'_profile') p
+                        WHERE NOT d.deleted AND (d.shape IS NULL OR d.shape = '[]'::jsonb)
+                        GROUP BY 1, 2 ORDER BY 1, 2""".formatted(domain));
+                     ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        lines.add(new ShapeLine(domain, rs.getString(1), rs.getString(2),
+                                null, rs.getLong(3)));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("shape inventory failed", e);
+        }
+        return lines;
+    }
+
     /** Counts every live type in every domain the tenant holds. */
     public static List<Line> of(DataSource ds) {
         List<Line> lines = new ArrayList<>();
@@ -121,6 +171,11 @@ public final class TenantInventory {
     }
 
     public static String json(List<Line> lines, List<Delivery> delivery) {
+        return json(lines, delivery, List.of());
+    }
+
+    public static String json(List<Line> lines, List<Delivery> delivery,
+            List<ShapeLine> shapes) {
         StringBuilder out = new StringBuilder("{\"types\":[");
         for (int i = 0; i < lines.size(); i++) {
             Line line = lines.get(i);
@@ -139,6 +194,18 @@ public final class TenantInventory {
                     .append("{\"domain\":").append(Names.quote(d.domain()))
                     .append(",\"consumer\":").append(Names.quote(d.consumer()))
                     .append(",\"lag\":").append(d.lag())
+                    .append('}');
+        }
+        out.append("],\"shapes\":[");
+        for (int i = 0; i < shapes.size(); i++) {
+            ShapeLine s = shapes.get(i);
+            out.append(i > 0 ? "," : "")
+                    .append("{\"domain\":").append(Names.quote(s.domain()))
+                    .append(",\"name\":").append(Names.quote(s.typeName()))
+                    .append(",\"profile\":").append(Names.quote(s.profile()))
+                    .append(",\"version\":")
+                    .append(s.version() == null ? "null" : Names.quote(s.version()))
+                    .append(",\"count\":").append(s.count())
                     .append('}');
         }
         return out.append("]}").toString();
