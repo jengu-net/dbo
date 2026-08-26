@@ -26,7 +26,15 @@ final class UntilServed {
     private UntilServed() {
     }
 
-    /** Scans until {@code served} holds, and answers what is being served. */
+    /**
+     * Scans until {@code served} holds, and answers what is being served.
+     *
+     * <p>Exhaustion FAILS, naming the trouble ledger (#144): a bring-up
+     * failure is caught into the manager's ledger and the tenant simply
+     * never serves, so a test that carried on met a bare 404 three steps
+     * and eighty polled seconds away from the cause. The cause belongs
+     * here, at first contact.
+     */
     static Set<String> scan(TenantRuntimeManager manager, Predicate<Set<String>> served) {
         Set<String> up = Set.of();
         for (int pass = 0; pass < PASSES; pass++) {
@@ -35,7 +43,8 @@ final class UntilServed {
                 return up;
             }
         }
-        return up;
+        throw new AssertionError("not serving what the test needs after " + PASSES
+                + " passes; serving=" + up + " troubles=" + manager.troubles());
     }
 
     /** Scans until every code named is being served. */

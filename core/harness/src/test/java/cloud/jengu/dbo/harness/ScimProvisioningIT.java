@@ -254,6 +254,9 @@ class ScimProvisioningIT {
         manager.scanOnce();
         assertFalse(manager.runtime("clear-headed").isPresent(),
                 "a staff directory over identity in the clear is refused, not served");
+        assertTrue(String.valueOf(manager.troubles()).contains("scim requires pdi"),
+                "and the refusal is answerable from the trouble ledger (#144), not only "
+                        + "as an absent endpoint: " + manager.troubles());
     }
 
     // ---------------------------------------------------------- plumbing
