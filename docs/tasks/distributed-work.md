@@ -1,17 +1,16 @@
 # Distributed work
 
-**Status** — doctrine decided and written; **#71, #147, #149 and #150 are
+**Status** — doctrine decided and written; **#71, #147, #149, #150 and #77 are
 closed**: the declaration seam (steps, actions, mandatory-steps incident
-classification), introduction over the link, run inputs filling declared
-slots, and milestones on the checkpoint. The participant is complete bar one
-precondition: pull, reporting and now the credential half are built, and #77
-stays open only on #91's discoverability gate. The console (#75/#76), the
-transport exercise (#79's remainder) and the replication toolset (#80) are
-what is left.
+classification), introduction over the link, run inputs filling declared slots,
+milestones on the checkpoint, and the participant with both halves of reach.
+What gates the rest is one precondition — a profile for the rendered `Task`,
+the half of #91 the published run vocabulary did not cover — and behind it the
+transport exercise (#79), the replication toolset (#80) and the console
+(#75/#76). See `Sequence` for the order and what each is waiting on.
 
 **Issues** — the participation cluster, formerly under the closed #46.
-Open: [#77](https://github.com/jengu-net/dbo/issues/77) (waiting on #91's
-discoverability precondition) · [#79](https://github.com/jengu-net/dbo/issues/79)
+Open: [#79](https://github.com/jengu-net/dbo/issues/79)
 (reference runner: DBOS below, transport first) ·
 [#80](https://github.com/jengu-net/dbo/issues/80) (replication toolset) ·
 [#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on the
@@ -26,7 +25,9 @@ Closed: [#69](https://github.com/jengu-net/dbo/issues/69) /
 `Task`) · [#72](https://github.com/jengu-net/dbo/issues/72) /
 [#78](https://github.com/jengu-net/dbo/issues/78) (executor declaration and
 resolution) · [#71](https://github.com/jengu-net/dbo/issues/71)
-(declaration seam) · [#147](https://github.com/jengu-net/dbo/issues/147)
+(declaration seam) · [#77](https://github.com/jengu-net/dbo/issues/77)
+(the participant, and reach as an intersection) ·
+[#147](https://github.com/jengu-net/dbo/issues/147)
 (introduction over the link) ·
 [#149](https://github.com/jengu-net/dbo/issues/149) (a run names its
 inputs) · [#150](https://github.com/jengu-net/dbo/issues/150) (milestones
@@ -114,26 +115,49 @@ proves (#148).
   built this slice; the pre-existing PROC ground — the runner, the
   declaration, reporting, the run record, resolution, the appliance lane,
   the content-under-work rule, the network map and the trace join — landed
-  as further features, 41 promises PROVEN against real tests and 6 honestly
+  as further features, 42 promises PROVEN against real tests and 5 honestly
   `PLANNED` with a `TODO` on the constant naming what a proof would have to
   show (`PROC_CATALOGUE_IN_STORE`, `PROC_DOMAIN_CODE_FILTER`,
-  `PROC_RUN_HAS_A_RECORD`, `PROC_RUN_SAYS_WHO_HOLDS_IT`,
-  `PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY`, `PROC_NETWORK_MAP`). PROC is
-  the first area to leave the SHAPE/PDI pilot behind entirely.
-- **Open, in dependency order**: #77's remainder — #91's precondition (run
-  coding systems as fetchable `CodeSystem`, a profile for the rendered
-  `Task`), which gates serving runs over HTTP →
-  #79's remainder (DBOS below, the transport-first exercise) → #148 (what
-  rides the carrier, and the presence display that must not page about a
-  healthy idle fleet) → #80 (the replication toolset — inherits "slots are
-  part of what must be present for the work being held") → #75/#76 (the
-  console over it all).
+  `PROC_RUN_HAS_A_RECORD`, `PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY`,
+  `PROC_NETWORK_MAP`). `PROC_RUN_SAYS_WHO_HOLDS_IT` left that list on
+  2026-08-27: `RunsAreRecordsIT` already proved the holder follows the
+  failure class and that `holding(PERSON)` is a store query, and now cites
+  it. PROC is the first area to leave the SHAPE/PDI pilot behind entirely.
+- **Open, in dependency order**: see `Sequence` below — it carries the order,
+  what each step waits on and who owns the wait, so it is not repeated here.
 - **Consumer's half, later**: the WebSocket lane (socket, framing, handshake,
   tenant auth) is the platform's per ADR 0062 — now driven from their side by
   [platform#917](https://github.com/jengu-net/jengu-platform/issues/917)
   (`edge-appliance-on-dbo.md`); the k8s per-step Deployment
   packaging likewise. dbo owes the store-level toolset (#80) and nothing
   transport-shaped.
+
+## Sequence
+
+Ordered by what must be true before the next thing can start. A step is
+**DONE** only when a capability was verified — each one below names the test
+that verifies it, and the `Verifying` command at the foot runs them.
+
+| # | Step | Status |
+|---|---|---|
+| 1 | **A run has a record, and the face renders it** ([#69](https://github.com/jengu-net/dbo/issues/69) / [#70](https://github.com/jengu-net/dbo/issues/70)) — runs are records in the tenant's store, spelled as `Task` by the face and never by the engine. | **DONE** 2026-08-20 — `RunsAreRecordsIT`, `RunsRenderIT` |
+| 2 | **An executor declares itself, and resolution walks declarations** ([#72](https://github.com/jengu-net/dbo/issues/72) / [#78](https://github.com/jengu-net/dbo/issues/78)) — deterministic, layered, overridable only where a step says so. | **DONE** 2026-08-20 — `ExecutorIsRecordedIT`, `ExecutorsDeclareThemselvesIT` |
+| 3 | **The declaration seam** ([#71](https://github.com/jengu-net/dbo/issues/71)) — `StepDeclaration` in `dbo-core`: domains, shapes, actions, slots, milestones, overridability; `mandatorySteps` classifies incidents and never gates. | **DONE** 2026-08-27 — `StepsAreDeclaredIT`, `MandatoryStepsClassifyIncidentsIT`, `ReportsGoThroughDeclaredActionsIT` |
+| 4 | **A run names its inputs** ([#149](https://github.com/jengu-net/dbo/issues/149)) — slots fixed at creation, refused by name in both directions, rendered in declaration order. | **DONE** 2026-08-27 — `RunNamesItsInputsIT` |
+| 5 | **Milestones on the checkpoint** ([#150](https://github.com/jengu-net/dbo/issues/150)) — a long-running step says where it is; position derived by the store. | **DONE** 2026-08-27 — `MilestonesOnTheCheckpointIT` |
+| 6 | **Introduction over the link** ([#147](https://github.com/jengu-net/dbo/issues/147)) — the second door into the catalogue; identical declarations co-introduce, so a fleet is not a collision. | **DONE** 2026-08-27 — `StepsArriveByIntroductionIT` |
+| 7 | **The participant, both halves of reach** ([#77](https://github.com/jengu-net/dbo/issues/77)) — pull, claim, report; and what it may claim is the intersection of what its credential covers and what the step admits. | **DONE** 2026-08-27 — `ParticipantsPullAndClaimIT`, `ClaimIsTheIntersectionIT` |
+| 8 | **The run vocabulary, discoverable** — [#91](https://github.com/jengu-net/dbo/issues/91)'s precondition: the systems a rendered run carries, published as `CodeSystem`s the same tenant serves. | **PARTLY DONE** — the vocabulary half is published, fetchable and split (`urn:dbo:run:output` is no longer also `urn:dbo:run`), proven by `VocabularyIsDiscoverableIT`. **What remains is a profile for the rendered `Task`**, and that is what gates serving runs over HTTP |
+| 9 | **The reference runner: transport first, DBOS below** ([#79](https://github.com/jengu-net/dbo/issues/79)) — the participation link exercised end to end. | **NEXT** — the runner bundle itself is built (`core:dbo-runner`, `StepRunnerIT`); what is open is the transport exercise |
+| 10 | **Vital signs on the link** ([#148](https://github.com/jengu-net/dbo/issues/148)) — what rides the carrier, and a presence display that does not page about a healthy idle fleet. | **READY, needs 9** — its carrier is delivered; the runner already publishes vitals on the declaration record |
+| 11 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **READY, needs 9** — inherits "slots are part of what must be present for the work being held" |
+| 12 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **BLOCKED by the consumer's sequencing** — posed by [platform#917](https://github.com/jengu-net/jengu-platform/issues/917), whose work-lane-first order owns when this is answered |
+| 13 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **LAST, needs 8** — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
+
+**The critical path** is 8 → 9 → 13: the `Task` profile unblocks serving runs
+over HTTP, which the transport exercise and then the console both stand on.
+Steps 10 and 11 hang off 9 and are independent of each other. Step 12 waits on
+somebody else's calendar, not on this repository.
 
 ## Decisions
 
