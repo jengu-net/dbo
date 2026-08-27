@@ -103,19 +103,25 @@ not an enhancement — it is the only official way documents reach a
 distributed runner. `Work.inputs` is the waiting seam; #149 fills it with
 no service or runner change.
 
-**The catalogue may be built up from linked steps** (review direction,
-2026-08-27): rather than porting the platform's catalogue wholesale — the
-drift the #71 trap warns about — the catalogue can *emerge*: installed
-modules contribute as they always did, and linked participants introduce
-theirs (#147). Consistency is then a **declared list of mandatory steps**
-that must be present — their absence is a system fault, checked the way a
-face's missing capability is refused — while every other step is
-non-critical: free to appear with its participant and disappear with it,
-never load-bearing for a critical flow. This softens #71's sequencing: the
-seam and the mandatory-set check can precede the platform catalogue's
-migration, because nothing is ported — the platform's steps arrive as
-introductions when the platform connects. To be pinned in #71/#147
-grooming.
+**The catalogue is built up from linked steps** (review direction 2026-08-27,
+pinned in #71's grooming the same day): rather than porting the platform's
+catalogue wholesale — the drift the #71 trap warns about — the catalogue
+*emerges*: installed modules contribute as they always did, and linked
+participants introduce theirs (#147). Consistency is a **declared list of
+mandatory steps**: the tenant spec's `mandatorySteps`, beside `types`, and
+configuration owns it. It **classifies incidents; it never gates** (Alan's
+correction to the first cut, which refused bring-up): the system is
+asynchronous by design, so a missing step executor buffers runs on the queue
+rather than taking the tenant offline — the list decides whether that absence
+is an incident, named on `stepIncidents()` and in the log, re-evaluated every
+scan as contributions come and go (`StepIncidents`). Only the face contract
+genuinely gates, because a missing face capability breaks serving itself.
+Every other step is non-critical by construction: free to appear with its
+participant and disappear with it, never load-bearing for a critical flow.
+This softened #71's sequencing — the seam and the classification landed
+before the platform catalogue's migration, because nothing is ported: the
+platform's steps arrive as introductions when the platform connects, and
+`platform-process-api` retires by attrition. #147 inherits this frame.
 
 **Pull, never push** (ADR 0060). dbo holding a client per external system is
 rejected; participants are behind NAT, on edges, offline for weekends.
@@ -175,11 +181,11 @@ nothing waiting is not absence; only silence with work waiting is. Any
 presence display or alert built on cursor movement must carry this
 distinction or it will page somebody about a healthy idle fleet.
 
-**Two catalogues mid-migration is how they drift.** #71 deliberately follows
-platform#851 rather than running beside it — the platform's working catalogue
-(`platform-process-api`) is on the other side of the cutover. Starting #71
-"early" re-creates the drift it was parked to avoid; check the migration
-topic's state first.
+**Two catalogues mid-migration is how they drift.** The original reason #71
+followed platform#851. Resolved by the emergent-catalogue decision above:
+nothing is ported, so the seam landed early without creating a second copy —
+but the trap still governs anyone tempted to *translate* the platform's enums
+across wholesale. They arrive as introductions, or they wait.
 
 ## Not doing
 

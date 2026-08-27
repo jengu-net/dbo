@@ -82,6 +82,18 @@ class StepsAreDeclaredIT {
     }
 
     @Test
+    @DisplayName("a step declares the actions it contains, so a role has something to narrow")
+    void aStepDeclaresTheActionsItContains() {
+        StepDeclaration held = validate().containing("open", "close", "reopen");
+
+        assertEquals(java.util.Set.of("open", "close", "reopen"), held.actions(),
+                "what a human holder may do is exactly the set an automated executor would "
+                        + "otherwise perform — roles narrow actions, not steps");
+        assertEquals(java.util.Set.of(), validate().actions(),
+                "a step that has not said admits everything to decide later, not nothing");
+    }
+
+    @Test
     @DisplayName("a run records the step version it ran under, beside the executor's")
     void aRunNamesTheStepVersion() {
         Run run = runs.of(validate(), RunKind.PIPELINE, "report-1");

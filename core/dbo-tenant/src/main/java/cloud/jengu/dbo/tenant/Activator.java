@@ -165,6 +165,49 @@ public final class Activator implements BundleActivator {
         };
     }
 
+    /**
+     * The step catalogue as the registry sees it (#71) — same rule as the
+     * versions above: a module contributes its steps by being installed, so a
+     * catalogue bundle started later is seen by the next scan, and the
+     * classpath fallback (which sees no other bundle's providers) is never
+     * taken in the container.
+     */
+    private static cloud.jengu.dbo.core.process.Steps stepsFromRegistry(BundleContext ctx) {
+        return new cloud.jengu.dbo.core.process.Steps() {
+            @Override
+            public java.util.Optional<cloud.jengu.dbo.core.process.StepDeclaration> byId(
+                    String id) {
+                return contributed().byId(id);
+            }
+
+            @Override
+            public java.util.Set<String> ids() {
+                return contributed().ids();
+            }
+
+            private cloud.jengu.dbo.core.process.Steps contributed() {
+                java.util.List<cloud.jengu.dbo.core.process.StepDeclaration> found =
+                        new java.util.ArrayList<>();
+                try {
+                    for (ServiceReference<cloud.jengu.dbo.core.process.Steps.Catalogue> ref
+                            : ctx.getServiceReferences(
+                                    cloud.jengu.dbo.core.process.Steps.Catalogue.class, null)) {
+                        cloud.jengu.dbo.core.process.Steps.Catalogue catalogue =
+                                ctx.getService(ref);
+                        if (catalogue != null) {
+                            found.addAll(catalogue.steps());
+                        }
+                    }
+                } catch (org.osgi.framework.InvalidSyntaxException e) {
+                    throw new IllegalStateException(
+                            "no filter was given, so none can be invalid", e);
+                }
+                return cloud.jengu.dbo.core.process.Steps.of(
+                        found.toArray(new cloud.jengu.dbo.core.process.StepDeclaration[0]));
+            }
+        };
+    }
+
     /** "tara=secret1,eeid=secret2" — custody by broker code (§17.1). */
     private static java.util.Map<String, String> parseBrokerSecrets(String csv) {
         if (csv == null || csv.isBlank()) {
@@ -238,7 +281,7 @@ public final class Activator implements BundleActivator {
                             registrations.forEach(ServiceRegistration::unregister);
                         }
                     }
-                }, authority, registered(ctx));
+                }, authority, registered(ctx), stepsFromRegistry(ctx));
         // #74: the tenant this deployment's own history lives in, brought up
         // before anything else and declared by configuration rather than by a
         // file in the watched directory. A deployment whose management tenant
