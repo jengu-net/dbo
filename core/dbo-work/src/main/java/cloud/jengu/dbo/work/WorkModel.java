@@ -50,6 +50,7 @@ public final class WorkModel {
                 new TypeRegistration(TYPE, DOMAIN, IdentityClass.IDENTIFIER,
                         Set.of(KEY_SYSTEM), handling(), extractor(), List.of())));
         all.addAll(ExecutorModel.registrations());
+        all.addAll(IntroductionModel.registrations());
         return List.copyOf(all);
     }
 

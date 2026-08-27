@@ -401,9 +401,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // with a mandatory step nothing contributes keeps serving — its runs
         // queue — and the absence is an incident here, re-evaluated every
         // pass because the catalogue changes as modules and participants
-        // come and go.
+        // come and go. The catalogue read is the COMPOSED one (#147):
+        // installed modules plus the steps linked participants introduced
+        // into this tenant's own store — which is exactly how the platform's
+        // steps satisfy a tenant's mandatory list when it connects over the
+        // link rather than by installation.
         for (TenantRuntime runtime : runtimes.values()) {
-            stepIncidents.observe(runtime.spec(), steps);
+            try {
+                stepIncidents.observe(runtime.spec(),
+                        new cloud.jengu.dbo.work.Introductions(runtime.engine(), steps)
+                                .composedWith());
+            } catch (RuntimeException faulty) {
+                // A collision (one id, two declarers) or a broken record is
+                // one tenant's fault to report, not a reason the other
+                // tenants' classification stops running.
+                LOG.error("step classification failed: tenant={} {}",
+                        runtime.spec().code(), faulty.getMessage());
+            }
         }
         stepIncidents.retain(runtimes.keySet());
         rollup();

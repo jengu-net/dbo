@@ -49,7 +49,15 @@ public enum DboFeatures implements Feature {
             + "completeness is derived from the step's own declared order.",
             List.of(DboPromises.PROC_MILESTONES_ARE_DECLARED,
                     DboPromises.PROC_PROGRESS_NAMES_THE_MILESTONE,
-                    DboPromises.PROC_TASK_SAYS_WHERE_THE_WORK_IS));
+                    DboPromises.PROC_TASK_SAYS_WHERE_THE_WORK_IS)),
+
+    THE_CATALOGUE_LEARNS("The catalogue is built up, not ported: installed modules "
+            + "contribute by being installed, and linked participants introduce the "
+            + "steps they bring — one collision rule across both doors, and nothing "
+            + "granted by walking through either.",
+            List.of(DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
+                    DboPromises.PROC_ONE_ID_ONE_DECLARER,
+                    DboPromises.PROC_INTRODUCTION_GRANTS_NOTHING));
 
     private final String title;
     private final List<Promise> promises;

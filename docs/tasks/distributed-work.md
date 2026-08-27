@@ -3,9 +3,10 @@
 **Status** — doctrine decided and written; the declaration seam is DONE and
 CLOSED (#71: steps, actions, mandatory-steps incident classification); the
 participant's pull AND reporting halves are built (#77 stays open for its
-credential half and the #91 precondition); runs name their inputs (#149,
-awaiting CI to close); milestones (#150) in progress; the console and the
-transport are open.
+credential half and the #91 precondition); runs name their inputs (#149) and
+milestones ride the checkpoint (#150) — both awaiting CI to close; #147
+(introduction over the link) in progress; the console and the transport are
+open.
 
 **Issues** — the participation cluster, formerly under the closed #46:
 [#71](https://github.com/jengu-net/dbo/issues/71) (declaration seam — done,
@@ -101,11 +102,20 @@ throughput — beside the presence the cursor already proves (#148).
   one thing the report said while passing every test. FEAT
   `WORK_SAYS_WHERE_IT_IS` under the DISTRIBUTED_WORK area, three promises
   PROVEN via `MilestonesOnTheCheckpointIT`.
+- **Built, continued (#147)**: a participant introduces the step it
+  performs. `IntroductionModel`/`Introductions` in `dbo-work` (record per
+  step id, introducer as provenance, kept until withdrawn — presence gates
+  candidacy, not the record); `StepService.declaration()` →
+  `StepRunner` introduces beside the candidacy → `Lane.introduce`
+  (abstract, the no-silent-default rule); `Introductions.composedWith()`
+  is the one catalogue view (collision refused across both doors), read by
+  `Runs` and by the mandatory-steps classification per tenant — proven by
+  a mandatory step satisfied over the link, nothing installed. FEAT
+  `THE_CATALOGUE_LEARNS`, three promises PROVEN.
 - **Open, in dependency order**: #77's remainder (above) → #79's remainder
-  (DBOS below, the transport-first exercise) → #147/#148 remainder
-  (introduction over the link) → #80 (the replication toolset — inherits
-  "slots are part of what must be present") → #75/#76 (the console over it
-  all).
+  (DBOS below, the transport-first exercise) → #148's remainder if any →
+  #80 (the replication toolset — inherits "slots are part of what must be
+  present") → #75/#76 (the console over it all).
 - **Consumer's half, later**: the WebSocket lane (socket, framing, handshake,
   tenant auth) is the platform's per ADR 0062; the k8s per-step Deployment
   packaging likewise. dbo owes the store-level toolset (#80) and nothing

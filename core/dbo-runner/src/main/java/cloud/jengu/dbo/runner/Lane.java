@@ -74,6 +74,16 @@ public interface Lane {
     /** Announces or re-announces a candidate — idempotent by key, vitals riding it. */
     void declare(Declarations.Declared declared);
 
+    /**
+     * Brings the step this participant performs into the catalogue (#147) —
+     * the declaration arriving over the link instead of by installation.
+     * Abstract, not defaulted (the #150 rule): a lane that quietly dropped an
+     * introduction would leave the participant declaring candidacy for a
+     * step the catalogue never learned. The introducer is this lane's
+     * identity; an introduction grants it nothing.
+     */
+    void introduce(cloud.jengu.dbo.core.process.StepDeclaration step);
+
     /** A candidate going away for good, rather than being quiet. */
     void withdraw(Declarations.Declared declared);
 
@@ -113,6 +123,20 @@ public interface Lane {
     static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
             Declarations declarations, String participant, Executor identity,
             cloud.jengu.dbo.core.api.ObjectStore objects) {
+        return inProcess(tenant, runs, feed, declarations, participant, identity, objects,
+                null);
+    }
+
+    /**
+     * The same, with the catalogue's second door (#147): a service that
+     * brings its own step introduces it through here. A host that wires no
+     * {@code introductions} refuses an introduction loudly rather than
+     * recording it nowhere.
+     */
+    static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
+            Declarations declarations, String participant, Executor identity,
+            cloud.jengu.dbo.core.api.ObjectStore objects,
+            cloud.jengu.dbo.work.Introductions introductions) {
         return new Lane() {
 
             @Override
@@ -166,6 +190,18 @@ public interface Lane {
             @Override
             public void declare(Declarations.Declared declared) {
                 declarations.declare(declared);
+            }
+
+            @Override
+            public void introduce(cloud.jengu.dbo.core.process.StepDeclaration step) {
+                if (introductions == null) {
+                    // Loud, not lost: recording it nowhere would leave the
+                    // participant declaring candidacy for a step the
+                    // catalogue never learned.
+                    throw new IllegalStateException(tenant + ": this lane records no "
+                            + "introductions, and '" + step.id() + "' was brought to it");
+                }
+                introductions.introduce(step, identity.name());
             }
 
             @Override

@@ -146,7 +146,23 @@ public enum DboPromises implements Promise {
 
     PROC_TASK_SAYS_WHERE_THE_WORK_IS("The rendered Task's businessStatus says where the "
             + "work is — the holder, and when a milestone is recorded the step's own word "
-            + "for it with its derived position — in every version the face serves.");
+            + "for it with its derived position — in every version the face serves."),
+
+    PROC_STEPS_ARRIVE_BY_INTRODUCTION("A linked participant introduces the step "
+            + "declarations it brings beside its own candidacy; the catalogue records "
+            + "them with the introducer's name, and every consumer of the catalogue — "
+            + "validation, actions, milestones, the mandatory-steps classification — "
+            + "sees them the moment presence does."),
+
+    PROC_ONE_ID_ONE_DECLARER("Two sources declaring one step id is a collision refused "
+            + "by name, never an override — a second introducer, or a module installed "
+            + "beside an introduction; re-introduction by the same participant "
+            + "replaces."),
+
+    PROC_INTRODUCTION_GRANTS_NOTHING("A step introduced over the link grants its "
+            + "introducer nothing: the declaration binds the introducer exactly as it "
+            + "binds anybody, and what it may take stays the intersection of its scopes "
+            + "and what the step admits.");
 
     private final String text;
 

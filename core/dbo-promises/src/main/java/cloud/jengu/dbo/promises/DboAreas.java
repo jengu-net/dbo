@@ -25,7 +25,8 @@ public enum DboAreas implements Area {
     DISTRIBUTED_WORK("Work travels to whoever does it — pulled, claimed, reported — and "
             + "arrives whole: the documents it is about travel because the work names "
             + "them.",
-            List.of(DboFeatures.WORK_ARRIVES_WHOLE, DboFeatures.WORK_SAYS_WHERE_IT_IS));
+            List.of(DboFeatures.WORK_ARRIVES_WHOLE, DboFeatures.WORK_SAYS_WHERE_IT_IS,
+                    DboFeatures.THE_CATALOGUE_LEARNS));
 
     private final String title;
     private final List<Classified> covers;
