@@ -8,20 +8,25 @@ reporting halves are built — #77 stays open for its credential half and the
 #91 precondition. The console (#75/#76), the transport exercise (#79's
 remainder) and the replication toolset (#80) are what is left.
 
-**Issues** — the participation cluster, formerly under the closed #46:
-[#71](https://github.com/jengu-net/dbo/issues/71) (declaration seam — done,
-close on CI) ·
-[#75](https://github.com/jengu-net/dbo/issues/75) /
-[#76](https://github.com/jengu-net/dbo/issues/76) (console) ·
-[#77](https://github.com/jengu-net/dbo/issues/77) (participant) ·
-[#79](https://github.com/jengu-net/dbo/issues/79) (reference runner) ·
+**Issues** — the participation cluster, formerly under the closed #46.
+Open: [#77](https://github.com/jengu-net/dbo/issues/77) (the participant's
+credential half) · [#79](https://github.com/jengu-net/dbo/issues/79)
+(reference runner: DBOS below, transport first) ·
 [#80](https://github.com/jengu-net/dbo/issues/80) (replication toolset) ·
-newly scoped: [#147](https://github.com/jengu-net/dbo/issues/147) (a
-participant introduces its step) ·
-[#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on the link) ·
-[#149](https://github.com/jengu-net/dbo/issues/149) (a run names its inputs) ·
-[#150](https://github.com/jengu-net/dbo/issues/150) (milestones on the
-checkpoint)
+[#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on the
+link — its carrier is delivered) ·
+[#75](https://github.com/jengu-net/dbo/issues/75) /
+[#76](https://github.com/jengu-net/dbo/issues/76) (console).
+Closed: [#69](https://github.com/jengu-net/dbo/issues/69) /
+[#70](https://github.com/jengu-net/dbo/issues/70) (run record and its
+`Task`) · [#72](https://github.com/jengu-net/dbo/issues/72) /
+[#78](https://github.com/jengu-net/dbo/issues/78) (executor declaration and
+resolution) · [#71](https://github.com/jengu-net/dbo/issues/71)
+(declaration seam) · [#147](https://github.com/jengu-net/dbo/issues/147)
+(introduction over the link) ·
+[#149](https://github.com/jengu-net/dbo/issues/149) (a run names its
+inputs) · [#150](https://github.com/jengu-net/dbo/issues/150) (milestones
+on the checkpoint).
 
 **Concepts** —
 [process catalogue](../arc42-008-crosscutting/process-catalogue.md)
@@ -47,12 +52,13 @@ covers every case by changing only what sits inside it:
   network, replicas = claimants; local LLM executors are the motivating case.
 
 On the business side the work item is the run, rendered on the FHIR face as a
-`Task` assigned to a process step; every `Task` refers to the objects it is
-about, and those travel with the work (*work is the manifest*). The runner
-reflects progress back, reports which DBOS instance carried it, may
-**introduce a step the catalogue has not declared** (#147 — the dynamic half
-of process building), and its link carries **extensible metrics** — health,
-throughput — beside the presence the cursor already proves (#148).
+`Task` assigned to a process step; every `Task` names the objects it is about,
+and those travel with the work (*work is the manifest*). The runner reflects
+progress back — counts, and the milestone where it is — reports which DBOS
+instance carried it, **introduces steps the catalogue has not declared** (the
+dynamic half of process building), and its link carries **extensible
+metrics** — health, throughput — beside the presence the cursor already
+proves (#148).
 
 ## Where it stands
 
@@ -61,61 +67,50 @@ throughput — beside the presence the cursor already proves (#148).
   deadline, checkpoint-not-heartbeat, released-is-not-done, two layers owning
   different failures, executor declarations with derived presence, scale by
   adding claimants.
-- **Built**: run records (#69), the face rendering a run as `Task` (#70),
-  executor declaration and resolution (#72, #78), `Participation` in
-  `dbo-work` (pull/claim/checkpoint/release — #77's pull half), **the runner
-  itself** (`core:dbo-runner`, #79): an embeddable OSGi bundle — install it
+- **The record and its face**: runs are records in the tenant's store (#69),
+  rendered by the face as `Task` and never spelled by the engine (#70).
+- **The catalogue**: `StepDeclaration` in `dbo-core` — id, version, the
+  storage domains it reads and writes, opaque shape references, the actions
+  it contains, its named input slots, its milestone order, and whether
+  anybody may override it. `Steps` is installed-not-listed, and
+  `Introductions.composedWith()` adds the second door: steps a linked
+  participant brought, recorded in the tenant's store with the introducer as
+  provenance. One id, one *definition* — identical declarations
+  co-introduce, so a fleet of replicas is not a collision. The tenant spec's
+  `mandatorySteps` reads that composed view and **classifies incidents**
+  (`StepIncidents`, `stepIncidents()`); it never gates.
+- **Reporting**: reports land through the step's declared actions, checked
+  in `Runs` itself so the lane, the console and whatever comes next meet one
+  rule. `close` and `reopen` are narrowed where declared, releasing never
+  is, and `Runs.reopen` makes a closed run claimable again with its reason
+  on the record. Progress rides the checkpoint: counts always, and the
+  declared milestone when a step names one — position derived by the store,
+  `businessStatus` saying "validated, 2 of 3".
+- **Work arrives whole**: a run fills the slots its step declares, fixed at
+  creation and refused by name in both directions; `Task.input` renders them
+  in declaration order; the in-process lane resolves them from the host's
+  store for the identity that claimed the run, and no verb takes a
+  reference.
+- **The runner** (`core:dbo-runner`): an embeddable OSGi bundle — install it
   into the existing container and the activator whiteboard-tracks
   `StepService`s from any bundle and `Lane`s from the host; outside OSGi,
-  construct `StepRunner` directly. Vitals ride the declaration record
-  (#148's carrier, delivered). And **the declaration seam whole** (#71):
-  `StepDeclaration` with domains, shapes, actions and overridability;
-  `Steps` installed-not-listed; shape validation through the face; the
-  spec's `mandatorySteps` classifying incidents (`StepIncidents`,
-  `stepIncidents()`).
-- **Built, continued**: #77's reporting half — reports go through the step's
-  declared actions, checked in `Runs` itself (the primitive, so lane and
-  console meet one rule): `close` and `reopen` are narrowed where declared,
-  releasing never is, and `Runs.reopen` makes a closed run claimable again
-  with the reason on the record. What keeps #77 open: the credential half
-  (scopes ∩ step's admission — arrives with the acting surface) and #91's
-  discoverability precondition (run coding systems as fetchable
-  `CodeSystem`, a profile for the rendered `Task`), which gates serving
-  runs over HTTP.
-- **Built, continued (#149)**: runs name their inputs. Slots on the step
-  declaration (`taking(slot, shapeRef)`, beside `consumes` — focus vs
-  input, FHIR's own split), `Run.inputs` filling them at creation with both
-  mismatches refused by name, `Task.input` rendering in declaration order,
-  and the in-process lane resolving `Type/id` references from the host's
-  store for the claiming identity only. First slice on the promise
-  catalogue beyond the pilot: AREA `DISTRIBUTED_WORK` → FEAT
-  `WORK_ARRIVES_WHOLE` → four `REQ-DBO-PROC-*` promises, cited by
-  `@Proving` in `RunNamesItsInputsIT` and projected into req-catalogue's
-  generated block.
-- **Built, continued (#150)**: milestones on the checkpoint.
-  `StepDeclaration.reaching(...)` declares the order; `Runs.milestone`
-  derives the position and refuses strangers by name; the run keeps it
-  replaced-never-accumulated across release and retake; `businessStatus`
-  renders holder + milestone with the derived text ("validated, 2 of 3").
-  `Work.Progress` and `Lane` carry `milestone` as ABSTRACT methods — no
-  silent default anywhere on the reporting path, or a decorator drops the
-  one thing the report said while passing every test. FEAT
-  `WORK_SAYS_WHERE_IT_IS` under the DISTRIBUTED_WORK area, three promises
-  PROVEN via `MilestonesOnTheCheckpointIT`.
-- **Built, continued (#147)**: a participant introduces the step it
-  performs. `IntroductionModel`/`Introductions` in `dbo-work` (record per
-  step id, introducer as provenance, kept until withdrawn — presence gates
-  candidacy, not the record); `StepService.declaration()` →
-  `StepRunner` introduces beside the candidacy → `Lane.introduce`
-  (abstract, the no-silent-default rule); `Introductions.composedWith()`
-  is the one catalogue view (collision refused across both doors), read by
-  `Runs` and by the mandatory-steps classification per tenant — proven by
-  a mandatory step satisfied over the link, nothing installed. FEAT
-  `THE_CATALOGUE_LEARNS`, three promises PROVEN.
-- **Open, in dependency order**: #77's remainder (above) → #79's remainder
-  (DBOS below, the transport-first exercise) → #148's remainder if any →
-  #80 (the replication toolset — inherits "slots are part of what must be
-  present") → #75/#76 (the console over it all).
+  construct `StepRunner` directly. It declares candidacy, introduces what
+  its service brings, and publishes vitals on the declaration record
+  (#148's carrier).
+- **Promises**: the `DISTRIBUTED_WORK` area carries three features —
+  `WORK_ARRIVES_WHOLE`, `WORK_SAYS_WHERE_IT_IS`, `THE_CATALOGUE_LEARNS` —
+  ten `REQ-DBO-PROC-*` promises, all PROVEN and projected into
+  req-catalogue's generated block. This is the first area beyond the
+  SHAPE/PDI pilot.
+- **Open, in dependency order**: #77's remainder — the credential half
+  (scopes ∩ the step's admission, arriving with the acting surface) and
+  #91's precondition (run coding systems as fetchable `CodeSystem`, a
+  profile for the rendered `Task`), which gates serving runs over HTTP →
+  #79's remainder (DBOS below, the transport-first exercise) → #148 (what
+  rides the carrier, and the presence display that must not page about a
+  healthy idle fleet) → #80 (the replication toolset — inherits "slots are
+  part of what must be present for the work being held") → #75/#76 (the
+  console over it all).
 - **Consumer's half, later**: the WebSocket lane (socket, framing, handshake,
   tenant auth) is the platform's per ADR 0062; the k8s per-step Deployment
   packaging likewise. dbo owes the store-level toolset (#80) and nothing
@@ -148,11 +143,9 @@ claimed. This replaced an earlier `named(reference)` read that enforced
 "only what the work names" by convention — and a convention is not a
 boundary.
 
-A claimable run today declares no slots (participants pull pipeline runs;
-item runs are parked problems for people, filtered out of poll), so #149 is
-not an enhancement — it is the only official way documents reach a
-distributed runner. `Work.inputs` is the waiting seam; #149 fills it with
-no service or runner change.
+Slots are therefore the only official way documents reach a distributed
+runner, rather than an enhancement over some other way — there is no other
+way, by construction.
 
 **The catalogue is built up from linked steps** (review direction 2026-08-27,
 pinned in #71's grooming the same day): rather than porting the platform's
@@ -210,6 +203,16 @@ therefore packaging, not mechanism: a Deployment per step, replicas up. A
 partition hint is the second lever and is not built until one step measurably
 outgrows competition.
 
+**Every uniqueness rule must survive a fleet** (Alan's correction, 2026-08-27).
+Because scaling *is* parallel runners — and DBOS runs parallel consumers — a
+replica set comes up racing itself, and a rule written to protect correctness
+will forbid normal operation unless it is aimed at the right thing. So a
+collision rule guards the **definition, not the door**: the same actor
+replaces, a different actor with identical content co-exists without refusal,
+and only differing content collides. Lost write races are re-read and judged
+rather than thrown. Ask it of any new rule here: *what does a fleet of
+identical replicas do to this path?*
+
 **Presence is derived, metrics annotate** (#148). A self-reported "healthy"
 from a stuck component is exactly the lie cursor-derived presence exists to
 catch — so metrics ride the link and inform, and presence stays computed.
@@ -231,6 +234,14 @@ polled a perfectly good run and matched nothing.
 nothing waiting is not absence; only silence with work waiting is. Any
 presence display or alert built on cursor movement must carry this
 distinction or it will page somebody about a healthy idle fleet.
+
+**A racing create conflicts on the IDENTITY, not the version.** Idempotent
+writes keyed by an identifier throw `IdentityConflictException` when two
+creates race for one claim, and `VersionConflictException` only when a
+*replace* races. Code that catches one and not the other passes every serial
+test and fails the moment a replica set comes up together — which is exactly
+how the introduction path was found to be wrong. Both are the expected case:
+re-read and judge what won.
 
 **Two catalogues mid-migration is how they drift.** The original reason #71
 followed platform#851. Resolved by the emergent-catalogue decision above:
@@ -254,6 +265,6 @@ scopes and what the step admits, like every declaration.
 ## Verifying
 
 ```bash
-./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT'
+./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT'
 ```
 (The link scenarios get their ITs with the transport exercise in #79.)
