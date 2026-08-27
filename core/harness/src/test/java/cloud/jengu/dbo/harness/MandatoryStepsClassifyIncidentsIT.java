@@ -7,6 +7,8 @@ import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.tenant.TenantSpec;
 import cloud.jengu.dbo.tenant.TenantState;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -107,6 +109,7 @@ class MandatoryStepsClassifyIncidentsIT {
     /** Buffering is the design: a missing executor must not become an outage. */
     @Test
     @DisplayName("a tenant serves even when a mandatory step is missing — runs queue, the tenant stays up")
+    @Proving(DboPromises.PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS)
     void aTenantServesEvenWhenAMandatoryStepIsMissing() {
         Map<String, TenantState.State> states = manager.tenantStates().stream()
                 .collect(Collectors.toMap(TenantState::code, TenantState::state));
@@ -118,6 +121,7 @@ class MandatoryStepsClassifyIncidentsIT {
     /** The list classifies: mandatory-and-missing is an incident, by name. */
     @Test
     @DisplayName("a missing mandatory step is an incident on the operator surface, and only a mandatory one")
+    @Proving(DboPromises.PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS)
     void aMissingMandatoryStepIsAnIncidentByName() {
         Map<String, Set<String>> incidents = manager.stepIncidents();
         assertEquals(Set.of("lab.result.sign"), incidents.get("ootel"),
@@ -132,6 +136,7 @@ class MandatoryStepsClassifyIncidentsIT {
     /** The incident clears when the step arrives; nothing is told, the scan sees it. */
     @Test
     @DisplayName("the incident clears on the scan after the step is contributed")
+    @Proving(DboPromises.PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS)
     void theIncidentClearsWhenTheStepArrives() {
         // The module arrives — the registry's view changes, nothing is told.
         contributed = Steps.of(
@@ -153,8 +158,9 @@ class MandatoryStepsClassifyIncidentsIT {
     @Test
     @DisplayName("a mandatory step satisfied by a linked participant's introduction clears "
             + "the incident, without anything installed")
-    @cloud.jengu.dbo.promises.Proving(
-            cloud.jengu.dbo.promises.DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION)
+    @cloud.jengu.dbo.promises.Proving({
+            cloud.jengu.dbo.promises.DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
+            cloud.jengu.dbo.promises.DboPromises.PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS})
     void aMandatoryStepCanArriveByIntroduction() {
         assertEquals(Set.of("ee-lab.result.sign"), manager.stepIncidents().get("sisse"),
                 "nothing installed contributes it, so the incident is open");

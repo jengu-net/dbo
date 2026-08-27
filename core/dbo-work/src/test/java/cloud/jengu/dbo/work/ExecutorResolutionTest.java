@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.work;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -48,6 +50,7 @@ class ExecutorResolutionTest {
 
     @Test
     @DisplayName("the most local willing and permitted candidate runs")
+    @Proving(DboPromises.PROC_EXECUTOR_RESOLUTION_IS_DETERMINISTIC)
     void theMostLocalPermittedCandidateRuns() {
         Resolution resolution = over(
                 at(Scope.BASELINE, "national", true),
@@ -63,6 +66,7 @@ class ExecutorResolutionTest {
     @Test
     @DisplayName("a step that is not overridable is not shadowed by a narrower scope, "
             + "and the refusal names who tried")
+    @Proving(DboPromises.PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE)
     void aNarrowerScopeCannotShadowAStepThatForbidsIt() {
         Resolution resolution = over(
                 at(HOGWARTS, "local", true),
@@ -77,6 +81,7 @@ class ExecutorResolutionTest {
 
     @Test
     @DisplayName("a grant naming a local class admits the wider ones too")
+    @Proving(DboPromises.PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE)
     void aGrantAdmitsWiderScopesThanTheOneItNames() {
         StepGrant openToOrganisations =
                 StepGrant.of(PROCESS, STEP).overridableBy(ScopeClass.ORGANISATION);
@@ -92,6 +97,7 @@ class ExecutorResolutionTest {
 
     @Test
     @DisplayName("an unwilling candidate is passed over, and the next in order runs")
+    @Proving(DboPromises.PROC_EXECUTOR_RESOLUTION_IS_DETERMINISTIC)
     void anUnwillingCandidateIsPassedOver() {
         Resolution resolution = over(
                 at(HOGWARTS, "local", false),
@@ -104,6 +110,7 @@ class ExecutorResolutionTest {
 
     @Test
     @DisplayName("nothing races: one candidate is asked at a time, and only until one takes it")
+    @Proving(DboPromises.PROC_EXECUTOR_RESOLUTION_IS_DETERMINISTIC)
     void candidatesAreTriedOneAtATime() {
         AtomicInteger asked = new AtomicInteger();
         List<String> order = new ArrayList<>();
@@ -144,6 +151,7 @@ class ExecutorResolutionTest {
 
     @Test
     @DisplayName("automation switched off in a zone falls through, and the reason names the zone")
+    @Proving(DboPromises.PROC_FALL_THROUGH_IS_COUNTABLE)
     void automationSwitchedOffFallsThrough() {
         Resolution resolution = over(at(Scope.BASELINE, "national", true))
                 .resolve(StepGrant.of(PROCESS, STEP), CHAIN,
@@ -157,6 +165,7 @@ class ExecutorResolutionTest {
     @Test
     @DisplayName("the most local switch wins, so an organisation can turn back on "
             + "what its zone turned off")
+    @Proving(DboPromises.PROC_AUTOMATION_IS_DECLARED)
     void theMostLocalSwitchWins() {
         Resolution resolution = over(at(Scope.BASELINE, "national", true))
                 .resolve(StepGrant.of(PROCESS, STEP), CHAIN,
@@ -169,6 +178,7 @@ class ExecutorResolutionTest {
     @Test
     @DisplayName("a withdrawn provider stops being selected, because candidates are asked for "
             + "rather than held")
+    @Proving(DboPromises.PROC_EXECUTOR_RESOLUTION_IS_DETERMINISTIC)
     void aWithdrawnProviderStopsBeingSelected() {
         List<ExecutorCandidate> installed = new ArrayList<>();
         installed.add(at(Scope.BASELINE, "national", true));
@@ -186,6 +196,7 @@ class ExecutorResolutionTest {
 
     @Test
     @DisplayName("a candidate declared off this chain is not a candidate here")
+    @Proving(DboPromises.PROC_AUTOMATION_IS_DECLARED)
     void aCandidateFromAnotherChainIsNotConsidered() {
         Resolution resolution = over(at(Scope.zone("lv"), "elsewhere", true))
                 .resolve(StepGrant.of(PROCESS, STEP).overridableBy(ScopeClass.ORGANISATION),

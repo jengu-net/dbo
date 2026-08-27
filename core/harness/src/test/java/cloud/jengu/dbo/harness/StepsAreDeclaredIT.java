@@ -10,6 +10,8 @@ import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.WorkModel;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -57,6 +59,7 @@ class StepsAreDeclaredIT {
 
     @Test
     @DisplayName("a step id is opaque, stable, and refused by name when nobody declared it")
+    @Proving(DboPromises.PROC_STEP_DECLARES_ITSELF)
     void anUndeclaredStepIsRefusedByName() {
         Steps steps = Steps.of(validate());
 
@@ -74,6 +77,7 @@ class StepsAreDeclaredIT {
 
     @Test
     @DisplayName("two modules declaring one id is a collision, not an override")
+    @Proving(DboPromises.PROC_STEP_DECLARES_ITSELF)
     void idsAreGloballyStable() {
         assertThrows(IllegalArgumentException.class,
                 () -> Steps.of(validate(), StepDeclaration.of(VALIDATE, "9.9", "r5")),
@@ -95,6 +99,7 @@ class StepsAreDeclaredIT {
 
     @Test
     @DisplayName("a run records the step version it ran under, beside the executor's")
+    @Proving(DboPromises.PROC_RUN_NAMES_THE_STEP_VERSION)
     void aRunNamesTheStepVersion() {
         Run run = runs.of(validate(), RunKind.PIPELINE, "report-1");
 
@@ -110,6 +115,7 @@ class StepsAreDeclaredIT {
     @Test
     @DisplayName("a payload is held to the shape the step declared, through the face")
     @SuppressWarnings({"unchecked", "rawtypes"})
+    @Proving(DboPromises.PROC_STEP_SHAPE_VALIDATION)
     void aPayloadIsHeldToTheStepsShape() {
         Payloads payloads = R4FhirVersion.INSTANCE.face().require(Payloads.class);
         String shape = validate().consumes().orElseThrow();

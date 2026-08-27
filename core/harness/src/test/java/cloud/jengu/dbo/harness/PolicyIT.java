@@ -18,6 +18,8 @@ import cloud.jengu.dbo.policy.TenantPolicies;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.tenant.TenantSpec;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -182,6 +184,7 @@ class PolicyIT {
     /** §15.3: expired objects leave state AND history; the removal is audited, the data is not retained. */
     @Test
     @Order(6)
+    @Proving(DboPromises.PROC_TRACE_JOIN)
     void retentionRemovesExpiredObjectsAndAuditsTheRemoval() throws Exception {
         PutResult old = store.put(PutRequest.create("Observation", observation("Vana")));
         backdate(old.id(), "45 days");

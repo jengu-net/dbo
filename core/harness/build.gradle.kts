@@ -1,3 +1,15 @@
+// dbo-work's OWN test module (ExecutorResolutionTest) carries @Proving
+// citations of its own — the promise processor indexes them into THAT
+// module's test-classes output, which a plain testImplementation on the
+// main jar never pulls in. Without this line those citations exist,
+// compile, and are simply invisible to this module's projector, which
+// reads PLANNED where a real proof already runs (found the hard way while
+// migrating #71's hand-written PROC rows, 2026-08-27).
+evaluationDependsOn(":core:dbo-work")
+val dboWorkTestOutput = project(":core:dbo-work")
+        .extensions.getByType(SourceSetContainer::class.java)
+        .getByName("test").output
+
 dependencies {
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))
@@ -26,6 +38,7 @@ dependencies {
     testImplementation(project(":core:dbo-pdi"))
     testImplementation(project(":core:dbo-policy"))
     testImplementation(project(":core:dbo-work"))
+    testImplementation(dboWorkTestOutput)
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
     testImplementation("org.testcontainers:testcontainers-k3s:2.0.5")
     testImplementation("org.postgresql:postgresql:42.7.11")

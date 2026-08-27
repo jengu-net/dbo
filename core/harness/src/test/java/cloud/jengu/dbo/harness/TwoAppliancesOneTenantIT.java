@@ -14,6 +14,8 @@ import cloud.jengu.dbo.work.Failure;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.WorkModel;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -106,6 +108,7 @@ class TwoAppliancesOneTenantIT {
 
     @Test
     @DisplayName("work travels with the data it names, data first, and nothing else goes with it")
+    @Proving(DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY)
     void workTravelsWithWhatItNames() {
         PutResult subject = cloudStore.put(PutRequest.create("Patient",
                 patient("Kask").getBytes(StandardCharsets.UTF_8)));
@@ -138,6 +141,7 @@ class TwoAppliancesOneTenantIT {
 
     @Test
     @DisplayName("a re-sent batch applies once, and a late one does not put the old version back")
+    @Proving(DboPromises.PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE)
     void replayAndReorderAreSafe() {
         PutResult subject = cloudStore.put(PutRequest.create("Patient",
                 patient("Esimene").getBytes(StandardCharsets.UTF_8)));
@@ -171,6 +175,7 @@ class TwoAppliancesOneTenantIT {
     @Test
     @DisplayName("a peer resuming a position from a restored copy is refused, and the refusal "
             + "names the epoch")
+    @Proving(DboPromises.PROC_LANE_EPOCH)
     void aRestoredPeerIsRefused() {
         Lanes.Batch batch = cloud.outbound("edge", 500, TRAVELS);
         Lanes.Batch fromAnotherLife = new Lanes.Batch("01a00000-0000-7000-8000-000000000000",
@@ -187,6 +192,7 @@ class TwoAppliancesOneTenantIT {
     @Test
     @DisplayName("a mirrored run is filed under the appliance that authored it, beside the "
             + "local one of the same name")
+    @Proving(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE)
     void aMirroredRunDoesNotReplaceTheLocalOne() {
         // both appliances run the same task, which is the point of one tenant
         cloudRuns.sweep(PROCESS, "apply", "zone/ee", List.of(WorkModel.DOMAIN));
@@ -206,6 +212,7 @@ class TwoAppliancesOneTenantIT {
     @Test
     @DisplayName("what came with a task leaves when the task closes, and what other work still "
             + "needs stays")
+    @Proving(DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY)
     void closingTheTaskRemovesWhatCameWithIt() {
         PutResult leaving = cloudStore.put(PutRequest.create("Patient",
                 patient("Lahkuja").getBytes(StandardCharsets.UTF_8)));
