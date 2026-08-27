@@ -15,6 +15,8 @@ import cloud.jengu.dbo.work.ScopeClass;
 import cloud.jengu.dbo.work.StepGrant;
 import cloud.jengu.dbo.work.Work;
 import cloud.jengu.dbo.work.WorkModel;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -91,6 +93,7 @@ class ExecutorsDeclareThemselvesIT {
     @Test
     @DisplayName("a participant nothing installed here knows about is a candidate, because it "
             + "said so")
+    @Proving(DboPromises.PROC_EXECUTOR_DECLARES_ITSELF)
     void aRemoteParticipantIsACandidate() {
         String step = stepFor("remote");
         Declarations declarations = declarations(Duration.ofMinutes(5));
@@ -110,6 +113,7 @@ class ExecutorsDeclareThemselvesIT {
     @Test
     @DisplayName("a local implementation and a remote participant resolve deterministically, "
             + "and the run says which and why")
+    @Proving(DboPromises.PROC_RUN_NAMES_WHAT_RAN_IT)
     void localAndRemoteResolveByTheChain() {
         String step = stepFor("both");
         Declarations declarations = declarations(Duration.ofMinutes(5));
@@ -147,6 +151,7 @@ class ExecutorsDeclareThemselvesIT {
     @Test
     @DisplayName("a declaration whose participant has gone quiet stops being a candidate, and "
             + "a caught-up one does not")
+    @Proving(DboPromises.PROC_PRESENCE_IS_DERIVED)
     void silenceWithWorkWaitingIsAbsence() throws Exception {
         String step = stepFor("quiet");
         String consumer = "participant.gone-away";

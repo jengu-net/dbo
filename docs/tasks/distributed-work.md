@@ -108,11 +108,18 @@ proves (#148).
   construct `StepRunner` directly. It declares candidacy, introduces what
   its service brings, and publishes vitals on the declaration record
   (#148's carrier).
-- **Promises**: the `DISTRIBUTED_WORK` area carries four features —
-  `WORK_ARRIVES_WHOLE`, `WORK_SAYS_WHERE_IT_IS`, `THE_CATALOGUE_LEARNS` and
-  `WORK_REACHES_ONLY_ITS_HOLDER` — twelve `REQ-DBO-PROC-*` promises, all PROVEN and projected into
-  req-catalogue's generated block. This is the first area beyond the
-  SHAPE/PDI pilot.
+- **Promises**: the whole PROC area now lives in the catalogue (migrated
+  2026-08-27 from hand-written prose — the old "## PROC — process catalogue
+  & map" section is gone). `DISTRIBUTED_WORK` carries the twelve promises
+  built this slice; the pre-existing PROC ground — the runner, the
+  declaration, reporting, the run record, resolution, the appliance lane,
+  the content-under-work rule, the network map and the trace join — landed
+  as further features, 41 promises PROVEN against real tests and 6 honestly
+  `PLANNED` with a `TODO` on the constant naming what a proof would have to
+  show (`PROC_CATALOGUE_IN_STORE`, `PROC_DOMAIN_CODE_FILTER`,
+  `PROC_RUN_HAS_A_RECORD`, `PROC_RUN_SAYS_WHO_HOLDS_IT`,
+  `PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY`, `PROC_NETWORK_MAP`). PROC is
+  the first area to leave the SHAPE/PDI pilot behind entirely.
 - **Open, in dependency order**: #77's remainder — #91's precondition (run
   coding systems as fetchable `CodeSystem`, a profile for the rendered
   `Task`), which gates serving runs over HTTP →

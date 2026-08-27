@@ -176,7 +176,199 @@ public enum DboPromises implements Promise {
             + "lane is provisioned — everything, because the host is the tenant, or the "
             + "steps a credential covers. There is no implicit unrestricted, so the "
             + "reach of a remote participant never depends on a parameter somebody "
-            + "forgot.");
+            + "forgot."),
+
+    // ── PROC continued — migrated from hand-written prose (2026-08-27).
+    // Six carry no verified citation yet; each says so and names what a
+    // proof would have to show, per the pilot's own rule that unstated
+    // ground is a gap, not a silent PLANNED.
+
+    PROC_STEP_SERVICE_EMBEDDABLE("One embeddable runner registers step services and needs "
+            + "only the participation lane — no orchestrator, no transport, no access to "
+            + "the tenant's dbo — so the same bundle runs inside the platform's container, "
+            + "on a separate machine, or in a pod scaled per step, stateless over the "
+            + "tenants whose lanes it is handed."),
+
+    PROC_FAILURE_IS_RELEASED("A failing or throwing step service releases the run with the "
+            + "reason — never closed, never lost — and a later cycle may take it again."),
+
+    PROC_RUNNER_SIGNS_ITS_VITALS("The runner re-declares each service with an extensible "
+            + "metadata block, replaced never accumulated; presence stays derived from the "
+            + "cursor, and vitals annotate it."),
+
+    /** TODO: prove it in a test. No single test walks catalogue → CodeSystem/PlanDefinition
+     * → "never hand-edited" end to end; the projection generator itself has no negative
+     * test that a hand-edit would be overwritten or refused. */
+    PROC_CATALOGUE_IN_STORE("Process and step definitions (with profiles, planes and "
+            + "projections) are part of DBO's own vocabulary; projections are generated, "
+            + "never hand-edited."),
+
+    PROC_STEP_DECLARES_ITSELF("A step declares its id, version, the storage domains "
+            + "it reads and writes, opaque shape references for what it consumes and "
+            + "produces, the actions it contains, and whether it may be overridden. Ids "
+            + "are <module>.<process>.<step>, globally stable, contributed by being "
+            + "installed, and a step referenced but not installed is refused by name."),
+
+    PROC_RUN_NAMES_THE_STEP_VERSION("A run records the version of the step declaration it "
+            + "ran under, beside the executor's version and provider: reproducing a "
+            + "decision needs the definition as well as the runner."),
+
+    PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS("A tenant's spec declares the steps its "
+            + "work cannot do without. The tenant serves and its runs queue regardless — "
+            + "the system is asynchronous by design — and what the list decides is "
+            + "classification: a mandatory step nothing has contributed is an incident, "
+            + "named and cleared as contributions come and go, while every undeclared "
+            + "step's absence is no incident at all."),
+
+    PROC_REPORT_THROUGH_DECLARED_ACTIONS("A report lands through the actions the "
+            + "step declares: closing needs close, reopening needs reopen, and a verb "
+            + "the step does not declare is refused naming both sides. A step that has "
+            + "not declared actions is not narrowed, and releasing is never narrowed — "
+            + "failure honesty must not be refusable."),
+
+    PROC_CLOSED_CAN_BE_REOPENED("A closed run can be reopened — a deliberate, "
+            + "recorded act through the step's declared reopen action — making the run "
+            + "claimable again with the reason on the record, instead of a second run "
+            + "invented to disagree with the first."),
+
+    PROC_STEP_SHAPE_VALIDATION("A payload is validated against the shape a step declares "
+            + "through the face's existing payload capability, and a shape the face "
+            + "cannot resolve is an issue rather than a pass."),
+
+    /** TODO: prove it in a test. The free-string process-domain code exists on Run and
+     * is written; no test yet asserts a view or projection filtering BY it — that arrives
+     * with the console (#75). */
+    PROC_DOMAIN_CODE_FILTER("Every process and step carries a free-string process-domain "
+            + "code; views and projections filter by it."),
+
+    /** TODO: prove it in a test. ArchiveCoversEveryTableIT proves every TABLE is archived,
+     * generically — no test isolates the run type's own claim (envelope-queryable,
+     * versioned, dropped with the tenant) the way BackupCoversTheTenantIT does for PDI. */
+    PROC_RUN_HAS_A_RECORD("Every run of a step is a record in a tenant's own store — a "
+            + "registered type, so it is envelope-queryable, versioned, carried by the "
+            + "backup and dropped with the tenant. A run in a private table has none of "
+            + "those, and cannot be seen or acted on."),
+
+    /** TODO: prove it in a test. Holder.java's javadoc cites this REQ, but a javadoc
+     * citation is not a proof site — no test isolates "holder is the field read first"
+     * as its own claim distinct from the rendering tests. */
+    PROC_RUN_SAYS_WHO_HOLDS_IT("A run's load-bearing field is who holds it now: "
+            + "automation running, automation with a retry scheduled, a person, or "
+            + "nobody. Every other field answers a question somebody asks after that "
+            + "one."),
+
+    PROC_RUN_TALLY_AND_ITEM_OUTCOMES("A run over N items where K fail records one run "
+            + "with a tally and K item outcomes, and does not abandon the remaining "
+            + "N minus K."),
+
+    PROC_ESCALATION_BY_FAILURE_CLASS("A record that is wrong reaches a person; a store "
+            + "that is unavailable is a retry and nobody's card. Only record-class "
+            + "failures make work, or the queue becomes a graveyard and stops being "
+            + "read."),
+
+    PROC_CLOSE_BY_RE_EVALUATION("Where a condition is machine-checkable, fixing the "
+            + "cause closes the run on the next pass; closing by hand exists only for "
+            + "conditions nothing can re-check. Closing by click is how a card reads "
+            + "resolved while the fault is live."),
+
+    PROC_RUN_KINDS("A pipeline closes when every item is terminal; a sweep closes when "
+            + "the world agrees. A reconciler modelled as a pipeline never ends, and its "
+            + "needs-a-person queue fills with work that is merely still converging."),
+
+    /** TODO: prove it in a test. Run.parent is a String key and nothing walks a chain of
+     * runs to assert it never crosses a domain or a system — the rule is enforced by
+     * convention at the two call sites (item(), not by a refusal anywhere. */
+    PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY("A run has at most one parent, and "
+            + "parenthood never crosses a domain or a system: items are children, "
+            + "subprocesses and continuations are references. A parent's close must "
+            + "mean something for its children, and cannot across a boundary this "
+            + "runtime does not control."),
+
+    PROC_CORRELATION_TRAVELS_OPAQUE("A correlation carried from another system is "
+            + "echoed and never interpreted, so a cross-system join is queryable from "
+            + "either side without that system's vocabulary entering the engine."),
+
+    PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT("A run's envelope carries holder, "
+            + "step, state and counts — never item references or messages. The "
+            + "envelope is a disclosure surface, and progress must not name what was "
+            + "being processed."),
+
+    PROC_EXECUTOR_RESOLUTION_IS_DETERMINISTIC("Resolution walks the overlay chain — "
+            + "baseline, zone, organisation — and the most local willing and permitted "
+            + "candidate runs, one at a time in declared order. Racing candidates makes "
+            + "the same input behave differently under load and doubles effects nothing "
+            + "outside the store can undo."),
+
+    PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE("Precedence selects; the step declares "
+            + "whether it may be overridden and by which scope class, and not "
+            + "overridable is the default. Specificity is self-declared, so precedence "
+            + "alone lets any party displace a national rule by narrowing its scope."),
+
+    PROC_RUN_NAMES_WHAT_RAN_IT("A run records the executor, its version, its provider "
+            + "and the scope it was chosen at. A provider can be withdrawn and a scope "
+            + "re-declared, so a resolution nobody wrote down is a decision nobody can "
+            + "reproduce."),
+
+    PROC_AUTOMATION_IS_DECLARED("Whether a step is automated here is declared "
+            + "configuration on the same chain, as visible and as auditable as a "
+            + "terminology overlay — never a code path that happens to be "
+            + "unreachable."),
+
+    PROC_FALL_THROUGH_IS_COUNTABLE("Work no executor took is held by a person and "
+            + "counted per step and per zone. That number is the automation backlog "
+            + "stated as a fact rather than an opinion."),
+
+    PROC_EXECUTOR_DECLARES_ITSELF("A participant announces process, step, scope, "
+            + "version and provider as a record in the tenant's store, and resolution "
+            + "walks those declarations rather than the bundles installed in one "
+            + "container. A candidate that can only come from a local bundle makes a "
+            + "tenant a single machine."),
+
+    PROC_PRESENCE_IS_DERIVED("A participant is present while its named feed cursor "
+            + "moves; a declaration whose consumer is behind and unmoving is "
+            + "declared-but-not-present, skipped by resolution and shown as such. No "
+            + "heartbeat and no lease — and a caught-up participant's cursor does not "
+            + "move either, so silence with nothing waiting is not absence."),
+
+    PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE("What a peer sends applies once however "
+            + "often it is sent, and a batch arriving behind a newer one does not put "
+            + "the older version back. The comparison is the source version, so neither "
+            + "property depends on the transport being careful."),
+
+    PROC_LANE_EPOCH("A lane carries an epoch, and a peer resuming a cursor issued by "
+            + "another lane instance is refused rather than replayed — an appliance "
+            + "restored from a copy looks healthy while resuming a position that no "
+            + "longer means anything."),
+
+    PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY("A record travels to an appliance because a "
+            + "piece of work names it, and is removed when no open run there still "
+            + "names it. Work-driven arrival without work-driven expiry is a bench "
+            + "accumulating a register one task at a time."),
+
+    PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE("A run arriving from another appliance "
+            + "of the same tenant is stored under that appliance, beside the local run "
+            + "of the same key rather than on top of it."),
+
+    PROC_CONTENT_CHANGES_INSIDE_WORK("A type may declare that every change to it "
+            + "belongs to a run; a write with no run in scope is refused, naming the "
+            + "rule. A change that belongs to nothing is visible and unexplainable — "
+            + "history has it and audit names who, and nobody can say what it was "
+            + "for."),
+
+    PROC_A_RUN_NAMES_WHAT_IT_PRODUCED("A run records the versions it produced, "
+            + "individually up to a cap and as a per-type high-water mark past it, and "
+            + "says which of the two it is. Reading runs in order then reads the "
+            + "content changes in order, so another appliance asks for what it is "
+            + "missing rather than comparing two stores."),
+
+    /** TODO: prove it in a test. The console (#75) is what would answer this; nothing
+     * yet scans bundles for process/step declarations and accumulates them across nodes. */
+    PROC_NETWORK_MAP("The network answers which processes are known and running, "
+            + "where and in which version — scanned from bundles and accumulated "
+            + "across nodes."),
+
+    PROC_TRACE_JOIN("From any process instance, the steps and the exact resource "
+            + "diffs and audit records they produced are navigable.");
 
     private final String text;
 

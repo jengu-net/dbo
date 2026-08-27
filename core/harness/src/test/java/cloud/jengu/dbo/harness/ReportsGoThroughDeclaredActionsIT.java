@@ -9,6 +9,8 @@ import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
 import cloud.jengu.dbo.work.WorkModel;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -65,6 +67,7 @@ class ReportsGoThroughDeclaredActionsIT {
 
     @Test
     @DisplayName("a step whose actions omit close cannot be closed by a participant, by name")
+    @Proving(DboPromises.PROC_REPORT_THROUGH_DECLARED_ACTIONS)
     void aStepWithoutCloseCannotBeClosed() {
         Run run = runs.of(REVIEW, RunKind.PIPELINE, "report-review-1");
 
@@ -91,6 +94,7 @@ class ReportsGoThroughDeclaredActionsIT {
 
     @Test
     @DisplayName("a closed run reopens through the declared reopen action, claimable again with the reason")
+    @Proving({DboPromises.PROC_REPORT_THROUGH_DECLARED_ACTIONS, DboPromises.PROC_CLOSED_CAN_BE_REOPENED})
     void aClosedRunReopensThroughTheDeclaredAction() {
         Run run = runs.of(VALIDATE, RunKind.PIPELINE, "report-validate-1");
         runs.closed(run);
@@ -111,6 +115,7 @@ class ReportsGoThroughDeclaredActionsIT {
 
     @Test
     @DisplayName("a step that never declared reopen keeps its closes final")
+    @Proving(DboPromises.PROC_REPORT_THROUGH_DECLARED_ACTIONS)
     void aStepWithoutReopenKeepsItsClosesFinal() {
         Run run = runs.of(DISPATCH, RunKind.PIPELINE, "report-dispatch-1");
         runs.closed(run);
@@ -123,6 +128,7 @@ class ReportsGoThroughDeclaredActionsIT {
 
     @Test
     @DisplayName("an undeclared step is not narrowed — empty means has-not-said, not admits-nothing")
+    @Proving(DboPromises.PROC_REPORT_THROUGH_DECLARED_ACTIONS)
     void anUndeclaredStepIsNotNarrowed() {
         Run run = runs.pipeline("lab.result", "archive", "lab.result/archive/one",
                 java.util.List.of(WorkModel.DOMAIN));

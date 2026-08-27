@@ -8,6 +8,8 @@ import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.WorkModel;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -50,6 +52,7 @@ class RunsAreRecordsIT {
 
     @Test
     @DisplayName("a run over N items where K fail keeps the tally and does not abandon the rest")
+    @Proving(DboPromises.PROC_RUN_TALLY_AND_ITEM_OUTCOMES)
     void aRunOverItemsKeepsItsTally() {
         Run ingest = runs.pipeline("dbo.terminology.ingest", "import");
         runs.item(ingest, "CodeSystem/colours", Failure.RECORD, "concept without a code");
@@ -65,6 +68,7 @@ class RunsAreRecordsIT {
 
     @Test
     @DisplayName("a record that is wrong reaches a person; a store that is away is a retry")
+    @Proving(DboPromises.PROC_ESCALATION_BY_FAILURE_CLASS)
     void escalationFollowsTheFailureClass() {
         Run delivery = runs.pipeline("dbo.subscriptions.delivery", "post");
         Run wrong = runs.item(delivery, "Subscription/one", Failure.RECORD, "endpoint rejected it");
@@ -81,6 +85,7 @@ class RunsAreRecordsIT {
 
     @Test
     @DisplayName("a sweep closes what stops failing, without anybody clicking resolved")
+    @Proving(DboPromises.PROC_CLOSE_BY_RE_EVALUATION)
     void aSweepClosesByReEvaluation() {
         Run sweep = runs.sweep("dbo.config.applied", "apply", "hogwarts");
 
@@ -108,6 +113,7 @@ class RunsAreRecordsIT {
 
     @Test
     @DisplayName("a large run is a tally and a handful of children, not one child per item")
+    @Proving(DboPromises.PROC_RUN_TALLY_AND_ITEM_OUTCOMES)
     void childrenAreExceptionsNotAnEnumeration() {
         Run ingest = runs.pipeline("dbo.terminology.ingest", "import");
         // forty thousand concepts, three of which nobody can accept
@@ -126,6 +132,7 @@ class RunsAreRecordsIT {
 
     @Test
     @DisplayName("the sweep is found again rather than started again")
+    @Proving(DboPromises.PROC_RUN_KINDS)
     void aSweepIsOnePerScope() {
         Run first = runs.sweep("dbo.policy.retention", "sweep", "hogwarts");
         Run second = runs.sweep("dbo.policy.retention", "sweep", "hogwarts");
@@ -138,6 +145,7 @@ class RunsAreRecordsIT {
 
     @Test
     @DisplayName("the envelope says what is waiting, and never what it was about")
+    @Proving(DboPromises.PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT)
     void theEnvelopeDisclosesStateNotSubject() {
         Run run = runs.pipeline("dbo.terminology.ingest", "import");
         Run item = runs.item(run, "Patient/38001010001-is-identifying", Failure.RECORD,
@@ -163,6 +171,7 @@ class RunsAreRecordsIT {
 
     @Test
     @DisplayName("a correlation from elsewhere is echoed and never interpreted")
+    @Proving(DboPromises.PROC_CORRELATION_TRAVELS_OPAQUE)
     void aCorrelationIsEchoed() {
         Run run = runs.correlated(runs.pipeline("dbo.config.applied", "apply"),
                 "sha:9f2b1c/run:4417");

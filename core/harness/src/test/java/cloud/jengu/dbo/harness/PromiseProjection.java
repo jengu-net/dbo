@@ -74,10 +74,11 @@ public final class PromiseProjection {
         Map<String, String> sections = new LinkedHashMap<>();
         sections.put("SHAPE", "## SHAPE — shape versioning\n");
         sections.put("PDI", "## PDI — personal-data isolation\n");
-        // The first slice beyond the pilot (#149): the promise-managed PROC
-        // rows live here; the hand-written PROC rows below migrate as their
-        // proofs gain citations.
-        sections.put("PROC", "## PROC — distributed work (promise-managed slice)\n");
+        // PROC migrated whole (2026-08-27): every process/step/run promise
+        // is now a catalogue constant. Six carry no citation yet and read
+        // PLANNED with a TODO on the constant — that is the honest state,
+        // not a defect in the migration.
+        sections.put("PROC", "## PROC — distributed work\n");
         Map<String, StringBuilder> tables = new TreeMap<>();
         for (Promise promise : model.promises()) {
             String code = model.codeOf(promise);

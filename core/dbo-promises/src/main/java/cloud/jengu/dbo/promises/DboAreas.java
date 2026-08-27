@@ -27,7 +27,15 @@ public enum DboAreas implements Area {
             + "them.",
             List.of(DboFeatures.WORK_ARRIVES_WHOLE, DboFeatures.WORK_SAYS_WHERE_IT_IS,
                     DboFeatures.THE_CATALOGUE_LEARNS,
-                    DboFeatures.WORK_REACHES_ONLY_ITS_HOLDER));
+                    DboFeatures.WORK_REACHES_ONLY_ITS_HOLDER,
+                    DboFeatures.THE_RUNNER_CARRIES_WORK,
+                    DboFeatures.THE_CATALOGUE_IS_THE_STORES_OWN,
+                    DboFeatures.A_REPORT_OBEYS_THE_DECLARATION,
+                    DboFeatures.A_RUN_IS_A_COMPLETE_ACCOUNT,
+                    DboFeatures.RESOLUTION_IS_DETERMINISTIC_AND_DECLARED,
+                    DboFeatures.A_PEER_CONVERGES_SAFELY,
+                    DboFeatures.CONTENT_ONLY_CHANGES_UNDER_A_RUN,
+                    DboFeatures.THE_NETWORK_AND_ITS_TRACE_ARE_READABLE));
 
     private final String title;
     private final List<Classified> covers;

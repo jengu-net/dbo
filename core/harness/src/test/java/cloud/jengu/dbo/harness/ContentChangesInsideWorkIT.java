@@ -14,6 +14,8 @@ import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.WorkModel;
 import cloud.jengu.dbo.work.WorkScopedStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -90,6 +92,7 @@ class ContentChangesInsideWorkIT {
 
     @Test
     @DisplayName("a change that belongs to nothing is refused, and the refusal says why")
+    @Proving(DboPromises.PROC_CONTENT_CHANGES_INSIDE_WORK)
     void aChangeOutsideWorkIsRefused() {
         HandlingRefusedException refused = assertThrows(HandlingRefusedException.class,
                 () -> store.put(PutRequest.create("Observation", observation("orphan"))));
@@ -107,6 +110,7 @@ class ContentChangesInsideWorkIT {
 
     @Test
     @DisplayName("a run names the versions it produced, so the change and the work are one record")
+    @Proving(DboPromises.PROC_A_RUN_NAMES_WHAT_IT_PRODUCED)
     void aRunNamesWhatItProduced() {
         Run work = work("named");
         Caller.setRun(work.key());
@@ -124,6 +128,7 @@ class ContentChangesInsideWorkIT {
     @Test
     @DisplayName("a run too large to enumerate keeps a high-water mark and says it is not "
             + "complete")
+    @Proving(DboPromises.PROC_A_RUN_NAMES_WHAT_IT_PRODUCED)
     void aLargeRunKeepsAWatermark() {
         Run work = work("large");
         Caller.setRun(work.key());
@@ -146,6 +151,7 @@ class ContentChangesInsideWorkIT {
 
     @Test
     @DisplayName("a bulk path is a run rather than an exemption")
+    @Proving(DboPromises.PROC_CONTENT_CHANGES_INSIDE_WORK)
     void aBulkPathIsARun() {
         // What an import or a replication apply does: open a run, write under
         // it, and appear in the same list as everything else.

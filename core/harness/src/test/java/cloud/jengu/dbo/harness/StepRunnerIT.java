@@ -17,6 +17,8 @@ import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
 import cloud.jengu.dbo.work.WorkModel;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -81,6 +83,7 @@ class StepRunnerIT {
     @Test
     @DisplayName("a registered service consumes: claimed, performed, closed with the tally — "
             + "and the vitals ride the declaration")
+    @Proving({DboPromises.PROC_STEP_SERVICE_EMBEDDABLE, DboPromises.PROC_RUNNER_SIGNS_ITS_VITALS})
     void registeredServiceConsumes() {
         Run work = runs.pipeline(PROCESS, "validate", PROCESS + "/validate/one",
                 List.of(WorkModel.DOMAIN));
@@ -129,6 +132,7 @@ class StepRunnerIT {
     @Test
     @DisplayName("a throwing service releases with the reason — released is not done — and "
             + "a later cycle takes it again and succeeds")
+    @Proving(DboPromises.PROC_FAILURE_IS_RELEASED)
     void failureIsReleasedThenRetaken() {
         Run work = runs.pipeline(PROCESS, "dispatch", PROCESS + "/dispatch/one",
                 List.of(WorkModel.DOMAIN));
@@ -183,6 +187,7 @@ class StepRunnerIT {
     @Test
     @DisplayName("stateless over tenants: one runner, two lanes, each tenant's work performed "
             + "and reported on its own lane")
+    @Proving(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE)
     void statelessOverTenants() {
         // Two "tenants" as two participants over distinct steps — distinct
         // lanes with distinct identities, one runner holding no tenant state.
