@@ -1,9 +1,11 @@
 # Distributed work
 
-**Status** — doctrine decided and written; the declaration seam is DONE
-(#71: steps, actions, mandatory-steps incident classification); the
-participant's pull half and the runner are built; the reporting half, the
-console and the transport are open; three elements newly scoped.
+**Status** — doctrine decided and written; the declaration seam is DONE and
+CLOSED (#71: steps, actions, mandatory-steps incident classification); the
+participant's pull AND reporting halves are built (#77 stays open for its
+credential half and the #91 precondition); runs name their inputs (#149,
+awaiting CI to close); milestones (#150) in progress; the console and the
+transport are open.
 
 **Issues** — the participation cluster, formerly under the closed #46:
 [#71](https://github.com/jengu-net/dbo/issues/71) (declaration seam — done,
@@ -89,11 +91,21 @@ throughput — beside the presence the cursor already proves (#148).
   `WORK_ARRIVES_WHOLE` → four `REQ-DBO-PROC-*` promises, cited by
   `@Proving` in `RunNamesItsInputsIT` and projected into req-catalogue's
   generated block.
+- **Built, continued (#150)**: milestones on the checkpoint.
+  `StepDeclaration.reaching(...)` declares the order; `Runs.milestone`
+  derives the position and refuses strangers by name; the run keeps it
+  replaced-never-accumulated across release and retake; `businessStatus`
+  renders holder + milestone with the derived text ("validated, 2 of 3").
+  `Work.Progress` and `Lane` carry `milestone` as ABSTRACT methods — no
+  silent default anywhere on the reporting path, or a decorator drops the
+  one thing the report said while passing every test. FEAT
+  `WORK_SAYS_WHERE_IT_IS` under the DISTRIBUTED_WORK area, three promises
+  PROVEN via `MilestonesOnTheCheckpointIT`.
 - **Open, in dependency order**: #77's remainder (above) → #79's remainder
   (DBOS below, the transport-first exercise) → #147/#148 remainder
-  (introduction over the link) → #150 (milestones) → #80 (the replication
-  toolset — inherits "slots are part of what must be present") → #75/#76
-  (the console over it all).
+  (introduction over the link) → #80 (the replication toolset — inherits
+  "slots are part of what must be present") → #75/#76 (the console over it
+  all).
 - **Consumer's half, later**: the WebSocket lane (socket, framing, handshake,
   tenant auth) is the platform's per ADR 0062; the k8s per-step Deployment
   packaging likewise. dbo owes the store-level toolset (#80) and nothing

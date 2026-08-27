@@ -303,6 +303,53 @@ public final class Runs {
     }
 
     /**
+     * A checkpoint that also names the milestone reached (#150,
+     * REQ-DBO-PROC-PROGRESS-NAMES-THE-MILESTONE).
+     *
+     * <p>Same act, more said: it extends the claim exactly as counts do —
+     * evidence, never a tick — and the run records the named point replaced,
+     * never accumulated, surviving release and retake so the next taker
+     * resumes from a fact.
+     *
+     * <p><b>Position is derived here, never asserted.</b> The executor
+     * reports only the name; where the step declares its milestones the
+     * store computes the position over that order, and a name outside the
+     * declared order is refused naming both sides — a vocabulary forks by
+     * silently accepting strangers. A step that has not declared any is not
+     * narrowed: the name is recorded verbatim with no position, because a
+     * completeness nobody declared cannot be derived, only invented.
+     */
+    public Run milestone(Run run, String name, Map<String, Long> counts,
+            java.time.Instant until) {
+        String stepId = run.process() + "." + run.step();
+        Run.Milestone reached = new Run.Milestone(name, 0, 0);
+        Optional<cloud.jengu.dbo.core.process.StepDeclaration> declaration = steps.byId(stepId);
+        if (declaration.isPresent() && !declaration.get().milestones().isEmpty()) {
+            List<String> declared = declaration.get().milestones();
+            int position = declared.indexOf(name);
+            if (position < 0) {
+                throw new NotAMilestone(stepId, name, declared);
+            }
+            reached = new Run.Milestone(name, position + 1, declared.size());
+        }
+        Run tallied = counts.isEmpty() ? run : tally(run, counts);
+        return update(tallied, state(tallied).withMilestone(reached)
+                .withAssignment(new Run.Assignment(
+                        tallied.assignment() == null ? null : tallied.assignment().at(),
+                        tallied.assignment() == null ? null : tallied.assignment().executor(),
+                        tallied.assignment() == null ? null : tallied.assignment().note(),
+                        until)));
+    }
+
+    /** A point the step's own map does not contain, refused naming both sides (#150). */
+    public static final class NotAMilestone extends RuntimeException {
+        NotAMilestone(String stepId, String name, List<String> declared) {
+            super("step '" + stepId + "' declares no milestone '" + name
+                    + "'; its order is: " + declared);
+        }
+    }
+
+    /**
      * Hands back what a claim no longer holds (#77).
      *
      * <p>Released, not done — the difference is the whole point of a deadline.
@@ -579,7 +626,8 @@ public final class Runs {
     private State state(Run run) {
         return new State(run.key(), run.process(), run.step(), run.kind(), run.holder(),
                 run.parent(), run.correlation(), run.tally(), run.item(), run.domains(),
-                run.assignment(), run.produced(), run.stepVersion(), run.inputs());
+                run.assignment(), run.produced(), run.stepVersion(), run.inputs(),
+                run.milestone());
     }
 
     private Run write(State state) {
@@ -601,7 +649,7 @@ public final class Runs {
     private record State(String key, String process, String step, RunKind kind, Holder holder,
             String parent, String correlation, Map<String, Long> tally, Run.Item item,
             List<String> domains, Run.Assignment assignment, Run.Produced produced,
-            String stepVersion, Map<String, String> inputs) {
+            String stepVersion, Map<String, String> inputs, Run.Milestone milestone) {
 
         /** The pre-inputs shape — every run that fills no slots. */
         State(String key, String process, String step, RunKind kind, Holder holder,
@@ -612,29 +660,44 @@ public final class Runs {
                     domains, assignment, produced, stepVersion, Map.of());
         }
 
+        /** The pre-milestone shape (#150). */
+        State(String key, String process, String step, RunKind kind, Holder holder,
+                String parent, String correlation, Map<String, Long> tally, Run.Item item,
+                List<String> domains, Run.Assignment assignment, Run.Produced produced,
+                String stepVersion, Map<String, String> inputs) {
+            this(key, process, step, kind, holder, parent, correlation, tally, item,
+                    domains, assignment, produced, stepVersion, inputs, null);
+        }
+
         State withHolder(Holder holder) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced, stepVersion, inputs);
+                    domains, assignment, produced, stepVersion, inputs, milestone);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, holder, parent, correlation,
-                    Map.copyOf(tally), item, domains, assignment, produced, stepVersion, inputs);
+                    Map.copyOf(tally), item, domains, assignment, produced, stepVersion,
+                    inputs, milestone);
         }
 
         State withAssignment(Run.Assignment assignment) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced, stepVersion, inputs);
+                    domains, assignment, produced, stepVersion, inputs, milestone);
         }
 
         State withProduced(Run.Produced produced) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced, stepVersion, inputs);
+                    domains, assignment, produced, stepVersion, inputs, milestone);
         }
 
         State withCorrelation(String correlation) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced, stepVersion, inputs);
+                    domains, assignment, produced, stepVersion, inputs, milestone);
+        }
+
+        State withMilestone(Run.Milestone milestone) {
+            return new State(key, process, step, kind, holder, parent, correlation, tally, item,
+                    domains, assignment, produced, stepVersion, inputs, milestone);
         }
 
         byte[] payload() {
@@ -694,6 +757,11 @@ public final class Runs {
                     first = false;
                 }
                 json.append('}');
+            }
+            if (milestone != null) {
+                json.append(",\"milestone\":{\"name\":").append(Json.quoted(milestone.name()))
+                        .append(",\"position\":").append(milestone.position())
+                        .append(",\"total\":").append(milestone.total()).append('}');
             }
             if (produced != null && produced.counted() > 0) {
                 json.append(",\"produced\":{\"counted\":").append(produced.counted());

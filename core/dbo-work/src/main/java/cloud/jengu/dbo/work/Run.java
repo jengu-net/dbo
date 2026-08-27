@@ -18,7 +18,21 @@ public record Run(String id, long versionId, String key, String process, String 
         RunKind kind, Holder holder, String parent, String correlation,
         Map<String, Long> tally, Item item, java.util.List<String> domains,
         Assignment assignment, Produced produced, String stepVersion,
-        Map<String, String> inputs) {
+        Map<String, String> inputs, Milestone milestone) {
+
+    /**
+     * Where a long run is, in the step's own words (#150) — replaced on each
+     * report, never accumulated, and kept across release and retake so the
+     * next taker resumes from a fact.
+     *
+     * @param name     the declared point reached, asserted by the executor
+     * @param position 1-based position over the step's declared order,
+     *                 derived by the store — or 0 when the step declared no
+     *                 milestones, because a completeness nobody declared
+     *                 cannot be derived, only invented
+     * @param total    the declared order's size, or 0 with position
+     */
+    public record Milestone(String name, int position, int total) {}
 
     /**
      * What this run changed (#82).
@@ -156,13 +170,19 @@ public record Run(String id, long versionId, String key, String process, String 
             slots.forEach((slot, reference) ->
                     inputs.put(slot.toString(), reference.toString()));
         }
+        Milestone milestone = null;
+        if (((Map<?, ?>) json).get("milestone") instanceof Map<?, ?> raw) {
+            milestone = new Milestone(str(raw, "name"),
+                    raw.get("position") instanceof Number position ? position.intValue() : 0,
+                    raw.get("total") instanceof Number total ? total.intValue() : 0);
+        }
         return new Run(stored.id(), stored.versionId(), Json.str(json, "key"),
                 Json.str(json, "process"), Json.str(json, "step"),
                 RunKind.of(Json.str(json, "kind")), Holder.of(Json.str(json, "holder")),
                 optional(json, "parent"), optional(json, "correlation"),
                 Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment(json),
                 produced(json), optional(json, "stepVersion"),
-                java.util.Collections.unmodifiableMap(inputs));
+                java.util.Collections.unmodifiableMap(inputs), milestone);
     }
 
     @SuppressWarnings("unchecked")

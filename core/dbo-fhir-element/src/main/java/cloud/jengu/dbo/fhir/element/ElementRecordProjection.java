@@ -41,6 +41,7 @@ final class ElementRecordProjection implements RecordProjection {
      */
     private static final String RUN_OUTPUT = "urn:dbo:run:output";
     private static final String RUN_INPUT = "urn:dbo:run:input";
+    private static final String MILESTONE = "urn:dbo:run:milestone";
     private static final String HOLDER = "urn:dbo:run:holder";
     private static final String PROCESS = "urn:dbo:process";
     private static final String STEP = "urn:dbo:step";
@@ -111,6 +112,10 @@ final class ElementRecordProjection implements RecordProjection {
                 codeSystem(RUN_INPUT, "DboRunInput",
                         "The step's declared input slots, filled by the run — the codes "
                                 + "are the step's own slot names.", null),
+                codeSystem(MILESTONE, "DboRunMilestone",
+                        "The milestone a long run last reported — the codes are the "
+                                + "step's own declared points, and the position beside "
+                                + "them is derived by the store, never asserted.", null),
                 // Meta.security stamps carry this system on every served
                 // resource (#109), and a system on the wire must resolve
                 // (#91). The seven codes are exactly the seven handling
@@ -407,8 +412,24 @@ final class ElementRecordProjection implements RecordProjection {
         json.append(']');
         json.append(",\"status\":\"").append(status(holder)).append('"')
                 .append(",\"businessStatus\":{\"coding\":[{\"system\":\"").append(HOLDER)
-                .append("\",\"code\":\"").append(holder).append("\"}]}")
-                .append(",\"intent\":\"order\"")
+                .append("\",\"code\":\"").append(holder).append("\"}");
+        // Where the work is, said the step's own way (#150): one concept, two
+        // codings — the holder above, and the milestone reached when one is
+        // recorded — with the derived position as the human reader's text.
+        // The position was computed by the store over the step's declared
+        // order; nothing here invents a completeness.
+        if (run.get("milestone") instanceof Map<?, ?> milestone) {
+            String name = String.valueOf(milestone.get("name"));
+            json.append(",{\"system\":\"").append(MILESTONE).append("\",\"code\":")
+                    .append(Json.quoted(name)).append('}');
+            long total = milestone.get("total") instanceof Number n ? n.longValue() : 0;
+            json.append("],\"text\":").append(Json.quoted(total > 0
+                    ? name + ", " + milestone.get("position") + " of " + total
+                    : name));
+        } else {
+            json.append(']');
+        }
+        json.append('}').append(",\"intent\":\"order\"")
                 .append(",\"code\":{\"coding\":[{\"system\":\"").append(PROCESS)
                 .append("\",\"code\":").append(Json.quoted(String.valueOf(run.get("process"))))
                 .append("},{\"system\":\"").append(STEP).append("\",\"code\":")

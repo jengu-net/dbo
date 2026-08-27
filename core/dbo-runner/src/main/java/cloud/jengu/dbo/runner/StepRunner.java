@@ -162,8 +162,17 @@ public final class StepRunner implements AutoCloseable {
         Vitals sign = vitals.computeIfAbsent(service.step(), s -> new Vitals());
         long began = System.nanoTime();
         try {
-            Work work = new Work(claimed, lane.inputs(claimed),
-                    counts -> lane.checkpoint(claimed, counts, holdFor));
+            Work work = new Work(claimed, lane.inputs(claimed), new Work.Progress() {
+                @Override
+                public void checkpoint(java.util.Map<String, Long> counts) {
+                    lane.checkpoint(claimed, counts, holdFor);
+                }
+
+                @Override
+                public void milestone(String milestone, java.util.Map<String, Long> counts) {
+                    lane.milestone(claimed, milestone, counts, holdFor);
+                }
+            });
             Outcome outcome = service.perform(work);
             if (outcome instanceof Outcome.Done done) {
                 Run reported = done.tally().isEmpty() ? claimed

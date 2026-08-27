@@ -334,6 +334,19 @@ twice, and its own bookkeeping must not be what saves it.
 process is alive, and what a deadline protects against is a process that is alive
 and getting nowhere. Counts are the evidence, and they are on the record anyway.
 
+**A checkpoint can name the milestone reached.** A long-running step is visible
+between claim and outcome the way events ride a tracing span: the step declares
+its milestones in order, the executor asserts only the name, and the store
+derives the position over that order — a completeness nobody declared cannot be
+derived, only invented, so an undeclared step's name is recorded verbatim with
+no position, and a name outside a declared order is refused naming both sides.
+The run keeps the milestone replaced-never-accumulated, across release and
+retake, so the next taker resumes from a fact; the face says it in the Task's
+`businessStatus` beside the holder ("validated, 2 of 3"). Nothing on the
+reporting path may default it away: a lane or decorator that degraded a
+milestone to a bare checkpoint would drop the one thing the report said while
+passing every test.
+
 **Released is not done.** A run that says done because whoever held it stopped
 answering is the failure a deadline exists to prevent, so a lapsed claim is
 handed back saying exactly that.
