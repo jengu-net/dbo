@@ -3,21 +3,24 @@ package cloud.jengu.dbo.runner;
 import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.work.Run;
 
-import java.util.List;
 import java.util.Map;
 
 /**
  * One run's work, arrived whole (REQ-DBO-PROC-WORK-ARRIVES-WHOLE): the run,
- * the objects it references, and the way to say "still moving".
+ * its inputs, and the way to say "still moving".
  *
- * @param run     the claimed run — the global truth this work answers to
- * @param related the objects the run's item names, fetched by the runner
- *                before {@code perform} is called; a service never fetches
+ * @param run    the claimed run — the global truth this work answers to
+ * @param inputs the run's declared inputs, resolved and slot-keyed. A
+ *               service never fetches, and cannot: the step's declaration
+ *               (#71) is the API it joined, the run fills those slots
+ *               (#149), and a runner has no verb that takes a reference —
+ *               which is what closes the door on asking for data the step
+ *               was never entitled to.
  */
-public record Work(Run run, List<StoredObject> related, Progress progress) {
+public record Work(Run run, Map<String, StoredObject> inputs, Progress progress) {
 
     public Work {
-        related = List.copyOf(related);
+        inputs = Map.copyOf(inputs);
     }
 
     /**

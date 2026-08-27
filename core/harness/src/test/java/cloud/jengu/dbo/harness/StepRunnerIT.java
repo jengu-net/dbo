@@ -74,15 +74,8 @@ class StepRunnerIT {
      */
     private static Lane lane(String tenant, String runnerName) {
         return Lane.inProcess(tenant, runs, new PgChangeFeed(ds, WorkModel.DOMAIN),
-                declarations,
-                reference -> {
-                    int slash = reference.indexOf('/');
-                    return slash > 0
-                            ? store.get(reference.substring(0, slash),
-                                    reference.substring(slash + 1))
-                            : java.util.Optional.empty();
-                },
-                runnerName, new Executor(runnerName, "1.0", "cloud.jengu.test", Scope.BASELINE));
+                declarations, runnerName,
+                new Executor(runnerName, "1.0", "cloud.jengu.test", Scope.BASELINE));
     }
 
     @Test
@@ -117,12 +110,12 @@ class StepRunnerIT {
         assertTrue(!after.open(), "the run is closed, not parked: " + after.holder());
         assertEquals(1L, after.tally().get("validated"),
                 "the tally landed on the record: " + after.tally());
-        // Work.related is the contract seam for the documents a run names.
-        // TODAY a claimable run names none — a pipeline run has no item, and
-        // the official carrier (Run.inputs → Task.input) is #149. The seam
-        // exists so #149 fills it with no service or runner change.
-        assertTrue(received.get().related().isEmpty(),
-                "empty until #149 gives a run its inputs: " + received.get().related());
+        // Work.inputs is the seam the step's declared API (#71) fills via
+        // the run's slots (#149). TODAY a claimable run declares none, and
+        // none is what arrives — and there is no verb a service or runner
+        // could ask for more with, which is the security boundary.
+        assertTrue(received.get().inputs().isEmpty(),
+                "empty until #149 gives a run its slots: " + received.get().inputs());
 
         List<StoredObject> declared = store.select(
                 Criteria.of(ExecutorModel.TYPE).limit(50));
