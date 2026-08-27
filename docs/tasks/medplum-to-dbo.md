@@ -40,9 +40,18 @@ than through it.
 - **Identifier resolution** — exact resolution through the vault is exposed as
   the standard FHIR search spelling (#136), not a new primitive.
 - **Data versioning** — see [its own topic](data-versioning.md).
-- **Still open on the consumer side**: the store seam (#852) — one interface
-  with a Medplum client and a dbo client behind it, which is what lets the
-  cutover proceed module by module rather than as one flip.
+- **The store seam is built and the cloud lane is done** on the consumer's
+  `main`: zero Medplum store sources in their production wiring (from
+  fifteen), and their `integrationTest` runs against dbo. What remains on
+  their side are identity offshoots (platform#912/#914) rebuilt on the
+  membrane rather than ported.
+- **The edge appliance is its own consumer-side task now**:
+  [platform#917](https://github.com/jengu-net/jengu-platform/issues/917),
+  `docs/tasks/edge-appliance-on-dbo.md` over there. Per their ADR 0062/0063
+  and [distributed-work](distributed-work.md), the edge runs dbo in-JVM as a
+  second appliance of the same tenant; what it needs from this side is #80
+  (batch/apply) and #77's credential half — expect stalls to arrive as
+  questions there.
 
 ## Decisions
 
