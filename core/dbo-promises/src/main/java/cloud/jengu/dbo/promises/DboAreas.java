@@ -20,7 +20,12 @@ public enum DboAreas implements Area {
 
     DATA_VERSIONING("Data survives deployment: shapes version, stamps say which, and "
             + "stored data moves between versions without ceremony.",
-            List.of(DboFeatures.SHAPE_VERSIONING));
+            List.of(DboFeatures.SHAPE_VERSIONING)),
+
+    DISTRIBUTED_WORK("Work travels to whoever does it — pulled, claimed, reported — and "
+            + "arrives whole: the documents it is about travel because the work names "
+            + "them.",
+            List.of(DboFeatures.WORK_ARRIVES_WHOLE));
 
     private final String title;
     private final List<Classified> covers;

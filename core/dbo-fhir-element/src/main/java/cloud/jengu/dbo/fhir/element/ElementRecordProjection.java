@@ -40,6 +40,7 @@ final class ElementRecordProjection implements RecordProjection {
      * because they were never the run's own identifier.
      */
     private static final String RUN_OUTPUT = "urn:dbo:run:output";
+    private static final String RUN_INPUT = "urn:dbo:run:input";
     private static final String HOLDER = "urn:dbo:run:holder";
     private static final String PROCESS = "urn:dbo:process";
     private static final String STEP = "urn:dbo:step";
@@ -107,6 +108,9 @@ final class ElementRecordProjection implements RecordProjection {
                         "What a step counted — the names are the step's own.", null),
                 codeSystem(RUN_OUTPUT, "DboRunOutput",
                         "What a run carries beside its tally.", List.of("outcome")),
+                codeSystem(RUN_INPUT, "DboRunInput",
+                        "The step's declared input slots, filled by the run — the codes "
+                                + "are the step's own slot names.", null),
                 // Meta.security stamps carry this system on every served
                 // resource (#109), and a system on the wire must resolve
                 // (#91). The seven codes are exactly the seven handling
@@ -422,6 +426,7 @@ final class ElementRecordProjection implements RecordProjection {
         owner(run, holder, json);
         note(run, json);
         focus(run, json);
+        input(run, json);
         output(run, record, json);
         return json.append('}').toString();
     }
@@ -491,6 +496,29 @@ final class ElementRecordProjection implements RecordProjection {
         json.append(focusIsABackbone
                 ? ",\"focus\":[{\"valueReference\":{\"display\":" + display + "}}]"
                 : ",\"focus\":{\"display\":" + display + "}");
+    }
+
+    /**
+     * The step's slots, as the run filled them (#149) — FHIR's own element
+     * for named work parameters, in declaration order.
+     *
+     * <p>Displayed rather than resolved, exactly as {@code focus} is: an
+     * input reference is whatever the work is over, and most of what work is
+     * over is not a resource in this store. Resolution is the lane's act, for
+     * the runner that claimed the work — a reader of this Task gets the
+     * names.
+     */
+    private static void input(Map<?, ?> run, StringBuilder json) {
+        if (!(run.get("inputs") instanceof Map<?, ?> slots) || slots.isEmpty()) {
+            return;
+        }
+        StringBuilder inputs = new StringBuilder();
+        slots.forEach((slot, reference) -> inputs.append(inputs.isEmpty() ? "" : ",")
+                .append("{\"type\":{\"coding\":[{\"system\":\"").append(RUN_INPUT)
+                .append("\",\"code\":").append(Json.quoted(String.valueOf(slot)))
+                .append("}]},\"valueReference\":{\"display\":")
+                .append(Json.quoted(String.valueOf(reference))).append("}}"));
+        json.append(",\"input\":[").append(inputs).append(']');
     }
 
     /** The failure, as an outcome the run points at rather than repeats. */

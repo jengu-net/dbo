@@ -44,10 +44,17 @@ import java.util.Set;
  *                    exactly the set an automated executor would otherwise
  *                    perform. Empty means the step has not said, not that it
  *                    admits nothing.
+ * @param slots       the step's named input slots, in order, each an opaque
+ *                    shape reference (#149) — the documents work over this
+ *                    step travels with, beside the {@code consumes} shape of
+ *                    the thing the step acts on. This is the input API a
+ *                    runner agrees to by joining the step: a run fills these
+ *                    slots at creation, and there is nothing else a runner
+ *                    can receive.
  */
 public record StepDeclaration(StepId id, String version, Set<String> reads, Set<String> writes,
         Optional<String> consumes, Optional<String> produces, Optional<String> overridable,
-        Set<String> actions) {
+        Set<String> actions, java.util.Map<String, String> slots) {
 
     public StepDeclaration {
         if (id == null || version == null || version.isBlank()) {
@@ -57,34 +64,53 @@ public record StepDeclaration(StepId id, String version, Set<String> reads, Set<
         reads = Set.copyOf(reads);
         writes = Set.copyOf(writes);
         actions = Set.copyOf(actions);
+        // Order is part of the declaration — the projection renders slots in
+        // it — and Map.copyOf forgets it, so the copy is by hand.
+        slots = java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(slots));
     }
 
     /** The smallest honest declaration: a step that reads and writes one domain. */
     public static StepDeclaration of(String id, String version, String domain) {
         return new StepDeclaration(StepId.of(id), version, Set.of(domain), Set.of(domain),
-                Optional.empty(), Optional.empty(), Optional.empty(), Set.of());
+                Optional.empty(), Optional.empty(), Optional.empty(), Set.of(),
+                java.util.Map.of());
     }
 
     public StepDeclaration consuming(String shapeReference) {
         return new StepDeclaration(id, version, reads, writes,
-                Optional.of(shapeReference), produces, overridable, actions);
+                Optional.of(shapeReference), produces, overridable, actions, slots);
     }
 
     public StepDeclaration producing(String shapeReference) {
         return new StepDeclaration(id, version, reads, writes,
-                consumes, Optional.of(shapeReference), overridable, actions);
+                consumes, Optional.of(shapeReference), overridable, actions, slots);
     }
 
     /** Opened to a scope class, deliberately — the default is nobody (ADR 0059). */
     public StepDeclaration overridableBy(String scopeClass) {
         return new StepDeclaration(id, version, reads, writes, consumes, produces,
-                Optional.of(scopeClass), actions);
+                Optional.of(scopeClass), actions, slots);
     }
 
     /** What a holder of this step may do — declared so a role can later narrow it. */
     public StepDeclaration containing(String... actions) {
         return new StepDeclaration(id, version, reads, writes, consumes, produces,
-                overridable, Set.of(actions));
+                overridable, Set.of(actions), slots);
+    }
+
+    /**
+     * Declares one more input slot, in declaration order (#149). Every
+     * declared slot is mandatory: an input the step can do without is not a
+     * slot.
+     */
+    public StepDeclaration taking(String slot, String shapeReference) {
+        java.util.Map<String, String> declared = new java.util.LinkedHashMap<>(slots);
+        if (declared.putIfAbsent(slot, shapeReference) != null) {
+            throw new IllegalArgumentException("slot '" + slot + "' is already declared — "
+                    + "which shape it means would depend on ordering");
+        }
+        return new StepDeclaration(id, version, reads, writes, consumes, produces,
+                overridable, actions, declared);
     }
 
     /** Whether this step may write that domain at all. */

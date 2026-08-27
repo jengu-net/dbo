@@ -117,6 +117,15 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-PDI-RIGHTS-AS-OPERATIONS | Access, portability and restriction are standard machinery operations over the vault join, not per-request projects. | PROVEN | cloud.jengu.dbo.harness.PdiIT#restrictionMakesReadsPseudonymous<br>cloud.jengu.dbo.harness.PdiIT#theSubjectsOwnExportStatesItsPurpose |
 | REQ-DBO-PDI-EXACT-RESOLUTION | An exact, purpose-stated lookup on a vault-indexed value — a claimed identifier (system|value) or an indexed contact point — resolves through the vault to the records holding it, served under the caller's disclosure mode. The match runs over keyed hashes and every resolution leaves a value fingerprint in the disclosure trail; after erasure the answer is empty. Anything inexact, unsystemed, or combined with other predicates is refused, never half-answered. | PROVEN | cloud.jengu.dbo.harness.DisclosureModesIT#aBareIdentifierValueDoesNotResolve<br>cloud.jengu.dbo.harness.DisclosureModesIT#aValueClaimedByAPatientAnswersNothingForAPractitioner<br>cloud.jengu.dbo.harness.DisclosureModesIT#anExactIdentifierLookupResolvesTheClaimingRecord<br>cloud.jengu.dbo.harness.DisclosureModesIT#anIdentifierCombinedWithAnotherPredicateIsRefused<br>cloud.jengu.dbo.harness.DisclosureModesIT#anIdentifierLookupWithoutAPurposeIsRefused<br>cloud.jengu.dbo.harness.DisclosureModesIT#anUnclaimedIdentifierAnswersNobody<br>cloud.jengu.dbo.harness.PdiIT#aShreddedPersonIsNotResolvableByIdentifier |
 
+## PROC — distributed work (promise-managed slice)
+
+| REQ | Promise | Status | Proven by |
+|---|---|---|---|
+| REQ-DBO-PROC-STEP-DECLARES-ITS-SLOTS | A step declaration names its input slots — ordered, named, each an opaque shape reference — and a runner that joins the step has agreed to that API: there is nothing else it can receive. | PROVEN | cloud.jengu.dbo.harness.RunNamesItsInputsIT#aRunFillsTheDeclaredSlots |
+| REQ-DBO-PROC-RUN-INPUTS-FILL-THE-SLOTS | A run's inputs fill the step's declared slots, fixed at creation: a slot the step does not declare and a declared slot left unfilled are both refused by name, and the record round-trips them in order. | PROVEN | cloud.jengu.dbo.harness.RunNamesItsInputsIT#aRunFillsTheDeclaredSlots |
+| REQ-DBO-PROC-TASK-CARRIES-THE-INPUTS | The face renders each input as Task.input — the slot name as the parameter's code, the reference displayed rather than resolved, exactly as focus is — in every version the face serves. | PROVEN | cloud.jengu.dbo.harness.RunNamesItsInputsIT#theTaskCarriesTheInputs |
+| REQ-DBO-PROC-INPUTS-ARRIVE-WITH-THE-WORK | A claimed run's inputs arrive with the work, resolved by the party that holds the objects; the runner's only read takes the run, a run the asking identity has not claimed is refused, and a run without slots delivers exactly nothing. | PROVEN | cloud.jengu.dbo.harness.RunNamesItsInputsIT#inputsArriveWithTheWork |
+
 <!-- promise:end -->
 
 ## POL — tenant policies (audit & write discipline)

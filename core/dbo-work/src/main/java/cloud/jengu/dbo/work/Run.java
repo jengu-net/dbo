@@ -17,7 +17,8 @@ import java.util.Optional;
 public record Run(String id, long versionId, String key, String process, String step,
         RunKind kind, Holder holder, String parent, String correlation,
         Map<String, Long> tally, Item item, java.util.List<String> domains,
-        Assignment assignment, Produced produced, String stepVersion) {
+        Assignment assignment, Produced produced, String stepVersion,
+        Map<String, String> inputs) {
 
     /**
      * What this run changed (#82).
@@ -148,12 +149,20 @@ public record Run(String id, long versionId, String key, String process, String 
         if (((Map<?, ?>) json).get("domains") instanceof java.util.List<?> declared) {
             declared.forEach(domain -> domains.add(domain.toString()));
         }
+        // Slot order is declaration order and the projection renders it, so
+        // the copy keeps it — Map.copyOf would forget.
+        Map<String, String> inputs = new LinkedHashMap<>();
+        if (((Map<?, ?>) json).get("inputs") instanceof Map<?, ?> slots) {
+            slots.forEach((slot, reference) ->
+                    inputs.put(slot.toString(), reference.toString()));
+        }
         return new Run(stored.id(), stored.versionId(), Json.str(json, "key"),
                 Json.str(json, "process"), Json.str(json, "step"),
                 RunKind.of(Json.str(json, "kind")), Holder.of(Json.str(json, "holder")),
                 optional(json, "parent"), optional(json, "correlation"),
                 Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment(json),
-                produced(json), optional(json, "stepVersion"));
+                produced(json), optional(json, "stepVersion"),
+                java.util.Collections.unmodifiableMap(inputs));
     }
 
     @SuppressWarnings("unchecked")

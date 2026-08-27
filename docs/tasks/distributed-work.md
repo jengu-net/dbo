@@ -79,11 +79,21 @@ throughput — beside the presence the cursor already proves (#148).
   discoverability precondition (run coding systems as fetchable
   `CodeSystem`, a profile for the rendered `Task`), which gates serving
   runs over HTTP.
-- **Open, in dependency order**: #77's remainder (above) → #149 (runs name
-  inputs — the only official way documents reach a distributed runner) →
-  #79's remainder (DBOS below, the transport-first exercise) → #147/#148
-  remainder (introduction over the link) → #150 (milestones) → #80 (the
-  replication toolset) → #75/#76 (the console over it all).
+- **Built, continued (#149)**: runs name their inputs. Slots on the step
+  declaration (`taking(slot, shapeRef)`, beside `consumes` — focus vs
+  input, FHIR's own split), `Run.inputs` filling them at creation with both
+  mismatches refused by name, `Task.input` rendering in declaration order,
+  and the in-process lane resolving `Type/id` references from the host's
+  store for the claiming identity only. First slice on the promise
+  catalogue beyond the pilot: AREA `DISTRIBUTED_WORK` → FEAT
+  `WORK_ARRIVES_WHOLE` → four `REQ-DBO-PROC-*` promises, cited by
+  `@Proving` in `RunNamesItsInputsIT` and projected into req-catalogue's
+  generated block.
+- **Open, in dependency order**: #77's remainder (above) → #79's remainder
+  (DBOS below, the transport-first exercise) → #147/#148 remainder
+  (introduction over the link) → #150 (milestones) → #80 (the replication
+  toolset — inherits "slots are part of what must be present") → #75/#76
+  (the console over it all).
 - **Consumer's half, later**: the WebSocket lane (socket, framing, handshake,
   tenant auth) is the platform's per ADR 0062; the k8s per-step Deployment
   packaging likewise. dbo owes the store-level toolset (#80) and nothing

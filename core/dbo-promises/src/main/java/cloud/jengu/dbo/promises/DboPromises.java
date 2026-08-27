@@ -112,7 +112,27 @@ public enum DboPromises implements Promise {
             + "disclosure mode. The match runs over keyed hashes and every resolution "
             + "leaves a value fingerprint in the disclosure trail; after erasure the "
             + "answer is empty. Anything inexact, unsystemed, or combined with other "
-            + "predicates is refused, never half-answered.");
+            + "predicates is refused, never half-answered."),
+
+    // ── PROC — distributed work; the first slice beyond the pilot (#149) ──
+
+    PROC_STEP_DECLARES_ITS_SLOTS("A step declaration names its input slots — ordered, "
+            + "named, each an opaque shape reference — and a runner that joins the step "
+            + "has agreed to that API: there is nothing else it can receive."),
+
+    PROC_RUN_INPUTS_FILL_THE_SLOTS("A run's inputs fill the step's declared slots, fixed "
+            + "at creation: a slot the step does not declare and a declared slot left "
+            + "unfilled are both refused by name, and the record round-trips them in "
+            + "order."),
+
+    PROC_TASK_CARRIES_THE_INPUTS("The face renders each input as Task.input — the slot "
+            + "name as the parameter's code, the reference displayed rather than "
+            + "resolved, exactly as focus is — in every version the face serves."),
+
+    PROC_INPUTS_ARRIVE_WITH_THE_WORK("A claimed run's inputs arrive with the work, "
+            + "resolved by the party that holds the objects; the runner's only read takes "
+            + "the run, a run the asking identity has not claimed is refused, and a run "
+            + "without slots delivers exactly nothing.");
 
     private final String text;
 
