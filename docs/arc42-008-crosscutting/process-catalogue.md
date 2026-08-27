@@ -256,6 +256,21 @@ name**: silently doing nothing is the failure that rule exists to prevent.
 **Modules contribute by being installed**, the same rule faces follow — nothing
 maintains a central list that can disagree with what is deployed.
 
+**And a linked participant contributes by introducing.** The catalogue's second
+door: a component attached only over the participation link brings its step's
+whole declaration — shapes, domains, actions, slots, milestones — beside its
+own candidacy, recorded in the tenant's store with the introducer's name as
+provenance. Kept until withdrawn rather than dropped with presence, because a
+run recorded under an introduced step still needs its declaration to be
+interpreted while its participant naps — candidacy is what presence gates, and
+that is the executor declaration's business. One collision rule holds across
+both doors: re-introduction by the same participant replaces, and a second
+declarer — another introducer, or a module installed beside an introduction —
+is refused by name. **An introduction grants its introducer nothing**: the
+declaration binds the introducer exactly as it binds anybody, and the record
+is written through the tenant's store, so a credential that may not write
+there is refused by the authority rather than by the catalogue.
+
 **The catalogue is built up, not ported.** Installed modules contribute their
 steps, linked participants introduce theirs, and the only consistency claim is
 the tenant spec's **`mandatorySteps`** — the steps this tenant's work cannot do

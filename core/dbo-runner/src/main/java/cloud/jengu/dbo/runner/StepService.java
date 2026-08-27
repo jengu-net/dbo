@@ -21,6 +21,18 @@ public interface StepService {
     String step();
 
     /**
+     * The declaration this service brings with it, when it performs a step
+     * the catalogue has not declared (#147) — a linked participant carrying
+     * its own capability. Empty is the honest default: a service performing
+     * an installed step brings nothing, because the module already
+     * contributed it. The runner introduces it beside the candidacy, so the
+     * catalogue learns the step the moment presence can be derived.
+     */
+    default java.util.Optional<cloud.jengu.dbo.core.process.StepDeclaration> declaration() {
+        return java.util.Optional.empty();
+    }
+
+    /**
      * Performs one run's work.
      *
      * <p>The {@link Work} arrives whole — the run and the objects it

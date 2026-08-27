@@ -210,6 +210,15 @@ public final class StepRunner implements AutoCloseable {
 
     private void declare(Lane lane, String step) {
         try {
+            // A service that brings its own step introduces it BESIDE its
+            // candidacy (#147), so the catalogue learns the step the moment
+            // presence can be derived. Idempotent per introducer, like the
+            // declaration itself.
+            StepService service = services.get(step);
+            if (service != null) {
+                service.declaration().ifPresent(brought ->
+                        lane.introduce(brought));
+            }
             lane.declare(declared(lane, step).withVitals(
                     vitals.computeIfAbsent(step, s -> new Vitals()).block()));
         } catch (RuntimeException declineFailed) {

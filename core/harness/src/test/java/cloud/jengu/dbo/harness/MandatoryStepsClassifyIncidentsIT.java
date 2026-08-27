@@ -86,7 +86,12 @@ class MandatoryStepsClassifyIncidentsIT {
                 {"code":"ootel","fhirVersion":"r4",
                  "mandatorySteps":["lab.result.sign"],"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, "terve", "ootel");
+        // its mandatory step will arrive by INTRODUCTION over the link (#147)
+        Files.writeString(dir.resolve("sisse.json"), """
+                {"code":"sisse","fhirVersion":"r4",
+                 "mandatorySteps":["ee-lab.result.sign"],"types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}""");
+        UntilServed.scan(manager, "terve", "ootel", "sisse");
     }
 
     @AfterAll
@@ -142,6 +147,29 @@ class MandatoryStepsClassifyIncidentsIT {
         assertEquals(Set.of("lab.result.sign"), manager.stepIncidents().get("ootel"),
                 "a participant leaving reopens the incident — classification follows what "
                         + "is contributed NOW: " + manager.stepIncidents());
+    }
+
+    /** The emergent catalogue's payoff: the platform's steps arrive as introductions. */
+    @Test
+    @DisplayName("a mandatory step satisfied by a linked participant's introduction clears "
+            + "the incident, without anything installed")
+    @cloud.jengu.dbo.promises.Proving(
+            cloud.jengu.dbo.promises.DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION)
+    void aMandatoryStepCanArriveByIntroduction() {
+        assertEquals(Set.of("ee-lab.result.sign"), manager.stepIncidents().get("sisse"),
+                "nothing installed contributes it, so the incident is open");
+
+        // The participant connects over the link and introduces its step
+        // into THIS tenant's own store — no module, no restart.
+        new cloud.jengu.dbo.work.Introductions(
+                manager.runtime("sisse").orElseThrow().engine(), Steps.of())
+                .introduce(StepDeclaration.of("ee-lab.result.sign", "2.0", "r4"),
+                        "ee-lab-connector");
+        manager.scanOnce();
+        assertFalse(manager.stepIncidents().containsKey("sisse"),
+                "the composed catalogue counts introductions, so the mandatory claim is "
+                        + "satisfied the way the platform's own steps will satisfy it — "
+                        + "over the link: " + manager.stepIncidents());
     }
 
     /** A typo must be refused at parse, not left silently unmatched forever. */
