@@ -11,6 +11,8 @@ import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.core.api.ValueKind;
 import cloud.jengu.dbo.core.api.VersionConflictException;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.testmodel.GadgetModel;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
@@ -69,8 +71,9 @@ class CoreEngineIT {
                 .formatted(serial, vendor, name, weight)).getBytes(StandardCharsets.UTF_8);
     }
 
-    /** REQ-DBO-CORE-READ-YOUR-WRITES, REQ-DBO-CORE-VERSIONED-HISTORY, REQ-DBO-CORE-PAYLOAD-IS-TRUTH */
     @Test
+    @Proving({DboPromises.CORE_READ_YOUR_WRITES, DboPromises.CORE_VERSIONED_HISTORY,
+            DboPromises.CORE_PAYLOAD_IS_TRUTH})
     void aWriteIsImmediatelyReadableAndEveryVersionIsKept() {
         PutResult v1 = store.put(PutRequest.create("Gadget", gadget("S-100", "acme", "Pump", 900)));
         assertTrue(v1.created());
@@ -100,8 +103,9 @@ class CoreEngineIT {
                 store.put(PutRequest.update("Gadget", created.id(), 1, gadget("S-101", "acme", "Valve c", 122))));
     }
 
-    /** REQ-DBO-CORE-EXTERNAL-IDENTIFIERS: identifiers extracted from payload, OR-match lookup. */
+    /** Identifiers extracted from payload, OR-match lookup. */
     @Test
+    @Proving(DboPromises.CORE_EXTERNAL_IDENTIFIERS)
     void objectsAreFoundByAnyOfTheirIdentifiers() {
         store.put(PutRequest.create("Gadget", gadget("S-200", "bolt", "Sensor", 40)));
         store.put(PutRequest.create("Gadget", gadget("S-201", "bolt", "Sensor", 41)));
@@ -113,8 +117,9 @@ class CoreEngineIT {
         assertEquals(2, hits.size());
     }
 
-    /** REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS: conditional create is idempotent by identity. */
+    /** Conditional create is idempotent by identity. */
     @Test
+    @Proving(DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS)
     void conditionalCreateReturnsTheExistingObjectUntouched() {
         IdentityRef serial = IdentityRef.identifier(GadgetModel.SERIAL_SYSTEM, "S-300");
         PutResult first = store.putIfAbsent(serial, PutRequest.create("Gadget", gadget("S-300", "acme", "Motor", 5000)));
@@ -130,6 +135,7 @@ class CoreEngineIT {
 
     /** Conditional upsert by CANONICAL identity — create then in-place new version. */
     @Test
+    @Proving(DboPromises.CORE_CONDITIONAL_UPSERT)
     void canonicalUpsertCreatesThenUpdatesTheSameObject() {
         IdentityRef url = IdentityRef.canonical("https://dbo.dev/blueprints/pump");
         byte[] b1 = "{\"url\":\"https://dbo.dev/blueprints/pump\",\"title\":\"Pump v1\"}".getBytes(StandardCharsets.UTF_8);
@@ -145,6 +151,7 @@ class CoreEngineIT {
 
     /** A conditional write keyed on a non-identity system is rejected — it is a search, not an identity claim. */
     @Test
+    @Proving(DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS)
     void aConditionalWriteOnANonIdentitySystemIsRejected() {
         assertThrows(IllegalArgumentException.class, () ->
                 store.putIfAbsent(IdentityRef.identifier("urn:vendor", "acme"),
@@ -154,8 +161,9 @@ class CoreEngineIT {
                         PutRequest.create("Gadget", gadget("S-302", "acme", "X", 1))));
     }
 
-    /** REQ-DBO-CORE-NO-IMPLICIT-MERGE: a second object claiming a serial is a surfaced conflict. */
+    /** A second object claiming a serial is a surfaced conflict. */
     @Test
+    @Proving(DboPromises.CORE_NO_IMPLICIT_MERGE)
     void aSecondClaimOnTheSameSerialSurfacesAConflictInsteadOfMerging() {
         PutResult owner = store.put(PutRequest.create("Gadget", gadget("S-400", "acme", "Original", 10)));
         IdentityConflictException conflict = assertThrows(IdentityConflictException.class, () ->
@@ -185,8 +193,9 @@ class CoreEngineIT {
         assertEquals(List.of("S-501", "S-502", "S-500"), serials);
     }
 
-    /** REQ-DBO-CORE-REFERENCE-EDGES: reference edges power referential selects. */
+    /** Reference edges power referential selects. */
     @Test
+    @Proving(DboPromises.CORE_REFERENCE_EDGES)
     void objectsAreSelectableByTheObjectsTheyReference() {
         PutResult hub = store.put(PutRequest.create("Gadget", gadget("S-600", "refco", "Hub", 100)));
         byte[] part = ("{\"serial\":\"S-601\",\"vendor\":\"refco\",\"name\":\"Part\",\"weightGrams\":5,"
@@ -244,8 +253,9 @@ class CoreEngineIT {
         assertNotEquals(r.id(), successor.id());
     }
 
-    /** REQ-DBO-CORE-REINDEX-IS-AN-OPERATION: new extractor + rebuild → new search dimension, payloads untouched. */
+    /** New extractor + rebuild → new search dimension, payloads untouched. */
     @Test
+    @Proving(DboPromises.CORE_REINDEX_IS_AN_OPERATION)
     void reindexAddsASearchDimensionWithoutTouchingPayloads() {
         PutResult r = store.put(PutRequest.create("Gadget", gadget("S-950", "mixedCase", "Probe", 33)));
         byte[] payloadBefore = store.get("Gadget", r.id()).orElseThrow().payload();

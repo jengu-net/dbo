@@ -10,6 +10,8 @@ import cloud.jengu.dbo.fhir.r5.R4ToR5Converter;
 import cloud.jengu.dbo.fhir.r5.R5Personality;
 import cloud.jengu.dbo.fhir.r5.R5Store;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Order;
@@ -94,6 +96,7 @@ class UpgradeOnReadIT {
     /** The R4-written Encounter reads back as R5 (period → actualPeriod), lazily. */
     @Test
     @Order(1)
+    @Proving(DboPromises.CORE_UPGRADE_ON_READ)
     void r4WrittenEncounterReadsAsR5() {
         String converted = r5.read("Encounter", encounterId);
         assertTrue(converted.contains("\"actualPeriod\""),
@@ -105,6 +108,7 @@ class UpgradeOnReadIT {
     /** Payload-is-truth: the stored bytes are still the R4 form, version-tagged 4.0. */
     @Test
     @Order(2)
+    @Proving(DboPromises.CORE_PAYLOAD_IS_TRUTH)
     void storedBytesRemainR4() throws Exception {
         try (Connection c = pg.getConnection();
              PreparedStatement ps = c.prepareStatement(
@@ -120,9 +124,10 @@ class UpgradeOnReadIT {
         }
     }
 
-    /** REQ-DBO-CORE-IDENTITY-SURVIVES-CONVERSION: identifiers bit-exact through the hop. */
+    /** Identifiers bit-exact through the hop. */
     @Test
     @Order(3)
+    @Proving(DboPromises.CORE_IDENTITY_SURVIVES_CONVERSION)
     void identitySurvivesConversion() {
         StoredObject patient = r5Engine.getByIdentifier("Patient",
                 List.of(new Identifier(EID, "38907070777"))).get(0);
@@ -147,6 +152,7 @@ class UpgradeOnReadIT {
     /** Converter + reindex: R5 search paths (date over actualPeriod) hit R4-written data. */
     @Test
     @Order(5)
+    @Proving(DboPromises.CORE_UPGRADE_ON_READ)
     void reindexMakesR5SearchLiveOverR4Data() {
         int rebuilt = r5Engine.rebuildEnvelopes("Encounter");
         assertTrue(rebuilt >= 1);

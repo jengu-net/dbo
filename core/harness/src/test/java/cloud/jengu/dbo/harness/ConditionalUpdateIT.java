@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -94,6 +96,7 @@ class ConditionalUpdateIT {
     }
 
     @Test
+    @Proving(DboPromises.CORE_CONDITIONAL_UPSERT)
     void absentItCreatesAndPresentItReplaces() throws Exception {
         HttpResponse<String> created = put("/ActivityDefinition?" + condition(),
                 definition("Dermatologist consult"));
@@ -113,6 +116,7 @@ class ConditionalUpdateIT {
     }
 
     @Test
+    @Proving({DboPromises.CORE_CONDITIONAL_UPSERT, DboPromises.CORE_BATCH_ANSWERS_PER_ENTRY})
     void aCatalogueSyncsAsABatchWithNothingRejected() throws Exception {
         StringBuilder entries = new StringBuilder();
         for (int i = 0; i < 25; i++) {

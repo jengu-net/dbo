@@ -375,65 +375,50 @@ public enum DboPromises implements Promise {
             + "diffs and audit records they produced are navigable."),
     // ── CORE — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     CORE_PAYLOAD_IS_TRUTH(
             "A stored object's payload is the single source of truth; every searchable "
             + "projection is derived from it and can always be rebuilt."),
-    /** TODO: prove it in a test. */
     CORE_DECLARED_TRUTH_FORM(
             "Which representation is authoritative for a type (payload or normalized "
             + "form) is declared by its personality, never implicit."),
-    /** TODO: prove it in a test. */
     CORE_REINDEX_IS_AN_OPERATION(
             "Changing how objects are indexed is a background operation, never a data "
             + "migration."),
-    /** TODO: prove it in a test. */
     CORE_EXTERNAL_IDENTIFIERS(
             "Every object has one internal id and any number of `{system, value}` "
             + "identifiers, rebuilt from the payload on each write and searchable "
             + "together."),
-    /** TODO: prove it in a test. */
     CORE_REFERENCE_EDGES(
             "References between objects are extracted as owned edges on write and power "
             + "referential reads."),
-    /** TODO: prove it in a test. */
     CORE_VERSIONED_HISTORY(
             "Every write appends an immutable version; version-aware reads and "
             + "optimistic concurrency (ETag) are first-class."),
-    /** TODO: prove it in a test. */
     CORE_READ_YOUR_WRITES(
             "A write returns only after its data and its change event are committed in "
             + "one transaction. (D1)"),
-    /** TODO: prove it in a test. */
     CORE_UPGRADE_ON_READ(
             "Old payload versions are upgraded lazily by registered converters; a "
             + "schema-version transition never requires a big-bang rewrite."),
-    /** TODO: prove it in a test. */
     CORE_PARAMETERIZED_SQL(
             "No value is ever concatenated into SQL text. (D2)"),
-    /** TODO: prove it in a test. */
     CORE_SIBLING_MODELS(
             "Non-FHIR object models ride the same engine as FHIR resources, not beside "
             + "it. (R6)"),
-    /** TODO: prove it in a test. */
     CORE_DECLARED_IDENTITY(
             "Every type in every personality declares exactly one primary identity "
             + "class — canonical url, designated identifiers, or internal — and the "
             + "contract fails closed at registration without it."),
-    /** TODO: prove it in a test. */
     CORE_IDENTITY_SURVIVES_CONVERSION(
             "Conversion between FHIR versions or object shapes never changes identity; "
             + "canonical urls and identity-bearing identifiers are preserved bit-exact "
             + "and verified after every conversion."),
-    /** TODO: prove it in a test. */
     CORE_NO_IMPLICIT_MERGE(
             "Two objects claiming the same identity-bearing identifier are a conflict "
             + "surfaced to the owner, never an implicit merge."),
-    /** TODO: prove it in a test. */
     CORE_IDENTITY_KEYED_CONDITIONALS(
             "Conditional writes are accepted only when keyed on the type's primary "
             + "identity; a conditional write on any other criterion is rejected."),
-    /** TODO: prove it in a test. */
     CORE_CONDITIONAL_REFERENCES(
             "A reference may be a question — `Type?identifier=system\\|value` — and it "
             + "is answered when the document is written: exactly one match becomes the "
@@ -445,21 +430,18 @@ public enum DboPromises implements Promise {
             + "is claimed under, so what a write means does not depend on what else "
             + "happens to match today, and no unanswered question — one neither the "
             + "document nor the store answers — is ever stored."),
-    /** TODO: prove it in a test. */
     CORE_CONDITIONAL_UPSERT(
             "A write may be addressed by identity rather than by id: `PUT "
             + "[type]?identifier=…` or `?url=…` creates the resource when absent and "
             + "replaces it when present, standalone and inside a bundle. Configuration "
             + "that must match a source can therefore be expressed as itself, rather than "
             + "as a create that silently does nothing when the record already exists."),
-    /** TODO: prove it in a test. */
     CORE_ATOMIC_TRANSACTION_BUNDLE(
             "A transaction bundle lands whole or not at all: every entry validated "
             + "before anything is written, all writes in one engine transaction with "
             + "data, history and outbox together, and entries may reference each other by "
             + "`urn:uuid` — resolved to the allocated ids, never stored dangling. What a "
             + "transaction does not serve is refused by name with nothing applied."),
-    /** TODO: prove it in a test. */
     CORE_BATCH_ANSWERS_PER_ENTRY(
             "A batch bundle applies each entry independently through the same path the "
             + "standalone request takes, and answers one response entry per request "

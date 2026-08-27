@@ -5,6 +5,8 @@ import cloud.jengu.dbo.fhir.r4.R4Store;
 import cloud.jengu.dbo.fhir.r4.R4Terminology;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.terminology.TerminologyStore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
@@ -106,6 +108,7 @@ class TerminologyIT {
 
     /** The truth-form inversion: shell payload carries no concepts; reassembly restores the tree. */
     @Test
+    @Proving(DboPromises.CORE_DECLARED_TRUTH_FORM)
     void shellIsConceptFreeAndReassemblyRestoresTheTree() {
         R4Terminology.IngestResult result = terminology.ingestCodeSystem(treeCodeSystem());
 
