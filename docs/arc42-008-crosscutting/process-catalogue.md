@@ -341,6 +341,19 @@ ADR 0060 rejected, and participants are precisely the things behind NAT, on
 edges, and offline for a weekend. Pulling makes an offline participant a lagging
 cursor rather than an outage.
 
+**What a participant may claim is the intersection of what its credential
+covers and what the step admits**, and the two halves are enforced where each
+belongs. The step's half is at the primitive, where the declaration is: the
+baseline always may — it is not an override, it is the rule — and anything more
+local may only where the step opened itself to that class (ADR 0059), so a step
+cannot grant its executor more than the executor already holds. The credential's
+half is at the lane, because the lane is the only door a participant has and
+only the host knows what the credential covers: the entitlement narrows what
+`poll` offers and refuses what `claim` may take. An entitlement is stated when
+the lane is provisioned — *everything*, because the host is the tenant, or the
+steps a credential covers — and there is no implicit unrestricted, so no remote
+participant's reach depends on a parameter somebody forgot.
+
 **A claim is a conditional write with a deadline.** At-most-one actor needs no
 lease service: two participants racing one run produce one winner and one version
 conflict, and the loser takes the next run rather than coordinating about this

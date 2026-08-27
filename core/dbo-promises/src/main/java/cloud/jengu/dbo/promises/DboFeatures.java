@@ -57,7 +57,13 @@ public enum DboFeatures implements Feature {
             + "granted by walking through either.",
             List.of(DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
                     DboPromises.PROC_ONE_ID_ONE_DEFINITION,
-                    DboPromises.PROC_INTRODUCTION_GRANTS_NOTHING));
+                    DboPromises.PROC_INTRODUCTION_GRANTS_NOTHING)),
+
+    WORK_REACHES_ONLY_ITS_HOLDER("A participant sees and takes the work of the steps it "
+            + "holds, and no other — bounded by its own credential on one side and by "
+            + "what the step admits on the other.",
+            List.of(DboPromises.PROC_CLAIM_IS_THE_INTERSECTION,
+                    DboPromises.PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED));
 
     private final String title;
     private final List<Promise> promises;

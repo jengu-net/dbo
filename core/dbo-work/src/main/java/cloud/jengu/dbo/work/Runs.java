@@ -65,6 +65,45 @@ public final class Runs {
         }
     }
 
+    /**
+     * An executor the step does not admit, refused naming both sides (#77).
+     *
+     * <p>Half of "what a participant may claim is the intersection of its
+     * scopes and what the step admits"; the other half — what the credential
+     * holds — is the lane's, because only the host knows the credential.
+     */
+    public static final class NotAdmitted extends RuntimeException {
+        NotAdmitted(String stepId, Executor by, String overridable) {
+            super("step '" + stepId + "' does not admit an executor at scope "
+                    + by.scope().wire() + " ('" + by.name() + "'); it is "
+                    + (overridable == null
+                            ? "not open to local execution at all (ADR 0059: not overridable "
+                                    + "is the default)"
+                            : "open to " + overridable + " and wider"));
+        }
+    }
+
+    /**
+     * Whether this step admits an executor at that scope (ADR 0059).
+     *
+     * <p>The baseline always may — it is not an override, it is the rule — and
+     * anything more local may only where the step said so. A step cannot grant
+     * its executor more than the executor already holds, so this narrows and
+     * never widens.
+     */
+    private void requireAdmits(Run run, Executor by) {
+        String stepId = run.process() + "." + run.step();
+        steps.byId(stepId).ifPresent(declaration -> {
+            String overridable = declaration.overridable().orElse(null);
+            ScopeClass openTo = overridable == null ? null
+                    : ScopeClass.valueOf(overridable.toUpperCase(java.util.Locale.ROOT));
+            if (!StepGrant.of(run.process(), run.step()).overridableBy(openTo)
+                    .admits(by.scope())) {
+                throw new NotAdmitted(stepId, by, overridable);
+            }
+        });
+    }
+
     private void requireAction(Run run, String action) {
         String stepId = run.process() + "." + run.step();
         steps.byId(stepId).ifPresent(declaration -> {
@@ -268,6 +307,7 @@ public final class Runs {
      * @return the claimed run, or empty when somebody else holds it
      */
     public Optional<Run> claim(Run seen, Executor by, java.time.Instant until) {
+        requireAdmits(seen, by);
         Run current = byKey(seen.key()).orElse(null);
         if (current == null || current.claimed(java.time.Instant.now())) {
             return Optional.empty();
