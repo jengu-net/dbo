@@ -70,13 +70,20 @@ throughput — beside the presence the cursor already proves (#148).
   `Steps` installed-not-listed; shape validation through the face; the
   spec's `mandatorySteps` classifying incidents (`StepIncidents`,
   `stepIncidents()`).
-- **Open, in dependency order**: #77 (the reporting half: report through the
-  step's declared actions — unblocked by #71; carries #91's
-  discoverability precondition for the run's coding systems) → #149 (runs
-  name inputs — the only official way documents reach a distributed
-  runner) → #79's remainder (DBOS below, the transport-first exercise) →
-  #147/#148 remainder (introduction over the link) → #150 (milestones) →
-  #80 (the replication toolset) → #75/#76 (the console over it all).
+- **Built, continued**: #77's reporting half — reports go through the step's
+  declared actions, checked in `Runs` itself (the primitive, so lane and
+  console meet one rule): `close` and `reopen` are narrowed where declared,
+  releasing never is, and `Runs.reopen` makes a closed run claimable again
+  with the reason on the record. What keeps #77 open: the credential half
+  (scopes ∩ step's admission — arrives with the acting surface) and #91's
+  discoverability precondition (run coding systems as fetchable
+  `CodeSystem`, a profile for the rendered `Task`), which gates serving
+  runs over HTTP.
+- **Open, in dependency order**: #77's remainder (above) → #149 (runs name
+  inputs — the only official way documents reach a distributed runner) →
+  #79's remainder (DBOS below, the transport-first exercise) → #147/#148
+  remainder (introduction over the link) → #150 (milestones) → #80 (the
+  replication toolset) → #75/#76 (the console over it all).
 - **Consumer's half, later**: the WebSocket lane (socket, framing, handshake,
   tenant auth) is the platform's per ADR 0062; the k8s per-step Deployment
   packaging likewise. dbo owes the store-level toolset (#80) and nothing
@@ -215,6 +222,6 @@ scopes and what the step admits, like every declaration.
 ## Verifying
 
 ```bash
-./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT'
+./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT'
 ```
 (The link scenarios get their ITs with the transport exercise in #79.)

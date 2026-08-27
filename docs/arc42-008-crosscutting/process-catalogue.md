@@ -440,3 +440,14 @@ tasks, a supervisor also reaches the closed ones — so without declared actions
 there is nothing for a role to narrow. It is also what "held by a person" means:
 manual is the baseline here, and what that person may do is exactly the set an
 automated executor would otherwise perform.
+
+**And a report lands through them.** Closing and reopening are acts of
+judgment, checked at the primitive against the step's declaration — a step
+whose actions omit `close` has said its closure is somebody else's act, and a
+participant reporting done there is refused naming both sides. A step that has
+not declared actions is not narrowed (empty means "has not said", never
+"admits nothing"), and **releasing is never narrowed**: released-is-not-done
+is failure honesty, and a step must not be able to refuse to hear that its
+executor failed. A closed run reopens the same way — through the declared
+`reopen`, claimable again with the reason on the record, instead of a second
+run invented to disagree with the first.

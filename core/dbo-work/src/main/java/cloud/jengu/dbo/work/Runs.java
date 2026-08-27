@@ -28,8 +28,51 @@ public final class Runs {
 
     private final ObjectStore store;
 
+    /**
+     * The step catalogue, for reporting through declared actions (#77).
+     * Empty means nothing is declared here and no verb is narrowed.
+     */
+    private final cloud.jengu.dbo.core.process.Steps steps;
+
     public Runs(ObjectStore store) {
+        this(store, cloud.jengu.dbo.core.process.Steps.of());
+    }
+
+    /**
+     * @param steps the declarations reports are checked against
+     *              (REQ-DBO-PROC-REPORT-THROUGH-DECLARED-ACTIONS). Checked
+     *              HERE, at the primitive, because the lane, the console and
+     *              whatever comes next all pass through it — a check at any
+     *              one caller leaves the others to grow a second copy of the
+     *              rule, and two copies is how a rule forks.
+     */
+    public Runs(ObjectStore store, cloud.jengu.dbo.core.process.Steps steps) {
         this.store = store;
+        this.steps = steps;
+    }
+
+    /**
+     * A report verb the step does not declare, refused naming both sides
+     * (#77): the act, and what the step actually contains. A step that has
+     * not declared actions is not narrowed — empty means "has not said",
+     * never "admits nothing" — and an undeclared step is not narrowed
+     * either, because a run may name a step nothing has declared yet.
+     */
+    public static final class NotAnAction extends RuntimeException {
+        NotAnAction(String stepId, String action, java.util.Set<String> declared) {
+            super("step '" + stepId + "' does not contain the action '" + action
+                    + "'; it declares: " + declared);
+        }
+    }
+
+    private void requireAction(Run run, String action) {
+        String stepId = run.process() + "." + run.step();
+        steps.byId(stepId).ifPresent(declaration -> {
+            if (!declaration.actions().isEmpty()
+                    && !declaration.actions().contains(action)) {
+                throw new NotAnAction(stepId, action, declaration.actions());
+            }
+        });
     }
 
     /**
@@ -273,9 +316,38 @@ public final class Runs {
                 Map.copyOf(watermark), before.counted() + 1)));
     }
 
-    /** A run that succeeded: nothing is owed, and nobody holds it. */
+    /**
+     * A run that succeeded: nothing is owed, and nobody holds it.
+     *
+     * <p>Closing is an act of judgment and goes through the step's declared
+     * actions (#77) — a step whose actions omit {@code close} has said its
+     * closure is somebody else's act (a human's, typically), and an
+     * automated participant reporting done is refused by name. Releasing is
+     * NEVER narrowed the same way: released-is-not-done is failure honesty,
+     * and a step must not be able to refuse to hear that its executor
+     * failed.
+     */
     public Run closed(Run run) {
+        requireAction(run, "close");
         return held(run, Holder.NOBODY);
+    }
+
+    /**
+     * A closed run, deliberately open again (#77,
+     * REQ-DBO-PROC-CLOSED-CAN-BE-REOPENED).
+     *
+     * <p>Discovering a close was wrong must not require inventing a second
+     * run to disagree with the first: the run itself becomes claimable again
+     * — the released shape, a holder and no executor — with the reason on
+     * the record. It goes through the step's declared {@code reopen} action,
+     * which is what a supervisor's role will later narrow (#76): reopening
+     * is the judgment the action vocabulary exists for.
+     */
+    public Run reopen(Run run, String because) {
+        requireAction(run, "reopen");
+        return update(run, state(run).withHolder(Holder.AUTOMATION).withAssignment(
+                new Run.Assignment(run.assignment() == null ? null : run.assignment().at(),
+                        null, because, null)));
     }
 
     /** Moves a run to a holder — the only field anybody reads first. */
