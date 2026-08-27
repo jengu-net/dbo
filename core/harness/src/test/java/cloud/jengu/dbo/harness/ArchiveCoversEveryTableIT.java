@@ -6,6 +6,8 @@ import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.maintenance.SealedArchive;
 import cloud.jengu.dbo.maintenance.TenantExport;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -78,6 +80,7 @@ class ArchiveCoversEveryTableIT {
     @Test
     @Timeout(300)
     @DisplayName("every table in the tenant's state schema is in the archive")
+    @Proving(DboPromises.MNT_HISTORY_BY_SCHEMA)
     void theArchiveCoversEveryStateTable() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         TenantExport.export(ds, R4Personality.DOMAIN, OWNER_KEY, out);

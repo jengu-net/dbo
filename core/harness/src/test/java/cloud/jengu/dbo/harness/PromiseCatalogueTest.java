@@ -7,6 +7,7 @@ import cloud.jengu.dbo.promise.Report;
 import cloud.jengu.dbo.promises.DboAreas;
 import cloud.jengu.dbo.promises.DboFeatures;
 import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -31,6 +32,7 @@ class PromiseCatalogueTest {
     @Test
     @DisplayName("the built classpath registers the catalogue — compile-time registration, "
             + "outside the fixture harness for the first time")
+    @Proving(DboPromises.PRM_REGISTERED_AT_COMPILE_TIME)
     void catalogueIsRegistered() {
         assertTrue(Registry.load(PromiseCatalogueTest.class.getClassLoader()).catalogues()
                         .contains(DboPromises.class),
@@ -39,6 +41,7 @@ class PromiseCatalogueTest {
 
     @Test
     @DisplayName("the SHAPE promises are PROVEN by the tests that actually prove them")
+    @Proving({DboPromises.PRM_PROOFS_INDEXED_AT_COMPILE_TIME, DboPromises.PRM_STATUS_IS_DERIVED})
     void shapePromisesAreProven() {
         Registry.Model model = model();
         assertEquals(PromiseStatus.PROVEN,
@@ -57,6 +60,7 @@ class PromiseCatalogueTest {
      */
     @Test
     @DisplayName("SHAPE_VERSIONING is fully proven — its declared gap was stated and promoted")
+    @Proving(DboPromises.PRM_COVERAGE_IS_A_FOLD)
     void theGapWasPromoted() {
         Map<PromiseStatus, Long> coverage = model().coverage(DboFeatures.SHAPE_VERSIONING);
         assertEquals(0L, coverage.getOrDefault(PromiseStatus.GAP, 0L),
@@ -68,6 +72,7 @@ class PromiseCatalogueTest {
 
     @Test
     @DisplayName("the GDPR area folds its constraints; every PDI promise it covers is proven")
+    @Proving(DboPromises.PRM_COVERAGE_IS_A_FOLD)
     void gdprFolds() {
         Map<PromiseStatus, Long> coverage = model().coverage(DboAreas.GDPR);
         assertEquals(0L, coverage.getOrDefault(PromiseStatus.PLANNED, 0L),
@@ -83,6 +88,7 @@ class PromiseCatalogueTest {
      */
     @Test
     @DisplayName("the catalogue projection matches the model — regenerate, never hand-edit")
+    @Proving({DboPromises.PRM_CATALOGUE_READ_WHOLE, DboPromises.PRM_PROJECTION_IS_GENERATED})
     void projectionIsCurrent() throws Exception {
         java.nio.file.Path catalogue = java.nio.file.Path.of("../..",
                 "docs/arc42-006-runtime/req-catalogue.md").toAbsolutePath().normalize();
@@ -94,6 +100,7 @@ class PromiseCatalogueTest {
 
     @Test
     @DisplayName("the rendered report carries the areas, the codes and the statuses")
+    @Proving(DboPromises.PRM_NAME_IS_THE_CODE)
     void reportRenders() {
         String report = Report.render(model());
         assertTrue(report.contains("AREA-GDPR"), report.substring(0, Math.min(600, report.length())));

@@ -5,6 +5,8 @@ import cloud.jengu.dbo.auth.IdentityModel;
 import cloud.jengu.dbo.auth.KeyProtector;
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import com.sun.net.httpserver.HttpServer;
@@ -274,6 +276,7 @@ class FederatedAuthIT {
     /** One ceremony at clinic A: the full chain through the hub and the broker. */
     @Test
     @Order(1)
+    @Proving({DboPromises.AUTH_FEDERATED_HUMANS, DboPromises.AUTH_ONE_CEREMONY_MANY_TENANTS})
     void firstLoginRunsTheNationalCeremonyOnce() throws Exception {
         String token = federatedLogin("kliinika");
         String claims = new String(Base64.getUrlDecoder().decode(token.split("\\.")[1]),
@@ -285,6 +288,7 @@ class FederatedAuthIT {
     /** Clinic B rides the hub session: a second tenant, ZERO further ceremonies. */
     @Test
     @Order(2)
+    @Proving(DboPromises.AUTH_ONE_CEREMONY_MANY_TENANTS)
     void secondTenantCostsNoCeremony() throws Exception {
         String token = federatedLogin("kliinikb");
         assertTrue(token.startsWith("ey"), token);
@@ -295,6 +299,7 @@ class FederatedAuthIT {
     /** Clinic C: same valid identity, no grant — authorization is never shared. */
     @Test
     @Order(3)
+    @Proving({DboPromises.AUTH_FEDERATED_HUMANS, DboPromises.AUTH_ONE_CEREMONY_MANY_TENANTS})
     void aTenantWithoutAGrantDeniesTheSameIdentity() throws Exception {
         assertEquals("error:access_denied", federatedLogin("kliinikc"));
         assertEquals(1, brokerCeremonies.get(), "denial costs no ceremony either");

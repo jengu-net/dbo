@@ -10,6 +10,8 @@ import cloud.jengu.dbo.maintenance.SealedArchive;
 import cloud.jengu.dbo.maintenance.TenantExport;
 import cloud.jengu.dbo.maintenance.TenantImport;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -125,6 +127,7 @@ class ArchiveKindIT {
     @Timeout(300)
     @DisplayName("the portable element carries a Bulk Data manifest, and its digests are "
             + "the ones the archive was attested over")
+    @Proving(DboPromises.MNT_PORTABLE_STATE_EXPORT)
     void thePortableElementIsFindableAsBulkData() throws Exception {
         byte[] export = exported(TenantExport.Kind.PORTABLE_EXPORT);
         String manifest = new String(entryOf(export, TenantExport.BULK_MANIFEST_ENTRY),
@@ -193,6 +196,7 @@ class ArchiveKindIT {
     @Timeout(300)
     @DisplayName("restoring a portable export where a backup is required is refused, and "
             + "says why rather than restoring most of an installation")
+    @Proving(DboPromises.MNT_IMPORT_REFUSES_UNATTESTED)
     void restoringAnExportAsABackupIsRefused() throws Exception {
         byte[] export = exported(TenantExport.Kind.PORTABLE_EXPORT);
         PGSimpleDataSource target = database("archive_kinds_target");

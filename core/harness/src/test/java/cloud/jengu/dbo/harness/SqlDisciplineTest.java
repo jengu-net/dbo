@@ -53,6 +53,7 @@ class SqlDisciplineTest {
 
     /** dbo-core stays framework-free: its jar must not reference SQL, JSON libs, or frameworks at all. */
     @Test
+    @Proving(DboPromises.CONT_FRAMEWORK_FREE_CORE)
     void dboCoreReferencesNoExternalLibraries() throws Exception {
         Path jar = Path.of(System.getProperty("dbo.core.jar"));
         List<String> offenders = new ArrayList<>();

@@ -4,6 +4,8 @@ import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
 import cloud.jengu.dbo.core.face.PayloadFraming;
 import cloud.jengu.dbo.core.face.Payloads;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -45,6 +47,7 @@ class OneFaceOverTheElementModelTest {
 
     @Test
     @DisplayName("a version says what it serves, and says the ballot exactly")
+    @Proving(DboPromises.VER_BALLOT_RECORDED_PER_VERSION)
     void theVersionSaysWhatItIs() {
         assertEquals("r6", version.code());
         assertEquals("6.0.0-ballot5", version.payloadVersion(),
@@ -68,6 +71,7 @@ class OneFaceOverTheElementModelTest {
 
     @Test
     @DisplayName("a conformant resource is accepted, and a malformed one is not")
+    @Proving(DboPromises.VER_PERSONALITY_OWNS_MEANING)
     void validationAnswersFromTheDefinitions() {
         Payloads<Object> payloads = payloads();
 
@@ -86,6 +90,7 @@ class OneFaceOverTheElementModelTest {
 
     @Test
     @DisplayName("the envelope comes from the version's own search parameters")
+    @Proving(DboPromises.VER_PERSONALITY_OWNS_MEANING)
     void theEnvelopeComesFromTheDefinitions() {
         Envelope envelope = version.extractor("Patient")
                 .extract("Patient", PATIENT.getBytes(StandardCharsets.UTF_8));
@@ -144,6 +149,7 @@ class OneFaceOverTheElementModelTest {
 
     @Test
     @DisplayName("and the face declares no converter, because there is none to declare")
+    @Proving(DboPromises.VER_BALLOT_SERVED_AS_AUTHORED)
     void noConverterIsDeclared() {
         assertTrue(version.face().capability(
                         cloud.jengu.dbo.core.api.PayloadConverter.class).isEmpty(),

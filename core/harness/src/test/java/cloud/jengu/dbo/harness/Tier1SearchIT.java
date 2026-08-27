@@ -6,6 +6,8 @@ import cloud.jengu.dbo.fhir.r4.R4Store;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.common.UnknownSearchParameterException;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -90,6 +92,7 @@ class Tier1SearchIT {
 
     /** Inventory: `Device?identifier=<EDGE>|` — any value in system. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void anyValueInSystemTokenMatches() {
         fhir.create(patient("60001019906", "SysOnly"));
         String hits = fhir.search("Patient", Map.of("identifier", EID + "|"), null);
@@ -100,6 +103,7 @@ class Tier1SearchIT {
 
     /** Inventory: `Organization?...&partof:missing=false` / `=true`. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void missingModifierSplitsRootsFromChildren() {
         PutResult root = fhir.create("{\"resourceType\":\"Organization\",\"name\":\"Root Org\"}");
         fhir.create("""
@@ -116,6 +120,7 @@ class Tier1SearchIT {
 
     /** Inventory (lab edge): `Observation?status=final&_tag:not=lis-synced&_sort=-_lastUpdated`. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void tagNotModifierFindsTheUnsyncedOnes() {
         fhir.create(observation("11111-1", "lis-synced", null));
         fhir.create(observation("22222-2", "fresh", null));
@@ -134,6 +139,7 @@ class Tier1SearchIT {
 
     /** Inventory (result intake): `Observation?based-on:identifier=<orderSystem>|&status=final`. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void logicalReferenceIdentifierMatchesBySystem() {
         fhir.create(observation("44444-4", null, "ORD-77"));
         fhir.create(observation("55555-5", null, null));
@@ -149,6 +155,7 @@ class Tier1SearchIT {
 
     /** Inventory (lab edge HL7 context): `ServiceRequest?specimen.identifier=<barcode>&status=active`. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void oneLevelChainReachesTheSpecimenBarcode() {
         PutResult patient = fhir.create(patient("37605030299", "Chained"));
         PutResult specimen = fhir.create("""
@@ -171,6 +178,7 @@ class Tier1SearchIT {
 
     /** Inventory (edge sync cursor): `?_lastUpdated=gt<cursor>&_sort=_lastUpdated`. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void lastUpdatedCursorSweepSeesOnlyNewerWrites() throws Exception {
         fhir.create(patient("48912120011", "BeforeCursor"));
         Thread.sleep(5);
@@ -189,6 +197,7 @@ class Tier1SearchIT {
 
     /** FHIR string semantics: default is case-insensitive starts-with; :exact is case-sensitive. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void stringSearchStartsWithByDefaultAndExactWithModifier() {
         fhir.create(patient("39209090033", "Kaasik"));
 
@@ -201,6 +210,7 @@ class Tier1SearchIT {
 
     /** Inventory (terminology sync): `ValueSet?url=<canonical>`. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void uriParamFindsTheCanonical() {
         fhir.putCanonical("""
                 {"resourceType":"ValueSet","status":"active",
@@ -213,6 +223,7 @@ class Tier1SearchIT {
 
     /** Inventory: `Practitioner?_summary=count` — total without entries. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void summaryCountReturnsTotalsWithoutEntries() {
         fhir.create(patient("60807070044", "Counted"));
         String bundle = fhir.search("Patient", Map.of("_summary", "count"), null);
@@ -222,6 +233,7 @@ class Tier1SearchIT {
 
     /** Inventory (terminology sync): `?_elements=identifier,name` trims payloads. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void elementsProjectionTrimsEncodedResources() {
         fhir.create(patient("70503030055", "Trimmed"));
         String bundle = fhir.search("Patient", Map.of(
@@ -233,6 +245,7 @@ class Tier1SearchIT {
 
     /** Inventory (lab worklist): `ServiceRequest?...&_include=ServiceRequest:specimen`. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void includeCarriesTheSpecimenAlong() {
         PutResult patient = fhir.create(patient("81201010066", "Included"));
         PutResult specimen = fhir.create("""
@@ -254,6 +267,7 @@ class Tier1SearchIT {
 
     /** Inventory (bootstrap workhorse): If-None-Exist by identifier / url is idempotent; others rejected. */
     @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
     void conditionalCreateIsIdentityKeyedAndIdempotent() {
         PutResult first = fhir.conditionalCreate(patient("90154321077", "CondCreate"),
                 Map.of("identifier", EID + "|90154321077"));
@@ -270,6 +284,7 @@ class Tier1SearchIT {
 
     /** `_offset` is rejected with cursor guidance; unknown params stay rejected. */
     @Test
+    @Proving(DboPromises.SRCH_STRICT_BY_DEFAULT)
     void offsetAndUnknownParametersAreStillRejected() {
         assertThrows(UnknownSearchParameterException.class, () ->
                 fhir.search("Patient", Map.of("_offset", "20"), null));
@@ -288,6 +303,7 @@ class Tier1SearchIT {
      * looks most like working, since the search succeeds and answers nothing.
      */
     @Test
+    @Proving(DboPromises.SRCH_TYPED_ORDERING)
     void aDateParameterAcceptsEveryPrecisionAndMeansTheWholeSpan() {
         PutResult subject = fhir.create(patient("11101010012", "Dated"));
         for (String day : List.of("2031-03-01", "2031-03-15", "2031-04-02")) {

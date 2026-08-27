@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Constructor;
@@ -25,11 +27,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ApiBoundaryTest {
 
     @Test
+    @Proving(DboPromises.CONT_PRIVATE_DEPENDENCIES)
     void noPublicApiOfTheR4PersonalityExposesHapiTypes() throws Exception {
         scanPersonalityJar(Path.of(System.getProperty("dbo.fhir.r4.jar")));
     }
 
     @Test
+    @Proving(DboPromises.CONT_PRIVATE_DEPENDENCIES)
     void noPublicApiOfTheR5PersonalityExposesHapiTypes() throws Exception {
         scanPersonalityJar(Path.of(System.getProperty("dbo.fhir.r5.jar")));
     }

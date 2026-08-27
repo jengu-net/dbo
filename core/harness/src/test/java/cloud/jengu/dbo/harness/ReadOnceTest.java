@@ -2,6 +2,8 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.core.face.Payloads;
 import cloud.jengu.dbo.core.face.ReadOnce;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -56,6 +58,7 @@ class ReadOnceTest {
 
     @Test
     @DisplayName("the engine asking about the bytes the face read gets the document it read")
+    @Proving(DboPromises.VER_ONE_READ_PER_REQUEST)
     void oneReadForOneWrite() {
         Counting counting = new Counting();
         Payloads<String> payloads = new ReadOnce<>(counting);
@@ -70,6 +73,7 @@ class ReadOnceTest {
 
     @Test
     @DisplayName("bytes that were rewritten on the way in are read as they now stand")
+    @Proving(DboPromises.VER_ONE_READ_PER_REQUEST)
     void rewrittenBytesAreReadAgain() {
         Counting counting = new Counting();
         Payloads<String> payloads = new ReadOnce<>(counting);

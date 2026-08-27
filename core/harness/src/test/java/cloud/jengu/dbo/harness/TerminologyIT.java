@@ -86,6 +86,7 @@ class TerminologyIT {
     /** REQ-DBO-TERM-BULK-LOAD: 40k concepts, one COPY, no parameter ceiling; re-ingest replaces. */
     @Test
     @Timeout(180)
+    @Proving(DboPromises.TERM_BULK_LOAD)
     void fortyThousandConceptsIngestInOneCopy() {
         long t0 = System.nanoTime();
         R4Terminology.IngestResult first = terminology.ingestCodeSystem(bigCodeSystem(40_000, "1.0"));
@@ -108,7 +109,7 @@ class TerminologyIT {
 
     /** The truth-form inversion: shell payload carries no concepts; reassembly restores the tree. */
     @Test
-    @Proving(DboPromises.CORE_DECLARED_TRUTH_FORM)
+    @Proving({DboPromises.CORE_DECLARED_TRUTH_FORM, DboPromises.TERM_NATIVE_FORM})
     void shellIsConceptFreeAndReassemblyRestoresTheTree() {
         R4Terminology.IngestResult result = terminology.ingestCodeSystem(treeCodeSystem());
 
@@ -175,6 +176,7 @@ class TerminologyIT {
 
     /** $expand flavors: enumerated, is-a descendants, exclude, whole-system paging, prefix filter. */
     @Test
+    @Proving(DboPromises.TERM_OPERATIONS_FROM_NATIVE_FORM)
     void expandServesAllComposeFlavorsFromConceptRows() {
         terminology.ingestCodeSystem(treeCodeSystem());
 
@@ -216,6 +218,7 @@ class TerminologyIT {
 
     /** $lookup carries display, designations and properties; $validate-code answers both ways. */
     @Test
+    @Proving(DboPromises.TERM_OPERATIONS_FROM_NATIVE_FORM)
     void lookupAndValidateServeFromConceptRows() {
         terminology.ingestCodeSystem(treeCodeSystem());
 

@@ -7,6 +7,8 @@ import cloud.jengu.dbo.maintenance.SealedArchive;
 import cloud.jengu.dbo.maintenance.TenantExport;
 import cloud.jengu.dbo.maintenance.TenantImport;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -143,6 +145,7 @@ class ExportStreamsIT {
     @Timeout(300)
     @DisplayName("a verified import preserves the archive's versions and moments, and a "
             + "resumed run skips what already landed")
+    @Proving(DboPromises.MNT_ACCEPTED_ROOT_RECORDED)
     void aVerifiedImportPreservesHistoryAndResumes() throws Exception {
         // a second tenant to import into
         String jdbcUrl = SharedPostgres.urlFor("ExportStreamsIT");

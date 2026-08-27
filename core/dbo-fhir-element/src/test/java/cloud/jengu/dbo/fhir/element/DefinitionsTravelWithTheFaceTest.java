@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.fhir.element;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.hl7.fhir.r5.context.SimpleWorkerContext;
 import org.hl7.fhir.r5.model.SearchParameter;
 import org.hl7.fhir.r5.model.StructureDefinition;
@@ -27,6 +29,7 @@ class DefinitionsTravelWithTheFaceTest {
 
     @Test
     @DisplayName("the packages are in the bundle, pinned by the build")
+    @Proving(DboPromises.VER_DEFINITIONS_TRAVEL_WITH_THE_FACE)
     void thePackagesAreCarried() {
         List<CarriedDefinitions.Carried> carried = CarriedDefinitions.carried();
 
@@ -43,6 +46,8 @@ class DefinitionsTravelWithTheFaceTest {
 
     @Test
     @DisplayName("and a context is built from those bytes, reporting the version they declare")
+    @Proving({DboPromises.VER_BALLOT_RECORDED_PER_VERSION,
+            DboPromises.VER_DEFINITIONS_TRAVEL_WITH_THE_FACE})
     void aContextIsBuiltOffline() {
         SimpleWorkerContext context = CarriedDefinitions.contextFor("r6");
 
@@ -58,6 +63,7 @@ class DefinitionsTravelWithTheFaceTest {
 
     @Test
     @DisplayName("a version this face does not carry is refused, not downloaded")
+    @Proving(DboPromises.VER_DEFINITIONS_TRAVEL_WITH_THE_FACE)
     void anUncarriedVersionIsRefused() {
         CarriedDefinitions.NotCarried refusal = assertThrows(CarriedDefinitions.NotCarried.class,
                 () -> CarriedDefinitions.contextFor("dstu2"));

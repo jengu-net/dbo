@@ -33,6 +33,14 @@ dependencies {
     // over a library two bundles use for different things.
     embedded("com.fasterxml.jackson.core:jackson-core:2.22.1")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    // this face's tests cite the store's promises; dbo-promises is a leaf
+    // (it depends on the promise framework and nothing else), so citing from
+    // here adds no cycle
+    testImplementation(project(":core:dbo-promises"))
+    // the promise framework's processor indexes @Proving citations at THIS
+    // module's test-compile time; without this configuration the index is
+    // silently absent (#140)
+    testAnnotationProcessor(project(":promise"))
     // the engine logs; compileOnly above is the runtime's arrangement, and a
     // test has no bundle to import it from
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.18")

@@ -4,6 +4,8 @@ import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.r4.R4FhirVersion;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -79,6 +81,7 @@ class TokenSearchFormsIT {
 
     @Test
     @DisplayName("system and value matches that one")
+    @Proving(DboPromises.SRCH_TYPED_ORDERING)
     void systemAndValue() {
         assertEquals(1, matched(EID + "|kood-1"));
         assertEquals(1, counted(EID + "|kood-1"));
@@ -86,6 +89,7 @@ class TokenSearchFormsIT {
 
     @Test
     @DisplayName("a code with no system matches it in whatever system it is in")
+    @Proving(DboPromises.SRCH_TYPED_ORDERING)
     void bareCode() {
         assertEquals(1, matched("kood-3"),
                 "a bare code is a question about the code, and the system is not part of it");
@@ -94,6 +98,7 @@ class TokenSearchFormsIT {
 
     @Test
     @DisplayName("a system with no value matches everything in that system")
+    @Proving(DboPromises.SRCH_TYPED_ORDERING)
     void systemOnly() {
         assertEquals(2, matched(EID + "|"),
                 "sys| asks how many carry an identifier in that system at all");

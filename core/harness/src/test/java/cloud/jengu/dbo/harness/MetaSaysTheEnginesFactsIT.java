@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -159,6 +161,7 @@ class MetaSaysTheEnginesFactsIT {
      * record itself tells its reader.
      */
     @Test
+    @Proving(DboPromises.SYNC_LOCAL_SHADOWING)
     void aRecordShadowingAnUpstreamCopySaysSoInMetaTag() throws Exception {
         // saaja's own local decision at a canonical the upstream also publishes
         assertEquals(201, post(base("saaja") + "/CodeSystem", """

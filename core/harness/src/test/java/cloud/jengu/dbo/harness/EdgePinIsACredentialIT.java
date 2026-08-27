@@ -7,6 +7,8 @@ import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.Identifier;
 import cloud.jengu.dbo.core.api.TypeRegistration;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -68,6 +70,7 @@ class EdgePinIsACredentialIT {
     @Test
     @Timeout(300)
     @DisplayName("a PIN set at the bench is verified there, and is not on any clinical record")
+    @Proving(DboPromises.AUTH_CREDENTIAL_FACTORS_BY_KIND)
     void aPinIsACredential() {
         authority.setFactor("albus@hogwarts.scot", "pin", "4815");
 
@@ -78,6 +81,7 @@ class EdgePinIsACredentialIT {
     @Test
     @Timeout(300)
     @DisplayName("setting a password leaves the PIN, and setting a PIN leaves the password")
+    @Proving(DboPromises.AUTH_CREDENTIAL_FACTORS_BY_KIND)
     void factorsDoNotOverwriteEachOther() {
         authority.setFactor("albus@hogwarts.scot", "pin", "4815");
 
@@ -109,6 +113,7 @@ class EdgePinIsACredentialIT {
     @Test
     @Timeout(300)
     @DisplayName("factors are kinds — a one-time code sits beside the PIN, not over it")
+    @Proving(DboPromises.AUTH_CREDENTIAL_FACTORS_BY_KIND)
     void factorsAreKindsNotFields() {
         authority.setFactor("albus@hogwarts.scot", "pin", "4815");
         authority.setFactor("albus@hogwarts.scot", "otp", "162342");
@@ -160,6 +165,7 @@ class EdgePinIsACredentialIT {
     @Test
     @Timeout(300)
     @DisplayName("the credential is store-authored — it rides a backup and never an export")
+    @Proving(DboPromises.AUTH_IDENTITY_AS_RECORDS)
     void theCredentialIsClassifiedAsOne() {
         TypeRegistration credential = IdentityModel.registrations().stream()
                 .filter(t -> t.typeName().equals("LocalCredential"))

@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.k8s.KubernetesSecretProvisioner;
 import cloud.jengu.dbo.tenant.k8s.SpecDirSync;
 import cloud.jengu.dbo.operator.TenantOperator;
@@ -163,6 +165,8 @@ class OperatorIT {
     @Test
     @Order(1)
     @Timeout(300)
+    @Proving({DboPromises.POL_DECLARED_AT_CONFIGURATION,
+            DboPromises.TEN_CREDENTIAL_BLIND_PROVISIONING, DboPromises.TEN_DEDICATED_DATABASE_TIER})
     void aRegistrationBecomesDatabaseRoleSecretAndConfigMapEntry() throws Exception {
         createAndReconcile("opitenant", "Retain");
 
@@ -356,6 +360,7 @@ class OperatorIT {
     @Test
     @Order(4)
     @Timeout(300)
+    @Proving(DboPromises.TEN_ERASURE_BY_DROP)
     void deleteDeletionDropsDatabaseRoleAndSecret() throws Exception {
         createAndReconcile("kaduja", "Delete");
         assertEquals(1, countIn("SELECT count(*) FROM pg_database WHERE datname = 'tenant_kaduja'"));

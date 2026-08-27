@@ -1,6 +1,8 @@
 package cloud.jengu.dbo.fhir.element;
 
 import cloud.jengu.dbo.core.face.RecordProjection;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -49,6 +51,7 @@ class ContributedAuditEventTest {
     }
 
     @Test
+    @Proving({DboPromises.POL_CUSTOM_AUDIT_EVENTS, DboPromises.POL_FHIR_AUDIT_PROJECTION})
     void whatWasPostedComesBack() {
         Optional<RecordProjection.Posted> posted =
                 projection.readPosted("AuditEntry", POSTED);
@@ -68,6 +71,7 @@ class ContributedAuditEventTest {
     }
 
     @Test
+    @Proving(DboPromises.POL_CUSTOM_AUDIT_EVENTS)
     void whoAndWhenAreTheContainersWhateverWasClaimed() {
         RecordProjection.Posted posted =
                 projection.readPosted("AuditEntry", POSTED).orElseThrow();

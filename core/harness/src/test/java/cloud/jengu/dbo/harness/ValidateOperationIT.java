@@ -4,6 +4,8 @@ import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.fhir.r4.R4Store;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.rest.FhirHttpServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -86,6 +88,7 @@ class ValidateOperationIT {
     @Test
     @Timeout(300)
     @DisplayName("what $validate rejects, a write rejects — and it says where, not just that")
+    @Proving(DboPromises.VER_VALIDATION_WITHOUT_WRITING)
     void aRejectionAgreesWithTheWriteAndNamesTheLocation() throws Exception {
         HttpResponse<String> answer = validate(INVALID, "");
 
@@ -106,6 +109,7 @@ class ValidateOperationIT {
     @Test
     @Timeout(300)
     @DisplayName("what $validate accepts, a write accepts, and nothing was written by asking")
+    @Proving(DboPromises.VER_VALIDATION_WITHOUT_WRITING)
     void anAcceptanceAgreesAndWritesNothing() throws Exception {
         HttpResponse<String> answer = validate(VALID, "");
 
@@ -156,6 +160,7 @@ class ValidateOperationIT {
     @Test
     @Timeout(300)
     @DisplayName("every operation the statement declares is answered, and an undeclared one is not")
+    @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
     void declaredAndRoutableAreTheSameSet() throws Exception {
         String statement = HTTP.send(HttpRequest.newBuilder(
                                 URI.create(server.baseUrl() + "/metadata")).GET().build(),

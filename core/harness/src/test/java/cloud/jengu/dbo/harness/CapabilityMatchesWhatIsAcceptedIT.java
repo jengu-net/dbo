@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -91,6 +93,7 @@ class CapabilityMatchesWhatIsAcceptedIT {
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"operational", "projected-config", "mirrored", "replicated",
             "audit", "ephemeral"})
+    @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
     void whatIsAdvertisedIsWhatIsAccepted(String handling) throws Exception {
         String base = BASES.get(handling);
         String metadata = get(base + "/metadata");

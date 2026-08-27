@@ -10,6 +10,8 @@ import cloud.jengu.dbo.maintenance.TenantExport;
 import cloud.jengu.dbo.maintenance.TenantImport;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -115,6 +117,7 @@ class MaintenanceIT {
 
     /** Portable restore into a fresh tenant: same ids, searches hit, fresh history. */
     @Test
+    @Proving({DboPromises.MNT_BACKUP_IS_EXPORT, DboPromises.MNT_PORTABLE_STATE_EXPORT})
     void portableImportRestoresIntoAFreshTenant() throws Exception {
         PgObjectStore engineB = new PgObjectStore(dsB, personality.registrations());
         R4Store tenantB = new R4Store(engineB, personality, "https://b.test");
@@ -134,6 +137,7 @@ class MaintenanceIT {
 
     /** Re-import into the SAME tenant is a no-op (REQ-DBO-MNT-PORTABLE-STATE-EXPORT). */
     @Test
+    @Proving(DboPromises.MNT_PORTABLE_STATE_EXPORT)
     void reimportIntoTheSameTenantIsANoOp() throws Exception {
         long versionBefore = engineA.get("Patient", patientId).orElseThrow().versionId();
         var result = CoSignedArchive.over(archive, OWNER_KEY)
@@ -148,6 +152,7 @@ class MaintenanceIT {
 
     /** The platform cannot read what it operates: wrong key fails; no plaintext in the file. */
     @Test
+    @Proving(DboPromises.MNT_OWNER_KEY_ENCRYPTION)
     void wrongKeyFailsAndArchiveCarriesNoPlaintext() throws Exception {
         // signed properly, then opened with the wrong key: the refusal is the
         // seal's, before any signature is even looked at
@@ -161,6 +166,7 @@ class MaintenanceIT {
 
     /** Fidelity restore: version ids and full history byte-equal; outbox sequence continues. */
     @Test
+    @Proving(DboPromises.MNT_HISTORY_BY_SCHEMA)
     void fidelityRestoreIsByteFaithful() throws Exception {
         PgObjectStore engineC = new PgObjectStore(dsC, personality.registrations());
         CoSignedArchive.over(archive, OWNER_KEY)
@@ -191,6 +197,7 @@ class MaintenanceIT {
 
     /** The manifest fence: post-export writes sit strictly after the cursor — incremental = the feed. */
     @Test
+    @Proving(DboPromises.MNT_SNAPSHOT_CONSISTENT)
     void manifestFenceMakesIncrementalExportTheFeed() {
         PutResult after = tenantA.create("""
                 {"resourceType":"Observation","status":"final",

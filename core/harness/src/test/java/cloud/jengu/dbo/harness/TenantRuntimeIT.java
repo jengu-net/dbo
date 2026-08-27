@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -112,6 +114,7 @@ class TenantRuntimeIT {
     /** Two tenants, two FHIR versions, one port — fully isolated. */
     @Test
     @Order(2)
+    @Proving(DboPromises.VER_CONCURRENT_VERSIONS)
     void twoTenantsServeConcurrentlyIsolated() throws Exception {
         Files.writeString(dir.resolve("teine.json"), """
                 {"code":"teine","fhirVersion":"r5","types":[
@@ -149,6 +152,7 @@ class TenantRuntimeIT {
      */
     @Test
     @Order(8)
+    @Proving(DboPromises.TERM_EVERY_TENANT_ANSWERS)
     void everyTenantAnswersTerminologyFromItsOwnStore() throws Exception {
         Files.writeString(dir.resolve("terms4.json"), """
                 {"code":"terms4","fhirVersion":"r4","types":[
@@ -237,6 +241,7 @@ class TenantRuntimeIT {
     /** Erasure is only the explicit deprovision: the database is dropped. */
     @Test
     @Order(4)
+    @Proving(DboPromises.TEN_ERASURE_BY_DROP)
     void deprovisionDropsTheDatabase() throws Exception {
         Files.delete(dir.resolve("aiakas.json"));
         manager.scanOnce();

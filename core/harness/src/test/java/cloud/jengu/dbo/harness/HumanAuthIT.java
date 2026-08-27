@@ -9,6 +9,8 @@ import cloud.jengu.dbo.pdi.PdiSetup;
 import cloud.jengu.dbo.pdi.PdiSpec;
 import cloud.jengu.dbo.pdi.PersonVault;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.tenant.TenantSpec;
@@ -179,6 +181,7 @@ class HumanAuthIT {
     /** The whole front door: form → code → PKCE exchange → pseudonymous tokens. */
     @Test
     @Order(1)
+    @Proving({DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL, DboPromises.AUTH_PSEUDONYMOUS_TOKENS})
     void authorizationCodeFlowMintsPseudonymousUserTokens() throws Exception {
         byte[] random = new byte[32];
         new SecureRandom().nextBytes(random);
@@ -230,6 +233,7 @@ class HumanAuthIT {
     /** The grant governs the surface; the audit trail names the human. */
     @Test
     @Order(2)
+    @Proving({DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL, DboPromises.AUTH_SMART_SHAPED_SCOPES})
     void userScopesGovernTheSurfaceAndAuditNamesTheHuman() throws Exception {
         assertEquals(200, http.send(HttpRequest.newBuilder(
                         URI.create(base("arst") + "/fhir/Patient?_summary=count"))
@@ -290,6 +294,7 @@ class HumanAuthIT {
     /** Revocation is ending a period on a clinical record — refresh honours it. */
     @Test
     @Order(4)
+    @Proving(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL)
     void endingThePractitionerRolePeriodRevokesAccess() throws Exception {
         String service = serviceToken("arst");
         HttpResponse<String> ended = http.send(HttpRequest.newBuilder(
@@ -436,6 +441,9 @@ class HumanAuthIT {
      */
     @Test
     @Order(9)
+    @Proving({DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS,
+            DboPromises.AUTH_NO_SUBJECT_ENUMERATION, DboPromises.AUTH_RECOVERY_IS_AN_OPERATOR_ACT,
+            DboPromises.AUTH_SELF_SERVICE_CHANGE})
     void aSubjectChangesTheirOwnSecretAndAnOperatorRetiresIt() throws Exception {
         String humanToken = codeFlowAccessToken();
 
@@ -488,6 +496,7 @@ class HumanAuthIT {
      */
     @Test
     @Order(10)
+    @Proving(DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT)
     void aPersonSetsTheirOwnFirstSecretFromAOneTimeGrant() throws Exception {
         String service = serviceToken("arst");
         // provisioning adds the person with no secret anybody could hand over
@@ -514,6 +523,9 @@ class HumanAuthIT {
      */
     @Test
     @Order(11)
+    @Proving({DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS,
+            DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
+            DboPromises.AUTH_NO_SUBJECT_ENUMERATION})
     void aGrantSaysNothingAboutWhoExists() throws Exception {
         String service = serviceToken("arst");
 
@@ -544,6 +556,7 @@ class HumanAuthIT {
     /** A grant authenticates nothing and cannot be exchanged for a token (#68). */
     @Test
     @Order(12)
+    @Proving(DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT)
     void aGrantIsNotACredential() throws Exception {
         String grant = mintGrant(serviceToken("arst"), "albus");
 
@@ -748,6 +761,7 @@ class HumanAuthIT {
      */
     @Test
     @Order(8)
+    @Proving(DboPromises.AUTH_FEDERATED_HUMANS)
     void nationalIdResolvesThePersonUnderPdiAndWithout() throws Exception {
         // plain tenant: envelope identifier
         R4Personality plain = new R4Personality(TenantSpec.parse(

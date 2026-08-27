@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -92,6 +94,7 @@ class OneResultContractIT {
     }
 
     @Test
+    @Proving(DboPromises.POL_FHIR_AUDIT_PROJECTION)
     void bothPathsBoundAPageTheSameWay() throws Exception {
         assertEquals(2, members(get("/Patient?_count=2").body(), "Patient"),
                 "the ordinary path bounds a page");
@@ -108,6 +111,7 @@ class OneResultContractIT {
     }
 
     @Test
+    @Proving(DboPromises.SRCH_STRICT_BY_DEFAULT)
     void bothPathsRefuseWhatTheyCannotHonourRatherThanIgnoringIt() throws Exception {
         // an unreadable count is not a count, on either path
         assertEquals(400, get("/Patient?_count=lots").statusCode());

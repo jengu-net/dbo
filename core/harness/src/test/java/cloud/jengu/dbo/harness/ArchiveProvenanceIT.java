@@ -2,6 +2,8 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.fhir.common.ArchiveProvenance;
 import cloud.jengu.dbo.fhir.r4.R4Personality;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -34,6 +36,7 @@ class ArchiveProvenanceIT {
     @Test
     @Timeout(300)
     @DisplayName("the rendered attestation is a valid Provenance, checked by a real personality")
+    @Proving(DboPromises.MNT_ATTESTATION_READS_AS_FHIR)
     void theRenderingIsAValidProvenance() {
         R4Personality personality = new R4Personality(List.of());
         List<String> errors = personality.validate(rendered()).stream()
@@ -44,6 +47,7 @@ class ArchiveProvenanceIT {
 
     @Test
     @DisplayName("it names the archive by its root and each signer by key, never by name")
+    @Proving(DboPromises.MNT_ATTESTATION_READS_AS_FHIR)
     void itNamesTheRootAndTheKeys() {
         String json = rendered();
 

@@ -107,6 +107,7 @@ class PolicyIT {
     /** Incoherent policies never parse: floor above ceiling, unknown levels. */
     @Test
     @Order(1)
+    @Proving({DboPromises.POL_DECLARATIVE_RETENTION, DboPromises.POL_DECLARED_AT_CONFIGURATION})
     void incoherentPoliciesAreRejectedAtParse() {
         assertThrows(IllegalArgumentException.class, () -> TenantPolicies.parse(Map.of(
                 "retention", Map.of("perType", Map.of("Observation",
@@ -121,6 +122,7 @@ class PolicyIT {
     /** Writes are audited with the caller's identity; the audit stream is its own outbox. */
     @Test
     @Order(2)
+    @Proving({DboPromises.POL_ACTOR_FROM_AUTHORITY, DboPromises.POL_AUDIT_AS_RECORDS})
     void writesAreAuditedWithTheActor() {
         Caller.set("lab-engine");
         PutResult created = store.put(PutRequest.create("Observation", observation("Hb")));
@@ -144,6 +146,7 @@ class PolicyIT {
     /** Append-only rejects tombstones naming the policy; per-type override stays standard. */
     @Test
     @Order(3)
+    @Proving(DboPromises.POL_APPEND_ONLY_DISCIPLINE)
     void appendOnlyRejectsTombstonesButOverridesApply() {
         PutResult observation = store.put(PutRequest.create("Observation", observation("Na")));
         PolicyViolationException refusal = assertThrows(PolicyViolationException.class,
@@ -162,6 +165,8 @@ class PolicyIT {
     /** §15.1: the trail is open upward, closed downward. */
     @Test
     @Order(5)
+    @Proving({DboPromises.POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY,
+            DboPromises.POL_CUSTOM_AUDIT_EVENTS})
     void customEventsAreStampedAndTheTrailIsUntouchable() {
         Caller.set("visits-engine");
         String entryId = store.recordCustom("report-released", "DocumentReference", "doc-1",
@@ -184,7 +189,8 @@ class PolicyIT {
     /** §15.3: expired objects leave state AND history; the removal is audited, the data is not retained. */
     @Test
     @Order(6)
-    @Proving(DboPromises.PROC_TRACE_JOIN)
+    @Proving({DboPromises.POL_DECLARATIVE_RETENTION, DboPromises.POL_POLICY_REPLAY_ON_RESTORE,
+            DboPromises.POL_RETENTION_SWEEP, DboPromises.PROC_TRACE_JOIN})
     void retentionRemovesExpiredObjectsAndAuditsTheRemoval() throws Exception {
         PutResult old = store.put(PutRequest.create("Observation", observation("Vana")));
         backdate(old.id(), "45 days");

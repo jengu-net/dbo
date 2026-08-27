@@ -5,6 +5,8 @@ import cloud.jengu.dbo.core.api.IdentityClass;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.common.FhirVersion;
 import cloud.jengu.dbo.fhir.common.FhirVersions;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.TenantSpec;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,7 @@ class VersionsAreInstalledNotListedTest {
 
     @Test
     @DisplayName("a face announces itself, so the versions are the ones installed")
+    @Proving(DboPromises.VER_VERSION_AGNOSTIC_CORE)
     void facesAnnounceThemselves() {
         Set<String> codes = FhirVersions.installed().codes();
 
@@ -56,6 +59,7 @@ class VersionsAreInstalledNotListedTest {
 
     @Test
     @DisplayName("a version nothing provides is refused, and told what would have worked")
+    @Proving(DboPromises.VER_VERSION_AGNOSTIC_CORE)
     void anUninstalledVersionIsRefusedByName() {
         FhirVersions versions = FhirVersions.of(FhirVersions.installed().require("r4"));
 
@@ -78,6 +82,7 @@ class VersionsAreInstalledNotListedTest {
 
     @Test
     @DisplayName("and a spec is no longer the place the version list lives")
+    @Proving(DboPromises.VER_VERSION_AGNOSTIC_CORE)
     void aSpecAcceptsAVersionItCannotKnowAbout() {
         // The spec's job is that a version is named; whether anything serves it
         // is answered where the answer is known.

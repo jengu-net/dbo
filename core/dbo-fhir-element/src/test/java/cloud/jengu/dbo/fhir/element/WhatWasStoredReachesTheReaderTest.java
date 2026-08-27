@@ -1,6 +1,8 @@
 package cloud.jengu.dbo.fhir.element;
 
 import cloud.jengu.dbo.core.face.Payloads;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -37,6 +39,7 @@ class WhatWasStoredReachesTheReaderTest {
 
     @Test
     @DisplayName("an element this version has never heard of survives the way out")
+    @Proving(DboPromises.VER_BALLOT_SERVED_AS_AUTHORED)
     void aLaterVersionsElementSurvives() {
         // instantiatesCanonical is not in R4's Patient. The model drops it; a
         // store must not, because what was stored is what was promised back.
@@ -52,6 +55,7 @@ class WhatWasStoredReachesTheReaderTest {
 
     @Test
     @DisplayName("and so do an unknown extension, a primitive's extension and a narrative")
+    @Proving(DboPromises.VER_BALLOT_SERVED_AS_AUTHORED)
     void whatTheAuthorWroteSurvives() {
         String served = read("""
                 {"resourceType":"Patient",
@@ -87,6 +91,7 @@ class WhatWasStoredReachesTheReaderTest {
 
     @Test
     @DisplayName("field order is the author's, and a number keeps the precision it was written at")
+    @Proving(DboPromises.VER_BALLOT_SERVED_AS_AUTHORED)
     void orderAndPrecisionAreTheAuthors() {
         String served = read("""
                 {"resourceType":"Observation","status":"final",

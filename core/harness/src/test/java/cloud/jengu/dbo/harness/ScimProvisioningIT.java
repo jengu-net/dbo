@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -90,6 +92,7 @@ class ScimProvisioningIT {
     @Order(1)
     @DisplayName("create: the User lands as a Person claiming the externalId, with a linked "
             + "Practitioner capacity")
+    @Proving(DboPromises.SCIM_USER_IS_THE_PERSON)
     void createProvisionsThePerson() throws Exception {
         HttpResponse<String> created = scim("POST", "/Users", """
                 {"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -108,6 +111,7 @@ class ScimProvisioningIT {
     @Test
     @Order(2)
     @DisplayName("read, list and both filters answer; the wrong filter is refused")
+    @Proving(DboPromises.SCIM_ENUMERATION_STAYS_INSIDE)
     void readsAnswerFromTheVault() throws Exception {
         assertEquals(200, scim("GET", "/Users/" + userId, null).statusCode());
 
@@ -145,6 +149,7 @@ class ScimProvisioningIT {
     @Order(4)
     @DisplayName("replace honours the ETag; a stale one is 412; active=false deactivates "
             + "the capacity too")
+    @Proving(DboPromises.SCIM_DEPROVISION_IS_A_STATE)
     void replaceAndDeprovision() throws Exception {
         HttpResponse<String> current = scim("GET", "/Users/" + userId, null);
         String version = current.body().replaceAll(".*\"version\":\"W/\\\\\"(\\d+)\\\\\"\".*", "$1");
@@ -177,6 +182,7 @@ class ScimProvisioningIT {
     @Order(5)
     @DisplayName("the credentials do not cross: a SCIM token is refused by the FHIR surface "
             + "and a store token by SCIM")
+    @Proving(DboPromises.SCIM_DIRECTORY_CREDENTIAL)
     void credentialsDoNotCross() throws Exception {
         HttpResponse<String> fhirWithScim = http.send(HttpRequest.newBuilder(
                         URI.create(base("staffed") + "/fhir/Person"))
@@ -199,6 +205,7 @@ class ScimProvisioningIT {
     @Order(6)
     @DisplayName("the enumeration did not leak: identifier=system| at the front door keeps "
             + "today's refusal")
+    @Proving(DboPromises.SCIM_ENUMERATION_STAYS_INSIDE)
     void enumerationStaysInside() throws Exception {
         String storeToken = token("staffed", "tenant-bootstrap",
                 provisioner.bootstrapClientSecret("staffed"));
@@ -214,6 +221,7 @@ class ScimProvisioningIT {
     @Test
     @Order(7)
     @DisplayName("every operation is one recorded SCIM disclosure with its purpose")
+    @Proving(DboPromises.SCIM_EVERY_OP_IS_A_DISCLOSURE)
     void operationsLandInTheTrail() throws Exception {
         assertTrue(auditSays("staffed", "\"purpose\":\"SYSADMIN\""),
                 "a provisioning read is a disclosure of identifying data and must be "
@@ -225,6 +233,7 @@ class ScimProvisioningIT {
     @Test
     @Order(8)
     @DisplayName("Groups render from role grants and refuse writes, permanently")
+    @Proving(DboPromises.SCIM_GROUPS_READ_ONLY)
     void groupsAreReadOnly() throws Exception {
         HttpResponse<String> groups = scim("GET", "/Groups", null);
         assertEquals(200, groups.statusCode());
@@ -237,6 +246,7 @@ class ScimProvisioningIT {
     @Test
     @Order(9)
     @DisplayName("no declaration, no endpoints; and scim without pdi never comes up")
+    @Proving(DboPromises.SCIM_DECLARED_PER_TENANT)
     void declarationGatesTheDoor() throws Exception {
         String unstaffedToken = token("unstaffed", "tenant-bootstrap",
                 provisioner.bootstrapClientSecret("unstaffed"));

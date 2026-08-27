@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +34,7 @@ class EngineKnowsNoFaceIT {
 
     @Test
     @DisplayName("the engine bundle imports nothing from any face")
+    @Proving(DboPromises.VER_VERSION_AGNOSTIC_CORE)
     void theEngineImportsNoFacePackage() throws Exception {
         List<String> imports = importPackagesOf("cloud.jengu.dbo.core");
 

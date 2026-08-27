@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.fhir.element;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -35,12 +37,15 @@ class TenantTermsValidationTest {
     }
 
     @Test
+    @Proving(DboPromises.TERM_VALIDATION_USES_TENANT_TERMINOLOGY)
     void aCodeTheTenantHoldsPasses() {
         assertEquals(List.of(), issues(observation("http://loinc.org", "718-7")),
                 "a code present in the tenant's terminology must not be an issue");
     }
 
     @Test
+    @Proving({DboPromises.TERM_VALIDATION_USES_TENANT_TERMINOLOGY,
+            DboPromises.VAL_UNRESOLVABLE_IS_NOT_INVALID})
     void aCodeAbsentFromAHeldSystemIsRefused() {
         List<String> issues = issues(observation("http://loinc.org", "9999-9"));
         assertTrue(issues.stream().anyMatch(i -> i.contains("9999-9")
@@ -50,6 +55,8 @@ class TenantTermsValidationTest {
     }
 
     @Test
+    @Proving({DboPromises.TERM_VALIDATION_USES_TENANT_TERMINOLOGY,
+            DboPromises.VAL_UNRESOLVABLE_IS_NOT_INVALID})
     void aSystemTheTenantDoesNotHoldIsUnresolvableNotInvalid() {
         // SNOMED: neither the carried definitions nor this tenant hold it
         assertEquals(List.of(), issues(observation("http://snomed.info/sct", "22298006")),
@@ -57,6 +64,7 @@ class TenantTermsValidationTest {
     }
 
     @Test
+    @Proving(DboPromises.TERM_VALIDATION_USES_TENANT_TERMINOLOGY)
     void definitionsCarriedSystemsAreUntouchedByTenantTerms() {
         // administrative-gender lives in the carried core package: the shared
         // context answers, the tenant's terms are never consulted
