@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -104,6 +106,7 @@ class TransactionAnswersItsOwnReferencesIT {
 
     @Test
     @Order(1)
+    @Proving(DboPromises.CORE_CONDITIONAL_REFERENCES)
     void aHierarchyAuthoredAsOneDocumentLandsWhole() throws Exception {
         HttpResponse<String> applied = post(wardTree());
         assertEquals(200, applied.statusCode(), applied.body());
@@ -121,6 +124,7 @@ class TransactionAnswersItsOwnReferencesIT {
     /** Re-applying the same document converges; nothing duplicates. */
     @Test
     @Order(2)
+    @Proving(DboPromises.CORE_CONDITIONAL_UPSERT)
     void reApplyingTheSameDocumentConverges() throws Exception {
         HttpResponse<String> again = post(wardTree());
         assertEquals(200, again.statusCode(), again.body());
@@ -135,6 +139,7 @@ class TransactionAnswersItsOwnReferencesIT {
     /** Two entries claiming one identity is a malformed document, named. */
     @Test
     @Order(3)
+    @Proving(DboPromises.CORE_CONDITIONAL_REFERENCES)
     void twoEntriesClaimingOneIdentityAreRefused() throws Exception {
         HttpResponse<String> refused = post("""
                 {"resourceType":"Bundle","type":"transaction","entry":[
@@ -155,6 +160,7 @@ class TransactionAnswersItsOwnReferencesIT {
     /** A question neither the document nor the store answers refuses as before. */
     @Test
     @Order(4)
+    @Proving(DboPromises.CORE_CONDITIONAL_REFERENCES)
     void aReferenceNeitherAnswersKeepsTheRefusal() throws Exception {
         HttpResponse<String> refused = post("""
                 {"resourceType":"Bundle","type":"transaction","entry":[
@@ -172,6 +178,7 @@ class TransactionAnswersItsOwnReferencesIT {
     /** An identity the store already holds: the entry updates that record. */
     @Test
     @Order(5)
+    @Proving(DboPromises.CORE_CONDITIONAL_UPSERT)
     void aClaimTheStoreAlreadyHoldsBecomesAnUpdateOntoIt() throws Exception {
         HttpResponse<String> applied = post("""
                 {"resourceType":"Bundle","type":"transaction","entry":[

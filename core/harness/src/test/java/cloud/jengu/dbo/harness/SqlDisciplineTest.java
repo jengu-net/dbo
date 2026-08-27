@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
@@ -24,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class SqlDisciplineTest {
 
     @Test
+    @Proving(DboPromises.CORE_PARAMETERIZED_SQL)
     void noClassInDboPostgresUsesRawStatements() throws Exception {
         List<String> offenders = new ArrayList<>();
         for (String prop : List.of("dbo.postgres.jar", "dbo.terminology.jar", "dbo.sync.jar", "dbo.maintenance.jar")) {

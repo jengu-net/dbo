@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -96,6 +98,7 @@ class ConditionalReferencesIT {
 
     @Test
     @Order(1)
+    @Proving(DboPromises.CORE_CONDITIONAL_REFERENCES)
     void aWriterThatKnowsAnIdentifierNeedNotKnowAnId() throws Exception {
         HttpResponse<String> written = post("/Observation",
                 observation("Patient?identifier=" + EID + "|38001010000"));
@@ -114,6 +117,7 @@ class ConditionalReferencesIT {
 
     @Test
     @Order(2)
+    @Proving(DboPromises.CORE_CONDITIONAL_REFERENCES)
     void aReferenceMatchingNothingIsRefusedRatherThanStoredBroken() throws Exception {
         HttpResponse<String> refused = post("/Observation",
                 observation("Patient?identifier=" + EID + "|nobody-has-this"));
@@ -124,6 +128,7 @@ class ConditionalReferencesIT {
 
     @Test
     @Order(3)
+    @Proving(DboPromises.CORE_CONDITIONAL_REFERENCES)
     void aReferenceMayAskByIdentityAndNotByGeneralSearch() throws Exception {
         HttpResponse<String> refused = post("/Observation",
                 observation("Patient?name=Viidatud"));
@@ -142,6 +147,7 @@ class ConditionalReferencesIT {
 
     @Test
     @Order(5)
+    @Proving(DboPromises.CORE_CONDITIONAL_REFERENCES)
     void itWorksInsideABundleToo() throws Exception {
         HttpResponse<String> answered = post("", """
                 {"resourceType":"Bundle","type":"transaction","entry":[

@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -83,6 +85,7 @@ class BundleIT {
     }
 
     @Test
+    @Proving(DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE)
     void theConsumersOwnReproIsAnsweredNotErrored() throws Exception {
         // the exact bundle from the issue
         HttpResponse<String> answer = post("""
@@ -95,6 +98,7 @@ class BundleIT {
     }
 
     @Test
+    @Proving(DboPromises.CORE_BATCH_ANSWERS_PER_ENTRY)
     void aBatchAnswersPerEntryAndAFailureIsLocal() throws Exception {
         long before = count("Organization");
         HttpResponse<String> answer = post("""
@@ -117,6 +121,7 @@ class BundleIT {
     }
 
     @Test
+    @Proving(DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE)
     void aTransactionLandsWholeOrNotAtAll() throws Exception {
         long before = count("Patient");
         HttpResponse<String> refused = post("""
@@ -131,6 +136,7 @@ class BundleIT {
     }
 
     @Test
+    @Proving(DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE)
     void entriesReferenceEachOtherByUrnAndTheStoredReferenceIsReal() throws Exception {
         HttpResponse<String> answer = post("""
                 {"resourceType":"Bundle","type":"transaction","entry":[
@@ -156,6 +162,7 @@ class BundleIT {
     }
 
     @Test
+    @Proving(DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE)
     void whatIsNotServedIsRefusedByNameNeverA500() throws Exception {
         // no request on the entry
         HttpResponse<String> noRequest = post("""
