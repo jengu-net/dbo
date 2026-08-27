@@ -38,6 +38,82 @@ import java.util.Set;
  */
 public interface Lane {
 
+    /**
+     * What the identity behind this lane is entitled to work (#77).
+     *
+     * <p>"What a participant may claim is the intersection of its scopes and
+     * what the step admits." The step's half is decided at the primitive,
+     * where the declaration is; <b>this</b> half is the credential's, and only
+     * the host knows the credential — which is why it is provisioned with the
+     * lane rather than asked for by the runner.
+     *
+     * <p>There is no implicit default. {@link #everything()} is a host saying
+     * it <em>is</em> the tenant and takes responsibility; {@link #ofSteps} is
+     * a host bounding a participant to what its credential covers. A silent
+     * "unrestricted when unset" would make the security of every remote
+     * participant depend on a parameter somebody forgot.
+     */
+    final class Entitlement {
+
+        private final Set<String> steps;
+
+        private Entitlement(Set<String> steps) {
+            this.steps = steps;
+        }
+
+        /** The host is the tenant: nothing is narrowed here. */
+        public static Entitlement everything() {
+            return new Entitlement(null);
+        }
+
+        /** Bounded to what this credential covers, and nothing else. */
+        public static Entitlement ofSteps(String... steps) {
+            return new Entitlement(Set.of(steps));
+        }
+
+        /**
+         * Whether this entitlement covers a step, named either way.
+         *
+         * <p><b>A run speaks its step name bare; the catalogue speaks it
+         * fully.</b> An entitlement is written in the catalogue's words —
+         * {@code <module>.<process>.<step>}, because that is the id a
+         * credential can name and the only one that is globally stable — but
+         * {@code poll} is asked in the run's words. Comparing the two
+         * literally would narrow every entitlement to nothing, which is the
+         * failure this method exists to avoid: a lane that silently offers no
+         * work looks exactly like a lane with no work.
+         */
+        public boolean covers(String step) {
+            if (steps == null) {
+                return true;
+            }
+            if (steps.contains(step)) {
+                return true;
+            }
+            return steps.stream().anyMatch(entitled -> bare(entitled).equals(step));
+        }
+
+        /** What this lane will offer, of what was asked for. */
+        Set<String> narrow(Set<String> asked) {
+            if (steps == null) {
+                return asked;
+            }
+            java.util.Set<String> allowed = new java.util.LinkedHashSet<>();
+            asked.stream().filter(this::covers).forEach(allowed::add);
+            return allowed;
+        }
+
+        private static String bare(String stepId) {
+            int dot = stepId.lastIndexOf('.');
+            return dot > 0 ? stepId.substring(dot + 1) : stepId;
+        }
+
+        @Override
+        public String toString() {
+            return steps == null ? "everything" : steps.toString();
+        }
+    }
+
     /** Which tenant this lane serves — the runner's key, and its log word. */
     String tenant();
 
@@ -137,6 +213,24 @@ public interface Lane {
             Declarations declarations, String participant, Executor identity,
             cloud.jengu.dbo.core.api.ObjectStore objects,
             cloud.jengu.dbo.work.Introductions introductions) {
+        return inProcess(tenant, runs, feed, declarations, participant, identity, objects,
+                introductions, Entitlement.everything());
+    }
+
+    /**
+     * The same, bounded to what this participant's credential covers (#77).
+     *
+     * <p>A participant with no privileges beyond its own step sees only that
+     * step's work: the entitlement narrows what {@code poll} offers and
+     * refuses what {@code claim} may take. Enforced here because the lane is
+     * the only door a participant has, and because the credential is the
+     * host's knowledge rather than the engine's.
+     */
+    static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
+            Declarations declarations, String participant, Executor identity,
+            cloud.jengu.dbo.core.api.ObjectStore objects,
+            cloud.jengu.dbo.work.Introductions introductions,
+            Entitlement entitlement) {
         return new Lane() {
 
             @Override
@@ -151,12 +245,29 @@ public interface Lane {
 
             @Override
             public List<Run> poll(Set<String> steps, int limit) {
-                return new Participation(runs, feed, participant, steps, identity)
+                // Narrowed rather than refused: a runner holding services for
+                // more steps than this credential covers is a deployment
+                // shape, not an attack, and it should work for the steps it
+                // is entitled to instead of failing wholesale.
+                Set<String> mine = entitlement.narrow(steps);
+                if (mine.isEmpty()) {
+                    return List.of();
+                }
+                return new Participation(runs, feed, participant, mine, identity)
                         .poll(limit);
             }
 
             @Override
             public Optional<Run> claim(Run run, Duration holdFor) {
+                // Refused rather than narrowed: taking one run is a decision,
+                // and a decision outside the entitlement is an error somebody
+                // has to see.
+                String step = run.process() + "." + run.step();
+                if (!entitlement.covers(step)) {
+                    throw new IllegalStateException(tenant + ": '" + identity.name()
+                            + "' is not entitled to claim '" + step + "' — it holds "
+                            + entitlement);
+                }
                 return runs.claim(run, identity, java.time.Instant.now().plus(holdFor));
             }
 

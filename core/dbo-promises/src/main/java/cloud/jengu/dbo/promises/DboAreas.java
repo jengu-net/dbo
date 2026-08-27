@@ -26,7 +26,8 @@ public enum DboAreas implements Area {
             + "arrives whole: the documents it is about travel because the work names "
             + "them.",
             List.of(DboFeatures.WORK_ARRIVES_WHOLE, DboFeatures.WORK_SAYS_WHERE_IT_IS,
-                    DboFeatures.THE_CATALOGUE_LEARNS));
+                    DboFeatures.THE_CATALOGUE_LEARNS,
+                    DboFeatures.WORK_REACHES_ONLY_ITS_HOLDER));
 
     private final String title;
     private final List<Classified> covers;

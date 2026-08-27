@@ -164,7 +164,19 @@ public enum DboPromises implements Promise {
     PROC_INTRODUCTION_GRANTS_NOTHING("A step introduced over the link grants its "
             + "introducer nothing: the declaration binds the introducer exactly as it "
             + "binds anybody, and what it may take stays the intersection of its scopes "
-            + "and what the step admits.");
+            + "and what the step admits."),
+
+    PROC_CLAIM_IS_THE_INTERSECTION("What a participant may claim is the intersection of "
+            + "what its credential covers and what the step admits: the lane narrows the "
+            + "work it offers and refuses a claim outside the entitlement, and the store "
+            + "refuses an executor at a scope the step never opened itself to. A step "
+            + "cannot grant its executor more than the executor already holds."),
+
+    PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED("A lane's entitlement is stated when the "
+            + "lane is provisioned — everything, because the host is the tenant, or the "
+            + "steps a credential covers. There is no implicit unrestricted, so the "
+            + "reach of a remote participant never depends on a parameter somebody "
+            + "forgot.");
 
     private final String text;
 

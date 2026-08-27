@@ -3,14 +3,15 @@
 **Status** — doctrine decided and written; **#71, #147, #149 and #150 are
 closed**: the declaration seam (steps, actions, mandatory-steps incident
 classification), introduction over the link, run inputs filling declared
-slots, and milestones on the checkpoint. The participant's pull AND
-reporting halves are built — #77 stays open for its credential half and the
-#91 precondition. The console (#75/#76), the transport exercise (#79's
-remainder) and the replication toolset (#80) are what is left.
+slots, and milestones on the checkpoint. The participant is complete bar one
+precondition: pull, reporting and now the credential half are built, and #77
+stays open only on #91's discoverability gate. The console (#75/#76), the
+transport exercise (#79's remainder) and the replication toolset (#80) are
+what is left.
 
 **Issues** — the participation cluster, formerly under the closed #46.
-Open: [#77](https://github.com/jengu-net/dbo/issues/77) (the participant's
-credential half) · [#79](https://github.com/jengu-net/dbo/issues/79)
+Open: [#77](https://github.com/jengu-net/dbo/issues/77) (waiting on #91's
+discoverability precondition) · [#79](https://github.com/jengu-net/dbo/issues/79)
 (reference runner: DBOS below, transport first) ·
 [#80](https://github.com/jengu-net/dbo/issues/80) (replication toolset) ·
 [#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on the
@@ -89,6 +90,13 @@ proves (#148).
   on the record. Progress rides the checkpoint: counts always, and the
   declared milestone when a step names one — position derived by the store,
   `businessStatus` saying "validated, 2 of 3".
+- **Reach**: what a participant may claim is the intersection of what its
+  credential covers and what the step admits. The step's half is at the
+  primitive — the baseline always may, anything more local only where the
+  step opened itself to that class (ADR 0059) — and the credential's half is
+  `Lane.Entitlement`, provisioned with the lane, narrowing what `poll` offers
+  and refusing what `claim` may take. `everything()` is a host saying it is
+  the tenant; there is no implicit unrestricted.
 - **Work arrives whole**: a run fills the slots its step declares, fixed at
   creation and refused by name in both directions; `Task.input` renders them
   in declaration order; the in-process lane resolves them from the host's
@@ -100,15 +108,14 @@ proves (#148).
   construct `StepRunner` directly. It declares candidacy, introduces what
   its service brings, and publishes vitals on the declaration record
   (#148's carrier).
-- **Promises**: the `DISTRIBUTED_WORK` area carries three features —
-  `WORK_ARRIVES_WHOLE`, `WORK_SAYS_WHERE_IT_IS`, `THE_CATALOGUE_LEARNS` —
-  ten `REQ-DBO-PROC-*` promises, all PROVEN and projected into
+- **Promises**: the `DISTRIBUTED_WORK` area carries four features —
+  `WORK_ARRIVES_WHOLE`, `WORK_SAYS_WHERE_IT_IS`, `THE_CATALOGUE_LEARNS` and
+  `WORK_REACHES_ONLY_ITS_HOLDER` — twelve `REQ-DBO-PROC-*` promises, all PROVEN and projected into
   req-catalogue's generated block. This is the first area beyond the
   SHAPE/PDI pilot.
-- **Open, in dependency order**: #77's remainder — the credential half
-  (scopes ∩ the step's admission, arriving with the acting surface) and
-  #91's precondition (run coding systems as fetchable `CodeSystem`, a
-  profile for the rendered `Task`), which gates serving runs over HTTP →
+- **Open, in dependency order**: #77's remainder — #91's precondition (run
+  coding systems as fetchable `CodeSystem`, a profile for the rendered
+  `Task`), which gates serving runs over HTTP →
   #79's remainder (DBOS below, the transport-first exercise) → #148 (what
   rides the carrier, and the presence display that must not page about a
   healthy idle fleet) → #80 (the replication toolset — inherits "slots are
@@ -270,6 +277,6 @@ scopes and what the step admits, like every declaration.
 ## Verifying
 
 ```bash
-./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT'
+./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT' --tests '*ClaimIsTheIntersectionIT'
 ```
 (The link scenarios get their ITs with the transport exercise in #79.)
