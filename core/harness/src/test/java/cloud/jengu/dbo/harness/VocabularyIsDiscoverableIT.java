@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -163,6 +165,7 @@ class VocabularyIsDiscoverableIT {
      */
     @org.junit.jupiter.params.ParameterizedTest(name = "{0}")
     @org.junit.jupiter.params.provider.MethodSource("tenants")
+    @Proving(DboPromises.TERM_EVERY_TENANT_ANSWERS)
     void aCodeInAPublishedVocabularyResolvesThroughTheOperationAClientWouldUse(
             String version, String base) throws Exception {
         String looked = get(base
@@ -194,6 +197,7 @@ class VocabularyIsDiscoverableIT {
      */
     @org.junit.jupiter.params.ParameterizedTest(name = "{0}")
     @org.junit.jupiter.params.provider.MethodSource("tenants")
+    @Proving(DboPromises.TERM_NATIVE_FORM)
     void theDefinitionSaysWhatItKnowsAndWhereTheCodesAre(String version, String base)
             throws Exception {
         // closed: dbo knows every holder there is, and says how many

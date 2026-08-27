@@ -7,6 +7,8 @@ import cloud.jengu.dbo.fhir.r4.R4Subscriptions;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
@@ -169,6 +171,7 @@ class SubscriptionsIT {
     /** REQ-DBO-EVT-DURABLE-DELIVERY: endpoint failing twice recovers → delivered exactly once. */
     @Test
     @Timeout(120)
+    @Proving(DboPromises.EVT_DURABLE_DELIVERY)
     void deliveryRetriesUntilTheEndpointRecovers() throws Exception {
         failuresRemaining.put("/hook2", new AtomicInteger(2));
         subscription("Observation?code=http://loinc.org|SUB-2", "/hook2");
@@ -183,6 +186,8 @@ class SubscriptionsIT {
     /** Crash-before-ack simulation: re-dispatch does not double-deliver (workflow-id dedupe). */
     @Test
     @Timeout(120)
+    @Proving({DboPromises.EVT_DURABLE_DELIVERY, DboPromises.FEED_ONE_PRIMITIVE,
+            DboPromises.FEED_PUSH_ACK_RESUME, DboPromises.WF_POSTGRES_SUBSTRATE})
     void redispatchAfterCrashDoesNotDoubleDeliver() throws Exception {
         String cursorBefore = feed.cursorOf("subscriptions.dispatch");
         subscription("Observation?code=http://loinc.org|SUB-3", "/hook3");
@@ -201,6 +206,7 @@ class SubscriptionsIT {
     /** Exhausted retries dead-letter visibly; other subscriptions are unaffected. */
     @Test
     @Timeout(120)
+    @Proving(DboPromises.EVT_DURABLE_DELIVERY)
     void permanentFailureDeadLettersWithoutBlockingOthers() throws Exception {
         failuresRemaining.put("/hook4-broken", new AtomicInteger(Integer.MAX_VALUE));
         String brokenSub = subscription("Observation?code=http://loinc.org|SUB-4", "/hook4-broken");
@@ -227,6 +233,7 @@ class SubscriptionsIT {
     /** REQ-DBO-EVT-IN-PROCESS-SURFACE: a local listener sees the same matched events. */
     @Test
     @Timeout(120)
+    @Proving(DboPromises.EVT_IN_PROCESS_SURFACE)
     void inProcessListenerSeesTheSameTopics() throws Exception {
         List<String> local = new CopyOnWriteArrayList<>();
         engine.addLocalListener((sub, payload) -> {

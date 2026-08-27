@@ -11,6 +11,8 @@ import cloud.jengu.dbo.fhir.r5.R5Personality;
 import cloud.jengu.dbo.fhir.r5.R5Store;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.sync.ContentDependency;
 import cloud.jengu.dbo.sync.ContentSyncEngine;
 import org.junit.jupiter.api.BeforeAll;
@@ -147,6 +149,7 @@ class SyncStreamsIT {
     /** Declared types stream with provenance; undeclared do not (REQ-DBO-SYNC-DECLARED-ONLY). */
     @Test
     @Order(1)
+    @Proving({DboPromises.SYNC_DECLARED_ONLY, DboPromises.SYNC_PROVENANCE_COPIES})
     void declaredTypesStreamUndeclaredDoNot() {
         PutResult vs = zone.putCanonical(valueSet("https://zone.test/vs/a", "StreamMe"));
         zone.create("""
@@ -169,6 +172,7 @@ class SyncStreamsIT {
     /** Updates advance the copy; source deletes tombstone it. */
     @Test
     @Order(2)
+    @Proving(DboPromises.SYNC_PROVENANCE_COPIES)
     void updatesAndDeletesPropagate() {
         PutResult v1 = zone.putCanonical(valueSet("https://zone.test/vs/b", "One"));
         syncAll();
@@ -194,6 +198,7 @@ class SyncStreamsIT {
     /** The chain: zone R4 Encounter reaches the R5 leaf CONVERTED, through mid's own outbox. */
     @Test
     @Order(3)
+    @Proving({DboPromises.SYNC_CONVERT_ON_APPLY, DboPromises.SYNC_DIRECT_UPSTREAM_ONLY})
     void chainDeliversConvertedCopiesHopByHop() {
         PutResult patient = zone.create("""
                 {"resourceType":"Patient",
@@ -222,6 +227,7 @@ class SyncStreamsIT {
     /** Unconvertible content dead-letters and degrades the dependency; siblings still apply. */
     @Test
     @Order(4)
+    @Proving(DboPromises.SYNC_CONVERT_ON_APPLY)
     void unconvertibleDeadLettersWithoutBlockingSiblings() {
         PutResult bad = zone.putCanonical(valueSet("https://zone.test/vs/bad", "boom-marker"));
         PutResult good = zone.putCanonical(valueSet("https://zone.test/vs/good", "FineAndWell"));
@@ -239,6 +245,7 @@ class SyncStreamsIT {
     /** A local object shadows the stream; deleting it + reconcile falls back to the live upstream. */
     @Test
     @Order(5)
+    @Proving(DboPromises.SYNC_LOCAL_SHADOWING)
     void localShadowingWinsThenFallsBackOnRemoval() {
         String url = "https://zone.test/vs/shadowed";
         PutResult local = leaf.putCanonical(valueSet(url, "LocalOverride"));

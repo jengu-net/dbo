@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -106,6 +108,7 @@ class EmbeddedContainerIT {
     /** Every production bundle resolves and starts ACTIVE. */
     @Test
     @Timeout(120)
+    @Proving(DboPromises.CONT_EMBEDDED_IN_JVM)
     void allProductionBundlesActivate() {
         for (Map.Entry<String, Bundle> e : bundles.entrySet()) {
             assertEquals(Bundle.ACTIVE, e.getValue().getState(),
@@ -115,6 +118,7 @@ class EmbeddedContainerIT {
 
     /** Embedded stacks stay embedded: nested libs present, only DBO packages exported. */
     @Test
+    @Proving(DboPromises.CONT_PRIVATE_DEPENDENCIES)
     void subscriptionJarEmbedsItsStack() throws Exception {
         String path = System.getProperty("dbo.subscriptions.jar");
         try (JarFile jar = new JarFile(path)) {
@@ -142,6 +146,7 @@ class EmbeddedContainerIT {
      * personality and the one that does not.
      */
     @Test
+    @Proving(DboPromises.CONT_PRIVATE_DEPENDENCIES)
     void personalitiesCarryValidationResourcesAndNoEngine() throws Exception {
         for (String prop : List.of("dbo.fhir.r4.jar", "dbo.fhir.r5.jar")) {
             String path = System.getProperty(prop);
@@ -213,6 +218,7 @@ class EmbeddedContainerIT {
     /** The payoff: a full FHIR flow served over HTTP from INSIDE the container. */
     @Test
     @Timeout(180)
+    @Proving(DboPromises.CONT_EMBEDDED_IN_JVM)
     void theContainerServesARealFhirFlowOverHttp() throws Exception {
         // DataSource from the DRIVER BUNDLE's classes (host-loaded PG classes
         // would fail unwrap inside the container — the consistency trap)

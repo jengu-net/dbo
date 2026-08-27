@@ -1,6 +1,8 @@
 package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.operator.TenantOperator;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.k8s.TenantK8sContract;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -184,6 +186,8 @@ class ServerDistIT {
     @Test
     @Order(1)
     @Timeout(600)
+    @Proving({DboPromises.AUTH_DENY_BY_DEFAULT, DboPromises.TEN_CREDENTIAL_BLIND_PROVISIONING,
+            DboPromises.TEN_DEDICATED_DATABASE_TIER})
     void theDistServesAnOperatorProvisionedTenant() throws Exception {
         GenericKubernetesResource cr = new GenericKubernetesResource();
         cr.setApiVersion("dbo.jengu.cloud/v1alpha1");
@@ -249,6 +253,7 @@ class ServerDistIT {
     @Test
     @Order(2)
     @Timeout(120)
+    @Proving(DboPromises.CONT_DYNAMIC_TENANT_SERVICES)
     void specRemovalRetractsTheEndpointLive() throws Exception {
         Files.delete(specDir.resolve(CODE + ".json"));
         awaitStatus(base() + "/metadata", 404, 60_000);
@@ -262,6 +267,7 @@ class ServerDistIT {
     @Test
     @Order(3)
     @Timeout(300)
+    @Proving(DboPromises.CONT_FAST_COLD_START)
     void coldStartAgainstCurrentSchemaIsFast() throws Exception {
         Files.writeString(specDir.resolve(CODE + ".json"), client.configMaps().inNamespace(NS)
                 .withName(TenantK8sContract.CONFIGMAP).get().getData().get(CODE + ".json"));
@@ -296,6 +302,7 @@ class ServerDistIT {
     @Test
     @Order(4)
     @Timeout(120)
+    @Proving(DboPromises.AUTH_DENY_BY_DEFAULT)
     void theDistRefusesToBootWithoutAnAuthority() throws Exception {
         stopServer();
         startServer(false);

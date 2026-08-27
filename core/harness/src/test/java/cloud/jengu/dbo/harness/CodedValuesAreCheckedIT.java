@@ -5,6 +5,8 @@ import cloud.jengu.dbo.fhir.common.ValidationFailedException;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.r4.R4FhirVersion;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -53,6 +55,8 @@ class CodedValuesAreCheckedIT {
 
     @Test
     @DisplayName("a required binding violated is a refusal, on the write and in the outcome")
+    @Proving({DboPromises.TERM_VALIDATION_USES_TENANT_TERMINOLOGY,
+            DboPromises.VAL_BINDING_STRENGTH_IS_THE_ANSWER})
     void aRequiredBindingIsARefusal() {
         String unicorn = "{\"resourceType\":\"Patient\",\"gender\":\"unicorn\"}";
 
@@ -67,6 +71,8 @@ class CodedValuesAreCheckedIT {
     @Test
     @DisplayName("a weaker binding violated is advice, which the caller is given rather than "
             + "refused for")
+    @Proving({DboPromises.TERM_VALIDATION_USES_TENANT_TERMINOLOGY,
+            DboPromises.VAL_BINDING_STRENGTH_IS_THE_ANSWER})
     void aWeakerBindingIsAdvice() {
         // Observation.code is an example binding: a local code is allowed, and
         // a store that refused one would refuse most real laboratory content.
@@ -84,6 +90,8 @@ class CodedValuesAreCheckedIT {
 
     @Test
     @DisplayName("everything the face had to say survives, not only what would refuse")
+    @Proving({DboPromises.TERM_VALIDATION_USES_TENANT_TERMINOLOGY,
+            DboPromises.VAL_BINDING_STRENGTH_IS_THE_ANSWER})
     void adviceIsNotDiscarded() {
         // A resource with nothing wrong enough to refuse, and something worth
         // saying: an unknown system behind an extensible binding.

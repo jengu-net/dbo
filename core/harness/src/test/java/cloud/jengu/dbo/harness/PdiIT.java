@@ -296,7 +296,8 @@ class PdiIT {
     /** §14.1+§14.4: shred erases every copy at once; a pre-shred archive cannot resurrect. */
     @Test
     @Order(6)
-    @Proving({DboPromises.PDI_CRYPTO_SHREDDING, DboPromises.PDI_UNFINDABLE_AFTER_ERASURE, DboPromises.PDI_SHRED_LEDGER})
+    @Proving({DboPromises.PDI_CRYPTO_SHREDDING, DboPromises.PDI_SHRED_LEDGER,
+            DboPromises.PDI_UNFINDABLE_AFTER_ERASURE, DboPromises.POL_ERASURE_COMPATIBLE})
     void shredErasesEverywhereAndRestoreCannotResurrect() throws Exception {
         // archive BEFORE the shred — the resurrection candidate
         ByteArrayOutputStream archive = new ByteArrayOutputStream();

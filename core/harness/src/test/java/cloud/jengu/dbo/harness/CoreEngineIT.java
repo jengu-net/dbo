@@ -210,6 +210,7 @@ class CoreEngineIT {
 
     /** REQ-DBO-EVT-TRANSACTIONAL-OUTBOX: every committed write leaves exactly one ordered, content-free event. */
     @Test
+    @Proving(DboPromises.EVT_TRANSACTIONAL_OUTBOX)
     void everyWriteLeavesExactlyOneOutboxEventInCommitOrder() throws Exception {
         long before = outboxCount();
         PutResult r = store.put(PutRequest.create("Gadget", gadget("S-700", "evco", "Emitter", 1)));
@@ -226,6 +227,7 @@ class CoreEngineIT {
 
     /** Atomicity: a failing extractor aborts the whole write — no data, no history, no outbox, no identifier. */
     @Test
+    @Proving(DboPromises.EVT_TRANSACTIONAL_OUTBOX)
     void aFailedWriteLeavesNoPartialState() throws Exception {
         long outboxBefore = outboxCount();
         byte[] boom = "{\"serial\":\"S-800\",\"vendor\":\"x\",\"name\":\"x\",\"weightGrams\":1,\"boom\":true}"

@@ -2,6 +2,8 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Participation;
 import cloud.jengu.dbo.work.Run;
@@ -175,6 +177,7 @@ class ParticipantsPullAndClaimIT {
 
     @Test
     @DisplayName("how far behind a participant is, is readable per participant")
+    @Proving(DboPromises.FEED_NAMED_CONSUMERS)
     void lagIsReadable() {
         Participation late = participant("validator-late", MINE);
         work(MINE, "backlog-1");

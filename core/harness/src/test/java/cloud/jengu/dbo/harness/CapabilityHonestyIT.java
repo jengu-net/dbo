@@ -10,6 +10,8 @@ import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.fhir.r4.R4Store;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -92,6 +94,7 @@ class CapabilityHonestyIT {
     @Test
     @Timeout(300)
     @DisplayName("a type the tenant may not write does not advertise create, and would refuse one")
+    @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
     void aReplicatedTypeDoesNotAdvertiseWrites() {
         assertFalse(declares("CodeSystem", "create"),
                 "the statement offers a create the store answers with 403");
@@ -122,6 +125,7 @@ class CapabilityHonestyIT {
     @Test
     @Timeout(300)
     @DisplayName("the tenant's own type advertises the writes it really accepts")
+    @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
     void anOperationalTypeAdvertisesItsWrites() {
         assertTrue(declares("Observation", "create"), blockFor("Observation"));
         assertTrue(declares("Observation", "update"), blockFor("Observation"));
@@ -136,6 +140,7 @@ class CapabilityHonestyIT {
     @Test
     @Timeout(300)
     @DisplayName("conditional create is advertised only where there is an identity to key it on")
+    @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
     void conditionalCreateFollowsTheIdentityClass() {
         // a store-assigned id has nothing to key a condition on, and the store
         // refuses one — REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS
@@ -152,6 +157,7 @@ class CapabilityHonestyIT {
     @Test
     @Timeout(300)
     @DisplayName("every meta parameter the statement declares is one the store accepts")
+    @Proving({DboPromises.SRCH_HONEST_CAPABILITY, DboPromises.SRCH_STRICT_BY_DEFAULT})
     void declaredMetaParametersAreAccepted() {
         for (String name : List.of("_tag", "_profile", "_id", "_lastUpdated")) {
             assertTrue(blockFor("Observation").contains("\"name\":\"" + name + "\""),
@@ -175,6 +181,7 @@ class CapabilityHonestyIT {
     @Test
     @Timeout(120)
     @DisplayName("history is declared where it is kept, and the format is the one rendered")
+    @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
     void historyAndFormatFollowTheDeclaration() {
         assertTrue(blockFor("Observation").contains("\"versioning\":\"versioned\""),
                 blockFor("Observation"));
@@ -188,6 +195,7 @@ class CapabilityHonestyIT {
     @Test
     @Timeout(120)
     @DisplayName("no type is declared that the store does not serve")
+    @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
     void nothingIsDeclaredThatIsNotServed() {
         for (TypeRegistration registration : new R4Personality(List.of(
                 FhirTypeConfig.internal("Observation"))).registrations()) {

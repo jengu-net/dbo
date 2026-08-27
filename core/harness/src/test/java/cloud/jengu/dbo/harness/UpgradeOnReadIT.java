@@ -96,7 +96,7 @@ class UpgradeOnReadIT {
     /** The R4-written Encounter reads back as R5 (period → actualPeriod), lazily. */
     @Test
     @Order(1)
-    @Proving(DboPromises.CORE_UPGRADE_ON_READ)
+    @Proving({DboPromises.CORE_UPGRADE_ON_READ, DboPromises.VER_TRANSITION_BY_CONVERTERS})
     void r4WrittenEncounterReadsAsR5() {
         String converted = r5.read("Encounter", encounterId);
         assertTrue(converted.contains("\"actualPeriod\""),
@@ -108,7 +108,7 @@ class UpgradeOnReadIT {
     /** Payload-is-truth: the stored bytes are still the R4 form, version-tagged 4.0. */
     @Test
     @Order(2)
-    @Proving(DboPromises.CORE_PAYLOAD_IS_TRUTH)
+    @Proving({DboPromises.CORE_PAYLOAD_IS_TRUTH, DboPromises.VER_BALLOT_RECORDED_PER_VERSION})
     void storedBytesRemainR4() throws Exception {
         try (Connection c = pg.getConnection();
              PreparedStatement ps = c.prepareStatement(
@@ -152,7 +152,7 @@ class UpgradeOnReadIT {
     /** Converter + reindex: R5 search paths (date over actualPeriod) hit R4-written data. */
     @Test
     @Order(5)
-    @Proving(DboPromises.CORE_UPGRADE_ON_READ)
+    @Proving({DboPromises.CORE_UPGRADE_ON_READ, DboPromises.VER_TRANSITION_BY_CONVERTERS})
     void reindexMakesR5SearchLiveOverR4Data() {
         int rebuilt = r5Engine.rebuildEnvelopes("Encounter");
         assertTrue(rebuilt >= 1);
@@ -166,6 +166,7 @@ class UpgradeOnReadIT {
     /** New writes through the transitioned store are R5-tagged and skip conversion. */
     @Test
     @Order(6)
+    @Proving({DboPromises.VER_BALLOT_RECORDED_PER_VERSION, DboPromises.VER_TRANSITION_BY_CONVERTERS})
     void newWritesCarryTheNewVersion() {
         PutResult fresh = r5.create("""
                 {"resourceType":"Encounter","status":"in-progress",

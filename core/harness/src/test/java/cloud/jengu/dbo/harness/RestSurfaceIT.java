@@ -7,6 +7,8 @@ import cloud.jengu.dbo.fhir.r4.R4Terminology;
 import cloud.jengu.dbo.fhir.r5.R5Personality;
 import cloud.jengu.dbo.fhir.r5.R5Store;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.rest.FhirHttpServer;
 import cloud.jengu.dbo.terminology.TerminologyStore;
 import org.junit.jupiter.api.AfterAll;
@@ -237,6 +239,7 @@ class RestSurfaceIT {
 
     /** REQ-DBO-SRCH-HONEST-CAPABILITY: metadata lists exactly the configured types + real params. */
     @Test
+    @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
     void metadataListsConfiguredTypesAndTheirParameters() throws Exception {
         HttpResponse<String> metadata = send(req(base + "/metadata").GET().build());
         assertEquals(200, metadata.statusCode());
@@ -264,6 +267,7 @@ class RestSurfaceIT {
      * counter.
      */
     @Test
+    @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
     void theStatementNamesNothingTwice() throws Exception {
         HttpResponse<String> metadata = send(req(base + "/metadata").GET().build());
         assertEquals(200, metadata.statusCode());
@@ -341,6 +345,7 @@ class RestSurfaceIT {
 
     /** Terminology operations answer over HTTP from the native concept store. */
     @Test
+    @Proving(DboPromises.TERM_OPERATIONS_FROM_NATIVE_FORM)
     void terminologyOperationsOverHttp() throws Exception {
         terminologyIngest.ingestCodeSystem("""
                 {"resourceType":"CodeSystem","status":"active","content":"complete",

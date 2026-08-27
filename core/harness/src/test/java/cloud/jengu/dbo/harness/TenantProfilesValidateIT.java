@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -91,6 +93,7 @@ class TenantProfilesValidateIT {
 
     @Test
     @Order(1)
+    @Proving(DboPromises.VER_SPECIFIED_VALIDATION)
     void beforeTheProfileExistsTheShapeIsUnknownRatherThanSatisfied() throws Exception {
         HttpResponse<String> answer = post("/Observation", WITHOUT_SUBJECT);
         assertTrue(answer.statusCode() >= 400,
@@ -122,6 +125,7 @@ class TenantProfilesValidateIT {
 
     @Test
     @Order(4)
+    @Proving(DboPromises.VER_SPECIFIED_VALIDATION)
     void theDifferentialIsSnapshottedSoTheWholeBaseStillApplies() throws Exception {
         // status is required by the BASE Observation, and the tenant's
         // differential never mentions it: without snapshot generation the

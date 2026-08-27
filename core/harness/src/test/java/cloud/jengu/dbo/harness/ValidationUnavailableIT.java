@@ -4,6 +4,8 @@ import cloud.jengu.dbo.core.api.PutResult;
 import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
 import cloud.jengu.dbo.fhir.common.ValidationFailedException;
 import cloud.jengu.dbo.fhir.common.ValidationUnavailableException;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.rest.FhirHttpServer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -117,6 +119,7 @@ class ValidationUnavailableIT {
     @Timeout(60)
     @DisplayName("a verdict that could not be reached answers 503 and asks for a retry, "
             + "never 422")
+    @Proving(DboPromises.VER_SPECIFIED_VALIDATION)
     void anUnreachableVerdictIsNotARejection() throws Exception {
         HttpResponse<String> response = postTo(new Throwing(
                 new ValidationUnavailableException("Subscription",

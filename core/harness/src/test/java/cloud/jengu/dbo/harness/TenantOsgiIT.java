@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -115,6 +117,7 @@ class TenantOsgiIT {
 
     @Test
     @Timeout(180)
+    @Proving(DboPromises.CONT_DYNAMIC_TENANT_SERVICES)
     void aSpecFileLightsUpTheWholeChainInContainer() throws Exception {
         assertEquals(Bundle.ACTIVE, tenantBundle.getState());
         BundleContext ctx = framework.getBundleContext();

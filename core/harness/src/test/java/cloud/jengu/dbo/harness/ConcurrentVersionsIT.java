@@ -7,6 +7,8 @@ import cloud.jengu.dbo.fhir.r5.R5Personality;
 import cloud.jengu.dbo.fhir.r5.R5Store;
 import cloud.jengu.dbo.fhir.common.ValidationFailedException;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -71,6 +73,7 @@ class ConcurrentVersionsIT {
 
     /** Same shapes, both versions, one database — searches stay domain-isolated. */
     @Test
+    @Proving(DboPromises.VER_CONCURRENT_VERSIONS)
     void bothVersionsServeTheSamePatientShapesIndependently() {
         r4.create(patient("39001010001", "NeljasFhir"));
         r5.create(patient("39001010002", "ViiesFhir"));
@@ -102,6 +105,7 @@ class ConcurrentVersionsIT {
 
     /** R5 validation runs against R5 base profiles (the r5 validation-resources stack). */
     @Test
+    @Proving(DboPromises.VER_PERSONALITY_OWNS_MEANING)
     void r5ValidationGatesWritesAgainstR5Profiles() {
         ValidationFailedException failure = assertThrows(ValidationFailedException.class, () ->
                 r5.create("{\"resourceType\":\"Observation\",\"id\":\"x\"}"));
@@ -111,6 +115,7 @@ class ConcurrentVersionsIT {
 
     /** The ported tier-1 compiler works in R5: modifiers, sort, strictness. */
     @Test
+    @Proving(DboPromises.SRCH_STRICT_BY_DEFAULT)
     void r5SearchCompilationSpotChecks() {
         r5.create("""
                 {"resourceType":"Observation","status":"final",

@@ -1,6 +1,8 @@
 package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.core.api.DateKeys;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +25,7 @@ class ADateIsTheSpanItNamesTest {
 
     @Test
     @DisplayName("a year, a month and a day are each the whole of themselves")
+    @Proving(DboPromises.SRCH_TYPED_ORDERING)
     void everyPrecisionIsASpan() {
         assertEquals(new DateKeys.Window(
                         Instant.parse("2020-01-01T00:00:00Z"), Instant.parse("2021-01-01T00:00:00Z")),
@@ -38,6 +41,7 @@ class ADateIsTheSpanItNamesTest {
 
     @Test
     @DisplayName("and a stated instant is its own span, so the spans tile")
+    @Proving(DboPromises.SRCH_TYPED_ORDERING)
     void anInstantIsItsOwnSpan() {
         DateKeys.Window window = DateKeys.window("2020-02-29T10:00:00Z");
 

@@ -4,6 +4,8 @@ import cloud.jengu.dbo.auth.IdentityModel;
 import cloud.jengu.dbo.auth.KeyProtector;
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -172,6 +174,7 @@ class OrganisationReachIT {
     /** The token says where the grants were made, so a consumer can tell. */
     @Test
     @Order(1)
+    @Proving(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL)
     void theTokenCarriesTheReachTheGrantsWereMadeAt() {
         String claims = claimsOf(labAToken);
         assertTrue(claims.contains("\"org\":[\"" + labAId + "\"]"), claims);
@@ -205,6 +208,7 @@ class OrganisationReachIT {
     /** A grant at the parent covers the departments under it. */
     @Test
     @Order(4)
+    @Proving(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL)
     void aGrantAtTheParentReachesItsDepartments() throws Exception {
         String bundle = get("/Encounter", rootToken).body();
         assertTrue(bundle.contains(encounterAtA) && bundle.contains(encounterAtB), bundle);

@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -140,6 +142,7 @@ class MirroredTerminologyIsHeldIT {
     }
 
     @Test
+    @Proving(DboPromises.TERM_EVERY_TENANT_ANSWERS)
     void anotherAuthoritysPublicationIsHeldAndItsCodesResolve() throws Exception {
         HttpResponse<String> held = post(mirrored, "CodeSystem", PUBLISHED);
         assertEquals(201, held.statusCode(),

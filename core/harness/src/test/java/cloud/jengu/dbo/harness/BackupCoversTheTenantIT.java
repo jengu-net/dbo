@@ -10,6 +10,8 @@ import cloud.jengu.dbo.maintenance.SealedArchive;
 import cloud.jengu.dbo.maintenance.TenantExport;
 import cloud.jengu.dbo.maintenance.TenantImport;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -88,6 +90,7 @@ class BackupCoversTheTenantIT {
     @Timeout(300)
     @DisplayName("a backup taken of the clinical domain carries the credentials that live "
             + "in another one")
+    @Proving(DboPromises.AUTH_IDENTITY_AS_RECORDS)
     void theBackupCarriesEveryDomain() throws Exception {
         TreeSet<String> entries = entriesOf(backup);
 
@@ -117,6 +120,7 @@ class BackupCoversTheTenantIT {
     @Timeout(300)
     @DisplayName("restoring it produces an installation that can authenticate its own "
             + "tenants — the records and the credentials both land")
+    @Proving(DboPromises.AUTH_IDENTITY_AS_RECORDS)
     void theRestoreCanAuthenticate() throws Exception {
         PGSimpleDataSource target = database("backup_whole_tenant_target");
         // the target is initialised for both domains, as a real one is

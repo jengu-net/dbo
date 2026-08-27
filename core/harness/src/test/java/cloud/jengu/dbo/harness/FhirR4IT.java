@@ -9,6 +9,8 @@ import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.common.UnknownSearchParameterException;
 import cloud.jengu.dbo.fhir.common.ValidationFailedException;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -154,6 +156,7 @@ class FhirR4IT {
 
     /** REQ-DBO-SRCH-TYPED-ORDERING + keyset paging framed as Bundle link[next], descending. */
     @Test
+    @Proving(DboPromises.SRCH_TYPED_ORDERING)
     void descendingDateSortPagesThroughBundleNextLinksWithoutDuplicates() {
         PutResult p = fhir.create(patient("32303030003", "Paged", "Person"));
         for (int day = 1; day <= 7; day++) {
@@ -209,6 +212,7 @@ class FhirR4IT {
 
     /** REQ-DBO-SRCH-STRICT-BY-DEFAULT: unknown parameter → rejected, not ignored. */
     @Test
+    @Proving(DboPromises.SRCH_STRICT_BY_DEFAULT)
     void unknownSearchParametersAreRejectedNotIgnored() {
         assertThrows(UnknownSearchParameterException.class, () ->
                 fhir.search("Patient", Map.of("favourite-color", "blue"), null));

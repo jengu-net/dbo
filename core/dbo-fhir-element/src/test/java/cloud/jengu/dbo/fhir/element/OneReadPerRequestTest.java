@@ -13,6 +13,8 @@ import cloud.jengu.dbo.core.api.TypeRegistration;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.common.FhirVersion;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -52,6 +54,7 @@ class OneReadPerRequestTest {
 
     @Test
     @DisplayName("a write's type, verdict and envelope come from one read")
+    @Proving(DboPromises.VER_ONE_READ_PER_REQUEST)
     void aWriteReadsItsPayloadOnce() {
         Capturing engine = new Capturing();
         FhirVersion.ForTypes declared = declared();
@@ -68,6 +71,7 @@ class OneReadPerRequestTest {
 
     @Test
     @DisplayName("and the write carries the array it was read from, not a copy of the body")
+    @Proving(DboPromises.VER_ONE_READ_PER_REQUEST)
     void theWriteCarriesTheBytesThatWereRead() {
         Capturing engine = new Capturing();
 

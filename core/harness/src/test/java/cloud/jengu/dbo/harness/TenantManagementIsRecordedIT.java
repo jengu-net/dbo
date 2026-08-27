@@ -2,6 +2,8 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.core.api.Caller;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.tenant.TenantState;
@@ -210,6 +212,7 @@ class TenantManagementIsRecordedIT {
     @Test
     @Order(5)
     @DisplayName("deployment liveness does not go through the management tenant")
+    @Proving(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES)
     void livenessIsDeploymentLevel() throws Exception {
         HttpResponse<String> answer = http.send(
                 HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + manager.port()

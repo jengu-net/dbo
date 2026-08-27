@@ -8,6 +8,8 @@ import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.auth.ZoneModel;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import com.sun.net.httpserver.HttpServer;
@@ -296,6 +298,8 @@ class ZoneIT {
     /** The private clinic first: one eeID ceremony, subject system FROM THE ZONE. */
     @Test
     @Order(1)
+    @Proving({DboPromises.AUTH_FEDERATED_HUMANS, DboPromises.ZONE_BROKER_CHOICE,
+            DboPromises.ZONE_SUBJECT_DOMAINS})
     void privateClinicRunsItsContractedBrokerOnce() throws Exception {
         String token = federatedLogin("kliinik");
         assertTrue(token.startsWith("ey"), token);
@@ -306,6 +310,7 @@ class ZoneIT {
     /** The hospital's tara-only policy is NOT satisfied by the eeid ceremony — tara runs, session accumulates. */
     @Test
     @Order(2)
+    @Proving({DboPromises.ZONE_BROKER_CHOICE, DboPromises.ZONE_SESSIONS_ACCUMULATE})
     void municipalPolicyTriggersItsOwnCeremonyOntoTheSameSession() throws Exception {
         String token = federatedLogin("haigla");
         assertTrue(token.startsWith("ey"), token);
@@ -316,6 +321,7 @@ class ZoneIT {
     /** The accumulated session now serves everyone with zero further ceremonies. */
     @Test
     @Order(3)
+    @Proving({DboPromises.AUTH_ONE_CEREMONY_MANY_TENANTS, DboPromises.ZONE_SESSIONS_ACCUMULATE})
     void theAccumulatedSessionServesEveryoneFreely() throws Exception {
         assertTrue(federatedLogin("kliinik").startsWith("ey"));
         assertTrue(federatedLogin("haigla").startsWith("ey"));

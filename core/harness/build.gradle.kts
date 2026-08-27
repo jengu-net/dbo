@@ -10,6 +10,16 @@ val dboWorkTestOutput = project(":core:dbo-work")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
+// The element face's own tests cite too — the ballot promises about carried
+// definitions and about what an author wrote reaching a reader are proven
+// there and nowhere else, so without its test output on this classpath the
+// projector reads PLANNED over real, passing proofs. Same trap as dbo-work
+// above, same fix.
+evaluationDependsOn(":core:dbo-fhir-element")
+val dboFhirElementTestOutput = project(":core:dbo-fhir-element")
+        .extensions.getByType(SourceSetContainer::class.java)
+        .getByName("test").output
+
 dependencies {
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))
@@ -39,6 +49,7 @@ dependencies {
     testImplementation(project(":core:dbo-policy"))
     testImplementation(project(":core:dbo-work"))
     testImplementation(dboWorkTestOutput)
+    testImplementation(dboFhirElementTestOutput)
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
     testImplementation("org.testcontainers:testcontainers-k3s:2.0.5")
     testImplementation("org.postgresql:postgresql:42.7.11")

@@ -4,6 +4,8 @@ import cloud.jengu.dbo.maintenance.ArchiveAttestation;
 import cloud.jengu.dbo.maintenance.ArchiveManifest;
 import cloud.jengu.dbo.maintenance.ArchiveVerification;
 import cloud.jengu.dbo.maintenance.TenantImport;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -75,6 +77,7 @@ class ArchiveAttestationIT {
      */
     @Test
     @DisplayName("every way into a store from an archive takes an attestation")
+    @Proving(DboPromises.MNT_IMPORT_REFUSES_UNATTESTED)
     void everyImportPathIsAttested() {
         List<String> unattested = Arrays.stream(TenantImport.class.getMethods())
                 .filter(m -> m.getDeclaringClass() == TenantImport.class)
@@ -94,6 +97,7 @@ class ArchiveAttestationIT {
     @Test
     @DisplayName("an archive both parties signed verifies, and yields the root the "
             + "destination records")
+    @Proving(DboPromises.MNT_BOTH_PARTIES_ATTEST)
     void aCoSignedArchiveVerifies() throws Exception {
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();
@@ -112,6 +116,7 @@ class ArchiveAttestationIT {
 
     @Test
     @DisplayName("a resource altered after export is refused, and the refusal names the file")
+    @Proving(DboPromises.MNT_IMPORT_REFUSES_UNATTESTED)
     void alteredContentIsRefused() throws Exception {
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();
@@ -135,6 +140,7 @@ class ArchiveAttestationIT {
 
     @Test
     @DisplayName("an archive that grew an entry after export is refused")
+    @Proving(DboPromises.MNT_IMPORT_REFUSES_UNATTESTED)
     void anAddedEntryIsRefused() throws Exception {
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();
@@ -157,6 +163,7 @@ class ArchiveAttestationIT {
 
     @Test
     @DisplayName("an archive the tenant has not countersigned is refused, and says so")
+    @Proving(DboPromises.MNT_BOTH_PARTIES_ATTEST)
     void aMissingCountersignatureIsRefused() throws Exception {
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();
@@ -176,6 +183,7 @@ class ArchiveAttestationIT {
 
     @Test
     @DisplayName("a signature from the wrong key is refused — holding one half is not enough")
+    @Proving(DboPromises.MNT_BOTH_PARTIES_ATTEST)
     void aForgedCountersignatureIsRefused() throws Exception {
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();
@@ -195,6 +203,7 @@ class ArchiveAttestationIT {
 
     @Test
     @DisplayName("the root is over contents, not bytes — re-packing does not invalidate it")
+    @Proving(DboPromises.MNT_ARCHIVE_ROOT_OVER_CONTENTS)
     void rePackingDoesNotInvalidateTheAttestation() throws Exception {
         byte[] first = archive("b.ndjson", "two\n", "a.ndjson", "one\n");
         byte[] reordered = archive("a.ndjson", "one\n", "b.ndjson", "two\n");
@@ -208,6 +217,7 @@ class ArchiveAttestationIT {
 
     @Test
     @DisplayName("an archive with no manifest is refused rather than trusted")
+    @Proving(DboPromises.MNT_IMPORT_REFUSES_UNATTESTED)
     void anUnattestedArchiveIsRefused() throws Exception {
         KeyPair vendor = ed25519();
         KeyPair tenant = ed25519();

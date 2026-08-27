@@ -4,6 +4,8 @@ import cloud.jengu.dbo.auth.IdentityModel;
 import cloud.jengu.dbo.auth.KeyProtector;
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -184,6 +186,7 @@ class DelegationIT {
     /** RFC 8693: the exchanged token chains the actor and attenuates the scopes. */
     @Test
     @Order(1)
+    @Proving(DboPromises.AUTH_ON_BEHALF_OF)
     void liveExchangeAttenuatesAndChainsTheActor() throws Exception {
         HttpResponse<String> exchanged = post(base() + "/oidc/token",
                 "grant_type=" + URLEncoder.encode("urn:ietf:params:oauth:grant-type:token-exchange",
@@ -265,6 +268,7 @@ class DelegationIT {
     /** A scope the human does not hold cannot be delegated. */
     @Test
     @Order(2)
+    @Proving(DboPromises.AUTH_ON_BEHALF_OF)
     void exchangeCannotExceedTheHuman() throws Exception {
         HttpResponse<String> refused = post(base() + "/oidc/token",
                 "grant_type=" + URLEncoder.encode("urn:ietf:params:oauth:grant-type:token-exchange",
@@ -279,6 +283,7 @@ class DelegationIT {
     /** Durable delegation: exchanges without any subject token; capped by the RECORD even when grants widen. */
     @Test
     @Order(3)
+    @Proving(DboPromises.AUTH_ON_BEHALF_OF)
     void durableDelegationOutlivesTokensAndNeverWidens() throws Exception {
         HttpResponse<String> created = http.send(HttpRequest.newBuilder(
                         URI.create(base() + "/oidc/delegation"))
@@ -318,6 +323,7 @@ class DelegationIT {
     /** Revocation both ways: ending the delegation, and ending the human's role. */
     @Test
     @Order(4)
+    @Proving(DboPromises.AUTH_ON_BEHALF_OF)
     void revocationIsHonouredAfterTheFact() throws Exception {
         assertEquals(200, http.send(HttpRequest.newBuilder(
                         URI.create(base() + "/oidc/delegation/" + delegationId))

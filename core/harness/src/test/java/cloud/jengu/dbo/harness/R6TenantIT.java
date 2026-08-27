@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -104,6 +106,7 @@ class R6TenantIT {
     @Test
     @Order(2)
     @DisplayName("a write is validated against the ballot's own definitions")
+    @Proving(DboPromises.VER_PERSONALITY_OWNS_MEANING)
     void aWriteIsValidatedAgainstTheDefinitions() throws Exception {
         HttpResponse<String> refused = post(base + "/Patient", """
                 {"resourceType":"Patient","gender":"unicorn"}""");
@@ -124,6 +127,7 @@ class R6TenantIT {
     @Test
     @Order(3)
     @DisplayName("and it is found by what the version's search parameters extracted")
+    @Proving({DboPromises.SRCH_STRICT_BY_DEFAULT, DboPromises.VER_PERSONALITY_OWNS_MEANING})
     void itIsFoundByItsEnvelope() throws Exception {
         HttpResponse<String> byIdentifier = get(base + "/Patient?identifier="
                 + java.net.URLEncoder.encode(EID + "|38001010001",

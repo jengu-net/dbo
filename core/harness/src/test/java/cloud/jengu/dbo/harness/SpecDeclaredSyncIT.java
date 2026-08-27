@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -104,6 +106,8 @@ class SpecDeclaredSyncIT {
 
     @Test
     @Order(2)
+    @Proving({DboPromises.SYNC_DECLARED_ONLY, DboPromises.SYNC_FULL_HISTORY_CATCH_UP,
+            DboPromises.SYNC_SPEC_DECLARED, DboPromises.SYNC_TERMINOLOGY_GRAIN_SURVIVES})
     void aSpecDeclaredDependentCatchesUpFromFullHistory() throws Exception {
         Files.writeString(dir.resolve("sync-hogwarts.json"), dependentSpec("sync-hogwarts"));
         UntilServed.scan(manager, "sync-hogwarts");
@@ -117,6 +121,7 @@ class SpecDeclaredSyncIT {
 
     @Test
     @Order(3)
+    @Proving(DboPromises.SYNC_FULL_HISTORY_CATCH_UP)
     void aSecondDependentReceivesTheWholeStreamToo() throws Exception {
         Files.writeString(dir.resolve("sync-beauxbatons.json"), dependentSpec("sync-beauxbatons"));
         UntilServed.scan(manager, "sync-beauxbatons");
@@ -129,6 +134,7 @@ class SpecDeclaredSyncIT {
 
     @Test
     @Order(4)
+    @Proving(DboPromises.SYNC_TERMINOLOGY_GRAIN_SURVIVES)
     void liveUpdatesKeepPropagating() throws Exception {
         HttpResponse<String> updated = http.send(HttpRequest.newBuilder(
                         URI.create(manager.baseUrl("sync-ee") + "/CodeSystem/" + codeSystemId))
@@ -180,6 +186,7 @@ class SpecDeclaredSyncIT {
 
     @Test
     @Order(5)
+    @Proving(DboPromises.SYNC_SPEC_DECLARED)
     void retractingTheSpecRemovesTheStream() throws Exception {
         Files.delete(dir.resolve("sync-hogwarts.json"));
         manager.scanOnce();

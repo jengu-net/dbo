@@ -12,6 +12,8 @@ import cloud.jengu.dbo.maintenance.SealedArchive;
 import cloud.jengu.dbo.maintenance.TenantExport;
 import cloud.jengu.dbo.maintenance.TenantImport;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -141,6 +143,7 @@ class ReferencesSurviveTheMoveIT {
     @Test
     @Timeout(300)
     @DisplayName("the archive says which thing each object is, without anyone resolving our ids")
+    @Proving(DboPromises.MNT_PORTABLE_STATE_EXPORT)
     void theArchiveCarriesIdentityCodes() throws Exception {
         ByteArrayOutputStream archive = new ByteArrayOutputStream();
         TenantExport.export(sourceDs, DOMAIN, OWNER_KEY, archive, TYPES);

@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.tenant.TenantState;
@@ -83,6 +85,7 @@ class ARuntimeSaysWhatItIsServingIT {
 
     @Test
     @DisplayName("the runtime answers with a state per tenant, not a list of the ones that worked")
+    @Proving(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES)
     void everyDeclaredTenantHasAState() {
         Map<String, TenantState.State> states = manager.tenantStates().stream()
                 .collect(Collectors.toMap(TenantState::code, TenantState::state));
@@ -95,6 +98,7 @@ class ARuntimeSaysWhatItIsServingIT {
 
     @Test
     @DisplayName("and says it over the wire, to a caller the deployment named")
+    @Proving(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES)
     void anOperatorCanAskOverHttp() throws Exception {
         HttpResponse<String> answer = ask(OPS_TOKEN);
 
@@ -107,6 +111,7 @@ class ARuntimeSaysWhatItIsServingIT {
 
     @Test
     @DisplayName("a caller the deployment did not name learns nothing, including how many there are")
+    @Proving(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES)
     void anUnnamedCallerIsRefused() throws Exception {
         assertEquals(401, ask("some-other-token").statusCode());
         assertEquals(401, ask(null).statusCode());

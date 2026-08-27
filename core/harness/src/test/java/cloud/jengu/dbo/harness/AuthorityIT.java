@@ -4,6 +4,8 @@ import cloud.jengu.dbo.auth.IdentityModel;
 import cloud.jengu.dbo.auth.KeyProtector;
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.tenant.TenantSpec;
@@ -124,6 +126,7 @@ class AuthorityIT {
     /** Each tenant's discovery names ITS OWN issuer and serves its own keys. */
     @Test
     @Order(1)
+    @Proving(DboPromises.AUTH_TENANT_SCOPED_ISSUER)
     void eachTenantIsItsOwnIssuer() throws Exception {
         HttpResponse<String> yks = get(oidc("yks") + "/.well-known/openid-configuration", null);
         assertEquals(200, yks.statusCode());
@@ -137,6 +140,7 @@ class AuthorityIT {
     /** Anonymous metadata declares the auth mode; everything else requires a bearer token. */
     @Test
     @Order(2)
+    @Proving(DboPromises.AUTH_BEARER_LOCAL_VALIDATION)
     void theStoreSurfaceRequiresThisTenantsToken() throws Exception {
         HttpResponse<String> metadata = get(fhir("yks") + "/metadata", null);
         assertEquals(200, metadata.statusCode());
@@ -152,6 +156,7 @@ class AuthorityIT {
     /** §13's core claim: a cross-tenant token dies at signature verification. */
     @Test
     @Order(3)
+    @Proving(DboPromises.AUTH_TENANT_SCOPED_ISSUER)
     void aCrossTenantTokenFailsAtVerification() throws Exception {
         String yksToken = token("yks", null);
         HttpResponse<String> denied = get(fhir("kaks") + "/Patient?_summary=count", yksToken);
@@ -162,6 +167,7 @@ class AuthorityIT {
     /** SMART system scopes govern read vs write, down to the type. */
     @Test
     @Order(4)
+    @Proving(DboPromises.AUTH_SMART_SHAPED_SCOPES)
     void scopesGovernReadAndWrite() throws Exception {
         String readOnly = token("yks", "system/*.read");
         assertEquals(200, get(fhir("yks") + "/Patient?_summary=count", readOnly).statusCode());
@@ -177,6 +183,7 @@ class AuthorityIT {
     /** Rotation: old tokens verify until the old key is retired from publication. */
     @Test
     @Order(5)
+    @Proving(DboPromises.AUTH_BEARER_LOCAL_VALIDATION)
     void rotationKeepsOldTokensVerifying() throws Exception {
         String before = token("yks", null);
         TenantAuthority side = new TenantAuthority(

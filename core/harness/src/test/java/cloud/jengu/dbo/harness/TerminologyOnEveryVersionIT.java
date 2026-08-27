@@ -5,6 +5,8 @@ import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.common.FhirVersion;
 import cloud.jengu.dbo.fhir.common.FhirVersions;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.terminology.TerminologyStore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
@@ -77,6 +79,7 @@ class TerminologyOnEveryVersionIT {
      */
     @ParameterizedTest(name = "{0}")
     @MethodSource("versions")
+    @Proving(DboPromises.TERM_NATIVE_FORM)
     void theShellIsConceptFreeAndReassemblyRestoresTheTree(String code) {
         FhirTerminology terminology = FACES.get(code);
         FhirTerminology.IngestResult result = terminology.ingestCodeSystem(treeCodeSystem());
@@ -105,6 +108,7 @@ class TerminologyOnEveryVersionIT {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("versions")
+    @Proving({DboPromises.TERM_EVERY_TENANT_ANSWERS, DboPromises.TERM_OPERATIONS_FROM_NATIVE_FORM})
     void lookupAndValidateAnswerFromConceptRows(String code) {
         FhirTerminology terminology = FACES.get(code);
         terminology.ingestCodeSystem(treeCodeSystem());
@@ -124,6 +128,7 @@ class TerminologyOnEveryVersionIT {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("versions")
+    @Proving({DboPromises.TERM_EVERY_TENANT_ANSWERS, DboPromises.TERM_OPERATIONS_FROM_NATIVE_FORM})
     void expandServesEveryComposeFlavour(String code) {
         FhirTerminology terminology = FACES.get(code);
         terminology.ingestCodeSystem(treeCodeSystem());
@@ -171,6 +176,7 @@ class TerminologyOnEveryVersionIT {
      */
     @ParameterizedTest(name = "{0}")
     @MethodSource("versions")
+    @Proving(DboPromises.TERM_EVERY_TENANT_ANSWERS)
     void everyAnswerThisStoreGivesWouldBeAcceptedByIt(String code) {
         FhirTerminology terminology = FACES.get(code);
         cloud.jengu.dbo.fhir.common.FhirStoreFacade store = STORES.get(code);

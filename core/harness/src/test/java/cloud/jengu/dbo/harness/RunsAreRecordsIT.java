@@ -68,7 +68,7 @@ class RunsAreRecordsIT {
 
     @Test
     @DisplayName("a record that is wrong reaches a person; a store that is away is a retry")
-    @Proving(DboPromises.PROC_ESCALATION_BY_FAILURE_CLASS)
+    @Proving({DboPromises.PROC_ESCALATION_BY_FAILURE_CLASS, DboPromises.PROC_RUN_SAYS_WHO_HOLDS_IT})
     void escalationFollowsTheFailureClass() {
         Run delivery = runs.pipeline("dbo.subscriptions.delivery", "post");
         Run wrong = runs.item(delivery, "Subscription/one", Failure.RECORD, "endpoint rejected it");
@@ -85,7 +85,7 @@ class RunsAreRecordsIT {
 
     @Test
     @DisplayName("a sweep closes what stops failing, without anybody clicking resolved")
-    @Proving(DboPromises.PROC_CLOSE_BY_RE_EVALUATION)
+    @Proving({DboPromises.PROC_CLOSE_BY_RE_EVALUATION, DboPromises.PROC_RUN_SAYS_WHO_HOLDS_IT})
     void aSweepClosesByReEvaluation() {
         Run sweep = runs.sweep("dbo.config.applied", "apply", "hogwarts");
 

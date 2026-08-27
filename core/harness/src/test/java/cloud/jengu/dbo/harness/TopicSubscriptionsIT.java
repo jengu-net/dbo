@@ -11,6 +11,8 @@ import cloud.jengu.dbo.fhir.r5.R5Store;
 import cloud.jengu.dbo.fhir.r5.R5Subscriptions;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.subscriptions.RestHookTransport;
 import cloud.jengu.dbo.subscriptions.SubscriptionEngine;
 import cloud.jengu.dbo.subscriptions.TopicSpec;
@@ -195,6 +197,7 @@ class TopicSubscriptionsIT {
     /** Filtered topic: matching create → event #1 bundle; non-match silent; update → event #2. */
     @Test
     @Timeout(120)
+    @Proving(DboPromises.EVT_FHIR_SUBSCRIPTIONS)
     void r5FilteredTopicDeliversNumberedNotificationBundles() throws Exception {
         r5Topic(TOPIC_FILTERED, "\"create\",\"update\"", "code");
         r5Subscription(TOPIC_FILTERED, "/t1", "code", "http://loinc.org|T-1", "full-resource");
@@ -265,6 +268,7 @@ class TopicSubscriptionsIT {
     /** The R4 backport: configured topic + criteria=url + filter extension → backport bundle. */
     @Test
     @Timeout(120)
+    @Proving(DboPromises.EVT_FHIR_SUBSCRIPTIONS)
     void r4BackportDeliversParametersStatusBundle() throws Exception {
         r4.create("""
                 {"resourceType":"Subscription","status":"active","reason":"topic delivery test",

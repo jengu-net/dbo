@@ -12,6 +12,8 @@ import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.testmodel.GadgetModel;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -75,6 +77,7 @@ class FeedIT {
 
     /** REQ-DBO-FEED-ONE-PRIMITIVE: commit-ordered chunks with EXACT-version payloads. */
     @Test
+    @Proving(DboPromises.FEED_ONE_PRIMITIVE)
     void theChangeFeedDeliversEveryVersionWithItsOwnPayload() {
         PutResult r = store.put(PutRequest.create("Gadget", gadget("F-100", "feedco", "One", 1)));
         store.put(PutRequest.update("Gadget", r.id(), 1, gadget("F-100", "feedco", "Two", 2)));
@@ -93,6 +96,8 @@ class FeedIT {
 
     /** REQ-DBO-FEED-IDEMPOTENT-DELIVERY + PUSH-ACK-RESUME: unacked → redelivered; acked → resumed after. */
     @Test
+    @Proving({DboPromises.FEED_IDEMPOTENT_DELIVERY, DboPromises.FEED_NAMED_CONSUMERS,
+            DboPromises.FEED_PUSH_ACK_RESUME})
     void unackedItemsRedeliverAndAckResumesAfterCrash() {
         store.put(PutRequest.create("Gadget", gadget("F-200", "ackco", "A", 1)));
         store.put(PutRequest.create("Gadget", gadget("F-201", "ackco", "B", 2)));
@@ -116,6 +121,7 @@ class FeedIT {
 
     /** Stale acks are no-ops; explicit reset replays history (REQ-DBO-FEED-NAMED-CONSUMERS). */
     @Test
+    @Proving(DboPromises.FEED_NAMED_CONSUMERS)
     void staleAckIsIgnoredAndResetReplays() {
         store.put(PutRequest.create("Gadget", gadget("F-300", "replayco", "R1", 1)));
         store.put(PutRequest.create("Gadget", gadget("F-301", "replayco", "R2", 2)));
@@ -137,6 +143,7 @@ class FeedIT {
     /** The xid barrier: parallel writers, ack-looped consumer — every commit delivered exactly once, in order. */
     @Test
     @Timeout(120)
+    @Proving(DboPromises.FEED_ONE_PRIMITIVE)
     void concurrentWritersLoseNoEventsAndProduceNoDuplicates() throws Exception {
         String consumer = "test.gapfree-" + System.nanoTime();
         feed.resetConsumer(consumer, feed.read(null, 1).items().isEmpty() ? null : lastCursorOfFeed());
@@ -216,6 +223,7 @@ class FeedIT {
 
     /** REQ-DBO-FEED-KEYSET-CURSORS: pages advance strictly, no duplicates, stable under mid-pagination writes. */
     @Test
+    @Proving({DboPromises.FEED_KEYSET_CURSORS, DboPromises.FEED_ONE_PRIMITIVE})
     void keysetPagesNeverDuplicateUnderConcurrentWrites() {
         for (int i = 0; i < 10; i++) {
             store.put(PutRequest.create("Gadget", gadget("F-4" + String.format("%02d", i), "pageco", "G" + i, 100 + i * 10)));

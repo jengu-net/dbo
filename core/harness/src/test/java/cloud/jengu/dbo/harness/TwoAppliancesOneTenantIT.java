@@ -141,7 +141,8 @@ class TwoAppliancesOneTenantIT {
 
     @Test
     @DisplayName("a re-sent batch applies once, and a late one does not put the old version back")
-    @Proving(DboPromises.PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE)
+    @Proving({DboPromises.FEED_IDEMPOTENT_DELIVERY,
+            DboPromises.PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE})
     void replayAndReorderAreSafe() {
         PutResult subject = cloudStore.put(PutRequest.create("Patient",
                 patient("Esimene").getBytes(StandardCharsets.UTF_8)));
