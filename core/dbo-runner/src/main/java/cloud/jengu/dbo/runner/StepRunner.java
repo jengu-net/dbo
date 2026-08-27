@@ -1,13 +1,11 @@
 package cloud.jengu.dbo.runner;
 
-import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Run;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -164,7 +162,7 @@ public final class StepRunner implements AutoCloseable {
         Vitals sign = vitals.computeIfAbsent(service.step(), s -> new Vitals());
         long began = System.nanoTime();
         try {
-            Work work = new Work(claimed, related(lane, claimed),
+            Work work = new Work(claimed, lane.inputs(claimed),
                     counts -> lane.checkpoint(claimed, counts, holdFor));
             Outcome outcome = service.perform(work);
             if (outcome instanceof Outcome.Done done) {
@@ -182,20 +180,6 @@ public final class StepRunner implements AutoCloseable {
             lane.released(claimed, "the service threw: " + thrown.getMessage());
             sign.failed(String.valueOf(thrown.getMessage()));
         }
-    }
-
-    /**
-     * The objects the run names, resolved over the lane — the runner's one
-     * read (REQ-DBO-PROC-WORK-ARRIVES-WHOLE). Today the item; the run's
-     * inputs join the same list when #149 lands, with no change here.
-     */
-    private List<StoredObject> related(Lane lane, Run run) {
-        if (run.item() == null || run.item().reference() == null) {
-            return List.of();
-        }
-        List<StoredObject> related = new ArrayList<>();
-        lane.named(run.item().reference()).ifPresent(related::add);
-        return related;
     }
 
     private void run() {

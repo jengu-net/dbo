@@ -85,12 +85,23 @@ runner holds only the task in hand and the documents the task names. Its
 counters are soft accounting — published as vitals, reconstructible from
 nothing, lost without loss.
 
-**The run is the only document carrier.** A claimable run today names no
-documents (participants pull pipeline runs; the *item* runs that carry a
-reference are parked problems for people, filtered out of poll). So #149
-(`Run.inputs` → `Task.input`) is not an enhancement — it is the only
-official way related documents reach a distributed runner. `Work.related`
-is the waiting seam; #149 fills it with no service or runner change.
+**The step declaration is the input API, and the verb's signature is the
+security boundary** (review, 2026-08-27). What a step consumes is declared
+centrally — named slots with shape references, which is #71's "shapes it
+consumes" promoted to the API; a run's inputs fill those slots, validated at
+creation (#149); a runner *joins* a step and has thereby agreed to the API,
+because there is nothing else it can receive. The runner-facing read is
+`inputs(Run)` — no verb takes a reference, so a runner **cannot ask** for
+data, relevant or not, and a lane refuses runs the asking identity has not
+claimed. This replaced an earlier `named(reference)` read that enforced
+"only what the work names" by convention — and a convention is not a
+boundary.
+
+A claimable run today declares no slots (participants pull pipeline runs;
+item runs are parked problems for people, filtered out of poll), so #149 is
+not an enhancement — it is the only official way documents reach a
+distributed runner. `Work.inputs` is the waiting seam; #149 fills it with
+no service or runner change.
 
 **The catalogue may be built up from linked steps** (review direction,
 2026-08-27): rather than porting the platform's catalogue wholesale — the

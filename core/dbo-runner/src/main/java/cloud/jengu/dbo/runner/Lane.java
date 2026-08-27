@@ -69,11 +69,22 @@ public interface Lane {
     void withdraw(Declarations.Declared declared);
 
     /**
-     * The one read: an object the work names
-     * (REQ-DBO-PROC-WORK-ARRIVES-WHOLE). Absence is an answer for the
-     * service to judge, not a failure.
+     * The claimed run's inputs, resolved — and the runner's ONLY read.
+     *
+     * <p>The verb takes a run, never a reference, and that is the security
+     * boundary (review decision): a runner cannot ask for data, relevant or
+     * not — it receives what the step's own declaration entitles the run to
+     * carry, resolved by the party that legitimately holds the objects. The
+     * step declaration (#71) is the central profile of what a step consumes;
+     * the run's inputs (#149) are instances filling those slots; joining a
+     * step is agreeing to that API, automatically, because there is nothing
+     * else to receive. A lane may — should — refuse a run this identity has
+     * not claimed.
+     *
+     * <p>Empty today: a claimable run names no inputs until #149 lands, and
+     * an empty map is the honest answer rather than a placeholder.
      */
-    Optional<StoredObject> named(String reference);
+    Map<String, StoredObject> inputs(Run run);
 
     /**
      * The in-process implementation, built and held by the HOST — the party
@@ -81,8 +92,7 @@ public interface Lane {
      * interface and never the parts.
      */
     static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
-            Declarations declarations, Related related, String participant,
-            Executor identity) {
+            Declarations declarations, String participant, Executor identity) {
         return new Lane() {
 
             @Override
@@ -137,16 +147,11 @@ public interface Lane {
             }
 
             @Override
-            public Optional<StoredObject> named(String reference) {
-                return related.named(reference);
+            public Map<String, StoredObject> inputs(Run run) {
+                // #149 gives a run its slot-shaped inputs; until then a
+                // claimable run names none, and none is what arrives.
+                return Map.of();
             }
         };
-    }
-
-    /** The host-side fetch behind {@link #named} — one reference, one answer. */
-    @FunctionalInterface
-    interface Related {
-
-        Optional<StoredObject> named(String reference);
     }
 }
