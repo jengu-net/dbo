@@ -91,6 +91,23 @@ public final class Reshape {
     /** One object the run could not convert, and the reason it could not. */
     public record Refusal(String id, String profile, String reason) {}
 
+    /** A claim as a runner reads it: bytes base64, because the store holds bytes. */
+    public static String json(Claim claim) {
+        StringBuilder out = new StringBuilder("{\"cursor\":")
+                .append(claim.cursor() == null ? "null" : Names.quote(claim.cursor()))
+                .append(",\"held\":[");
+        for (int i = 0; i < claim.held().size(); i++) {
+            Held one = claim.held().get(i);
+            out.append(i > 0 ? "," : "")
+                    .append("{\"id\":").append(Names.quote(one.id()))
+                    .append(",\"version\":").append(one.version())
+                    .append(",\"payload\":").append(Names.quote(
+                            java.util.Base64.getEncoder().encodeToString(one.payload())))
+                    .append('}');
+        }
+        return out.append("]}").toString();
+    }
+
     /**
      * A run as an operator reads it — rendered here, beside the record,
      * because the quoting belongs where the other maintenance reports keep
@@ -111,6 +128,75 @@ public final class Reshape {
                     .append('}');
         }
         return out.append("]}").toString();
+    }
+
+    /** One object held out for conversion elsewhere, with the version it was read at. */
+    public record Held(String id, long version, byte[] payload) {}
+
+    /** A page of stock handed out, and where to ask for the next one. */
+    public record Claim(List<Held> held, String cursor) {
+
+        public Claim {
+            held = List.copyOf(held);
+        }
+    }
+
+    /**
+     * A page of stock behind the bound, for a converter that is not this
+     * store's (REQ-DBO-SHAPE-HANDBACK-CLAIMS-WITHOUT-LOCKING).
+     *
+     * <p><b>Nothing is held and nothing is written.</b> A claim is a query:
+     * the guard is the version check when a converted form comes back, not a
+     * lock taken here. That is what makes an abandoned claim harmless —
+     * there is nothing to expire, nothing to strand, and the next claim
+     * simply returns the same stock. Two consumers claiming the same page is
+     * duplicated work, never corruption: one write wins the version check
+     * and the other is refused by name, after which the object is no longer
+     * behind the bound.
+     *
+     * <p>A lease would buy only duplicate-work avoidance, and would pay for
+     * it with persistent state that can leak and expire wrongly — which is
+     * the failure it would exist to prevent.
+     */
+    public static Claim claim(ObjectStore store, String typeName, String profile,
+            int targetMajor, int pageSize, String cursor) {
+        var chunk = store.page(Criteria.of(typeName)
+                .shapeBelow(profile, targetMajor)
+                .limit(pageSize), cursor);
+        List<Held> held = new ArrayList<>();
+        for (StoredObject stored : chunk.items()) {
+            held.add(new Held(stored.id(), stored.versionId(), stored.payload()));
+        }
+        return new Claim(held, chunk.drained() ? null : chunk.nextCursor());
+    }
+
+    /**
+     * Converted forms handed back, re-accepted through the face
+     * (REQ-DBO-SHAPE-HANDBACK-KEEPS-THE-DISCIPLINE).
+     *
+     * <p>The same accounting as the in-process lane, deliberately: an
+     * escape hatch that bypassed the loop would run the HARDEST conversions
+     * with the LEAST discipline, which is backwards. So a handed-back form
+     * is validated by the pack, re-stamped by it, and version-checked
+     * against what was claimed — a form built from stock that has since
+     * moved is refused by name rather than overwriting the newer version.
+     */
+    public static Run apply(Accept accept, String typeName, String profile,
+            List<Held> converted) {
+        int applied = 0;
+        List<Refusal> refused = new ArrayList<>();
+        for (Held one : converted) {
+            try {
+                accept.reaccept(typeName, one.id(), one.version(), one.payload());
+                applied++;
+            } catch (RuntimeException rejected) {
+                refused.add(new Refusal(one.id(), profile,
+                        "the store refused the converted form: " + rejected.getMessage()));
+            }
+        }
+        // No cursor: the caller decided what this batch was, so there is no
+        // walk position to resume — asking again is a fresh claim.
+        return new Run(applied, refused, null);
     }
 
     /**

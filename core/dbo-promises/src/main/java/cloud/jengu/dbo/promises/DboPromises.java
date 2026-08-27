@@ -69,6 +69,15 @@ public enum DboPromises implements Promise {
     SHAPE_TOO_NEW_IS_ITS_OWN_ANSWER("The refusal is a distinct, documented error a consumer "
             + "can gate on, told apart from a fault, a permission and a malformed request."),
 
+    SHAPE_HANDBACK_CLAIMS_WITHOUT_LOCKING("Claiming stock for conversion elsewhere writes "
+            + "nothing and holds nothing: the version check on the way back is the only "
+            + "guard, so an abandoned claim strands no data and a duplicated one converges."),
+
+    SHAPE_HANDBACK_KEEPS_THE_DISCIPLINE("Converted forms handed back are re-accepted through "
+            + "the face — validated, re-stamped, version-checked — and accounted exactly as "
+            + "the in-process lane accounts, so the hardest conversions do not run with the "
+            + "least discipline."),
+
     // ── PDI — personal-data isolation ───────────────────────────────────
 
     PDI_STRUCTURAL_VAULT("Identifying elements, declared per type/element, live encrypted "
