@@ -6,7 +6,7 @@ import cloud.jengu.dbo.promise.Promise;
 
 import java.util.List;
 
-/** The functional views the pilot classifies. */
+/** The functional views the catalogue classifies. */
 @Catalogue(namespace = "FEAT-DBO")
 public enum DboFeatures implements Feature {
 
@@ -135,7 +135,64 @@ public enum DboFeatures implements Feature {
     THE_NETWORK_AND_ITS_TRACE_ARE_READABLE("What is running, where, and what it did "
             + "are answerable questions: the network map for presence, the trace join "
             + "for provenance.",
-            List.of(DboPromises.PROC_NETWORK_MAP, DboPromises.PROC_TRACE_JOIN));
+            List.of(DboPromises.PROC_NETWORK_MAP, DboPromises.PROC_TRACE_JOIN)),
+
+    CORE_MIGRATED("the object engine — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.CORE_PAYLOAD_IS_TRUTH, DboPromises.CORE_DECLARED_TRUTH_FORM, DboPromises.CORE_REINDEX_IS_AN_OPERATION, DboPromises.CORE_EXTERNAL_IDENTIFIERS, DboPromises.CORE_REFERENCE_EDGES, DboPromises.CORE_VERSIONED_HISTORY, DboPromises.CORE_READ_YOUR_WRITES, DboPromises.CORE_UPGRADE_ON_READ, DboPromises.CORE_PARAMETERIZED_SQL, DboPromises.CORE_SIBLING_MODELS, DboPromises.CORE_DECLARED_IDENTITY, DboPromises.CORE_IDENTITY_SURVIVES_CONVERSION, DboPromises.CORE_NO_IMPLICIT_MERGE, DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS, DboPromises.CORE_CONDITIONAL_REFERENCES, DboPromises.CORE_CONDITIONAL_UPSERT, DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE, DboPromises.CORE_BATCH_ANSWERS_PER_ENTRY)),
+
+    CONT_MIGRATED("container & embedding — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.CONT_FRAMEWORK_FREE_CORE, DboPromises.CONT_DYNAMIC_TENANT_SERVICES, DboPromises.CONT_EMBEDDED_IN_JVM, DboPromises.CONT_PRIVATE_DEPENDENCIES, DboPromises.CONT_FAST_COLD_START)),
+
+    TEN_MIGRATED("tenancy & isolation — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.TEN_STRUCTURAL_SCOPING, DboPromises.TEN_DEDICATED_DATABASE_TIER, DboPromises.TEN_CREDENTIAL_BLIND_PROVISIONING, DboPromises.TEN_REGISTRY_SCOPED_ACCESS, DboPromises.TEN_ERASURE_BY_DROP, DboPromises.TEN_SHARED_TIER_ISOLATION, DboPromises.TEN_FAIRNESS_QUOTAS)),
+
+    AUTH_MIGRATED("tenant authority & surface protection — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.AUTH_TENANT_SCOPED_ISSUER, DboPromises.AUTH_IDENTITY_AS_RECORDS, DboPromises.AUTH_PRIVATE_SURFACE, DboPromises.AUTH_DENY_BY_DEFAULT, DboPromises.AUTH_BEARER_LOCAL_VALIDATION, DboPromises.AUTH_CREDENTIAL_FACTORS_BY_KIND, DboPromises.AUTH_SELF_SERVICE_CHANGE, DboPromises.AUTH_RECOVERY_IS_AN_OPERATOR_ACT, DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS, DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT, DboPromises.AUTH_NO_SUBJECT_ENUMERATION, DboPromises.AUTH_SMART_SHAPED_SCOPES, DboPromises.AUTH_PORTABLE_AUTHORITY, DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL, DboPromises.AUTH_FEDERATED_HUMANS, DboPromises.AUTH_ROLE_GRANTS_AS_RECORDS, DboPromises.AUTH_PSEUDONYMOUS_TOKENS, DboPromises.AUTH_ONE_CEREMONY_MANY_TENANTS, DboPromises.AUTH_ON_BEHALF_OF)),
+
+    POL_MIGRATED("tenant policies — audit & write discipline — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.POL_DECLARED_AT_CONFIGURATION, DboPromises.POL_AUDIT_AS_RECORDS, DboPromises.POL_ACTOR_FROM_AUTHORITY, DboPromises.POL_APPEND_ONLY_DISCIPLINE, DboPromises.POL_ERASURE_COMPATIBLE, DboPromises.POL_DECLARATIVE_RETENTION, DboPromises.POL_RETENTION_SWEEP, DboPromises.POL_POLICY_REPLAY_ON_RESTORE, DboPromises.POL_CUSTOM_AUDIT_EVENTS, DboPromises.POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY, DboPromises.POL_FHIR_AUDIT_PROJECTION)),
+
+    ZONE_MIGRATED("jurisdiction overlay — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.ZONE_DECLARATIONS_AS_RECORDS, DboPromises.ZONE_BROKER_CHOICE, DboPromises.ZONE_SESSIONS_ACCUMULATE, DboPromises.ZONE_SUBJECT_DOMAINS)),
+
+    VER_MIGRATED("version plurality across personalities — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.VER_VERSION_AGNOSTIC_CORE, DboPromises.VER_CONCURRENT_VERSIONS, DboPromises.VER_PERSONALITY_OWNS_MEANING, DboPromises.VER_SPECIFIED_VALIDATION, DboPromises.VER_VALIDATION_WITHOUT_WRITING, DboPromises.VER_ONE_READ_PER_REQUEST, DboPromises.VER_BALLOT_RECORDED_PER_VERSION, DboPromises.VER_DEFINITIONS_TRAVEL_WITH_THE_FACE, DboPromises.VER_BALLOT_SERVED_AS_AUTHORED, DboPromises.VER_TRANSITION_BY_CONVERTERS)),
+
+    SRCH_MIGRATED("search — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.SRCH_TIER1_PARITY, DboPromises.SRCH_STRICT_BY_DEFAULT, DboPromises.SRCH_HONEST_CAPABILITY, DboPromises.SRCH_TYPED_ORDERING, DboPromises.SRCH_DECLARED_INDEXES, DboPromises.SRCH_CUSTOM_PARAMETERS)),
+
+    FEED_MIGRATED("feeds, pagination & synchronization — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.FEED_ONE_PRIMITIVE, DboPromises.FEED_KEYSET_CURSORS, DboPromises.FEED_PUSH_ACK_RESUME, DboPromises.FEED_IDEMPOTENT_DELIVERY, DboPromises.FEED_NAMED_CONSUMERS, DboPromises.FEED_LEAN_WIRE_OPTION)),
+
+    EVT_MIGRATED("eventing & subscriptions — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.EVT_TRANSACTIONAL_OUTBOX, DboPromises.EVT_FHIR_SUBSCRIPTIONS, DboPromises.EVT_DURABLE_DELIVERY, DboPromises.EVT_IN_PROCESS_SURFACE)),
+
+    WF_MIGRATED("durable work & planes — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.WF_POSTGRES_SUBSTRATE, DboPromises.WF_TWO_PLANES, DboPromises.WF_CONTENT_FREE_PLATFORM_PLANE, DboPromises.WF_DECLARED_STEP_PLANE, DboPromises.WF_PLATFORM_COORDINATED_HOPS, DboPromises.WF_HOPS_AUDITED, DboPromises.WF_GRANTS_FROM_CATALOGUE)),
+
+    SCAL_MIGRATED("scaling & routing — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.SCAL_DURABLE_ASSIGNMENT, DboPromises.SCAL_SINGLE_WRITER_TENANT, DboPromises.SCAL_TRANSPARENT_ROUTING, DboPromises.SCAL_TWO_HOP_LOCALITY, DboPromises.SCAL_NO_SHARED_STATE_BROKER)),
+
+    TERM_MIGRATED("terminology — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.TERM_NATIVE_FORM, DboPromises.TERM_BULK_LOAD, DboPromises.TERM_EVERY_TENANT_ANSWERS, DboPromises.TERM_OPERATIONS_FROM_NATIVE_FORM, DboPromises.TERM_VALIDATION_USES_TENANT_TERMINOLOGY)),
+
+    SYNC_MIGRATED("canonical content dependencies — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.SYNC_DECLARED_ONLY, DboPromises.SYNC_ANY_TYPE, DboPromises.SYNC_TERMINOLOGY_GRAIN_SURVIVES, DboPromises.SYNC_CONVERT_ON_APPLY, DboPromises.SYNC_PROVENANCE_COPIES, DboPromises.SYNC_LOCAL_SHADOWING, DboPromises.SYNC_DIRECT_UPSTREAM_ONLY, DboPromises.SYNC_SPEC_DECLARED, DboPromises.SYNC_FULL_HISTORY_CATCH_UP)),
+
+    VAL_MIGRATED("coded-value validation — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.VAL_BINDING_STRENGTH_IS_THE_ANSWER, DboPromises.VAL_UNRESOLVABLE_IS_NOT_INVALID)),
+
+    OPS_MIGRATED("operations — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.OPS_TENANT_BLOB_STORAGE, DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES, DboPromises.OPS_MIGRATION_AS_DEPLOYMENT)),
+
+    MNT_MIGRATED("maintenance — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.MNT_BACKUP_IS_EXPORT, DboPromises.MNT_PORTABLE_STATE_EXPORT, DboPromises.MNT_HISTORY_BY_SCHEMA, DboPromises.MNT_OWNER_KEY_ENCRYPTION, DboPromises.MNT_SNAPSHOT_CONSISTENT, DboPromises.MNT_ARCHIVE_ROOT_OVER_CONTENTS, DboPromises.MNT_BOTH_PARTIES_ATTEST, DboPromises.MNT_IMPORT_REFUSES_UNATTESTED, DboPromises.MNT_ATTESTATION_READS_AS_FHIR, DboPromises.MNT_ACCEPTED_ROOT_RECORDED)),
+
+    PRM_MIGRATED("promise — requirements as code — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.PRM_NAME_IS_THE_CODE, DboPromises.PRM_GAP_IS_FIRST_CLASS, DboPromises.PRM_REGISTERED_AT_COMPILE_TIME, DboPromises.PRM_CATALOGUE_READ_WHOLE, DboPromises.PRM_DOWN_LINKS_ONLY, DboPromises.PRM_AREAS_MERGE_BY_CODE, DboPromises.PRM_CITATION_IS_TYPED, DboPromises.PRM_PROOFS_INDEXED_AT_COMPILE_TIME, DboPromises.PRM_STATUS_IS_DERIVED, DboPromises.PRM_COVERAGE_IS_A_FOLD, DboPromises.PRM_PROJECTION_IS_GENERATED, DboPromises.PRM_COVERAGE_ON_THE_RESULTS_PAGE)),
+
+    SCIM_MIGRATED("staff provisioning surface — migrated whole from hand-written prose; each promise below carries its own proof status.",
+            List.of(DboPromises.SCIM_DECLARED_PER_TENANT, DboPromises.SCIM_USER_IS_THE_PERSON, DboPromises.SCIM_ENUMERATION_STAYS_INSIDE, DboPromises.SCIM_DIRECTORY_CREDENTIAL, DboPromises.SCIM_DEPROVISION_IS_A_STATE, DboPromises.SCIM_EVERY_OP_IS_A_DISCLOSURE, DboPromises.SCIM_GROUPS_READ_ONLY));
 
     private final String title;
     private final List<Promise> promises;
