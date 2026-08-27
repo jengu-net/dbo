@@ -112,7 +112,9 @@ proves (#148).
   part of what must be present for the work being held") → #75/#76 (the
   console over it all).
 - **Consumer's half, later**: the WebSocket lane (socket, framing, handshake,
-  tenant auth) is the platform's per ADR 0062; the k8s per-step Deployment
+  tenant auth) is the platform's per ADR 0062 — now driven from their side by
+  [platform#917](https://github.com/jengu-net/jengu-platform/issues/917)
+  (`edge-appliance-on-dbo.md`); the k8s per-step Deployment
   packaging likewise. dbo owes the store-level toolset (#80) and nothing
   transport-shaped.
 
