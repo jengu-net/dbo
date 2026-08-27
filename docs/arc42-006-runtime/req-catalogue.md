@@ -102,6 +102,8 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-SHAPE-STAMP-OUTLIVES-ITS-PACK | A stamp is a fact about a past accept: withdrawing or re-numbering a pack version leaves stock stamped with it findable, countable and convertible. | PROVEN | cloud.jengu.dbo.harness.ReshapeIT#stampOutlivesItsPack |
 | REQ-DBO-SHAPE-NEWER-DATA-REFUSED | An object stamped above what the tenant's pack declares for that shape is refused on every read — naming the object, the stamp and the pack's version — never served best-effort and never silently omitted from a search. | PROVEN | cloud.jengu.dbo.harness.NewerDataRefusedIT#onlyDemonstrablyAheadIsRefused<br>cloud.jengu.dbo.harness.NewerDataRefusedIT#refusedById<br>cloud.jengu.dbo.harness.NewerDataRefusedIT#searchRefusedRatherThanShortened |
 | REQ-DBO-SHAPE-TOO-NEW-IS-ITS-OWN-ANSWER | The refusal is a distinct, documented error a consumer can gate on, told apart from a fault, a permission and a malformed request. | PROVEN | cloud.jengu.dbo.harness.NewerDataRefusedIT#refusedById |
+| REQ-DBO-SHAPE-HANDBACK-CLAIMS-WITHOUT-LOCKING | Claiming stock for conversion elsewhere writes nothing and holds nothing: the version check on the way back is the only guard, so an abandoned claim strands no data and a duplicated one converges. | PROVEN | cloud.jengu.dbo.harness.ReshapeIT#claimHoldsNothing |
+| REQ-DBO-SHAPE-HANDBACK-KEEPS-THE-DISCIPLINE | Converted forms handed back are re-accepted through the face — validated, re-stamped, version-checked — and accounted exactly as the in-process lane accounts, so the hardest conversions do not run with the least discipline. | PROVEN | cloud.jengu.dbo.harness.ReshapeIT#handBackKeepsTheDiscipline |
 
 ## PDI — personal-data isolation
 

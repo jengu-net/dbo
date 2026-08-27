@@ -27,7 +27,9 @@ public enum DboFeatures implements Feature {
                     // named promise rather than a hole.
                     DboPromises.SHAPE_STAMP_OUTLIVES_ITS_PACK,
                     DboPromises.SHAPE_NEWER_DATA_REFUSED,
-                    DboPromises.SHAPE_TOO_NEW_IS_ITS_OWN_ANSWER)),
+                    DboPromises.SHAPE_TOO_NEW_IS_ITS_OWN_ANSWER,
+                    DboPromises.SHAPE_HANDBACK_CLAIMS_WITHOUT_LOCKING,
+                    DboPromises.SHAPE_HANDBACK_KEEPS_THE_DISCIPLINE)),
 
     EXACT_IDENTIFIER_RESOLUTION("A known identifier finds the record that claims it, "
             + "without the membrane learning to talk.",

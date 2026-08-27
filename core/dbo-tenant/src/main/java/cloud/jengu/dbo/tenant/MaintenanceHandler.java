@@ -103,6 +103,8 @@ public final class MaintenanceHandler implements HttpHandler {
                 case "inventory" -> inventory(exchange);
                 case "projection" -> projection(exchange);
                 case "reshape" -> reshape(exchange);
+                case "reshape/claim" -> reshapeClaim(exchange);
+                case "reshape/apply" -> reshapeApply(exchange);
                 default -> fail(exchange, 404, "not_found", "no such maintenance operation");
             }
         } catch (IllegalArgumentException refused) {
@@ -192,6 +194,77 @@ public final class MaintenanceHandler implements HttpHandler {
             return;
         }
         respond(exchange, 200, cloud.jengu.dbo.maintenance.Reshape.json(run));
+    }
+
+    /**
+     * A page of stock for a converter that is not this store's (#145).
+     *
+     * <p>Available whether or not the face can convert in process: the
+     * hand-back lane is the floor under both cases — the only lane for a
+     * face whose model has no converter standard, and the escape hatch for a
+     * hop that exceeds one that does.
+     */
+    private void reshapeClaim(HttpExchange exchange) throws IOException {
+        java.util.Map<String, String> q = query(exchange);
+        if (engine == null || q.get("type") == null || q.get("profile") == null
+                || q.get("target") == null) {
+            fail(exchange, 400, "invalid_request",
+                    "claim needs type, profile and target (the major to converge on)");
+            return;
+        }
+        try {
+            respond(exchange, 200, cloud.jengu.dbo.maintenance.Reshape.json(
+                    cloud.jengu.dbo.maintenance.Reshape.claim(engine, q.get("type"),
+                            q.get("profile"), Integer.parseInt(q.get("target")),
+                            Integer.parseInt(q.getOrDefault("pageSize", "100")),
+                            q.get("cursor"))));
+        } catch (NumberFormatException notANumber) {
+            fail(exchange, 400, "invalid_request",
+                    "target and pageSize are numbers: " + notANumber.getMessage());
+        }
+    }
+
+    /** Converted forms handed back, re-accepted through the face (#145). */
+    private void reshapeApply(HttpExchange exchange) throws IOException {
+        java.util.Map<String, String> q = query(exchange);
+        String typeName = q.get("type");
+        if (engine == null || facade == null || typeName == null) {
+            fail(exchange, 400, "invalid_request", "apply needs type");
+            return;
+        }
+        List<cloud.jengu.dbo.maintenance.Reshape.Held> converted;
+        try {
+            converted = heldFrom(new String(exchange.getRequestBody().readAllBytes(),
+                    java.nio.charset.StandardCharsets.UTF_8));
+        } catch (RuntimeException unreadable) {
+            fail(exchange, 400, "invalid_request",
+                    "a handed-back batch is {\"held\":[{id, version, payload}]} with payload "
+                            + "base64: " + unreadable.getMessage());
+            return;
+        }
+        respond(exchange, 200, cloud.jengu.dbo.maintenance.Reshape.json(
+                cloud.jengu.dbo.maintenance.Reshape.apply(
+                        (type, id, expected, payload) -> facade.update(id, expected,
+                                new String(payload, java.nio.charset.StandardCharsets.UTF_8)),
+                        typeName, q.getOrDefault("profile", ""), converted)));
+    }
+
+    /** The handed-back batch, read without a JSON library this module does not have. */
+    private static List<cloud.jengu.dbo.maintenance.Reshape.Held> heldFrom(String body) {
+        List<cloud.jengu.dbo.maintenance.Reshape.Held> held = new java.util.ArrayList<>();
+        java.util.regex.Matcher entry = java.util.regex.Pattern.compile(
+                        "\\{\\s*\"id\"\\s*:\\s*\"([^\"]+)\"\\s*,\\s*\"version\"\\s*:\\s*(\\d+)\\s*,"
+                                + "\\s*\"payload\"\\s*:\\s*\"([^\"]*)\"\\s*\\}")
+                .matcher(body);
+        while (entry.find()) {
+            held.add(new cloud.jengu.dbo.maintenance.Reshape.Held(entry.group(1),
+                    Long.parseLong(entry.group(2)),
+                    java.util.Base64.getDecoder().decode(entry.group(3))));
+        }
+        if (held.isEmpty()) {
+            throw new IllegalArgumentException("no entries read");
+        }
+        return held;
     }
 
     /** The request's query parameters, decoded. */

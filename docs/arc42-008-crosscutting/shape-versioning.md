@@ -176,9 +176,28 @@ the conversion moves its shape, never its identity.
 
 Hand-back through the API is the universal floor — the only lane for a
 non-capable face, and available to a capable one for a hop that exceeds its
-mechanism. The face declares the capability; the registry entry declares the
-lane per converter hop; the round-trip property is a registry declaration in
-both lanes.
+mechanism. It is two operations on the same loop: **claim** hands out a page
+of stock behind the bound with the version each was read at, and **apply**
+takes converted forms back and re-accepts them through the face, so they are
+validated by the pack, re-stamped by it and version-checked exactly as the
+in-process lane's rewrites are. The hardest conversions therefore run with
+the same discipline as the easiest, rather than the least.
+
+**A claim writes nothing and holds nothing.** There is no lease, and that is
+a decision rather than an omission: the version check on the way back is the
+only guard needed, so an abandoned claim strands nothing (nothing was held),
+and two consumers claiming one page is duplicated work rather than
+corruption — one write wins, the other is refused by name and finds the
+object no longer behind the bound. A lease would buy only duplicate-work
+avoidance, and pay for it with persistent state that can leak and expire
+wrongly, which is the failure it would exist to prevent.
+
+**No lane registry either.** The in-process lane answers "no converter for
+this hop" by omission, and the run reports those objects with their reason —
+that report is the hand-back lane's work list. Absence of a map is the
+declaration; a second table saying the same thing could only drift from it.
+Payloads travel base64 on this wire, because the store holds bytes and a lane
+that assumed JSON would exclude the very faces it exists to serve.
 
 ## Decided, stated above
 

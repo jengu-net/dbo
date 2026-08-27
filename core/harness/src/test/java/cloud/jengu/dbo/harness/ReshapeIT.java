@@ -208,6 +208,77 @@ class ReshapeIT {
                 "and still counted under the version that stamped it");
     }
 
+    @Test
+    @Order(5)
+    @Proving(DboPromises.SHAPE_HANDBACK_CLAIMS_WITHOUT_LOCKING)
+    @DisplayName("a claim writes nothing and holds nothing: abandoning it strands no data, "
+            + "and the same stock comes back")
+    void claimHoldsNothing() throws Exception {
+        // Stock behind a bound this store's own maps do not cover — the case
+        // the hand-back lane exists for. The pack stands at 9.0.0 by now, so
+        // fresh stock is stamped 9.0.0 and "behind" means below 10.
+        String stranded = idOf(post("/Basic", note(UNCOVERED)));
+
+        String first = claim(UNCOVERED, 10);
+        assertTrue(first.contains(stranded), first);
+
+        // Walk away. Nothing was held, so nothing is stuck.
+        String second = claim(UNCOVERED, 10);
+        assertTrue(second.contains(stranded),
+                "an abandoned claim strands nothing — the stock is simply still behind: "
+                        + second);
+    }
+
+    @Test
+    @Order(6)
+    @Proving(DboPromises.SHAPE_HANDBACK_KEEPS_THE_DISCIPLINE)
+    @DisplayName("a converted form handed back is validated, re-stamped and version-checked; "
+            + "a stale one is refused and its object left untouched")
+    void handBackKeepsTheDiscipline() throws Exception {
+        String id = idOf(post("/Basic", note(UNCOVERED)));
+        long version = versionOf(claim(UNCOVERED, 10), id);
+
+        // A stale hand-back: the version moved on since it was claimed.
+        assertTrue(put("/Basic/" + id, note(UNCOVERED)).statusCode() < 300);
+        String stale = applyBack(id, version, note(UNCOVERED));
+        assertTrue(stale.contains("\"converted\":0") && stale.contains(id),
+                "a form built from stock that has moved is refused by name: " + stale);
+
+        // Converted outside and handed back at the version it now holds.
+        long current = versionOf(claim(UNCOVERED, 10), id);
+        String applied = applyBack(id, current, note(UNCOVERED));
+        assertTrue(applied.contains("\"converted\":1"), applied);
+        assertTrue(get("/Basic/" + id).body().contains("\"valueString\":\"9.0.0\""),
+                "the pack re-stamped what came back, rather than the runner asserting it");
+    }
+
+    private static String claim(String profile, int target) throws Exception {
+        return admin("/reshape/claim?type=Basic&profile="
+                + URLEncoder.encode(profile, StandardCharsets.UTF_8) + "&target=" + target)
+                .body();
+    }
+
+    private static long versionOf(String claimJson, String id) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+                        "\\{\"id\":\"" + id + "\",\"version\":(\\d+)")
+                .matcher(claimJson);
+        assertTrue(m.find(), "the claim names " + id + ": " + claimJson);
+        return Long.parseLong(m.group(1));
+    }
+
+    private static String applyBack(String id, long version, String payload) throws Exception {
+        String body = "{\"held\":[{\"id\":\"" + id + "\",\"version\":" + version
+                + ",\"payload\":\"" + java.util.Base64.getEncoder().encodeToString(
+                        payload.getBytes(StandardCharsets.UTF_8)) + "\"}]}";
+        return send(HttpRequest.newBuilder(URI.create(adminBase + "/reshape/apply?type=Basic"))
+                .POST(HttpRequest.BodyPublishers.ofString(body))).body();
+    }
+
+    private static String idOf(HttpResponse<String> created) {
+        assertEquals(201, created.statusCode(), created.body());
+        return created.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+    }
+
     // ---------------------------------------------------------- plumbing
 
     private static String reshape(String profile, int target) throws Exception {
