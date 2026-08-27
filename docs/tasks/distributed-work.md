@@ -1,11 +1,13 @@
 # Distributed work
 
-**Status** — doctrine largely decided and written; code started
-(`Participation` exists with pull/claim); the runner, the console and the
-transport are open; two elements newly scoped.
+**Status** — doctrine decided and written; the declaration seam is DONE
+(#71: steps, actions, mandatory-steps incident classification); the
+participant's pull half and the runner are built; the reporting half, the
+console and the transport are open; three elements newly scoped.
 
 **Issues** — the participation cluster, formerly under the closed #46:
-[#71](https://github.com/jengu-net/dbo/issues/71) (declaration seam) ·
+[#71](https://github.com/jengu-net/dbo/issues/71) (declaration seam — done,
+close on CI) ·
 [#75](https://github.com/jengu-net/dbo/issues/75) /
 [#76](https://github.com/jengu-net/dbo/issues/76) (console) ·
 [#77](https://github.com/jengu-net/dbo/issues/77) (participant) ·
@@ -13,7 +15,10 @@ transport are open; two elements newly scoped.
 [#80](https://github.com/jengu-net/dbo/issues/80) (replication toolset) ·
 newly scoped: [#147](https://github.com/jengu-net/dbo/issues/147) (a
 participant introduces its step) ·
-[#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on the link)
+[#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on the link) ·
+[#149](https://github.com/jengu-net/dbo/issues/149) (a run names its inputs) ·
+[#150](https://github.com/jengu-net/dbo/issues/150) (milestones on the
+checkpoint)
 
 **Concepts** —
 [process catalogue](../arc42-008-crosscutting/process-catalogue.md)
@@ -55,16 +60,23 @@ throughput — beside the presence the cursor already proves (#148).
   adding claimants.
 - **Built**: run records (#69), the face rendering a run as `Task` (#70),
   executor declaration and resolution (#72, #78), `Participation` in
-  `dbo-work`, and now **the runner itself** (`core:dbo-runner`, #79): an
-  embeddable OSGi bundle — install it into the existing container and the
-  activator whiteboard-tracks `StepService`s from any bundle and `Lane`s
-  from the host; outside OSGi, construct `StepRunner` directly. Vitals ride
-  the declaration record (#148's carrier, delivered).
-- **Open, in dependency order**: #71 (the declaration seam — everything else
-  refers to steps it defines) → #77 (finish the participant: report, deadline
-  lapse, dedup) → #79 (the reference runner) → #147/#148 (the two new
-  elements) → #80 (the replication toolset) → #75/#76 (the console over it
-  all).
+  `dbo-work` (pull/claim/checkpoint/release — #77's pull half), **the runner
+  itself** (`core:dbo-runner`, #79): an embeddable OSGi bundle — install it
+  into the existing container and the activator whiteboard-tracks
+  `StepService`s from any bundle and `Lane`s from the host; outside OSGi,
+  construct `StepRunner` directly. Vitals ride the declaration record
+  (#148's carrier, delivered). And **the declaration seam whole** (#71):
+  `StepDeclaration` with domains, shapes, actions and overridability;
+  `Steps` installed-not-listed; shape validation through the face; the
+  spec's `mandatorySteps` classifying incidents (`StepIncidents`,
+  `stepIncidents()`).
+- **Open, in dependency order**: #77 (the reporting half: report through the
+  step's declared actions — unblocked by #71; carries #91's
+  discoverability precondition for the run's coding systems) → #149 (runs
+  name inputs — the only official way documents reach a distributed
+  runner) → #79's remainder (DBOS below, the transport-first exercise) →
+  #147/#148 remainder (introduction over the link) → #150 (milestones) →
+  #80 (the replication toolset) → #75/#76 (the console over it all).
 - **Consumer's half, later**: the WebSocket lane (socket, framing, handshake,
   tenant auth) is the platform's per ADR 0062; the k8s per-step Deployment
   packaging likewise. dbo owes the store-level toolset (#80) and nothing
@@ -203,6 +215,6 @@ scopes and what the step admits, like every declaration.
 ## Verifying
 
 ```bash
-./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT'
+./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT'
 ```
-(The runner and link scenarios get their ITs with #77/#79.)
+(The link scenarios get their ITs with the transport exercise in #79.)
