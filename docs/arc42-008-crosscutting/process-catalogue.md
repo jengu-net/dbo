@@ -264,9 +264,13 @@ provenance. Kept until withdrawn rather than dropped with presence, because a
 run recorded under an introduced step still needs its declaration to be
 interpreted while its participant naps — candidacy is what presence gates, and
 that is the executor declaration's business. One collision rule holds across
-both doors: re-introduction by the same participant replaces, and a second
-declarer — another introducer, or a module installed beside an introduction —
-is refused by name. **An introduction grants its introducer nothing**: the
+both doors, and it guards the **definition**, not the door: re-introduction by
+the same participant replaces, a *different* participant bringing an identical
+declaration co-introduces — scaling is parallel runners (DBOS runs parallel
+consumers), a replica set comes up racing itself, and a fleet is not a
+conflict, so a lost write race is re-read rather than thrown — and what is
+refused by name is a different definition for one id: a conflicting
+introduction, or a module installed beside one. **An introduction grants its introducer nothing**: the
 declaration binds the introducer exactly as it binds anybody, and the record
 is written through the tenant's store, so a credential that may not write
 there is refused by the authority rather than by the catalogue.

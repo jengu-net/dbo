@@ -56,7 +56,7 @@ public enum DboFeatures implements Feature {
             + "steps they bring — one collision rule across both doors, and nothing "
             + "granted by walking through either.",
             List.of(DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
-                    DboPromises.PROC_ONE_ID_ONE_DECLARER,
+                    DboPromises.PROC_ONE_ID_ONE_DEFINITION,
                     DboPromises.PROC_INTRODUCTION_GRANTS_NOTHING));
 
     private final String title;
