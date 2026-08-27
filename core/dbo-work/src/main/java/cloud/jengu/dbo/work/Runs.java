@@ -103,10 +103,49 @@ public final class Runs {
      * be a second answer to the same question.
      */
     public Run of(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind, String scope) {
+        return of(step, kind, scope, Map.of());
+    }
+
+    /**
+     * The same, with inputs filling the step's declared slots (#149,
+     * REQ-DBO-PROC-RUN-INPUTS-FILL-THE-SLOTS).
+     *
+     * <p>Fixed at creation — what the work is over is part of what the work
+     * <em>is</em> — and refused at the door, both ways: a slot the step does
+     * not declare, and a declared slot left unfilled. Every declared slot is
+     * mandatory, because an input the step can do without is not a slot.
+     * Half-fed work discovered at claim time, three steps from the cause, is
+     * what checking here prevents.
+     *
+     * <p>The references are opaque to the engine, exactly like the item's:
+     * resolution is the lane's act, by the party that legitimately holds the
+     * objects, and shape validation is the face's, where a payload is at
+     * hand.
+     */
+    public Run of(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind, String scope,
+            Map<String, String> inputs) {
+        for (String slot : inputs.keySet()) {
+            if (!step.slots().containsKey(slot)) {
+                throw new IllegalArgumentException(step.id() + " declares no slot '" + slot
+                        + "'; it takes: " + step.slots().keySet());
+            }
+        }
+        for (String slot : step.slots().keySet()) {
+            if (!inputs.containsKey(slot)) {
+                throw new IllegalArgumentException(step.id() + ": slot '" + slot
+                        + "' is unfilled — every declared slot is mandatory, because an "
+                        + "input the step can do without is not a slot");
+            }
+        }
+        // Kept in DECLARATION order regardless of how the caller's map
+        // iterates — the projection renders slots in the step's order.
+        Map<String, String> filled = new LinkedHashMap<>();
+        step.slots().keySet().forEach(slot -> filled.put(slot, inputs.get(slot)));
         String key = step.id() + "/" + scope;
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
                 step.id().step(), kind, Holder.AUTOMATION, null, null, Map.of(), null,
-                List.copyOf(step.writes()), null, Run.Produced.NOTHING, step.version())));
+                List.copyOf(step.writes()), null, Run.Produced.NOTHING, step.version(),
+                java.util.Collections.unmodifiableMap(filled))));
     }
 
     /**
@@ -540,7 +579,7 @@ public final class Runs {
     private State state(Run run) {
         return new State(run.key(), run.process(), run.step(), run.kind(), run.holder(),
                 run.parent(), run.correlation(), run.tally(), run.item(), run.domains(),
-                run.assignment(), run.produced(), run.stepVersion());
+                run.assignment(), run.produced(), run.stepVersion(), run.inputs());
     }
 
     private Run write(State state) {
@@ -562,31 +601,40 @@ public final class Runs {
     private record State(String key, String process, String step, RunKind kind, Holder holder,
             String parent, String correlation, Map<String, Long> tally, Run.Item item,
             List<String> domains, Run.Assignment assignment, Run.Produced produced,
-            String stepVersion) {
+            String stepVersion, Map<String, String> inputs) {
+
+        /** The pre-inputs shape — every run that fills no slots. */
+        State(String key, String process, String step, RunKind kind, Holder holder,
+                String parent, String correlation, Map<String, Long> tally, Run.Item item,
+                List<String> domains, Run.Assignment assignment, Run.Produced produced,
+                String stepVersion) {
+            this(key, process, step, kind, holder, parent, correlation, tally, item,
+                    domains, assignment, produced, stepVersion, Map.of());
+        }
 
         State withHolder(Holder holder) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced, stepVersion);
+                    domains, assignment, produced, stepVersion, inputs);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, holder, parent, correlation,
-                    Map.copyOf(tally), item, domains, assignment, produced, stepVersion);
+                    Map.copyOf(tally), item, domains, assignment, produced, stepVersion, inputs);
         }
 
         State withAssignment(Run.Assignment assignment) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced, stepVersion);
+                    domains, assignment, produced, stepVersion, inputs);
         }
 
         State withProduced(Run.Produced produced) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced, stepVersion);
+                    domains, assignment, produced, stepVersion, inputs);
         }
 
         State withCorrelation(String correlation) {
             return new State(key, process, step, kind, holder, parent, correlation, tally, item,
-                    domains, assignment, produced, stepVersion);
+                    domains, assignment, produced, stepVersion, inputs);
         }
 
         byte[] payload() {
@@ -636,6 +684,16 @@ public final class Runs {
             }
             if (stepVersion != null) {
                 json.append(",\"stepVersion\":").append(Json.quoted(stepVersion));
+            }
+            if (!inputs.isEmpty()) {
+                json.append(",\"inputs\":{");
+                boolean first = true;
+                for (Map.Entry<String, String> slot : inputs.entrySet()) {
+                    json.append(first ? "" : ",").append(Json.quoted(slot.getKey()))
+                            .append(':').append(Json.quoted(slot.getValue()));
+                    first = false;
+                }
+                json.append('}');
             }
             if (produced != null && produced.counted() > 0) {
                 json.append(",\"produced\":{\"counted\":").append(produced.counted());

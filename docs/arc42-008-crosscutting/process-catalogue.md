@@ -241,8 +241,8 @@ the reader is told so rather than handed an empty document.
 
 A step says what it is **before anything runs it**: its id, its version, the
 storage domains it reads and writes, opaque references to the shapes it consumes
-and produces, the actions it contains, and whether anybody else may override it.
-Manual is the baseline —
+and produces, the actions it contains, its named **input slots**, and whether
+anybody else may override it. Manual is the baseline —
 a step nobody has automated is not an absent step, it is one held by a human, and
 automating it later changes the holder and nothing else.
 
@@ -296,6 +296,18 @@ store's opinion about its own content.
 **A run records the step version it ran under**, beside the executor's version
 and provider. Reproducing a decision made last year needs the definition as well
 as the runner, and a run naming only one of them explains half of what happened.
+
+**The slots are the input API, and a run fills them at creation.** A step
+declares named slots beside `consumes` — `consumes` is the shape of the thing
+the step acts on (the item, rendered as `Task.focus`); slots are the additional
+documents the work is over (the order, the specimen, the device reading),
+rendered as `Task.input` in declaration order, the reference displayed rather
+than resolved. Every declared slot is mandatory — an input the step can do
+without is not a slot — and creation refuses both mismatches by name. The
+references stay opaque to the engine, exactly like the item's: resolution is
+the lane's act, by the party that legitimately holds the objects, for the
+identity that claimed the work — and there is no verb that takes a reference,
+so a runner cannot ask for data the step never entitled it to.
 
 ### How work reaches whoever does it
 

@@ -33,7 +33,16 @@ public enum DboFeatures implements Feature {
 
     EXACT_IDENTIFIER_RESOLUTION("A known identifier finds the record that claims it, "
             + "without the membrane learning to talk.",
-            List.of(DboPromises.PDI_EXACT_RESOLUTION));
+            List.of(DboPromises.PDI_EXACT_RESOLUTION)),
+
+    WORK_ARRIVES_WHOLE("Work is the manifest: the step declares what it consumes as "
+            + "named slots, the run fills them at creation, the projection and the lane "
+            + "carry them — a runner never reaches into the store for what the work is "
+            + "about.",
+            List.of(DboPromises.PROC_STEP_DECLARES_ITS_SLOTS,
+                    DboPromises.PROC_RUN_INPUTS_FILL_THE_SLOTS,
+                    DboPromises.PROC_TASK_CARRIES_THE_INPUTS,
+                    DboPromises.PROC_INPUTS_ARRIVE_WITH_THE_WORK));
 
     private final String title;
     private final List<Promise> promises;

@@ -93,6 +93,17 @@ public interface Lane {
      */
     static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
             Declarations declarations, String participant, Executor identity) {
+        return inProcess(tenant, runs, feed, declarations, participant, identity, null);
+    }
+
+    /**
+     * The same, with the host's objects — what makes {@link #inputs} deliver
+     * (#149). The store handle stays on this side of the line: the runner
+     * receives resolved objects, never the handle.
+     */
+    static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
+            Declarations declarations, String participant, Executor identity,
+            cloud.jengu.dbo.core.api.ObjectStore objects) {
         return new Lane() {
 
             @Override
@@ -148,9 +159,35 @@ public interface Lane {
 
             @Override
             public Map<String, StoredObject> inputs(Run run) {
-                // #149 gives a run its slot-shaped inputs; until then a
-                // claimable run names none, and none is what arrives.
-                return Map.of();
+                // The read the javadoc above promises to guard: a run this
+                // identity has not claimed is refused, because the claim is
+                // the entitlement — not the asking.
+                Run current = runs.byKey(run.key()).orElseThrow(() -> new IllegalStateException(
+                        tenant + ": no run '" + run.key() + "' to read inputs of"));
+                if (current.assignment() == null
+                        || !identity.equals(current.assignment().executor())
+                        || !current.claimed(java.time.Instant.now())) {
+                    throw new IllegalStateException(tenant + ": run '" + run.key()
+                            + "' is not claimed by " + identity.name()
+                            + " — inputs travel with a claim, never with a question");
+                }
+                // Resolution is this side's act (#149): references stay
+                // opaque to the engine and the runner, and only what the
+                // host legitimately holds — Type/id, present here — arrives.
+                // What cannot be resolved does not, which is the honest
+                // answer for what is not in this store.
+                Map<String, StoredObject> resolved = new java.util.LinkedHashMap<>();
+                if (objects != null) {
+                    current.inputs().forEach((slot, reference) -> {
+                        int slash = reference.indexOf('/');
+                        if (slash > 0 && reference.indexOf('/', slash + 1) < 0) {
+                            objects.get(reference.substring(0, slash),
+                                            reference.substring(slash + 1))
+                                    .ifPresent(object -> resolved.put(slot, object));
+                        }
+                    });
+                }
+                return java.util.Collections.unmodifiableMap(resolved);
             }
         };
     }

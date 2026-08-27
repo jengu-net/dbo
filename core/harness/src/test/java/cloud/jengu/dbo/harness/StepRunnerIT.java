@@ -111,11 +111,11 @@ class StepRunnerIT {
         assertEquals(1L, after.tally().get("validated"),
                 "the tally landed on the record: " + after.tally());
         // Work.inputs is the seam the step's declared API (#71) fills via
-        // the run's slots (#149). TODAY a claimable run declares none, and
-        // none is what arrives — and there is no verb a service or runner
-        // could ask for more with, which is the security boundary.
+        // the run's slots (#149). This run's step declares none, so none
+        // is what arrives — and there is no verb a service or runner could
+        // ask for more with, which is the security boundary.
         assertTrue(received.get().inputs().isEmpty(),
-                "empty until #149 gives a run its slots: " + received.get().inputs());
+                "a step without slots delivers exactly nothing: " + received.get().inputs());
 
         List<StoredObject> declared = store.select(
                 Criteria.of(ExecutorModel.TYPE).limit(50));
