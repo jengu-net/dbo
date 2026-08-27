@@ -39,10 +39,16 @@ wrong is either a document nobody reads or a topic nobody can resume.
 2. **Kept current** as decisions are made and traps are found. A stale task
    document is a lie with a timestamp; update it in the same commit as the work
    it describes, exactly as the REQ catalogue is updated with its slice.
-3. **Closed with its issues.** When the last issue closes, promote anything
-   still worth keeping into the arc42 docs — that is where a *permanent*
-   explanation belongs — then move the file to `closed/`. The listing of this
-   directory is then always the live agenda, which is the point.
+3. **Closed with its issues, and deleted.** When the last issue closes,
+   promote anything still worth keeping into the arc42 docs — that is where a
+   *permanent* explanation belongs — then delete the file, naming it in the
+   closing commit so the history is findable
+   (`git log --diff-filter=D -- docs/tasks/`, then `git show <sha>`).
+
+   Deleted rather than archived, deliberately: git already keeps it, and a
+   folder of closed topics is a second pile that grows, gets skimmed, and
+   eventually gets mistaken for current. The listing of this directory is then
+   always exactly the live agenda, which is the point.
 
 ## The shape
 
