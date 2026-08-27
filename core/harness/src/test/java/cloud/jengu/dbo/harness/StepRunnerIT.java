@@ -158,15 +158,26 @@ class StepRunnerIT {
             assertTrue(released.open(), "released is not done — still open");
 
             // The claim must lapse before anybody may take it again; the
-            // runner's own housekeeping hands it back on the next cycle.
-            try {
-                Thread.sleep(150);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            // runner's own housekeeping hands it back on a later cycle. Cycle
+            // until the run closes rather than counting cycles: delivery is
+            // at-least-once, and on a loaded machine the short claim can lapse
+            // MID-perform, so a third legitimate take is not a failure.
+            long deadline = System.nanoTime()
+                    + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
+            while (runs.byId(work.id()).orElseThrow().open()
+                    && System.nanoTime() < deadline) {
+                try {
+                    Thread.sleep(60);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                runner.cycle();
             }
-            runner.cycle();
         }
-        assertEquals(2, attempts.get(), "a later cycle took it again");
+        assertTrue(!runs.byId(work.id()).orElseThrow().open(),
+                "a later cycle took it again and closed it");
+        assertTrue(attempts.get() >= 2, "the retake actually performed: " + attempts.get());
     }
 
     @Test
