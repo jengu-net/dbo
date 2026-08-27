@@ -63,6 +63,7 @@ padding it.
 ## What this is        — the problem, in a paragraph. Not the solution.
 ## Where it stands     — done / next / blocked-on-what. The part that rots
                          fastest, so it goes near the top.
+## Sequence            - the steps in the order each becomes possible, one line each, with a status (read below)
 ## Decisions           — each with the reason it beat the alternative.
 ## Traps               — what bit, and what it looked like when it bit.
 ## Not doing           — deliberate exclusions, with why.
@@ -72,6 +73,17 @@ padding it.
 `Decisions` is the section that earns the document. A decision without its
 reasoning is re-argued the moment someone disagrees with it; a decision *with*
 its reasoning is either accepted or properly overturned.
+
+`Sequence` carries the steps in the order each becomes possible, one line each, with a status —
+**DONE** (dated), **NEXT**, **READY, needs N**, **PARTLY BLOCKED**,
+**BLOCKED by X**, **WRITTEN, HELD** (the work exists and is deliberately
+not applied yet — say why), **LATER**. Two rules make it worth trusting: a step is
+DONE only when a *capability* was verified, never when code exists; and a
+blocked step names **what** blocks it and **who owns** that, so the reader
+can tell a wait from a stall. Close the table with the critical path, so
+"what now" is one line rather than an inference.
+
+
 
 ## Live topics
 
