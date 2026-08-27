@@ -35,9 +35,19 @@ import java.util.Set;
  * @param produces    an opaque reference to the shape of what it makes
  * @param overridable which scope class may override it, and empty means
  *                    nobody: not overridable is the default (ADR 0059)
+ * @param actions     the acts this step contains — open a run, close it,
+ *                    reopen a closed one. Roles narrow <b>actions</b>, not
+ *                    steps, so without these there is nothing for a role to
+ *                    narrow — it would have to become a second vocabulary
+ *                    maintained beside the step. And a manual step is
+ *                    <i>defined</i> by them: what its human holder may do is
+ *                    exactly the set an automated executor would otherwise
+ *                    perform. Empty means the step has not said, not that it
+ *                    admits nothing.
  */
 public record StepDeclaration(StepId id, String version, Set<String> reads, Set<String> writes,
-        Optional<String> consumes, Optional<String> produces, Optional<String> overridable) {
+        Optional<String> consumes, Optional<String> produces, Optional<String> overridable,
+        Set<String> actions) {
 
     public StepDeclaration {
         if (id == null || version == null || version.isBlank()) {
@@ -46,28 +56,35 @@ public record StepDeclaration(StepId id, String version, Set<String> reads, Set<
         }
         reads = Set.copyOf(reads);
         writes = Set.copyOf(writes);
+        actions = Set.copyOf(actions);
     }
 
     /** The smallest honest declaration: a step that reads and writes one domain. */
     public static StepDeclaration of(String id, String version, String domain) {
         return new StepDeclaration(StepId.of(id), version, Set.of(domain), Set.of(domain),
-                Optional.empty(), Optional.empty(), Optional.empty());
+                Optional.empty(), Optional.empty(), Optional.empty(), Set.of());
     }
 
     public StepDeclaration consuming(String shapeReference) {
         return new StepDeclaration(id, version, reads, writes,
-                Optional.of(shapeReference), produces, overridable);
+                Optional.of(shapeReference), produces, overridable, actions);
     }
 
     public StepDeclaration producing(String shapeReference) {
         return new StepDeclaration(id, version, reads, writes,
-                consumes, Optional.of(shapeReference), overridable);
+                consumes, Optional.of(shapeReference), overridable, actions);
     }
 
     /** Opened to a scope class, deliberately — the default is nobody (ADR 0059). */
     public StepDeclaration overridableBy(String scopeClass) {
         return new StepDeclaration(id, version, reads, writes, consumes, produces,
-                Optional.of(scopeClass));
+                Optional.of(scopeClass), actions);
+    }
+
+    /** What a holder of this step may do — declared so a role can later narrow it. */
+    public StepDeclaration containing(String... actions) {
+        return new StepDeclaration(id, version, reads, writes, consumes, produces,
+                overridable, Set.of(actions));
     }
 
     /** Whether this step may write that domain at all. */

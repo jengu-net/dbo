@@ -241,7 +241,8 @@ the reader is told so rather than handed an empty document.
 
 A step says what it is **before anything runs it**: its id, its version, the
 storage domains it reads and writes, opaque references to the shapes it consumes
-and produces, and whether anybody else may override it. Manual is the baseline —
+and produces, the actions it contains, and whether anybody else may override it.
+Manual is the baseline —
 a step nobody has automated is not an absent step, it is one held by a human, and
 automating it later changes the holder and nothing else.
 
@@ -254,6 +255,22 @@ name**: silently doing nothing is the failure that rule exists to prevent.
 
 **Modules contribute by being installed**, the same rule faces follow — nothing
 maintains a central list that can disagree with what is deployed.
+
+**The catalogue is built up, not ported.** Installed modules contribute their
+steps, linked participants introduce theirs, and the only consistency claim is
+the tenant spec's **`mandatorySteps`** — the steps this tenant's work cannot do
+without. It classifies; it never gates. The system is asynchronous by design:
+work buffers on the queue when nothing serves a step, and a participant
+arriving later drains it — so a missing step executor must not take the tenant
+offline, which would convert that graceful degradation into a self-inflicted
+outage. What the list decides is whether the absence is an **incident**: a
+mandatory step nothing has contributed is one, named on the operator surface
+and in the log, cleared by the scan after the step arrives and reopened if its
+contributor leaves. Every step not on the list is non-critical by
+construction: free to appear with its participant and disappear with it, its
+absence no incident at all. (Contrast the face contract, which genuinely
+refuses at bring-up: a missing face capability breaks serving itself, not just
+one step's throughput.)
 
 **Shapes are opaque to the engine.** It can no more compare a shape than name
 one, so what it does with a shape reference is hand it to the face. Validating a

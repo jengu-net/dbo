@@ -16,7 +16,16 @@ import java.util.regex.Pattern;
 public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
         boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
         String zone, String broker, List<String> acceptedBrokers,
-        List<Dependency> dependencies, Scim scim) {
+        List<Dependency> dependencies, Scim scim, List<String> mandatorySteps) {
+
+    /** Compatibility: the pre-mandatory-steps shape. */
+    public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim) {
+        this(code, fhirVersion, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, List.of());
+    }
 
     /** Compatibility: the pre-SCIM shape, still what most specs declare. */
     public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
@@ -110,11 +119,30 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
                 throw new IllegalArgumentException(code + ": cannot depend on itself");
             }
         }
+        // Each entry must be a well-formed step id NOW, at parse: a typo
+        // refused by name here beats one that silently never matches any
+        // installed step and holds the tenant down with no visible cause.
+        mandatorySteps = List.copyOf(mandatorySteps);
+        for (String stepId : mandatorySteps) {
+            try {
+                cloud.jengu.dbo.core.process.StepId.of(stepId);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        code + ": mandatory step — " + e.getMessage());
+            }
+        }
     }
 
     /**
      * Parses the spec file format: {"code":..,"fhirVersion":..,
-     * "types":[{name,identity,systems?,handling?}],"dependencies":[{name,types}]}.
+     * "types":[{name,identity,systems?,handling?}],"dependencies":[{name,types}],
+     * "mandatorySteps":["&lt;module&gt;.&lt;process&gt;.&lt;step&gt;"]}.
+     *
+     * <p>{@code mandatorySteps} is the catalogue's one consistency claim
+     * (#71): the steps whose absence is an incident rather than normal
+     * elasticity. The tenant serves and its runs queue either way — the list
+     * classifies ({@link StepIncidents}), it never gates — and every step not
+     * listed is non-critical by construction.
      *
      * <p><b>{@code handling} is required</b>. A type that
      * has not said what kind of data it is stops the tenant coming up, named,
@@ -180,7 +208,8 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
         return new TenantSpec(code, fhirVersion, types, pdi,
                 cloud.jengu.dbo.policy.TenantPolicies.parse(root),
                 Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),
-                Json.strings(root, "acceptedBrokers"), dependencies, scim);
+                Json.strings(root, "acceptedBrokers"), dependencies, scim,
+                Json.strings(root, "mandatorySteps"));
     }
 
     /**

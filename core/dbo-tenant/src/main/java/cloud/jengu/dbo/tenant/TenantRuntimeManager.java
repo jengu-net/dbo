@@ -104,6 +104,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * new one is a bundle rather than another branch.
      */
     private final FhirVersions versions;
+
+    /**
+     * The steps this container knows about, for classifying a mandatory
+     * step's absence as an incident (#71). Like {@link #versions}:
+     * registry-backed in the container, classpath-backed on a plain JVM.
+     */
+    private final cloud.jengu.dbo.core.process.Steps steps;
+
+    /** The classification itself, re-evaluated every scan. */
+    private final StepIncidents stepIncidents = new StepIncidents();
     private final Map<String, String> authorityContexts = new ConcurrentHashMap<>();
     private final Map<String, String> scimContexts = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.pdi.PersonVault> vaults = new ConcurrentHashMap<>();
@@ -169,16 +179,28 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 FhirVersions.installed());
     }
 
+    public TenantRuntimeManager(Path directory, TenantDatabaseProvisioner provisioner,
+            String host, int port, Listener listener, AuthorityConfig authorityConfig,
+            FhirVersions versions) {
+        this(directory, provisioner, host, port, listener, authorityConfig, versions,
+                cloud.jengu.dbo.core.process.Steps.installed());
+    }
+
     /**
      * @param versions what this container can serve. The container passes the
      *                 service registry's view, which changes as face bundles
      *                 come and go; the constructors above ask the classpath,
      *                 which is what a test or a single-jar assembly has.
+     * @param steps    the step catalogue this container knows, against which
+     *                 the spec's {@code mandatorySteps} classify incidents —
+     *                 same two sources as {@code versions}: the registry in
+     *                 the container, the classpath on a plain JVM.
      */
     public TenantRuntimeManager(Path directory, TenantDatabaseProvisioner provisioner,
             String host, int port, Listener listener, AuthorityConfig authorityConfig,
-            FhirVersions versions) {
+            FhirVersions versions, cloud.jengu.dbo.core.process.Steps steps) {
         this.versions = versions;
+        this.steps = steps;
         this.authorityConfig = authorityConfig;
         this.directory = directory;
         this.provisioner = provisioner;
@@ -375,9 +397,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         states.keySet().retainAll(declared);
         trouble.keySet().removeIf(key -> !declared.contains(key) && !key.startsWith("spec:"));
+        // Mandatory steps classify, they do not gate (#71): a serving tenant
+        // with a mandatory step nothing contributes keeps serving — its runs
+        // queue — and the absence is an incident here, re-evaluated every
+        // pass because the catalogue changes as modules and participants
+        // come and go.
+        for (TenantRuntime runtime : runtimes.values()) {
+            stepIncidents.observe(runtime.spec(), steps);
+        }
+        stepIncidents.retain(runtimes.keySet());
         rollup();
         recordServing();
         return codes();
+    }
+
+    /**
+     * Per serving tenant, the mandatory steps nothing has contributed — the
+     * operator's incident read (#71). A tenant absent here has no open step
+     * incident; the tenant itself is never taken down for one.
+     */
+    public Map<String, Set<String>> stepIncidents() {
+        return stepIncidents.byTenant();
     }
 
     /**
