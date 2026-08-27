@@ -54,8 +54,12 @@ throughput — beside the presence the cursor already proves (#148).
   different failures, executor declarations with derived presence, scale by
   adding claimants.
 - **Built**: run records (#69), the face rendering a run as `Task` (#70),
-  executor declaration and resolution (#72, #78), and `Participation`
-  (pull/claim) in `dbo-work` — #77's core, ahead of its issue.
+  executor declaration and resolution (#72, #78), `Participation` in
+  `dbo-work`, and now **the runner itself** (`core:dbo-runner`, #79): an
+  embeddable OSGi bundle — install it into the existing container and the
+  activator whiteboard-tracks `StepService`s from any bundle and `Lane`s
+  from the host; outside OSGi, construct `StepRunner` directly. Vitals ride
+  the declaration record (#148's carrier, delivered).
 - **Open, in dependency order**: #71 (the declaration seam — everything else
   refers to steps it defines) → #77 (finish the participant: report, deadline
   lapse, dedup) → #79 (the reference runner) → #147/#148 (the two new
@@ -67,6 +71,40 @@ throughput — beside the presence the cursor already proves (#148).
   transport-shaped.
 
 ## Decisions
+
+**The runner must not have access to the tenant's dbo.** Not a narrowed
+store handle — none. Its whole world is the `Lane` interface: poll, claim,
+checkpoint, report, declare, and one read of an object the work names. The
+host implements it in-process and keeps the store on its own side of the
+line; a remote lane implements the same interface over its transport, and
+the runner cannot tell — a verb only the in-process side could serve does
+not belong on the interface.
+
+**The runner is stateless over tenants.** Tenants arrive as lanes; the
+runner holds only the task in hand and the documents the task names. Its
+counters are soft accounting — published as vitals, reconstructible from
+nothing, lost without loss.
+
+**The run is the only document carrier.** A claimable run today names no
+documents (participants pull pipeline runs; the *item* runs that carry a
+reference are parked problems for people, filtered out of poll). So #149
+(`Run.inputs` → `Task.input`) is not an enhancement — it is the only
+official way related documents reach a distributed runner. `Work.related`
+is the waiting seam; #149 fills it with no service or runner change.
+
+**The catalogue may be built up from linked steps** (review direction,
+2026-08-27): rather than porting the platform's catalogue wholesale — the
+drift the #71 trap warns about — the catalogue can *emerge*: installed
+modules contribute as they always did, and linked participants introduce
+theirs (#147). Consistency is then a **declared list of mandatory steps**
+that must be present — their absence is a system fault, checked the way a
+face's missing capability is refused — while every other step is
+non-critical: free to appear with its participant and disappear with it,
+never load-bearing for a critical flow. This softens #71's sequencing: the
+seam and the mandatory-set check can precede the platform catalogue's
+migration, because nothing is ported — the platform's steps arrive as
+introductions when the platform connects. To be pinned in #71/#147
+grooming.
 
 **Pull, never push** (ADR 0060). dbo holding a client per external system is
 rejected; participants are behind NAT, on edges, offline for weekends.
@@ -114,6 +152,12 @@ an addition rather than a migration: a run could always name a step that had
 no declaration yet.
 
 ## Traps
+
+**A run speaks its step name bare; the catalogue speaks it fully.** A run
+records `process` and `step` as separate fields and `poll` filters on the
+bare step, while a service declares `<module>.<process>.<step>`. The runner
+translates at the boundary — found by the first integration test, which
+polled a perfectly good run and matched nothing.
 
 **A caught-up participant's cursor does not move either.** Silence with
 nothing waiting is not absence; only silence with work waiting is. Any

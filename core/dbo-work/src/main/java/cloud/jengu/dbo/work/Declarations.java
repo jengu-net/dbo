@@ -64,7 +64,33 @@ public final class Declarations {
      *                 to and never doubted
      */
     public record Declared(String process, String step, String name, String version,
-            String provider, Scope scope, String consumer) {
+            String provider, Scope scope, String consumer,
+            java.util.Map<String, String> metadata) {
+
+        public Declared {
+            metadata = metadata == null ? java.util.Map.of() : java.util.Map.copyOf(metadata);
+        }
+
+        /** Compatibility with callers that predate {@code metadata} (#148). */
+        public Declared(String process, String step, String name, String version,
+                String provider, Scope scope, String consumer) {
+            this(process, step, name, version, provider, scope, consumer, java.util.Map.of());
+        }
+
+        /**
+         * The same declaration carrying this vitals block instead (#148):
+         * extensible key/value, opaque to the engine — health, throughput,
+         * whatever a component kind brings. Re-declaring REPLACES it, because
+         * {@link Declarations#declare} is an idempotent update by key; a
+         * candidate list must not become a metrics history. Presence stays
+         * derived from the cursor — a self-reported "healthy" from a stuck
+         * component is exactly the lie derived presence exists to catch — so
+         * vitals annotate presence, never replace it.
+         */
+        public Declared withVitals(java.util.Map<String, String> vitals) {
+            return new Declared(process, step, name, version, provider, scope, consumer,
+                    vitals);
+        }
 
         /** The key it is found by: one declaration per step, scope and name. */
         public String key() {
@@ -198,10 +224,14 @@ public final class Declarations {
     private static Declared read(StoredObject stored) {
         Object json = Json.parse(new String(stored.payload(), StandardCharsets.UTF_8));
         Object consumer = ((Map<?, ?>) json).get("consumer");
+        java.util.Map<String, String> metadata = new java.util.LinkedHashMap<>();
+        if (((Map<?, ?>) json).get("metadata") instanceof Map<?, ?> block) {
+            block.forEach((k, v) -> metadata.put(String.valueOf(k), String.valueOf(v)));
+        }
         return new Declared(Json.str(json, "process"), Json.str(json, "step"),
                 Json.str(json, "name"), Json.str(json, "version"), Json.str(json, "provider"),
                 Scope.of(Json.str(json, "scope")),
-                consumer == null ? null : consumer.toString());
+                consumer == null ? null : consumer.toString(), metadata);
     }
 
     private static byte[] payload(Declared declared) {
@@ -215,6 +245,16 @@ public final class Declarations {
                 .append(",\"scope\":").append(Json.quoted(declared.scope().wire()));
         if (declared.consumer() != null) {
             json.append(",\"consumer\":").append(Json.quoted(declared.consumer()));
+        }
+        if (!declared.metadata().isEmpty()) {
+            json.append(",\"metadata\":{");
+            boolean first = true;
+            for (var entry : new java.util.TreeMap<>(declared.metadata()).entrySet()) {
+                json.append(first ? "" : ",").append(Json.quoted(entry.getKey()))
+                        .append(':').append(Json.quoted(entry.getValue()));
+                first = false;
+            }
+            json.append('}');
         }
         return json.append('}').toString().getBytes(StandardCharsets.UTF_8);
     }

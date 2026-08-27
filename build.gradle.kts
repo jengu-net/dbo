@@ -27,6 +27,7 @@ val moduleBlurbs = mapOf(
     "dbo-test-model" to "A non-FHIR model used to prove the engine holds no FHIR knowledge.",
     "promise" to "Requirements as code: promises declared once, cited everywhere, composed across products.",
     "dbo-promises" to "The store's own promise catalogue: SHAPE and PDI as the pilot.",
+    "dbo-runner" to "The embeddable step runner: register step services, work arrives, outcomes and vitals go back.",
 )
 
 // The runtime bundle set, in install order. ONE list: the serving

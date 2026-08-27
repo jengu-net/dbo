@@ -1,6 +1,7 @@
 dependencies {
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))
+    testImplementation(project(":core:dbo-runner"))
     // the promise framework's processor indexes @Proving citations at THIS
     // module's test-compile time; without this configuration the index is
     // silently absent (#140)
