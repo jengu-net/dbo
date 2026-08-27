@@ -17,6 +17,9 @@ credential half) · [#79](https://github.com/jengu-net/dbo/issues/79)
 link — its carrier is delivered) ·
 [#75](https://github.com/jengu-net/dbo/issues/75) /
 [#76](https://github.com/jengu-net/dbo/issues/76) (console).
+[#151](https://github.com/jengu-net/dbo/issues/151) (the edge's work
+lane: claim advancement across it, edge-originated work as upstream —
+posed by platform#917's work-lane-first sequencing).
 Closed: [#69](https://github.com/jengu-net/dbo/issues/69) /
 [#70](https://github.com/jengu-net/dbo/issues/70) (run record and its
 `Task`) · [#72](https://github.com/jengu-net/dbo/issues/72) /
