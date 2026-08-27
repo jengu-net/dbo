@@ -1,12 +1,12 @@
 # Distributed work
 
-**Status** — doctrine decided and written; the declaration seam is DONE and
-CLOSED (#71: steps, actions, mandatory-steps incident classification); the
-participant's pull AND reporting halves are built (#77 stays open for its
-credential half and the #91 precondition); runs name their inputs (#149) and
-milestones ride the checkpoint (#150) — both awaiting CI to close; #147
-(introduction over the link) in progress; the console and the transport are
-open.
+**Status** — doctrine decided and written; **#71, #147, #149 and #150 are
+closed**: the declaration seam (steps, actions, mandatory-steps incident
+classification), introduction over the link, run inputs filling declared
+slots, and milestones on the checkpoint. The participant's pull AND
+reporting halves are built — #77 stays open for its credential half and the
+#91 precondition. The console (#75/#76), the transport exercise (#79's
+remainder) and the replication toolset (#80) are what is left.
 
 **Issues** — the participation cluster, formerly under the closed #46:
 [#71](https://github.com/jengu-net/dbo/issues/71) (declaration seam — done,
