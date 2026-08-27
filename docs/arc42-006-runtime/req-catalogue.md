@@ -240,6 +240,9 @@ deliberately have no REQs yet — they get them when scheduled.
 
 | REQ | Promise |
 |---|---|
+| REQ-DBO-PROC-STEP-SERVICE-EMBEDDABLE | One embeddable runner registers step services and needs only the participation lane — no orchestrator, no transport, no access to the tenant's dbo — so the same bundle runs inside the platform's container, on a separate machine, or in a pod scaled per step, stateless over the tenants whose lanes it is handed. (§8) |
+| REQ-DBO-PROC-FAILURE-IS-RELEASED | A failing or throwing step service releases the run with the reason — never closed, never lost — and a later cycle may take it again. (§8) |
+| REQ-DBO-PROC-RUNNER-SIGNS-ITS-VITALS | The runner re-declares each service with an extensible metadata block, replaced never accumulated; presence stays derived from the cursor, and vitals annotate it. (§8) |
 | REQ-DBO-PROC-CATALOGUE-IN-STORE | Process and step definitions (with profiles, planes and projections) are part of DBO's own vocabulary; projections are generated, never hand-edited. (§8) |
 | REQ-DBO-PROC-STEP-DECLARES-ITSELF | A step declares its id, version, the storage domains it reads and writes, opaque shape references for what it consumes and produces, and whether it may be overridden. Ids are `<module>.<process>.<step>`, globally stable, contributed by being installed, and a step referenced but not installed is refused by name. (§8, ADR 0057) |
 | REQ-DBO-PROC-RUN-NAMES-THE-STEP-VERSION | A run records the version of the step declaration it ran under, beside the executor's version and provider: reproducing a decision needs the definition as well as the runner. (§8) |
