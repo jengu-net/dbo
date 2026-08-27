@@ -51,10 +51,17 @@ import java.util.Set;
  *                    runner agrees to by joining the step: a run fills these
  *                    slots at creation, and there is nothing else a runner
  *                    can receive.
+ * @param milestones  the named points of a long run of this step, in order
+ *                    (#150) — the step's own map of itself, which is what
+ *                    lets completeness be <em>derived</em> from a reported
+ *                    name rather than asserted by each executor differently.
+ *                    Empty means the step has not said, not that progress may
+ *                    not be reported.
  */
 public record StepDeclaration(StepId id, String version, Set<String> reads, Set<String> writes,
         Optional<String> consumes, Optional<String> produces, Optional<String> overridable,
-        Set<String> actions, java.util.Map<String, String> slots) {
+        Set<String> actions, java.util.Map<String, String> slots,
+        java.util.List<String> milestones) {
 
     public StepDeclaration {
         if (id == null || version == null || version.isBlank()) {
@@ -67,35 +74,36 @@ public record StepDeclaration(StepId id, String version, Set<String> reads, Set<
         // Order is part of the declaration — the projection renders slots in
         // it — and Map.copyOf forgets it, so the copy is by hand.
         slots = java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(slots));
+        milestones = java.util.List.copyOf(milestones);
     }
 
     /** The smallest honest declaration: a step that reads and writes one domain. */
     public static StepDeclaration of(String id, String version, String domain) {
         return new StepDeclaration(StepId.of(id), version, Set.of(domain), Set.of(domain),
                 Optional.empty(), Optional.empty(), Optional.empty(), Set.of(),
-                java.util.Map.of());
+                java.util.Map.of(), java.util.List.of());
     }
 
     public StepDeclaration consuming(String shapeReference) {
         return new StepDeclaration(id, version, reads, writes,
-                Optional.of(shapeReference), produces, overridable, actions, slots);
+                Optional.of(shapeReference), produces, overridable, actions, slots, milestones);
     }
 
     public StepDeclaration producing(String shapeReference) {
         return new StepDeclaration(id, version, reads, writes,
-                consumes, Optional.of(shapeReference), overridable, actions, slots);
+                consumes, Optional.of(shapeReference), overridable, actions, slots, milestones);
     }
 
     /** Opened to a scope class, deliberately — the default is nobody (ADR 0059). */
     public StepDeclaration overridableBy(String scopeClass) {
         return new StepDeclaration(id, version, reads, writes, consumes, produces,
-                Optional.of(scopeClass), actions, slots);
+                Optional.of(scopeClass), actions, slots, milestones);
     }
 
     /** What a holder of this step may do — declared so a role can later narrow it. */
     public StepDeclaration containing(String... actions) {
         return new StepDeclaration(id, version, reads, writes, consumes, produces,
-                overridable, Set.of(actions), slots);
+                overridable, Set.of(actions), slots, milestones);
     }
 
     /**
@@ -110,7 +118,16 @@ public record StepDeclaration(StepId id, String version, Set<String> reads, Set<
                     + "which shape it means would depend on ordering");
         }
         return new StepDeclaration(id, version, reads, writes, consumes, produces,
-                overridable, actions, declared);
+                overridable, actions, declared, milestones);
+    }
+
+    /**
+     * Declares the run's milestones, in order (#150) — the step's own map of
+     * itself, so a reported name has a derivable position.
+     */
+    public StepDeclaration reaching(String... milestones) {
+        return new StepDeclaration(id, version, reads, writes, consumes, produces,
+                overridable, actions, slots, java.util.List.of(milestones));
     }
 
     /** Whether this step may write that domain at all. */

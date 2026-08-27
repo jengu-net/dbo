@@ -28,10 +28,21 @@ public record Work(Run run, Map<String, StoredObject> inputs, Progress progress)
      * carries counts because what a deadline protects against is a process
      * that is alive and getting nowhere, and counts are how "getting
      * somewhere" is said on the record.
+     *
+     * <p>Two methods, both abstract, on purpose (#150): a default degrading
+     * {@link #milestone} to a bare checkpoint would let a decorator drop the
+     * one thing the report said while passing every test — the same trap
+     * {@code ReadOnce} fell into with the payload overload.
      */
-    @FunctionalInterface
     public interface Progress {
 
         void checkpoint(Map<String, Long> counts);
+
+        /**
+         * The same, also naming the declared point reached — "parsed",
+         * "validated", "signed". The store derives the position over the
+         * step's declared order; the service asserts only the name.
+         */
+        void milestone(String milestone, Map<String, Long> counts);
     }
 }

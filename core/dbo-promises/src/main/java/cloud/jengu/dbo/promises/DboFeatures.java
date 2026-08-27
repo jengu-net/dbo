@@ -42,7 +42,14 @@ public enum DboFeatures implements Feature {
             List.of(DboPromises.PROC_STEP_DECLARES_ITS_SLOTS,
                     DboPromises.PROC_RUN_INPUTS_FILL_THE_SLOTS,
                     DboPromises.PROC_TASK_CARRIES_THE_INPUTS,
-                    DboPromises.PROC_INPUTS_ARRIVE_WITH_THE_WORK));
+                    DboPromises.PROC_INPUTS_ARRIVE_WITH_THE_WORK)),
+
+    WORK_SAYS_WHERE_IT_IS("A long-running step is visible between claim and outcome: "
+            + "milestones ride the checkpoint the way events ride a tracing span, and "
+            + "completeness is derived from the step's own declared order.",
+            List.of(DboPromises.PROC_MILESTONES_ARE_DECLARED,
+                    DboPromises.PROC_PROGRESS_NAMES_THE_MILESTONE,
+                    DboPromises.PROC_TASK_SAYS_WHERE_THE_WORK_IS));
 
     private final String title;
     private final List<Promise> promises;

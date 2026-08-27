@@ -53,6 +53,15 @@ public interface Lane {
     /** Progress, which extends the claim — evidence, never a tick. */
     Run checkpoint(Run run, Map<String, Long> counts, Duration holdFor);
 
+    /**
+     * Progress that also names the milestone reached (#150). Deliberately
+     * abstract, not defaulted: a default degrading this to a bare checkpoint
+     * would be a step reporting where it is into a void, and a remote lane
+     * that forgot to carry it would pass every test while dropping the one
+     * thing the report said. Every lane decides; none inherits a drop.
+     */
+    Run milestone(Run run, String milestone, Map<String, Long> counts, Duration holdFor);
+
     /** Not done, and why — for the next taker. */
     void released(Run run, String reason);
 
@@ -130,6 +139,13 @@ public interface Lane {
             @Override
             public Run checkpoint(Run run, Map<String, Long> counts, Duration holdFor) {
                 return runs.checkpoint(run, counts, java.time.Instant.now().plus(holdFor));
+            }
+
+            @Override
+            public Run milestone(Run run, String milestone, Map<String, Long> counts,
+                    Duration holdFor) {
+                return runs.milestone(run, milestone, counts,
+                        java.time.Instant.now().plus(holdFor));
             }
 
             @Override

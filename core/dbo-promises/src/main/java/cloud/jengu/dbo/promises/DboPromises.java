@@ -132,7 +132,21 @@ public enum DboPromises implements Promise {
     PROC_INPUTS_ARRIVE_WITH_THE_WORK("A claimed run's inputs arrive with the work, "
             + "resolved by the party that holds the objects; the runner's only read takes "
             + "the run, a run the asking identity has not claimed is refused, and a run "
-            + "without slots delivers exactly nothing.");
+            + "without slots delivers exactly nothing."),
+
+    PROC_MILESTONES_ARE_DECLARED("A step declares its milestones, in order; where "
+            + "declared, a name outside them is refused naming both sides, and a step "
+            + "that has not declared any is not narrowed."),
+
+    PROC_PROGRESS_NAMES_THE_MILESTONE("A checkpoint can carry the milestone reached; the "
+            + "run records it replaced-never-accumulated, with its position over the "
+            + "declared order derived by the store rather than asserted by the executor, "
+            + "and it survives release and retake. A service that reports nothing behaves "
+            + "exactly as today."),
+
+    PROC_TASK_SAYS_WHERE_THE_WORK_IS("The rendered Task's businessStatus says where the "
+            + "work is — the holder, and when a milestone is recorded the step's own word "
+            + "for it with its derived position — in every version the face serves.");
 
     private final String text;
 
