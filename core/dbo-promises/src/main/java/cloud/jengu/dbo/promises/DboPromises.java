@@ -154,10 +154,12 @@ public enum DboPromises implements Promise {
             + "validation, actions, milestones, the mandatory-steps classification — "
             + "sees them the moment presence does."),
 
-    PROC_ONE_ID_ONE_DECLARER("Two sources declaring one step id is a collision refused "
-            + "by name, never an override — a second introducer, or a module installed "
-            + "beside an introduction; re-introduction by the same participant "
-            + "replaces."),
+    PROC_ONE_ID_ONE_DEFINITION("Two DEFINITIONS of one step id is a collision refused by "
+            + "name, never an override — a conflicting introduction, or a module "
+            + "installed beside one. Scaling stays possible by construction: parallel "
+            + "runners introducing an identical declaration co-introduce without refusal "
+            + "or thrown races (DBOS runs parallel consumers, and a fleet is not a "
+            + "conflict), and re-introduction by the same participant replaces."),
 
     PROC_INTRODUCTION_GRANTS_NOTHING("A step introduced over the link grants its "
             + "introducer nothing: the declaration binds the introducer exactly as it "

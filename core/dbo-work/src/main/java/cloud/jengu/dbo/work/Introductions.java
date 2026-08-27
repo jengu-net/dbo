@@ -28,12 +28,15 @@ import java.util.TreeSet;
  * this model, and <b>an introduction grants its introducer nothing</b> — the
  * declaration binds the introducer exactly as it binds anybody.
  *
- * <p><b>One id, one declarer.</b> Re-introduction by the same participant
- * replaces — a restart is the same participant. A different introducer for a
- * known id, or an id the installed catalogue already declares, is a collision
- * refused by name; and the {@linkplain #composedWith() composed view} refuses
- * an id that BOTH doors declare, because a module installed after an
- * introduction is a collision arriving late, not an override.
+ * <p><b>One id, one definition.</b> Re-introduction by the same participant
+ * replaces — a restart is the same participant. A different participant
+ * bringing an <em>identical</em> declaration co-introduces, because scaling
+ * is parallel runners and a fleet is not a conflict. What is refused, by
+ * name, is a different <em>definition</em> for one id — another introducer's
+ * conflicting declaration, or an id the installed catalogue already declares
+ * — and the {@linkplain #composedWith() composed view} refuses an id that
+ * BOTH doors declare, because a module installed after an introduction is a
+ * collision arriving late, not an override.
  */
 public final class Introductions {
 
@@ -51,28 +54,63 @@ public final class Introductions {
     public record Introduced(StepDeclaration step, String introducer) {}
 
     /**
-     * Records a step arriving over the link, or re-records it — idempotent
-     * per (id, introducer), because a participant restarting is the same
-     * participant.
+     * Records a step arriving over the link, or re-records it.
+     *
+     * <p><b>Scaling must be possible</b>, and scaling here means parallel
+     * runners: replicas of one participant each introduce the step they
+     * perform, racing each other on the way up. So what is idempotent is
+     * wider than one introducer — the same introducer replaces (a restart is
+     * the same participant, and an upgrade is its new definition), and a
+     * <em>different</em> introducer bringing an <b>identical declaration</b>
+     * co-introduces: one record, first bringer's name as provenance, no
+     * refusal — that is a fleet, not a conflict. What collides is a
+     * different <em>definition</em> for the same id, whoever brings it, and
+     * a race lost on the write is re-read rather than thrown: somebody else
+     * introducing the same step is the normal case of a replica set.
      */
     public Introduced introduce(StepDeclaration step, String introducer) {
         String id = step.id().toString();
         if (installed.byId(id).isPresent()) {
             throw new Collision(id, "a module installed here", introducer);
         }
-        Optional<StoredObject> existing = byId(id);
-        if (existing.isPresent()) {
-            String holder = read(existing.get()).introducer();
-            if (!holder.equals(introducer)) {
-                throw new Collision(id, holder, introducer);
+        for (int attempt = 0; attempt < 5; attempt++) {
+            Optional<StoredObject> existing = byId(id);
+            try {
+                if (existing.isEmpty()) {
+                    store.putIfAbsent(IdentityRef.identifier(IntroductionModel.KEY_SYSTEM, id),
+                            PutRequest.create(IntroductionModel.TYPE,
+                                    payload(step, introducer)));
+                    // putIfAbsent under a race may have kept a rival's write:
+                    // loop once more and judge what is actually there.
+                    if (byId(id).map(stored -> read(stored).step().equals(step)
+                                    || read(stored).introducer().equals(introducer))
+                            .orElse(false)) {
+                        return new Introduced(step, introducer);
+                    }
+                    continue;
+                }
+                Introduced current = read(existing.get());
+                if (current.introducer().equals(introducer)) {
+                    store.put(new PutRequest(IntroductionModel.TYPE, existing.get().id(),
+                            existing.get().versionId(), payload(step, introducer)));
+                    return new Introduced(step, introducer);
+                }
+                if (current.step().equals(step)) {
+                    // A replica of the fleet: same definition, another hand.
+                    // The record stands with its first bringer's provenance.
+                    return new Introduced(step, current.introducer());
+                }
+                throw new Collision(id, current.introducer(), introducer);
+            } catch (cloud.jengu.dbo.core.api.VersionConflictException
+                    | cloud.jengu.dbo.core.api.IdentityConflictException raced) {
+                // Somebody wrote between the read and the write — a replace
+                // raced (version) or a create raced the identity claim. For
+                // a fleet coming up, the expected case: the next pass reads
+                // what won and judges it.
             }
-            store.put(new PutRequest(IntroductionModel.TYPE, existing.get().id(),
-                    existing.get().versionId(), payload(step, introducer)));
-        } else {
-            store.putIfAbsent(IdentityRef.identifier(IntroductionModel.KEY_SYSTEM, id),
-                    PutRequest.create(IntroductionModel.TYPE, payload(step, introducer)));
         }
-        return new Introduced(step, introducer);
+        throw new IllegalStateException("introducing '" + id + "' kept losing the write "
+                + "race — the record is being replaced faster than it can be read");
     }
 
     /** A participant taking its step away for good, rather than being quiet. */
@@ -119,12 +157,14 @@ public final class Introductions {
         };
     }
 
-    /** One id claimed by two sources — a collision, never an override. */
+    /** One id, two definitions — a collision, never an override. */
     public static final class Collision extends RuntimeException {
         Collision(String stepId, String holder, String claimant) {
-            super("step '" + stepId + "' is already declared by " + holder
-                    + ", and '" + claimant + "' is a second declarer — a step id is "
-                    + "globally stable, so this is a collision rather than an override");
+            super("step '" + stepId + "' is already defined by " + holder
+                    + ", and '" + claimant + "' brings a DIFFERENT definition — a step id "
+                    + "is globally stable, so this is a collision rather than an override. "
+                    + "(An identical declaration would have co-introduced: a fleet of "
+                    + "parallel runners is not a conflict.)");
         }
     }
 

@@ -119,10 +119,12 @@ class StepsArriveByIntroductionIT {
                 "the catalogue learned the WHOLE declaration, milestones and all");
         assertTrue(catalogue.ids().contains(INSTALLED.id().toString()),
                 "one view, both doors: " + catalogue.ids());
-        assertEquals("ee-lab-connector", introductions.all().stream()
-                        .filter(i -> i.step().id().equals(BROUGHT.id())).findFirst()
-                        .orElseThrow().introducer(),
-                "provenance says which participant introduced it");
+        String provenance = introductions.all().stream()
+                .filter(i -> i.step().id().equals(BROUGHT.id())).findFirst()
+                .orElseThrow().introducer();
+        assertTrue(provenance.startsWith("ee-lab-connector"),
+                "provenance says which participant introduced it — whichever member of "
+                        + "the fleet got there first: " + provenance);
         assertTrue(declarations.all().stream().anyMatch(d ->
                         d.name().equals("ee-lab-connector")),
                 "the candidacy was declared beside it — resolution sees the step the "
@@ -130,29 +132,61 @@ class StepsArriveByIntroductionIT {
     }
 
     @Test
-    @DisplayName("one id, one declarer: a second introducer, and an id a module installed, "
-            + "are collisions refused by name")
-    @Proving(DboPromises.PROC_ONE_ID_ONE_DECLARER)
-    void oneIdOneDeclarer() {
-        introductions.introduce(BROUGHT, "ee-lab-connector");
-        // a restart is the same participant — replaced, not doubled
-        introductions.introduce(BROUGHT.producing("http://example.test/report"),
-                "ee-lab-connector");
+    @DisplayName("one id, one definition: a fleet of parallel runners co-introduces without "
+            + "refusal, and only a conflicting definition collides")
+    @Proving(DboPromises.PROC_ONE_ID_ONE_DEFINITION)
+    void oneIdOneDefinition() throws Exception {
+        // Scaling is parallel runners — DBOS runs parallel consumers, and a
+        // replica set comes up racing itself. Eight introducers, one
+        // barrier, identical declaration: no refusal, no thrown race, one
+        // record. A race that happens to serialise would prove nothing, so
+        // the barrier matters.
+        int fleet = 8;
+        java.util.concurrent.CyclicBarrier barrier =
+                new java.util.concurrent.CyclicBarrier(fleet);
+        List<java.util.concurrent.Future<Introductions.Introduced>> raced;
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(fleet)) {
+            raced = new java.util.ArrayList<>();
+            for (int replica = 0; replica < fleet; replica++) {
+                String name = "ee-lab-connector-" + replica;
+                raced.add(pool.submit(() -> {
+                    barrier.await();
+                    return introductions.introduce(BROUGHT, name);
+                }));
+            }
+            for (var outcome : raced) {
+                outcome.get(); // a refused or thrown replica fails the test here
+            }
+        }
         assertEquals(1, introductions.all().stream()
                         .filter(i -> i.step().id().equals(BROUGHT.id())).count(),
-                "re-introduction by the same participant replaces");
+                "a fleet is not a conflict: one record, however many hands");
 
+        // a restart or upgrade by the SAME participant replaces
+        String provenance = introductions.all().stream()
+                .filter(i -> i.step().id().equals(BROUGHT.id())).findFirst()
+                .orElseThrow().introducer();
+        introductions.introduce(BROUGHT.producing("http://example.test/report"), provenance);
+        assertEquals(Optional.of("http://example.test/report"),
+                introductions.all().stream()
+                        .filter(i -> i.step().id().equals(BROUGHT.id())).findFirst()
+                        .orElseThrow().step().produces(),
+                "re-introduction by the recorded participant replaces");
+
+        // what collides is a DIFFERENT definition for the id, whoever brings it
         Introductions.Collision rival = assertThrows(Introductions.Collision.class,
-                () -> introductions.introduce(BROUGHT, "somebody-else"));
-        assertTrue(rival.getMessage().contains("ee-lab-connector")
-                        && rival.getMessage().contains("somebody-else"),
-                "refused naming both declarers: " + rival.getMessage());
+                () -> introductions.introduce(BROUGHT.reaching("done"), "somebody-else"));
+        assertTrue(rival.getMessage().contains("somebody-else"),
+                "refused naming both sides: " + rival.getMessage());
 
         assertThrows(Introductions.Collision.class,
                 () -> introductions.introduce(
                         StepDeclaration.of(INSTALLED.id().toString(), "9.9", WorkModel.DOMAIN),
                         "ee-lab-connector"),
                 "an id a module already contributes is a collision, not an override");
+
+        // leave the canonical definition behind for whichever test runs next
+        introductions.introduce(BROUGHT, provenance);
     }
 
     @Test
