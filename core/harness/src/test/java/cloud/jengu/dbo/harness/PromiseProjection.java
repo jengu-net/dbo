@@ -79,6 +79,29 @@ public final class PromiseProjection {
         // PLANNED with a TODO on the constant — that is the honest state,
         // not a defect in the migration.
         sections.put("PROC", "## PROC — distributed work\n");
+        // The rest of the catalogue, migrated whole the same day: every
+        // remaining hand-written REQ is now a constant. Most read PLANNED
+        // with a "TODO: prove it in a test" on the constant — citation is a
+        // deliberately separate pass, not part of this port.
+        sections.put("CORE", "## CORE — object engine\n");
+        sections.put("CONT", "## CONT — container & embedding\n");
+        sections.put("TEN", "## TEN — tenancy & isolation\n");
+        sections.put("AUTH", "## AUTH — tenant authority & surface protection\n");
+        sections.put("POL", "## POL — tenant policies (audit & write discipline)\n");
+        sections.put("ZONE", "## ZONE — jurisdiction overlay\n");
+        sections.put("VER", "## VER — version plurality (personalities)\n");
+        sections.put("SRCH", "## SRCH — search\n");
+        sections.put("FEED", "## FEED — feeds, pagination, synchronization\n");
+        sections.put("EVT", "## EVT — eventing & subscriptions\n");
+        sections.put("WF", "## WF — durable work & planes\n");
+        sections.put("SCAL", "## SCAL — scaling & routing\n");
+        sections.put("TERM", "## TERM — terminology\n");
+        sections.put("SYNC", "## SYNC — canonical content dependencies\n");
+        sections.put("VAL", "## VAL — coded-value validation\n");
+        sections.put("OPS", "## OPS — operations\n");
+        sections.put("MNT", "## MNT — maintenance\n");
+        sections.put("PRM", "## PRM — promise (requirements as code)\n");
+        sections.put("SCIM", "## SCIM — staff provisioning surface\n");
         Map<String, StringBuilder> tables = new TreeMap<>();
         for (Promise promise : model.promises()) {
             String code = model.codeOf(promise);

@@ -7,7 +7,7 @@ import cloud.jengu.dbo.promise.Classified;
 import java.util.List;
 
 /**
- * The pilot's areas. The {@code AREA} namespace is shared by convention so a
+ * The store's areas. The {@code AREA} namespace is shared by convention so a
  * same-named area declared by another product's catalogue composes into one.
  */
 @Catalogue(namespace = "AREA")
@@ -35,7 +35,64 @@ public enum DboAreas implements Area {
                     DboFeatures.RESOLUTION_IS_DETERMINISTIC_AND_DECLARED,
                     DboFeatures.A_PEER_CONVERGES_SAFELY,
                     DboFeatures.CONTENT_ONLY_CHANGES_UNDER_A_RUN,
-                    DboFeatures.THE_NETWORK_AND_ITS_TRACE_ARE_READABLE));
+                    DboFeatures.THE_NETWORK_AND_ITS_TRACE_ARE_READABLE)),
+
+    CORE("The object engine — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.CORE_MIGRATED)),
+
+    CONT("Container & embedding — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.CONT_MIGRATED)),
+
+    TEN("Tenancy & isolation — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.TEN_MIGRATED)),
+
+    AUTH("Tenant authority & surface protection — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.AUTH_MIGRATED)),
+
+    POL("Tenant policies — audit & write discipline — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.POL_MIGRATED)),
+
+    ZONE("Jurisdiction overlay — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.ZONE_MIGRATED)),
+
+    VER("Version plurality across personalities — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.VER_MIGRATED)),
+
+    SRCH("Search — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.SRCH_MIGRATED)),
+
+    FEED("Feeds, pagination & synchronization — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.FEED_MIGRATED)),
+
+    EVT("Eventing & subscriptions — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.EVT_MIGRATED)),
+
+    WF("Durable work & planes — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.WF_MIGRATED)),
+
+    SCAL("Scaling & routing — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.SCAL_MIGRATED)),
+
+    TERM("Terminology — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.TERM_MIGRATED)),
+
+    SYNC("Canonical content dependencies — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.SYNC_MIGRATED)),
+
+    VAL("Coded-value validation — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.VAL_MIGRATED)),
+
+    OPS("Operations — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.OPS_MIGRATED)),
+
+    MNT("Maintenance — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.MNT_MIGRATED)),
+
+    PRM("Promise — requirements as code — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.PRM_MIGRATED)),
+
+    SCIM("Staff provisioning surface — migrated whole from hand-written prose (2026-08-27); each promise carries its own proof status.",
+            List.of(DboFeatures.SCIM_MIGRATED));
 
     private final String title;
     private final List<Classified> covers;
