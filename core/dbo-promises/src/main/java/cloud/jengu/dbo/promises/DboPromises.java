@@ -6,12 +6,13 @@ import cloud.jengu.dbo.promise.Promise;
 /**
  * The store's promise catalogue — whole (2026-08-27). The pilot carried
  * SHAPE and PDI (#140); everything else migrated in one pass from
- * hand-written req-catalogue.md prose, verbatim, each row a constant. Most
- * carry a {@code TODO: prove it in a test} javadoc: the port and the
- * citation are deliberately two passes, so a promise with no test says so
- * rather than reading PROVEN by proximity to ones that do. The constant's
- * name IS the code, prefixed by the namespace, so a citation cannot drift
- * from a declaration.
+ * hand-written req-catalogue.md prose, verbatim, each row a constant. The
+ * port and the citation were deliberately two passes, so a promise with no
+ * test said so rather than reading PROVEN by proximity to ones that did; the
+ * citation pass has since run, and what still carries a {@code TODO: prove
+ * it in a test} javadoc is what genuinely has no proof — each one naming
+ * what a proof would have to show. The constant's name IS the code, prefixed
+ * by the namespace, so a citation cannot drift from a declaration.
  */
 @Catalogue(namespace = "REQ-DBO")
 public enum DboPromises implements Promise {
@@ -253,9 +254,6 @@ public enum DboPromises implements Promise {
             + "backup and dropped with the tenant. A run in a private table has none of "
             + "those, and cannot be seen or acted on."),
 
-    /** TODO: prove it in a test. Holder.java's javadoc cites this REQ, but a javadoc
-     * citation is not a proof site — no test isolates "holder is the field read first"
-     * as its own claim distinct from the rendering tests. */
     PROC_RUN_SAYS_WHO_HOLDS_IT("A run's load-bearing field is who holds it now: "
             + "automation running, automation with a retry scheduled, a person, or "
             + "nobody. Every other field answers a question somebody asks after that "
@@ -451,24 +449,19 @@ public enum DboPromises implements Promise {
 
     // ── CONT — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     CONT_FRAMEWORK_FREE_CORE(
             "The core is plain Java; no Spring/Micronaut-class framework dependency "
             + "anywhere in the engine. (R1, R2)"),
-    /** TODO: prove it in a test. */
     CONT_DYNAMIC_TENANT_SERVICES(
             "Tenants arrive, move and leave as OSGi service-registry dynamics — never a "
             + "process restart. (R2, §4)"),
-    /** TODO: prove it in a test. */
     CONT_EMBEDDED_IN_JVM(
             "A host application can boot the full store inside its own JVM for "
             + "dev/test; the only shared dependencies are Felix and the OSGi API. (R2)"),
-    /** TODO: prove it in a test. */
     CONT_PRIVATE_DEPENDENCIES(
             "Heavy third-party stacks (DBOS, HAPI) are embedded as private packages and "
             + "served through DBO-owned whiteboard interfaces; their types never cross "
             + "bundle boundaries."),
-    /** TODO: prove it in a test. */
     CONT_FAST_COLD_START(
             "Store startup against an already-current schema is fast enough for "
             + "embedded test use; schema setup detects currency instead of replaying "
@@ -480,11 +473,9 @@ public enum DboPromises implements Promise {
     TEN_STRUCTURAL_SCOPING(
             "No code path can read or write data without an explicit tenant context. "
             + "(R3)"),
-    /** TODO: prove it in a test. */
     TEN_DEDICATED_DATABASE_TIER(
             "A tenant can run on a dedicated database; this tier is the design anchor. "
             + "(R5)"),
-    /** TODO: prove it in a test. */
     TEN_CREDENTIAL_BLIND_PROVISIONING(
             "Tenant databases and buckets are provisioned by an external operator; "
             + "credentials exist only as platform secrets and are never readable by "
@@ -493,7 +484,6 @@ public enum DboPromises implements Promise {
     TEN_REGISTRY_SCOPED_ACCESS(
             "Application code obtains a tenant's data services from the service "
             + "registry and can use them without ever seeing credentials. (R5, §4)"),
-    /** TODO: prove it in a test. */
     TEN_ERASURE_BY_DROP(
             "Dropping a tenant's database and blob storage removes all its data — "
             + "including durable workflow history and feed state."),
@@ -508,13 +498,11 @@ public enum DboPromises implements Promise {
 
     // ── AUTH — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     AUTH_TENANT_SCOPED_ISSUER(
             "Every tenant is its own OIDC authority with its own issuer URL, discovery "
             + "document, key set and token endpoint; relying parties trust exactly one "
             + "tenant's authority, never the store's. A token from any other tenant fails "
             + "signature verification before any claim is read."),
-    /** TODO: prove it in a test. */
     AUTH_IDENTITY_AS_RECORDS(
             "Client applications, grants and signing keys are regular records in the "
             + "tenant's own store — versioned, provenance-stamped, visible to feeds, and "
@@ -525,39 +513,32 @@ public enum DboPromises implements Promise {
             "The raw store surface is never publicly routed; public interaction with "
             + "dbo-held data goes through process-based surfaces. The authority exists so "
             + "authorized services reach the private surface with tenant-rooted trust."),
-    /** TODO: prove it in a test. */
     AUTH_DENY_BY_DEFAULT(
             "A serving deployment without a working authority refuses to serve tenant "
             + "endpoints; disabling auth is an explicit embedded/test flag, never a "
             + "default."),
-    /** TODO: prove it in a test. */
     AUTH_BEARER_LOCAL_VALIDATION(
             "The serving surface accepts OAuth2 bearer JWTs validated locally against "
             + "the tenant's own cached key set — no per-request dependency on any other "
             + "service."),
-    /** TODO: prove it in a test. */
     AUTH_CREDENTIAL_FACTORS_BY_KIND(
             "A local credential holds factors named by kind (RFC 8176 `amr`), and what "
             + "may be held is decided per kind: a password only where the tenant is the "
             + "identity provider for that subject, a bench PIN alongside federation "
             + "because it serves the case federation cannot."),
-    /** TODO: prove it in a test. */
     AUTH_SELF_SERVICE_CHANGE(
             "A signed-in subject can replace their own password by proving possession "
             + "of the current one. No ticket, no second channel, and no other factor is "
             + "touched."),
-    /** TODO: prove it in a test. */
     AUTH_RECOVERY_IS_AN_OPERATOR_ACT(
             "A subject who cannot sign in is recovered by provisioning or an operator "
             + "write, never by a self-service ceremony: recovery needs a channel the "
             + "authority does not have, and acquiring one would put delivery inside the "
             + "trust root."),
-    /** TODO: prove it in a test. */
     AUTH_DEACTIVATION_RETIRES_CREDENTIALS(
             "Deactivating a subject retires its credentials — every factor, at once, "
             + "and never by deletion: history and audit need the record, and a login that "
             + "vanishes cannot be told from one that never existed."),
-    /** TODO: prove it in a test. */
     AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT(
             "A subject sets their own first secret by redeeming a one-time, short-lived "
             + "grant the authority mints and never delivers: the consumer owns the "
@@ -565,12 +546,10 @@ public enum DboPromises implements Promise {
             + "resolves nothing, redemption burns the grant on presentation rather than "
             + "on success, and a grant authenticates nothing and cannot be exchanged for "
             + "a token."),
-    /** TODO: prove it in a test. */
     AUTH_NO_SUBJECT_ENUMERATION(
             "No authority answer distinguishes a subject that exists from one that does "
             + "not — not in what it says, not in how long it takes. The authority is the "
             + "only party that knows, which is why it must not say."),
-    /** TODO: prove it in a test. */
     AUTH_SMART_SHAPED_SCOPES(
             "Authorization vocabulary is the SMART system-scope grammar, so finer "
             + "service permissions and the future read-only public capability need no new "
@@ -580,12 +559,10 @@ public enum DboPromises implements Promise {
             "The issuer string is per-tenant configuration and the key material lives "
             + "in the tenant database — a tenant can move deployments or present a custom "
             + "domain without re-keying."),
-    /** TODO: prove it in a test. */
     AUTH_ORG_MODEL_IS_THE_AUTH_MODEL(
             "Human authorization derives from the tenant's own records — Practitioner "
             + "is the subject, an active PractitionerRole is the grant, the Organization "
             + "tree is the scope structure; there is no parallel user database to drift."),
-    /** TODO: prove it in a test. */
     AUTH_FEDERATED_HUMANS(
             "Human authentication is federated to the configured identity broker; the "
             + "authority resolves the verified national identifier to a Practitioner "
@@ -596,17 +573,14 @@ public enum DboPromises implements Promise {
             "The role-to-scope mapping is tenant-administered regular records — "
             + "auditable, feed-visible, exported; changing who may do what is a recorded "
             + "act."),
-    /** TODO: prove it in a test. */
     AUTH_PSEUDONYMOUS_TOKENS(
             "Human tokens carry the practitioner's record id and SMART user scopes — no "
             + "name, no national code; a captured token identifies no one."),
-    /** TODO: prove it in a test. */
     AUTH_ONE_CEREMONY_MANY_TENANTS(
             "One national authentication serves every tenant authority in the "
             + "deployment through the identity hub's session — the upstream broker is "
             + "invoked once per session, not per tenant; authorization remains strictly "
             + "per-tenant."),
-    /** TODO: prove it in a test. */
     AUTH_ON_BEHALF_OF(
             "Automated processes act in the name of a human via token exchange — "
             + "subject stays the practitioner, an act claim names the client, scopes "
@@ -616,55 +590,44 @@ public enum DboPromises implements Promise {
 
     // ── POL — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     POL_DECLARED_AT_CONFIGURATION(
             "Audit level and write discipline are declared in the tenant's "
             + "configuration next to its FHIR version, validated at registration, and "
             + "visible in the capability statement."),
-    /** TODO: prove it in a test. */
     POL_AUDIT_AS_RECORDS(
             "Audit entries are regular, pseudonymous records in the tenant's own store "
             + "— feed-visible, exported and restored with the tenant, re-identifiable "
             + "only through the vault."),
-    /** TODO: prove it in a test. */
     POL_ACTOR_FROM_AUTHORITY(
             "Every audit entry names its actor from the tenant authority's token "
             + "(client and subject) — no anonymous mutations under any audited policy."),
-    /** TODO: prove it in a test. */
     POL_APPEND_ONLY_DISCIPLINE(
             "Under append-only discipline the engine rejects tombstones (and per-type "
             + "in-place updates where declared); correction is supersession or "
             + "entered-in-error, never removal."),
-    /** TODO: prove it in a test. */
     POL_ERASURE_COMPATIBLE(
             "Append-only discipline and the right to erasure coexist: shredding never "
             + "rewrites a record — the record remains, the person evaporates."),
-    /** TODO: prove it in a test. */
     POL_DECLARATIVE_RETENTION(
             "Retention is declared per tenant and type as a floor and a ceiling — "
             + "keepAtLeast (append-only holds even against policy) and removeAfter (the "
             + "engine must remove) — composing with write discipline without conflict."),
-    /** TODO: prove it in a test. */
     POL_RETENTION_SWEEP(
             "A durable scheduled sweep executes removal as the one sanctioned mutation "
             + "of history, and every removal is audited without retaining the removed "
             + "data."),
-    /** TODO: prove it in a test. */
     POL_POLICY_REPLAY_ON_RESTORE(
             "Before a restored tenant serves, the machinery re-applies the shred ledger "
             + "and the retention sweep — an archive cannot resurrect what policy required "
             + "gone; archives carry removeAfter themselves."),
-    /** TODO: prove it in a test. */
     POL_CUSTOM_AUDIT_EVENTS(
             "Applications contribute business-level audit events; the machinery stamps "
             + "actor and time from the validated token and its own clock, overriding "
             + "caller claims — the trail can be enriched, never impersonated or "
             + "backdated."),
-    /** TODO: prove it in a test. */
     POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY(
             "Audit entries are exempt from the tenant's write discipline: no update, no "
             + "tombstone under any policy; retention's sweep is the only removal."),
-    /** TODO: prove it in a test. */
     POL_FHIR_AUDIT_PROJECTION(
             "On a FHIR tenant the audit stream is served as AuditEvent — native records "
             + "as the truth form, rendered per personality on read, contribution via "
@@ -678,42 +641,34 @@ public enum DboPromises implements Promise {
             + "domains — are regular records: versioned, audited, exported, and "
             + "streamable down the same chains as any content. Secrets are never in a "
             + "record."),
-    /** TODO: prove it in a test. */
     ZONE_BROKER_CHOICE(
             "The broker set is jurisdictional, the choice organizational: the zone "
             + "declares the available national brokers; a tenant selects its contracted "
             + "one and may restrict what it accepts."),
-    /** TODO: prove it in a test. */
     ZONE_SESSIONS_ACCUMULATE(
             "The per-zone hub's session records which broker performed each ceremony "
             + "and accumulates ceremonies; cross-broker reuse is the default, tenant "
             + "acceptance policy the restriction — the strictest tenant is satisfied "
             + "without invalidating anyone else's session."),
-    /** TODO: prove it in a test. */
     ZONE_SUBJECT_DOMAINS(
             "Subject-resolution identifier systems come from the zone's declared "
             + "domains — the official national terminology — never from dbo code."),
 
     // ── VER — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     VER_VERSION_AGNOSTIC_CORE(
             "The engine has no knowledge of any FHIR version; all version meaning lives "
             + "in personality bundles. (R6, §1)"),
-    /** TODO: prove it in a test. */
     VER_CONCURRENT_VERSIONS(
             "Tenants (and domains within a tenant) on different FHIR versions run "
             + "concurrently in one container. (R6)"),
-    /** TODO: prove it in a test. */
     VER_PERSONALITY_OWNS_MEANING(
             "Parsing, validation, search-parameter extraction and subscription "
             + "evaluation are personality responsibilities, per version."),
-    /** TODO: prove it in a test. */
     VER_SPECIFIED_VALIDATION(
             "Profile-resolution and validation semantics are specified by DBO — a "
             + "malformed or versioned canonical reference can never silently disable "
             + "validation."),
-    /** TODO: prove it in a test. */
     VER_VALIDATION_WITHOUT_WRITING(
             "A caller can ask whether a resource would be accepted without writing it "
             + "(`[Type]/$validate`), and the answer is the write path's own: what it "
@@ -721,44 +676,36 @@ public enum DboPromises implements Promise {
             + "locations a refusal carries, so a caller is told what to fix. The verdict "
             + "is the resource's shape — state a write settles (an identity already "
             + "claimed, a version moved on) is not promised."),
-    /** TODO: prove it in a test. */
     VER_ONE_READ_PER_REQUEST(
             "Accepting a write reads its payload once, however many parts of the write "
             + "ask about it — the type, the verdict and the searchable envelope come from "
             + "one read. A payload rewritten on its way into the engine is read as it now "
             + "stands, so what is indexed is what is stored."),
-    /** TODO: prove it in a test. */
     VER_BALLOT_RECORDED_PER_VERSION(
             "A stored version records the exact version it was authored under — a "
             + "ballot by its full spelling, never the release it anticipates — so a later "
             + "version has something to convert from and a reader is never told a guess."),
-    /** TODO: prove it in a test. */
     VER_DEFINITIONS_TRAVEL_WITH_THE_FACE(
             "A face brings the definitions it validates and extracts against. Bringing "
             + "a tenant up fetches nothing over the network and needs no writable cache "
             + "outside the store's own state."),
-    /** TODO: prove it in a test. */
     VER_BALLOT_SERVED_AS_AUTHORED(
             "A version still at ballot promises no normalized truth form and no "
             + "conversion to or from another version: what an author wrote is what a "
             + "reader receives. Normalising under a ballot's understanding would bake it "
             + "into bytes that are never rewritten, and the next ballot moving an element "
             + "would lose what it moved."),
-    /** TODO: prove it in a test. */
     VER_TRANSITION_BY_CONVERTERS(
             "Moving a tenant between FHIR versions is converters plus reindex, not a "
             + "data migration ceremony."),
 
     // ── SRCH — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     SRCH_TIER1_PARITY(
             "Every search feature a production healthcare platform actually issues "
             + "works identically ([inventory](../evidence/search-usage-inventory.md))."),
-    /** TODO: prove it in a test. */
     SRCH_STRICT_BY_DEFAULT(
             "An unsupported search parameter is rejected, never silently ignored."),
-    /** TODO: prove it in a test. */
     SRCH_HONEST_CAPABILITY(
             "The CapabilityStatement is generated from what the server actually serves "
             + "— the configured types, the interactions their declared handling permits, "
@@ -768,7 +715,6 @@ public enum DboPromises implements Promise {
             + "because it is routable: the router and the statement read one list, so "
             + "neither a served-but-undeclared operation nor a declared-but-unanswered "
             + "one is expressible."),
-    /** TODO: prove it in a test. */
     SRCH_TYPED_ORDERING(
             "Sorting and range filtering are typed — numeric, date and token semantics "
             + "are correct, with matching indexes. (D3)"),
@@ -783,23 +729,18 @@ public enum DboPromises implements Promise {
 
     // ── FEED — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     FEED_ONE_PRIMITIVE(
             "Pagination, subscription delivery, content streams and edge sync are all "
             + "the same primitive: an ordered, replayable sequence with an opaque durable "
             + "cursor."),
-    /** TODO: prove it in a test. */
     FEED_KEYSET_CURSORS(
             "Cursors are keyset positions, never offsets; a page is stable under "
             + "concurrent writes."),
-    /** TODO: prove it in a test. */
     FEED_PUSH_ACK_RESUME(
             "Push consumers acknowledge with the cursor; any interrupted stream resumes "
             + "from the last acknowledged position."),
-    /** TODO: prove it in a test. */
     FEED_IDEMPOTENT_DELIVERY(
             "Delivery is at-least-once with idempotent apply by identity and version."),
-    /** TODO: prove it in a test. */
     FEED_NAMED_CONSUMERS(
             "Every durable consumer holds a named cursor in the store; progress, lag "
             + "and replay are uniformly observable."),
@@ -810,26 +751,21 @@ public enum DboPromises implements Promise {
 
     // ── EVT — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     EVT_TRANSACTIONAL_OUTBOX(
             "Every change event originates as an outbox row committed with the write. "
             + "(R8, §6)"),
-    /** TODO: prove it in a test. */
     EVT_FHIR_SUBSCRIPTIONS(
             "Topic-based FHIR Subscriptions (R5/R6 style, backported to the R4 "
             + "personality) are a core capability. (R8)"),
-    /** TODO: prove it in a test. */
     EVT_DURABLE_DELIVERY(
             "Subscription delivery is durable, tenant-scoped and replayable, with "
             + "retries, backoff and dead-lettering. (R8, §9)"),
-    /** TODO: prove it in a test. */
     EVT_IN_PROCESS_SURFACE(
             "Co-located consumers get the same topics with identical semantics through "
             + "the in-process/OSGi surface. (R8)"),
 
     // ── WF — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     WF_POSTGRES_SUBSTRATE(
             "Durable tasks, streams and inter-instance communication run on the "
             + "DBOS/Postgres substrate; no external broker. (R4)"),
@@ -880,26 +816,21 @@ public enum DboPromises implements Promise {
 
     // ── TERM — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     TERM_NATIVE_FORM(
             "Terminology lives in a normalized, query-optimized form; the FHIR resource "
             + "form is a wire projection assembled on demand."),
-    /** TODO: prove it in a test. */
     TERM_BULK_LOAD(
             "Loading a large CodeSystem is a native bulk operation — no chunking "
             + "workarounds, no parameter-cap ceilings."),
-    /** TODO: prove it in a test. */
     TERM_EVERY_TENANT_ANSWERS(
             "Every served tenant answers `$lookup`, `$expand` and `$validate-code` from "
             + "its own store's native form, whichever FHIR version it speaks; no tenant "
             + "is a second-class reader. A terminology write reaches that form rather "
             + "than being stored whole — a resource that is present and answers nothing "
             + "is worse than one that is absent."),
-    /** TODO: prove it in a test. */
     TERM_OPERATIONS_FROM_NATIVE_FORM(
             "`$expand`, `$lookup` and `validate-code` are served from the normalized "
             + "form at tenant-local speed."),
-    /** TODO: prove it in a test. */
     TERM_VALIDATION_USES_TENANT_TERMINOLOGY(
             "Validation resolves coded values against the tenant's own terminology "
             + "where the carried definitions are silent: a code from a system the tenant "
@@ -909,7 +840,6 @@ public enum DboPromises implements Promise {
 
     // ── SYNC — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     SYNC_DECLARED_ONLY(
             "Cross-tenant content synchronization happens only for declared "
             + "dependencies; nothing syncs undeclared."),
@@ -918,7 +848,6 @@ public enum DboPromises implements Promise {
             "Any resource type can be declared as a cross-tenant dependency; each type "
             + "defines its grain — for terminology, the CodeSystem together with its "
             + "related ValueSets."),
-    /** TODO: prove it in a test. */
     SYNC_TERMINOLOGY_GRAIN_SURVIVES(
             "A streamed terminology dependency rebuilds the receiving tenant's native "
             + "form: the source sends the whole CodeSystem even though it stores a shell, "
@@ -926,45 +855,37 @@ public enum DboPromises implements Promise {
             + "dependent answers `$lookup` and `$expand` locally, which is the only proof "
             + "that the grain survived the hop — a copy's stored payload never contains a "
             + "concept at either end."),
-    /** TODO: prove it in a test. */
     SYNC_CONVERT_ON_APPLY(
             "Streamed objects are converted at apply into the receiving tenant's FHIR "
             + "version and object shape by the registered converter chains; an "
             + "unconvertible object dead-letters visibly and degrades the dependency, "
             + "never silently skips."),
-    /** TODO: prove it in a test. */
     SYNC_PROVENANCE_COPIES(
             "Streamed copies are read-only and provenance-tagged with source tenant and "
             + "version; updates and retirements propagate through the same stream."),
-    /** TODO: prove it in a test. */
     SYNC_LOCAL_SHADOWING(
             "A tenant's own object with the same base identity overrides the streamed "
             + "copy — version-neutrally, across FHIR versions and business versions; "
             + "removing the override falls back to the live upstream version."),
-    /** TODO: prove it in a test. */
     SYNC_DIRECT_UPSTREAM_ONLY(
             "A tenant declares dependencies only against its direct upstream; chains "
             + "compose hop by hop."),
-    /** TODO: prove it in a test. */
     SYNC_SPEC_DECLARED(
             "A tenant's content dependencies are part of its tenant spec "
             + "(configuration); the runtime wires declared streams at bring-up and "
             + "removes them when undeclared."),
-    /** TODO: prove it in a test. */
     SYNC_FULL_HISTORY_CATCH_UP(
             "A newly declared dependency catches up from the upstream's full history; "
             + "pre-existing content arrives the same way live changes do."),
 
     // ── VAL — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     VAL_BINDING_STRENGTH_IS_THE_ANSWER(
             "A coded value is checked against the terminology the store holds, and the "
             + "answer follows the binding's strength: required violated is a refusal, "
             + "weaker bindings are advice a caller is given rather than refused for, and "
             + "everything the face had to say reaches the outcome rather than only what "
             + "would refuse."),
-    /** TODO: prove it in a test. */
     VAL_UNRESOLVABLE_IS_NOT_INVALID(
             "A code from a system the store does not hold is reported as unresolvable, "
             + "never as invalid: one says this store's content is incomplete and the "
@@ -978,7 +899,6 @@ public enum DboPromises implements Promise {
             "Binary content lives in per-tenant blob storage provisioned "
             + "credential-blind; erasure-by-drop extends to it; small deployments fall "
             + "back to Postgres behind the same interface."),
-    /** TODO: prove it in a test. */
     OPS_RUNTIME_SAYS_WHAT_IT_SERVES(
             "A runtime can be asked which tenants it is serving, and what it is doing "
             + "about the ones it is not: serving, coming up, failed to come up — one "
@@ -993,11 +913,9 @@ public enum DboPromises implements Promise {
 
     // ── MNT — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     MNT_BACKUP_IS_EXPORT(
             "Backup and export are one mechanism, restore and import another single "
             + "one; every backup is restorable by the everyday import path."),
-    /** TODO: prove it in a test. */
     MNT_PORTABLE_STATE_EXPORT(
             "The latest-state export is idempotent, store-independent FHIR (with blob "
             + "content, hash-verified) — importable into a fresh tenant, the same tenant, "
@@ -1006,44 +924,36 @@ public enum DboPromises implements Promise {
             + "defines — same digests the archive was attested over, so a stranger "
             + "checking the export and a party checking the signatures cannot get "
             + "different answers."),
-    /** TODO: prove it in a test. */
     MNT_HISTORY_BY_SCHEMA(
             "Version history, audit and consumer state live in their own database "
             + "schemas, so the high-fidelity history element is a schema-scoped dump, "
             + "restorable byte-exact."),
-    /** TODO: prove it in a test. */
     MNT_OWNER_KEY_ENCRYPTION(
             "An export bundle is encrypted so that only the tenant owner's master key "
             + "can open it; the platform operates backups it cannot read, and restore "
             + "requires the owner."),
-    /** TODO: prove it in a test. */
     MNT_SNAPSHOT_CONSISTENT(
             "The state element is cut at a single consistent snapshot; incremental "
             + "export is the feed from that snapshot's cursor."),
-    /** TODO: prove it in a test. */
     MNT_ARCHIVE_ROOT_OVER_CONTENTS(
             "An archive's attested root is computed over the manifest's per-entry "
             + "digests rather than over the archive's bytes, so re-packing, "
             + "re-compressing or reordering does not invalidate what was attested."),
-    /** TODO: prove it in a test. */
     MNT_BOTH_PARTIES_ATTEST(
             "An archive carries two detached signatures over that root — the vendor's "
             + "and the tenant's — and the tenant countersigns without resealing, so "
             + "neither party can produce an attested archive alone."),
-    /** TODO: prove it in a test. */
     MNT_IMPORT_REFUSES_UNATTESTED(
             "Objects enter a store from an archive by one path only: the root "
             + "recomputes and both signatures verify, or nothing is written. A refusal "
             + "names what was wrong with the archive rather than failing part-way through "
             + "it."),
-    /** TODO: prove it in a test. */
     MNT_ATTESTATION_READS_AS_FHIR(
             "An archive's attestation renders as a `Provenance` carrying FHIR's "
             + "`Signature`, so a customer's own tooling can check what it was handed "
             + "without learning this store's JSON. A view rendered by the face, never the "
             + "truth form — an archive of a non-FHIR domain is attested the same way and "
             + "has no Provenance."),
-    /** TODO: prove it in a test. */
     MNT_ACCEPTED_ROOT_RECORDED(
             "A destination records the root it accepted and the two keys that signed "
             + "it, in the tenant's own audit trail, so what was imported and what both "
@@ -1051,7 +961,6 @@ public enum DboPromises implements Promise {
 
     // ── PRM — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     PRM_NAME_IS_THE_CODE(
             "A promise is declared exactly once, as an enum constant; its code derives "
             + "from the constant's name and its catalogue's namespace, so a citation "
@@ -1062,12 +971,10 @@ public enum DboPromises implements Promise {
             "Unstated ground is declared as a gap with plain text; a gap registers, "
             + "carries a stable code, and counts against coverage until promoted to a "
             + "named promise."),
-    /** TODO: prove it in a test. */
     PRM_REGISTERED_AT_COMPILE_TIME(
             "An annotated catalogue is registered during its own component's "
             + "compilation — no classpath is swept, and a registration regenerated on "
             + "every compile cannot drift or be lost."),
-    /** TODO: prove it in a test. */
     PRM_CATALOGUE_READ_WHOLE(
             "The registry reads a catalogue's constants whole — proven, planned and gap "
             + "alike — never as a side effect of what happened to be class-loaded."),
@@ -1085,20 +992,16 @@ public enum DboPromises implements Promise {
             "A test cites promises through its product's own enum-typed annotation, "
             + "recognised by meta-annotation — a mistyped citation is a compile error, "
             + "and the framework never learns a product's types."),
-    /** TODO: prove it in a test. */
     PRM_PROOFS_INDEXED_AT_COMPILE_TIME(
             "Citation sites are indexed during the product's own compilation; a renamed "
             + "or deleted proof site cannot leave a stale citation behind."),
-    /** TODO: prove it in a test. */
     PRM_STATUS_IS_DERIVED(
             "A promise's status is computed — cited is proven, named-uncited is "
             + "planned, assurance is declared on the constant, a gap is a gap — never "
             + "asserted at a proof site."),
-    /** TODO: prove it in a test. */
     PRM_COVERAGE_IS_A_FOLD(
             "A classification's coverage is the fold of its declared promises' "
             + "statuses, gaps included; an area's is the fold of its classifications."),
-    /** TODO: prove it in a test. */
     PRM_PROJECTION_IS_GENERATED(
             "The catalogue's prose form is generated from the composed model, never a "
             + "second source; a hand-edit or a stale projection fails the build."),
@@ -1109,34 +1012,27 @@ public enum DboPromises implements Promise {
 
     // ── SCIM — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
     SCIM_DECLARED_PER_TENANT(
             "A tenant serves SCIM 2.0 only when its spec declares it (the block naming "
             + "the externalId system); absent the block, the endpoints do not exist."),
-    /** TODO: prove it in a test. */
     SCIM_USER_IS_THE_PERSON(
             "A SCIM User is the human: the externalId claimed and identifying data "
             + "authored on the Person, with a linked Practitioner capacity ensured on "
             + "create — the same linkage the authority walks at token time."),
-    /** TODO: prove it in a test. */
     SCIM_ENUMERATION_STAYS_INSIDE(
             "The by-system enumeration answering the user list is a vault method inside "
             + "this server; no store API, face or FHIR search gains it, and an "
             + "enumeration-shaped search stays refused at the front door."),
-    /** TODO: prove it in a test. */
     SCIM_DIRECTORY_CREDENTIAL(
             "The SCIM client's scope admits the SCIM surface and nothing else; its "
             + "token is refused by the FHIR surface and a store token is refused by SCIM."),
-    /** TODO: prove it in a test. */
     SCIM_DEPROVISION_IS_A_STATE(
             "Deactivation sets active=false on the person and the capacity; it is never "
             + "erasure — that remains the vault's own ceremony with its own audit shape."),
-    /** TODO: prove it in a test. */
     SCIM_EVERY_OP_IS_A_DISCLOSURE(
             "Every SCIM operation runs with the client as caller and an administrative "
             + "purpose stated, so it lands in the trail as one recorded provisioning "
             + "disclosure."),
-    /** TODO: prove it in a test. */
     SCIM_GROUPS_READ_ONLY(
             "Groups render from active role grants and refuse writes permanently — who "
             + "works here is the identity provider's call; who is an admin here is not.");
