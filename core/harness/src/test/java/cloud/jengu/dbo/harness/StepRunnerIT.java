@@ -71,6 +71,32 @@ class StepRunnerIT {
     }
 
     /**
+     * Cycles until the condition holds, or gives up after 30 seconds.
+     *
+     * <p>Delivery is at-least-once and a cycle is one poll, so "did the work
+     * arrive" is a question about eventual arrival, never about a particular
+     * pass. The sibling retake test already worked this way; the two that did
+     * not were the two that went red under a loaded CI runner, which is the
+     * whole argument for the convention.
+     */
+    private static boolean cycleUntil(StepRunner runner, java.util.function.BooleanSupplier done) {
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
+        while (System.nanoTime() < deadline) {
+            runner.cycle();
+            if (done.getAsBoolean()) {
+                return true;
+            }
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return done.getAsBoolean();
+            }
+        }
+        return done.getAsBoolean();
+    }
+
+    /**
      * The host's side of the line: the store handle stays HERE, and the
      * runner receives only the lane — which is the whole point.
      */
@@ -105,8 +131,14 @@ class StepRunnerIT {
                 }
             });
             runner.attach(lane("t-one", "runner-one"));
-            int performed = runner.cycle();
-            assertTrue(performed >= 1, "the item run was performed: " + performed);
+            // Cycle until the work is performed rather than asserting on one
+            // pass. A cycle is a poll, and a poll that arrives before the
+            // feed has the run yields nothing — which is ordinary on a loaded
+            // machine and not a defect. Asserting on the first cycle made
+            // this test a load gauge: it went red twice on a CI runner
+            // carrying two suites at once while passing everywhere else.
+            assertTrue(cycleUntil(runner, () -> received.get() != null),
+                    "the item run was performed within the deadline");
         }
 
         Run after = runs.byId(work.id()).orElseThrow();
@@ -213,8 +245,9 @@ class StepRunnerIT {
             });
             runner.attach(lane("t-a", "runner-a"));
             runner.attach(lane("t-b", "runner-b"));
-            runner.cycle();
-            runner.cycle();
+            assertTrue(cycleUntil(runner,
+                            () -> servedBy.contains(one.key()) || servedBy.contains(two.key())),
+                    "work flowed through the lanes within the deadline: " + servedBy);
         }
         assertTrue(servedBy.contains(one.key()) || servedBy.contains(two.key()),
                 "work flowed through the lanes: " + servedBy);
