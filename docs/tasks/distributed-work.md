@@ -4,10 +4,9 @@
 closed**: the declaration seam (steps, actions, mandatory-steps incident
 classification), introduction over the link, run inputs filling declared slots,
 milestones on the checkpoint, and the participant with both halves of reach.
-**#79's work is done and awaiting its close-after-CI**: the runner drives a
-lane it can only reach across a boundary and cannot tell, and killing a
-participant mid-work loses neither half — the run is owed again above, the
-checkpointed work is not redone below.
+**#79 is closed**: the runner drives a lane it can only reach across a
+boundary and cannot tell, and killing a participant mid-work loses neither
+half — the run is owed again above, the checkpointed work is not redone below.
 What gates what is left is one precondition — a profile for the rendered
 `Task`, the half of #91 the published run vocabulary did not cover — and behind
 it the console (#75/#76). It does not gate the replication toolset (#80): a
@@ -15,9 +14,8 @@ lane is not a FHIR client. See `Sequence` for the order and what each is
 waiting on.
 
 **Issues** — the participation cluster, formerly under the closed #46.
-Open: [#79](https://github.com/jengu-net/dbo/issues/79)
-(reference runner — built and proven; open only until its build is green) ·
-[#80](https://github.com/jengu-net/dbo/issues/80) (replication toolset) ·
+Open: [#80](https://github.com/jengu-net/dbo/issues/80) (replication toolset —
+most of it built; see `Sequence`) ·
 [#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on the
 link — its carrier is delivered) ·
 [#75](https://github.com/jengu-net/dbo/issues/75) /
@@ -32,6 +30,8 @@ Closed: [#69](https://github.com/jengu-net/dbo/issues/69) /
 resolution) · [#71](https://github.com/jengu-net/dbo/issues/71)
 (declaration seam) · [#77](https://github.com/jengu-net/dbo/issues/77)
 (the participant, and reach as an intersection) ·
+[#79](https://github.com/jengu-net/dbo/issues/79) (the reference runner:
+the lane seam from this side, and DBOS below it) ·
 [#147](https://github.com/jengu-net/dbo/issues/147)
 (introduction over the link) ·
 [#149](https://github.com/jengu-net/dbo/issues/149) (a run names its
@@ -165,7 +165,7 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 8 | **The run vocabulary, discoverable** — [#91](https://github.com/jengu-net/dbo/issues/91)'s precondition: the systems a rendered run carries, published as `CodeSystem`s the same tenant serves. | **PARTLY DONE** — the vocabulary half is published, fetchable and split (`urn:dbo:run:output` is no longer also `urn:dbo:run`), proven by `VocabularyIsDiscoverableIT`. **What remains is a profile for the rendered `Task`**, and that is what gates serving runs over HTTP |
 | 9 | **The reference runner: transport first, DBOS below** ([#79](https://github.com/jengu-net/dbo/issues/79)) — the participation link exercised end to end. | **DONE** 2026-08-27 — the seam holds from this side (`ARemoteLaneIsIndistinguishableIT`, kept that way by `ALaneStaysTransportShapedTest`), and both layers now hold at once when a participant dies mid-work: the run is owed again above and the checkpointed half is not redone below (`DbosBelowResumesItsOwnHalfFinishedWorkIT`). The wire itself stays the consumer's (ADR 0062) |
 | 10 | **Vital signs on the link** ([#148](https://github.com/jengu-net/dbo/issues/148)) — what rides the carrier, and a presence display that does not page about a healthy idle fleet. | **NEXT** — its carrier is delivered; the runner already publishes vitals on the declaration record |
-| 11 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **NEXT** — inherits "slots are part of what must be present for the work being held" |
+| 11 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **PARTLY DONE** — the batch, the idempotent-and-reorder-safe apply, the epoch, echoed markers, mirrored filing, work-driven expiry and the process allowlist are all built and proven (`TwoAppliancesOneTenantIT`), and a peer back from a weekend converges without dragging over what it holds no work for. **What remains**: audit replicating as recorded — blocked on a decision, since `PolicyObjectStore` refuses every direct `AuditEntry` write and nothing yet wires `Lanes` to a policy-wrapped store, so admitting the lane through that refusal has no production shape to aim at yet — inherits "slots are part of what must be present for the work being held" |
 | 12 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **BLOCKED by the consumer's sequencing** — posed by [platform#917](https://github.com/jengu-net/jengu-platform/issues/917), whose work-lane-first order owns when this is answered |
 | 13 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **LAST, needs 8** — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
 
@@ -313,6 +313,21 @@ process is exactly `module.process`. A four-part id throws, and `declare`
 catches it into a warning — so the participant keeps working, the catalogue
 never learns the step, and nothing is red. The swallow is deliberate (one bad
 tenant must not kill a runner) but it is why this cost an afternoon.
+
+**A lane's own bookkeeping lands in the feed the lane reads.** `Lane` and
+`Placement` are registered in `WorkModel.DOMAIN`, and `outbound` reads that
+domain's change feed — so every `sent()` writes an event into its own input.
+The filter skips it, but the cursor still advances, and the consequence is
+that **a lane's cursor never stops moving**: there is no quiescent state, and
+a caught-up lane is indistinguishable from a draining one by cursor movement
+alone. Nor does an empty batch mean caught up — a stretch of non-travelling
+housekeeping produces empty batches while the lane is genuinely still
+draining. A connector must therefore measure "caught up" as *nothing has
+arrived for a few rounds*, which is what `anAbsentPeerConverges` does. Note
+this is the mirror of the participant trap below: there a caught-up cursor
+looks stalled, here a caught-up lane looks busy. Whether the bookkeeping
+belongs in its own domain is undecided — moving it touches erasure-by-drop
+and backup coverage.
 
 **A run speaks its step name bare; the catalogue speaks it fully.** A run
 records `process` and `step` as separate fields and `poll` filters on the

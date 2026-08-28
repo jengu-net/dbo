@@ -251,6 +251,87 @@ class TwoAppliancesOneTenantIT {
                 "and what another open run still names stays: " + revoked);
     }
 
+    /**
+     * A weekend's absence, converged in bounded rounds (#80).
+     *
+     * <p>Every other test here hands over one batch big enough to hold
+     * everything, which proves what a batch contains and nothing about
+     * catching up. An appliance that was away comes back to a feed longer
+     * than any one batch, and most of what accumulated is the other side's
+     * own housekeeping — so the interesting question is whether it converges
+     * at all, and whether it does so without dragging over what it holds no
+     * work for.
+     *
+     * <p>The hazard this is really aimed at: a lane filters non-travelling
+     * work <em>after</em> reading the feed, so a stretch of housekeeping
+     * longer than the batch bound yields a batch with no items in it. A
+     * connector that stopped there would never move its cursor past the
+     * housekeeping and would re-read the same stretch for ever — an idle lane
+     * and a stalled one look identical from outside.
+     */
+    @Test
+    @DisplayName("a peer that was away for a weekend converges in bounded rounds, and brings "
+            + "over nothing it holds no work for")
+    @Proving(DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY)
+    void anAbsentPeerConverges() {
+        // A long stretch of the cloud's own housekeeping — more of it in a row
+        // than one batch can hold — with real work scattered through it.
+        List<String> subjects = new ArrayList<>();
+        for (int weekend = 0; weekend < 6; weekend++) {
+            for (int housekeeping = 0; housekeeping < 4; housekeeping++) {
+                cloudRuns.sweep("dbo.tenant.serving", "serve", "deployment-" + weekend + "-"
+                        + housekeeping, List.of(WorkModel.DOMAIN));
+            }
+            PutResult subject = cloudStore.put(PutRequest.create("Patient",
+                    patient("Weekend-" + weekend).getBytes(StandardCharsets.UTF_8)));
+            subjects.add(subject.id());
+            Run work = cloudRuns.pipeline(PROCESS, STEP,
+                    PROCESS + "/" + STEP + "/weekend-" + weekend, List.of(WorkModel.DOMAIN));
+            cloudRuns.item(work, "Patient/" + subject.id(), Failure.RECORD, "away");
+        }
+
+        // The peer comes back and drains, a small batch at a time. `sent` is
+        // called on every round including an empty one, because accepting an
+        // empty batch is how a lane gets past what it does not carry.
+        int rounds = 0;
+        long appliedTotal = 0;
+        // Caught up is "nothing more is arriving", and it has to be measured
+        // that way: the cursor is no help, because the lane's own bookkeeping
+        // — its Lane record, the peer's Placement rows — is registered in the
+        // very domain whose feed it reads, so every round writes an event into
+        // its own input and the cursor never stops moving. An empty batch is
+        // no help either: a stretch of the other side's housekeeping produces
+        // batches with no items while the lane is still genuinely draining. So
+        // a connector drains until nothing has arrived for a few rounds, which
+        // is what this does.
+        int quiet = 0;
+        for (; rounds < 60 && quiet < 3; rounds++) {
+            Lanes.Batch batch = cloud.outbound("edge", 5, TRAVELS);
+            long arrived = batch.isEmpty() ? 0 : edge.apply("cloud", batch).applied();
+            cloud.sent("edge", batch);
+            appliedTotal += arrived;
+            quiet = arrived == 0 ? quiet + 1 : 0;
+        }
+
+        assertTrue(rounds < 60, "the lane drained rather than re-reading for ever, in "
+                + rounds + " rounds");
+        assertTrue(appliedTotal > 0, "and something actually arrived: " + appliedTotal);
+        for (String subject : subjects) {
+            assertTrue(edgeStore.get("Patient", subject).isPresent(),
+                    "every subject the accumulated work names arrived: " + subject);
+        }
+        assertTrue(edgeStore.select(Criteria.of(WorkModel.TYPE)).stream()
+                        .map(stored -> new String(stored.payload(), StandardCharsets.UTF_8))
+                        .noneMatch(payload -> payload.contains("dbo.tenant.serving")),
+                "and a weekend of the other side's housekeeping stayed at home");
+
+        // Converged means converged: nothing is dragged over a second time.
+        Lanes.Batch nothingLeft = cloud.outbound("edge", 500, TRAVELS);
+        assertEquals(0, edge.apply("cloud", nothingLeft).applied(),
+                "a caught-up peer replays nothing, even asked for a batch big enough to carry "
+                        + "the whole weekend again: " + nothingLeft.items().size() + " items");
+    }
+
     @Test
     @DisplayName("both sides keep what the other said it had reached")
     void markersAreEchoed() {
