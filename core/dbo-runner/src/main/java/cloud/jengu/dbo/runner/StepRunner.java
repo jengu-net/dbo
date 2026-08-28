@@ -161,32 +161,45 @@ public final class StepRunner implements AutoCloseable {
     private void perform(Lane lane, StepService service, Run claimed) {
         Vitals sign = vitals.computeIfAbsent(service.step(), s -> new Vitals());
         long began = System.nanoTime();
+        // Every report answers with the run as it now stands, and the next one
+        // must be built on THAT rather than on the run as claimed. A report
+        // writes the state it was handed, so reporting twice from a stale copy
+        // silently erases the first — a step that named a milestone and then
+        // checkpointed lost the milestone, which is the one thing the report
+        // said (#150). It matters most on the way out: a released run is read
+        // by the next taker, and #150's promise is that they resume from a
+        // fact. Found by driving the runner over a lane it could only reach
+        // across a boundary.
+        java.util.concurrent.atomic.AtomicReference<Run> latest =
+                new java.util.concurrent.atomic.AtomicReference<>(claimed);
         try {
             Work work = new Work(claimed, lane.inputs(claimed), new Work.Progress() {
                 @Override
                 public void checkpoint(java.util.Map<String, Long> counts) {
-                    lane.checkpoint(claimed, counts, holdFor);
+                    latest.set(lane.checkpoint(latest.get(), counts, holdFor));
                 }
 
                 @Override
                 public void milestone(String milestone, java.util.Map<String, Long> counts) {
-                    lane.milestone(claimed, milestone, counts, holdFor);
+                    latest.set(lane.milestone(latest.get(), milestone, counts, holdFor));
                 }
             });
             Outcome outcome = service.perform(work);
             if (outcome instanceof Outcome.Done done) {
-                Run reported = done.tally().isEmpty() ? claimed
-                        : lane.checkpoint(claimed, done.tally(), holdFor);
+                Run reported = done.tally().isEmpty() ? latest.get()
+                        : lane.checkpoint(latest.get(), done.tally(), holdFor);
                 lane.closed(reported);
                 sign.done(System.nanoTime() - began);
             } else if (outcome instanceof Outcome.Failed failed) {
-                lane.released(claimed, failed.reason());
+                lane.released(latest.get(), failed.reason());
                 sign.failed(failed.reason());
             }
         } catch (RuntimeException thrown) {
             // Released, not closed and not swallowed: released is not done,
-            // and a later cycle may take it again.
-            lane.released(claimed, "the service threw: " + thrown.getMessage());
+            // and a later cycle may take it again — from wherever the work
+            // had got to, which is why this releases the latest run and not
+            // the claim.
+            lane.released(latest.get(), "the service threw: " + thrown.getMessage());
             sign.failed(String.valueOf(thrown.getMessage()));
         }
     }
