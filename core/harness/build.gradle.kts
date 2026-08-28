@@ -23,6 +23,10 @@ val dboFhirElementTestOutput = project(":core:dbo-fhir-element")
 dependencies {
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))
+    // The reference LOCAL executor under a step service (#79). Test-only and
+    // deliberately not on dbo-runner: the participation contract names no
+    // orchestrator, and a runner that compiled against one would be naming it.
+    testImplementation("dev.dbos:transact:1.0.0")
     testImplementation(project(":core:dbo-runner"))
     // the promise framework's processor indexes @Proving citations at THIS
     // module's test-compile time; without this configuration the index is
