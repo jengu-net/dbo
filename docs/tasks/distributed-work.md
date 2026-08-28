@@ -148,16 +148,18 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 6 | **Introduction over the link** ([#147](https://github.com/jengu-net/dbo/issues/147)) — the second door into the catalogue; identical declarations co-introduce, so a fleet is not a collision. | **DONE** 2026-08-27 — `StepsArriveByIntroductionIT` |
 | 7 | **The participant, both halves of reach** ([#77](https://github.com/jengu-net/dbo/issues/77)) — pull, claim, report; and what it may claim is the intersection of what its credential covers and what the step admits. | **DONE** 2026-08-27 — `ParticipantsPullAndClaimIT`, `ClaimIsTheIntersectionIT` |
 | 8 | **The run vocabulary, discoverable** — [#91](https://github.com/jengu-net/dbo/issues/91)'s precondition: the systems a rendered run carries, published as `CodeSystem`s the same tenant serves. | **PARTLY DONE** — the vocabulary half is published, fetchable and split (`urn:dbo:run:output` is no longer also `urn:dbo:run`), proven by `VocabularyIsDiscoverableIT`. **What remains is a profile for the rendered `Task`**, and that is what gates serving runs over HTTP |
-| 9 | **The reference runner: transport first, DBOS below** ([#79](https://github.com/jengu-net/dbo/issues/79)) — the participation link exercised end to end. | **NEXT** — the runner bundle itself is built (`core:dbo-runner`, `StepRunnerIT`); what is open is the transport exercise |
+| 9 | **The reference runner: transport first, DBOS below** ([#79](https://github.com/jengu-net/dbo/issues/79)) — the participation link exercised end to end. | **PARTLY DONE** 2026-08-27 — the seam is proven from this side: the runner drives a lane it can only reach across a boundary and cannot tell (`ARemoteLaneIsIndistinguishableIT`), and `ALaneStaysTransportShapedTest` keeps the interface implementable from elsewhere. **What remains is DBOS below** — the local executor and "a restart resumes what it had checkpointed", the one clause of #79's definition of done nothing asserts. The wire itself is the consumer's (ADR 0062) |
 | 10 | **Vital signs on the link** ([#148](https://github.com/jengu-net/dbo/issues/148)) — what rides the carrier, and a presence display that does not page about a healthy idle fleet. | **READY, needs 9** — its carrier is delivered; the runner already publishes vitals on the declaration record |
 | 11 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **READY, needs 9** — inherits "slots are part of what must be present for the work being held" |
 | 12 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **BLOCKED by the consumer's sequencing** — posed by [platform#917](https://github.com/jengu-net/jengu-platform/issues/917), whose work-lane-first order owns when this is answered |
 | 13 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **LAST, needs 8** — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
 
-**The critical path** is 8 → 9 → 13: the `Task` profile unblocks serving runs
-over HTTP, which the transport exercise and then the console both stand on.
-Steps 10 and 11 hang off 9 and are independent of each other. Step 12 waits on
-somebody else's calendar, not on this repository.
+**The critical path** is 8 → 13: the `Task` profile unblocks serving runs over
+HTTP, which the console stands on. Step 9's remaining half (DBOS below) does
+not need it — the seam it was gating turned out to be provable without HTTP,
+because a lane is not a FHIR client. Steps 10 and 11 hang off 9 and are
+independent of each other. Step 12 waits on somebody else's calendar, not on
+this repository.
 
 ## Decisions
 
@@ -267,6 +269,30 @@ no declaration yet.
 
 ## Traps
 
+**A report writes the state it was handed, so reporting twice from the run as
+claimed erases the first report.** `Runs.update` re-reads the stored object for
+its version — so the write never conflicts — but builds the payload from the
+`Run` the caller passed. The runner held the run as claimed across the whole of
+`perform`, so a step that named a milestone and then checkpointed lost the
+milestone, and a step that named one and then failed released without it —
+which is precisely who needed it, since #150's promise is that the next taker
+resumes from a fact. Fixed by threading each report's answer into the next
+(`StepRunner.perform`). The in-process tests never saw it because they thread
+the returned run by hand, the way a caller reading the signature naturally
+would; it took driving the runner over a boundary to notice the runner itself
+did not. Worth knowing more generally: `update` looks like optimistic
+concurrency and is not — it always writes at the current version, so a stale
+caller silently wins.
+
+**A step id is three parts, and a run's process is two of them.** A service
+that brings its own declaration (#147) builds a `StepId` from
+`<module>.<process>.<step>`; a run records `process` and `step` separately and
+the runner looks a service up by joining them. Those agree only when the run's
+process is exactly `module.process`. A four-part id throws, and `declare`
+catches it into a warning — so the participant keeps working, the catalogue
+never learns the step, and nothing is red. The swallow is deliberate (one bad
+tenant must not kill a runner) but it is why this cost an afternoon.
+
 **A run speaks its step name bare; the catalogue speaks it fully.** A run
 records `process` and `step` as separate fields and `poll` filters on the
 bare step, while a service declares `<module>.<process>.<step>`. The runner
@@ -308,6 +334,6 @@ scopes and what the step admits, like every declaration.
 ## Verifying
 
 ```bash
-./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT' --tests '*ClaimIsTheIntersectionIT'
+./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT' --tests '*ClaimIsTheIntersectionIT' --tests '*ARemoteLaneIsIndistinguishableIT' --tests '*ALaneStaysTransportShapedTest'
 ```
 (The link scenarios get their ITs with the transport exercise in #79.)
