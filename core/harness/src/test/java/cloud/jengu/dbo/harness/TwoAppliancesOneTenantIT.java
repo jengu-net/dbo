@@ -24,6 +24,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.postgresql.ds.PGSimpleDataSource;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
@@ -330,6 +331,46 @@ class TwoAppliancesOneTenantIT {
         assertEquals(0, edge.apply("cloud", nothingLeft).applied(),
                 "a caught-up peer replays nothing, even asked for a batch big enough to carry "
                         + "the whole weekend again: " + nothingLeft.items().size() + " items");
+    }
+
+    /**
+     * When the source recorded it, not when we heard about it (#155).
+     *
+     * <p>A version's timestamp is evidence: it says when somebody knew a thing
+     * and could act on it. Replication used to stamp the arrival, which reads
+     * as the edge having learned something at the moment the cloud heard about
+     * it — wrong for ordinary content, and for an audit entry it destroys the
+     * only fact the entry existed to carry. The replay path already had a
+     * place to put the source's time; it was passing {@code Instant.now()}
+     * into it.
+     */
+    @Test
+    @DisplayName("a replicated version keeps the time its source recorded, not the time it "
+            + "arrived")
+    @Proving(DboPromises.PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE)
+    void arrivalDoesNotRestampTheSource() throws Exception {
+        PutResult subject = cloudStore.put(PutRequest.create("Patient",
+                patient("Ajatempel").getBytes(StandardCharsets.UTF_8)));
+        Run work = cloudRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/stamped",
+                List.of(WorkModel.DOMAIN));
+        cloudRuns.item(work, "Patient/" + subject.id(), Failure.RECORD, "when did we know");
+        Instant atTheSource = cloudStore.get("Patient", subject.id()).orElseThrow().lastUpdated();
+
+        // a gap the arrival time would be visible in
+        Thread.sleep(1100);
+
+        Lanes.Batch batch = cloud.outbound("edge", 500, TRAVELS);
+        edge.apply("cloud", batch);
+        cloud.sent("edge", batch);
+
+        Instant onArrival = edgeStore.get("Patient", subject.id()).orElseThrow().lastUpdated();
+        assertEquals(atTheSource, onArrival,
+                "the copy must carry the source's own time — an appliance that restamped on "
+                        + "arrival would be claiming the edge learned this when the cloud did");
+        assertTrue(batch.items().stream()
+                        .filter(item -> item.id().equals(subject.id()))
+                        .allMatch(item -> atTheSource.equals(item.recordedAt())),
+                "and it travels on the item rather than being reconstructed at the far end");
     }
 
     @Test

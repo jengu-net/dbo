@@ -72,16 +72,24 @@ public final class Lanes {
      * One object as it stands here, for a caller that is about to carry it
      * somewhere.
      *
+     * @param recordedAt when the <b>source</b> recorded this version, carried
+     *                   so the far side can replay it rather than restamp it.
+     *                   A version's timestamp is evidence about when somebody
+     *                   knew something, and an appliance that wrote the
+     *                   arrival time would be saying the edge learned it when
+     *                   the cloud heard about it — which is false for ordinary
+     *                   content and, for an audit entry, is the whole of what
+     *                   the entry was for.
      * @param work whether this is a run rather than the data a run named. The
      *             far side applies data first, so nothing arrives pointing at
      *             something absent.
      */
-    public record Item(String typeName, String id, long version, byte[] payload, boolean work,
-            List<String> forRuns) {
+    public record Item(String typeName, String id, long version, Instant recordedAt,
+            byte[] payload, boolean work, List<String> forRuns) {
 
         /** A run travelling on its own account. */
-        public static Item work(String id, long version, byte[] payload) {
-            return new Item(WorkModel.TYPE, id, version, payload, true, List.of());
+        public static Item work(String id, long version, Instant recordedAt, byte[] payload) {
+            return new Item(WorkModel.TYPE, id, version, recordedAt, payload, true, List.of());
         }
     }
 
@@ -166,7 +174,8 @@ public final class Lanes {
                 continue;
             }
             store.get(WorkModel.TYPE, event.objectId()).ifPresent(stored ->
-                    work.add(Item.work(stored.id(), stored.versionId(), stored.payload())));
+                    work.add(Item.work(stored.id(), stored.versionId(), stored.lastUpdated(),
+                            stored.payload())));
             // Which run named it travels with it: a record is here because a
             // particular piece of work needed it, and it leaves when that work
             // is over rather than when any work is.
@@ -219,7 +228,8 @@ public final class Lanes {
         String typeName = reference.substring(0, reference.indexOf('/'));
         String id = reference.substring(reference.indexOf('/') + 1);
         return store.get(typeName, id).map(stored -> new Item(typeName, stored.id(),
-                stored.versionId(), stored.payload(), false, List.copyOf(forRuns)));
+                stored.versionId(), stored.lastUpdated(), stored.payload(), false,
+                List.copyOf(forRuns)));
     }
 
     // --------------------------------------------------------------- inbound
@@ -284,7 +294,7 @@ public final class Lanes {
         }
         store.put(new PutRequest(item.typeName(), item.id(),
                 here.map(StoredObject::versionId).orElse(null), item.payload(),
-                item.version(), Instant.now(), true));
+                item.version(), item.recordedAt(), true));
         return true;
     }
 
@@ -309,7 +319,7 @@ public final class Lanes {
             return true;
         }
         store.put(new PutRequest(WorkModel.TYPE, here.get().id(), here.get().versionId(),
-                payload, item.version(), Instant.now(), true));
+                payload, item.version(), item.recordedAt(), true));
         return true;
     }
 
