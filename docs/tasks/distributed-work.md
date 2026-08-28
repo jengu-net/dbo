@@ -4,10 +4,13 @@
 closed**: the declaration seam (steps, actions, mandatory-steps incident
 classification), introduction over the link, run inputs filling declared slots,
 milestones on the checkpoint, and the participant with both halves of reach.
-What gates the rest is one precondition — a profile for the rendered `Task`,
-the half of #91 the published run vocabulary did not cover — and behind it the
-transport exercise (#79), the replication toolset (#80) and the console
-(#75/#76). See `Sequence` for the order and what each is waiting on.
+The lane seam is proven from this side too: the runner drives a lane it can
+only reach across a boundary and cannot tell. What gates what is left is one
+precondition — a profile for the rendered `Task`, the half of #91 the published
+run vocabulary did not cover — and behind it the console (#75/#76). It does
+**not** gate the rest of #79, whose remaining half is DBOS below, nor the
+replication toolset (#80): a lane is not a FHIR client. See `Sequence` for the
+order and what each is waiting on.
 
 **Issues** — the participation cluster, formerly under the closed #46.
 Open: [#79](https://github.com/jengu-net/dbo/issues/79)
@@ -109,6 +112,16 @@ proves (#148).
   construct `StepRunner` directly. It declares candidacy, introduces what
   its service brings, and publishes vitals on the declaration record
   (#148's carrier).
+- **The lane is a seam, and now says so**: the runner drives one it can only
+  reach across a boundary — every verb handed to another thread and answered
+  there — and the work lands identically, with `milestone` and `introduce`
+  arriving as themselves rather than folded into their neighbours, and a
+  refusal crossing as a refusal instead of as an empty queue
+  (`ARemoteLaneIsIndistinguishableIT`). `ALaneStaysTransportShapedTest` keeps
+  it that way: no verb may take or return a live handle, and none may be
+  defaulted — both rules the interface's javadoc had asked for in prose, which
+  does not fail a build. Deliberately no wire format here; that is the
+  consumer's, and a second encoding is the drift the trap below warns about.
 - **Promises**: the whole PROC area now lives in the catalogue (migrated
   2026-08-27 from hand-written prose — the old "## PROC — process catalogue
   & map" section is gone). `DISTRIBUTED_WORK` carries the twelve promises
