@@ -47,10 +47,14 @@ public final class Lanes {
     /** Where the far side's copy of a run is kept: under the appliance that authored it. */
     public static final String MIRROR_SEPARATOR = "@";
 
+    /** The audit type, which travels but is never written like other content. */
+    private static final String AUDIT = "AuditEntry";
+
     private final ObjectStore store;
     private final ChangeFeed workFeed;
     private final Runs runs;
     private final String appliance;
+    private final cloud.jengu.dbo.core.api.AuditReplay auditReplay;
 
     /**
      * @param appliance this appliance's own name. It is not the tenant's — the
@@ -58,10 +62,36 @@ public final class Lanes {
      *                  mirrored record is filed under.
      */
     public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String appliance) {
+        this(store, workFeed, runs, appliance, null);
+    }
+
+    /**
+     * A lane that replicates the trail as well as the work (§7.8).
+     *
+     * <p>Audit is the one thing here that cannot be written the way everything
+     * else is: direct writes to the type are refused for every caller, and
+     * rightly. The port is that refusal's one admission.
+     *
+     * <p><b>Wiring it is the declaration that this lane carries the trail</b>,
+     * and it governs both directions — this lane offers its entries outbound
+     * and admits the peer's inbound. That is one switch rather than two
+     * because they are one arrangement: a pair where one side sent a trail the
+     * other would not admit is a lane that refuses half of what it is given,
+     * which is worse than a pair that agreed to carry none. A lane built
+     * without it neither offers nor admits, and says so loudly if an entry
+     * arrives anyway — a store with no audit type is a legitimate deployment,
+     * and a trail that silently did not replicate is not.
+     *
+     * @param auditReplay the admitted path, or null on a lane that carries no
+     *                    trail
+     */
+    public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String appliance,
+            cloud.jengu.dbo.core.api.AuditReplay auditReplay) {
         this.store = store;
         this.workFeed = workFeed;
         this.runs = runs;
         this.appliance = appliance;
+        this.auditReplay = auditReplay;
     }
 
     /** One lane's state: who it is with, under which epoch, and where both sides are. */
@@ -160,6 +190,7 @@ public final class Lanes {
         Lane lane = open(peer);
         FeedChunk<FeedItem> chunk = workFeed.read(lane.ourCursor(), limit);
         List<Item> work = new ArrayList<>();
+        List<String> travelling = new ArrayList<>();
         Map<String, List<String>> forRuns = new LinkedHashMap<>();
         for (FeedItem event : chunk.items()) {
             if (!WorkModel.TYPE.equals(event.typeName())) {
@@ -176,6 +207,7 @@ public final class Lanes {
             store.get(WorkModel.TYPE, event.objectId()).ifPresent(stored ->
                     work.add(Item.work(stored.id(), stored.versionId(), stored.lastUpdated(),
                             stored.payload())));
+            travelling.add(run.get().key());
             // Which run named it travels with it: a record is here because a
             // particular piece of work needed it, and it leaves when that work
             // is over rather than when any work is.
@@ -186,6 +218,10 @@ public final class Lanes {
         List<Item> items = new ArrayList<>();
         forRuns.forEach((reference, named) -> resolve(reference, named).ifPresent(items::add));
         items.addAll(work);
+        // Data, then work, then the account of what was done — an entry names
+        // the run it was part of, and a trail arriving before the run it joins
+        // to would be readable only in hindsight.
+        items.addAll(trail(travelling));
         return new Batch(lane.epoch(), appliance, chunk.nextCursor(), List.copyOf(items));
     }
 
@@ -201,6 +237,39 @@ public final class Lanes {
         Lane lane = open(peer);
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), batch.cursor(),
                 lane.theirMarker()));
+    }
+
+    /**
+     * The entries recorded here for the runs that are travelling (§7.8).
+     *
+     * <p><b>Bounded by the work, like everything else on this lane.</b> An
+     * entry joins to the run it was part of, so "the trail of what travelled"
+     * is a query rather than a second mechanism — and the cloud gets the
+     * edge's account of the work it is being told about, not the edge's whole
+     * history.
+     *
+     * <p>Entries that arrived here from somewhere else do not go back out.
+     * They carry the appliance that recorded them, and without that exclusion
+     * two appliances would hand each other the same entry forever, each
+     * finding it new-to-the-other by a claim it had never made.
+     */
+    private List<Item> trail(List<String> travelling) {
+        // Asked of the lane, not of the store: there is no way to ask a store
+        // whether it knows a type, and asking one that does not know AuditEntry
+        // fails the whole batch over a trail nobody wired.
+        if (auditReplay == null || travelling.isEmpty()) {
+            return List.of();
+        }
+        List<Item> entries = new ArrayList<>();
+        for (String run : travelling) {
+            store.select(Criteria.of(AUDIT)
+                            .eq("run", EnvelopeValue.of(run))
+                            .missing("appliance", true))
+                    .forEach(stored -> entries.add(new Item(AUDIT, stored.id(),
+                            stored.versionId(), stored.lastUpdated(), stored.payload(),
+                            false, List.of())));
+        }
+        return entries;
     }
 
     /** What a run says it was about — depth zero, which is the whole bound today. */
@@ -262,8 +331,18 @@ public final class Lanes {
         List<String> refused = new ArrayList<>();
         for (Item item : batch.items()) {
             try {
-                boolean written = item.work() ? mirror(batch.from(), item) : replicate(item);
-                if (!item.work()) {
+                boolean written;
+                if (AUDIT.equals(item.typeName())) {
+                    // The trail goes through the one admitted path (§7.8), and
+                    // is never placed: what arrived for a piece of work leaves
+                    // when that work closes, and an account of what happened
+                    // is the one thing that must not. A bench's history is not
+                    // a working copy.
+                    written = admit(batch.from(), item);
+                } else {
+                    written = item.work() ? mirror(batch.from(), item) : replicate(item);
+                }
+                if (!item.work() && !AUDIT.equals(item.typeName())) {
                     // Note what brought it, so what arrives with work can leave
                     // with it. Without this the appliance cannot tell a copy
                     // from something of its own, and keeps everything.
@@ -284,6 +363,23 @@ public final class Lanes {
             }
         }
         return new Applied(applied, skipped, List.copyOf(refused));
+    }
+
+    /**
+     * An entry another appliance recorded, through the refusal's one admission.
+     *
+     * <p>Loud when the port is absent rather than dropped: a lane wired
+     * without it would converge on everything except the account of what
+     * happened, and look healthy doing it — which is the shape of failure the
+     * whole toolset is built to make impossible.
+     */
+    private boolean admit(String from, Item item) {
+        if (auditReplay == null) {
+            throw new IllegalStateException("this lane replicates no trail, and "
+                    + from + " sent an audit entry — wire it with the AuditReplay port (§7.8)");
+        }
+        return auditReplay.replayAuditEntry(from, item.id(), item.version(), item.payload(),
+                item.recordedAt());
     }
 
     /** True when it was written, false when this side already had it or better. */

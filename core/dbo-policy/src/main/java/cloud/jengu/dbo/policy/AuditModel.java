@@ -55,6 +55,15 @@ public final class AuditModel {
             if (((java.util.Map<?, ?>) n).get("forwarded") != null) {
                 e.identifier(FORWARDED_SYSTEM, Json.str(n, "forwarded"));
             }
+            // Where it happened. Only a replicated entry carries it — an
+            // entry this store wrote happened here, and saying so on every
+            // row would be a constant. Queryable because "who did this, and
+            // on which bench" is one question, and an operator asking it of a
+            // cloud holding four appliances' trails cannot answer it from the
+            // actor alone.
+            if (((java.util.Map<?, ?>) n).get("appliance") != null) {
+                e.value("appliance", EnvelopeValue.of(Json.str(n, "appliance")));
+            }
             return e;
         };
         // IDENTIFIER rather than INTERNAL, and only barely: the ONLY system
@@ -63,6 +72,33 @@ public final class AuditModel {
         // anything, and a forwarded one claims exactly once (#120).
         return List.of(new TypeRegistration("AuditEntry", DOMAIN, IdentityClass.IDENTIFIER,
                 Set.of(FORWARDED_SYSTEM), Handling.audit(), extractor, List.of()));
+    }
+
+    /**
+     * One appliance's entry, as it arrives at another (§7.8).
+     *
+     * <p>Provenance is added and nothing else is touched: what the source
+     * recorded travels as the source's bytes, and the two fields put on it
+     * here are the two facts the source could not know — which appliance it
+     * turned out to be, from the receiver's point of view, and the claim that
+     * makes a second delivery idempotent.
+     *
+     * <p>The same shape as a mirrored run, which is filed under the appliance
+     * that authored it for the same reason: without the source on the record,
+     * two appliances' accounts of the same tenant become one indistinguishable
+     * pile, and "applied 46 here, 44 there" stops being a question anybody can
+     * ask.
+     */
+    public static byte[] recordedElsewhere(byte[] payload, String appliance, String claim) {
+        Object node = Json.parse(new String(payload, StandardCharsets.UTF_8));
+        if (!(node instanceof java.util.Map<?, ?> fields)) {
+            throw new IllegalArgumentException("an audit entry arrives as an object");
+        }
+        java.util.Map<String, Object> stamped = new java.util.LinkedHashMap<>();
+        fields.forEach((key, value) -> stamped.put(String.valueOf(key), value));
+        stamped.put("appliance", appliance);
+        stamped.put("forwarded", claim);
+        return Json.render(stamped).getBytes(StandardCharsets.UTF_8);
     }
 
     public static byte[] entry(String actor, String interaction, String targetType,
