@@ -7,13 +7,12 @@ import cloud.jengu.dbo.core.api.PolicyViolationException;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.PutResult;
 import cloud.jengu.dbo.core.api.StoredObject;
-import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
-import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.policy.AuditModel;
 import cloud.jengu.dbo.policy.PolicyObjectStore;
 import cloud.jengu.dbo.policy.TenantPolicies;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.testmodel.GadgetModel;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.sync.LaneModel;
@@ -88,9 +87,12 @@ class AuditReplicatesAsRecordedIT {
         PGSimpleDataSource cloudDs = ds(base + "trail_cloud");
         PGSimpleDataSource edgeDs = ds(base + "trail_edge");
 
+        // The test personality, not a FHIR one: nothing here parses a
+        // resource, and a face would only add a HAPI context and a version's
+        // definitions to a suite that measures its heap in whether the next
+        // test class can open a connection pool.
         List<cloud.jengu.dbo.core.api.TypeRegistration> declarations =
-                new ArrayList<>(new R4Personality(List.of(
-                        FhirTypeConfig.internal("Patient"))).registrations());
+                new ArrayList<>(GadgetModel.registrations());
         declarations.addAll(WorkModel.registrations());
         declarations.addAll(LaneModel.registrations());
         declarations.addAll(PlacementModel.registrations());
@@ -134,10 +136,10 @@ class AuditReplicatesAsRecordedIT {
                 List.of(WorkModel.DOMAIN));
         Caller.set(actor);
         Caller.setRun(work.key());
-        PutResult subject = edgeStore.put(PutRequest.create("Patient",
-                ("{\"resourceType\":\"Patient\",\"name\":[{\"family\":\"" + key + "\"}]}")
-                        .getBytes(StandardCharsets.UTF_8)));
-        edgeRuns.item(work, "Patient/" + subject.id(), Failure.RECORD, "needs a second read");
+        PutResult subject = edgeStore.put(PutRequest.create("Gadget",
+                ("{\"serial\":\"" + key + "\",\"vendor\":\"acme\",\"name\":\"" + key
+                        + "\",\"weightGrams\":\"10\"}").getBytes(StandardCharsets.UTF_8)));
+        edgeRuns.item(work, "Gadget/" + subject.id(), Failure.RECORD, "needs a second read");
         Caller.clear();
         return work;
     }
@@ -216,7 +218,7 @@ class AuditReplicatesAsRecordedIT {
     void theRefusalStandsAndNamesTheAdmission() {
         PolicyViolationException refused = assertThrows(PolicyViolationException.class,
                 () -> cloudStore.put(PutRequest.create("AuditEntry",
-                        AuditModel.entry("forger", "create", "Patient", "p1", "ok", null))));
+                        AuditModel.entry("forger", "create", "Gadget", "g1", "ok", null))));
 
         assertTrue(refused.getMessage().contains("AuditReplay"),
                 "a reader who meets the refusal is asking exactly where the admission is: "
@@ -230,7 +232,7 @@ class AuditReplicatesAsRecordedIT {
         assertTrue(cloudStore.replayAuditEntry("edge", recorded.id(), recorded.versionId(),
                 recorded.payload(), recorded.lastUpdated()), "the first replay writes it");
         assertFalse(cloudStore.replayAuditEntry("edge", recorded.id(), recorded.versionId(),
-                        AuditModel.entry("somebody-else", "create", "Patient", "p1", "ok", null),
+                        AuditModel.entry("somebody-else", "create", "Gadget", "g1", "ok", null),
                         Instant.now()),
                 "and a second one under the same source identity does not overwrite it");
         assertEquals("dr-saar", field(trailOf(cloudStore, work.key()).get(0), "actor"),
