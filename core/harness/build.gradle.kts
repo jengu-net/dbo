@@ -132,7 +132,7 @@ tasks.withType<Test>().configureEach {
         ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar",
         ":core:dbo-tenant-k8s:jar", ":core:dbo-auth:jar", ":core:dbo-pdi:jar", ":core:dbo-scim:jar", ":core:dbo-policy:jar",
         ":promise:jar", ":core:dbo-promises:jar",
-        ":core:dbo-work:jar",
+        ":core:dbo-work:jar", ":core:dbo-runner:jar",
         ":core:dbo-server:installDist")
     systemProperty(
         "dbo.promise.jar",
@@ -157,6 +157,7 @@ tasks.withType<Test>().configureEach {
         "dbo.scim.jar" to "dbo-scim",
         "dbo.policy.jar" to "dbo-policy",
         "dbo.work.jar" to "dbo-work",
+        "dbo.runner.jar" to "dbo-runner",
         "dbo.fhir.element.jar" to "dbo-fhir-element",
     )) {
         systemProperty(

@@ -37,6 +37,6 @@ than a list of changes from something earlier.
 
 ### Specified, not built
 
-Durable work planes (WF), routing (SCAL), the process catalogue (PROC) and
-operations (OPS). See
+Durable work planes (WF), routing (SCAL) and operations (OPS). The process
+catalogue and distributed work (PROC) are largely built; see
 [the status page](docs/plans/implementation-status.md).

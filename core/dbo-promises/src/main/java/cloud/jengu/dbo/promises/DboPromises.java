@@ -183,6 +183,13 @@ public enum DboPromises implements Promise {
             + "reach of a remote participant never depends on a parameter somebody "
             + "forgot."),
 
+    PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS("A host that reaches the store over HTTP "
+            + "obtains the same lane as one that holds the store in-process: the tenant "
+            + "serves the participation verbs on its own private surface, guarded by its "
+            + "own authority, and a runner cannot tell the two apart. The entitlement is "
+            + "derived from the credential and never asked for by the caller, and a "
+            + "credential bounded to steps may work only as itself."),
+
     // ── PROC continued — migrated from hand-written prose (2026-08-27).
     // Six carry no verified citation yet; each says so and names what a
     // proof would have to show, per the pilot's own rule that unstated

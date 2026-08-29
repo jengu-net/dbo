@@ -100,7 +100,12 @@ class TenantOsgiIT {
                 // which is the same kind of requirement: an import nothing
                 // exports leaves the tenant runtime unresolved, and the
                 // failure reads as the tenant bundle failing to start
-                "dbo.maintenance.jar")) {
+                "dbo.maintenance.jar",
+                // and the lane surface (#154): the tenant mounts it, so the
+                // runner's Lane must be exported to something. Same shape of
+                // requirement — an import nothing exports leaves the tenant
+                // bundle unresolved, and it reads as the tenant failing
+                "dbo.runner.jar")) {
             ctx.installBundle("file:" + System.getProperty(prop)).start();
         }
         tenantBundle = ctx.installBundle("file:" + System.getProperty("dbo.tenant.jar"));
