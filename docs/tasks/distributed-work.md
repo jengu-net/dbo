@@ -1,7 +1,7 @@
 # Distributed work
 
-**Status** — doctrine decided and written; **#71, #147, #149, #150 and #77 are
-closed**: the declaration seam (steps, actions, mandatory-steps incident
+**Status** — doctrine decided and written; **#71, #147, #149, #150, #77, #80,
+#154 and #155 are closed**: the declaration seam (steps, actions, mandatory-steps incident
 classification), introduction over the link, run inputs filling declared slots,
 milestones on the checkpoint, and the participant with both halves of reach.
 **#79 is closed** and **#91's run-path precondition is met**: the runner drives
@@ -14,9 +14,7 @@ Nothing is left gating the console (#75/#76) but building it. See `Sequence` for
 what each remaining step is waiting on.
 
 **Issues** — the participation cluster, formerly under the closed #46.
-Open: [#80](https://github.com/jengu-net/dbo/issues/80) (replication toolset —
-most of it built; see `Sequence`) ·
-[#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on the
+Open: [#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on the
 link — its carrier is delivered) ·
 [#75](https://github.com/jengu-net/dbo/issues/75) /
 [#76](https://github.com/jengu-net/dbo/issues/76) (console).
@@ -38,7 +36,10 @@ the lane seam from this side, and DBOS below it) ·
 inputs) · [#150](https://github.com/jengu-net/dbo/issues/150) (milestones
 on the checkpoint) ·
 [#154](https://github.com/jengu-net/dbo/issues/154) (a lane for a host that
-is not the container).
+is not the container) ·
+[#80](https://github.com/jengu-net/dbo/issues/80) (the replication toolset) ·
+[#155](https://github.com/jengu-net/dbo/issues/155) (who may write the audit
+trail — §7.8).
 
 **Concepts** —
 [process catalogue](../arc42-008-crosscutting/process-catalogue.md)
@@ -142,6 +143,11 @@ proves (#148).
   it. PROC is the first area to leave the SHAPE/PDI pilot behind entirely.
 - **Open, in dependency order**: see `Sequence` below — it carries the order,
   what each step waits on and who owns the wait, so it is not repeated here.
+- **The trail replicates**: an appliance's audit entries reach its peer as
+  that appliance recorded them — original actor, original time, the appliance
+  named — through the audit refusal's one admission (§7.8), and the arrival
+  writes no second trail. Bounded by the work like everything else on the
+  lane, and effectively-once by a claim on the source's own identity.
 - **Consumer's half, later**: the WebSocket lane (socket, framing, handshake,
   tenant auth) is the platform's per ADR 0062 — now driven from their side by
   [platform#917](https://github.com/jengu-net/jengu-platform/issues/917)
@@ -168,15 +174,14 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 9 | **The reference runner: transport first, DBOS below** ([#79](https://github.com/jengu-net/dbo/issues/79)) — the participation link exercised end to end. | **DONE** 2026-08-27 — the seam holds from this side (`ARemoteLaneIsIndistinguishableIT`, kept that way by `ALaneStaysTransportShapedTest`), and both layers now hold at once when a participant dies mid-work: the run is owed again above and the checkpointed half is not redone below (`DbosBelowResumesItsOwnHalfFinishedWorkIT`). The wire itself stays the consumer's (ADR 0062) |
 | 10 | **A host that is not the container holds a lane** ([#154](https://github.com/jengu-net/dbo/issues/154)) — the tenant serves the participation verbs on its own private surface; a host reaches them and the runner cannot tell. | **DONE** 2026-08-29 — `ALaneOverHttpIsIndistinguishableIT` (a real runner, a real tenant, a real token), `LaneWireCarriesTheRecordAsDeclaredTest` |
 | 11 | **Vital signs on the link** ([#148](https://github.com/jengu-net/dbo/issues/148)) — what rides the carrier, and a presence display that does not page about a healthy idle fleet. | **NEXT** — its carrier is delivered; the runner already publishes vitals on the declaration record |
-| 12 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **PARTLY DONE** — the batch, the idempotent-and-reorder-safe apply, the epoch, echoed markers, mirrored filing, work-driven expiry and the process allowlist are all built and proven (`TwoAppliancesOneTenantIT`), and a peer back from a weekend converges without dragging over what it holds no work for. **What remains**: audit replicating as recorded — blocked on a decision, since `PolicyObjectStore` refuses every direct `AuditEntry` write and nothing yet wires `Lanes` to a policy-wrapped store, so admitting the lane through that refusal has no production shape to aim at yet — inherits "slots are part of what must be present for the work being held" |
+| 12 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **DONE** 2026-08-29 — the batch, the idempotent-and-reorder-safe apply, the epoch, echoed markers, mirrored filing, work-driven expiry and the process allowlist (`TwoAppliancesOneTenantIT`), and now the trail: an appliance's entries arrive with the actor, the time and the appliance that recorded them, and the arrival writes no second trail (`AuditReplicatesAsRecordedIT`, §7.8, #155) |
 | 13 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **BLOCKED by the consumer's sequencing** — posed by [platform#917](https://github.com/jengu-net/jengu-platform/issues/917), whose work-lane-first order owns when this is answered |
 | 14 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **NEXT** — 8 landed, so its precondition is met — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
 
-**The critical path is spent.** 8, 9 and 10 are done, so nothing now blocks 14
-except doing it: the console reads runs over HTTP, and the shape it would read
-is settled and discoverable. Steps 11 and 12 hang off 9 and are independent of
-each other and of 14. Step 13 waits on somebody else's calendar, and 12's last
-bullet on a decision (#155), not on effort here.
+**The critical path is spent.** 8, 9, 10 and 12 are done, so nothing now blocks
+14 except doing it: the console reads runs over HTTP, and the shape it would
+read is settled and discoverable. Step 11 hangs off 9 and is independent of it.
+Step 13 waits on somebody else's calendar, not on effort here.
 
 ## Decisions
 
@@ -334,6 +339,35 @@ alternative — narrowing on the calling side — is the arrangement where the
 only thing between a broad credential and the tenant's work is a caller
 remembering to do it.
 
+**The audit trail's one admission is a named port, not an authority and not a
+hole** (decided 2026-08-29, #155, recorded as §7.8). Direct writes to the audit
+type are refused for everybody, and the replication lane needed through. A
+caller authority would have made a handling vocabulary into an authorization
+one — and the append-only shield is written in that vocabulary, so the line it
+guards would have blurred exactly where it must be blunt. Writing beneath
+policy was what the lane already did and would have been the smallest change;
+it bypasses every policy rather than the one in the way, which is a much
+broader position than the argument supports. So: one method, on the receiving
+store, carrying only the source's own facts, and the refusal names it — an
+admission a reader cannot find from the refusal is one somebody reinvents
+beside it.
+
+**The receipt and the record are different facts, and both are kept.** The
+consequence of keeping the receiving store policy-wrapped is that ordinary
+replicated content is audited on arrival. That is not a leak in the design, it
+is the design: the edge's entry says who did the work, the cloud's says it
+received a copy. Only the trail itself is exempt, because a copy of an event is
+not an event — and a store that audited its own replication would grow one
+entry per entry, forever.
+
+**The trail travels bounded by the work, like everything else on the lane.**
+An entry already joins to the run it was part of, so "the trail of what
+travelled" is a query rather than a second mechanism, and the cloud gets the
+edge's account of the work it is being told about instead of the edge's whole
+history. Entries that arrived from elsewhere carry the appliance that recorded
+them and do not go back out, or two appliances hand each other the same entry
+forever, each finding it new by a claim it never made.
+
 **A step id is opaque and globally stable, fixed with the record, not the
 catalogue** — which is what makes #147 (a participant introducing a step)
 an addition rather than a migration: a run could always name a step that had
@@ -364,6 +398,25 @@ process is exactly `module.process`. A four-part id throws, and `declare`
 catches it into a warning — so the participant keeps working, the catalogue
 never learns the step, and nothing is red. The swallow is deliberate (one bad
 tenant must not kill a runner) but it is why this cost an afternoon.
+
+**Two of the four write paths silently dropped the replay fields.**
+`putIfAbsent` and `putConditional` rebuilt the request from
+typeName/id/expectedVersion/payload — every field a `PutRequest` had the day
+they were written — and so dropped `recordedVersion`, `recordedAt`,
+`restoring` and `shape` as each was added afterwards. An identity-keyed create
+is the FIRST arrival of a replicated record, so what they dropped was exactly
+the source's version and the source's time on the one write where those are
+the entire point. Found by an assertion about a replicated entry's timestamp,
+not by anything failing before. The general shape is worth carrying: a record
+grows a field, and the code that *rebuilds* it rather than passing it through
+keeps working and keeps lying.
+
+**A replayed moment needs a replayed version beside it.** The store keeps the
+source's time only for a write that also says which version it is replaying —
+`carriesRecordedHistory()` requires both — so a replay carrying a time and no
+version quietly becomes the arrival time again. Which is the failure #155's
+correction had already fixed once on another path, arriving a second time
+through a different door.
 
 **A lane's own bookkeeping lands in the feed the lane reads.** `Lane` and
 `Placement` are registered in `WorkModel.DOMAIN`, and `outbound` reads that
@@ -452,7 +505,7 @@ scopes and what the step admits, like every declaration.
 ## Verifying
 
 ```bash
-./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT' --tests '*ClaimIsTheIntersectionIT' --tests '*ARemoteLaneIsIndistinguishableIT' --tests '*ALaneStaysTransportShapedTest' --tests '*DbosBelowResumesItsOwnHalfFinishedWorkIT' --tests '*ALaneOverHttpIsIndistinguishableIT'
+./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT' --tests '*ClaimIsTheIntersectionIT' --tests '*ARemoteLaneIsIndistinguishableIT' --tests '*ALaneStaysTransportShapedTest' --tests '*DbosBelowResumesItsOwnHalfFinishedWorkIT' --tests '*ALaneOverHttpIsIndistinguishableIT' --tests '*TwoAppliancesOneTenantIT' --tests '*AuditReplicatesAsRecordedIT'
 ./gradlew :core:dbo-runner:test
 ```
 (The link scenarios get their ITs with the transport exercise in #79.)

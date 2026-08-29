@@ -27,7 +27,8 @@ import java.util.Optional;
  * registration must be present in the wrapped engine.
  */
 public final class PolicyObjectStore implements ObjectStore,
-        cloud.jengu.dbo.rest.AuditProjection.Recorder {
+        cloud.jengu.dbo.rest.AuditProjection.Recorder,
+        cloud.jengu.dbo.core.api.AuditReplay {
 
     private final ObjectStore inner;
     private final TenantPolicies policies;
@@ -353,10 +354,47 @@ public final class PolicyObjectStore implements ObjectStore,
                 result.id(), result.created());
     }
 
+    /**
+     * §7.8: replays an entry another appliance recorded, and audits nothing
+     * for having done so.
+     *
+     * <p>The admitted path the refusal names. It goes to {@code inner} the
+     * way the recorder does — the refusal above is the wrapper's, and what
+     * gets through it does so by being this method rather than by being a
+     * caller who claimed something. Nothing here can express any other write:
+     * the type is fixed, the claim is the source's identity, and there is no
+     * argument for a version to overwrite.
+     */
+    @Override
+    public boolean replayAuditEntry(String sourceAppliance, String sourceEntryId,
+            long sourceVersion, byte[] payload, java.time.Instant recordedAt) {
+        String claim = sourceAppliance + "/" + sourceEntryId;
+        // putIfAbsent, not put: a lane delivers at least once and the claim is
+        // what makes the second delivery find the first (#120). A replayed
+        // entry is also never updated — appending is the only thing that
+        // happens to a trail, here as everywhere else.
+        PutResult result = inner.putIfAbsent(
+                IdentityRef.identifier(AuditModel.FORWARDED_SYSTEM, claim),
+                // The source's version travels beside its time: the store
+                // keeps a replayed moment only for a write that says which
+                // version it is replaying, and one without the other would
+                // quietly become the arrival time again.
+                new PutRequest("AuditEntry", null, null,
+                        AuditModel.recordedElsewhere(payload, sourceAppliance, claim),
+                        sourceVersion, recordedAt, true));
+        return result.created();
+    }
+
     private static void refuseDirectAuditWrites(String typeName) {
         if ("AuditEntry".equals(typeName)) {
+            // The message names the one way through, because a reader who
+            // meets this refusal is asking exactly that question — and an
+            // admission nobody can find from the refusal is one somebody
+            // reinvents beside it.
             throw new PolicyViolationException(
-                    "the audit trail is written by the machinery — contribute via the audit recorder");
+                    "the audit trail is written by the machinery — contribute via the audit "
+                            + "recorder, or replay another appliance's entry through "
+                            + "AuditReplay.replayAuditEntry (§7.8)");
         }
     }
 }

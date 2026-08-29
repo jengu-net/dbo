@@ -137,8 +137,15 @@ public final class PgObjectStore implements ObjectStore {
                 long version = currentVersion(c, type, existing.get());
                 return new PutResult(existing.get(), version, false);
             }
-            return writeObject(c, type,
-                    new PutRequest(request.typeName(), request.id(), request.expectedVersion(), request.payload()));
+            // The request as it was asked, not a four-field copy of it. This
+            // rebuilt it from typeName/id/expectedVersion/payload alone, which
+            // was every field a PutRequest had when it was written — and
+            // silently dropped recordedVersion, recordedAt, restoring and
+            // shape as each was added. An identity-keyed create is the FIRST
+            // arrival of a replicated record, so what it dropped was exactly
+            // the source's version and the source's time, on the one write
+            // where they are the whole point.
+            return writeObject(c, type, request);
         });
     }
 
@@ -149,8 +156,9 @@ public final class PgObjectStore implements ObjectStore {
         return inTx(c -> {
             Optional<String> existing = resolveIdentity(c, type, ident);
             String id = existing.orElse(request.id());
-            return writeObject(c, type,
-                    new PutRequest(request.typeName(), id, request.expectedVersion(), request.payload()));
+            // Same strip, same fix: only the id is decided here, and `with`
+            // carries everything else the caller asked for.
+            return writeObject(c, type, request.with(id, request.payload()));
         });
     }
 

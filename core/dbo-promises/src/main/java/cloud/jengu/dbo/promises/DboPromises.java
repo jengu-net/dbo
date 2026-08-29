@@ -354,6 +354,13 @@ public enum DboPromises implements Promise {
             + "names it. Work-driven arrival without work-driven expiry is a bench "
             + "accumulating a register one task at a time."),
 
+    PROC_AUDIT_REPLICATES_AS_RECORDED("An appliance's audit entries reach its peer as "
+            + "that appliance recorded them — original actor, original time, and the "
+            + "appliance named — and the arrival writes no second trail. Direct writes to "
+            + "the audit type stay refused for every caller; the replication lane is "
+            + "admitted through one narrow port that can express no other write, and a "
+            + "re-delivered entry lands exactly once under the source's own identity."),
+
     PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE("A run arriving from another appliance "
             + "of the same tenant is stored under that appliance, beside the local run "
             + "of the same key rather than on top of it."),
