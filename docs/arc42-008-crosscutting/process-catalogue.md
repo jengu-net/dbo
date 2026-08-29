@@ -391,6 +391,28 @@ work is actually done and carry the result back, and the run afterwards reads as
 it would if dbo had done the work itself. An integration is not a second kind of
 history.
 
+**A host holds the lane, and it does not have to hold the store.** The lane is
+built by the party that legitimately has the tenant's objects — that is what keeps
+the runner's world to twelve verbs. But the party that *serves* work is not always
+the party that *holds* it: an appliance running dbo in its own JVM builds a lane
+over its own store, while a deployment where dbo is its own process — so that the
+application never holds `CREATE DATABASE` — has no store handle to build one from,
+and is exactly the side the appliances pull from. So the tenant serves the
+participation verbs on its own private surface, guarded by its own authority, and
+such a host holds a lane that reaches them. The runner cannot tell the two apart,
+which is the same contract the interface already states.
+
+Two rules keep that from being a wider door than the in-process one. **The
+entitlement comes from the credential, never from the request** — the bare
+participation scope is a host saying it *is* the tenant, a suffixed one bounds
+the holder to the steps it names, and there is no implicit unrestricted. And **a
+bounded credential works only as itself**: the executor identity is what a claim
+is recorded under and what the input read is checked against, so a credential
+free to spell any name could read the inputs of runs it never claimed. What is
+offered over the surface is the lane and nothing wider: no verb takes a
+reference, none hands back a store handle, and a widened primitive would be
+available to every caller with the scope, for ever.
+
 **Two layers own different failures.** Whatever runs the work locally owns local
 durability — resuming its own half-finished work after a restart. The
 participation client owns the global truth: what is owed, by whom, and what

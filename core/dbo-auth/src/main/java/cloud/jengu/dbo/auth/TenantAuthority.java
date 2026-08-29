@@ -18,6 +18,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -296,7 +297,13 @@ public final class TenantAuthority {
             }
         });
         Optional<StoredObject> existing = findClient(clientId);
-        if (existing.isPresent() && SecretHash.verify(secret, field(existing.get(), "secretHash"))) {
+        // The secret AND the scopes: ensuring is saying what the record
+        // should be, and a record that kept yesterday's scopes because the
+        // secret still matched would deny a surface nobody could see it had
+        // not been granted (#154, where the participation scope was added to
+        // a credential every tenant already had).
+        if (existing.isPresent() && SecretHash.verify(secret, field(existing.get(), "secretHash"))
+                && Set.copyOf(scopesOf(existing.get())).equals(Set.copyOf(scopes))) {
             return;
         }
         String payload = clientPayload(clientId, SecretHash.hash(secret), scopes,
@@ -329,6 +336,12 @@ public final class TenantAuthority {
             store.putIfAbsent(IdentityRef.identifier(IdentityModel.CLIENT_ID_SYSTEM, clientId),
                     PutRequest.create("ClientApplication", payload.getBytes(StandardCharsets.UTF_8)));
         }
+    }
+
+    /** What a stored client record grants today. */
+    private static List<String> scopesOf(StoredObject client) {
+        return Json.strings(Json.parse(
+                new String(client.payload(), StandardCharsets.UTF_8)), "scopes");
     }
 
     private static String clientPayload(String clientId, String secretHash, List<String> scopes,

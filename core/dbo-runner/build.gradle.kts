@@ -1,9 +1,16 @@
 // The embeddable step runner (#79): registers step services, consumes their
-// work over the participation seams, reports outcomes and vitals back. A
-// CLIENT library, not a store component — it does not join the runtime
-// bundle set, nothing in the tenant runtime imports it, and it runs wherever
-// work runs: inside the consuming platform's container, on a separate
-// machine, or in a pod scaled per step.
+// work over the participation seams, reports outcomes and vitals back. It
+// runs wherever work runs — inside the consuming platform's container, on a
+// separate machine, or in a pod scaled per step — and its activator is the
+// whiteboard the runtime's own bundles never fill: with no StepService and
+// no Lane registered it cycles over nothing.
+//
+// It also carries the HOST's half of the lane (#154): the participation
+// surface a tenant mounts, and the HTTP lane a host that is not the container
+// holds instead of an in-process one. Both are Lane and its wire and nothing
+// else — no store handle crosses this module's line in either direction —
+// which is why they sit beside the interface they implement rather than in
+// the store, where a second implementation of the protocol could grow.
 
 plugins {
     id("biz.aQute.bnd.builder")
@@ -34,7 +41,7 @@ tasks.jar {
         bnd(mapOf(
             "Bundle-SymbolicName" to "cloud.jengu.dbo.runner",
             "Bundle-Activator" to "cloud.jengu.dbo.runner.Activator",
-            "Export-Package" to "cloud.jengu.dbo.runner;version=0.1.0",
+            "Export-Package" to "cloud.jengu.dbo.runner;version=0.1.0,cloud.jengu.dbo.runner.http;version=0.1.0",
         ))
     }
 }

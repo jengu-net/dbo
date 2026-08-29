@@ -129,6 +129,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, cloud.jengu.dbo.auth.TenantAuthority> authorities =
             new ConcurrentHashMap<>();
     private final Map<String, String> maintenanceContexts = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * How long a participant may be behind and unmoving before its
+     * declaration stops being a candidate (#77). Long enough that a slow
+     * participant is not disqualified for being slow, and short enough that
+     * an operator asking "who is running this step" is not told about a
+     * machine that left last week.
+     */
+    private static final java.time.Duration DECLARATION_PATIENCE =
+            java.time.Duration.ofMinutes(2);
+    /** Where each tenant's lane surface is mounted (#154), for the same teardown. */
+    private final Map<String, String> workContexts = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<String, java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine>> syncEngines =
             new ConcurrentHashMap<>();
     /** Where a tenant's runs are written: the engine, under the policy decorator. */
@@ -598,8 +609,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         spec.broker(), spec.acceptedBrokers()));
             }
             if (db.bootstrapClientSecret() != null) {
+                // The deployment's own credential for this tenant, and the
+                // participation scope is part of that (#154): a host holding
+                // a lane over HTTP is the tenant saying so, which is exactly
+                // what this credential already is. It grants strictly less
+                // than the system scopes beside it — a lane is twelve verbs,
+                // and system/*.write is the store. Narrower participation
+                // credentials — work/<step>, bounded at issue — are minted
+                // per participant by whoever operates the fleet.
                 authority.ensureClient("tenant-bootstrap", db.bootstrapClientSecret(),
-                        java.util.List.of("system/*.read", "system/*.write"));
+                        java.util.List.of("system/*.read", "system/*.write",
+                                cloud.jengu.dbo.auth.Scopes.WORK));
             }
             if (db.rpClientSecret() != null) {
                 // The relying party's record is ensured FROM custody — id,
@@ -706,6 +726,47 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // any other write (#133)
                     runtime.engine(), runtime.store()));
             maintenanceContexts.put(spec.code(), adminPath);
+            // The participation surface (#154): where a host that is NOT the
+            // container obtains a lane. An appliance running dbo in-JVM builds
+            // its own over its own store and never comes here; a cloud, whose
+            // dbo is a separate deployment precisely so the application holds
+            // no CREATE DATABASE, has no Runs to build one from and is at the
+            // same time the side that serves work. So the lane is mounted
+            // beside the tenant's other private surfaces, and what it offers
+            // is the twelve verbs and nothing wider — the surface moves, the
+            // primitive does not.
+            //
+            // Guarded by the authority for the same reason maintenance is: a
+            // lane acts on the tenant's work, and a tenant with no authority
+            // has no way to say who is asking.
+            String workPath = "/t/" + spec.code() + "/work";
+            // Built once and captured, not per request: these are the same
+            // objects the tenant's own bookkeeping uses, and a lane is a view
+            // onto them rather than a second copy of them.
+            cloud.jengu.dbo.work.Runs laneRuns =
+                    new cloud.jengu.dbo.work.Runs(runStores.get(spec.code()));
+            // The WORK domain's feed, not the tenant's content feed: runs and
+            // declarations are work-domain records, and a lane reading the
+            // content feed polls a stream runs never appear in — which looks
+            // exactly like a lane with no work, for ever.
+            cloud.jengu.dbo.core.api.feed.ChangeFeed laneFeed =
+                    new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.work.WorkModel.DOMAIN);
+            cloud.jengu.dbo.work.Declarations laneDeclarations =
+                    new cloud.jengu.dbo.work.Declarations(runtime.engine(), laneFeed,
+                            DECLARATION_PATIENCE);
+            cloud.jengu.dbo.work.Introductions laneIntroductions =
+                    new cloud.jengu.dbo.work.Introductions(runtime.engine(), steps);
+            sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
+                    workPath, new WorkGrants(authority),
+                    // The host's own in-process lane, built per asker: the
+                    // participant is its feed cursor and the identity is what
+                    // claims, both from the request; the entitlement is from
+                    // the credential and never from the request.
+                    (participant, identity, entitlement) ->
+                            cloud.jengu.dbo.runner.Lane.inProcess(spec.code(), laneRuns,
+                                    laneFeed, laneDeclarations, participant, identity,
+                                    runtime.engine(), laneIntroductions, entitlement)));
+            workContexts.put(spec.code(), workPath);
         }
         runtimes.put(spec.code(), runtime);
         wireDependencies(spec, runtime, db);
@@ -1075,6 +1136,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String adminPath = maintenanceContexts.remove(code);
         if (adminPath != null) {
             sharedServer.removeContext(adminPath);
+        }
+        String workPath = workContexts.remove(code);
+        if (workPath != null) {
+            sharedServer.removeContext(workPath);
         }
         String scimPath = scimContexts.remove(code);
         if (scimPath != null) {

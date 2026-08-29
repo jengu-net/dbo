@@ -24,6 +24,11 @@ dependencies {
     implementation(project(":core:dbo-scim"))
     api(project(":core:dbo-policy"))
     implementation(project(":core:dbo-work"))
+    // The HOST's half of the lane (#154): Lane.inProcess and the surface a
+    // tenant mounts it behind. The runner's own half — StepRunner, the
+    // activator, the step services — is not installed here and does not join
+    // the runtime bundle set; what the tenant uses is the interface it serves.
+    implementation(project(":core:dbo-runner"))
     compileOnly("org.osgi:osgi.core:8.0.0")
     // slf4j-api is SHARED, not embedded: one binding for the whole runtime
     // instead of a private copy per bundle. HikariCP drags it in

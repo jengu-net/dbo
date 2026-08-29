@@ -52,6 +52,11 @@ val dboRuntimeModules = listOf(
     // run records, before the modules that write them
     ":core:dbo-work",
     ":core:dbo-policy", ":core:dbo-sync",
+    // the lane and the surface a tenant serves it on (#154) — dbo-tenant
+    // imports it to mount the participation surface, so the runner bundle
+    // is in the container as the HOST's half. Its own half (the activator,
+    // step services) is still only installed where work is actually done
+    ":core:dbo-runner",
     // dbo-tenant imports it for the maintenance surface
     ":core:dbo-maintenance", ":core:dbo-tenant", ":core:dbo-tenant-k8s",
 )

@@ -7,8 +7,10 @@ milestones on the checkpoint, and the participant with both halves of reach.
 **#79 is closed** and **#91's run-path precondition is met**: the runner drives
 a lane it can only reach across a boundary and cannot tell, killing a
 participant mid-work loses neither half, and the `Task` a run is rendered as
-now has a published profile beside the systems it carries. Nothing is left
-gating the console (#75/#76) but building it. See `Sequence` for the order and
+now has a published profile beside the systems it carries. **#154 is closed**:
+a host that reaches the store over HTTP obtains a lane, which is what the
+consumer's cloud side was missing and the last thing gating their work lane.
+Nothing is left gating the console (#75/#76) but building it. See `Sequence` for the order and
 what each remaining step is waiting on.
 
 **Issues** — the participation cluster, formerly under the closed #46.
@@ -34,7 +36,9 @@ the lane seam from this side, and DBOS below it) ·
 (introduction over the link) ·
 [#149](https://github.com/jengu-net/dbo/issues/149) (a run names its
 inputs) · [#150](https://github.com/jengu-net/dbo/issues/150) (milestones
-on the checkpoint).
+on the checkpoint) ·
+[#154](https://github.com/jengu-net/dbo/issues/154) (a lane for a host that
+is not the container).
 
 **Concepts** —
 [process catalogue](../arc42-008-crosscutting/process-catalogue.md)
@@ -162,15 +166,16 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 7 | **The participant, both halves of reach** ([#77](https://github.com/jengu-net/dbo/issues/77)) — pull, claim, report; and what it may claim is the intersection of what its credential covers and what the step admits. | **DONE** 2026-08-27 — `ParticipantsPullAndClaimIT`, `ClaimIsTheIntersectionIT` |
 | 8 | **The run vocabulary, discoverable** — [#91](https://github.com/jengu-net/dbo/issues/91)'s precondition: the systems a rendered run carries, and the shape they ride on, published as definitions the same tenant serves. | **DONE** 2026-08-28 — the vocabulary was already published, fetchable and split; the `Task` a run is rendered as now has a profile beside it (`run-as-task`), naming the systems it carries and fixing what the renderer fixes. `VocabularyIsDiscoverableIT` proves both. Nothing serves runs over HTTP yet, which is exactly why the shape was worth settling now |
 | 9 | **The reference runner: transport first, DBOS below** ([#79](https://github.com/jengu-net/dbo/issues/79)) — the participation link exercised end to end. | **DONE** 2026-08-27 — the seam holds from this side (`ARemoteLaneIsIndistinguishableIT`, kept that way by `ALaneStaysTransportShapedTest`), and both layers now hold at once when a participant dies mid-work: the run is owed again above and the checkpointed half is not redone below (`DbosBelowResumesItsOwnHalfFinishedWorkIT`). The wire itself stays the consumer's (ADR 0062) |
-| 10 | **Vital signs on the link** ([#148](https://github.com/jengu-net/dbo/issues/148)) — what rides the carrier, and a presence display that does not page about a healthy idle fleet. | **NEXT** — its carrier is delivered; the runner already publishes vitals on the declaration record |
-| 11 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **PARTLY DONE** — the batch, the idempotent-and-reorder-safe apply, the epoch, echoed markers, mirrored filing, work-driven expiry and the process allowlist are all built and proven (`TwoAppliancesOneTenantIT`), and a peer back from a weekend converges without dragging over what it holds no work for. **What remains**: audit replicating as recorded — blocked on a decision, since `PolicyObjectStore` refuses every direct `AuditEntry` write and nothing yet wires `Lanes` to a policy-wrapped store, so admitting the lane through that refusal has no production shape to aim at yet — inherits "slots are part of what must be present for the work being held" |
-| 12 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **BLOCKED by the consumer's sequencing** — posed by [platform#917](https://github.com/jengu-net/jengu-platform/issues/917), whose work-lane-first order owns when this is answered |
-| 13 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **NEXT** — 8 landed, so its precondition is met — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
+| 10 | **A host that is not the container holds a lane** ([#154](https://github.com/jengu-net/dbo/issues/154)) — the tenant serves the participation verbs on its own private surface; a host reaches them and the runner cannot tell. | **DONE** 2026-08-29 — `ALaneOverHttpIsIndistinguishableIT` (a real runner, a real tenant, a real token), `LaneWireCarriesTheRecordAsDeclaredTest` |
+| 11 | **Vital signs on the link** ([#148](https://github.com/jengu-net/dbo/issues/148)) — what rides the carrier, and a presence display that does not page about a healthy idle fleet. | **NEXT** — its carrier is delivered; the runner already publishes vitals on the declaration record |
+| 12 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **PARTLY DONE** — the batch, the idempotent-and-reorder-safe apply, the epoch, echoed markers, mirrored filing, work-driven expiry and the process allowlist are all built and proven (`TwoAppliancesOneTenantIT`), and a peer back from a weekend converges without dragging over what it holds no work for. **What remains**: audit replicating as recorded — blocked on a decision, since `PolicyObjectStore` refuses every direct `AuditEntry` write and nothing yet wires `Lanes` to a policy-wrapped store, so admitting the lane through that refusal has no production shape to aim at yet — inherits "slots are part of what must be present for the work being held" |
+| 13 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **BLOCKED by the consumer's sequencing** — posed by [platform#917](https://github.com/jengu-net/jengu-platform/issues/917), whose work-lane-first order owns when this is answered |
+| 14 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **NEXT** — 8 landed, so its precondition is met — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
 
-**The critical path is spent.** 8 and 9 are done, so nothing now blocks 13
+**The critical path is spent.** 8, 9 and 10 are done, so nothing now blocks 14
 except doing it: the console reads runs over HTTP, and the shape it would read
-is settled and discoverable. Steps 10 and 11 hang off 9 and are independent of
-each other and of 13. Step 12 waits on somebody else's calendar, and 11's last
+is settled and discoverable. Steps 11 and 12 hang off 9 and are independent of
+each other and of 14. Step 13 waits on somebody else's calendar, and 12's last
 bullet on a decision (#155), not on effort here.
 
 ## Decisions
@@ -280,6 +285,55 @@ identical replicas do to this path?*
 from a stuck component is exactly the lie cursor-derived presence exists to
 catch — so metrics ride the link and inform, and presence stays computed.
 
+**A host that is not the container gets the lane over the private surface,
+not a bundle inside the store** (decided 2026-08-29, #154). Two shapes were
+visible. The consumer could ship a bundle into dbo's container that registers
+the lane and holds their socket — which matches the activator's whiteboard
+literally, and puts their socket and its TLS termination *inside* the store's
+membrane rather than at it, against everything else about how that surface is
+operated. Or the tenant could serve the participation verbs on the private
+surface the consumer already reaches it on, and a host hold a lane over them.
+The second, because it changes nothing about who terminates what and it keeps
+run semantics in one place: every verb still lands on a real in-process lane
+the tenant built, and the alternative worry — the cloud faking a lane, or
+reaching into the store some other way — was exactly the thing owning this
+contract here exists to prevent. This is not the consumer's edge socket
+getting a second encoding: that is a different link between different
+parties, and this one is dbo's own private surface, which has always had its
+own wire.
+
+**The surface offers the lane and nothing wider.** The temptation on a
+store-side transport is to widen while the file is open — a subset query, a
+reference read, a freshness flag. Nothing here takes a reference or returns a
+handle, because a widened primitive is available to every caller with the
+scope, for ever. The handler is a router onto `Lane`, and the test that keeps
+the interface transport-shaped keeps this honest for free.
+
+**The entitlement is the credential's, and the executor identity is bounded
+with it** (#154). Reach could have arrived as a parameter on the request, and
+that is how a surface ends up trusting its caller about what the caller may
+do. It comes from the token: the bare participation scope says the holder *is*
+the tenant, a suffixed one names the steps it covers, and a credential with
+neither reaches no lane at all rather than an empty one. The second half took
+a pass to see — the executor identity is what a claim is recorded under and
+what the input read is checked against, so a bounded credential free to spell
+any name could read the inputs of runs it never claimed. A bounded credential
+works only as itself; a tenant-wide one may name any participant, which is
+what lets a cloud serve a lane on behalf of an appliance it has already
+authenticated by other means.
+
+That last case needed one more thing, and it is **narrowing, never
+substitution**. A host relaying for an appliance holds a tenant-wide
+credential, so the lane it gets would otherwise be unrestricted — and the
+reach that belongs on it is the appliance's, decided when its identity was
+issued. So the asker may state what to bound the lane to, and the surface
+**intersects** that with what the credential covers. Safe in the only
+direction that matters: a host could always have asked for everything it
+holds, and nothing it does not hold can be asked into existence. The
+alternative — narrowing on the calling side — is the arrangement where the
+only thing between a broad credential and the tenant's work is a caller
+remembering to do it.
+
 **A step id is opaque and globally stable, fixed with the record, not the
 catalogue** — which is what makes #147 (a participant introducing a step)
 an addition rather than a migration: a run could always name a step that had
@@ -354,6 +408,25 @@ test and fails the moment a replica set comes up together — which is exactly
 how the introduction path was found to be wrong. Both are the expected case:
 re-read and judge what won.
 
+**A lane wired to the content feed looks exactly like a lane with no work.**
+Runs and declarations are work-domain records, and a tenant's own change feed
+is its *content* domain. The first wiring of the participation surface passed
+that feed to the lane, and everything answered: the handshake worked, the
+token was accepted, `poll` returned — an empty list, for ever, because it was
+reading a stream runs never appear in. Caught only because the test drove a
+real runner to a real outcome instead of asserting that the surface answered.
+This is "booting is not serving" wearing the one disguise that survives a
+green build: a working surface over the wrong stream.
+
+**An `ensure` that only compares the secret cannot add a scope.** The
+tenant's bootstrap credential gained the participation scope, and every
+existing tenant kept its old one — because ensuring a client returned early
+when the secret still matched. The record then denied a surface with no way
+for anyone to see it had not been granted. Ensuring means saying what the
+record should be, so it compares the scopes too. Worth carrying beyond this
+case: any idempotent "ensure" whose guard is narrower than what it writes
+will silently keep yesterday's version of the rest.
+
 **Two catalogues mid-migration is how they drift.** The original reason #71
 followed platform#851. Resolved by the emergent-catalogue decision above:
 nothing is ported, so the seam landed early without creating a second copy —
@@ -364,7 +437,10 @@ across wholesale. They arrive as introductions, or they wait.
 
 **The socket.** Framing, handshake, tenant authentication of the edge lane
 are the consumer's (ADR 0062). dbo builds the store-level toolset the lane
-uses, and the same runner embeds on either end.
+uses, and the same runner embeds on either end. The participation surface
+(#154) is not an exception to this: it is the tenant's own private surface,
+between a host and the store it is serving from, and it carries nothing
+between two appliances.
 
 **Partitioning.** Competition is fine at small N; a partition hint belongs on
 the run only once one step has measurably outgrown claim-racing.
@@ -376,6 +452,7 @@ scopes and what the step admits, like every declaration.
 ## Verifying
 
 ```bash
-./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT' --tests '*ClaimIsTheIntersectionIT' --tests '*ARemoteLaneIsIndistinguishableIT' --tests '*ALaneStaysTransportShapedTest' --tests '*DbosBelowResumesItsOwnHalfFinishedWorkIT'
+./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT' --tests '*ClaimIsTheIntersectionIT' --tests '*ARemoteLaneIsIndistinguishableIT' --tests '*ALaneStaysTransportShapedTest' --tests '*DbosBelowResumesItsOwnHalfFinishedWorkIT' --tests '*ALaneOverHttpIsIndistinguishableIT'
+./gradlew :core:dbo-runner:test
 ```
 (The link scenarios get their ITs with the transport exercise in #79.)
