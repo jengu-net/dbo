@@ -287,6 +287,52 @@ class VocabularyIsDiscoverableIT {
     }
 
     /**
+     * The Task a run is rendered as has a definition, not just an example
+     * (#91).
+     *
+     * <p>Its seven dbo-owned systems were each discoverable on their own — a
+     * CodeSystem here, a NamingSystem there — and nothing said which element
+     * carried which, or that they belonged to one shape at all. A client had
+     * to read an example and infer, which is the convention this rule exists
+     * to remove.
+     *
+     * <p>Asserted at the definition rather than on the wire because nothing
+     * serves runs yet, and that is exactly why it is worth doing now: once the
+     * participation surface ships, this becomes a live API and the shape stops
+     * being free to correct.
+     */
+    @Test
+    @Proving(DboPromises.TERM_EVERY_TENANT_ANSWERS)
+    void theTaskARunIsRenderedAsHasADefinition() throws Exception {
+        for (String tenantBase : new String[] {base, elementBase}) {
+            String found = get(tenantBase + "/StructureDefinition?url="
+                    + java.net.URLEncoder.encode(
+                            "https://dbo.dev/fhir/StructureDefinition/run-as-task",
+                            java.nio.charset.StandardCharsets.UTF_8));
+            assertTrue(found.contains("\"resourceType\":\"StructureDefinition\"")
+                            && found.contains("\"type\":\"Task\""),
+                    "a run is served as a Task and the Task has no definition in "
+                            + tenantBase + ": " + found);
+            assertTrue(found.contains("http://hl7.org/fhir/StructureDefinition/Task"),
+                    "and it constrains the domain's own Task rather than inventing a type: "
+                            + found);
+
+            // The profile has to name the systems the projection actually
+            // puts on the wire. A definition that described a different Task
+            // than the one served would be worse than none: it would be
+            // discoverable and wrong.
+            for (String system : new String[] {"urn:dbo:run", "urn:dbo:correlation"}) {
+                assertTrue(found.contains(system),
+                        "the profile names " + system + ", which the rendered Task carries: "
+                                + found);
+            }
+            assertTrue(found.contains("\"fixedCode\":\"order\""),
+                    "and it fixes what the renderer fixes — every rendered run is an order: "
+                            + found);
+        }
+    }
+
+    /**
      * A run's OUTPUT codes and a run's KEY are different things and no longer
      * share a URI (#91).
      *

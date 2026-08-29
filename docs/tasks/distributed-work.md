@@ -4,14 +4,12 @@
 closed**: the declaration seam (steps, actions, mandatory-steps incident
 classification), introduction over the link, run inputs filling declared slots,
 milestones on the checkpoint, and the participant with both halves of reach.
-**#79 is closed**: the runner drives a lane it can only reach across a
-boundary and cannot tell, and killing a participant mid-work loses neither
-half — the run is owed again above, the checkpointed work is not redone below.
-What gates what is left is one precondition — a profile for the rendered
-`Task`, the half of #91 the published run vocabulary did not cover — and behind
-it the console (#75/#76). It does not gate the replication toolset (#80): a
-lane is not a FHIR client. See `Sequence` for the order and what each is
-waiting on.
+**#79 is closed** and **#91's run-path precondition is met**: the runner drives
+a lane it can only reach across a boundary and cannot tell, killing a
+participant mid-work loses neither half, and the `Task` a run is rendered as
+now has a published profile beside the systems it carries. Nothing is left
+gating the console (#75/#76) but building it. See `Sequence` for the order and
+what each remaining step is waiting on.
 
 **Issues** — the participation cluster, formerly under the closed #46.
 Open: [#80](https://github.com/jengu-net/dbo/issues/80) (replication toolset —
@@ -162,19 +160,18 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 5 | **Milestones on the checkpoint** ([#150](https://github.com/jengu-net/dbo/issues/150)) — a long-running step says where it is; position derived by the store. | **DONE** 2026-08-27 — `MilestonesOnTheCheckpointIT` |
 | 6 | **Introduction over the link** ([#147](https://github.com/jengu-net/dbo/issues/147)) — the second door into the catalogue; identical declarations co-introduce, so a fleet is not a collision. | **DONE** 2026-08-27 — `StepsArriveByIntroductionIT` |
 | 7 | **The participant, both halves of reach** ([#77](https://github.com/jengu-net/dbo/issues/77)) — pull, claim, report; and what it may claim is the intersection of what its credential covers and what the step admits. | **DONE** 2026-08-27 — `ParticipantsPullAndClaimIT`, `ClaimIsTheIntersectionIT` |
-| 8 | **The run vocabulary, discoverable** — [#91](https://github.com/jengu-net/dbo/issues/91)'s precondition: the systems a rendered run carries, published as `CodeSystem`s the same tenant serves. | **PARTLY DONE** — the vocabulary half is published, fetchable and split (`urn:dbo:run:output` is no longer also `urn:dbo:run`), proven by `VocabularyIsDiscoverableIT`. **What remains is a profile for the rendered `Task`**, and that is what gates serving runs over HTTP |
+| 8 | **The run vocabulary, discoverable** — [#91](https://github.com/jengu-net/dbo/issues/91)'s precondition: the systems a rendered run carries, and the shape they ride on, published as definitions the same tenant serves. | **DONE** 2026-08-28 — the vocabulary was already published, fetchable and split; the `Task` a run is rendered as now has a profile beside it (`run-as-task`), naming the systems it carries and fixing what the renderer fixes. `VocabularyIsDiscoverableIT` proves both. Nothing serves runs over HTTP yet, which is exactly why the shape was worth settling now |
 | 9 | **The reference runner: transport first, DBOS below** ([#79](https://github.com/jengu-net/dbo/issues/79)) — the participation link exercised end to end. | **DONE** 2026-08-27 — the seam holds from this side (`ARemoteLaneIsIndistinguishableIT`, kept that way by `ALaneStaysTransportShapedTest`), and both layers now hold at once when a participant dies mid-work: the run is owed again above and the checkpointed half is not redone below (`DbosBelowResumesItsOwnHalfFinishedWorkIT`). The wire itself stays the consumer's (ADR 0062) |
 | 10 | **Vital signs on the link** ([#148](https://github.com/jengu-net/dbo/issues/148)) — what rides the carrier, and a presence display that does not page about a healthy idle fleet. | **NEXT** — its carrier is delivered; the runner already publishes vitals on the declaration record |
 | 11 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **PARTLY DONE** — the batch, the idempotent-and-reorder-safe apply, the epoch, echoed markers, mirrored filing, work-driven expiry and the process allowlist are all built and proven (`TwoAppliancesOneTenantIT`), and a peer back from a weekend converges without dragging over what it holds no work for. **What remains**: audit replicating as recorded — blocked on a decision, since `PolicyObjectStore` refuses every direct `AuditEntry` write and nothing yet wires `Lanes` to a policy-wrapped store, so admitting the lane through that refusal has no production shape to aim at yet — inherits "slots are part of what must be present for the work being held" |
 | 12 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **BLOCKED by the consumer's sequencing** — posed by [platform#917](https://github.com/jengu-net/jengu-platform/issues/917), whose work-lane-first order owns when this is answered |
-| 13 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **LAST, needs 8** — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
+| 13 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **NEXT** — 8 landed, so its precondition is met — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
 
-**The critical path** is 8 → 13: the `Task` profile unblocks serving runs over
-HTTP, which the console stands on. Step 9 never needed it — the seam it was
-thought to gate turned out provable without HTTP, because a lane is not a FHIR
-client. Steps 10 and 11 hang off 9, which is now done, so both are ready and
-independent of each other. Step 12 waits on somebody else's calendar, not on
-this repository.
+**The critical path is spent.** 8 and 9 are done, so nothing now blocks 13
+except doing it: the console reads runs over HTTP, and the shape it would read
+is settled and discoverable. Steps 10 and 11 hang off 9 and are independent of
+each other and of 13. Step 12 waits on somebody else's calendar, and 11's last
+bullet on a decision (#155), not on effort here.
 
 ## Decisions
 
@@ -328,6 +325,15 @@ this is the mirror of the participant trap below: there a caught-up cursor
 looks stalled, here a caught-up lane looks busy. Whether the bookkeeping
 belongs in its own domain is undecided — moving it touches erasure-by-drop
 and backup coverage.
+
+**A differential follows the snapshot's element order, and Task's is not the
+order you would guess.** A profile whose elements are listed out of order is
+refused with "no match found" naming the element, which reads like the element
+does not exist rather than like it is in the wrong place. `Task.businessStatus`
+precedes `Task.intent`; alphabetical and logical orderings both get this wrong.
+Caught publishing the run-as-task profile, and worth knowing because the
+publish path logs a refusal as a warning and carries on — a definition that
+failed to publish looks exactly like one nobody asked for.
 
 **A run speaks its step name bare; the catalogue speaks it fully.** A run
 records `process` and `step` as separate fields and `poll` filters on the
