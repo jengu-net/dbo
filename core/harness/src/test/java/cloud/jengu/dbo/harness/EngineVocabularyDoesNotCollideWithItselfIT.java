@@ -121,12 +121,20 @@ class EngineVocabularyDoesNotCollideWithItselfIT {
         // handles. A log that keeps errors for handled situations buries the
         // ones that matter. Only this test's own slice of the shared
         // container's log is judged, and only for the engine's systems.
+        //
+        // Judged by the TYPES this test writes, not by "any duplicate key in
+        // the window". The container's log is shared and Docker fills it
+        // asynchronously, so a line written before the mark can appear after
+        // it — and the suite contains a test that races a fleet of eight
+        // replicas at one identity ON PURPOSE, whose seven handled losses are
+        // correct behaviour and were landing here as this test's failure. A
+        // mark cannot be made reliable against an async log; naming the
+        // subject can.
         String sinceMark = postgres.getLogs().substring(Math.min(logMark,
                 postgres.getLogs().length()));
         List<String> noise = sinceMark.lines()
-                .filter(line -> line.contains("duplicate key value")
-                        || line.contains("urn:dbo:"))
-                .filter(line -> line.contains("ERROR") || line.contains("DETAIL"))
+                .filter(line -> line.contains("already exists"))
+                .filter(line -> line.contains("(CodeSystem,") || line.contains("(ValueSet,"))
                 .toList();
         assertEquals(List.of(), noise,
                 "a handled conflict is resolved by asking, not by failing an insert "
