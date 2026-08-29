@@ -39,6 +39,8 @@ class TenantOsgiIT {
 
     static PostgreSQLContainer<?> postgres;
     static String jdbcUrl;
+    private static final String OPS_TOKEN = "osgi-it-ops";
+
     static Framework framework;
     static Path dir;
     static int httpPort;
@@ -63,6 +65,11 @@ class TenantOsgiIT {
         config.put("dbo.tenant.admin.url", jdbcUrl);
         config.put("dbo.tenant.admin.user", postgres.getUsername());
         config.put("dbo.tenant.admin.password", postgres.getPassword());
+        // The operator surface, so a failure here can tell the two silences
+        // apart: a manager that never started answers nothing at all, and one
+        // that started and could not bring a tenant up answers with the
+        // tenant's state. Without it both read as "no services, 404".
+        config.put("dbo.tenant.ops.token", OPS_TOKEN);
 
         framework = ServiceLoader.load(FrameworkFactory.class).findFirst().orElseThrow()
                 .newFramework(config);
@@ -136,7 +143,26 @@ class TenantOsgiIT {
         } catch (org.osgi.framework.InvalidSyntaxException e) {
             report.append("unreadable");
         }
+        // The manager's own account. No answer at all means it never started
+        // — a different fault entirely from a tenant that would not come up,
+        // and the one the bundle states cannot show, because the bundle is
+        // ACTIVE either way.
+        report.append(" runtimeState=").append(runtimeState());
         return report.toString();
+    }
+
+    /** What the container's own operator surface says, or why it said nothing. */
+    private static String runtimeState() {
+        try {
+            HttpResponse<String> answer = HttpClient.newHttpClient().send(
+                    HttpRequest.newBuilder(URI.create(
+                                    "http://127.0.0.1:" + httpPort + "/runtime/tenants"))
+                            .header("Authorization", "Bearer " + OPS_TOKEN).GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            return answer.statusCode() + " " + answer.body();
+        } catch (Exception noAnswer) {
+            return "no answer (" + noAnswer + ") — the manager may never have started";
+        }
     }
 
     private static String stateOf(int state) {
