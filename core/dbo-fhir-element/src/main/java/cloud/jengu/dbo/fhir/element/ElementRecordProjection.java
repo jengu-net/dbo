@@ -39,6 +39,14 @@ final class ElementRecordProjection implements RecordProjection {
      * {@code :run:holder}, {@code :run:tally} — which were never ambiguous
      * because they were never the run's own identifier.
      */
+    /**
+     * The shape a run takes when this face renders it (#91). A client meets a
+     * Task carrying seven dbo-owned systems; this is where it looks them up as
+     * one thing rather than seven, and it is published before runs are served
+     * over HTTP on purpose — after that, changing it is changing a live API.
+     */
+    static final String RUN_TASK_PROFILE = "https://dbo.dev/fhir/StructureDefinition/run-as-task";
+
     private static final String RUN_OUTPUT = "urn:dbo:run:output";
     private static final String RUN_INPUT = "urn:dbo:run:input";
     private static final String MILESTONE = "urn:dbo:run:milestone";
@@ -155,7 +163,8 @@ final class ElementRecordProjection implements RecordProjection {
                 // profile versions a record was validated under, and a dbo
                 // concept on the wire is described by a definition a client
                 // can fetch (#91).
-                shapeStampExtension());
+                shapeStampExtension(),
+                runTaskProfile());
     }
 
     /**
@@ -192,6 +201,70 @@ final class ElementRecordProjection implements RecordProjection {
      * generates the snapshot when it caches the profile (#87), the same as for
      * a tenant's own.
      */
+    /**
+     * A run as a {@code Task}, described where a client can fetch it (#91).
+     *
+     * <p>The face already renders a run as a Task a FHIR client understands.
+     * What it could not do was <em>say</em> so: the seven dbo-owned systems on
+     * that Task were discoverable one at a time, as CodeSystems and
+     * NamingSystems, and nothing tied them to the resource they ride on or
+     * said which element carries which. A reader had to infer the shape from
+     * an example, which is a convention somebody has to be told about.
+     *
+     * <p>Constraints only where the projection genuinely constrains, because
+     * a profile that claims more than the renderer does is a second thing to
+     * keep true. {@code intent} is fixed because every rendered run is an
+     * order; {@code status} is not, because it is derived from the holder and
+     * the whole point is that it varies.
+     */
+    private static String runTaskProfile() {
+        return "{\"resourceType\":\"StructureDefinition\",\"url\":"
+                + Json.quoted(RUN_TASK_PROFILE)
+                + ",\"name\":\"DboRunAsTask\",\"status\":\"active\""
+                + ",\"kind\":\"resource\",\"abstract\":false,\"type\":\"Task\""
+                + ",\"description\":\"How this store renders one of its own runs as a Task: "
+                + "the run's key and correlation as identifiers, who holds it and the "
+                + "milestone it reached as businessStatus, the process and step as code, "
+                + "the executor as owner, and the step's declared slots as input.\""
+                + ",\"baseDefinition\":\"http://hl7.org/fhir/StructureDefinition/Task\""
+                + ",\"derivation\":\"constraint\""
+                + ",\"differential\":{\"element\":["
+                // The run's own key always; the correlation when the caller set one.
+                + "{\"id\":\"Task.identifier\",\"path\":\"Task.identifier\",\"min\":1,"
+                + "\"slicing\":{\"discriminator\":[{\"type\":\"value\","
+                + "\"path\":\"system\"}],\"rules\":\"open\"}},"
+                + "{\"id\":\"Task.identifier:key\",\"path\":\"Task.identifier\","
+                + "\"sliceName\":\"key\",\"min\":1,\"max\":\"1\"},"
+                + "{\"id\":\"Task.identifier:key.system\","
+                + "\"path\":\"Task.identifier.system\",\"min\":1,\"fixedUri\":"
+                + Json.quoted(RUN) + "},"
+                + "{\"id\":\"Task.identifier:correlation\",\"path\":\"Task.identifier\","
+                + "\"sliceName\":\"correlation\",\"min\":0,\"max\":\"1\"},"
+                + "{\"id\":\"Task.identifier:correlation.system\","
+                + "\"path\":\"Task.identifier.system\",\"min\":1,\"fixedUri\":"
+                + Json.quoted(CORRELATION) + "},"
+                // Where the work is: the holder, and the milestone when one was reported.
+                + "{\"id\":\"Task.businessStatus\",\"path\":\"Task.businessStatus\","
+                + "\"min\":1},"
+                + "{\"id\":\"Task.businessStatus.coding\","
+                + "\"path\":\"Task.businessStatus.coding\",\"min\":1},"
+                // Every rendered run is an order; the status varies by holder.
+                // Ordered after businessStatus because a differential follows
+                // the snapshot's element order, and Task's is not alphabetical
+                // — the validator refuses an out-of-order element by name.
+                + "{\"id\":\"Task.intent\",\"path\":\"Task.intent\",\"min\":1,"
+                + "\"fixedCode\":\"order\"},"
+                // What it is: the process, and the step within it.
+                + "{\"id\":\"Task.code\",\"path\":\"Task.code\",\"min\":1},"
+                + "{\"id\":\"Task.code.coding\",\"path\":\"Task.code.coding\","
+                + "\"min\":2},"
+                // Who ran it, when anybody has claimed it.
+                + "{\"id\":\"Task.owner\",\"path\":\"Task.owner\",\"max\":\"1\"},"
+                // The step's declared slots, filled by the run.
+                + "{\"id\":\"Task.input.type\",\"path\":\"Task.input.type\","
+                + "\"min\":1}]}}";
+    }
+
     private static String originalContentExtension() {
         return "{\"resourceType\":\"StructureDefinition\",\"url\":"
                 + Json.quoted(ElementTerminology.ORIGINAL_CONTENT_EXT)
