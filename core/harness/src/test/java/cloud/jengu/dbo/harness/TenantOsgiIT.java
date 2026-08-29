@@ -112,6 +112,45 @@ class TenantOsgiIT {
         tenantBundle.start();
     }
 
+    /**
+     * What the container looks like right now, for a failure to carry.
+     *
+     * <p>A bring-up that dies inside the container is this project's
+     * signature failure — the bundle is ACTIVE, the tenant never serves, and
+     * from the host the two are one silence. A bundle that resolved but is
+     * not ACTIVE, or a missing per-tenant service, is the difference between
+     * "a busy runner was slow" and "the wiring is wrong", and only one of
+     * those is worth re-running.
+     */
+    private static String inTheContainer(BundleContext ctx) {
+        StringBuilder report = new StringBuilder("bundles=[");
+        for (Bundle bundle : ctx.getBundles()) {
+            report.append(bundle.getSymbolicName()).append(':')
+                    .append(stateOf(bundle.getState())).append(' ');
+        }
+        report.append("] tenantServices=");
+        try {
+            ServiceReference<?>[] stores = ctx.getAllServiceReferences(
+                    "cloud.jengu.dbo.fhir.common.FhirStoreFacade", null);
+            report.append(stores == null ? 0 : stores.length);
+        } catch (org.osgi.framework.InvalidSyntaxException e) {
+            report.append("unreadable");
+        }
+        return report.toString();
+    }
+
+    private static String stateOf(int state) {
+        return switch (state) {
+            case Bundle.UNINSTALLED -> "UNINSTALLED";
+            case Bundle.INSTALLED -> "INSTALLED";
+            case Bundle.RESOLVED -> "RESOLVED";
+            case Bundle.STARTING -> "STARTING";
+            case Bundle.STOPPING -> "STOPPING";
+            case Bundle.ACTIVE -> "ACTIVE";
+            default -> "state-" + state;
+        };
+    }
+
     @AfterAll
     void down() throws Exception {
         if (framework != null) {
@@ -121,7 +160,13 @@ class TenantOsgiIT {
     }
 
     @Test
-    @Timeout(180)
+    // Longer than the liveness wait below, deliberately. The two used to be
+    // the same number, so a slow bring-up tripped the JUnit timeout at the
+    // very moment the loop's own assertion was about to speak — and a
+    // timeout says nothing at all, where the assertion names what the
+    // container was actually showing. Whichever fires, it should be the one
+    // that carries a diagnosis.
+    @Timeout(240)
     @Proving(DboPromises.CONT_DYNAMIC_TENANT_SERVICES)
     void aSpecFileLightsUpTheWholeChainInContainer() throws Exception {
         assertEquals(Bundle.ACTIVE, tenantBundle.getState());
@@ -179,7 +224,8 @@ class TenantOsgiIT {
             }
             Thread.sleep(250);
         }
-        assertEquals(200, status, "the tenant endpoint must come up from the spec file alone");
+        assertEquals(200, status, "the tenant endpoint must come up from the spec file alone; "
+                + inTheContainer(ctx));
 
         // per-tenant services visible in the registry with tenant= properties
         ServiceReference<?>[] stores = ctx.getAllServiceReferences(
