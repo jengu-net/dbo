@@ -1042,6 +1042,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // nobody registered, which is a tenant that looks served and is not.
         all.addAll(cloud.jengu.dbo.sync.LaneModel.registrations());
         all.addAll(cloud.jengu.dbo.sync.PlacementModel.registrations());
+        // And what a connected worker reports about the things behind it
+        // (#158). Same argument a third time: a lane's state, a placement and
+        // a trackable are all this tenant's records, dropped when it is.
+        all.addAll(cloud.jengu.dbo.work.TrackableModel.registrations());
         ObjectStore engine = pdiWrapped(spec, db, all, face);
         // Runs go to the engine rather than through the policy decorator, and
         // everything that records them for this tenant uses the same one.
