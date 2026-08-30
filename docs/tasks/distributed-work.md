@@ -19,7 +19,11 @@ link — its carrier is delivered) ·
 [#75](https://github.com/jengu-net/dbo/issues/75) /
 [#76](https://github.com/jengu-net/dbo/issues/76) (console).
 Closed: [#151](https://github.com/jengu-net/dbo/issues/151) (the edge's work
-lane: who advances a claimed run, and edge-originated work as upstream) · [#69](https://github.com/jengu-net/dbo/issues/69) /
+lane: who advances a claimed run, and edge-originated work as upstream) ·
+[#156](https://github.com/jengu-net/dbo/issues/156) (refused is not
+unanswered — §7.9) ·
+[#157](https://github.com/jengu-net/dbo/issues/157) (replication driven from
+outside the container) · [#69](https://github.com/jengu-net/dbo/issues/69) /
 [#70](https://github.com/jengu-net/dbo/issues/70) (run record and its
 `Task`) · [#72](https://github.com/jengu-net/dbo/issues/72) /
 [#78](https://github.com/jengu-net/dbo/issues/78) (executor declaration and
@@ -180,10 +184,11 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 12 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **DONE** 2026-08-29 — the batch, the idempotent-and-reorder-safe apply, the epoch, echoed markers, mirrored filing, work-driven expiry and the process allowlist (`TwoAppliancesOneTenantIT`), and now the trail: an appliance's entries arrive with the actor, the time and the appliance that recorded them, and the arrival writes no second trail (`AuditReplicatesAsRecordedIT`, §7.8, #155) |
 | 13 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **DONE** 2026-08-30 — the side that authored a run is the side that advances it, and an appliance offers only what it authored. Both enforced by the store rather than shared as a convention between connectors (`TwoAppliancesOneTenantIT`). The second was a live defect: a mirror travelled back and deepened a key every round |
 | 14 | **Replication driven from outside the container** ([#157](https://github.com/jengu-net/dbo/issues/157)) — the tenant serves the seven verbs; a host holds `HttpLanes` over them. | **DONE** 2026-08-30 — `LanesHandler` at `/t/{code}/replication`, `HttpLanes`, and the lane's own types registered per tenant, which was the other half of "no production wiring" (`ReplicationDrivenOverHttpIT`) |
-| 15 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **NEXT** — 8 landed, so its precondition is met — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
+| 15 | **Refused is not unanswered** ([#156](https://github.com/jengu-net/dbo/issues/156)) — a caller can tell a decision about itself from a store that never spoke. | **DONE** 2026-08-30 — `StoreUnreachableException` and the 4xx/5xx line, on both surfaces (`ALaneOverHttpIsIndistinguishableIT`) |
+| 16 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **NEXT** — 8 landed, so its precondition is met — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
 
-**The critical path is spent.** 8, 9, 10, 12, 13 and 14 are done, so nothing
-now blocks 15 except doing it: the console reads runs over HTTP, and the shape
+**The critical path is spent.** 8, 9, 10, 12, 13, 14 and 15 are done, so
+nothing now blocks 16 except doing it: the console reads runs over HTTP, and the shape
 it would read is settled and discoverable. Step 11 hangs off 9 and is
 independent of it.
 
@@ -342,6 +347,23 @@ holds, and nothing it does not hold can be asked into existence. The
 alternative — narrowing on the calling side — is the arrangement where the
 only thing between a broad credential and the tenant's work is a caller
 remembering to do it.
+
+**A refusal and a store that did not answer are different exceptions**
+(decided 2026-08-30, #156, recorded as §7.9). They used to be one, and they
+need opposite recoveries: stop asking, or ask again. What made it worth a
+decision rather than a note is the second-order cost — a participant that
+backs off while holding a claim keeps it only until the deadline, and then the
+tenant's own housekeeping releases the run and somebody else takes it. So the
+confusion does not merely pause a bench; it moves work that was never in
+trouble.
+
+One named type rather than a marker interface or a code on the existing
+exception: a marker admits more than one transient type later, which is room
+to disagree rather than room to grow, and a code keeps callers writing
+conditionals where a `catch` would do. The line falls where HTTP already draws
+it — 4xx settled, 5xx unanswered — which puts the ambiguous cases right
+without the handler being asked to classify its own faults. A pool exhausted
+under load is a 500 and is exactly the outage this survives.
 
 **Replication is reached the way participation is** (decided 2026-08-30,
 #157). The same asymmetry #154 named, one layer up and pointing the same way:

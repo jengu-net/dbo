@@ -29,6 +29,19 @@ import java.util.Set;
  * is the contract: a verb that only the in-process side could serve does
  * not belong here.
  *
+ * <p><b>A refusal and a store that did not answer are different, and the
+ * difference is on the exception</b> (§7.9). Everything a verb throws is
+ * settled — the identity did not claim that run, the step was not granted,
+ * the action was never declared — <em>except</em>
+ * {@link cloud.jengu.dbo.core.api.StoreUnreachableException}, which says the
+ * far side never spoke. The two want opposite recoveries: stop asking, or ask
+ * again. A caller that cannot tell them apart backs off from work it is
+ * entitled to and, because a claim it is holding lapses on the deadline,
+ * loses that work to somebody else while nothing was actually wrong. So a
+ * remote lane raises the second and no other kind, and an in-process lane
+ * hands the host's own store failure through unchanged — the host holds that
+ * store and is the one party that can say what its failure meant.
+ *
  * <p><b>The runner is stateless over tenants.</b> Every tenant it serves
  * arrives as one of these; the runner holds only the task in hand and the
  * documents the task names. In an OSGi container the host registers one

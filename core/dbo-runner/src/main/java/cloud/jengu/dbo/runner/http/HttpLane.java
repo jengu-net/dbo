@@ -220,15 +220,26 @@ public final class HttpLane implements Lane {
         try {
             response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
         } catch (java.io.IOException unreachable) {
-            throw new IllegalStateException(tenant + ": the lane surface did not answer '"
-                    + verb.path() + "'", unreachable);
+            // Not a decision about the caller: the far side never said
+            // anything, so this is retryable and must not read as a refusal
+            // (§7.9).
+            throw new cloud.jengu.dbo.core.api.StoreUnreachableException(
+                    tenant + ": the lane surface did not answer '" + verb.path() + "'", unreachable);
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException(tenant + ": interrupted on '" + verb.path() + "'",
-                    interrupted);
+            throw new cloud.jengu.dbo.core.api.StoreUnreachableException(
+                    tenant + ": interrupted on '" + verb.path() + "'", interrupted);
         }
         Object envelope = response.body() == null || response.body().isEmpty()
                 ? Map.of() : RecordWire.read(response.body());
+        if (response.statusCode() >= 500) {
+            // 5xx is the store failing to answer, never a decision about the
+            // asker — including the ambiguous ones, which is the point of
+            // drawing the line where HTTP already draws it.
+            throw new cloud.jengu.dbo.core.api.StoreUnreachableException(
+                    tenant + ": " + verb.path() + " did not complete ("
+                            + response.statusCode() + ") — " + reason(envelope));
+        }
         if (response.statusCode() != 200) {
             throw new IllegalStateException(tenant + ": " + verb.path() + " refused ("
                     + response.statusCode() + ") — " + reason(envelope));
