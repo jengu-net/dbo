@@ -494,6 +494,31 @@ Presence stays derived where a cursor exists; attested is a different fact,
 naming the worker that saw it rather than the parent it sits behind, because
 "where it sits" and "who to ask" are different questions.
 
+**#158's normalisation is not reachable from outside the container yet, and
+that is the open question it leaves.** The concepts are built and the type is
+registered per tenant, so the state has somewhere to live — but nothing
+outside the container constructs `Trackables`, and there is no verb or surface
+that carries a routed tree to it. The issue said the transport stays the
+consumer's and only the normalisation would move here, which is right and
+does not settle where the normalising happens:
+
+- a **lane verb** beside `declare`, so a router reports its tree the way it
+  reports its own candidacy — coherent, and it is one more verb on an
+  interface deliberately kept to twelve;
+- **the store normalising on arrival** from what already rides `declare` —
+  no transport change at all, but it means the engine reading a vitals block
+  it promised to treat as opaque, which is the contract #148 rests on;
+- **a shape dbo publishes** that routers write inside vitals, leaving the
+  engine reading nothing — which was the third option weighed when #158 was
+  decided, and was not chosen.
+
+Worth settling before the consumer adopts it, because whichever is picked is
+what every future router does. Recorded rather than guessed: this is the
+fourth instance of the same pattern (#154, #157, and now this), and the
+check that catches it is two questions — *who constructs this outside a test*,
+and *where does its own state live*. The second was a defect here and is
+fixed; the first is this question.
+
 **Vitals annotate presence; they never supply it** (decided 2026-08-30, #148).
 The carrier is the declaration record — where the runner already put it —
 rather than the report: one record per participant per step, replaced not
