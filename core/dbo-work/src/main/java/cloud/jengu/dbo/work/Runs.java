@@ -307,6 +307,7 @@ public final class Runs {
      * @return the claimed run, or empty when somebody else holds it
      */
     public Optional<Run> claim(Run seen, Executor by, java.time.Instant until) {
+        refuseIfAuthoredElsewhere(seen, "claimed");
         requireAdmits(seen, by);
         Run current = byKey(seen.key()).orElse(null);
         if (current == null || current.claimed(java.time.Instant.now())) {
@@ -408,6 +409,11 @@ public final class Runs {
                 .map(Run::of)
                 .filter(run -> run.assignment() != null && run.assignment().until() != null
                         && !run.assignment().until().isAfter(now))
+                // A deadline is judged where the run lives (#151). A mirror's
+                // deadline is the other appliance's to notice, and this side's
+                // clock reading it would release work whose checkpoint is
+                // merely still in flight.
+                .filter(run -> !WorkModel.authoredElsewhere(run.key()))
                 .toList();
     }
 
@@ -670,7 +676,45 @@ public final class Runs {
                 run.milestone());
     }
 
+    /**
+     * A run this appliance is advancing must be this appliance's own.
+     *
+     * <p>#151's decision: a mirror is a read-only account of somebody else's
+     * work. Across two stores with a lagging lane, "the deadline passed" and
+     * "the checkpoint is in flight" can both be true, and a peer acting on the
+     * first would have the work done twice — so the side that authored a run
+     * is the only side that advances it, and a deadline is judged only where
+     * the run lives.
+     *
+     * <p>The consequence is accepted rather than hidden: an appliance that
+     * dies holding work it authored keeps that work until it returns. Moving
+     * it is an operator's deliberate act, not something a clock infers from a
+     * lane that is merely behind.
+     */
+    private static void refuseIfAuthoredElsewhere(Run run, String what) {
+        if (WorkModel.authoredElsewhere(run.key())) {
+            throw new NotOurs(run.key(), what);
+        }
+    }
+
+    /** A run belonging to another appliance, and the act that was refused. */
+    public static final class NotOurs extends IllegalStateException {
+        public NotOurs(String key, String what) {
+            super("run '" + key + "' was authored by another appliance — it may be read "
+                    + "here and not " + what + "; the side that authored it is the side "
+                    + "that advances it");
+        }
+    }
+
     private Run write(State state) {
+        if (WorkModel.authoredElsewhere(state.key())) {
+            // A locally authored key that looked mirrored would be advanceable
+            // nowhere and would collide with a real mirror on arrival. Refused
+            // where it is cheap, rather than discovered on a lane.
+            throw new IllegalArgumentException("'" + WorkModel.AUTHOR_SEPARATOR
+                    + "' separates an appliance from a run's key and cannot appear in one: "
+                    + state.key());
+        }
         PutResult result = store.putIfAbsent(IdentityRef.identifier(WorkModel.KEY_SYSTEM,
                 state.key()), PutRequest.create(WorkModel.TYPE, state.payload()));
         return byKey(state.key()).orElseThrow(() -> new IllegalStateException(
@@ -678,6 +722,7 @@ public final class Runs {
     }
 
     private Run update(Run run, State state) {
+        refuseIfAuthoredElsewhere(run, "advanced");
         StoredObject stored = store.get(WorkModel.TYPE, run.id()).orElseThrow(
                 () -> new IllegalStateException("run " + run.key() + " has gone"));
         store.put(new PutRequest(WorkModel.TYPE, stored.id(), stored.versionId(),

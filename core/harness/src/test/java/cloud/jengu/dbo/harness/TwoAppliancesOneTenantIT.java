@@ -10,9 +10,12 @@ import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.sync.LaneModel;
 import cloud.jengu.dbo.sync.Lanes;
 import cloud.jengu.dbo.sync.PlacementModel;
+import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Failure;
+import cloud.jengu.dbo.work.Participation;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
+import cloud.jengu.dbo.work.Scope;
 import cloud.jengu.dbo.work.WorkModel;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
@@ -33,6 +36,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -383,5 +387,78 @@ class TwoAppliancesOneTenantIT {
         assertEquals(batch.cursor(), cloud.lane("edge").orElseThrow().theirMarker(),
                 "where the far side is has to be a store fact rather than the channel's "
                         + "opinion about its own delivery");
+    }
+
+    @Test
+    @DisplayName("an appliance offers only what it authored: a mirror does not travel back, "
+            + "however many rounds the pair runs")
+    @Proving(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE)
+    void aMirrorDoesNotTravelBack() {
+        cloudRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/roundtrip",
+                List.of(WorkModel.DOMAIN));
+
+        Lanes.Batch out = cloud.outbound("edge", 500, TRAVELS);
+        edge.apply("cloud", out);
+        cloud.sent("edge", out);
+
+        // The edge now holds a mirror of the cloud's run. What it offers back
+        // is the question: a mirror returned is a NEW record at the far side,
+        // filed under the sender and prefixed again, so a pair that echoed
+        // would deepen a key and add a run every round without bound. This
+        // failed before the rule existed, at the second hop, as edge@cloud@.
+        Lanes.Batch back = edge.outbound("cloud", 500, TRAVELS);
+        assertTrue(mirrorsIn(back).isEmpty(),
+                "a mirror is the other side's record: " + mirrorsIn(back));
+
+        cloud.apply("edge", back);
+        edge.sent("cloud", back);
+        assertTrue(mirrorsIn(cloud.outbound("edge", 500, TRAVELS)).isEmpty(),
+                "and still nothing on the round after that");
+    }
+
+    /** The work items in a batch whose keys say somebody else authored them. */
+    private static List<String> mirrorsIn(Lanes.Batch batch) {
+        List<String> mirrors = new ArrayList<>();
+        for (Lanes.Item item : batch.items()) {
+            if (item.work()) {
+                String payload = new String(item.payload(), StandardCharsets.UTF_8);
+                if (payload.contains(WorkModel.AUTHOR_SEPARATOR)) {
+                    mirrors.add(payload);
+                }
+            }
+        }
+        return mirrors;
+    }
+
+    @Test
+    @DisplayName("a mirror is read-only where it landed: the side that authored a run is the "
+            + "side that advances it")
+    @Proving(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE)
+    void aMirrorCannotBeAdvancedWhereItLanded() {
+        Run authored = cloudRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/theirs",
+                List.of(WorkModel.DOMAIN));
+        Lanes.Batch out = cloud.outbound("edge", 500, TRAVELS);
+        edge.apply("cloud", out);
+        cloud.sent("edge", out);
+
+        Run mirror = edgeRuns.byKey("cloud" + WorkModel.AUTHOR_SEPARATOR + authored.key())
+                .orElseThrow(() -> new AssertionError("the mirror is here to be read"));
+
+        // Read: yes. That is what a mirror is for.
+        assertEquals(authored.step(), mirror.step());
+
+        // Advanced: no. With a lagging lane the far side's checkpoint can be in
+        // flight while its deadline looks passed, and both sides acting would
+        // have the work done twice.
+        assertThrows(Runs.NotOurs.class, () -> edgeRuns.closed(mirror));
+        assertThrows(Runs.NotOurs.class, () -> edgeRuns.claim(mirror,
+                new Executor("bench", "1.0", "test", Scope.BASELINE),
+                Instant.now().plusSeconds(60)));
+
+        // And the housekeeping sweep leaves it alone rather than refusing: a
+        // deadline is judged where the run lives, so a mirror is not this
+        // side's to notice at all.
+        assertEquals(0, Participation.releaseLapsed(edgeRuns),
+                "a mirror is not in this side's lapse sweep");
     }
 }

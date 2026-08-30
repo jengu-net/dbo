@@ -45,6 +45,37 @@ public final class WorkModel {
      * cannot hold declarations can only ever be executed by whatever is
      * installed beside it.
      */
+    /**
+     * What separates the appliance that authored a run from the run's own key.
+     *
+     * <p>A run mirrored from another appliance is filed under it — {@code
+     * edge@dbo.lab.result/validate/7} — so two appliances running the same
+     * task write two records rather than silently replacing each other's, and
+     * "applied 46 here, 44 there" stays a question anybody can ask.
+     *
+     * <p>It lives here rather than with the lane that writes it because the
+     * <b>rules</b> built on it are the run's: a mirror is somebody else's
+     * account and may not be advanced, and an appliance offers only what it
+     * authored. A convention two modules each half-knew would be a rule
+     * nobody owns.
+     */
+    public static final String AUTHOR_SEPARATOR = "@";
+
+    /** The key a run of {@code key} takes when mirrored from {@code appliance}. */
+    public static String mirroredKey(String appliance, String key) {
+        return key.startsWith(appliance + AUTHOR_SEPARATOR)
+                ? key : appliance + AUTHOR_SEPARATOR + key;
+    }
+
+    /**
+     * Whether this key belongs to another appliance's run.
+     *
+     * <p>Which is what makes the two rules checkable rather than remembered.
+     */
+    public static boolean authoredElsewhere(String key) {
+        return key != null && key.contains(AUTHOR_SEPARATOR);
+    }
+
     public static List<TypeRegistration> registrations() {
         List<TypeRegistration> all = new java.util.ArrayList<>(List.of(
                 new TypeRegistration(TYPE, DOMAIN, IdentityClass.IDENTIFIER,

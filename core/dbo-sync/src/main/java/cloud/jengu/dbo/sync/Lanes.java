@@ -44,8 +44,12 @@ import java.util.Set;
  */
 public final class Lanes {
 
-    /** Where the far side's copy of a run is kept: under the appliance that authored it. */
-    public static final String MIRROR_SEPARATOR = "@";
+    /**
+     * Where the far side's copy of a run is kept: under the appliance that
+     * authored it. The convention itself is the run's ({@link
+     * WorkModel#AUTHOR_SEPARATOR}), because the rules built on it are.
+     */
+    public static final String MIRROR_SEPARATOR = WorkModel.AUTHOR_SEPARATOR;
 
     /** The audit type, which travels but is never written like other content. */
     private static final String AUDIT = "AuditEntry";
@@ -202,6 +206,15 @@ public final class Lanes {
                 // housekeeping is not the other side's business, and mirroring
                 // it would put an edge's account of its own bring-up into the
                 // cloud's.
+                continue;
+            }
+            if (WorkModel.authoredElsewhere(run.get().key())) {
+                // An appliance offers only what it authored (#151). A mirror
+                // sent back is a NEW record at the far side — filed under this
+                // appliance, prefixed again — so a pair that echoed would
+                // deepen a key and add a run every round, for ever. The same
+                // rule the trail already obeys: what arrived from elsewhere
+                // does not go back out.
                 continue;
             }
             store.get(WorkModel.TYPE, event.objectId()).ifPresent(stored ->
@@ -398,8 +411,7 @@ public final class Lanes {
     private boolean mirror(String from, Item item) {
         Object json = Json.parse(new String(item.payload(), StandardCharsets.UTF_8));
         String key = Json.str(json, "key");
-        String mirrored = key.startsWith(from + MIRROR_SEPARATOR) ? key
-                : from + MIRROR_SEPARATOR + key;
+        String mirrored = WorkModel.mirroredKey(from, key);
         byte[] payload = new String(item.payload(), StandardCharsets.UTF_8)
                 .replaceFirst("\"key\":\"" + java.util.regex.Pattern.quote(key) + "\"",
                         "\"key\":\"" + java.util.regex.Matcher.quoteReplacement(mirrored) + "\"")

@@ -503,6 +503,25 @@ withdrawal that had to arrive would leave a bench holding a register every time
 the link was down. A card still open counts as work still needing the record;
 somebody has to be able to look at what they are fixing.
 
+**The side that authored a run is the side that advances it.** A mirror is a
+read-only account of somebody else's work: it can be read, counted and compared,
+and it cannot be claimed, checkpointed, released or closed where it landed. The
+reason is the lane's own latency — across two stores "the deadline passed" and
+"the checkpoint is in flight" can both be true at once, and a peer acting on the
+first has the work done twice. So a deadline is judged only where the run lives,
+and the housekeeping sweep skips what it did not author rather than refusing it.
+The consequence is accepted rather than hidden: an appliance that dies holding
+work it authored keeps that work until it returns, and moving it is an
+operator's deliberate act rather than something a clock infers from a lane that
+is merely behind.
+
+**An appliance offers only what it authored.** The other half of the same rule,
+and the one a pair discovers the hard way: a mirror sent back is a *new* record
+at the far side — filed under the sender, prefixed again — so two appliances
+that echoed would deepen a key and add a run every round, without bound. What
+arrived from elsewhere does not go back out, which is the rule the replicated
+trail already obeys.
+
 **A mirrored run is filed under the appliance that authored it.** Two appliances
 running the same task write the same run key, and without the namespace the
 second arrival silently replaces the first — which is exactly the comparison
