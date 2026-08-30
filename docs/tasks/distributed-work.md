@@ -185,12 +185,12 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 13 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **DONE** 2026-08-30 — the side that authored a run is the side that advances it, and an appliance offers only what it authored. Both enforced by the store rather than shared as a convention between connectors (`TwoAppliancesOneTenantIT`). The second was a live defect: a mirror travelled back and deepened a key every round |
 | 14 | **Replication driven from outside the container** ([#157](https://github.com/jengu-net/dbo/issues/157)) — the tenant serves the seven verbs; a host holds `HttpLanes` over them. | **DONE** 2026-08-30 — `LanesHandler` at `/t/{code}/replication`, `HttpLanes`, and the lane's own types registered per tenant, which was the other half of "no production wiring" (`ReplicationDrivenOverHttpIT`) |
 | 15 | **Refused is not unanswered** ([#156](https://github.com/jengu-net/dbo/issues/156)) — a caller can tell a decision about itself from a store that never spoke. | **DONE** 2026-08-30 — `StoreUnreachableException` and the 4xx/5xx line, on both surfaces (`ALaneOverHttpIsIndistinguishableIT`) |
-| 16 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **NEXT** — 8 landed, so its precondition is met — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
+| 16 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **MOSTLY DONE** 2026-08-30 — more was already built than this row said: the run half (`dbo-run:list`, `dbo-run:describe`) and #76's session (`dbo:login`, `dbo:context`) were there, and the catalogue half landed now (`dbo-process:list`, `dbo-process:describe`, including which executor would run a step here and why that one). **Left**: the executor half of `describe` is untested — it needs a store, so it needs the harness — and `PROC_NETWORK_MAP` stays `PLANNED` until the cross-node half exists |
 
-**The critical path is spent.** 8, 9, 10, 12, 13, 14 and 15 are done, so
-nothing now blocks 16 except doing it: the console reads runs over HTTP, and the shape
-it would read is settled and discoverable. Step 11 hangs off 9 and is
-independent of it.
+**The critical path is spent**, and 16 is most of the way through as well: the console reads runs over HTTP, and the shape
+what remains of the console is coverage rather than capability. Step 11
+(#148) hangs off 9 and is independent of everything else; its carrier is
+decided — the declaration record, where the runner already puts it.
 
 ## Decisions
 
@@ -466,6 +466,17 @@ process is exactly `module.process`. A four-part id throws, and `declare`
 catches it into a warning — so the participant keeps working, the catalogue
 never learns the step, and nothing is red. The swallow is deliberate (one bad
 tenant must not kill a runner) but it is why this cost an afternoon.
+
+**The console's imports are hand-written and optional, so a new one takes
+every command down.** The commands bundle lands in `deploy/` before
+`dbo-console:up` installs the dbo set, so its dbo imports are declared
+`resolution:=optional` — and the list is hand-written, with a trailing `*`
+that picks up anything unlisted as MANDATORY. Adding the catalogue commands
+reached into two new packages, and unlisted they would have left the bundle
+unresolved at startup, contributing **no commands at all** — including the one
+that installs what it needs. The failure names a package rather than a
+command, so it reads as the console being broken. Every dbo package the bundle
+touches has to be on that list.
 
 **A new package is a new export, and only a container says so.** Moving the
 record codec into `dbo-core` so both surfaces could share one encoder left

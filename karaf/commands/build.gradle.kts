@@ -29,6 +29,20 @@ dependencies {
     // nothing on purpose (#70). The console is where that half becomes visible.
     compileOnly(project(":core:dbo-core"))
     compileOnly(project(":core:dbo-work"))
+
+    // The console had no tests at all, and its characteristic failure is a
+    // command that registers and then cannot read anything. What is testable
+    // without a container is the catalogue half, which needs no store.
+    testImplementation("org.apache.karaf.shell:org.apache.karaf.shell.core:$karafVersion")
+    testImplementation("org.osgi:osgi.core:8.0.0")
+    testImplementation(project(":core:dbo-core"))
+    testImplementation(project(":core:dbo-work"))
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.jar {
@@ -46,8 +60,16 @@ tasks.jar {
             // bundle. A hard import would leave it unresolved at startup, so
             // the command that installs the thing it needs would be the first
             // casualty — and every other dbo command with it.
+            // EVERY dbo package this bundle touches has to be listed here.
+            // A new one picked up by the "*" at the end resolves as MANDATORY,
+            // and at startup — before dbo-console:up has installed anything —
+            // the bundle then fails to resolve and contributes no commands at
+            // all. The failure names a package, not a command, so it reads as
+            // the console being broken rather than as one import being new.
             "Import-Package" to listOf(
                 "cloud.jengu.dbo.core.api;resolution:=optional",
+                "cloud.jengu.dbo.core.api.feed;resolution:=optional",
+                "cloud.jengu.dbo.core.process;resolution:=optional",
                 "cloud.jengu.dbo.work;resolution:=optional",
                 "*",
             ).joinToString(","),
