@@ -1,7 +1,8 @@
 # Distributed work
 
-**Status** — doctrine decided and written; **#71, #147, #149, #150, #77, #80,
-#151, #154 and #155 are closed**: the declaration seam (steps, actions, mandatory-steps incident
+**Status** — doctrine decided and written; **#71, #147, #148, #149, #150,
+#77, #80, #151, #154, #155, #156 and #157 are closed**, and only the console
+(#75/#76) is open: the declaration seam (steps, actions, mandatory-steps incident
 classification), introduction over the link, run inputs filling declared slots,
 milestones on the checkpoint, and the participant with both halves of reach.
 **#79 is closed** and **#91's run-path precondition is met**: the runner drives
@@ -14,11 +15,11 @@ Nothing is left gating the console (#75/#76) but building it. See `Sequence` for
 what each remaining step is waiting on.
 
 **Issues** — the participation cluster, formerly under the closed #46.
-Open: [#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on the
-link — its carrier is delivered) ·
-[#75](https://github.com/jengu-net/dbo/issues/75) /
-[#76](https://github.com/jengu-net/dbo/issues/76) (console).
-Closed: [#151](https://github.com/jengu-net/dbo/issues/151) (the edge's work
+Open: [#75](https://github.com/jengu-net/dbo/issues/75) /
+[#76](https://github.com/jengu-net/dbo/issues/76) (the console — its commands
+are built, and what is open is the coverage the row for step 16 names).
+Closed: [#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on
+the link) · [#151](https://github.com/jengu-net/dbo/issues/151) (the edge's work
 lane: who advances a claimed run, and edge-originated work as upstream) ·
 [#156](https://github.com/jengu-net/dbo/issues/156) (refused is not
 unanswered — §7.9) ·
