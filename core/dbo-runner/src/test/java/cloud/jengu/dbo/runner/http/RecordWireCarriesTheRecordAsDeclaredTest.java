@@ -1,6 +1,7 @@
 package cloud.jengu.dbo.runner.http;
 
 import cloud.jengu.dbo.core.api.StoredObject;
+import cloud.jengu.dbo.core.wire.RecordWire;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
@@ -36,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * against the record's own component list: add a component and this fails
  * here, which is the cheapest place for it to fail.
  */
-class LaneWireCarriesTheRecordAsDeclaredTest {
+class RecordWireCarriesTheRecordAsDeclaredTest {
 
     private static final Run FULL = new Run("run-1", 7L, "dbo.lab/validate/1", "dbo.lab",
             "validate", RunKind.PIPELINE, Holder.AUTOMATION, "parent-1", "correlation-1",
@@ -52,7 +53,7 @@ class LaneWireCarriesTheRecordAsDeclaredTest {
     @Test
     @DisplayName("every component a run declares survives the wire, and a new one fails here")
     void aRunSurvivesAsDeclared() {
-        Run back = LaneWire.decode(LaneWire.read(LaneWire.write(FULL)), Run.class);
+        Run back = RecordWire.decode(RecordWire.read(RecordWire.write(FULL)), Run.class);
 
         List<String> dropped = new ArrayList<>();
         for (RecordComponent component : Run.class.getRecordComponents()) {
@@ -78,7 +79,7 @@ class LaneWireCarriesTheRecordAsDeclaredTest {
                 .taking("specimen", "http://example.test/Specimen")
                 .reaching("parsed", "validated");
 
-        StepDeclaration back = LaneWire.decode(LaneWire.read(LaneWire.write(declared)),
+        StepDeclaration back = RecordWire.decode(RecordWire.read(RecordWire.write(declared)),
                 StepDeclaration.class);
 
         assertEquals(declared.id(), back.id());
@@ -99,7 +100,7 @@ class LaneWireCarriesTheRecordAsDeclaredTest {
         StoredObject object = new StoredObject("s1", "Specimen", 3L,
                 Instant.parse("2026-08-29T09:00:00Z"), payload, false, "r4");
 
-        StoredObject back = LaneWire.decode(LaneWire.read(LaneWire.write(object)),
+        StoredObject back = RecordWire.decode(RecordWire.read(RecordWire.write(object)),
                 StoredObject.class);
 
         assertArrayEquals(payload, back.payload(),
@@ -117,10 +118,10 @@ class LaneWireCarriesTheRecordAsDeclaredTest {
                 "bench-7", "1.2", "cloud.jengu.test", Scope.BASELINE, "consumer-7")
                 .withVitals(Map.of("queue", "0"));
 
-        String wire = LaneWire.write(declared);
+        String wire = RecordWire.write(declared);
         String ahead = wire.substring(0, wire.length() - 1) + ",\"whatComesNext\":\"a value\"}";
         Declarations.Declared back =
-                LaneWire.decode(LaneWire.read(ahead), Declarations.Declared.class);
+                RecordWire.decode(RecordWire.read(ahead), Declarations.Declared.class);
 
         assertEquals(declared, back, "a peer one version ahead is not a broken peer");
         assertTrue(back.metadata().containsKey("queue"), "and the vitals it did carry arrived");

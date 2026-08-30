@@ -1,6 +1,7 @@
 package cloud.jengu.dbo.runner.http;
 
 import cloud.jengu.dbo.core.process.StepDeclaration;
+import cloud.jengu.dbo.core.wire.RecordWire;
 import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
@@ -138,7 +139,7 @@ public final class LaneHandler implements HttpHandler {
             Grant grant = (Grant) access;
             Object body = body(exchange);
             String participant = string(body, LaneVerbs.PARTICIPANT);
-            Executor identity = LaneWire.decode(field(body, LaneVerbs.IDENTITY), Executor.class);
+            Executor identity = RecordWire.decode(field(body, LaneVerbs.IDENTITY), Executor.class);
             if (participant == null || identity == null || identity.name() == null) {
                 fail(exchange, 400, "a lane verb says which participant is asking and "
                         + "which executor is working");
@@ -168,7 +169,7 @@ public final class LaneHandler implements HttpHandler {
             throws IOException {
         switch (verb) {
             case POLL -> respond(exchange, lane.poll(
-                    Set.copyOf(LaneWire.decodeList(field(body, LaneVerbs.STEPS), String.class)),
+                    Set.copyOf(RecordWire.decodeList(field(body, LaneVerbs.STEPS), String.class)),
                     (int) number(body, LaneVerbs.LIMIT)));
             // Optional on the wire is the empty answer, not a 404: nobody took
             // it is an outcome of the claim race, and the loser takes the next
@@ -197,7 +198,7 @@ public final class LaneHandler implements HttpHandler {
                 respond(exchange, null);
             }
             case INTRODUCE -> {
-                lane.introduce(LaneWire.decode(field(body, LaneVerbs.STEP),
+                lane.introduce(RecordWire.decode(field(body, LaneVerbs.STEP),
                         StepDeclaration.class));
                 respond(exchange, null);
             }
@@ -225,13 +226,13 @@ public final class LaneHandler implements HttpHandler {
         if (asked == null) {
             return credential;
         }
-        List<String> steps = LaneWire.decodeList(asked, String.class).stream()
+        List<String> steps = RecordWire.decodeList(asked, String.class).stream()
                 .filter(credential::covers).toList();
         return Lane.Entitlement.ofSteps(steps.toArray(String[]::new));
     }
 
     private static Run run(Object body) {
-        Run run = LaneWire.decode(field(body, LaneVerbs.RUN), Run.class);
+        Run run = RecordWire.decode(field(body, LaneVerbs.RUN), Run.class);
         if (run == null) {
             throw new IllegalArgumentException("this verb is about a run, and none was named");
         }
@@ -240,7 +241,7 @@ public final class LaneHandler implements HttpHandler {
 
     private static Declarations.Declared declared(Object body) {
         Declarations.Declared declared =
-                LaneWire.decode(field(body, LaneVerbs.DECLARED), Declarations.Declared.class);
+                RecordWire.decode(field(body, LaneVerbs.DECLARED), Declarations.Declared.class);
         if (declared == null) {
             throw new IllegalArgumentException("this verb is about a declaration, "
                     + "and none was carried");
@@ -253,7 +254,7 @@ public final class LaneHandler implements HttpHandler {
     }
 
     private static Map<String, Long> counts(Object body) {
-        return LaneWire.decodeMap(field(body, LaneVerbs.COUNTS), Long.class);
+        return RecordWire.decodeMap(field(body, LaneVerbs.COUNTS), Long.class);
     }
 
     private static Object body(HttpExchange exchange) throws IOException {
@@ -261,7 +262,7 @@ public final class LaneHandler implements HttpHandler {
         if (bytes.length == 0) {
             return new LinkedHashMap<String, Object>();
         }
-        return LaneWire.read(new String(bytes, StandardCharsets.UTF_8));
+        return RecordWire.read(new String(bytes, StandardCharsets.UTF_8));
     }
 
     private static Object field(Object body, String name) {
@@ -281,15 +282,15 @@ public final class LaneHandler implements HttpHandler {
     /** Every answer is the same envelope, so an empty one is still an answer. */
     private static void respond(HttpExchange exchange, Object result) throws IOException {
         Map<String, Object> envelope = new LinkedHashMap<>();
-        envelope.put(LaneVerbs.RESULT, LaneWire.encode(result));
-        send(exchange, 200, Json.render(envelope));
+        envelope.put(LaneVerbs.RESULT, RecordWire.encode(result));
+        send(exchange, 200, RecordWire.write(envelope));
     }
 
     private static void refuse(HttpExchange exchange, String reason) throws IOException {
         Map<String, Object> envelope = new LinkedHashMap<>();
         envelope.put(LaneVerbs.REFUSED, Boolean.TRUE);
         envelope.put(LaneVerbs.REASON, reason);
-        send(exchange, 409, Json.render(envelope));
+        send(exchange, 409, RecordWire.write(envelope));
     }
 
     private static void fail(HttpExchange exchange, int status, String reason)
@@ -297,7 +298,7 @@ public final class LaneHandler implements HttpHandler {
         Map<String, Object> envelope = new LinkedHashMap<>();
         envelope.put(LaneVerbs.REFUSED, Boolean.TRUE);
         envelope.put(LaneVerbs.REASON, reason);
-        send(exchange, status, Json.render(envelope));
+        send(exchange, status, RecordWire.write(envelope));
     }
 
     private static void send(HttpExchange exchange, int status, String body) throws IOException {

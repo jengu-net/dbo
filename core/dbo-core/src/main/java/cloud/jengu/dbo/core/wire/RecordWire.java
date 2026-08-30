@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.runner.http;
+package cloud.jengu.dbo.core.wire;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.ParameterizedType;
@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * The lane surface's payloads, on the wire (#154).
+ * Records on a wire, mapped as they are declared.
  *
  * <p><b>The record as declared, never field by field.</b> {@code Run} gained
  * milestones (#150) and named inputs (#149) after the type existed, and
@@ -37,9 +37,9 @@ import java.util.Set;
  * field for, which is the byte-shaped seam's whole argument, reached here
  * from the transport side.
  */
-public final class LaneWire {
+public final class RecordWire {
 
-    private LaneWire() {
+    private RecordWire() {
     }
 
     /** A value as JSON text — records, enums, collections, instants, bytes. */
@@ -64,14 +64,14 @@ public final class LaneWire {
             case byte[] bytes -> Base64.getEncoder().encodeToString(bytes);
             case Instant instant -> instant.toString();
             case Enum<?> constant -> constant.name();
-            case Optional<?> optional -> optional.map(LaneWire::encode).orElse(null);
+            case Optional<?> optional -> optional.map(RecordWire::encode).orElse(null);
             case Map<?, ?> map -> encodeMap(map);
             case Iterable<?> items -> encodeList(items);
             default -> {
                 if (value.getClass().isRecord()) {
                     yield encodeRecord(value);
                 }
-                throw new IllegalArgumentException("the lane surface cannot carry a "
+                throw new IllegalArgumentException("this wire cannot carry a "
                         + value.getClass().getName() + " — it carries records, enums, "
                         + "collections and scalars, and a new one has to say how it travels");
             }
@@ -139,7 +139,7 @@ public final class LaneWire {
             return decodeParameterized(node, parameterized);
         }
         if (!(type instanceof Class<?> target)) {
-            throw new IllegalArgumentException("the lane surface cannot decode " + type);
+            throw new IllegalArgumentException("this wire cannot decode " + type);
         }
         if (node == null) {
             return defaultOf(target);
@@ -171,7 +171,7 @@ public final class LaneWire {
         if (target.isRecord()) {
             return decodeRecord(node, target);
         }
-        throw new IllegalArgumentException("the lane surface cannot decode a "
+        throw new IllegalArgumentException("this wire cannot decode a "
                 + target.getName());
     }
 
@@ -196,7 +196,7 @@ public final class LaneWire {
             }
             return raw == Set.class ? new LinkedHashSet<>(items) : items;
         }
-        throw new IllegalArgumentException("the lane surface cannot decode a "
+        throw new IllegalArgumentException("this wire cannot decode a "
                 + raw.getName() + " of " + List.of(arguments));
     }
 

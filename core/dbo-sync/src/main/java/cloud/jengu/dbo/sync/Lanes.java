@@ -41,6 +41,20 @@ import java.util.Set;
  * yet, an apply that is idempotent under replay <b>and safe under reorder</b>,
  * the epoch that makes a resumed-from-backup cursor detectable, and the marker
  * each side keeps about where the other said it had reached.
+ *
+ * <p><b>A connector cannot read "caught up" from this lane's cursor, and an
+ * empty batch does not mean it either.</b> {@code Lane} and {@code Placement}
+ * are records in the work domain, and the work domain's feed is what
+ * {@link #outbound} reads — so every {@link #sent} writes an event into this
+ * lane's own input and the cursor never stops moving. The filter skips that
+ * bookkeeping, which is why empty batches also appear while the lane is
+ * genuinely still draining. The only honest measure is <em>nothing arrived for
+ * a few rounds</em>.
+ *
+ * <p>Said here rather than only in a task document because it is the first
+ * thing a second connector would get wrong, and the API gives no other hint of
+ * it. Note it is the mirror of the participant's trap: there a caught-up
+ * cursor looks stalled, here a caught-up lane looks busy.
  */
 public final class Lanes {
 
