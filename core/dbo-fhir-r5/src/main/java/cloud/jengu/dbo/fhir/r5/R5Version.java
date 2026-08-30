@@ -53,12 +53,52 @@ final class R5Version {
             synchronized (R5Version.class) {
                 local = context;
                 if (local == null) {
-                    local = withTccl(FhirContext::forR5);
+                    local = withTccl(() -> {
+                        FhirContext fresh = FhirContext.forR5();
+                        withoutNarrative(fresh);
+                        return fresh;
+                    });
                     context = local;
                 }
             }
         }
         return local;
+    }
+
+    /**
+     * R5's own profiles, minus the documentation nobody here reads.
+     *
+     * <p>Asking a {@code FhirContext} for anything that consults definitions —
+     * {@code newFhirPath()}, which the envelope extractor calls for every
+     * stored resource — makes it build a {@link DefaultProfileValidationSupport},
+     * and R5's shipped {@code profiles-resources.xml} carries narrative where
+     * R4's does not. Measured on this laptop: <b>515MB</b> live for R5 against
+     * <b>83MB</b> for R4, the difference being 969,201 {@code XhtmlNode} and
+     * their parse locations. Dropping the narrative leaves <b>225MB</b>, and
+     * FhirPath answers identically — the profiles are load-bearing, the prose
+     * about them is not. (An empty support is not the cheaper answer: the
+     * engine dereferences {@code fetchResourcesByType} in its own constructor.)
+     *
+     * <p>Done HERE rather than at each consumer because this is the one place
+     * the context is built, so a caller cannot get an unprepared one. The
+     * support is installed on the context, which means it is also what the
+     * validator below chains onto.
+     *
+     * <p>Stripped after the parse rather than before it, which lowers what is
+     * HELD and not what is touched: the 515MB is still reached while the
+     * package is being read. That peak is the one an appliance-sized heap
+     * notices, and removing it means never parsing the div at all — the
+     * byte-level treatment the element face already gives its carried packages.
+     */
+    private static void withoutNarrative(FhirContext ctx) {
+        DefaultProfileValidationSupport support = new DefaultProfileValidationSupport(ctx);
+        for (IBaseResource resource : support.fetchAllConformanceResources()) {
+            if (resource instanceof org.hl7.fhir.r5.model.DomainResource domain
+                    && domain.hasText()) {
+                domain.setText(null);
+            }
+        }
+        ctx.setValidationSupport(support);
     }
 
     static FhirValidator validator() {
@@ -69,8 +109,12 @@ final class R5Version {
                 if (local == null) {
                     local = withTccl(() -> {
                         FhirContext c = context();
+                        // The context's OWN support, not a second one: a fresh
+                        // DefaultProfileValidationSupport here would parse R5's
+                        // profiles again, narrative and all, and put back the
+                        // 291MB that context() just dropped.
                         ValidationSupportChain chain = new ValidationSupportChain(
-                                new DefaultProfileValidationSupport(c),
+                                c.getValidationSupport(),
                                 new InMemoryTerminologyServerValidationSupport(c),
                                 new CommonCodeSystemsTerminologyService(c));
                         FhirValidator v = c.newValidator();
