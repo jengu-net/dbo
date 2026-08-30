@@ -76,6 +76,27 @@ class TheCatalogueAnswersWithNoTenantServingTest {
                 "\"not declared\" and \"declared elsewhere\" have different fixes — " + out);
     }
 
+    @Test
+    @DisplayName("a participant that published nothing says so, rather than reading as a "
+            + "participant with nothing to report")
+    void silenceIsNotZero() {
+        // "(said nothing)" and "performed=0" are different facts about a
+        // component, and a blank cell reads as the second.
+        assertTrue(ProcessView.vitals(java.util.Map.of()).contains("said nothing"));
+        assertTrue(ProcessView.vitals(null).contains("said nothing"));
+    }
+
+    @Test
+    @DisplayName("vitals are rendered in whatever keys arrived, so a component kind nobody "
+            + "has met yet is not quietly trimmed")
+    void vitalsAreOpaque() {
+        String rendered = ProcessView.vitals(new java.util.LinkedHashMap<>(java.util.Map.of(
+                "queueDepth", "7")));
+
+        assertTrue(rendered.contains("queueDepth=7"),
+                "a fixed set of columns would drop a key nobody named — " + rendered);
+    }
+
     /** What the console reads: service references, and the bundles behind them. */
     private static BundleContext registryWith(Set<StepDeclaration> steps, String bundleName) {
         Bundle bundle = (Bundle) Proxy.newProxyInstance(Bundle.class.getClassLoader(),

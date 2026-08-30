@@ -27,6 +27,7 @@ import org.postgresql.ds.PGSimpleDataSource;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -199,6 +200,45 @@ class ExecutorsDeclareThemselvesIT {
         // It comes back by doing what a participant does, not by saying so.
         participant.poll(500);
         assertTrue(declarations.present(quiet), "presence is the cursor moving, and it moved");
+    }
+
+    @Test
+    @DisplayName("a participant calling itself healthy while its cursor stands still is "
+            + "absent anyway — vitals annotate presence and never supply it")
+    @Proving({DboPromises.PROC_PRESENCE_IS_DERIVED, DboPromises.PROC_RUNNER_SIGNS_ITS_VITALS})
+    void vitalsNeverSupplyPresence() throws Exception {
+        String step = stepFor("boasting");
+        String consumer = "participant.boasting";
+        Declarations declarations = declarations(Duration.ofMillis(1));
+
+        // The lie derived presence exists to catch, said as loudly as a
+        // participant can say it: perfect numbers, no errors, stamped now.
+        Declarations.Declared boasting = remote(step, "confident", EE, consumer)
+                .withVitals(Map.of("performed", "9999", "failed", "0",
+                        "meanMillis", "3", "at", java.time.Instant.now().toString()));
+        declarations.declare(boasting);
+        new Participation(runs, feed, consumer, Set.of(step), boasting.executor()).poll(500);
+        runs.pipeline(PROCESS, step, PROCESS + "/" + step + "/unread", List.of(WorkModel.DOMAIN));
+        declarations.present(boasting);
+
+        boolean absent = false;
+        for (long deadline = System.currentTimeMillis() + 5_000;
+                System.currentTimeMillis() < deadline; Thread.sleep(10)) {
+            if (!declarations.present(boasting)) {
+                absent = true;
+                break;
+            }
+        }
+        assertTrue(absent, "what a component says about itself is exactly what a stuck one "
+                + "keeps saying, so it cannot be what presence is read from");
+
+        // And the block is still there to be read beside that verdict: the
+        // operator wants both — it is absent, and here is the last thing it
+        // claimed before it stopped.
+        Declarations.Declared stored = declarations.all().stream()
+                .filter(d -> d.name().equals("confident")).findFirst().orElseThrow();
+        assertEquals("9999", stored.metadata().get("performed"),
+                "vitals annotate: they are kept and shown, they are just not evidence");
     }
 
     @Test
