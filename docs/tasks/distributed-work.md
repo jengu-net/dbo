@@ -180,7 +180,7 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 8 | **The run vocabulary, discoverable** — [#91](https://github.com/jengu-net/dbo/issues/91)'s precondition: the systems a rendered run carries, and the shape they ride on, published as definitions the same tenant serves. | **DONE** 2026-08-28 — the vocabulary was already published, fetchable and split; the `Task` a run is rendered as now has a profile beside it (`run-as-task`), naming the systems it carries and fixing what the renderer fixes. `VocabularyIsDiscoverableIT` proves both. Nothing serves runs over HTTP yet, which is exactly why the shape was worth settling now |
 | 9 | **The reference runner: transport first, DBOS below** ([#79](https://github.com/jengu-net/dbo/issues/79)) — the participation link exercised end to end. | **DONE** 2026-08-27 — the seam holds from this side (`ARemoteLaneIsIndistinguishableIT`, kept that way by `ALaneStaysTransportShapedTest`), and both layers now hold at once when a participant dies mid-work: the run is owed again above and the checkpointed half is not redone below (`DbosBelowResumesItsOwnHalfFinishedWorkIT`). The wire itself stays the consumer's (ADR 0062) |
 | 10 | **A host that is not the container holds a lane** ([#154](https://github.com/jengu-net/dbo/issues/154)) — the tenant serves the participation verbs on its own private surface; a host reaches them and the runner cannot tell. | **DONE** 2026-08-29 — `ALaneOverHttpIsIndistinguishableIT` (a real runner, a real tenant, a real token), `LaneWireCarriesTheRecordAsDeclaredTest` |
-| 11 | **Vital signs on the link** ([#148](https://github.com/jengu-net/dbo/issues/148)) — what rides the carrier, and a presence display that does not page about a healthy idle fleet. | **NEXT** — its carrier is delivered; the runner already publishes vitals on the declaration record |
+| 11 | **Vital signs on the link** ([#148](https://github.com/jengu-net/dbo/issues/148)) — what rides the carrier, and a presence display that does not page about a healthy idle fleet. | **DONE** 2026-08-30 — the carrier is the declaration record, where the runner already published; what was missing was the surface, so `dbo-process:describe` now shows a participant's vitals beside the presence this node derived for itself. Opaque keys, so a component kind nobody has met is not trimmed. `ExecutorsDeclareThemselvesIT` pins the load-bearing half: a participant calling itself healthy while its cursor stands still is absent anyway |
 | 12 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **DONE** 2026-08-29 — the batch, the idempotent-and-reorder-safe apply, the epoch, echoed markers, mirrored filing, work-driven expiry and the process allowlist (`TwoAppliancesOneTenantIT`), and now the trail: an appliance's entries arrive with the actor, the time and the appliance that recorded them, and the arrival writes no second trail (`AuditReplicatesAsRecordedIT`, §7.8, #155) |
 | 13 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **DONE** 2026-08-30 — the side that authored a run is the side that advances it, and an appliance offers only what it authored. Both enforced by the store rather than shared as a convention between connectors (`TwoAppliancesOneTenantIT`). The second was a live defect: a mirror travelled back and deepened a key every round |
 | 14 | **Replication driven from outside the container** ([#157](https://github.com/jengu-net/dbo/issues/157)) — the tenant serves the seven verbs; a host holds `HttpLanes` over them. | **DONE** 2026-08-30 — `LanesHandler` at `/t/{code}/replication`, `HttpLanes`, and the lane's own types registered per tenant, which was the other half of "no production wiring" (`ReplicationDrivenOverHttpIT`) |
@@ -466,6 +466,21 @@ process is exactly `module.process`. A four-part id throws, and `declare`
 catches it into a warning — so the participant keeps working, the catalogue
 never learns the step, and nothing is red. The swallow is deliberate (one bad
 tenant must not kill a runner) but it is why this cost an afternoon.
+
+**Vitals annotate presence; they never supply it** (decided 2026-08-30, #148).
+The carrier is the declaration record — where the runner already put it —
+rather than the report: one record per participant per step, replaced not
+accumulated, sitting beside the derived presence it annotates, so "who runs
+this step" and "how is it doing" are one answer. Putting it on reports would
+have made the busiest path carry a metrics stream and turned a candidate list
+into a history.
+
+What was actually missing was the surface, which is the half the issue said
+mattered: an operator sees both columns, and the order of them is the point. A
+row reading *present=no* beside perfect numbers is not a contradiction to
+resolve — it is the answer, and the numbers are the last thing the participant
+claimed before it stopped. Rendered in whatever keys arrived, because a
+component kind nobody has met yet will bring keys nobody has named.
 
 **One wait cannot serve a slow answer and a dead one.** The container test
 gave bring-up 180 seconds and failed twice on CI with the tenant still

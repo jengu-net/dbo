@@ -174,6 +174,7 @@ final class ProcessView {
         table.column("provider");
         table.column("scope");
         table.column("present");
+        table.column("vitals");
         boolean any = false;
         for (Declarations.Declared declared : declarations.all()) {
             if (!declared.process().equals(process) || !declared.step().equals(bare)) {
@@ -188,7 +189,8 @@ final class ProcessView {
                     declared.scope().wire(),
                     declarations.candidates().stream()
                             .anyMatch(candidate -> candidate.executor().name()
-                                    .equals(declared.name())) ? "yes" : "no");
+                                    .equals(declared.name())) ? "yes" : "no",
+                    vitals(declared.metadata()));
         }
         if (!any) {
             System.out.println("  nothing declares it here, so it is held by a person — "
@@ -213,6 +215,33 @@ final class ProcessView {
             System.out.println("  refused on the way: " + resolution.refused());
         }
         System.out.println("  chain: " + chain.stream().map(Scope::wire).toList());
+    }
+
+    /**
+     * What a participant last said about itself (#148), beside the presence
+     * this node worked out for itself.
+     *
+     * <p><b>The order of those two columns is the point.</b> Presence is
+     * derived from the cursor, because a component that is stuck keeps
+     * reporting that it is fine — that is exactly the lie derived presence
+     * exists to catch. So a row reading {@code present=no} beside healthy
+     * numbers is not a contradiction to be resolved; it is the answer, and
+     * the numbers are the last thing the participant claimed before it
+     * stopped.
+     *
+     * <p>Rendered opaque, in whatever keys arrived. The engine stores these
+     * the way it stores shapes and a component kind nobody has met yet will
+     * bring keys nobody has named, so a fixed set of columns here would
+     * quietly drop them.
+     */
+    static String vitals(Map<String, String> block) {
+        if (block == null || block.isEmpty()) {
+            return "(said nothing)";
+        }
+        StringBuilder rendered = new StringBuilder();
+        block.forEach((key, value) -> rendered.append(rendered.isEmpty() ? "" : " ")
+                .append(key).append('=').append(value));
+        return rendered.toString();
     }
 
     /** Where the work would be happening, general to local. */
