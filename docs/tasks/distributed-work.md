@@ -467,6 +467,16 @@ catches it into a warning — so the participant keeps working, the catalogue
 never learns the step, and nothing is red. The swallow is deliberate (one bad
 tenant must not kill a runner) but it is why this cost an afternoon.
 
+**One wait cannot serve a slow answer and a dead one.** The container test
+gave bring-up 180 seconds and failed twice on CI with the tenant still
+`coming-up` — a slow runner, told as a red. The instinct is a bigger number,
+and a bigger number alone makes the *other* case worse: a tenant that reports
+`failed` will never come up, so waiting is only a slower way to say so. Now
+the wait has room (seven minutes) and breaks the moment the container's own
+state says `failed`. That distinction only became available once the failure
+started reporting what it saw — which is the argument for diagnostics before
+fixes, twice over.
+
 **The console's imports are hand-written and optional, so a new one takes
 every command down.** The commands bundle lands in `deploy/` before
 `dbo-console:up` installs the dbo set, so its dbo imports are declared
