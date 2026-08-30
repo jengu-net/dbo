@@ -141,6 +141,11 @@ proves (#148).
   it. PROC is the first area to leave the SHAPE/PDI pilot behind entirely.
 - **Open, in dependency order**: see `Sequence` below — it carries the order,
   what each step waits on and who owns the wait, so it is not repeated here.
+- **Replication is drivable from outside the container**: the tenant serves
+  the seven verbs at `/t/{code}/replication` and a host holds `HttpLanes` over
+  them, every verb landing on the real in-process `Lanes`. The lane's own
+  types are registered per tenant, which is where its cursors and placements
+  live.
 - **The trail replicates**: an appliance's audit entries reach its peer as
   that appliance recorded them — original actor, original time, the appliance
   named — through the audit refusal's one admission (§7.8), and the arrival
@@ -174,12 +179,13 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 11 | **Vital signs on the link** ([#148](https://github.com/jengu-net/dbo/issues/148)) — what rides the carrier, and a presence display that does not page about a healthy idle fleet. | **NEXT** — its carrier is delivered; the runner already publishes vitals on the declaration record |
 | 12 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **DONE** 2026-08-29 — the batch, the idempotent-and-reorder-safe apply, the epoch, echoed markers, mirrored filing, work-driven expiry and the process allowlist (`TwoAppliancesOneTenantIT`), and now the trail: an appliance's entries arrive with the actor, the time and the appliance that recorded them, and the arrival writes no second trail (`AuditReplicatesAsRecordedIT`, §7.8, #155) |
 | 13 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **DONE** 2026-08-30 — the side that authored a run is the side that advances it, and an appliance offers only what it authored. Both enforced by the store rather than shared as a convention between connectors (`TwoAppliancesOneTenantIT`). The second was a live defect: a mirror travelled back and deepened a key every round |
-| 14 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **NEXT** — 8 landed, so its precondition is met — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
+| 14 | **Replication driven from outside the container** ([#157](https://github.com/jengu-net/dbo/issues/157)) — the tenant serves the seven verbs; a host holds `HttpLanes` over them. | **DONE** 2026-08-30 — `LanesHandler` at `/t/{code}/replication`, `HttpLanes`, and the lane's own types registered per tenant, which was the other half of "no production wiring" (`ReplicationDrivenOverHttpIT`) |
+| 15 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **NEXT** — 8 landed, so its precondition is met — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
 
-**The critical path is spent.** 8, 9, 10, 12 and 13 are done, so nothing now
-blocks 14 except doing it: the console reads runs over HTTP, and the shape it
-would read is settled and discoverable. Step 11 hangs off 9 and is independent
-of it.
+**The critical path is spent.** 8, 9, 10, 12, 13 and 14 are done, so nothing
+now blocks 15 except doing it: the console reads runs over HTTP, and the shape
+it would read is settled and discoverable. Step 11 hangs off 9 and is
+independent of it.
 
 ## Decisions
 
@@ -337,6 +343,30 @@ alternative — narrowing on the calling side — is the arrangement where the
 only thing between a broad credential and the tenant's work is a caller
 remembering to do it.
 
+**Replication is reached the way participation is** (decided 2026-08-30,
+#157). The same asymmetry #154 named, one layer up and pointing the same way:
+declarations flow cloud → appliance, so the cloud must PRODUCE outbound
+batches, and the cloud is the side whose dbo is a separate deployment.
+Pull-not-push does not move it — whoever pulls, the cloud still builds the
+batch. So the tenant serves the seven verbs on its private surface and a host
+holds `HttpLanes` over them, every verb landing on the real in-process
+`Lanes`. One client serves both appliance shapes, because an appliance already
+reaches its own store this way for everything else and a connector written
+once is worth more than one saved round trip.
+
+**Replication is a whole-tenant act, so the credential is the tenant's.** A
+batch carries whatever the travelling work names across every process the
+caller lists; there is no version of it bounded to one step. A step-bounded
+participation credential is refused outright rather than served a smaller
+batch — which would be indistinguishable, from the far side, from a lane that
+had caught up.
+
+**"No production wiring" was two things, and the API only showed one.** #157
+named the missing constructor and the missing surface. Underneath, `LaneModel`
+and `PlacementModel` were registered for no tenant at all, so the surface came
+up and the first verb died on a type nobody had declared. A lane's own
+bookkeeping is the tenant's records, and now it is registered with the rest.
+
 **A run is advanced only where it was authored, and an appliance offers only
 what it authored** (decided 2026-08-30, #151). The two questions #79 left open,
 answered together because they are one rule seen from two ends. A mirror is a
@@ -414,6 +444,13 @@ process is exactly `module.process`. A four-part id throws, and `declare`
 catches it into a warning — so the participant keeps working, the catalogue
 never learns the step, and nothing is red. The swallow is deliberate (one bad
 tenant must not kill a runner) but it is why this cost an afternoon.
+
+**A new package is a new export, and only a container says so.** Moving the
+record codec into `dbo-core` so both surfaces could share one encoder left
+`cloud.jengu.dbo.core.wire` out of a hand-written `Export-Package`, and
+`dbo-sync` then failed to resolve. It compiled, it published, and the two
+in-JVM container tests caught it before CI did — which is exactly what they
+are for, and the reason both must install what the distribution installs.
 
 **Two of the four write paths silently dropped the replay fields.**
 `putIfAbsent` and `putConditional` rebuilt the request from
@@ -521,7 +558,7 @@ scopes and what the step admits, like every declaration.
 ## Verifying
 
 ```bash
-./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT' --tests '*ClaimIsTheIntersectionIT' --tests '*ARemoteLaneIsIndistinguishableIT' --tests '*ALaneStaysTransportShapedTest' --tests '*DbosBelowResumesItsOwnHalfFinishedWorkIT' --tests '*ALaneOverHttpIsIndistinguishableIT' --tests '*TwoAppliancesOneTenantIT' --tests '*AuditReplicatesAsRecordedIT'
+./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT' --tests '*ClaimIsTheIntersectionIT' --tests '*ARemoteLaneIsIndistinguishableIT' --tests '*ALaneStaysTransportShapedTest' --tests '*DbosBelowResumesItsOwnHalfFinishedWorkIT' --tests '*ALaneOverHttpIsIndistinguishableIT' --tests '*TwoAppliancesOneTenantIT' --tests '*AuditReplicatesAsRecordedIT' --tests '*ReplicationDrivenOverHttpIT'
 ./gradlew :core:dbo-runner:test
 ```
 (The link scenarios get their ITs with the transport exercise in #79.)

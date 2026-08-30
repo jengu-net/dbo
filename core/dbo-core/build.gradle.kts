@@ -21,6 +21,7 @@ tasks.jar {
             "Export-Package" to "cloud.jengu.dbo.core.api.*;version=0.1.0"
                 + ",cloud.jengu.dbo.core.face;version=0.1.0"
                 + ",cloud.jengu.dbo.core.process;version=0.1.0"
+                + ",cloud.jengu.dbo.core.wire;version=0.1.0"
                 + ",cloud.jengu.dbo.core;version=0.1.0",
         ))
     }

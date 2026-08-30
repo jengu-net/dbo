@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.runner.http;
+package cloud.jengu.dbo.core.wire;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -12,7 +12,7 @@ import java.util.Map;
  * library to its consumers has made a dependency decision on their behalf,
  * and this one parses and renders trees of {@code Map}, {@code List},
  * {@code String}, {@code Long}, {@code Double}, {@code Boolean} and null,
- * which is the whole of what {@link LaneWire} needs.
+ * which is the whole of what {@link RecordWire} needs.
  */
 final class Json {
 

@@ -17,7 +17,7 @@ tasks.jar {
     bundle {
         bnd(mapOf(
             "Bundle-SymbolicName" to "cloud.jengu.dbo.sync",
-            "Export-Package" to "cloud.jengu.dbo.sync;version=0.1.0",
+            "Export-Package" to "cloud.jengu.dbo.sync;version=0.1.0,cloud.jengu.dbo.sync.http;version=0.1.0",
         ))
     }
 }

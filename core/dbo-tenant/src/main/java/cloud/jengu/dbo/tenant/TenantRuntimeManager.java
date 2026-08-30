@@ -140,6 +140,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
             java.time.Duration.ofMinutes(2);
     /** Where each tenant's lane surface is mounted (#154), for the same teardown. */
     private final Map<String, String> workContexts = new java.util.concurrent.ConcurrentHashMap<>();
+    /** And its replication surface (#157). */
+    private final Map<String, String> replicationContexts =
+            new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<String, java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine>> syncEngines =
             new ConcurrentHashMap<>();
     /** Where a tenant's runs are written: the engine, under the policy decorator. */
@@ -767,6 +770,26 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     laneFeed, laneDeclarations, participant, identity,
                                     runtime.engine(), laneIntroductions, entitlement)));
             workContexts.put(spec.code(), workPath);
+            // The replication surface (#157): the same asymmetry one layer up.
+            // Declarations flow cloud → appliance, so the cloud is the side
+            // that must PRODUCE outbound batches, and it is the side that
+            // cannot hold a Lanes — pull-not-push does not move that, because
+            // whoever pulls, the cloud still builds the batch.
+            //
+            // Built once and captured: the lane's own bookkeeping is records
+            // in this tenant's store, and a second Lanes over the same store
+            // would be a second set of cursors for one peer.
+            String replicationPath = "/t/" + spec.code() + "/replication";
+            cloud.jengu.dbo.sync.Lanes replication = new cloud.jengu.dbo.sync.Lanes(
+                    runStores.get(spec.code()), laneFeed, laneRuns, spec.code(),
+                    // The trail replicates through the audit refusal's one
+                    // admission (§7.8); the engine below the policy wrapper is
+                    // what everything else on this lane writes through.
+                    runtime.engine() instanceof cloud.jengu.dbo.core.api.AuditReplay admitted
+                            ? admitted : null);
+            sharedServer.createContext(replicationPath, new cloud.jengu.dbo.sync.http.LanesHandler(
+                    replicationPath, new ReplicationGrants(authority), () -> replication));
+            replicationContexts.put(spec.code(), replicationPath);
         }
         runtimes.put(spec.code(), runtime);
         wireDependencies(spec, runtime, db);
@@ -1012,6 +1035,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // deployment did about a tenant belongs in that tenant's own store,
         // queryable and versioned and dropped with it (#46).
         all.addAll(cloud.jengu.dbo.work.WorkModel.registrations());
+        // And the replication lane's own bookkeeping (#157): where each peer
+        // has reached, and what arrived for which work. Same argument again —
+        // a lane's state is this tenant's, dropped when the tenant is. Without
+        // these the surface comes up and the first verb fails on a type
+        // nobody registered, which is a tenant that looks served and is not.
+        all.addAll(cloud.jengu.dbo.sync.LaneModel.registrations());
+        all.addAll(cloud.jengu.dbo.sync.PlacementModel.registrations());
         ObjectStore engine = pdiWrapped(spec, db, all, face);
         // Runs go to the engine rather than through the policy decorator, and
         // everything that records them for this tenant uses the same one.
@@ -1140,6 +1170,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String workPath = workContexts.remove(code);
         if (workPath != null) {
             sharedServer.removeContext(workPath);
+        }
+        String replicationPath = replicationContexts.remove(code);
+        if (replicationPath != null) {
+            sharedServer.removeContext(replicationPath);
         }
         String scimPath = scimContexts.remove(code);
         if (scimPath != null) {

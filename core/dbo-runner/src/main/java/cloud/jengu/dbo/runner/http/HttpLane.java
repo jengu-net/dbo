@@ -2,6 +2,7 @@ package cloud.jengu.dbo.runner.http;
 
 import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.core.process.StepDeclaration;
+import cloud.jengu.dbo.core.wire.RecordWire;
 import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
@@ -110,43 +111,43 @@ public final class HttpLane implements Lane {
     @Override
     public List<Run> poll(Set<String> steps, int limit) {
         Map<String, Object> body = verb();
-        body.put(LaneVerbs.STEPS, LaneWire.encode(List.copyOf(steps)));
+        body.put(LaneVerbs.STEPS, RecordWire.encode(List.copyOf(steps)));
         body.put(LaneVerbs.LIMIT, limit);
-        return LaneWire.decodeList(post(LaneVerbs.POLL, body), Run.class);
+        return RecordWire.decodeList(post(LaneVerbs.POLL, body), Run.class);
     }
 
     @Override
     public Optional<Run> claim(Run run, Duration holdFor) {
         Map<String, Object> body = verb();
-        body.put(LaneVerbs.RUN, LaneWire.encode(run));
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
         body.put(LaneVerbs.HOLD_FOR_MILLIS, holdFor.toMillis());
-        return Optional.ofNullable(LaneWire.decode(post(LaneVerbs.CLAIM, body), Run.class));
+        return Optional.ofNullable(RecordWire.decode(post(LaneVerbs.CLAIM, body), Run.class));
     }
 
     @Override
     public Run checkpoint(Run run, Map<String, Long> counts, Duration holdFor) {
         Map<String, Object> body = verb();
-        body.put(LaneVerbs.RUN, LaneWire.encode(run));
-        body.put(LaneVerbs.COUNTS, LaneWire.encode(counts));
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        body.put(LaneVerbs.COUNTS, RecordWire.encode(counts));
         body.put(LaneVerbs.HOLD_FOR_MILLIS, holdFor.toMillis());
-        return LaneWire.decode(post(LaneVerbs.CHECKPOINT, body), Run.class);
+        return RecordWire.decode(post(LaneVerbs.CHECKPOINT, body), Run.class);
     }
 
     @Override
     public Run milestone(Run run, String milestone, Map<String, Long> counts,
             Duration holdFor) {
         Map<String, Object> body = verb();
-        body.put(LaneVerbs.RUN, LaneWire.encode(run));
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
         body.put(LaneVerbs.MILESTONE_NAME, milestone);
-        body.put(LaneVerbs.COUNTS, LaneWire.encode(counts));
+        body.put(LaneVerbs.COUNTS, RecordWire.encode(counts));
         body.put(LaneVerbs.HOLD_FOR_MILLIS, holdFor.toMillis());
-        return LaneWire.decode(post(LaneVerbs.MILESTONE, body), Run.class);
+        return RecordWire.decode(post(LaneVerbs.MILESTONE, body), Run.class);
     }
 
     @Override
     public void released(Run run, String reason) {
         Map<String, Object> body = verb();
-        body.put(LaneVerbs.RUN, LaneWire.encode(run));
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
         body.put(LaneVerbs.REASON, reason);
         post(LaneVerbs.RELEASED, body);
     }
@@ -154,7 +155,7 @@ public final class HttpLane implements Lane {
     @Override
     public void closed(Run run) {
         Map<String, Object> body = verb();
-        body.put(LaneVerbs.RUN, LaneWire.encode(run));
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
         post(LaneVerbs.CLOSED, body);
     }
 
@@ -167,38 +168,38 @@ public final class HttpLane implements Lane {
     @Override
     public void declare(Declarations.Declared declared) {
         Map<String, Object> body = verb();
-        body.put(LaneVerbs.DECLARED, LaneWire.encode(declared));
+        body.put(LaneVerbs.DECLARED, RecordWire.encode(declared));
         post(LaneVerbs.DECLARE, body);
     }
 
     @Override
     public void introduce(StepDeclaration step) {
         Map<String, Object> body = verb();
-        body.put(LaneVerbs.STEP, LaneWire.encode(step));
+        body.put(LaneVerbs.STEP, RecordWire.encode(step));
         post(LaneVerbs.INTRODUCE, body);
     }
 
     @Override
     public void withdraw(Declarations.Declared declared) {
         Map<String, Object> body = verb();
-        body.put(LaneVerbs.DECLARED, LaneWire.encode(declared));
+        body.put(LaneVerbs.DECLARED, RecordWire.encode(declared));
         post(LaneVerbs.WITHDRAW, body);
     }
 
     @Override
     public Map<String, StoredObject> inputs(Run run) {
         Map<String, Object> body = verb();
-        body.put(LaneVerbs.RUN, LaneWire.encode(run));
-        return LaneWire.decodeMap(post(LaneVerbs.INPUTS, body), StoredObject.class);
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        return RecordWire.decodeMap(post(LaneVerbs.INPUTS, body), StoredObject.class);
     }
 
     /** Who is asking and who is working — on every verb, because the surface is stateless. */
     private Map<String, Object> verb() {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put(LaneVerbs.PARTICIPANT, participant);
-        body.put(LaneVerbs.IDENTITY, LaneWire.encode(identity));
+        body.put(LaneVerbs.IDENTITY, RecordWire.encode(identity));
         if (boundTo != null) {
-            body.put(LaneVerbs.ENTITLED_STEPS, LaneWire.encode(List.copyOf(boundTo)));
+            body.put(LaneVerbs.ENTITLED_STEPS, RecordWire.encode(List.copyOf(boundTo)));
         }
         return body;
     }
@@ -209,7 +210,7 @@ public final class HttpLane implements Lane {
                 ? verb.path() : base.getPath() + "/" + verb.path());
         HttpRequest.Builder request = HttpRequest.newBuilder(target)
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(Json.render(body),
+                .POST(HttpRequest.BodyPublishers.ofString(RecordWire.write(body),
                         StandardCharsets.UTF_8));
         String token = bearer.get();
         if (token != null) {
@@ -227,7 +228,7 @@ public final class HttpLane implements Lane {
                     interrupted);
         }
         Object envelope = response.body() == null || response.body().isEmpty()
-                ? Map.of() : LaneWire.read(response.body());
+                ? Map.of() : RecordWire.read(response.body());
         if (response.statusCode() != 200) {
             throw new IllegalStateException(tenant + ": " + verb.path() + " refused ("
                     + response.statusCode() + ") — " + reason(envelope));
