@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.core.api.StoreUnreachableException;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
@@ -253,6 +254,36 @@ class ALaneOverHttpIsIndistinguishableIT {
         assertTrue(refused.getMessage().contains("not entitled"),
                 "asking for a step the credential does not cover grants nothing: "
                         + refused.getMessage());
+    }
+
+    @Test
+    @DisplayName("a refusal and a store that did not answer are different exceptions, "
+            + "because a bench must stop asking for one and keep asking for the other")
+    @Proving(DboPromises.PROC_REFUSED_IS_NOT_UNANSWERED)
+    void aRefusalIsNotAnUnansweredCall() throws Exception {
+        // Settled: this credential holds no participation scope and never will.
+        // Backing off is the right answer, so it must NOT read as transient.
+        String token = participant("reads-only-too", "system/*.read");
+        Lane refused = hostLane("reads-only-too", token);
+        IllegalStateException settled = assertThrows(IllegalStateException.class,
+                () -> refused.poll(java.util.Set.of(STEP), 10));
+        assertFalse(settled instanceof StoreUnreachableException,
+                "a decision about the caller is settled: " + settled.getMessage());
+
+        // Unanswered: nothing is listening. The verb is retryable, and a bench
+        // that read this as a refusal would stop taking work it is entitled to
+        // — and lose the claim it holds when the deadline passes.
+        int dead;
+        try (java.net.ServerSocket free = new java.net.ServerSocket(0)) {
+            dead = free.getLocalPort();
+        }
+        Lane unreachable = HttpLane.to(
+                URI.create("http://127.0.0.1:" + dead + "/t/" + TENANT + "/work"),
+                () -> token, TENANT, "bench-offline",
+                new Executor("bench-offline", "1.0", "cloud.jengu.test", Scope.BASELINE));
+        assertThrows(StoreUnreachableException.class,
+                () -> unreachable.poll(java.util.Set.of(STEP), 10),
+                "a store that never spoke is not a decision about anybody");
     }
 
     private static Lane hostLane(String participant, String token) {

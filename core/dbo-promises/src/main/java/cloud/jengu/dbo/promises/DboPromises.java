@@ -183,6 +183,13 @@ public enum DboPromises implements Promise {
             + "reach of a remote participant never depends on a parameter somebody "
             + "forgot."),
 
+    PROC_REFUSED_IS_NOT_UNANSWERED("A lane verb that was refused and one the store "
+            + "never answered are told apart on the exception, because the two want "
+            + "opposite recoveries: a refusal is settled and asking again is wrong, an "
+            + "unanswered call is transient and asking again is the only way through. A "
+            + "participant that confused them would back off from work it is entitled to "
+            + "and lose the claim it was holding when the deadline passed."),
+
     PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS("A host that reaches the store over HTTP "
             + "obtains the same lane as one that holds the store in-process: the tenant "
             + "serves the participation verbs on its own private surface, guarded by its "
