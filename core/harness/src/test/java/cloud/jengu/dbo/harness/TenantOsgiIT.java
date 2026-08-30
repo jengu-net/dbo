@@ -192,7 +192,7 @@ class TenantOsgiIT {
     // timeout says nothing at all, where the assertion names what the
     // container was actually showing. Whichever fires, it should be the one
     // that carries a diagnosis.
-    @Timeout(240)
+    @Timeout(480)
     @Proving(DboPromises.CONT_DYNAMIC_TENANT_SERVICES)
     void aSpecFileLightsUpTheWholeChainInContainer() throws Exception {
         assertEquals(Bundle.ACTIVE, tenantBundle.getState());
@@ -236,7 +236,17 @@ class TenantOsgiIT {
         // The budget that IS a subject lives in ServerDistIT, where a cold
         // start is measured against a number somebody chose. Two waits, two
         // meanings; only one of them should fail when a runner is busy.
-        long deadline = System.currentTimeMillis() + 180_000;
+        // Waits on the two answers separately, which is what the container's
+        // own state makes possible. A tenant still COMING UP is a slow runner
+        // and nothing else — this test says in its own words that how long
+        // bring-up takes here is not its subject — so it is given room. A
+        // tenant that reports FAILED will never come up however long anybody
+        // waits, so waiting is only a slower way to say so.
+        //
+        // Both were one 180-second wait before, which made the fast answer
+        // slow and the slow answer a false red: this failed twice on CI with
+        // the tenant still coming up, and would have passed with more room.
+        long deadline = System.currentTimeMillis() + 420_000;
         int status = 0;
         while (System.currentTimeMillis() < deadline) {
             try {
@@ -247,6 +257,9 @@ class TenantOsgiIT {
                 }
             } catch (java.io.IOException e) {
                 // server not up yet
+            }
+            if (runtimeState().contains("\"state\":\"failed\"")) {
+                break;
             }
             Thread.sleep(250);
         }
