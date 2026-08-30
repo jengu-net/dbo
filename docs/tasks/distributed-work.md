@@ -1,23 +1,24 @@
 # Distributed work
 
-**Status** — doctrine decided and written; **#71, #147, #148, #149, #150,
-#77, #80, #151, #154, #155, #156 and #157 are closed**, and only the console
-(#75/#76) is open: the declaration seam (steps, actions, mandatory-steps incident
-classification), introduction over the link, run inputs filling declared slots,
-milestones on the checkpoint, and the participant with both halves of reach.
-**#79 is closed** and **#91's run-path precondition is met**: the runner drives
-a lane it can only reach across a boundary and cannot tell, killing a
-participant mid-work loses neither half, and the `Task` a run is rendered as
-now has a published profile beside the systems it carries. **#154 is closed**:
-a host that reaches the store over HTTP obtains a lane, which is what the
-consumer's cloud side was missing and the last thing gating their work lane.
-Nothing is left gating the console (#75/#76) but building it. See `Sequence` for the order and
-what each remaining step is waiting on.
+**Status** — the doctrine is decided and written, and the whole participation
+cluster is built: the declaration seam, introduction over the link, run inputs
+filling declared slots, milestones on the checkpoint, the participant with both
+halves of reach, the reference runner over a real boundary, the replication
+toolset including the trail, a lane and a replication surface for hosts that
+are not the container, and the trackables a connected worker routes for.
+
+**One issue is open** — [#158](https://github.com/jengu-net/dbo/issues/158),
+whose concepts are built and whose remaining question is under `Open questions`
+below — and **the console (#75/#76) is open as coverage rather than
+capability**: its commands are built, and what is missing is the test the row
+for step 17 names. See `Sequence` for the order and what each step delivered.
 
 **Issues** — the participation cluster, formerly under the closed #46.
-Open: [#75](https://github.com/jengu-net/dbo/issues/75) /
+Open: [#158](https://github.com/jengu-net/dbo/issues/158) (a trackable may
+route other trackables — concepts built, reach unsettled) ·
+[#75](https://github.com/jengu-net/dbo/issues/75) /
 [#76](https://github.com/jengu-net/dbo/issues/76) (the console — its commands
-are built, and what is open is the coverage the row for step 16 names).
+are built, and what is open is the coverage the row for step 17 names).
 Closed: [#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on
 the link) · [#151](https://github.com/jengu-net/dbo/issues/151) (the edge's work
 lane: who advances a claimed run, and edge-originated work as upstream) ·
@@ -140,7 +141,11 @@ proves (#148).
   `PLANNED` with a `TODO` on the constant naming what a proof would have to
   show (`PROC_CATALOGUE_IN_STORE`, `PROC_DOMAIN_CODE_FILTER`,
   `PROC_RUN_HAS_A_RECORD`, `PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY`,
-  `PROC_NETWORK_MAP`). `PROC_RUN_SAYS_WHO_HOLDS_IT` left that list on
+  `PROC_NETWORK_MAP`). `PROC_NETWORK_MAP` is the one of those five that has
+  since moved without leaving the list: `dbo-process:list` is its **local**
+  half — what this node knows how to do — and what keeps it `PLANNED` is the
+  cross-node half, which needs an answer to "what does the network know" that
+  no surface gives yet. `PROC_RUN_SAYS_WHO_HOLDS_IT` left that list on
   2026-08-27: `RunsAreRecordsIT` already proved the holder follows the
   failure class and that `holding(PERSON)` is a store query, and now cites
   it. PROC is the first area to leave the SHAPE/PDI pilot behind entirely.
@@ -156,6 +161,22 @@ proves (#148).
   named — through the audit refusal's one admission (§7.8), and the arrival
   writes no second trail. Bounded by the work like everything else on the
   lane, and effectively-once by a claim on the source's own identity.
+- **What is out there, and who last saw it**: a connected worker reports for
+  itself and may **route** others, so the store holds one row per trackable at
+  any depth — the instrument two hops down stored exactly as the connector is.
+  Presence stays derived where a cursor exists and is attested where it does
+  not, the attestation naming the worker that reported rather than the parent
+  it sits behind. The store imposes no freshness rule on routed state and
+  refuses a routed trackable that tries to report for itself, because both
+  would be it recording something it has no way to know.
+- **The console describes both halves**: `dbo-process:list` shows what this
+  node knows how to do — installed and introduced, with provenance per row —
+  and answers on a node serving no tenant at all, because the catalogue is
+  what is installed rather than what is running. `dbo-process:describe`
+  answers which executor would run a step here and why that one, beside each
+  candidate's derived presence and the vitals it last published.
+  `dbo-run:list` and `dbo-run:describe` were already there, and #76's session
+  gives the console a tenant context and an identity.
 - **Consumer's half, later**: the WebSocket lane (socket, framing, handshake,
   tenant auth) is the platform's per ADR 0062 — now driven from their side by
   [platform#917](https://github.com/jengu-net/jengu-platform/issues/917)
@@ -189,10 +210,11 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 16 | **A trackable may route other trackables** ([#158](https://github.com/jengu-net/dbo/issues/158)) — state normalised at any depth, trust delegated down the chain. | **DONE** 2026-08-30 — `Trackable`, `Trackables`, one row per thing however deep; the attestation names the worker that reported rather than the parent it sits behind; no freshness rule, deliberately (`ATrackableMayRouteOthersIT`) |
 | 17 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **MOSTLY DONE** 2026-08-30 — more was already built than this row said: the run half (`dbo-run:list`, `dbo-run:describe`) and #76's session (`dbo:login`, `dbo:context`) were there, and the catalogue half landed now (`dbo-process:list`, `dbo-process:describe`, including which executor would run a step here and why that one). **Left**: the executor half of `describe` is untested — it needs a store, so it needs the harness — and `PROC_NETWORK_MAP` stays `PLANNED` until the cross-node half exists |
 
-**The critical path is spent**, and 17 is most of the way through as well: the console reads runs over HTTP, and the shape
-what remains of the console is coverage rather than capability. Step 11
-(#148) hangs off 9 and is independent of everything else; its carrier is
-decided — the declaration record, where the runner already puts it.
+**Every step is delivered.** What remains in this topic is not capability:
+the console's commands are built and its executor half is untested (step 17),
+and #158's concepts are built while how a routed tree reaches the store is
+still open (`Open questions`). Nothing is waiting on another repository, and
+nothing is waiting on a decision somebody has not been asked for.
 
 ## Decisions
 
@@ -443,7 +465,54 @@ catalogue** — which is what makes #147 (a participant introducing a step)
 an addition rather than a migration: a run could always name a step that had
 no declaration yet.
 
+## Open questions
+
+The one thing in this topic nobody has answered yet. It lives here rather than
+inside `Decisions` because a decision that has been taken and a question that
+is still open read the same in a list of bold sentences, and only one of them
+is somebody's next move.
+
+**How does a routed tree reach the store?** #158's concepts are built and the
+type is registered per tenant, so the state has somewhere to live — but
+nothing outside the container constructs `Trackables`, and no verb carries a
+routed tree to one. The issue said the transport stays the consumer's and only
+the normalisation moves here, which is right and does not settle where the
+normalising happens. Three candidates, with different costs:
+
+- a **lane verb** beside `declare`, so a router reports its tree the way it
+  reports its own candidacy — coherent, and one more verb on an interface
+  deliberately kept small;
+- **the store normalising on arrival** from what already rides `declare` — no
+  transport change at all, at the price of the engine reading a vitals block
+  it promised to treat as opaque, which is the contract #148 rests on;
+- **a shape dbo publishes** that routers write inside vitals, leaving the
+  engine reading nothing — the third option weighed when #158 was decided,
+  and not chosen then.
+
+Worth settling before a consumer adopts it, because whichever is picked is
+what every future router does. Until it is, #158's normalisation is reachable
+only by a host that *is* the container — which is the fourth instance of the
+pattern below, and was found by asking its two questions of our own work.
+
 ## Traps
+
+**A toolset can be built, proven and unreachable, and the tests will not say
+so.** It has happened four times here: the participation lane (#154), the
+replication toolset (#157), and both halves of #158 — a type registered for no
+tenant, and a normalisation nothing outside the container can call. Every time
+it passed its harness tests, because a harness *is* the container and
+constructs whatever it needs. Two questions catch it, and they have to be
+asked deliberately because nothing fails:
+
+- **who constructs this outside a test?** `grep 'new X('` over production
+  sources answering nothing is the whole signal, and it was visible before
+  anybody hit it, all four times.
+- **where does its own state live?** A surface can be mounted and correct
+  while the type it writes is registered for no tenant, and the failure then
+  arrives as an unrelated-looking error on the first verb.
+
+The second is cheaper to check and easier to miss: #157 taught it, and #158
+reproduced it hours later in work written by the same hand.
 
 **A report writes the state it was handed, so reporting twice from the run as
 claimed erases the first report.** `Runs.update` re-reads the stored object for
@@ -493,31 +562,6 @@ itself**, because the store would then be recording a claim with no observer.
 Presence stays derived where a cursor exists; attested is a different fact,
 naming the worker that saw it rather than the parent it sits behind, because
 "where it sits" and "who to ask" are different questions.
-
-**#158's normalisation is not reachable from outside the container yet, and
-that is the open question it leaves.** The concepts are built and the type is
-registered per tenant, so the state has somewhere to live — but nothing
-outside the container constructs `Trackables`, and there is no verb or surface
-that carries a routed tree to it. The issue said the transport stays the
-consumer's and only the normalisation would move here, which is right and
-does not settle where the normalising happens:
-
-- a **lane verb** beside `declare`, so a router reports its tree the way it
-  reports its own candidacy — coherent, and it is one more verb on an
-  interface deliberately kept to twelve;
-- **the store normalising on arrival** from what already rides `declare` —
-  no transport change at all, but it means the engine reading a vitals block
-  it promised to treat as opaque, which is the contract #148 rests on;
-- **a shape dbo publishes** that routers write inside vitals, leaving the
-  engine reading nothing — which was the third option weighed when #158 was
-  decided, and was not chosen.
-
-Worth settling before the consumer adopts it, because whichever is picked is
-what every future router does. Recorded rather than guessed: this is the
-fourth instance of the same pattern (#154, #157, and now this), and the
-check that catches it is two questions — *who constructs this outside a test*,
-and *where does its own state live*. The second was a defect here and is
-fixed; the first is this question.
 
 **Vitals annotate presence; they never supply it** (decided 2026-08-30, #148).
 The carrier is the declaration record — where the runner already put it —
@@ -668,7 +712,9 @@ scopes and what the step admits, like every declaration.
 ## Verifying
 
 ```bash
-./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT' --tests '*ClaimIsTheIntersectionIT' --tests '*ARemoteLaneIsIndistinguishableIT' --tests '*ALaneStaysTransportShapedTest' --tests '*DbosBelowResumesItsOwnHalfFinishedWorkIT' --tests '*ALaneOverHttpIsIndistinguishableIT' --tests '*TwoAppliancesOneTenantIT' --tests '*AuditReplicatesAsRecordedIT' --tests '*ReplicationDrivenOverHttpIT'
-./gradlew :core:dbo-runner:test
+./gradlew :core:dbo-work:test :core:harness:test --tests '*ParticipantsPullAndClaimIT' --tests '*ExecutorIsRecordedIT' --tests '*RunsRenderIT' --tests '*StepsAreDeclaredIT' --tests '*MandatoryStepsClassifyIncidentsIT' --tests '*StepRunnerIT' --tests '*ReportsGoThroughDeclaredActionsIT' --tests '*RunNamesItsInputsIT' --tests '*MilestonesOnTheCheckpointIT' --tests '*StepsArriveByIntroductionIT' --tests '*ClaimIsTheIntersectionIT' --tests '*ARemoteLaneIsIndistinguishableIT' --tests '*ALaneStaysTransportShapedTest' --tests '*DbosBelowResumesItsOwnHalfFinishedWorkIT' --tests '*ALaneOverHttpIsIndistinguishableIT' --tests '*TwoAppliancesOneTenantIT' --tests '*AuditReplicatesAsRecordedIT' --tests '*ReplicationDrivenOverHttpIT' --tests '*ExecutorsDeclareThemselvesIT' --tests '*ATrackableMayRouteOthersIT'
+./gradlew :core:dbo-runner:test :karaf:commands:test
 ```
-(The link scenarios get their ITs with the transport exercise in #79.)
+The second line is not an afterthought: the runner's wire and the console's
+catalogue half are both covered by plain unit tests that need no container and
+no Postgres, and neither runs as part of the harness suite above.
