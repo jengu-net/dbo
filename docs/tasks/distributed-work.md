@@ -1,7 +1,7 @@
 # Distributed work
 
 **Status** — doctrine decided and written; **#71, #147, #149, #150, #77, #80,
-#154 and #155 are closed**: the declaration seam (steps, actions, mandatory-steps incident
+#151, #154 and #155 are closed**: the declaration seam (steps, actions, mandatory-steps incident
 classification), introduction over the link, run inputs filling declared slots,
 milestones on the checkpoint, and the participant with both halves of reach.
 **#79 is closed** and **#91's run-path precondition is met**: the runner drives
@@ -18,10 +18,8 @@ Open: [#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on the
 link — its carrier is delivered) ·
 [#75](https://github.com/jengu-net/dbo/issues/75) /
 [#76](https://github.com/jengu-net/dbo/issues/76) (console).
-[#151](https://github.com/jengu-net/dbo/issues/151) (the edge's work
-lane: claim advancement across it, edge-originated work as upstream —
-posed by platform#917's work-lane-first sequencing).
-Closed: [#69](https://github.com/jengu-net/dbo/issues/69) /
+Closed: [#151](https://github.com/jengu-net/dbo/issues/151) (the edge's work
+lane: who advances a claimed run, and edge-originated work as upstream) · [#69](https://github.com/jengu-net/dbo/issues/69) /
 [#70](https://github.com/jengu-net/dbo/issues/70) (run record and its
 `Task`) · [#72](https://github.com/jengu-net/dbo/issues/72) /
 [#78](https://github.com/jengu-net/dbo/issues/78) (executor declaration and
@@ -175,13 +173,13 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 10 | **A host that is not the container holds a lane** ([#154](https://github.com/jengu-net/dbo/issues/154)) — the tenant serves the participation verbs on its own private surface; a host reaches them and the runner cannot tell. | **DONE** 2026-08-29 — `ALaneOverHttpIsIndistinguishableIT` (a real runner, a real tenant, a real token), `LaneWireCarriesTheRecordAsDeclaredTest` |
 | 11 | **Vital signs on the link** ([#148](https://github.com/jengu-net/dbo/issues/148)) — what rides the carrier, and a presence display that does not page about a healthy idle fleet. | **NEXT** — its carrier is delivered; the runner already publishes vitals on the declaration record |
 | 12 | **The replication toolset** ([#80](https://github.com/jengu-net/dbo/issues/80)) — moving the work and the data it names between two appliances. | **DONE** 2026-08-29 — the batch, the idempotent-and-reorder-safe apply, the epoch, echoed markers, mirrored filing, work-driven expiry and the process allowlist (`TwoAppliancesOneTenantIT`), and now the trail: an appliance's entries arrive with the actor, the time and the appliance that recorded them, and the arrival writes no second trail (`AuditReplicatesAsRecordedIT`, §7.8, #155) |
-| 13 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **BLOCKED by the consumer's sequencing** — posed by [platform#917](https://github.com/jengu-net/jengu-platform/issues/917), whose work-lane-first order owns when this is answered |
+| 13 | **The edge's work lane** ([#151](https://github.com/jengu-net/dbo/issues/151)) — claim advancement across the lane, edge-originated work as upstream. | **DONE** 2026-08-30 — the side that authored a run is the side that advances it, and an appliance offers only what it authored. Both enforced by the store rather than shared as a convention between connectors (`TwoAppliancesOneTenantIT`). The second was a live defect: a mirror travelled back and deepened a key every round |
 | 14 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **NEXT** — 8 landed, so its precondition is met — it reads runs over HTTP, so the `Task` profile gates it too. It is also what would answer `PROC_NETWORK_MAP`, still honestly `PLANNED` |
 
-**The critical path is spent.** 8, 9, 10 and 12 are done, so nothing now blocks
-14 except doing it: the console reads runs over HTTP, and the shape it would
-read is settled and discoverable. Step 11 hangs off 9 and is independent of it.
-Step 13 waits on somebody else's calendar, not on effort here.
+**The critical path is spent.** 8, 9, 10, 12 and 13 are done, so nothing now
+blocks 14 except doing it: the console reads runs over HTTP, and the shape it
+would read is settled and discoverable. Step 11 hangs off 9 and is independent
+of it.
 
 ## Decisions
 
@@ -338,6 +336,24 @@ holds, and nothing it does not hold can be asked into existence. The
 alternative — narrowing on the calling side — is the arrangement where the
 only thing between a broad credential and the tenant's work is a caller
 remembering to do it.
+
+**A run is advanced only where it was authored, and an appliance offers only
+what it authored** (decided 2026-08-30, #151). The two questions #79 left open,
+answered together because they are one rule seen from two ends. A mirror is a
+read-only account: readable, countable, comparable, and not claimable — because
+the lane's latency means "the deadline passed" and "the checkpoint is in flight"
+can both be true, and a peer acting on the first has the work done twice. The
+cost is stated rather than hidden: a bench that dies holding its own work keeps
+it until it returns, and moving it is an operator's act rather than a clock's
+inference.
+
+The second half was not a decision at all when we looked: mirrors *were*
+travelling back, and each round trip made a new record at the far side with one
+more prefix — `cloud@`, then `edge@cloud@` — unbounded, in code closed the day
+before. Found by asking what the rule implied and testing it rather than by
+reading. The rule is the store's now, enforced at run creation and at every
+advance, rather than a convention two connectors would have had to keep
+correctly for ever.
 
 **The audit trail's one admission is a named port, not an authority and not a
 hole** (decided 2026-08-29, #155, recorded as §7.8). Direct writes to the audit
