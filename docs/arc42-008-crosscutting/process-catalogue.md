@@ -448,6 +448,47 @@ different sentence from "nothing is declared". The trap worth naming: **a
 caught-up participant's cursor does not move either**, so silence with nothing
 waiting is not absence, and only silence with work waiting is.
 
+### A trackable may route other trackables
+
+**The topology is a tree, and only its root has a cursor.** A connected worker
+reports for itself; it may also be a **router**, carrying the state of things
+behind it — an appliance behind a connector, an instrument behind that — to
+arbitrary depth. All of them are the same kind of thing: something whose state
+is worth knowing. So there is one record shape and one row per trackable at
+every depth, and the rule about what a state is exists once rather than once
+per router. Three routers each inventing it would disagree, and the
+disagreement surfaces as a question about a bench that nobody can answer.
+
+**What a trackable IS stays outside the engine.** It knows that a trackable
+may route other trackables, and no more — the same line the run record holds,
+where the engine never says the word a face renders it as. A face may project
+a trackable and its state onto whatever its version spells connected things
+with; the fields are chosen so that projection is mechanical, and the word
+still does not appear here.
+
+**Trust is delegated down the chain.** The store has no independent path to a
+routed trackable — everything it knows arrived through the router — so a
+router is trusted about its routees exactly as it is trusted about itself. It
+is enrolled and authenticated, and a router lying about what is behind it is
+the same problem as one lying about itself. Each hop owns liveness for the hop
+below it, with whatever protocol suits that hop: a serial timeout, a TCP
+keepalive, an application ACK.
+
+**So the store imposes no freshness rule on routed state**, and this is a
+refusal rather than an omission. It has no means to evaluate one, and a single
+threshold would be wrong anyway — an instrument on a serial line and an
+appliance on a socket have nothing sensible in common to threshold on. Report
+quality is the router's contract, and a router that reports badly is a fact
+about that router.
+
+**Presence stays derived where there is a cursor, and is attested where there
+is not.** An attestation names **the worker that reported**, which is not
+always the parent: a connector reporting an instrument two hops away is the
+observer, while the appliance between them is where it sits. That is not
+second-class trust — knowing which hop last saw something is what tells an
+operator where to look, and "where it sits" and "who to ask" are different
+questions.
+
 ### A change belongs to a piece of work
 
 A type may declare that **every change to it happens inside a run** — a

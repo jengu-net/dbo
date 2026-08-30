@@ -340,6 +340,16 @@ public enum DboPromises implements Promise {
             + "container. A candidate that can only come from a local bundle makes a "
             + "tenant a single machine."),
 
+    PROC_A_TRACKABLE_MAY_ROUTE_OTHERS("Something whose state is worth knowing is one "
+            + "record at any depth, and a connected worker may route others: it reports the "
+            + "state of what sits behind it, to arbitrary depth, normalised per trackable so "
+            + "the rule exists once rather than once per router. Presence stays derived where "
+            + "there is a cursor and is attested where there is not, the attestation naming "
+            + "the worker that saw it rather than the parent it sits behind. The store "
+            + "imposes no freshness rule on what a router reports: it has no path of its own "
+            + "to ask, and one threshold across a serial line and a socket would be wrong for "
+            + "both."),
+
     PROC_PRESENCE_IS_DERIVED("A participant is present while its named feed cursor "
             + "moves; a declaration whose consumer is behind and unmoving is "
             + "declared-but-not-present, skipped by resolution and shown as such. No "
