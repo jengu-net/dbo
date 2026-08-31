@@ -21,12 +21,14 @@ Structured per [arc42](https://arc42.org/).
   (§8, the same concepts as a reader of that standard sees them),
   [design rationale](arc42-008-crosscutting/design-rationale.md) (§9),
   [maintenance](arc42-008-crosscutting/maintenance.md) (§11),
-  [tenant authority](arc42-008-crosscutting/tenant-authority.md) (§13),
+  [who may act](arc42-008-crosscutting/who-may-act.md) (§13, §16 — the
+  tenant as trust root, and how systems and people get in),
   [data isolation](arc42-008-crosscutting/data-isolation.md) (§14, tenant from
   tenant, person from everyone, and what is declared to cross),
   [tenant policies](arc42-008-crosscutting/tenant-policies.md) (§15),
-  [human identity](arc42-008-crosscutting/human-identity.md) (§16),
-  [zone overlay](arc42-008-crosscutting/zone-overlay.md) (§17)
+  [zone overlay](arc42-008-crosscutting/zone-overlay.md) (§17),
+  [promise](arc42-008-crosscutting/promise.md) (requirements as code — how this
+  repository states and proves what it promises)
 - [arc42-009-architecture-decisions](arc42-009-architecture-decisions/README.md) —
   resolved questions & risks (§7)
 - [evidence/](evidence/) — the measured usage grounding the specification

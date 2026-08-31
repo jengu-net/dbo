@@ -1,4 +1,9 @@
-# Promise: requirements as code (§16)
+# Promise: requirements as code
+
+*Not a §-numbered section of the specification.* This describes how the
+repository states and proves what it promises — a development concept rather
+than a runtime one. It carried "§16" for a while, which belongs to the
+authority sections now gathered in [who may act](who-may-act.md).
 
 A business requirement here is a **promise — proven, not claimed**. The
 `promise/` module is a small, dependency-free subsystem for declaring
