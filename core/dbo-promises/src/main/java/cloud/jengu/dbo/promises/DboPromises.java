@@ -402,6 +402,22 @@ public enum DboPromises implements Promise {
             + "content changes in order, so another appliance asks for what it is "
             + "missing rather than comparing two stores."),
 
+    PDI_ERASURE_IS_A_RUN("A person's erasure is asked for as work and answered by a run: the "
+            + "run is the receipt, carrying what was found, how far the erasure got and when. "
+            + "Asking twice finds the run that already exists rather than opening a second "
+            + "account of one erasure, and a person this store never held closes the run "
+            + "saying so — a repeated request is not an error and an unknown subject is not a "
+            + "refusal. A failure releases the run with its reason rather than closing it, "
+            + "because an erasure that read as done is the one outcome the record exists to "
+            + "prevent."),
+
+    PDI_ERASURE_SAYS_HOW_FAR_IT_GOT("The erasure names the points it passes — the key "
+            + "destroyed, the index removed, the ledger written — so an erasure that stopped "
+            + "between the irreversible half and the half that makes a restore safe is "
+            + "visible as exactly that. It reports what it did rather than that it ran: "
+            + "whether a key was there to destroy tells erased apart from was-never-here, "
+            + "which are different answers to a data subject."),
+
     PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT("What a node reports about work leaves it "
             + "as measurements labelled from a closed set — whose work, which process and "
             + "step, what ran it, and how it ended as one word from a fixed vocabulary. A "

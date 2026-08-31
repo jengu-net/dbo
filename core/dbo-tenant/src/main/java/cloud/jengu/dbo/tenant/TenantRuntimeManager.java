@@ -729,6 +729,30 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // any other write (#133)
                     runtime.engine(), runtime.store()));
             maintenanceContexts.put(spec.code(), adminPath);
+            // Asking for a person's erasure (#165). Its own door and its own
+            // scope, beside maintenance rather than inside it: archiving and
+            // reshaping are things done to the store, and an erasure is an act
+            // performed for somebody that has to leave a run behind. The run
+            // is the answer this returns.
+            cloud.jengu.dbo.pdi.PersonVault vault = vaults.get(spec.code());
+            if (vault != null) {
+                String erasurePath = "/t/" + spec.code() + "/erasure";
+                cloud.jengu.dbo.work.Runs erasureRuns =
+                        new cloud.jengu.dbo.work.Runs(runStores.get(spec.code()));
+                sharedServer.createContext(erasurePath, new ErasureHandler(authority,
+                        new PersonErasure(vault, erasureRuns),
+                        // Here the reference and the vault's person coincide —
+                        // a person IS the record it is stored as — so this
+                        // only strips a face's type prefix. It stays a seam
+                        // because a face whose references do not coincide
+                        // would resolve them here rather than in the door.
+                        reference -> {
+                            int slash = reference.lastIndexOf('/');
+                            String id = slash < 0 ? reference : reference.substring(slash + 1);
+                            return id.isBlank() ? java.util.Optional.empty()
+                                    : java.util.Optional.of(id);
+                        }));
+            }
             // The participation surface (#154): where a host that is NOT the
             // container obtains a lane. An appliance running dbo in-JVM builds
             // its own over its own store and never comes here; a cloud, whose

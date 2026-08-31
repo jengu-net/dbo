@@ -41,11 +41,22 @@ public final class Scopes {
      */
     public static final String WORK = "work";
 
+    /**
+     * The erasure scope: admits the door a person's erasure is asked for
+     * through, and nothing else. Outside the SMART grammar like the two above,
+     * and for a sharper reason — the most consequential act this store performs
+     * should not be reachable by any credential that happens to hold a broad
+     * write grant. Somebody who may write every resource type still may not
+     * destroy a person's key unless they were given this.
+     */
+    public static final String ERASURE = "erasure";
+
     private static final String WORK_STEP = WORK + "/";
 
     /** Validates a declared scope string (as stored on a ClientApplication). */
     public static boolean isValid(String scope) {
-        return SCIM.equals(scope) || WORK.equals(scope) || isWorkStep(scope)
+        return SCIM.equals(scope) || WORK.equals(scope) || ERASURE.equals(scope)
+                || isWorkStep(scope)
                 || SCOPE.matcher(scope).matches();
     }
 

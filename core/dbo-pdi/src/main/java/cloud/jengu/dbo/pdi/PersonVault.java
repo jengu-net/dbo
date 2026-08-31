@@ -301,35 +301,71 @@ public final class PersonVault {
 
     // ------------------------------------------------------------- shredding
 
+    /**
+     * What a shred actually did (#165).
+     *
+     * <p>It returns rather than being void because the caller cannot otherwise
+     * tell <b>erased</b> from <b>was never here</b>, and those are different
+     * answers to a data subject: one says the key is destroyed, the other says
+     * this store never held them. A surface relaying the first when it meant
+     * the second would be reporting an erasure that never happened.
+     *
+     * @param known         whether the vault held this person at all
+     * @param keyDestroyed  whether there was still a key to destroy — false on
+     *                      a repeat, which is a no-op rather than an error
+     * @param identifiers   identifier rows removed
+     * @param lookups       lookup rows removed; a hashed address left behind
+     *                      still answers "is this person here"
+     */
+    public record Shred(boolean known, boolean keyDestroyed, int identifiers, int lookups) {
+
+        /** Nothing here by that id — the honest answer, and not a failure. */
+        static Shred unknown() {
+            return new Shred(false, false, 0, 0);
+        }
+    }
+
     /** §14.1: destroy the key, drop the index, remember only the fact. */
-    public void shred(String personId) {
+    public Shred shred(String personId) {
         try (Connection c = ds.getConnection()) {
             String fingerprint;
+            boolean known;
+            boolean keyDestroyed;
             try (PreparedStatement ps = c.prepareStatement(
                     "SELECT wrapped_key FROM pdi.person WHERE id = ?::uuid")) {
                 ps.setString(1, personId);
                 try (ResultSet rs = ps.executeQuery()) {
-                    byte[] wrapped = rs.next() ? rs.getBytes(1) : null;
+                    known = rs.next();
+                    byte[] wrapped = known ? rs.getBytes(1) : null;
+                    keyDestroyed = wrapped != null;
                     fingerprint = wrapped == null ? "absent" : fingerprint(wrapped);
                 }
+            }
+            if (!known) {
+                // No ledger entry for somebody this store never held: the
+                // ledger is a record of erasures performed, and an entry for a
+                // stranger would make a restore delete rows on their behalf.
+                return Shred.unknown();
             }
             try (PreparedStatement ps = c.prepareStatement(
                     "UPDATE pdi.person SET wrapped_key = NULL, shredded_at = now() WHERE id = ?::uuid")) {
                 ps.setString(1, personId);
                 ps.executeUpdate();
             }
+            int identifiers;
             try (PreparedStatement ps = c.prepareStatement(
                     "DELETE FROM pdi.identifier WHERE person_id = ?::uuid")) {
                 ps.setString(1, personId);
-                ps.executeUpdate();
+                identifiers = ps.executeUpdate();
             }
             // The lookup rows go with them. A hashed address left behind after
             // an erasure still answers "is this person here", which is the
             // question Article 17 says nobody may still be able to ask.
+            int lookups;
             try (PreparedStatement ps = c.prepareStatement(
                     "DELETE FROM pdi.lookup WHERE person_id = ?::uuid")) {
                 ps.setString(1, personId);
-                ps.executeUpdate();
+                lookups = ps.executeUpdate();
             }
             try (PreparedStatement ps = c.prepareStatement("""
                     INSERT INTO pdi.shred_ledger (person_id, key_fingerprint)
@@ -338,6 +374,7 @@ public final class PersonVault {
                 ps.setString(2, fingerprint);
                 ps.executeUpdate();
             }
+            return new Shred(true, keyDestroyed, identifiers, lookups);
         } catch (SQLException e) {
             throw new IllegalStateException("shred failed", e);
         }
