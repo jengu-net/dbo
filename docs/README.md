@@ -15,6 +15,8 @@ Structured per [arc42](https://arc42.org/).
   [engine and faces](arc42-008-crosscutting/engine-and-faces.md) (§1),
   [records you can rely on](arc42-008-crosscutting/records-you-can-rely-on.md)
   (§2–§3, §12 — truth, identity, shape, immutability, rebuild),
+  [finding things](arc42-008-crosscutting/finding-things.md) (search and
+  terminology — an honest answer or a refusal, never an approximation),
   [eventing & feeds](arc42-008-crosscutting/eventing-and-feeds.md) (§6, §10),
   [processes and work](arc42-008-crosscutting/processes-and-work.md) (§8) and
   [work through a FHIR face](arc42-008-crosscutting/work-through-a-fhir-face.md)
