@@ -489,6 +489,29 @@ second-class trust — knowing which hop last saw something is what tells an
 operator where to look, and "where it sits" and "who to ask" are different
 questions.
 
+**A tree reaches the store as a verb of the participation lane**, `routes`,
+beside `declare` — one says what a participant can do, the other what it can
+reach. The two alternatives were weighed and both fail on the same fact:
+**vitals ride a declaration, and a declaration is keyed per process, step,
+scope and name.** A connector declaring candidacy for two steps would carry
+one fleet twice, and withdrawing either declaration would drop half of it. A
+routed tree is not per step. The variant that changed no transport at all
+also asked the engine to read inside a block it promises to treat as opaque,
+which is the contract the vitals block rests on.
+
+**The observer is stamped by the store from the lane's own participant, never
+carried on the wire.** A router that named its own observer could send an
+operator to the wrong hop while being the party accountable for the
+instrument, so what a caller puts there is discarded rather than believed. An
+attestation its reporter could forge is not an attestation.
+
+**Ownership across routers is deliberately not decided.** A participant can
+report a trackable id that another router also reports, and the later report
+wins; the stamped observer is what makes that visible. Bounding it is a
+question for the first deployment where two routers can genuinely see one
+thing, and answering it earlier would be the store deciding what a trackable
+is — the same line it refuses to cross with a freshness rule.
+
 ### A change belongs to a piece of work
 
 A type may declare that **every change to it happens inside a run** — a

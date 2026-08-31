@@ -92,7 +92,6 @@ can tell a wait from a stall. Close the table with the critical path, so
 | [Medplum → dbo](medplum-to-dbo.md) | active | [platform#851](https://github.com/jengu-net/jengu-platform/issues/851) |
 | [Data versioning](data-versioning.md) | store side delivered; consumer side pending | [platform#778](https://github.com/jengu-net/jengu-platform/issues/778) |
 | [The face contract](face-contract.md) | active, four slices open | [#38](https://github.com/jengu-net/dbo/issues/38) |
-| [Distributed work](distributed-work.md) | doctrine decided; runner and transport open | [#71](https://github.com/jengu-net/dbo/issues/71), [#77](https://github.com/jengu-net/dbo/issues/77), [#79](https://github.com/jengu-net/dbo/issues/79), [#80](https://github.com/jengu-net/dbo/issues/80) |
 
 Everything else open in this repository is backlog: it has an issue, and it
 does not yet have enough shape to need one of these.
