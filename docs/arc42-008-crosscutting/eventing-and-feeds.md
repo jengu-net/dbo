@@ -66,7 +66,7 @@ hit tenant-local envelope indexes; there are no cross-database joins).
   upstream.
   The written-under shape stamp travels the feed beside the storage-format
   version, so a mirrored copy keeps the stamp of the store that validated it
-  ([shape versioning](shape-versioning.md)); only an authored accept restamps.
+  ([records you can rely on(records-you-can-rely-on.md)); only an authored accept restamps.
 
 **Terminology has a native form.** CodeSystems are among the heaviest-used
 objects in the platform (every lookup, `$expand`, `validate-code`, alias

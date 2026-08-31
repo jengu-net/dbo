@@ -46,7 +46,7 @@ in place, and it belongs beside them for the same reason — it is machinery an
 operator runs against a live tenant, not a project.
 
 `reshape` converts stock stamped below a target shape major
-([shape versioning](shape-versioning.md)): the store walks the stamp bound,
+([records you can rely on(records-you-can-rely-on.md)): the store walks the stamp bound,
 converts page by page, writes each result back through the face's **accept**
 path so the pack re-validates and re-stamps it, and reports converted,
 refused and remaining with a cursor. Paged, rate-bounded and resumable — a
