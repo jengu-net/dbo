@@ -49,7 +49,7 @@ than through it.
   [platform#917](https://github.com/jengu-net/jengu-platform/issues/917),
   `docs/tasks/edge-appliance-on-dbo.md` over there. Per their ADR 0062/0063
   and the participation doctrine in
-  [distributed-work](../arc42-008-crosscutting/distributed-work.md), the edge
+  [processes and work](../arc42-008-crosscutting/processes-and-work.md), the edge
   runs dbo in-JVM as a second appliance of the same tenant. Everything it needs
   from this side is delivered — the batch/apply toolset and the credential half
   of reach among it — so a stall here is now a question about their half.

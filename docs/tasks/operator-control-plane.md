@@ -16,8 +16,7 @@ telemetry seam) · [#162](https://github.com/jengu-net/dbo/issues/162)
 an identity when it acts).
 
 **Concepts** —
-[distributed work](../arc42-008-crosscutting/distributed-work.md) ·
-[process catalogue](../arc42-008-crosscutting/process-catalogue.md) ·
+[processes and work](../arc42-008-crosscutting/processes-and-work.md) ·
 [the console](../plans/karaf-console.md)
 
 ## What this is

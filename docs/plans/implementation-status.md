@@ -245,10 +245,10 @@ are written down in the spec and have no implementation. **PROC** (the process
 catalogue and distributed work) is built and proven — runs as records, the step
 declaration, the participation lane and the participant, replication, and the
 console that answers who would run a step here. What a process, a step and a
-run are is in
-[`process-catalogue.md`](../arc42-008-crosscutting/process-catalogue.md); how
-work travels to whoever performs it is in
-[`distributed-work.md`](../arc42-008-crosscutting/distributed-work.md).
+run are, and how work reaches whoever performs it, is in
+[`processes-and-work.md`](../arc42-008-crosscutting/processes-and-work.md); how
+those concepts are rendered for a reader of a standard is in
+[`work-through-a-fhir-face.md`](../arc42-008-crosscutting/work-through-a-fhir-face.md).
 `PROC_NETWORK_MAP` is the one promise still `PLANNED`, and it is narrower than
 it was: a node answering its own catalogue is proven, and what is missing is a
 per-node inventory so a deployment can answer for its nodes at once. That
