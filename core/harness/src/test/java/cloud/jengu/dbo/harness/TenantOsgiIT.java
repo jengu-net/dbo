@@ -95,6 +95,11 @@ class TenantOsgiIT {
                 // the promise framework and the store's catalogue — dbo-pdi
                 // imports the catalogue to name promises in refusals (#140)
                 "dbo.promise.jar", "dbo.promises.jar",
+                // the telemetry seam: a leaf the runner imports, so it has to
+                // be here even though nothing in this container exports
+                // anywhere — an import nothing satisfies leaves the runner
+                // bundle unresolved, and that reads as the tenant failing
+                "dbo.telemetry.jar",
                 "dbo.pdi.jar",
                 // the provisioning door the manager mounts — imports auth
                 // and pdi, imported by the tenant bundle

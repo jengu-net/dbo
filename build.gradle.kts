@@ -46,6 +46,11 @@ val dboRuntimeModules = listOf(
     // the promise framework and the store's catalogue: leaf bundles the
     // citing modules (dbo-pdi first) import from
     ":promise", ":core:dbo-promises",
+    // the telemetry seam: a leaf like the two above, imported by anything
+    // that reports a number and carrying no exporter of its own. It has to be
+    // installed even where nothing exports, because the emitting code path
+    // runs everywhere and only its destination differs.
+    ":core:dbo-telemetry",
     ":core:dbo-fhir-r4", ":core:dbo-fhir-r5", ":core:dbo-rest", ":core:dbo-auth", ":core:dbo-pdi",
     // the provisioning door: imports auth and pdi, imported by dbo-tenant
     ":core:dbo-scim",
