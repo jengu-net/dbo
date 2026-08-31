@@ -620,9 +620,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // and system/*.write is the store. Narrower participation
                 // credentials — work/<step>, bounded at issue — are minted
                 // per participant by whoever operates the fleet.
+                // Erasure is granted EXPLICITLY here, and that is the whole
+                // point of it being its own scope (#165): the deployment's own
+                // credential may destroy a person's key, and the broad write
+                // grant sitting beside it does not imply that. A credential
+                // that could write every type still cannot erase anybody
+                // unless somebody wrote the word down.
                 authority.ensureClient("tenant-bootstrap", db.bootstrapClientSecret(),
                         java.util.List.of("system/*.read", "system/*.write",
-                                cloud.jengu.dbo.auth.Scopes.WORK));
+                                cloud.jengu.dbo.auth.Scopes.WORK,
+                                cloud.jengu.dbo.auth.Scopes.ERASURE));
             }
             if (db.rpClientSecret() != null) {
                 // The relying party's record is ensured FROM custody — id,
