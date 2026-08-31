@@ -163,7 +163,7 @@ isolation](data-isolation.md).
 - **The exact rules and their proofs** — the authority and provisioning entries
   in the [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
 - **Who may see what, once they may act** — [data isolation](data-isolation.md).
-- **Where broker declarations and regional configuration live** — [zone
-  overlay](zone-overlay.md).
+- **Where broker declarations and regional configuration live** — [declared
+  rules](declared-rules.md).
 - **How identity artefacts behave as records** — [records you can rely
   on](records-you-can-rely-on.md).
