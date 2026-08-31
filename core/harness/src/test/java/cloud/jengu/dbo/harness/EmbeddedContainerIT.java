@@ -103,6 +103,18 @@ class EmbeddedContainerIT {
             framework.stop();
             framework.waitForStop(20_000);
         }
+        // Released, not merely stopped. stop() ends the framework's threads;
+        // it does not drop the object graph, and a static field keeps the
+        // bundle CLASSLOADERS alive with everything their statics hold --
+        // for the element bundle that is a full set of parsed FHIR
+        // definitions, ~100-215MB per container. Measured: three stopped
+        // frameworks and eleven bundle classloaders were still reachable
+        // while ScimProvisioningIT ran, which touches no OSGi at all, and
+        // the suite carried four extra definition contexts where three
+        // exist to be held.
+        framework = null;
+        bundles = null;
+        server = null;
     }
 
     /** Every production bundle resolves and starts ACTIVE. */

@@ -87,6 +87,17 @@ class TheStackSatisfiesAStatedRangeIT {
             paths.sorted(java.util.Comparator.reverseOrder()).map(Path::toFile)
                     .forEach(File::delete);
         }
+        // Released, not merely stopped. stop() ends the framework's threads;
+        // it does not drop the object graph, and a static field keeps the
+        // bundle CLASSLOADERS alive with everything their statics hold --
+        // for the element bundle that is a full set of parsed FHIR
+        // definitions, ~100-215MB per container. Measured: three stopped
+        // frameworks and eleven bundle classloaders were still reachable
+        // while ScimProvisioningIT ran, which touches no OSGi at all, and
+        // the suite carried four extra definition contexts where three
+        // exist to be held.
+        framework = null;
+        context = null;
     }
 
     /** A consumer bundle that imports one package at one range, and nothing else. */
