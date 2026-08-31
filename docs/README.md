@@ -21,8 +21,8 @@ Structured per [arc42](https://arc42.org/).
   (§6, §10 — one feed primitive behind paging, subscriptions, dependent copies
   and appliance sync),
   [processes and work](arc42-008-crosscutting/processes-and-work.md) (§8) and
-  [work through a FHIR face](arc42-008-crosscutting/work-through-a-fhir-face.md)
-  (§8, the same concepts as a reader of that standard sees them),
+  [the FHIR face](arc42-008-crosscutting/the-fhir-face.md) (every concept above
+  as a FHIR client sees it — readable on its own),
   [design rationale](arc42-008-crosscutting/design-rationale.md) (§9),
   [running it](arc42-008-crosscutting/running-it.md) (§11 — embedding,
   deployment shape, backup as export, upgrades),

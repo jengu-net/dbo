@@ -24,7 +24,7 @@ reaching out to any of them.
 the domain is a face over it ([the engine and its
 faces](engine-and-faces.md)). How these concepts are *rendered* — as FHIR
 resources, or as anything else — is [a face's
-business](work-through-a-fhir-face.md) and deliberately not described here.
+business](the-fhir-face.md) and deliberately not described here.
 
 ## The vocabulary
 
@@ -241,7 +241,7 @@ owed, by whom, and what happened is the store's.
 ## Where the detail is written down
 
 - **How all of this is rendered** for a reader who speaks a particular standard —
-  [work through a FHIR face](work-through-a-fhir-face.md).
+  [the FHIR face](the-fhir-face.md).
 - **The exact rules and their proofs** — the participation entries in the
   [REQ catalogue](../arc42-006-runtime/req-catalogue.md), which carry each rule
   above in its precise form and name the test for it.

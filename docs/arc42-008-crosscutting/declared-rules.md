@@ -173,4 +173,4 @@ that zone is running on a stale fact.
 - **How declarations reach dependent tenants** — [change, and who is
   listening](change-and-who-is-listening.md).
 - **How a trail is rendered** for a reader of a particular standard — [work
-  through a FHIR face](work-through-a-fhir-face.md).
+  through a FHIR face](the-fhir-face.md).
