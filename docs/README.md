@@ -12,7 +12,9 @@ Structured per [arc42](https://arc42.org/).
 - [arc42-007-deployment](arc42-007-deployment/README.md) — scaling/routing (§5),
   [tenant provisioning](arc42-007-deployment/tenant-provisioning.md) (§4)
 - [arc42-008-crosscutting](arc42-008-crosscutting/) —
-  [engine and faces](arc42-008-crosscutting/engine-and-faces.md) (§1),
+  [engine and faces](arc42-008-crosscutting/engine-and-faces.md) (§1) and
+  [the payload seam](arc42-008-crosscutting/the-payload-seam.md) (how data
+  crosses that line — bytes, framing, one parse),
   [records you can rely on](arc42-008-crosscutting/records-you-can-rely-on.md)
   (§2–§3, §12 — truth, identity, shape, immutability, rebuild),
   [finding things](arc42-008-crosscutting/finding-things.md) (search and
