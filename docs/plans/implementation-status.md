@@ -244,8 +244,11 @@ never superuser, and its deletion policies distinguish "stop serving" from
 are written down in the spec and have no implementation. **PROC** (the process
 catalogue and distributed work) is built and proven — runs as records, the step
 declaration, the participation lane and the participant, replication, and the
-console that answers who would run a step here. Its doctrine is in
-[`process-catalogue.md`](../arc42-008-crosscutting/process-catalogue.md).
+console that answers who would run a step here. What a process, a step and a
+run are is in
+[`process-catalogue.md`](../arc42-008-crosscutting/process-catalogue.md); how
+work travels to whoever performs it is in
+[`distributed-work.md`](../arc42-008-crosscutting/distributed-work.md).
 `PROC_NETWORK_MAP` is the one promise still `PLANNED`: it wants what is known
 and running accumulated **across nodes**, and only the single-node half
 exists.
