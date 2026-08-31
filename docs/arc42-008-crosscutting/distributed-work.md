@@ -2,11 +2,19 @@
 
 ## The store does not do the work
 
-Most of what a health system does happens somewhere the store is not. A sample
-is analysed on a bench in a laboratory. A result is checked by a person at a
-screen. A document is signed by somebody's own hospital system, which the store
-does not own and cannot call. Some of those places are behind a router with no
-public address; some are offline for a weekend; some are people.
+This engine is a store for regulated data, and the domain is a face over it
+rather than a fact about it — clinical exchange today, and the same shape
+wherever a published standard, competing parties and a provenance requirement
+meet. Whatever the domain, the same thing is true: almost everything the record
+is *about* happens somewhere the store is not.
+
+A sample is analysed on an instrument in a laboratory. A model is exported from
+the authoring tool of a firm that competes with the others on the project. A
+consignment is inspected at a border. A component's declaration is signed by a
+supplier's own system, which the store does not own and cannot call. And a great
+deal of it is a person at a screen deciding something. Some of those places are
+behind a router with no public address; some are offline for a weekend; some
+belong to organisations that are not on speaking terms.
 
 So the store cannot be the thing that *performs* work. What it can be is the
 place where work is **recorded, offered, taken and reported on** — and this
@@ -32,9 +40,9 @@ each of them.
 
 ## Whoever does the work comes and gets it
 
-Nothing is pushed. A **participant** — a service, a laboratory appliance, a
-hospital's own system, or a person opening a screen — asks the store what is
-waiting for the steps it performs, and takes what it can.
+Nothing is pushed. A **participant** — a service, an on-site appliance, a
+supplier's or a member's own system, or a person opening a screen — asks the
+store what is waiting for the steps it performs, and takes what it can.
 
 That is one decision doing a great deal of work. A participant behind a router
 needs no inbound address. A participant that is switched off for the weekend is
@@ -80,11 +88,11 @@ a step, as opposed to only advancing it, is something the step itself declares.
 
 Nobody registers a participant in a configuration file. A participant
 **announces itself**: it says which step it performs, in which version, on whose
-behalf, and at what scope — a particular zone, a particular organisation, or
+behalf, and at what scope — a particular region, a particular organisation, or
 everywhere. Resolution then walks those announcements, which is what allows a
-local implementation and a hospital's own system to be two candidates for the
-same step, ranked by how local they are rather than by which machine they
-happen to run on.
+local implementation and a participating organisation's own system to be two
+candidates for the same step, ranked by how local they are rather than by which
+machine they happen to run on.
 
 **Presence is worked out, not claimed.** A participant that is keeping up with
 what it asked for is present; one that is behind and not moving is not — and the
@@ -97,9 +105,10 @@ moving. Silence is only absence when there is work waiting.
 
 ## Things that cannot speak for themselves
 
-An analyser on a serial cable has no cursor and no credential. It is reached by
-something that does — a bench appliance, a connector — and that thing **reports
-what it can see behind it**, however many hops away.
+An instrument on a serial cable has no cursor and no credential. Neither does a
+meter in a substation or a sensor in a container. Each is reached by something
+that does — an appliance, a gateway, a connector — and that thing **reports what
+it can see behind it**, however many hops away.
 
 The store records one row per thing whose state is worth knowing, at any depth,
 so the rule about what a state is exists once instead of once per router. What
@@ -128,7 +137,7 @@ participant.
 
 ## Two sites of one tenant
 
-A laboratory with an on-site appliance and a cloud is **one tenant in two
+A site with an on-premises appliance and a cloud is **one tenant in two
 places**, not two tenants. They run the same code and the same declarations, so
 what travels between them is the stored bytes as they are.
 
@@ -139,7 +148,7 @@ Three ideas shape that:
   so a network is somebody's job, and not a dependency of the store working.
 - **Records travel because work needs them, and leave when it no longer does.**
   Not by following references outward, which is how an appliance ends up holding
-  a copy of the whole register.
+  a copy of the entire collection.
 - **The side that started a run is the side that advances it.** The other side
   holds a read-only account. Across a link, "the deadline passed" and "the report
   is in flight" can both be true at once, and a peer acting on the first does the
@@ -187,3 +196,12 @@ This is the shape. The rules, each with the reason it beat the alternative:
 - **Why precedence selects but a step grants the right to override** — ADR 0059.
 - **What an envelope may disclose about work** — ADR 0058.
 - **One tenant across two appliances** — ADR 0062.
+
+And on why none of the above says which industry it is for: the engine is
+neutral by construction ([the engine and its
+faces](engine-and-faces.md)), and where that neutrality is worth money is
+argued in [a neutral repository for a competing
+industry](../plans/ifc-repository.md) and [where a neutral store earns its
+keep](../plans/neutral-exchange-domains.md). Distributed work is the part of
+the engine those arguments lean on hardest: an exchange nobody can host is one
+where every participant's work has to reach them without the host reaching in.
