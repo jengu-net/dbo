@@ -146,6 +146,15 @@ subprojects {
             if (name == "test") {
                 (findProperty("dboTestHeap") as String?)?.let { maxHeapSize = it }
             }
+            // Opt-in GC logging, for measuring what the suite actually holds.
+            // A property rather than a hand-edit, for the same reason the heap
+            // dial is one: the number that matters is the one measured at the
+            // CI dials, and a measurement somebody has to re-derive by editing
+            // a build file is one nobody repeats. Off unless asked for; %p so
+            // each forked worker writes its own.
+            (findProperty("dboTestGcLog") as String?)?.let {
+                jvmArgs("-Xlog:gc:file=$it-%p.log")
+            }
             (findProperty("dboTestParallelism") as String?)?.let {
                 systemProperty(
                     "junit.jupiter.execution.parallel.config.fixed.parallelism", it)
