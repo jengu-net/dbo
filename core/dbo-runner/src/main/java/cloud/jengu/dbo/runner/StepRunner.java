@@ -1,5 +1,8 @@
 package cloud.jengu.dbo.runner;
 
+import cloud.jengu.dbo.telemetry.Label;
+import cloud.jengu.dbo.telemetry.Labels;
+import cloud.jengu.dbo.telemetry.Telemetry;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Run;
 import org.slf4j.Logger;
@@ -45,6 +48,16 @@ public final class StepRunner implements AutoCloseable {
 
     private final Duration holdFor;
     private final Duration pollEvery;
+    /**
+     * Where the numbers go, beside where they are declared (#161).
+     *
+     * <p>Vitals annotate presence at the point of resolution, for the tenant
+     * whose work they describe; these are the same events aggregated for
+     * whoever runs the fleet. Both, because they answer different questions
+     * and one is not a worse copy of the other — and this one is lossy, so
+     * nothing decides anything on it.
+     */
+    private final Telemetry telemetry;
     private final Map<String, StepService> services = new ConcurrentHashMap<>();
     private final Map<String, Lane> lanes = new ConcurrentHashMap<>();
     /**
@@ -60,8 +73,14 @@ public final class StepRunner implements AutoCloseable {
     private volatile boolean running;
 
     public StepRunner(Duration holdFor, Duration pollEvery) {
+        this(holdFor, pollEvery, Telemetry.installed());
+    }
+
+    /** The same, reporting somewhere a caller chose — a test, or an embedder. */
+    public StepRunner(Duration holdFor, Duration pollEvery, Telemetry telemetry) {
         this.holdFor = holdFor;
         this.pollEvery = pollEvery;
+        this.telemetry = telemetry == null ? Telemetry.none() : telemetry;
     }
 
     /**
@@ -207,9 +226,15 @@ public final class StepRunner implements AutoCloseable {
                         : lane.checkpoint(latest.get(), done.tally(), holdFor);
                 lane.closed(reported);
                 sign.done(System.nanoTime() - began);
+                report(lane, claimed, "closed", System.nanoTime() - began);
             } else if (outcome instanceof Outcome.Failed failed) {
                 lane.released(latest.get(), failed.reason());
                 sign.failed(failed.reason());
+                // "released", not the reason: the reason is the step's own
+                // words and belongs on the run, in the store of the tenant
+                // whose work it was. An outcome is a word from a fixed set,
+                // which is what makes it safe to aggregate.
+                report(lane, claimed, "released", System.nanoTime() - began);
             }
         } catch (RuntimeException thrown) {
             // Released, not closed and not swallowed: released is not done,
@@ -218,6 +243,7 @@ public final class StepRunner implements AutoCloseable {
             // the claim.
             lane.released(latest.get(), "the service threw: " + thrown.getMessage());
             sign.failed(String.valueOf(thrown.getMessage()));
+            report(lane, claimed, "threw", System.nanoTime() - began);
         }
     }
 
@@ -254,6 +280,24 @@ public final class StepRunner implements AutoCloseable {
             LOG.warn("declaration failed: tenant={} step={} {}",
                     lane.tenant(), step, declineFailed.getMessage());
         }
+    }
+
+    /**
+     * One run's outcome, as numbers (#161).
+     *
+     * <p>Labelled from what the run's envelope already discloses, minus the
+     * fields that are identifiers or come from another system — see
+     * {@link Label}. Nothing here reads the payload, and nothing carries the
+     * step's own words about a failure.
+     */
+    private void report(Lane lane, Run run, String outcome, long nanos) {
+        Labels labels = Labels.of(Label.TENANT, lane.tenant())
+                .and(Label.PROCESS, run.process())
+                .and(Label.STEP, run.step())
+                .and(Label.EXECUTOR, lane.identity().name())
+                .and(Label.OUTCOME, outcome);
+        telemetry.counted("dbo.run.reported", 1, labels);
+        telemetry.observed("dbo.run.duration", Duration.ofNanos(nanos), labels);
     }
 
     /** This lane's counters for this step, and no other lane's. */

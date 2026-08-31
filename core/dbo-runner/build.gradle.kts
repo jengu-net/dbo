@@ -19,6 +19,10 @@ plugins {
 dependencies {
     api(project(":core:dbo-core"))
     api(project(":core:dbo-work"))
+    // Numbers about what this runner did. api rather than implementation: a
+    // bare-VM embedder constructing a runner may want to hand it an exporter,
+    // and the seam is three methods.
+    api(project(":core:dbo-telemetry"))
     // Injectable into an EXISTING container: the activator whiteboard-tracks
     // step services from any bundle. compileOnly, like every bundle here —
     // outside OSGi the activator is simply never called.

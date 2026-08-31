@@ -402,6 +402,22 @@ public enum DboPromises implements Promise {
             + "content changes in order, so another appliance asks for what it is "
             + "missing rather than comparing two stores."),
 
+    PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT("What a node reports about work leaves it "
+            + "as measurements labelled from a closed set — whose work, which process and "
+            + "step, what ran it, and how it ended as one word from a fixed vocabulary. A "
+            + "failure's own words stay on the run, in the store of the tenant whose work it "
+            + "was: an open field in a stream declared anonymous is how the declaration stops "
+            + "being true without anybody editing it. Identifiers a caller chose are not "
+            + "labels either, being unbounded, and neither is a correlation echoed from "
+            + "another system, because nobody here knows what is in it."),
+
+    PROC_REPORTING_RUNS_WHERE_NOTHING_COLLECTS("A node emits whether or not anything is "
+            + "collecting: the discarding destination is the default rather than a fallback, "
+            + "and an exporter that cannot be loaded leaves the node serving and quiet. "
+            + "Emission that switched itself off without a collector would be a path "
+            + "exercised nowhere but in production, and a store that refused to run without "
+            + "a monitoring stack would have made observability a dependency of serving."),
+
     PROC_A_NODE_ANSWERS_ITS_CATALOGUE("A node says what it knows how to do — the steps "
             + "installed in it and the steps a linked participant introduced, each with the "
             + "party that contributed it, in which version, and which executor would take it "
