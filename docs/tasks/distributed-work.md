@@ -14,9 +14,7 @@ capability**: its commands are built, and what is missing is the test the row
 for step 17 names. See `Sequence` for the order and what each step delivered.
 
 **Issues** — the participation cluster, formerly under the closed #46.
-Open: [#158](https://github.com/jengu-net/dbo/issues/158) (a trackable may
-route other trackables — concepts built, reach unsettled) ·
-[#75](https://github.com/jengu-net/dbo/issues/75) /
+Open: [#75](https://github.com/jengu-net/dbo/issues/75) /
 [#76](https://github.com/jengu-net/dbo/issues/76) (the console — its commands
 are built, and what is open is the coverage the row for step 17 names).
 Closed: [#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on
@@ -168,7 +166,10 @@ proves (#148).
   not, the attestation naming the worker that reported rather than the parent
   it sits behind. The store imposes no freshness rule on routed state and
   refuses a routed trackable that tries to report for itself, because both
-  would be it recording something it has no way to know.
+  would be it recording something it has no way to know. A tree arrives as
+  `routes`, a verb of the participation lane beside `declare` — the observer
+  stamped from the lane's own participant, never carried on the wire, so a
+  router reports what it sees and cannot attest as anybody else.
 - **The console describes both halves**: `dbo-process:list` shows what this
   node knows how to do — installed and introduced, with provenance per row —
   and answers on a node serving no tenant at all, because the catalogue is
@@ -209,6 +210,7 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 15 | **Refused is not unanswered** ([#156](https://github.com/jengu-net/dbo/issues/156)) — a caller can tell a decision about itself from a store that never spoke. | **DONE** 2026-08-30 — `StoreUnreachableException` and the 4xx/5xx line, on both surfaces (`ALaneOverHttpIsIndistinguishableIT`) |
 | 16 | **A trackable may route other trackables** ([#158](https://github.com/jengu-net/dbo/issues/158)) — state normalised at any depth, trust delegated down the chain. | **DONE** 2026-08-30 — `Trackable`, `Trackables`, one row per thing however deep; the attestation names the worker that reported rather than the parent it sits behind; no freshness rule, deliberately (`ATrackableMayRouteOthersIT`) |
 | 17 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **MOSTLY DONE** 2026-08-30 — more was already built than this row said: the run half (`dbo-run:list`, `dbo-run:describe`) and #76's session (`dbo:login`, `dbo:context`) were there, and the catalogue half landed now (`dbo-process:list`, `dbo-process:describe`, including which executor would run a step here and why that one). **Left**: the executor half of `describe` is untested — it needs a store, so it needs the harness — and `PROC_NETWORK_MAP` stays `PLANNED` until the cross-node half exists |
+| 18 | **A routed tree reaches the store** ([#159](https://github.com/jengu-net/dbo/issues/159)) — the transport #158 deliberately left open, settled before a consumer adopted it. | **DONE** 2026-08-31 — `Lane.routes`, the verb on the participation surface both ends share, and `Trackables` constructed where the tenant's lane is built. Observer stamped from the participant rather than read off the wire; proven over real HTTP against a provisioned tenant, including a forged attestation being discarded (`ARoutedTreeArrivesOverTheLaneIT`) |
 
 **Every step is delivered.** What remains in this topic is not capability:
 the console's commands are built and its executor half is untested (step 17),
@@ -467,32 +469,39 @@ no declaration yet.
 
 ## Open questions
 
-The one thing in this topic nobody has answered yet. It lives here rather than
-inside `Decisions` because a decision that has been taken and a question that
-is still open read the same in a list of bold sentences, and only one of them
-is somebody's next move.
+Nothing in this topic is open. The one question that was — how a routed tree
+reaches the store — is answered below, kept here rather than moved into
+`Decisions` because the reasoning that rejected the other two candidates is
+the part somebody will want when a fourth is proposed.
 
-**How does a routed tree reach the store?** #158's concepts are built and the
-type is registered per tenant, so the state has somewhere to live — but
-nothing outside the container constructs `Trackables`, and no verb carries a
-routed tree to one. The issue said the transport stays the consumer's and only
-the normalisation moves here, which is right and does not settle where the
-normalising happens. Three candidates, with different costs:
+~~**How does a routed tree reach the store?**~~ **Answered 2026-08-31 (#159).**
+It travels as a **lane verb**, `routes`, beside `declare` — one says what a
+participant can do, the other what it can reach.
 
-- a **lane verb** beside `declare`, so a router reports its tree the way it
-  reports its own candidacy — coherent, and one more verb on an interface
-  deliberately kept small;
-- **the store normalising on arrival** from what already rides `declare` — no
-  transport change at all, at the price of the engine reading a vitals block
-  it promised to treat as opaque, which is the contract #148 rests on;
-- **a shape dbo publishes** that routers write inside vitals, leaving the
-  engine reading nothing — the third option weighed when #158 was decided,
-  and not chosen then.
+Three things decided it, and only the first is about taste:
 
-Worth settling before a consumer adopts it, because whichever is picked is
-what every future router does. Until it is, #158's normalisation is reachable
-only by a host that *is* the container — which is the fourth instance of the
-pattern below, and was found by asking its two questions of our own work.
+- **Vitals ride a declaration, and a routed tree is not per step.** A
+  declaration is keyed by process, step, scope and name, so a connector that
+  declared candidacy for two steps would carry the same fleet twice, and
+  withdrawing either declaration would drop half of it. That is a structural
+  mismatch rather than a preference, and it rules out both vitals-shaped
+  candidates at once.
+- **The store must not read inside vitals.** The candidate that changed no
+  transport paid for it by having the engine parse a block it promised to
+  treat as opaque — the contract #148 rests on, and payload-is-truth stops
+  being true the first time that shape moves.
+- **An attestation its reporter could forge is not an attestation.** The verb
+  stamps `observedBy` from the lane's own participant, which the host already
+  holds; anything the caller put there is discarded. Under the published-shape
+  candidate the router writes the observer itself, and an operator chasing a
+  silent instrument would be sent to whichever hop the reporter named.
+
+**Not in scope, and recorded rather than solved:** a participant can report a
+trackable id inside another router's subtree and overwrite it. Reports stay
+last-writer-wins with the observer stamped, which makes it visible; bounding
+it is a question for whoever first has two routers that can see one thing.
+That is the same line #158 drew when it refused to invent a freshness rule —
+the store has no path of its own to check either.
 
 ## Traps
 
@@ -513,6 +522,11 @@ asked deliberately because nothing fails:
 
 The second is cheaper to check and easier to miss: #157 taught it, and #158
 reproduced it hours later in work written by the same hand.
+
+All four are now closed — the last of them by #159, which is what asking the
+first question of our own work produced: `routes` exists because nothing
+outside the container could construct `Trackables`, and the verb was designed
+from that gap rather than discovered during a bring-up.
 
 **A report writes the state it was handed, so reporting twice from the run as
 claimed erases the first report.** `Runs.update` re-reads the stored object for

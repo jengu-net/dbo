@@ -7,6 +7,8 @@ import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Participation;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
+import cloud.jengu.dbo.work.Trackable;
+import cloud.jengu.dbo.work.Trackables;
 
 import java.time.Duration;
 import java.util.List;
@@ -177,6 +179,31 @@ public interface Lane {
     void withdraw(Declarations.Declared declared);
 
     /**
+     * What this participant can see behind it (#159) — the routed tree, and
+     * the counterpart to {@link #declare}: one says what it can do, this says
+     * what it can reach.
+     *
+     * <p><b>The observer is stamped here, never sent.</b> The reporter is this
+     * lane's participant, which the host already holds, so a router cannot
+     * name another one — an attestation its reporter could forge would not be
+     * an attestation. Anything the caller put in {@code attested} is
+     * discarded rather than trusted.
+     *
+     * <p><b>Why a verb rather than vitals.</b> Vitals ride a declaration, and
+     * a declaration is keyed per step, scope and name — so a connector that
+     * declared candidacy for two steps would carry the same fleet twice, and
+     * withdrawing one of them would drop half of it. A routed tree is not per
+     * step. The alternative that kept the transport unchanged asked the engine
+     * to read inside a block it promised to treat as opaque, which is the
+     * contract #148 rests on.
+     *
+     * <p>Abstract, not defaulted, by the #150 rule: a lane that quietly
+     * dropped a report would leave an operator reading a fleet that stopped
+     * changing for no visible reason.
+     */
+    void routes(List<Trackable> behind);
+
+    /**
      * The claimed run's inputs, resolved — and the runner's ONLY read.
      *
      * <p>The verb takes a run, never a reference, and that is the security
@@ -244,6 +271,22 @@ public interface Lane {
             cloud.jengu.dbo.core.api.ObjectStore objects,
             cloud.jengu.dbo.work.Introductions introductions,
             Entitlement entitlement) {
+        return inProcess(tenant, runs, feed, declarations, participant, identity, objects,
+                introductions, entitlement, null);
+    }
+
+    /**
+     * The same, able to record what a participant routes (#159).
+     *
+     * <p>Wired where the tenant's own records are, for the same reason
+     * {@code introductions} is: a host that wires none refuses a report
+     * loudly rather than accepting one it will drop.
+     */
+    static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
+            Declarations declarations, String participant, Executor identity,
+            cloud.jengu.dbo.core.api.ObjectStore objects,
+            cloud.jengu.dbo.work.Introductions introductions,
+            Entitlement entitlement, Trackables trackables) {
         return new Lane() {
 
             @Override
@@ -331,6 +374,19 @@ public interface Lane {
             @Override
             public void withdraw(Declarations.Declared declared) {
                 declarations.withdraw(declared);
+            }
+
+            @Override
+            public void routes(List<Trackable> behind) {
+                if (trackables == null) {
+                    throw new IllegalStateException(tenant + ": this lane records nothing "
+                            + "routed, and '" + participant + "' reported " + behind.size()
+                            + " behind it");
+                }
+                // The participant, not the identity: presence derives from the
+                // cursor, and the cursor is the participant's. A connector's
+                // own row is found under the same name it is watched by.
+                trackables.routes(participant, behind);
             }
 
             @Override

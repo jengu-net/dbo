@@ -350,6 +350,14 @@ public enum DboPromises implements Promise {
             + "to ask, and one threshold across a serial line and a socket would be wrong for "
             + "both."),
 
+    PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB("A participant reports what it can reach "
+            + "the way it reports what it can do: a verb of the participation lane, beside "
+            + "declare. The observer is stamped from the lane's own participant rather than "
+            + "carried on the wire, so a router cannot attest as somebody else. Vitals do "
+            + "not carry it, because vitals ride a declaration and a declaration is keyed "
+            + "per step — a router declaring two steps would carry one fleet twice, and "
+            + "withdrawing either would drop half of it."),
+
     PROC_PRESENCE_IS_DERIVED("A participant is present while its named feed cursor "
             + "moves; a declaration whose consumer is behind and unmoving is "
             + "declared-but-not-present, skipped by resolution and shown as such. No "

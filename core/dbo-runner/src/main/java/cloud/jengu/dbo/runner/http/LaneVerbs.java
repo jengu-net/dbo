@@ -27,6 +27,7 @@ public enum LaneVerbs {
     DECLARE("declare"),
     INTRODUCE("introduce"),
     WITHDRAW("withdraw"),
+    ROUTES("routes"),
     INPUTS("inputs");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
@@ -47,6 +48,12 @@ public enum LaneVerbs {
     public static final String REASON = "reason";
     public static final String DECLARED = "declared";
     public static final String STEP = "step";
+    /**
+     * The trackables a participant reports behind it (#159). No observer
+     * travels with them: the handler's lane stamps its own participant, so
+     * an attestation cannot be forged by the side making the claim.
+     */
+    public static final String BEHIND = "behind";
     /** Every answer's one field, so an empty answer is still a shape. */
     public static final String RESULT = "result";
     /** A refusal travels as a refusal: this flag, and why. */

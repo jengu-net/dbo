@@ -223,6 +223,14 @@ class ARemoteLaneIsIndistinguishableIT {
         }
 
         @Override
+        public void routes(java.util.List<cloud.jengu.dbo.work.Trackable> behind) {
+            across("routes", () -> {
+                farSide.routes(behind);
+                return null;
+            });
+        }
+
+        @Override
         public Map<String, StoredObject> inputs(Run run) {
             // The resolved objects cross; the store that resolved them does
             // not, which is the whole shape of the verb.

@@ -759,6 +759,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             DECLARATION_PATIENCE);
             cloud.jengu.dbo.work.Introductions laneIntroductions =
                     new cloud.jengu.dbo.work.Introductions(runtime.engine(), steps);
+            // What participants report behind them (#159). Built once beside
+            // the declarations, over the same engine: a trackable is one of
+            // this tenant's records, and a second Trackables would be a
+            // second view of one fleet.
+            cloud.jengu.dbo.work.Trackables laneTrackables =
+                    new cloud.jengu.dbo.work.Trackables(runtime.engine());
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
                     workPath, new WorkGrants(authority),
                     // The host's own in-process lane, built per asker: the
@@ -768,7 +774,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     (participant, identity, entitlement) ->
                             cloud.jengu.dbo.runner.Lane.inProcess(spec.code(), laneRuns,
                                     laneFeed, laneDeclarations, participant, identity,
-                                    runtime.engine(), laneIntroductions, entitlement)));
+                                    runtime.engine(), laneIntroductions, entitlement,
+                                    laneTrackables)));
             workContexts.put(spec.code(), workPath);
             // The replication surface (#157): the same asymmetry one layer up.
             // Declarations flow cloud → appliance, so the cloud is the side

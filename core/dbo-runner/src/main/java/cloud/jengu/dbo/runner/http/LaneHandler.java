@@ -197,6 +197,11 @@ public final class LaneHandler implements HttpHandler {
                 lane.withdraw(declared(body));
                 respond(exchange, null);
             }
+            case ROUTES -> {
+                lane.routes(RecordWire.decodeList(field(body, LaneVerbs.BEHIND),
+                        cloud.jengu.dbo.work.Trackable.class));
+                respond(exchange, null);
+            }
             case INTRODUCE -> {
                 lane.introduce(RecordWire.decode(field(body, LaneVerbs.STEP),
                         StepDeclaration.class));
