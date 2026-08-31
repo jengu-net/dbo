@@ -85,7 +85,8 @@ class TheConsoleSaysWhoWouldRunAStepIT {
     @DisplayName("with a zone candidate declared and the work happening in that zone, the "
             + "console names the zone's executor — the most local one the step admits")
     @Proving({DboPromises.PROC_EXECUTOR_RESOLUTION_IS_DETERMINISTIC,
-            DboPromises.PROC_EXECUTOR_DECLARES_ITSELF})
+            DboPromises.PROC_EXECUTOR_DECLARES_ITSELF,
+            DboPromises.PROC_A_NODE_ANSWERS_ITS_CATALOGUE})
     void theMostLocalCandidateIsNamed() {
         declare(STEP, "national", Scope.BASELINE);
         declare(STEP, "the-zones-own", Scope.zone("ee"));

@@ -1,9 +1,9 @@
 # An operator's control plane
 
-**Status** — nothing built for it yet, and less is needed than it looks: the
-state a control plane wants is already records in tenant stores, and the
-console already queries all of it for one JVM. What is missing is fleet-level
-reach and a bounded way to *act*.
+**Status** — the groundwork is done and the plane itself is not started. The
+state it wants is already records in tenant stores, the console already queries
+all of it for one JVM, and per-tenant answers are now uncontaminated. What is
+missing is fleet-level reach and a bounded way to *act*.
 
 **Issues** — [#160](https://github.com/jengu-net/dbo/issues/160) (a runner
 keeps no state that spans lanes) · [#161](https://github.com/jengu-net/dbo/issues/161)
@@ -50,14 +50,15 @@ back door around the rules every other actor obeys.
 
 | # | Step | Status |
 |---|---|---|
-| 1 | **A runner keeps no state that spans lanes** ([#160](https://github.com/jengu-net/dbo/issues/160)) — without it, anything a control plane reports per tenant is contaminated by other tenants. | **NEXT** |
+| 1 | **A runner keeps no state that spans lanes** ([#160](https://github.com/jengu-net/dbo/issues/160)) — without it, anything a control plane reports per tenant is contaminated by other tenants. | **DONE** 2026-08-31 — counters keyed by lane then step, and detach drops that lane's map, which was a second defect hiding behind the first (`ARunnerKeepsNoStateAcrossLanesIT`) |
 | 2 | **Telemetry seam** ([#161](https://github.com/jengu-net/dbo/issues/161)) — trends and alerting, on the envelope's field set. Not the control plane's state source; see `Decisions`. | **READY, needs 1** |
-| 3 | **Split `PROC_NETWORK_MAP`** ([#162](https://github.com/jengu-net/dbo/issues/162)) — the catalogue half names the node-inventory gap this plane would surface. | **READY** |
+| 3 | **Split `PROC_NETWORK_MAP`** ([#162](https://github.com/jengu-net/dbo/issues/162)) — the catalogue half names the node-inventory gap this plane would surface. | **DONE** 2026-08-31 — a node answering its own catalogue is its own promise and proven; what remains under the old code is the per-node inventory, which the console's tests now cite because that module was never wired into the promise index |
 | 4 | **Fleet-level read** — one process holding per-tenant credentials, fanning out over the surfaces that already exist, labelling every answer with the node it came from. | **LATER** |
 | 5 | **Bounded act** — the same verbs a participant has, through a lane, with an identity and an entitlement. | **LATER** |
 
-**The critical path is step 1**: everything a control plane would say about one
-tenant is wrong until a runner's accounting stops spanning lanes.
+**The critical path is step 4**, and it is the first step that is a service
+rather than a rule: everything before it makes the per-tenant answers true, and
+nothing yet reaches more than one node to ask.
 
 ## Decisions
 
@@ -114,6 +115,14 @@ answers would mean reopening that.
 
 ## Verifying
 
-Nothing to verify yet; step 1 carries the first test, and it is named in its
-issue — one runner, two lanes, work on the first, the second's declaration
-untouched.
+```bash
+./gradlew :core:harness:test --tests '*ARunnerKeepsNoStateAcrossLanesIT*' \
+    --tests '*TheConsoleSaysWhoWouldRunAStepIT*' -PdboTestHeap=2g
+./gradlew :karaf:commands:test
+```
+
+One runner against two lanes, work failing on one, the other's declaration
+untouched — checked against the old behaviour as well as the new, because a
+regression test that has never been seen to fail proves only that it compiles.
+The console's two halves: what a node knows without a store, and which executor
+would take a step with one.

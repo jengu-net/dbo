@@ -2,6 +2,8 @@ package cloud.jengu.dbo.karaf.commands;
 
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.core.process.Steps;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.osgi.framework.Bundle;
@@ -40,6 +42,7 @@ class TheCatalogueAnswersWithNoTenantServingTest {
     @Test
     @DisplayName("a node with no tenant serving still lists what it knows, and says which "
             + "bundle contributed each step")
+    @Proving(DboPromises.PROC_A_NODE_ANSWERS_ITS_CATALOGUE)
     void theCatalogueAnswersWithNothingServing() {
         String out = printed(() -> ProcessView.list(
                 registryWith(Set.of(VALIDATE), "cloud.jengu.lab"), null, null));
@@ -66,6 +69,7 @@ class TheCatalogueAnswersWithNoTenantServingTest {
     @Test
     @DisplayName("describing a step nobody contributed names it, and points at the list that "
             + "would have shown what does exist")
+    @Proving(DboPromises.PROC_A_NODE_ANSWERS_ITS_CATALOGUE)
     void anUnknownStepIsRefusedByName() {
         String out = printed(() -> ProcessView.describe(
                 registryWith(Set.of(VALIDATE), "cloud.jengu.lab"), null, "lab.result.sign",

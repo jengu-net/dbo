@@ -402,11 +402,27 @@ public enum DboPromises implements Promise {
             + "content changes in order, so another appliance asks for what it is "
             + "missing rather than comparing two stores."),
 
-    /** TODO: prove it in a test. The console (#75) is what would answer this; nothing
-     * yet scans bundles for process/step declarations and accumulates them across nodes. */
-    PROC_NETWORK_MAP("The network answers which processes are known and running, "
-            + "where and in which version — scanned from bundles and accumulated "
-            + "across nodes."),
+    PROC_A_NODE_ANSWERS_ITS_CATALOGUE("A node says what it knows how to do — the steps "
+            + "installed in it and the steps a linked participant introduced, each with the "
+            + "party that contributed it, in which version, and which executor would take it "
+            + "here now. It answers while serving no tenant at all, because the catalogue is "
+            + "what is installed rather than what is running, and a node that has stopped "
+            + "serving is exactly when somebody asks."),
+
+    /**
+     * TODO: prove it in a test. Narrowed from the promise that also covered one node
+     * (now {@link #PROC_A_NODE_ANSWERS_ITS_CATALOGUE}, proven): what is missing is the
+     * union, and the missing piece is an inventory rather than a transport. Declared
+     * candidates and introduced steps already accumulate without one, because every
+     * participant writes into the tenant's store whatever node it runs on. What never
+     * leaves a node is its INSTALLED catalogue — and it cannot travel through the
+     * introduction door, since a step declared by both doors is refused as a collision,
+     * which two nodes carrying the same modules would hit immediately.
+     */
+    PROC_NETWORK_MAP("A deployment answers what its nodes have installed between them, "
+            + "and in which versions — one answer rather than a walk. What each node has "
+            + "is descriptive, an inventory of that node, and never a second declaration "
+            + "of a step somebody else already declared."),
 
     PROC_TRACE_JOIN("From any process instance, the steps and the exact resource "
             + "diffs and audit records they produced are navigable."),
