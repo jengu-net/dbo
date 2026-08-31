@@ -17,7 +17,7 @@ The bets, each elaborated in its own section:
    by content; cross-boundary hops platform-coordinated and audited (§7.4).
 5. **One feed primitive** — keyset cursors underneath pagination,
    subscriptions, content streams, edge sync and incremental export
-   ([§6, §10](../arc42-008-crosscutting/eventing-and-feeds.md)).
+   ([§6, §10](../arc42-008-crosscutting/change-and-who-is-listening.md)).
 6. **Credential-blind provisioning** — operator + secrets; the management
    plane can never read tenant data or credentials
    ([§4](../arc42-007-deployment/tenant-provisioning.md)).
