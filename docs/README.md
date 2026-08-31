@@ -29,8 +29,8 @@ Structured per [arc42](https://arc42.org/).
   tenant as trust root, and how systems and people get in),
   [data isolation](arc42-008-crosscutting/data-isolation.md) (§14, tenant from
   tenant, person from everyone, and what is declared to cross),
-  [tenant policies](arc42-008-crosscutting/tenant-policies.md) (§15),
-  [zone overlay](arc42-008-crosscutting/zone-overlay.md) (§17),
+  [declared rules](arc42-008-crosscutting/declared-rules.md) (§15, §17 — what a
+  tenant must do, what its jurisdiction says, and how the two layer),
   [promise](arc42-008-crosscutting/promise.md) (requirements as code — how this
   repository states and proves what it promises)
 - [arc42-009-architecture-decisions](arc42-009-architecture-decisions/README.md) —
