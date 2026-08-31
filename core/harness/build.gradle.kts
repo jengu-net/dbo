@@ -54,6 +54,14 @@ dependencies {
     testImplementation(project(":core:dbo-work"))
     testImplementation(dboWorkTestOutput)
     testImplementation(dboFhirElementTestOutput)
+    // The console's executor half, which is the one part of it that cannot be
+    // tested without a store: it reads a tenant's declarations and asks the
+    // same resolution the store would. Test-only and one-directional -- no
+    // main source under core/ may depend on the commands.
+    testImplementation(project(":karaf:commands"))
+    testImplementation("org.apache.karaf.shell:org.apache.karaf.shell.core:"
+            + rootProject.extra["dboKarafVersion"])
+    testImplementation("org.osgi:osgi.core:8.0.0")
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
     testImplementation("org.testcontainers:testcontainers-k3s:2.0.5")
     testImplementation("org.postgresql:postgresql:42.7.11")

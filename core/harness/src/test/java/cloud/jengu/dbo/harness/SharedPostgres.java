@@ -22,7 +22,7 @@ import java.sql.Statement;
  * the JVM exits, and stopping it from any one class's {@code @AfterAll}
  * would pull the floor out from under the classes still running.
  */
-final class SharedPostgres {
+public final class SharedPostgres {
 
     private static final PostgreSQLContainer<?> CONTAINER = start();
 
@@ -75,12 +75,12 @@ final class SharedPostgres {
         }
     }
 
-    static PostgreSQLContainer<?> get() {
+    public static PostgreSQLContainer<?> get() {
         return CONTAINER;
     }
 
     /** JDBC url for a database of this caller's own, created on first ask. */
-    static String urlFor(String token) {
+    public static String urlFor(String token) {
         String database = "it_" + token.toLowerCase();
         try (Connection c = DriverManager.getConnection(CONTAINER.getJdbcUrl(),
                 CONTAINER.getUsername(), CONTAINER.getPassword());
