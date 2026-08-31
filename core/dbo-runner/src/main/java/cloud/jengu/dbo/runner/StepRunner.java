@@ -23,8 +23,16 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p><b>Stateless over tenants</b>: tenants arrive as {@link Lane}s and the
  * runner holds only the task in hand and the documents the task names. Its
- * per-step counters are its own soft accounting — reconstructible from
- * nothing, published as vitals, lost without loss.
+ * counters are its own soft accounting — reconstructible from nothing,
+ * published as vitals, lost without loss.
+ *
+ * <p><b>No state here may span lanes.</b> A lane is the unit of everything
+ * this runner does, and anything keyed more coarsely mixes tenants: the
+ * counters were once keyed by step alone, so one runner serving three tenants
+ * published a total of all three into each of their stores, and the last
+ * failure message from one tenant's work was written into the others'. The
+ * rule is not about counters — it is about the next thing somebody keys by
+ * step because a lane felt like an implementation detail.
  *
  * <p>One loop thread, deliberately: a runner scales by being <b>deployed</b>
  * more — a pod per step, replicas up — never by relaxing the claim; a pool
@@ -39,7 +47,15 @@ public final class StepRunner implements AutoCloseable {
     private final Duration pollEvery;
     private final Map<String, StepService> services = new ConcurrentHashMap<>();
     private final Map<String, Lane> lanes = new ConcurrentHashMap<>();
-    private final Map<String, Vitals> vitals = new ConcurrentHashMap<>();
+    /**
+     * Soft accounting, <b>per lane</b> and then per step.
+     *
+     * <p>The nesting is the invariant above made structural: there is no key
+     * under which a number from two lanes could meet. Keyed by the same thing
+     * {@link #lanes} is, so a lane going away takes its accounting with it
+     * rather than leaving a count a re-attached lane would inherit.
+     */
+    private final Map<String, Map<String, Vitals>> vitals = new ConcurrentHashMap<>();
     private volatile Thread loop;
     private volatile boolean running;
 
@@ -85,6 +101,7 @@ public final class StepRunner implements AutoCloseable {
         Lane lane = lanes.remove(tenant);
         if (lane != null) {
             services.keySet().forEach(step -> lane.withdraw(declared(lane, step)));
+            vitals.remove(tenant);
             LOG.info("lane detached: tenant={}", tenant);
         }
     }
@@ -159,7 +176,7 @@ public final class StepRunner implements AutoCloseable {
     }
 
     private void perform(Lane lane, StepService service, Run claimed) {
-        Vitals sign = vitals.computeIfAbsent(service.step(), s -> new Vitals());
+        Vitals sign = vitalsOf(lane, service.step());
         long began = System.nanoTime();
         // Every report answers with the run as it now stands, and the next one
         // must be built on THAT rather than on the run as claimed. A report
@@ -232,12 +249,17 @@ public final class StepRunner implements AutoCloseable {
                 service.declaration().ifPresent(brought ->
                         lane.introduce(brought));
             }
-            lane.declare(declared(lane, step).withVitals(
-                    vitals.computeIfAbsent(step, s -> new Vitals()).block()));
+            lane.declare(declared(lane, step).withVitals(vitalsOf(lane, step).block()));
         } catch (RuntimeException declineFailed) {
             LOG.warn("declaration failed: tenant={} step={} {}",
                     lane.tenant(), step, declineFailed.getMessage());
         }
+    }
+
+    /** This lane's counters for this step, and no other lane's. */
+    private Vitals vitalsOf(Lane lane, String step) {
+        return vitals.computeIfAbsent(lane.tenant(), t -> new ConcurrentHashMap<>())
+                .computeIfAbsent(step, s -> new Vitals());
     }
 
     private static String bareStep(String fullId) {
