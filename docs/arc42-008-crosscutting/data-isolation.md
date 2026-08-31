@@ -1,0 +1,127 @@
+# Data isolation (§14)
+
+## Two walls, and the openings that are declared
+
+A store several parties use has to answer two different questions, and they are
+not the same question:
+
+- **Can another organisation see my data?** — the one a party asks before
+  agreeing to use a shared exchange at all.
+- **Can anyone, including whoever operates the store, see who this is about?** —
+  the one the law asks, and the one that decides whether an operator can run the
+  system without being trusted with its contents.
+
+They have different answers and different mechanisms. The first is structural
+separation; the second is cryptographic. This document describes both, and then
+the third thing that matters as much: **what deliberately crosses, and how that
+is declared**, because a wall with undocumented holes is worse than a wall
+nobody claimed.
+
+## An organisation's data is its own
+
+**A tenant's records live in its own database**, not in a shared table behind a
+tenant column. That is the design anchor rather than an optimisation: a query
+that forgets a filter returns nothing belonging to somebody else, because there
+is nothing else in there to return. (A shared tier exists as a variant, where
+the same layout gains a tenant column and row-level policies; the dedicated tier
+is what the design is reasoned from.)
+
+**A tenant is its own trust root.** Credentials are issued by the tenant, and
+identity artefacts are ordinary records inside it. The store does not hold a
+directory of everybody's users, which is what would make it a single place worth
+attacking for all of them at once.
+
+**There is no cross-tenant surface.** Nothing offers "read across tenants",
+including to the operator. A process that legitimately needs a fleet-wide view —
+an operator console, for instance — holds per-tenant credentials and asks each
+tenant in turn. That is a walk rather than a join, and it is deliberate: the
+expensive path is the one that preserves the property, and a convenient
+cross-tenant read would be available to anything that ever got hold of it.
+
+**The operator's own records are a tenant too.** The party running the
+deployment is a tenant like the others, distinguished by role rather than by
+position, so what it records about its work inherits the same authority, audit,
+retention and erasure as everything else — instead of living in a privileged
+plane with rules written specially for it.
+
+## A person's data is not the operator's
+
+Protection here is structural rather than procedural, so the rights of access,
+portability and erasure are machinery operations — and the operator can run the
+whole system, including backup and restore, without being able to read a
+person's data.
+
+**The conflict this resolves.** Every version of every object is kept
+immutably, and archives are byte-faithful. Erasure cannot be honoured by
+rewriting history without destroying both properties. The resolution is
+**crypto-shredding**: identifying material is encrypted with a per-person key,
+and erasure destroys the key. History stays byte-immutable, archives already
+taken stay valid as files, and the person's data is cryptographically gone from
+the live store, from history, and from every archive that carried ciphertext.
+
+**The vault and the pseudonymous store.** Each tenant contains a person vault
+holding the identifying material; everything else refers to a person by
+pseudonym. Records in the main store carry no name, so a reader who is entitled
+to the work is not thereby entitled to the person.
+
+**The shred ledger.** An archive taken before an erasure still contains that
+person's wrapped key, so restoring it would resurrect them. Erasures are
+recorded in a ledger — pseudonym, key fingerprint, timestamp, and no personal
+data — and a restore re-applies the ledger before serving resumes.
+
+**Rights as operations.** Erasure shreds the key and records the ledger entry.
+Access and portability are a vault-joined export through the ordinary
+maintenance machinery. Restriction is a flag the serving path honours.
+
+## What crosses, and why it is allowed to
+
+Isolation with no declared exceptions would be a claim nobody could act on: an
+operator has to be able to run the thing, and parties need to know what that
+involves. So the openings are named.
+
+**Measurements about work leave the tenant.** Counts, durations and outcomes are
+reported for whoever operates the deployment, across tenants — that is what
+makes a fleet observable, and it is ordinary practice. What makes it safe is that
+the set of things that may be said is closed: which tenant, which process and
+step, what ran it, and how it ended as one word from a fixed vocabulary. A
+failure's own words are **not** in that set; they stay on the run, in the store
+of the tenant whose work it was. An open field in a stream declared anonymous is
+how such a declaration stops being true without anybody editing it, and it is the
+documented failure of every central logging system.
+
+**Two appliances of one tenant exchange whole records** — but this is not an
+exception, and reading it as one leads to the wrong instincts. A site appliance
+and a cloud are one tenant in two places, so nothing crosses a tenant boundary
+at all. What is worth knowing is that the traffic is bounded by what the work
+names rather than by following references outward, so an appliance holds what it
+is working on rather than a copy of the collection.
+
+**An audit trail replicates as it was recorded** — original actor, original
+time, the appliance named — because an account of who did what is worthless if
+the act of moving it rewrites its provenance.
+
+**The rule behind all three:** a class of data that leaves a tenant is declared,
+with what it may contain, before it leaves. Whoever adds the next one owes the
+same declaration — and if the answer involves a free-text field, the answer is
+not finished.
+
+## What stays outside
+
+Consent semantics and co-ownership — who must agree before a person's key may be
+unwrapped — are their own track; this provides the key seams they attach to.
+Anonymisation pipelines consume what is left behind here by construction:
+pseudonymous, unlinkable records.
+
+## Where the detail is
+
+- **What is promised, and what proves it** — the
+  [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
+- **Where a tenant's storage actually sits** — [object model](object-model.md).
+- **Who may act, and on whose authority** — [tenant
+  authority](tenant-authority.md).
+- **Why measurements leave at all, and what they carry** — the watching section
+  of [processes and work](processes-and-work.md).
+- **Why an operator that cannot read the data is the point**, commercially as
+  well as legally — [where a neutral store earns its
+  keep](../plans/neutral-exchange-domains.md), whose last condition is that the
+  operator can be paid without monetising what flows through.
