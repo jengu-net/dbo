@@ -132,10 +132,12 @@ public enum DboFeatures implements Feature {
             List.of(DboPromises.PROC_CONTENT_CHANGES_INSIDE_WORK,
                     DboPromises.PROC_A_RUN_NAMES_WHAT_IT_PRODUCED)),
 
-    THE_NETWORK_AND_ITS_TRACE_ARE_READABLE("What is running, where, and what it did "
-            + "are answerable questions: the network map for presence, the trace join "
-            + "for provenance.",
-            List.of(DboPromises.PROC_NETWORK_MAP, DboPromises.PROC_TRACE_JOIN)),
+    THE_NETWORK_AND_ITS_TRACE_ARE_READABLE("What is known, where, and what it did are "
+            + "answerable questions: a node answers for itself today, a deployment answers "
+            + "for its nodes when the inventory exists, and the trace join answers for "
+            + "provenance.",
+            List.of(DboPromises.PROC_A_NODE_ANSWERS_ITS_CATALOGUE,
+                    DboPromises.PROC_NETWORK_MAP, DboPromises.PROC_TRACE_JOIN)),
 
     CORE_MIGRATED("the object engine — migrated whole from hand-written prose; each promise below carries its own proof status.",
             List.of(DboPromises.CORE_PAYLOAD_IS_TRUTH, DboPromises.CORE_DECLARED_TRUTH_FORM, DboPromises.CORE_REINDEX_IS_AN_OPERATION, DboPromises.CORE_EXTERNAL_IDENTIFIERS, DboPromises.CORE_REFERENCE_EDGES, DboPromises.CORE_VERSIONED_HISTORY, DboPromises.CORE_READ_YOUR_WRITES, DboPromises.CORE_UPGRADE_ON_READ, DboPromises.CORE_PARAMETERIZED_SQL, DboPromises.CORE_SIBLING_MODELS, DboPromises.CORE_DECLARED_IDENTITY, DboPromises.CORE_IDENTITY_SURVIVES_CONVERSION, DboPromises.CORE_NO_IMPLICIT_MERGE, DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS, DboPromises.CORE_CONDITIONAL_REFERENCES, DboPromises.CORE_CONDITIONAL_UPSERT, DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE, DboPromises.CORE_BATCH_ANSWERS_PER_ENTRY)),

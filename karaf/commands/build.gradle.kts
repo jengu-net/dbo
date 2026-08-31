@@ -39,6 +39,12 @@ dependencies {
     testImplementation(project(":core:dbo-work"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // These tests prove a promise, so they have to be able to cite it — and
+    // the processor indexes citations at THIS module's test-compile time. A
+    // citation compiled without it exists, passes, and is invisible to the
+    // projector, which then reads PLANNED over a proof that runs.
+    testImplementation(project(":core:dbo-promises"))
+    testAnnotationProcessor(project(":promise"))
 }
 
 tasks.test {

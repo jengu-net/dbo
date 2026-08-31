@@ -26,13 +26,19 @@ concepts application-side. They belong *in the store*:
   is declared and scannable; which slice you look at is a query. (Naming
   note: "process domain" is deliberately distinct from the storage **Domain**
   of §2/§3 — the physical table-group knob. Two different words in the code.)
-- **A system scanner builds the live process map.** The container scans
-  installed bundles' process annotations and publishes each node's *known*
-  catalogue (declared processes/steps) and *running* state (active DBOS
-  workflow instances per process) into the registry; the dOSGi layer (§5)
-  shares and **accumulates the map across the DBO network** — one queryable
-  answer to "which processes exist on this network, where are they running,
-  in which version". Platform-plane state; no resource content.
+- **A node answers what it knows, and most of the accumulating needs no
+  transport.** The container scans installed bundles' process annotations, so
+  a node says what it can do — with the contributing bundle named per step —
+  while serving no tenant at all. Across nodes, declared candidates and
+  introduced steps meet in the **tenant's own store** rather than in a mesh:
+  every participant writes there whatever node it runs on, which is why an
+  offline node costs nothing and why no service-sharing layer is involved.
+  What does not travel is a node's *installed* catalogue, and it cannot go
+  through the introduction door — a step both doors declare is refused as a
+  collision, which two nodes carrying the same modules would hit at once. So
+  the missing piece is a per-node **inventory**, descriptive rather than a
+  second declaration of somebody else's step. What is *running* is a
+  different question again, answered by runs, which are records.
 - **The catalogue is a security artifact.** Hop grants (§7.4) are only
   issuable for hops the declared process shape actually contains; a workflow
   step that isn't in any declared process has no plane, no grant path, and no

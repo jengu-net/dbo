@@ -249,9 +249,11 @@ run are is in
 [`process-catalogue.md`](../arc42-008-crosscutting/process-catalogue.md); how
 work travels to whoever performs it is in
 [`distributed-work.md`](../arc42-008-crosscutting/distributed-work.md).
-`PROC_NETWORK_MAP` is the one promise still `PLANNED`: it wants what is known
-and running accumulated **across nodes**, and only the single-node half
-exists.
+`PROC_NETWORK_MAP` is the one promise still `PLANNED`, and it is narrower than
+it was: a node answering its own catalogue is proven, and what is missing is a
+per-node inventory so a deployment can answer for its nodes at once. That
+cannot ride the introduction door, because a step declared by two doors is a
+collision by design.
 
 ## Known next fronts
 

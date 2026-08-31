@@ -20,7 +20,17 @@ val dboFhirElementTestOutput = project(":core:dbo-fhir-element")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
+// The console's own tests cite too: the catalogue half is proven there,
+// without a store, because it needs none. Same trap as the two above — the
+// index lives in that module's test output, and without it on this classpath
+// the projector reads PLANNED over passing proofs.
+evaluationDependsOn(":karaf:commands")
+val karafCommandsTestOutput = project(":karaf:commands")
+        .extensions.getByType(SourceSetContainer::class.java)
+        .getByName("test").output
+
 dependencies {
+    testImplementation(karafCommandsTestOutput)
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))
     // The reference LOCAL executor under a step service (#79). Test-only and
