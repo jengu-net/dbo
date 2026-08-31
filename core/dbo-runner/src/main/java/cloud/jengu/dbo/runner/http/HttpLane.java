@@ -173,6 +173,13 @@ public final class HttpLane implements Lane {
     }
 
     @Override
+    public void routes(java.util.List<cloud.jengu.dbo.work.Trackable> behind) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.BEHIND, RecordWire.encode(behind));
+        post(LaneVerbs.ROUTES, body);
+    }
+
+    @Override
     public void introduce(StepDeclaration step) {
         Map<String, Object> body = verb();
         body.put(LaneVerbs.STEP, RecordWire.encode(step));
