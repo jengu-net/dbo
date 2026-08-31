@@ -177,8 +177,11 @@ is the mode that merges two people.
 
 ## Where the detail is written down
 
-- **The exact rules and their proofs** — the core, shape and validation entries
-  in the [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
+- **The exact rules and their proofs** — the core and shape entries in the
+  [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
+- **Whether a coded value means anything here** — that check belongs with the
+  terminology it resolves against, in [finding
+  things](finding-things.md).
 - **What a face owes the engine**, including where validation actually happens —
   [the engine and its faces](engine-and-faces.md).
 - **How these records are rendered** to a reader who speaks a particular
