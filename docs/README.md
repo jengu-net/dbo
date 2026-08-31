@@ -24,7 +24,8 @@ Structured per [arc42](https://arc42.org/).
   [work through a FHIR face](arc42-008-crosscutting/work-through-a-fhir-face.md)
   (§8, the same concepts as a reader of that standard sees them),
   [design rationale](arc42-008-crosscutting/design-rationale.md) (§9),
-  [maintenance](arc42-008-crosscutting/maintenance.md) (§11),
+  [running it](arc42-008-crosscutting/running-it.md) (§11 — embedding,
+  deployment shape, backup as export, upgrades),
   [who may act](arc42-008-crosscutting/who-may-act.md) (§13, §16 — the
   tenant as trust root, and how systems and people get in),
   [data isolation](arc42-008-crosscutting/data-isolation.md) (§14, tenant from
