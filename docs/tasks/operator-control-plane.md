@@ -5,11 +5,13 @@ state it wants is already records in tenant stores, the console already queries
 all of it for one JVM, and per-tenant answers are now uncontaminated. What is
 missing is fleet-level reach and a bounded way to *act*.
 
-**Issues** — [#160](https://github.com/jengu-net/dbo/issues/160) (a runner
-keeps no state that spans lanes) · [#161](https://github.com/jengu-net/dbo/issues/161)
-(fleet observation is telemetry, not records) ·
-[#162](https://github.com/jengu-net/dbo/issues/162) (`PROC_NETWORK_MAP` splits).
-Closed and load-bearing here: [#75](https://github.com/jengu-net/dbo/issues/75) /
+**Issues** — open: [#163](https://github.com/jengu-net/dbo/issues/163) (an
+exporter bundle) · [#164](https://github.com/jengu-net/dbo/issues/164) (trace
+context rides the lane). Closed and load-bearing here:
+[#160](https://github.com/jengu-net/dbo/issues/160) (a runner keeps no state
+that spans lanes) · [#161](https://github.com/jengu-net/dbo/issues/161) (the
+telemetry seam) · [#162](https://github.com/jengu-net/dbo/issues/162)
+(`PROC_NETWORK_MAP` split) · [#75](https://github.com/jengu-net/dbo/issues/75) /
 [#76](https://github.com/jengu-net/dbo/issues/76) (the console: describing, and
 an identity when it acts).
 
@@ -51,7 +53,9 @@ back door around the rules every other actor obeys.
 | # | Step | Status |
 |---|---|---|
 | 1 | **A runner keeps no state that spans lanes** ([#160](https://github.com/jengu-net/dbo/issues/160)) — without it, anything a control plane reports per tenant is contaminated by other tenants. | **DONE** 2026-08-31 — counters keyed by lane then step, and detach drops that lane's map, which was a second defect hiding behind the first (`ARunnerKeepsNoStateAcrossLanesIT`) |
-| 2 | **Telemetry seam** ([#161](https://github.com/jengu-net/dbo/issues/161)) — trends and alerting, on the envelope's field set. Not the control plane's state source; see `Decisions`. | **READY, needs 1** |
+| 2 | **Telemetry seam** ([#161](https://github.com/jengu-net/dbo/issues/161)) — trends and alerting. Not the control plane's state source; see `Decisions`. | **DONE** 2026-08-31 — `cloud.jengu.dbo.telemetry`, a closed `Label` set, discarding by default, and the runner reporting through it (`NumbersLeaveWithoutTheWordsIT`). The label set is the envelope's fields **minus** identifiers and any correlation echoed from elsewhere — the envelope was written for a tenant reading its own runs, and a label travels further |
+| 2a | **An exporter** ([#163](https://github.com/jengu-net/dbo/issues/163)) — a provider bundle a deployment installs, so the numbers reach a collector. | **READY** — needs a live collector to verify, so it cannot be finished on a laptop |
+| 2b | **Trace context on the lane** ([#164](https://github.com/jengu-net/dbo/issues/164)) — one run as one chain across two processes. | **READY** — buildable and provable before 2a exists |
 | 3 | **Split `PROC_NETWORK_MAP`** ([#162](https://github.com/jengu-net/dbo/issues/162)) — the catalogue half names the node-inventory gap this plane would surface. | **DONE** 2026-08-31 — a node answering its own catalogue is its own promise and proven; what remains under the old code is the per-node inventory, which the console's tests now cite because that module was never wired into the promise index |
 | 4 | **Fleet-level read** — one process holding per-tenant credentials, fanning out over the surfaces that already exist, labelling every answer with the node it came from. | **LATER** |
 | 5 | **Bounded act** — the same verbs a participant has, through a lane, with an identity and an entitlement. | **LATER** |
