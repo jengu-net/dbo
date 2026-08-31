@@ -35,6 +35,12 @@ public enum DboFeatures implements Feature {
             + "without the membrane learning to talk.",
             List.of(DboPromises.PDI_EXACT_RESOLUTION)),
 
+    AN_ERASURE_CAN_BE_ASKED_FOR_AND_SHOWN("A consumer can ask for a person's erasure and is "
+            + "answered with a run it can show afterwards — what was found, how far it got, "
+            + "and that asking again changed nothing.",
+            List.of(DboPromises.PDI_ERASURE_IS_A_RUN,
+                    DboPromises.PDI_ERASURE_SAYS_HOW_FAR_IT_GOT)),
+
     WORK_ARRIVES_WHOLE("Work is the manifest: the step declares what it consumes as "
             + "named slots, the run fills them at creation, the projection and the lane "
             + "carry them — a runner never reaches into the store for what the work is "
