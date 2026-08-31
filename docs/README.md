@@ -13,14 +13,14 @@ Structured per [arc42](https://arc42.org/).
   [tenant provisioning](arc42-007-deployment/tenant-provisioning.md) (§4)
 - [arc42-008-crosscutting](arc42-008-crosscutting/) —
   [engine and faces](arc42-008-crosscutting/engine-and-faces.md) (§1),
-  [object model](arc42-008-crosscutting/object-model.md) (§2–§3),
+  [records you can rely on](arc42-008-crosscutting/records-you-can-rely-on.md)
+  (§2–§3, §12 — truth, identity, shape, immutability, rebuild),
   [eventing & feeds](arc42-008-crosscutting/eventing-and-feeds.md) (§6, §10),
   [processes and work](arc42-008-crosscutting/processes-and-work.md) (§8) and
   [work through a FHIR face](arc42-008-crosscutting/work-through-a-fhir-face.md)
   (§8, the same concepts as a reader of that standard sees them),
   [design rationale](arc42-008-crosscutting/design-rationale.md) (§9),
   [maintenance](arc42-008-crosscutting/maintenance.md) (§11),
-  [identity rules](arc42-008-crosscutting/identity-rules.md) (§12),
   [tenant authority](arc42-008-crosscutting/tenant-authority.md) (§13),
   [data isolation](arc42-008-crosscutting/data-isolation.md) (§14, tenant from
   tenant, person from everyone, and what is declared to cross),

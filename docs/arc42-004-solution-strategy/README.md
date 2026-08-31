@@ -8,7 +8,7 @@ The bets, each elaborated in its own section:
    ([§1](../arc42-005-building-blocks/README.md), §7.3).
 2. **Payload/envelope split** — opaque payload as truth, derived searchable
    projection, reindex as an operation
-   ([§2–§3](../arc42-008-crosscutting/object-model.md)).
+   ([§2–§3](../arc42-008-crosscutting/records-you-can-rely-on.md)).
 3. **Single-writer tenancy** — durable tenant→pod assignment makes caches and
    subscription state local; Redis-class shared state is designed away
    ([§5](../arc42-007-deployment/README.md),

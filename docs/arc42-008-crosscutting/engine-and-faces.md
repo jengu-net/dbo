@@ -213,7 +213,7 @@ which makes mapping onto it a cheap bet.
 | `Meta.versionId` | the version | ✅ |
 | `Meta.lastUpdated` | when that version was written | ❌ carried beside a read as HTTP metadata, never in the resource |
 | `Meta.source` | **where a copy came from** — a streamed object's upstream | ✅ |
-| `Meta.profile` | **the shape stamp** the object was written under | ✅ `urn:dbo:shape` in `meta.extension` ([shape versioning](shape-versioning.md)) |
+| `Meta.profile` | **the shape stamp** the object was written under | ✅ `urn:dbo:shape` in `meta.extension` ([records you can rely on(records-you-can-rely-on.md)) |
 | `Meta.security` | **the declared handling class**, which the store enforces on every write | ✅ `urn:dbo:handling` |
 | `Meta.tag` | operational labels — streamed origin, shadowing state | ✅ `urn:dbo:sync` |
 | `Resource.implicitRules`, `Resource.language` | no engine analogue | face only |
@@ -229,7 +229,7 @@ Two cautions before anyone maps them:
 - **`Meta.profile` is not the storage-format version.** The shape an object was
   authored under and the format its bytes are stored in are different axes; conflating
   them breaks at the first R4→R5 move. `payload_version` stays internal. The two-axes
-  doctrine is [shape versioning](shape-versioning.md)'s to state; this is a pointer.
+  doctrine is [records you can rely on(records-you-can-rely-on.md)'s to state; this is a pointer.
 - **The face-only elements are not uninteresting to the engine.** `text` is narrative —
   which is exactly where identifying data hides, so the membrane has a stake in an
   element it does not define. `contained` puts objects inside an object, which

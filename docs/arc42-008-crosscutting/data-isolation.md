@@ -116,7 +116,7 @@ pseudonymous, unlinkable records.
 
 - **What is promised, and what proves it** — the
   [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
-- **Where a tenant's storage actually sits** — [object model](object-model.md).
+- **Where a tenant's storage actually sits** — [records you can rely on](records-you-can-rely-on.md).
 - **Who may act, and on whose authority** — [tenant
   authority](tenant-authority.md).
 - **Why measurements leave at all, and what they carry** — the watching section
