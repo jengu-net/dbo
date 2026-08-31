@@ -11,8 +11,8 @@ with #131–#135, #145) · consumer:
 [#783](https://github.com/jengu-net/jengu-platform/issues/783),
 [#784](https://github.com/jengu-net/jengu-platform/issues/784) open
 
-**Concepts** — [records you can rely on(../arc42-008-crosscutting/records-you-can-rely-on.md) ·
-[maintenance](../arc42-008-crosscutting/maintenance.md) ·
+**Concepts** — [records you can rely on](../arc42-008-crosscutting/records-you-can-rely-on.md) ·
+[running it](../arc42-008-crosscutting/running-it.md) ·
 consumer-side ADR 0047 (still Medplum-shaped; see *Not doing*)
 
 ## What this is

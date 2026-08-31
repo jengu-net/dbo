@@ -186,5 +186,5 @@ is the mode that merges two people.
   [the engine and its faces](engine-and-faces.md).
 - **How these records are rendered** to a reader who speaks a particular
   standard — [work through a FHIR face](work-through-a-fhir-face.md).
-- **Moving data in and out**, and reshape as an operation —
-  [maintenance](maintenance.md).
+- **Moving data in and out**, and reshape as an operation — [running
+  it](running-it.md).
