@@ -24,4 +24,4 @@ The bets, each elaborated in its own section:
 7. **Identity before storage** — a tenant's authority is part of the tenant,
    not of the application in front of it, so a store can be adopted without
    first adopting somebody else's identity model
-   ([§13](../arc42-008-crosscutting/tenant-authority.md)).
+   ([§13](../arc42-008-crosscutting/who-may-act.md)).

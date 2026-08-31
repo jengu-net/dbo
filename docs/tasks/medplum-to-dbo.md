@@ -13,7 +13,7 @@ resolution), [#143](https://github.com/jengu-net/dbo/issues/143) (SCIM served
 per tenant)
 
 **Concepts** — [data isolation](../arc42-008-crosscutting/data-isolation.md) ·
-[tenant authority](../arc42-008-crosscutting/tenant-authority.md) ·
+[who may act](../arc42-008-crosscutting/who-may-act.md) ·
 [engine and faces](../arc42-008-crosscutting/engine-and-faces.md)
 
 ## What this is
