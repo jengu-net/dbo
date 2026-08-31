@@ -7,17 +7,24 @@ halves of reach, the reference runner over a real boundary, the replication
 toolset including the trail, a lane and a replication surface for hosts that
 are not the container, and the trackables a connected worker routes for.
 
-**One issue is open** — [#158](https://github.com/jengu-net/dbo/issues/158),
-whose concepts are built and whose remaining question is under `Open questions`
-below — and **the console (#75/#76) is open as coverage rather than
-capability**: its commands are built, and what is missing is the test the row
-for step 17 names. See `Sequence` for the order and what each step delivered.
+**Nothing is open.** Every step is delivered and every one is proven by a
+test — including the console's executor half, which needs a store and is
+therefore proven from the harness rather than beside the commands. See
+`Sequence` for the order and what each step delivered.
+
+**One promise stays `PLANNED` on purpose.** `PROC_NETWORK_MAP` promises the
+network answers what is known and running *accumulated across nodes*; the
+console answers it for one node, and the cross-node half does not exist. That
+is a scope this topic never claimed, not a gap in it.
 
 **Issues** — the participation cluster, formerly under the closed #46.
-Open: [#75](https://github.com/jengu-net/dbo/issues/75) /
-[#76](https://github.com/jengu-net/dbo/issues/76) (the console — its commands
-are built, and what is open is the coverage the row for step 17 names).
-Closed: [#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on
+All closed, including
+[#75](https://github.com/jengu-net/dbo/issues/75) /
+[#76](https://github.com/jengu-net/dbo/issues/76) (the console) and
+[#158](https://github.com/jengu-net/dbo/issues/158) /
+[#159](https://github.com/jengu-net/dbo/issues/159) (a trackable may route
+others, and how a routed tree reaches the store):
+[#148](https://github.com/jengu-net/dbo/issues/148) (vital signs on
 the link) · [#151](https://github.com/jengu-net/dbo/issues/151) (the edge's work
 lane: who advances a claimed run, and edge-originated work as upstream) ·
 [#156](https://github.com/jengu-net/dbo/issues/156) (refused is not
@@ -209,14 +216,14 @@ that verifies it, and the `Verifying` command at the foot runs them.
 | 14 | **Replication driven from outside the container** ([#157](https://github.com/jengu-net/dbo/issues/157)) — the tenant serves the seven verbs; a host holds `HttpLanes` over them. | **DONE** 2026-08-30 — `LanesHandler` at `/t/{code}/replication`, `HttpLanes`, and the lane's own types registered per tenant, which was the other half of "no production wiring" (`ReplicationDrivenOverHttpIT`) |
 | 15 | **Refused is not unanswered** ([#156](https://github.com/jengu-net/dbo/issues/156)) — a caller can tell a decision about itself from a store that never spoke. | **DONE** 2026-08-30 — `StoreUnreachableException` and the 4xx/5xx line, on both surfaces (`ALaneOverHttpIsIndistinguishableIT`) |
 | 16 | **A trackable may route other trackables** ([#158](https://github.com/jengu-net/dbo/issues/158)) — state normalised at any depth, trust delegated down the chain. | **DONE** 2026-08-30 — `Trackable`, `Trackables`, one row per thing however deep; the attestation names the worker that reported rather than the parent it sits behind; no freshness rule, deliberately (`ATrackableMayRouteOthersIT`) |
-| 17 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **MOSTLY DONE** 2026-08-30 — more was already built than this row said: the run half (`dbo-run:list`, `dbo-run:describe`) and #76's session (`dbo:login`, `dbo:context`) were there, and the catalogue half landed now (`dbo-process:list`, `dbo-process:describe`, including which executor would run a step here and why that one). **Left**: the executor half of `describe` is untested — it needs a store, so it needs the harness — and `PROC_NETWORK_MAP` stays `PLANNED` until the cross-node half exists |
+| 17 | **The console** ([#75](https://github.com/jengu-net/dbo/issues/75) / [#76](https://github.com/jengu-net/dbo/issues/76)) — describing the catalogue and the runs, with a tenant context and an identity when it acts. | **MOSTLY DONE** 2026-08-30 — more was already built than this row said: the run half (`dbo-run:list`, `dbo-run:describe`) and #76's session (`dbo:login`, `dbo:context`) were there, and the catalogue half landed now (`dbo-process:list`, `dbo-process:describe`, including which executor would run a step here and why that one). The executor half is proven too, from the harness because it needs a store (`TheConsoleSaysWhoWouldRunAStepIT`): the console *asks* resolution rather than describing it, so what it prints is what the tenant would do. `PROC_NETWORK_MAP` stays `PLANNED` — it promises accumulation across nodes, which this never built |
 | 18 | **A routed tree reaches the store** ([#159](https://github.com/jengu-net/dbo/issues/159)) — the transport #158 deliberately left open, settled before a consumer adopted it. | **DONE** 2026-08-31 — `Lane.routes`, the verb on the participation surface both ends share, and `Trackables` constructed where the tenant's lane is built. Observer stamped from the participant rather than read off the wire; proven over real HTTP against a provisioned tenant, including a forged attestation being discarded (`ARoutedTreeArrivesOverTheLaneIT`) |
 
-**Every step is delivered.** What remains in this topic is not capability:
-the console's commands are built and its executor half is untested (step 17),
-and #158's concepts are built while how a routed tree reaches the store is
-still open (`Open questions`). Nothing is waiting on another repository, and
-nothing is waiting on a decision somebody has not been asked for.
+**Every step is delivered and every step is proven.** Nothing is waiting on
+another repository, on a decision somebody has not been asked for, or on
+coverage somebody still owes. This topic is closed; what would reopen it is a
+new question rather than unfinished work — the nearest candidates are named
+under `Not doing` and in the ownership note under `Open questions`.
 
 ## Decisions
 
