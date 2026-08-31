@@ -15,7 +15,9 @@ Structured per [arc42](https://arc42.org/).
   [engine and faces](arc42-008-crosscutting/engine-and-faces.md) (§1),
   [object model](arc42-008-crosscutting/object-model.md) (§2–§3),
   [eventing & feeds](arc42-008-crosscutting/eventing-and-feeds.md) (§6, §10),
-  [process catalogue](arc42-008-crosscutting/process-catalogue.md) (§8),
+  [process catalogue](arc42-008-crosscutting/process-catalogue.md) (§8) and
+  [distributed work](arc42-008-crosscutting/distributed-work.md) (§8, how work
+  reaches whoever does it),
   [design rationale](arc42-008-crosscutting/design-rationale.md) (§9),
   [maintenance](arc42-008-crosscutting/maintenance.md) (§11),
   [identity rules](arc42-008-crosscutting/identity-rules.md) (§12),
