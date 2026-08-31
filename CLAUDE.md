@@ -33,6 +33,17 @@ excluded from a bundle, and through slf4j binding itself into silence. A green
 build proves very little. Prove changes by *exercising* — validate a resource,
 convert one, ingest a CodeSystem, boot the container — never by compiling.
 
+**A toolset can be built, proven and unreachable, and the tests will not say
+so.** It has happened four times in the participation work alone: a lane, a
+replication toolset, a type registered for no tenant, and a normalisation
+nothing outside the container could call. Every one passed its own tests,
+because a harness *is* the container and constructs whatever it needs. Two
+questions catch it, and they have to be asked deliberately because nothing
+fails: **who constructs this outside a test** — `new X(` matching nothing in
+production sources is the whole signal — and **where does its own state live**,
+which is cheaper to check and easier to miss, since a surface can be mounted
+and correct while the type it writes is registered for no tenant.
+
 **The fat bundles hand-write `Import-Package`.** A newly referenced sibling
 package resolves at build and throws `NoClassDefFoundError` at runtime.
 `EmbeddedContainerIT` is the ratchet; when it fails after your change it is

@@ -242,10 +242,13 @@ never superuser, and its deletion policies distinguish "stop serving" from
 
 **WF** (durable work and planes), **SCAL** (routing) and **OPS** (operations)
 are written down in the spec and have no implementation. **PROC** (the process
-catalogue and distributed work) is largely built — runs as records, the step
-declaration, the participation lane and the participant — and its remaining
-gaps are named in
-[`docs/tasks/distributed-work.md`](../tasks/distributed-work.md).
+catalogue and distributed work) is built and proven — runs as records, the step
+declaration, the participation lane and the participant, replication, and the
+console that answers who would run a step here. Its doctrine is in
+[`process-catalogue.md`](../arc42-008-crosscutting/process-catalogue.md).
+`PROC_NETWORK_MAP` is the one promise still `PLANNED`: it wants what is known
+and running accumulated **across nodes**, and only the single-node half
+exists.
 
 ## Known next fronts
 

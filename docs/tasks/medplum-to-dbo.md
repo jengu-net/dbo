@@ -48,10 +48,11 @@ than through it.
 - **The edge appliance is its own consumer-side task now**:
   [platform#917](https://github.com/jengu-net/jengu-platform/issues/917),
   `docs/tasks/edge-appliance-on-dbo.md` over there. Per their ADR 0062/0063
-  and [distributed-work](distributed-work.md), the edge runs dbo in-JVM as a
-  second appliance of the same tenant; what it needs from this side is #80
-  (batch/apply) and #77's credential half — expect stalls to arrive as
-  questions there.
+  and the participation doctrine in
+  [process-catalogue](../arc42-008-crosscutting/process-catalogue.md), the edge
+  runs dbo in-JVM as a second appliance of the same tenant. Everything it needs
+  from this side is delivered — the batch/apply toolset and the credential half
+  of reach among it — so a stall here is now a question about their half.
 
 ## Decisions
 
