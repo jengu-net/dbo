@@ -198,8 +198,22 @@ class StepRunnerIT {
             // until the run closes rather than counting cycles: delivery is
             // at-least-once, and on a loaded machine the short claim can lapse
             // MID-perform, so a third legitimate take is not a failure.
+            //
+            // A LIVENESS wait, not a budget, and the number is large because
+            // how long the retake takes is not this test's subject. The
+            // release has to reach the lane's feed to be polled, and the feed
+            // withholds an event until the transaction horizon has passed it.
+            // This database is never write-quiet — the runner writes its own
+            // declaration on every cycle — so the horizon falls back to the
+            // CLUSTER's xmin, and these classes share one Postgres. A long
+            // transaction in a neighbouring class's database can therefore
+            // hold this run's release off the feed for as long as it lasts.
+            //
+            // Thirty seconds was enough until a heavier class joined the four
+            // that run concurrently, at which point this failed on a commit
+            // that could not have touched it.
             long deadline = System.nanoTime()
-                    + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
+                    + java.util.concurrent.TimeUnit.SECONDS.toNanos(240);
             while (runs.byId(work.id()).orElseThrow().open()
                     && System.nanoTime() < deadline) {
                 try {
@@ -211,8 +225,18 @@ class StepRunnerIT {
                 runner.cycle();
             }
         }
+        // Which of the two went wrong, said apart. A run nobody ever performed
+        // a second time was never offered back; one performed and still open
+        // is the release-and-retake this test is actually about.
         assertTrue(!runs.byId(work.id()).orElseThrow().open(),
-                "a later cycle took it again and closed it");
+                attempts.get() < 2
+                        ? "the runner was never offered the released run again — attempts="
+                                + attempts.get() + ", so nothing here exercised the retake. "
+                                + "The release reaches a runner over the lane's feed, and "
+                                + "the feed withholds an event until the transaction horizon "
+                                + "passes it."
+                        : "the run was performed again and is still open, so a retake does "
+                                + "not close it: attempts=" + attempts.get());
         assertTrue(attempts.get() >= 2, "the retake actually performed: " + attempts.get());
     }
 
