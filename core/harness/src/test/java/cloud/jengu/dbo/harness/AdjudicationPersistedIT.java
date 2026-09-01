@@ -7,6 +7,8 @@ import cloud.jengu.dbo.core.api.identity.Adjudication;
 import cloud.jengu.dbo.core.api.identity.IdentityClaim;
 import cloud.jengu.dbo.core.api.identity.Resolution;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,6 +61,7 @@ class AdjudicationPersistedIT {
     @Test
     @Timeout(300)
     @DisplayName("a decision recorded today changes what resolution offers tomorrow")
+    @Proving(DboPromises.IDN_A_DECISION_IS_EVIDENCE)
     void aRecordedDecisionIsFoundAgain() {
         IdentityClaim claim = IdentityClaim.authenticated(LICENCE, "K7777001");
 
@@ -86,6 +89,7 @@ class AdjudicationPersistedIT {
     @Test
     @Timeout(300)
     @DisplayName("a decision cannot be edited — revising means recording a new one")
+    @Proving(DboPromises.IDN_A_DECISION_IS_EVIDENCE)
     void decisionsAreAppendOnly() {
         IdentityClaim claim = IdentityClaim.authenticated(LICENCE, "K7777002");
         String id = Adjudications.record(store, Adjudication.bound("person-3", List.of(),
@@ -106,6 +110,7 @@ class AdjudicationPersistedIT {
     @Test
     @Timeout(300)
     @DisplayName("a decision about one claim says nothing about another")
+    @Proving(DboPromises.IDN_A_DECISION_IS_EVIDENCE)
     void decisionsDoNotLeakAcrossClaims() {
         IdentityClaim decided = IdentityClaim.authenticated(LICENCE, "K7777003");
         IdentityClaim unrelated = IdentityClaim.authenticated(LICENCE, "K7777004");

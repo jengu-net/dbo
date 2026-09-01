@@ -5,6 +5,8 @@ import cloud.jengu.dbo.auth.IdentityModel;
 import cloud.jengu.dbo.core.api.identity.Assurance;
 import cloud.jengu.dbo.core.api.identity.BindingEvent;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,6 +55,7 @@ class AssuranceIT {
 
     @Test
     @DisplayName("the chain is as strong as its weakest step")
+    @Proving(DboPromises.IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO)
     void theWeakerBounds() {
         assertEquals(Assurance.LOW, Assurance.weakerOf(Assurance.HIGH, Assurance.LOW));
         assertEquals(Assurance.LOW, Assurance.weakerOf(Assurance.LOW, Assurance.HIGH));
@@ -65,6 +68,7 @@ class AssuranceIT {
     @Test
     @Timeout(300)
     @DisplayName("a national eID today does not upgrade an identification made from a photocopy")
+    @Proving(DboPromises.IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO)
     void aStrongAssertionDoesNotUpgradeAWeakBinding() {
         Bindings.record(store, BindingEvent.bound("person-1", "subject-1", Assurance.LOW,
                 "records-office", NOW, "TREAT", "photocopy of a licence, filed last year"));
@@ -81,6 +85,7 @@ class AssuranceIT {
     @Test
     @Timeout(300)
     @DisplayName("a weak assertion over a strong binding is bounded too")
+    @Proving(DboPromises.IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO)
     void aWeakAssertionDoesNotInheritAStrongBinding() {
         Bindings.record(store, BindingEvent.bound("person-2", "subject-2", Assurance.HIGH,
                 "desk", NOW, "TREAT", "national eID"));
@@ -96,6 +101,7 @@ class AssuranceIT {
     @Test
     @Timeout(300)
     @DisplayName("re-identifying at a higher standard raises it, and the history keeps both")
+    @Proving(DboPromises.IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO)
     void aBetterIdentificationRaisesIt() {
         Bindings.record(store, BindingEvent.bound("person-3", "subject-3", Assurance.LOW,
                 "desk", NOW, "TREAT", "took their word for it"));
@@ -111,6 +117,7 @@ class AssuranceIT {
     @Test
     @Timeout(300)
     @DisplayName("withdrawing leaves nothing to inherit")
+    @Proving(DboPromises.IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO)
     void withdrawalDropsTheAssurance() {
         Bindings.record(store, BindingEvent.bound("person-4", "subject-4", Assurance.HIGH,
                 "desk", NOW, "TREAT", "eID"));
@@ -127,6 +134,7 @@ class AssuranceIT {
 
     @Test
     @DisplayName("an identification that established nothing is not an identification")
+    @Proving(DboPromises.IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO)
     void bindingAtNoneIsRefused() {
         assertTrue(assertThrows(IllegalArgumentException.class,
                 () -> BindingEvent.bound("person-5", "subject-5", Assurance.NONE,
@@ -137,6 +145,7 @@ class AssuranceIT {
     @Test
     @Timeout(300)
     @DisplayName("one identity's assurance says nothing about another's on the same subject")
+    @Proving(DboPromises.IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO)
     void assuranceIsPerIdentity() {
         Bindings.record(store, BindingEvent.bound("person-6", "subject-6", Assurance.HIGH,
                 "desk", NOW, "TREAT", "eID"));

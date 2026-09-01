@@ -850,6 +850,57 @@ public enum DboPromises implements Promise {
 
     // ── IDN — identification ──
 
+    IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION(
+            "What a claim can conclude follows how well it is held. One cryptographically "
+            + "presented claim matching a single subject resolves without anybody looking; "
+            + "a number read off a document never resolves anybody by itself; claims "
+            + "pointing at different people destroy certainty rather than choosing between "
+            + "them; and no match at all is an ordinary answer — the person before their "
+            + "first visit — rather than an error. A revoked document resolves nobody, "
+            + "because it is in somebody else's hands, while a superseded one still finds "
+            + "the person whose records refer to it. A claim naming no issuing system is "
+            + "refused: the same digits are two people in two countries."),
+
+    IDN_A_DECISION_IS_EVIDENCE(
+            "A person's conclusion about who somebody is, is kept as evidence rather than "
+            + "applied as a fact. It names who decided, when, and what they were looking "
+            + "at; one that names nobody is refused, because it could never be questioned. "
+            + "Undecided is a state a record lives in rather than a failure. A candidate "
+            + "somebody already declined comes back marked rather than hidden — hiding it "
+            + "would make a wrong decision permanent and invisible — and no machine "
+            + "silently reverses it. Decisions are append-only and scoped to the claims "
+            + "they were about: revising one means recording a new one."),
+
+    IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE(
+            "Attaching an identity to a subject can be undone, and undoing it takes the "
+            + "identity without touching the care: a wrong binding put one person's records "
+            + "in another's, so withdrawal must always be available and must leave the "
+            + "clinical data alone. What is withdrawn stays answerable — that somebody was "
+            + "identified, and that it was undone, are both facts a regulator may ask "
+            + "about — so events are append-only and a mistaken withdrawal is as "
+            + "recoverable as a mistaken binding. A binding names who made it and why, and "
+            + "one subject's bindings say nothing about another's."),
+
+    IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED(
+            "Anonymous on purpose is something a subject says, not something absence "
+            + "implies. Two unbound subjects are otherwise identical — one expects to be "
+            + "identified and the other must not be — and an intention cannot be stated by "
+            + "an absence, so the declaration is positive, states its basis, and is refused "
+            + "without one. While it stands, binding is refused rather than discouraged; "
+            + "declaring it over a standing identity is refused too, because the "
+            + "identification has to be withdrawn first rather than shadowed. Withdrawal "
+            + "stays available throughout, and a person may lift their own declaration."),
+
+    IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO(
+            "What an identification is worth is the weaker of how somebody authenticated "
+            + "now and how well the identification itself was made. A national eID "
+            + "presented today does not upgrade one made last year from a photocopy, and a "
+            + "weak assertion does not inherit a strong binding. Re-identifying to a higher "
+            + "standard raises it and the history keeps both; withdrawing leaves nothing to "
+            + "inherit; and an identification that established nothing is refused rather "
+            + "than recorded at no assurance. It is per identity, not per subject: two "
+            + "identities on one subject say nothing about each other."),
+
     IDN_IDENTIFICATION_IS_REACHABLE(
             "A tenant identifies somebody through a door of its own: claims are presented "
             + "and resolve to candidates rather than to an answer, a claim nobody verified "

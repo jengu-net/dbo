@@ -7,6 +7,8 @@ import cloud.jengu.dbo.core.api.identity.AnonymityEvent;
 import cloud.jengu.dbo.core.api.identity.Assurance;
 import cloud.jengu.dbo.core.api.identity.BindingEvent;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,6 +60,7 @@ class AnonymityIT {
     @Test
     @Timeout(300)
     @DisplayName("not yet identified and anonymous on purpose are different states")
+    @Proving(DboPromises.IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED)
     void theTwoUnboundStatesAreDistinguishable() {
         assertFalse(Anonymity.declared(store, "trauma-patient"),
                 "an unconscious patient nobody has identified is not anonymous by choice — "
@@ -72,6 +75,7 @@ class AnonymityIT {
     @Test
     @Timeout(300)
     @DisplayName("identifying somebody anonymous by declaration is refused, not discouraged")
+    @Proving(DboPromises.IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED)
     void bindingIsRefusedForADeclaredAnonymousSubject() {
         Anonymity.record(store, AnonymityEvent.declared("subject-a", "clinic-desk", NOW,
                 "anonymous testing", null));
@@ -88,6 +92,7 @@ class AnonymityIT {
     @Test
     @Timeout(300)
     @DisplayName("an earlier identification can still be withdrawn once anonymity is declared")
+    @Proving(DboPromises.IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED)
     void withdrawalStaysAvailable() {
         Bindings.record(store, BindingEvent.bound("person-2", "subject-b", Assurance.SUBSTANTIAL,
                 "desk", NOW, "TREAT", "eID"));
@@ -107,6 +112,7 @@ class AnonymityIT {
     @Test
     @Timeout(300)
     @DisplayName("declaring anonymity over a standing identity is refused — withdraw first")
+    @Proving(DboPromises.IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED)
     void declaringOverAnIdentityIsRefused() {
         Bindings.record(store, BindingEvent.bound("person-4", "subject-c", Assurance.SUBSTANTIAL,
                 "desk", NOW, "TREAT", "eID"));
@@ -126,6 +132,7 @@ class AnonymityIT {
     @Test
     @Timeout(300)
     @DisplayName("a person may change their mind, and then they can be identified")
+    @Proving(DboPromises.IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED)
     void liftingTheDeclarationAllowsIdentification() {
         Anonymity.record(store, AnonymityEvent.declared("subject-d", "desk", NOW,
                 "anonymous testing", null));
@@ -146,6 +153,7 @@ class AnonymityIT {
     @Test
     @Timeout(300)
     @DisplayName("a declaration states its basis, and one without is refused")
+    @Proving(DboPromises.IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED)
     void aDeclarationStatesItsBasis() {
         assertTrue(assertThrows(IllegalArgumentException.class,
                 () -> AnonymityEvent.declared("subject-e", "desk", NOW, "  ", null))

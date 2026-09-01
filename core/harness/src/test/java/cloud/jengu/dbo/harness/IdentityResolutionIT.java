@@ -3,6 +3,8 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.dbo.core.api.identity.Candidate;
 import cloud.jengu.dbo.core.api.identity.IdentityClaim;
 import cloud.jengu.dbo.core.api.identity.Resolution;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +31,7 @@ class IdentityResolutionIT {
 
     @Test
     @DisplayName("an authenticated claim matching one subject resolves without a human")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void aProvenClaimResolvesOnItsOwn() {
         IdentityClaim proven = IdentityClaim.authenticated(EE, "38001010021");
 
@@ -40,6 +43,7 @@ class IdentityResolutionIT {
 
     @Test
     @DisplayName("a number read off a document never resolves anybody by itself")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void anUnverifiedClaimNeverResolvesAutomatically() {
         // the coma patient's driving licence, transcribed from a card
         IdentityClaim fromAPocket = IdentityClaim.asserted(
@@ -56,6 +60,7 @@ class IdentityResolutionIT {
 
     @Test
     @DisplayName("claims pointing at different people destroy certainty rather than picking one")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void ambiguityIsNotResolvedByChoosing() {
         IdentityClaim estonian = IdentityClaim.authenticated(EE, "38001010021");
         IdentityClaim latvian = IdentityClaim.authenticated(LV, "38001010021");
@@ -71,6 +76,7 @@ class IdentityResolutionIT {
 
     @Test
     @DisplayName("no match is an ordinary answer — the person before their first visit")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void noMatchIsNotAnError() {
         IdentityClaim unknown = IdentityClaim.authenticated(EE, "39912310099");
 
@@ -85,6 +91,7 @@ class IdentityResolutionIT {
 
     @Test
     @DisplayName("a revoked document does not resolve anybody — it is in somebody else's hands")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void aRevokedClaimDoesNotMatch() {
         IdentityClaim stolen = new IdentityClaim("https://issuer.example/passport", "P9988776",
                 IdentityClaim.Verification.CHECKED, IdentityClaim.Status.REVOKED);
@@ -98,6 +105,7 @@ class IdentityResolutionIT {
 
     @Test
     @DisplayName("a superseded number still finds the person its records refer to")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void aSupersededClaimStillResolvesForHistory() {
         IdentityClaim old = new IdentityClaim(EE, "38001010021",
                 IdentityClaim.Verification.CHECKED, IdentityClaim.Status.SUPERSEDED);
@@ -112,6 +120,7 @@ class IdentityResolutionIT {
 
     @Test
     @DisplayName("a claim with no issuing system is refused — the same digits are two people")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void aClaimWithoutAnIssuerIsRefused() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> IdentityClaim.asserted("", "38001010021"));
@@ -135,6 +144,7 @@ class IdentityResolutionIT {
      */
     @Test
     @DisplayName("alternatives take the strongest claim; a weak one alongside changes nothing")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void alternativeClaimsTakeTheStrongest() {
         IdentityClaim proven = IdentityClaim.authenticated(EE, "38001010021");
         IdentityClaim guessed = IdentityClaim.asserted(

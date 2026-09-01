@@ -1979,6 +1979,11 @@ cloud.jengu.dbo.promises.DboPromises                                   FEED_LEAN
 cloud.jengu.dbo.promises.DboPromises                                   FEED_NAMED_CONSUMERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   FEED_ONE_PRIMITIVE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   FEED_PUSH_ACK_RESUME:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   IDN_A_DECISION_IS_EVIDENCE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   IDN_IDENTIFICATION_IS_REACHABLE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_ACCEPTED_ROOT_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_ARCHIVE_ROOT_OVER_CONTENTS:cloud.jengu.dbo.promises.DboPromises
