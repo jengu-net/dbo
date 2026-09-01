@@ -195,6 +195,25 @@ public interface FhirStoreFacade {
      * <p>A no-op by default: a face whose validation carries no tenant shapes
      * has nothing to rebuild, and should not be made to pretend otherwise.
      */
+    /**
+     * A tenant has authored, changed or withdrawn a search parameter, and
+     * whatever this facade must do about it should happen now.
+     *
+     * <p>Separate from {@link #shapesChanged()} because the two cost
+     * different things. Rebuilding a validation view is memory and a second;
+     * honouring a new search parameter is a reindex of every row of a type,
+     * which a caller may want to schedule, report or refuse to start twice.
+     * Folding them together would hide the expensive one behind the cheap one.
+     *
+     * <p>Default: nothing. A facade whose parameters are fixed at bring-up is
+     * a legitimate face, and it answers zero rather than pretending to work.
+     *
+     * @return how many objects were reindexed as a result
+     */
+    default int searchParametersChanged() {
+        return 0;
+    }
+
     default void shapesChanged() {
     }
 

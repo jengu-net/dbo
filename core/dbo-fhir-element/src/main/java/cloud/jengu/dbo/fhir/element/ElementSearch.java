@@ -37,7 +37,8 @@ final class ElementSearch {
     record Compiled(Criteria criteria, boolean countOnly, List<String> elements,
             List<String> includeRefParams, String byId) {}
 
-    static Compiled compile(ElementVersion version, String typeName, Map<String, String> params) {
+    static Compiled compile(ParametersInForce inForce, String typeName,
+            Map<String, String> params) {
         Criteria criteria = Criteria.of(typeName);
         boolean countOnly = false;
         List<String> elements = null;
@@ -45,7 +46,7 @@ final class ElementSearch {
         String byId = null;
 
         Map<String, SearchParameter> known = new LinkedHashMap<>();
-        for (SearchParameter parameter : version.parametersFor(typeName)) {
+        for (SearchParameter parameter : inForce.forType(typeName)) {
             known.put(parameter.getCode(), parameter);
         }
 
@@ -73,7 +74,7 @@ final class ElementSearch {
                 case "_shape-at-least" -> shapeBound(criteria, typeName, value, false);
                 case "_offset" -> throw new UnknownSearchParameterException(typeName,
                         "_offset (DBO paginates by cursor: follow Bundle.link[next])");
-                default -> named(version, criteria, typeName, known, name, value);
+                default -> named(inForce, criteria, typeName, known, name, value);
             }
         }
         return new Compiled(criteria, countOnly, elements, includes, byId);
@@ -140,11 +141,11 @@ final class ElementSearch {
         return parts[1];
     }
 
-    private static void named(ElementVersion version, Criteria criteria, String typeName,
+    private static void named(ParametersInForce inForce, Criteria criteria, String typeName,
             Map<String, SearchParameter> known, String name, String value) {
         int dot = name.indexOf('.');
         if (dot > 0) {
-            chain(version, criteria, typeName, known,
+            chain(inForce, criteria, typeName, known,
                     name.substring(0, dot), name.substring(dot + 1), value);
             return;
         }
@@ -210,7 +211,7 @@ final class ElementSearch {
         }
     }
 
-    private static void chain(ElementVersion version, Criteria criteria, String typeName,
+    private static void chain(ParametersInForce inForce, Criteria criteria, String typeName,
             Map<String, SearchParameter> known, String refName, String targetParam, String value) {
         SearchParameter reference = known.get(refName);
         if (reference == null || reference.getType() != Enumerations.SearchParamType.REFERENCE) {
@@ -239,7 +240,7 @@ final class ElementSearch {
             criteria.chained(refPath, targetType, target);
             return;
         }
-        SearchParameter target = version.parametersFor(targetType).stream()
+        SearchParameter target = inForce.forType(targetType).stream()
                 .filter(p -> p.getCode().equals(targetParam)).findFirst()
                 .orElseThrow(() -> new UnknownSearchParameterException(typeName,
                         refName + "." + targetParam));

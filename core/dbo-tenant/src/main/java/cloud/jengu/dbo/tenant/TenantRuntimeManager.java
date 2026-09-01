@@ -986,6 +986,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             String consumer = "shapes." + runtime.spec().code();
             try {
                 boolean moved = false;
+                boolean searchMoved = false;
                 cloud.jengu.dbo.core.api.feed.FeedChunk<
                         cloud.jengu.dbo.core.api.feed.FeedItem> chunk;
                 // Drained rather than sampled: the interesting item is not
@@ -994,6 +995,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 while (!(chunk = runtime.feed().readFor(consumer, 500)).items().isEmpty()) {
                     for (cloud.jengu.dbo.core.api.feed.FeedItem item : chunk.items()) {
                         moved |= "StructureDefinition".equals(item.typeName());
+                        searchMoved |= "SearchParameter".equals(item.typeName());
                     }
                     runtime.feed().ack(consumer, chunk.nextCursor());
                 }
@@ -1005,6 +1007,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     rebuilt++;
                     LOG.info("tenant {} rebuilt its validation view: a profile arrived "
                             + "without going through its facade", runtime.spec().code());
+                }
+                // The same watch, for the same reason: a search parameter
+                // reaches a tenant by paths its facade cannot see — replicated
+                // from a zone, restored from an archive, applied by a lane —
+                // and watching the store covers the ones nobody has thought of
+                // yet. What it costs is different, so it is said differently:
+                // a reindex is work, and a round that quietly spent four
+                // minutes on one is a deployment nobody can account for.
+                if (searchMoved) {
+                    long began = System.currentTimeMillis();
+                    int reindexed = runtime.store().searchParametersChanged();
+                    if (reindexed > 0) {
+                        rebuilt++;
+                    }
+                    LOG.info("tenant {} honoured a search parameter change: reindexed={} in {}ms",
+                            runtime.spec().code(), reindexed,
+                            System.currentTimeMillis() - began);
                 }
             } catch (RuntimeException e) {
                 // One tenant's broken profile never stops the others, and the

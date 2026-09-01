@@ -137,8 +137,89 @@ public final class ElementVersion {
      *                  identity is claimed
      */
     public EnvelopeExtractor extractor(String typeName, boolean canonical) {
-        List<SearchParameter> parameters = parametersFor(typeName);
+        return extractor(typeName, canonical, List.of());
+    }
+
+    /**
+     * The same, over this version's parameters <b>and</b> a tenant's own.
+     *
+     * <p>The extra ones are passed in rather than read here, and that is the
+     * whole of the scoping rule: a version is one face serving every tenant on
+     * this deployment, so it cannot hold one tenant's parameters, and a thing
+     * that went looking for them would be reading a store — which a declared
+     * capability may not do. Whoever holds the store composes the list and
+     * hands it over.
+     *
+     * <p>The version's own win a collision. A tenant may add to what
+     * {@code Patient?birthdate} means nowhere: redefining a parameter the
+     * specification defines would make one tenant's {@code birthdate} a
+     * different question from another's, under one code, with nothing at the
+     * door to say so.
+     */
+    public EnvelopeExtractor extractor(String typeName, boolean canonical,
+            List<SearchParameter> alsoAuthoredHere) {
+        List<SearchParameter> parameters = union(parametersFor(typeName), alsoAuthoredHere);
         return (type, payload) -> extract(parameters, payload, canonical);
+    }
+
+    /** This version's parameters for a type, then whichever of the others it does not already define. */
+    static List<SearchParameter> union(List<SearchParameter> defined,
+            List<SearchParameter> authored) {
+        if (authored.isEmpty()) {
+            return defined;
+        }
+        Map<String, SearchParameter> byCode = new LinkedHashMap<>();
+        defined.forEach(p -> byCode.put(p.getCode(), p));
+        authored.forEach(p -> byCode.putIfAbsent(p.getCode(), p));
+        return List.copyOf(new ArrayList<>(byCode.values()));
+    }
+
+    /**
+     * The indexes a set of parameters declares: one per date parameter, which
+     * are the sort paths a clinical search actually issues
+     * (REQ-DBO-SRCH-DECLARED-INDEXES).
+     *
+     * <p>Here rather than beside the registrations, because a tenant-authored
+     * date parameter must declare its index by the same rule as a defined one
+     * — two derivations would eventually disagree, and the one that lost would
+     * be the tenant's.
+     */
+    public static List<cloud.jengu.dbo.core.api.IndexSpec> indexesFor(
+            List<SearchParameter> parameters) {
+        List<cloud.jengu.dbo.core.api.IndexSpec> specs = new ArrayList<>();
+        for (SearchParameter parameter : parameters) {
+            if (parameter.getType()
+                    == org.hl7.fhir.r5.model.Enumerations.SearchParamType.DATE) {
+                specs.add(new cloud.jengu.dbo.core.api.IndexSpec(
+                        parameter.getCode().replace('-', '_'),
+                        cloud.jengu.dbo.core.api.ValueKind.DATE));
+            }
+        }
+        return specs;
+    }
+
+    /**
+     * Whether an expression can be evaluated at all, for a refusal at the door.
+     *
+     * <p>This version's own parameters are evaluable by construction and a
+     * test holds that. A tenant-authored expression is arbitrary input, and the
+     * only moment a person is present to fix it is the write — after that it
+     * is a background reindex failing about a document nobody is looking at.
+     */
+    public java.util.Optional<String> whyNotEvaluable(String expression) {
+        if (expression == null || expression.isBlank()) {
+            return java.util.Optional.of("it has no expression, so there is nothing to extract");
+        }
+        try {
+            org.hl7.fhir.r5.fhirpath.FHIRPathEngine engine =
+                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context);
+            engine.setHostServices(new ElementHostServices(context));
+            engine.parse(expression);
+            return java.util.Optional.empty();
+        } catch (Exception notFhirPath) {
+            return java.util.Optional.of(notFhirPath.getMessage() == null
+                    ? notFhirPath.toString() : notFhirPath.getMessage());
+        }
     }
 
     private Envelope extract(List<SearchParameter> parameters, byte[] payload, boolean canonical) {

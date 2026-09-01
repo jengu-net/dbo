@@ -18,14 +18,28 @@ import java.util.TreeSet;
  */
 public final class TypeRegistry {
 
-    private final Map<String, TypeRegistration> byName = new LinkedHashMap<>();
+    /**
+     * Replaced whole rather than mutated in place.
+     *
+     * <p>A registration can change while the store is serving — a tenant
+     * authors a search parameter, and the type's extractor and declared
+     * indexes are not what they were. Every read here happens on a request
+     * thread, so the map a reader is walking must never be the one a writer is
+     * editing: copy-on-write gives each reader a map that is complete and
+     * consistent, at the cost of an allocation on a change that happens
+     * roughly never. Insertion order is kept because schema creation walks
+     * {@link #all()} and a stable order makes two deployments comparable.
+     */
+    private volatile Map<String, TypeRegistration> byName;
 
     public TypeRegistry(Collection<TypeRegistration> registrations) {
+        Map<String, TypeRegistration> initial = new LinkedHashMap<>();
         for (TypeRegistration r : registrations) {
-            if (byName.put(r.typeName(), r) != null) {
+            if (initial.put(r.typeName(), r) != null) {
                 throw new IllegalArgumentException("duplicate type registration: " + r.typeName());
             }
         }
+        byName = initial;
     }
 
     public TypeRegistration require(String typeName) {
@@ -34,6 +48,27 @@ public final class TypeRegistry {
             throw new UnknownTypeException(typeName);
         }
         return r;
+    }
+
+    /**
+     * Swaps one type's registration for another of the same name.
+     *
+     * <p>Refused for a type nobody registered, and for a replacement that
+     * renames or re-domains it: this exists so a type's extractor and indexes
+     * can change under a live store, not so a store's catalogue can be edited.
+     * A registration arriving for a type the store never had would create a
+     * type nothing set a schema up for.
+     */
+    public synchronized void replace(TypeRegistration replacement) {
+        TypeRegistration existing = require(replacement.typeName());
+        if (!existing.domain().equals(replacement.domain())) {
+            throw new IllegalArgumentException(replacement.typeName() + " is registered in domain '"
+                    + existing.domain() + "' and the replacement says '" + replacement.domain()
+                    + "' — its rows live in the first one");
+        }
+        Map<String, TypeRegistration> next = new LinkedHashMap<>(byName);
+        next.put(replacement.typeName(), replacement);
+        byName = next;
     }
 
     public Collection<TypeRegistration> all() {

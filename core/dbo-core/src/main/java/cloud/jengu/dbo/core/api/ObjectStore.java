@@ -87,4 +87,40 @@ public interface ObjectStore {
      * (REQ-DBO-CORE-REINDEX-IS-AN-OPERATION).
      */
     int rebuildEnvelopes(String typeName);
+
+    /**
+     * How this store has type registered right now.
+     *
+     * <p>Here because {@link #reindexUnder} would otherwise be callable only
+     * by whoever built the original registration: a replacement has to carry
+     * every field the current one carries, and a caller changing one of them
+     * must not have to reproduce the rest from memory.
+     *
+     * @throws UnknownTypeException if this store serves no such type
+     */
+    TypeRegistration registrationOf(String typeName);
+
+    /**
+     * Registers a type differently and rebuilds it under the new registration.
+     *
+     * <p>The two halves are one operation because either alone is a store that
+     * lies. A registration swapped without a reindex leaves every existing row
+     * extracted under the old one, so the new declaration answers correctly
+     * about rows written after it and wrongly about everything before. A
+     * reindex without the swap rebuilds each row into exactly what it already
+     * held.
+     *
+     * <p>The replacement must name a type this store already has, in the same
+     * domain: this exists so a type's extractor and declared indexes can
+     * change under a live store — a tenant authoring a search parameter is the
+     * case it was built for — not so a catalogue can be edited at runtime.
+     *
+     * <p>What the engine knows about that case is nothing. A registration is
+     * engine vocabulary, and whether one changed because somebody wrote a
+     * FHIR SearchParameter or for a reason no face has thought of yet is not
+     * a question this interface can ask.
+     *
+     * @return how many objects were rebuilt
+     */
+    int reindexUnder(TypeRegistration replacement);
 }

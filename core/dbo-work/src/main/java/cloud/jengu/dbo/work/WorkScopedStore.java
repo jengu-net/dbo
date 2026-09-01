@@ -133,4 +133,14 @@ public final class WorkScopedStore implements ObjectStore {
     public int rebuildEnvelopes(String typeName) {
         return inner.rebuildEnvelopes(typeName);
     }
+
+    @Override
+    public cloud.jengu.dbo.core.api.TypeRegistration registrationOf(String typeName) {
+        return inner.registrationOf(typeName);
+    }
+
+    @Override
+    public int reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration replacement) {
+        return inner.reindexUnder(replacement);
+    }
 }

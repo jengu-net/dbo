@@ -919,6 +919,21 @@ public final class PgObjectStore implements ObjectStore {
         return rebuildEnvelopes(typeName, 500);
     }
 
+    @Override
+    public TypeRegistration registrationOf(String typeName) {
+        return registry.require(typeName);
+    }
+
+    @Override
+    public int reindexUnder(TypeRegistration replacement) {
+        // The registration first, then the rebuild that honours it: the
+        // rebuild reads the registry (and applies its declared indexes) on the
+        // way in, so swapping afterwards would reindex under the old one and
+        // leave the store looking rebuilt.
+        registry.replace(replacement);
+        return rebuildEnvelopes(replacement.typeName());
+    }
+
     /**
      * Chunked reindex: each batch is its own SHORT transaction —
      * a large reindex never pins the instance's xmin for its whole duration
