@@ -15,7 +15,7 @@ import java.util.Optional;
  * and a feed event — checkpoints, never a heartbeat.
  */
 public record Run(String id, long versionId, String key, String process, String step,
-        RunKind kind, Holder holder, String parent, String correlation,
+        RunKind kind, Holder holder, String parent, String correlation, String trace,
         Map<String, Long> tally, Item item, java.util.List<String> domains,
         Assignment assignment, Produced produced, String stepVersion,
         Map<String, String> inputs, Milestone milestone) {
@@ -180,6 +180,7 @@ public record Run(String id, long versionId, String key, String process, String 
                 Json.str(json, "process"), Json.str(json, "step"),
                 RunKind.of(Json.str(json, "kind")), Holder.of(Json.str(json, "holder")),
                 optional(json, "parent"), optional(json, "correlation"),
+                optional(json, "trace"),
                 Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment(json),
                 produced(json), optional(json, "stepVersion"),
                 java.util.Collections.unmodifiableMap(inputs), milestone);
@@ -239,6 +240,24 @@ public record Run(String id, long versionId, String key, String process, String 
     private static String str(Map<?, ?> raw, String field) {
         Object value = raw.get(field);
         return value == null ? null : value.toString();
+    }
+
+    /**
+     * The trace context this run travels under, if it was given one.
+     *
+     * <p>Opaque, and carried rather than minted. A store that minted a root
+     * whenever it saw none would detach every run from the chain its caller
+     * already had — two disconnected traces where there was one, and the
+     * second looking authoritative. Absence is the honest answer for work
+     * nobody traced.
+     *
+     * <p>Never a metric dimension. It is an identifier, so it belongs on a
+     * span's own id fields; putting it in a label would give every run its own
+     * time series, which is the same reason a run's key and a foreign
+     * correlation are absent from the telemetry labels.
+     */
+    public java.util.Optional<String> traceContext() {
+        return java.util.Optional.ofNullable(trace);
     }
 
     /** The correlation this run was given, if it was given one. */

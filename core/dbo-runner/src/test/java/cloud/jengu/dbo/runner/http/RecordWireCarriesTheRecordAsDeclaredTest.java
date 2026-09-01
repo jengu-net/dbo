@@ -41,6 +41,7 @@ class RecordWireCarriesTheRecordAsDeclaredTest {
 
     private static final Run FULL = new Run("run-1", 7L, "dbo.lab/validate/1", "dbo.lab",
             "validate", RunKind.PIPELINE, Holder.AUTOMATION, "parent-1", "correlation-1",
+            "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
             Map.of("read", 4L), new Run.Item("Observation/o1", Failure.RECORD, "no such code"),
             List.of("r4"),
             new Run.Assignment(Scope.zone("ee"),

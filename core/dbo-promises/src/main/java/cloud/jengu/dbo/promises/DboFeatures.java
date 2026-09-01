@@ -108,6 +108,7 @@ public enum DboFeatures implements Feature {
                     DboPromises.PROC_RUN_KINDS,
                     DboPromises.PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY,
                     DboPromises.PROC_CORRELATION_TRAVELS_OPAQUE,
+                    DboPromises.PROC_TRACE_RIDES_THE_LANE,
                     DboPromises.PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT)),
 
     RESOLUTION_IS_DETERMINISTIC_AND_DECLARED("Which executor takes a step is walked, "
