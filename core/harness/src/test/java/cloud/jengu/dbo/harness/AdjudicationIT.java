@@ -4,6 +4,8 @@ import cloud.jengu.dbo.core.api.identity.Adjudication;
 import cloud.jengu.dbo.core.api.identity.Candidate;
 import cloud.jengu.dbo.core.api.identity.IdentityClaim;
 import cloud.jengu.dbo.core.api.identity.Resolution;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +36,7 @@ class AdjudicationIT {
 
     @Test
     @DisplayName("a decision names who made it, when, and what they were looking at")
+    @Proving(DboPromises.IDN_A_DECISION_IS_EVIDENCE)
     void aDecisionCarriesItsProvenance() {
         IdentityClaim presented = IdentityClaim.asserted(LICENCE, "K1234567");
 
@@ -50,6 +53,7 @@ class AdjudicationIT {
 
     @Test
     @DisplayName("an anonymous decision is refused — it can never be questioned")
+    @Proving(DboPromises.IDN_A_DECISION_IS_EVIDENCE)
     void aDecisionWithoutADeciderIsRefused() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> Adjudication.created("person-9", List.of(), List.of(),
@@ -60,6 +64,7 @@ class AdjudicationIT {
 
     @Test
     @DisplayName("nobody has decided yet, and that is a state rather than a failure")
+    @Proving(DboPromises.IDN_A_DECISION_IS_EVIDENCE)
     void deferredNeedsNobody() {
         Adjudication pending = Adjudication.deferred(
                 List.of(IdentityClaim.asserted(LICENCE, "K1234567")));
@@ -71,6 +76,7 @@ class AdjudicationIT {
 
     @Test
     @DisplayName("a candidate somebody already declined comes back marked, not hidden")
+    @Proving(DboPromises.IDN_A_DECISION_IS_EVIDENCE)
     void aRejectedCandidateIsMarkedNotHidden() {
         IdentityClaim claim = IdentityClaim.authenticated(EE, "38001010021");
 
@@ -85,6 +91,7 @@ class AdjudicationIT {
 
     @Test
     @DisplayName("a machine does not silently reverse a person's conclusion")
+    @Proving(DboPromises.IDN_A_DECISION_IS_EVIDENCE)
     void aRejectedCandidateNeverResolvesAutomatically() {
         IdentityClaim proven = IdentityClaim.authenticated(EE, "38001010021");
 
@@ -104,6 +111,7 @@ class AdjudicationIT {
 
     @Test
     @DisplayName("a candidate nobody has judged is not marked")
+    @Proving(DboPromises.IDN_A_DECISION_IS_EVIDENCE)
     void anUnjudgedCandidateCarriesNoMark() {
         IdentityClaim proven = IdentityClaim.authenticated(EE, "38001010021");
 

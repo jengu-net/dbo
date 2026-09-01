@@ -102,7 +102,25 @@ public final class PromiseProjection {
         sections.put("MNT", "## MNT — maintenance\n");
         sections.put("PRM", "## PRM — promise (requirements as code)\n");
         sections.put("SCIM", "## SCIM — staff provisioning surface\n");
+        sections.put("IDN", "## IDN — identification\n");
         Map<String, StringBuilder> tables = new TreeMap<>();
+        // A promise whose area has no section here used to vanish: the loop
+        // below matched no prefix, nothing was appended, and the projection and
+        // the model agreed perfectly about a catalogue missing an entire
+        // capability. Found by adding six identification promises and watching
+        // the rendered document not mention them.
+        java.util.List<String> homeless = new java.util.ArrayList<>();
+        for (Promise promise : model.promises()) {
+            String code = model.codeOf(promise);
+            if (sections.keySet().stream().noneMatch(p -> code.startsWith("REQ-DBO-" + p + "-"))) {
+                homeless.add(code);
+            }
+        }
+        if (!homeless.isEmpty()) {
+            throw new IllegalStateException("these promises belong to no section, so the "
+                    + "projection would render a catalogue that silently omits them — add "
+                    + "the area above: " + homeless);
+        }
         for (Promise promise : model.promises()) {
             String code = model.codeOf(promise);
             for (String prefix : sections.keySet()) {

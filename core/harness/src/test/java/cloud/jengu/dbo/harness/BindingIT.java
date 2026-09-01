@@ -7,6 +7,8 @@ import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.core.api.identity.Assurance;
 import cloud.jengu.dbo.core.api.identity.BindingEvent;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,6 +61,7 @@ class BindingIT {
     @Test
     @Timeout(300)
     @DisplayName("an anonymous subject has nobody attached until somebody attaches them")
+    @Proving(DboPromises.IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE)
     void aSubjectStartsAnonymous() {
         assertEquals(Set.of(), Bindings.current(store, "subject-untouched"),
                 "care is recorded before anybody knows who the person is, and that is a complete "
@@ -68,6 +71,7 @@ class BindingIT {
     @Test
     @Timeout(300)
     @DisplayName("withdrawing removes the identity and keeps the evidence it was there")
+    @Proving(DboPromises.IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE)
     void withdrawalKeepsTheEvidence() {
         Bindings.record(store, BindingEvent.bound("person-1", "subject-1", Assurance.SUBSTANTIAL,
                 "reception-desk-7", MONDAY, "TREAT", "national eID presented"));
@@ -87,6 +91,7 @@ class BindingIT {
     @Test
     @Timeout(300)
     @DisplayName("a mistaken withdrawal is as recoverable as a mistaken binding")
+    @Proving(DboPromises.IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE)
     void rebindingAfterAWithdrawalWorks() {
         Bindings.record(store, BindingEvent.bound("person-2", "subject-2", Assurance.SUBSTANTIAL,
                 "desk", MONDAY, "TREAT", "first"));
@@ -103,6 +108,7 @@ class BindingIT {
     @Test
     @Timeout(300)
     @DisplayName("binding without a purpose or a person behind it is refused")
+    @Proving(DboPromises.IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE)
     void bindingNamesWhoAndWhy() {
         assertTrue(assertThrows(IllegalArgumentException.class,
                 () -> BindingEvent.bound("person-3", "subject-3", Assurance.SUBSTANTIAL, "  ", MONDAY, "TREAT", null))
@@ -116,6 +122,7 @@ class BindingIT {
     @Test
     @Timeout(300)
     @DisplayName("a recorded binding cannot be rewritten into a different one")
+    @Proving(DboPromises.IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE)
     void bindingEventsAreAppendOnly() {
         String id = Bindings.record(store, BindingEvent.bound("person-4", "subject-4", Assurance.SUBSTANTIAL,
                 "desk", MONDAY, "TREAT", "eID"));
@@ -136,6 +143,7 @@ class BindingIT {
     @Test
     @Timeout(300)
     @DisplayName("one subject's bindings say nothing about another's")
+    @Proving(DboPromises.IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE)
     void bindingsAreScopedToTheirSubject() {
         Bindings.record(store, BindingEvent.bound("person-5", "subject-5", Assurance.SUBSTANTIAL,
                 "desk", MONDAY, "TREAT", "eID"));

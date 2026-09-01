@@ -13,6 +13,8 @@ import cloud.jengu.dbo.core.api.identity.Adjudication;
 import cloud.jengu.dbo.core.api.identity.IdentityClaim;
 import cloud.jengu.dbo.core.api.identity.Resolution;
 import cloud.jengu.dbo.postgres.PgObjectStore;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -92,6 +94,7 @@ class IdentityLookupIT {
     @Test
     @Timeout(300)
     @DisplayName("a proven claim finds its record without the caller writing a query")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void aClaimFindsItsRecord() {
         String id = subject(EE, "38001010021");
 
@@ -104,6 +107,7 @@ class IdentityLookupIT {
     @Test
     @Timeout(300)
     @DisplayName("a claim nobody holds resolves to nothing, which is an ordinary answer")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void anUnknownClaimFindsNobody() {
         Resolution resolution = Identities.resolve(store, "Subject",
                 List.of(IdentityClaim.authenticated(EE, "39912310099")));
@@ -115,6 +119,7 @@ class IdentityLookupIT {
     @Test
     @Timeout(300)
     @DisplayName("the lookup folds in what somebody already decided, without being asked")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void priorDecisionsAreAppliedAutomatically() {
         String id = subject(LICENCE, "K5150001");
         IdentityClaim claim = IdentityClaim.authenticated(LICENCE, "K5150001");
@@ -136,6 +141,7 @@ class IdentityLookupIT {
     @Test
     @Timeout(300)
     @DisplayName("claims pointing at different records leave the choosing to a person")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void twoRecordsMeanNobodyIsCertain() {
         String estonian = subject(EE, "38001010022");
         String licensed = subject(LICENCE, "K5150002");
@@ -154,6 +160,7 @@ class IdentityLookupIT {
     @Test
     @Timeout(300)
     @DisplayName("presenting nothing asks nothing of the store")
+    @Proving(DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION)
     void noClaimsIsNotAQuery() {
         Resolution resolution = Identities.resolve(store, "Subject", List.of());
 
