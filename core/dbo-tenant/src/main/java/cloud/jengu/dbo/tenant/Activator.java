@@ -260,7 +260,7 @@ public final class Activator implements BundleActivator {
                     public void tenantUp(TenantRuntimeManager.TenantRuntime runtime) {
                         Hashtable<String, Object> props = new Hashtable<>();
                         props.put("tenant", runtime.spec().code());
-                        props.put("fhir.version", runtime.spec().fhirVersion());
+                        props.put("fhir.version", runtime.spec().face());
                         java.util.List<ServiceRegistration<?>> regs = new java.util.ArrayList<>(List.of(
                                 ctx.registerService(ObjectStore.class, runtime.engine(), props),
                                 ctx.registerService(FhirStoreFacade.class, runtime.store(), props),

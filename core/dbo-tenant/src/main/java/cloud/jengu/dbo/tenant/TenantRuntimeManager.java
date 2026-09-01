@@ -344,7 +344,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                 states.put(spec.code(), TenantState.State.SERVING);
                                 reportedFailures.removeIf(k -> k.startsWith(f.getFileName() + ":"));
                                 LOG.info("tenant up: code={} fhir={} pdi={} in {}ms",
-                                        spec.code(), spec.fhirVersion(), spec.pdi(),
+                                        spec.code(), spec.face(), spec.pdi(),
                                         (System.nanoTime() - began) / 1_000_000);
                                 rollup();
                             }
@@ -559,7 +559,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // rollup that under-reports is worse than one that says nothing.
         String byVersion = runtimes.values().stream()
                 .collect(java.util.stream.Collectors.groupingBy(
-                        r -> r.spec().fhirVersion(), java.util.TreeMap::new,
+                        r -> r.spec().face(), java.util.TreeMap::new,
                         java.util.stream.Collectors.counting()))
                 .entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
@@ -583,7 +583,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // Resolved before anything is created. A tenant declaring a version
         // nothing provides is refused because nothing provides it, and asking
         // first means the refusal leaves no database behind to clean up.
-        FhirVersion version = versions.require(spec.fhirVersion());
+        FhirVersion version = versions.require(spec.face());
         // The refusing half of the face contract: what this spec
         // requires, compared against what the face declares, before the
         // database exists. An absent capability used to surface where it was
@@ -848,7 +848,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (spec.dependencies().isEmpty()) {
             return;
         }
-        FhirVersion version = versions.require(spec.fhirVersion());
+        FhirVersion version = versions.require(spec.face());
         String domain = version.domain();
         String payloadVersion = version.payloadVersion();
         java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> engines = new java.util.ArrayList<>();

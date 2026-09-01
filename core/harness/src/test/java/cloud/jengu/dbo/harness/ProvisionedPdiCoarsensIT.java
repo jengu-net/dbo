@@ -51,7 +51,7 @@ class ProvisionedPdiCoarsensIT {
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("varjatud.json"), """
-                {"code":"varjatud","fhirVersion":"r4","pdi":true,"types":[
+                {"code":"varjatud","face":"r4","pdi":true,"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         UntilServed.scan(manager, up -> up.contains("varjatud"));
     }

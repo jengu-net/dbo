@@ -97,7 +97,7 @@ class MirroredTerminologyIsHeldIT {
     /** Identical but for the one word this issue is about. */
     private static String spec(String code, String handling) {
         return """
-                {"code":"%s","fhirVersion":"r4",
+                {"code":"%s","face":"r4",
                  "types":[
                    {"name":"CodeSystem","identity":"canonical","handling":"%s"},
                    {"name":"ValueSet","identity":"canonical","handling":"%s"}]}"""

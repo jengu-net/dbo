@@ -20,8 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Which FHIR versions a container serves is what is installed, not a list two
- * strings long (R6, REQ-DBO-VER-CONCURRENT-VERSIONS).
+ * Which faces a container serves is what is installed, not a list two strings
+ * long (R6, REQ-DBO-VER-CONCURRENT-VERSIONS).
  *
  * <p>A tenant spec used to be refused unless its version was exactly {@code r4}
  * or {@code r5} — so R6 was rejected by the name of the requirement asking for
@@ -81,6 +81,32 @@ class VersionsAreInstalledNotListedTest {
     }
 
     @Test
+    @DisplayName("a spec still naming the field after a FHIR version is refused, "
+            + "because two names for one field is what survives a decade")
+    void theOldNameIsRefusedRatherThanHonoured() {
+        // Transitional and deliberately not a catalogue promise: once nothing
+        // writes the old name the refusal is vestigial. What it must never be
+        // is silence — a spec quietly coming up with no face declared, or two
+        // spellings both working and no way to tell which one a deployment
+        // obeys.
+        String old = """
+                {"code":"vana","fhirVersion":"r4","types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}""";
+
+        IllegalArgumentException refusal =
+                assertThrows(IllegalArgumentException.class, () -> TenantSpec.parse(old));
+
+        // Both names, and the old one is what makes this assertion mean
+        // anything: drop the refusal and the parse still fails, with "missing
+        // field: face" — which satisfies a check for the new name alone while
+        // telling a spec author nothing about what they actually did wrong.
+        assertTrue(refusal.getMessage().contains("fhirVersion")
+                        && refusal.getMessage().contains("face"),
+                "the refusal has to name what was written and what to write: "
+                        + refusal.getMessage());
+    }
+
+    @Test
     @DisplayName("and a spec is no longer the place the version list lives")
     @Proving(DboPromises.VER_VERSION_AGNOSTIC_CORE)
     void aSpecAcceptsAVersionItCannotKnowAbout() {
@@ -90,7 +116,7 @@ class VersionsAreInstalledNotListedTest {
                 new FhirTypeConfig("Patient", IdentityClass.INTERNAL, Set.of(),
                         Handling.operational())));
 
-        assertEquals("r6", spec.fhirVersion());
+        assertEquals("r6", spec.face());
         assertThrows(IllegalArgumentException.class, () -> new TenantSpec("uus", "  ", List.of(
                 new FhirTypeConfig("Patient", IdentityClass.INTERNAL, Set.of(),
                         Handling.operational()))));

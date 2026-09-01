@@ -63,13 +63,13 @@ class ScimProvisioningIT {
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("staffed.json"), """
-                {"code":"staffed","fhirVersion":"r4","pdi":true,
+                {"code":"staffed","face":"r4","pdi":true,
                  "audit":{"level":"full"},
                  "scim":{"system":"%s"},
                  "types":%s}""".formatted(SYSTEM, PERSON_TYPES));
         // The same shape WITHOUT the block: the endpoints must not exist.
         Files.writeString(dir.resolve("unstaffed.json"), """
-                {"code":"unstaffed","fhirVersion":"r4","pdi":true,
+                {"code":"unstaffed","face":"r4","pdi":true,
                  "audit":{"level":"full"},"types":%s}""".formatted(PERSON_TYPES));
         UntilServed.scan(manager, up -> up.contains("staffed") && up.contains("unstaffed"));
         var authority = manager.authority("staffed");
@@ -258,7 +258,7 @@ class ScimProvisioningIT {
                 "absent the block, the endpoints do not exist");
 
         Files.writeString(dir.resolve("clear-headed.json"), """
-                {"code":"clear-headed","fhirVersion":"r4","pdi":false,
+                {"code":"clear-headed","face":"r4","pdi":false,
                  "audit":{"level":"writes"},
                  "scim":{"system":"%s"},"types":%s}""".formatted(SYSTEM, PERSON_TYPES));
         manager.scanOnce();

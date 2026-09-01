@@ -48,12 +48,12 @@ class MetaSaysTheEnginesFactsIT {
                 postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
         Files.writeString(dir.resolve("allikas.json"), """
-                {"code":"allikas","fhirVersion":"r4","types":[
+                {"code":"allikas","face":"r4","types":[
                   {"name":"Patient","identity":"internal","handling":"operational"},
                   {"name":"CodeSystem","identity":"canonical","handling":"mirrored"}]}""");
         UntilServed.scan(manager, "allikas");
         Files.writeString(dir.resolve("saaja.json"), """
-                {"code":"saaja","fhirVersion":"r4","types":[
+                {"code":"saaja","face":"r4","types":[
                   {"name":"Patient","identity":"internal","handling":"operational"},
                   {"name":"CodeSystem","identity":"canonical","handling":"mirrored"}],
                  "dependencies":[{"name":"allikas","types":["CodeSystem"]}]}""");

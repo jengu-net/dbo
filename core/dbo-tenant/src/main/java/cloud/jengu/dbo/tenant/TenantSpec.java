@@ -13,26 +13,26 @@ import java.util.regex.Pattern;
  * In production these specs come from configuration (git / operator-managed
  * mounts); the manager watches them as files.
  */
-public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
+public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
         String zone, String broker, List<String> acceptedBrokers,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps) {
 
     /** Compatibility: the pre-mandatory-steps shape. */
-    public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
             boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
             String zone, String broker, List<String> acceptedBrokers,
             List<Dependency> dependencies, Scim scim) {
-        this(code, fhirVersion, types, pdi, policies, zone, broker, acceptedBrokers,
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
                 dependencies, scim, List.of());
     }
 
     /** Compatibility: the pre-SCIM shape, still what most specs declare. */
-    public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
             boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
             String zone, String broker, List<String> acceptedBrokers,
             List<Dependency> dependencies) {
-        this(code, fhirVersion, types, pdi, policies, zone, broker, acceptedBrokers,
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
                 dependencies, null);
     }
 
@@ -69,23 +69,23 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
         }
     }
 
-    public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
             boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
             String zone, String broker, List<String> acceptedBrokers) {
-        this(code, fhirVersion, types, pdi, policies, zone, broker, acceptedBrokers, List.of());
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers, List.of());
     }
 
-    public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types,
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
             boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies) {
-        this(code, fhirVersion, types, pdi, policies, null, null, List.of(), List.of());
+        this(code, face, types, pdi, policies, null, null, List.of(), List.of());
     }
 
-    public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types) {
-        this(code, fhirVersion, types, false, cloud.jengu.dbo.policy.TenantPolicies.defaults());
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types) {
+        this(code, face, types, false, cloud.jengu.dbo.policy.TenantPolicies.defaults());
     }
 
-    public TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> types, boolean pdi) {
-        this(code, fhirVersion, types, pdi, cloud.jengu.dbo.policy.TenantPolicies.defaults());
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types, boolean pdi) {
+        this(code, face, types, pdi, cloud.jengu.dbo.policy.TenantPolicies.defaults());
     }
 
     // The platform's tenant-code contract: lowercase label, hyphens, no
@@ -101,13 +101,14 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
         }
         // (databaseName() below derives a Postgres-safe name; the code
         // itself only has to be URL- and file-name-safe)
-        // Which versions exist is not a spec's business and never was: this
-        // rejected R6 by the name of the requirement asking for it, and a
-        // custom face could not be declared at all. What a version has to be
-        // here is a name; whether anything serves it is answered at bring-up
-        // by what is installed (REQ-DBO-VER-CONCURRENT-VERSIONS, R6).
-        if (fhirVersion == null || fhirVersion.isBlank()) {
-            throw new IllegalArgumentException(code + ": fhirVersion is required");
+        // Which faces exist is not a spec's business and never was: a closed
+        // check here rejected R6 by the name of the requirement asking for it,
+        // and a face that is not a FHIR version at all could not be declared.
+        // What a face has to be here is a name; whether anything serves it is
+        // answered at bring-up by what is installed
+        // (REQ-DBO-VER-CONCURRENT-VERSIONS, R6).
+        if (face == null || face.isBlank()) {
+            throw new IllegalArgumentException(code + ": face is required");
         }
         types = List.copyOf(types);
         if (types.isEmpty()) {
@@ -134,7 +135,7 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
     }
 
     /**
-     * Parses the spec file format: {"code":..,"fhirVersion":..,
+     * Parses the spec file format: {"code":..,"face":..,
      * "types":[{name,identity,systems?,handling?}],"dependencies":[{name,types}],
      * "mandatorySteps":["&lt;module&gt;.&lt;process&gt;.&lt;step&gt;"]}.
      *
@@ -159,7 +160,15 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
     public static TenantSpec parse(String json) {
         Object root = Json.parse(json);
         String code = Json.str(root, "code");
-        String fhirVersion = Json.str(root, "fhirVersion");
+        // The field selects a face, and a face need not be a FHIR version, so
+        // the old name is refused rather than honoured. Accepting both would
+        // be the kindness that survives a decade: two names for one field,
+        // and a reader with no way to know which one this deployment obeys.
+        if (Json.strOpt(root, "fhirVersion") != null) {
+            throw new IllegalArgumentException(code + ": 'fhirVersion' selects a face and is "
+                    + "named 'face'; a face need not be a FHIR version at all");
+        }
+        String face = Json.str(root, "face");
         List<FhirTypeConfig> types = Json.array(root, "types").stream().map(t -> {
             String name = Json.str(t, "name");
             String identity = Json.str(t, "identity");
@@ -205,7 +214,7 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
             // decision about everybody in it.
             throw new IllegalArgumentException(code + ": scim requires pdi");
         }
-        return new TenantSpec(code, fhirVersion, types, pdi,
+        return new TenantSpec(code, face, types, pdi,
                 cloud.jengu.dbo.policy.TenantPolicies.parse(root),
                 Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),
                 Json.strings(root, "acceptedBrokers"), dependencies, scim,

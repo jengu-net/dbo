@@ -137,7 +137,7 @@ class OperatorIT {
         cr.setMetadata(new ObjectMetaBuilder().withName(code).withNamespace(NS).build());
         cr.setAdditionalProperty("spec", Map.of(
                 "code", code,
-                "fhirVersion", "r4",
+                "face", "r4",
                 "deletionPolicy", deletionPolicy,
                 "types", List.of(
                         Map.of("name", "Patient", "identity", "identifier", "systems", List.of(EID), "handling", "operational"),
@@ -224,7 +224,7 @@ class OperatorIT {
         poliis.setKind("TenantRegistration");
         poliis.setMetadata(new ObjectMetaBuilder().withName("poliis").withNamespace(NS).build());
         poliis.setAdditionalProperty("spec", Map.ofEntries(
-                Map.entry("code", "poliis"), Map.entry("fhirVersion", "r6"),
+                Map.entry("code", "poliis"), Map.entry("face", "r6"),
                 Map.entry("deletionPolicy", "Delete"),
                 Map.entry("pdi", true),
                 Map.entry("audit", Map.of("level", "writes")),
@@ -242,10 +242,10 @@ class OperatorIT {
                 Map.entry("dependencies", List.of(
                         Map.of("name", "ee", "types", List.of("CodeSystem", "ValueSet")))),
                 Map.entry("types", List.of(
-                        // r6, and mirrored: the two enum gaps found alongside
-                        // the missing fields — a CRD that
-                        // silently could not express either would fail the
-                        // same way, at bring-up rather than at the API server.
+                        // r6 through an unenumerated face, and mirrored
+                        // through an enumerated handling: a CRD that silently
+                        // could not express either would fail the same way, at
+                        // bring-up rather than at the API server.
                         Map.of("name", "Patient", "identity", "internal",
                                 "handling", "operational"),
                         Map.of("name", "CodeSystem", "identity", "canonical",
@@ -273,17 +273,19 @@ class OperatorIT {
         // The fields TenantSpec accepts and the CR could not express —
         // asserted on the PARSED spec, not the JSON string, so a re-emit that
         // changed shape without changing content would still be caught.
-        assertEquals("r6", parsed.fhirVersion(), "the CRD's enum gap: this store serves r6");
+        assertEquals("r6", parsed.face(),
+                "the face is a name the CRD does not enumerate, so a deployment's "
+                        + "installed faces decide what a tenant may ask for");
         assertEquals("ee", parsed.zone());
         assertEquals("tara", parsed.broker());
         assertEquals(List.of("tara", "eeid"), parsed.acceptedBrokers());
         assertEquals(1, parsed.dependencies().size());
         assertEquals("ee", parsed.dependencies().get(0).name());
         assertEquals(Set.of("CodeSystem", "ValueSet"), parsed.dependencies().get(0).types());
-        // The CRD's second enum gap: "mirrored" reaches the parsed
-        // spec as the classification that means "another authority's
-        // publication, carried by our own lane" — not the ownership
-        // "replicated" declares.
+        // Handling IS enumerated, deliberately — a typo must not become a
+        // classification — and "mirrored" reaches the parsed spec as the
+        // classification meaning "another authority's publication, carried by
+        // our own lane", not the ownership "replicated" declares.
         assertEquals(cloud.jengu.dbo.core.api.Handling.mirrored().authority(),
                 parsed.types().stream()
                         .filter(t -> "CodeSystem".equals(t.typeName())).findFirst()

@@ -34,16 +34,20 @@ three-tier question (version-scoped capability / tenant-scoped facade /
 per-request fact) is decided and written down. A tenant whose face lacks a
 capability its spec requires is refused at bring-up rather than mid-request.
 
-The open four are where the assertion gets tested:
+The open three are where the assertion gets tested:
 
 - **#108** — a second, non-FHIR face, which is what turns "the engine holds no
   FHIR knowledge" from a claim into something a build can fail on.
-- **#110** — `fhirVersion` in the tenant spec, for a face that need not be FHIR
-  at all. Named wrong, and the name is load-bearing config.
 - **#112** — what counts as *one object* is a face decision the contract has no
   place for.
 - **#113** — what may leave the store is not the same question as what *this
   recipient* may see.
+
+**#110 is done.** The spec field is called `face`, its old name is refused
+rather than honoured, and the operator's schema no longer enumerates three
+FHIR versions — so a face that is not one of them is expressible from the
+CRD down. That was the last piece of the contract that was wire-visible, and
+greenfield is what made it a rename rather than a migration.
 
 Shape versioning added a fifth capability (`ShapeConversion`) to the contract
 without any of this settling first, and it fit — which is mild evidence the

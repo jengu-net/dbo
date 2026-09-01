@@ -52,7 +52,7 @@ class BundleIT {
                 SharedPostgres.urlFor("BundleIT"), postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
         Files.writeString(dir.resolve("kimp.json"), """
-                {"code":"kimp","fhirVersion":"r4","types":[
+                {"code":"kimp","face":"r4","types":[
                   {"name":"Organization","identity":"internal","handling":"operational"},
                   {"name":"Patient","identity":"internal","handling":"operational"},
                   {"name":"Observation","identity":"internal","handling":"operational"}]}""");

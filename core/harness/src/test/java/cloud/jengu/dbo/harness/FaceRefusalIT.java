@@ -70,11 +70,11 @@ class FaceRefusalIT {
 
         // asks for coarsening (pdi) — must be refused
         Files.writeString(dir.resolve("keeldub.json"), """
-                {"code":"keeldub","fhirVersion":"r4","pdi":true,"types":[
+                {"code":"keeldub","face":"r4","pdi":true,"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         // asks for nothing unusual — must come up on the same stripped face
         Files.writeString(dir.resolve("lubatud.json"), """
-                {"code":"lubatud","fhirVersion":"r4","types":[
+                {"code":"lubatud","face":"r4","types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         UntilServed.scan(manager, up -> up.contains("lubatud"));
     }
@@ -113,7 +113,7 @@ class FaceRefusalIT {
     @Test
     void theRefusalNamesTheCapabilityAndTheRequirement() throws Exception {
         TenantSpec spec = TenantSpec.parse("""
-                {"code":"nimeline","fhirVersion":"r4","pdi":true,"types":[
+                {"code":"nimeline","face":"r4","pdi":true,"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         DomainFace stripped = new SansCoarsening(
                 FhirVersions.installed().require("r4")).face();

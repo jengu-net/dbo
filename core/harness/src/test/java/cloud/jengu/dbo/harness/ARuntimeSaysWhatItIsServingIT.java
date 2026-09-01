@@ -78,7 +78,7 @@ class ARuntimeSaysWhatItIsServingIT {
 
     private static String spec(String code, String version) {
         return """
-                {"code":"%s","fhirVersion":"%s","types":[
+                {"code":"%s","face":"%s","types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}"""
                 .formatted(code, version);
     }

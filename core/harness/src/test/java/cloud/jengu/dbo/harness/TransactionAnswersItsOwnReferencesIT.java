@@ -59,7 +59,7 @@ class TransactionAnswersItsOwnReferencesIT {
                 postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
         Files.writeString(dir.resolve("paigutus.json"), """
-                {"code":"paigutus","fhirVersion":"r4","types":[
+                {"code":"paigutus","face":"r4","types":[
                   {"name":"Location","identity":"identifier","systems":["%s"],
                    "handling":"projected-config"}]}""".formatted(SYS));
         UntilServed.scan(manager, "paigutus");

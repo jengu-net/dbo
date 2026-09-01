@@ -59,7 +59,7 @@ class R6TenantIT {
                 jdbcUrl, postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
         Files.writeString(dir.resolve("kuues.json"), """
-                {"code":"kuues","fhirVersion":"r6","types":[
+                {"code":"kuues","face":"r6","types":[
                   {"name":"Patient","identity":"identifier","systems":["%s"],"handling":"operational"},
                   {"name":"Observation","identity":"internal","handling":"operational"}]}"""
                 .formatted(EID));

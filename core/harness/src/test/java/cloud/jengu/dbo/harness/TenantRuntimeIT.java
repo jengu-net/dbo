@@ -60,7 +60,7 @@ class TenantRuntimeIT {
 
     private static String specA() {
         return """
-                {"code":"aiakas","fhirVersion":"r4","types":[
+                {"code":"aiakas","face":"r4","types":[
                   {"name":"Patient","identity":"identifier","systems":["%s"],"handling":"operational"},
                   {"name":"Observation","identity":"internal","handling":"operational"}]}""".formatted(EID);
     }
@@ -101,7 +101,7 @@ class TenantRuntimeIT {
     void aLongHyphenatedCodeBecomesALiveTenant() throws Exception {
         String code = "e2e-us-xapi-distributor-onboards-customer-20260815-233454-8knshjjg";
         Files.writeString(dir.resolve(code + ".json"), """
-                {"code":"%s","fhirVersion":"r4","types":[
+                {"code":"%s","face":"r4","types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""".formatted(code));
         assertTrue(UntilServed.scan(manager, code).contains(code));
         assertEquals(200, get(manager.baseUrl(code) + "/metadata").statusCode());
@@ -117,7 +117,7 @@ class TenantRuntimeIT {
     @Proving(DboPromises.VER_CONCURRENT_VERSIONS)
     void twoTenantsServeConcurrentlyIsolated() throws Exception {
         Files.writeString(dir.resolve("teine.json"), """
-                {"code":"teine","fhirVersion":"r5","types":[
+                {"code":"teine","face":"r5","types":[
                   {"name":"SubscriptionTopic","identity":"canonical","handling":"operational"},
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         // Scanned until served, not once: scanOnce answers with what is BEING
@@ -155,11 +155,11 @@ class TenantRuntimeIT {
     @Proving(DboPromises.TERM_EVERY_TENANT_ANSWERS)
     void everyTenantAnswersTerminologyFromItsOwnStore() throws Exception {
         Files.writeString(dir.resolve("terms4.json"), """
-                {"code":"terms4","fhirVersion":"r4","types":[
+                {"code":"terms4","face":"r4","types":[
                   {"name":"CodeSystem","identity":"canonical","handling":"operational"},
                   {"name":"ValueSet","identity":"canonical","handling":"operational"}]}""");
         Files.writeString(dir.resolve("terms5.json"), """
-                {"code":"terms5","fhirVersion":"r5","types":[
+                {"code":"terms5","face":"r5","types":[
                   {"name":"CodeSystem","identity":"canonical","handling":"operational"},
                   {"name":"ValueSet","identity":"canonical","handling":"operational"}]}""");
         manager.scanOnce();
@@ -272,10 +272,10 @@ class TenantRuntimeIT {
     @Order(5)
     void aTenantOnAnUninstalledFaceDoesNotComeUp() throws Exception {
         Files.writeString(dir.resolve("olemas.json"), """
-                {"code":"olemas","fhirVersion":"r4","types":[
+                {"code":"olemas","face":"r4","types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         Files.writeString(dir.resolve("puudub.json"), """
-                {"code":"puudub","fhirVersion":"kuues","types":[
+                {"code":"puudub","face":"kuues","types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
 
         UntilServed.scan(manager, up -> up.contains("olemas"));

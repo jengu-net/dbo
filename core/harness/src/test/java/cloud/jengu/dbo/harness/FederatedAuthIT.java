@@ -88,7 +88,7 @@ class FederatedAuthIT {
                         SUBJECT_SYSTEM));
         for (String code : List.of("kliinika", "kliinikb", "kliinikc")) {
             Files.writeString(dir.resolve(code + ".json"), """
-                    {"code":"%s","fhirVersion":"r4","types":[
+                    {"code":"%s","face":"r4","types":[
                       {"name":"Patient","identity":"internal","handling":"operational"},
                       {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
                       {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},

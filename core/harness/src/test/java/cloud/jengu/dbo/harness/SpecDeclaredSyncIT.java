@@ -77,7 +77,7 @@ class SpecDeclaredSyncIT {
 
     private static String dependentSpec(String code) {
         return """
-                {"code":"%s","fhirVersion":"r4","types":%s,
+                {"code":"%s","face":"r4","types":%s,
                  "dependencies":[{"name":"sync-ee","types":["CodeSystem"]}]}"""
                 .formatted(code, REPLICATED_TYPES);
     }
@@ -87,7 +87,7 @@ class SpecDeclaredSyncIT {
     void theZoneTenantHoldsContentFromBeforeAnyDependentExists() throws Exception {
         Files.writeString(dir.resolve("sync-ee.json"),
                 """
-                {"code":"sync-ee","fhirVersion":"r4","types":%s}""".formatted(CANONICAL_TYPES));
+                {"code":"sync-ee","face":"r4","types":%s}""".formatted(CANONICAL_TYPES));
         UntilServed.scan(manager, "sync-ee");
         HttpResponse<String> created = post(manager.baseUrl("sync-ee") + "/CodeSystem",
                 """

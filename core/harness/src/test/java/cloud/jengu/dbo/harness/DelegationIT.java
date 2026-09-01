@@ -78,7 +78,7 @@ class DelegationIT {
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("esindus.json"), """
-                {"code":"esindus","fhirVersion":"r4","audit":{"level":"writes"},"types":[
+                {"code":"esindus","face":"r4","audit":{"level":"writes"},"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"},
                   {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
                   {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},

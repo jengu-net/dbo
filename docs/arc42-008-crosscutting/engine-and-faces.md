@@ -65,7 +65,7 @@ and the payload version. Resolving only the face would have left the wiring bran
 because the branches never chose a face: they chose those.
 
 **Where the code still does not keep R6**, stated precisely because a founding
-requirement is the thing being missed rather than a preference: one `fhirVersion` per
+requirement is the thing being missed rather than a preference: one `face` per
 tenant means **one face per tenant**. R6 asks for different domains *within* a tenant on
 different versions; a tenant gets one.
 
@@ -124,7 +124,7 @@ table are the same shape. Every new engine concept lands in this group, so it is
 one that keeps growing.
 
 **3. What this tenant requires.** A tenant uses a subset, and its spec already says
-which: `fhirVersion`, `types`, `pdi`, `policies`, `dependencies`. PDI implies
+which: `face`, `types`, `pdi`, `policies`, `dependencies`. PDI implies
 coarsening; terminology types imply a grain codec; policies imply audit rendering; a
 dependency implies both ends of a stream.
 

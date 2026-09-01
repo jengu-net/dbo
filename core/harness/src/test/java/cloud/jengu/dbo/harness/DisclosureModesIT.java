@@ -74,7 +74,7 @@ class DisclosureModesIT {
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("avaldus.json"), """
-                {"code":"avaldus","fhirVersion":"r4","pdi":true,
+                {"code":"avaldus","face":"r4","pdi":true,
                  "audit":{"level":"full"},"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"},
                   {"name":"Practitioner","identity":"internal","handling":"operational"}]}""");
@@ -82,7 +82,7 @@ class DisclosureModesIT {
         // made an identifying read untraceable: a disclosure has to be recorded
         // whatever a tenant chose to keep of ordinary traffic.
         Files.writeString(dir.resolve("vaikne.json"), """
-                {"code":"vaikne","fhirVersion":"r4","pdi":true,
+                {"code":"vaikne","face":"r4","pdi":true,
                  "audit":{"level":"writes"},"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         UntilServed.scan(manager, up -> up.contains("avaldus") && up.contains("vaikne"));

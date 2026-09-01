@@ -83,7 +83,7 @@ class HumanAuthIT {
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("arst.json"), """
-                {"code":"arst","fhirVersion":"r4","audit":{"level":"writes"},"types":[
+                {"code":"arst","face":"r4","audit":{"level":"writes"},"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"},
                   {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
                   {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
@@ -773,7 +773,7 @@ class HumanAuthIT {
 
         // pdi tenant: the vault's HMAC index
         Files.writeString(dir.resolve("arstp.json"), """
-                {"code":"arstp","fhirVersion":"r4","pdi":true,"types":[
+                {"code":"arstp","face":"r4","pdi":true,"types":[
                   {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
                   {"name":"Practitioner","identity":"internal","handling":"operational"}]}""".formatted(EID));
         UntilServed.scan(manager, "arstp");

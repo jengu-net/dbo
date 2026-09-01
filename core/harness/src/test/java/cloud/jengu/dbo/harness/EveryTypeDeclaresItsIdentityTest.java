@@ -84,7 +84,7 @@ class EveryTypeDeclaresItsIdentityTest {
     void aSpecTypeWithoutAnIdentityIsRefused() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> cloud.jengu.dbo.tenant.TenantSpec.parse("""
-                        {"code":"salaja","fhirVersion":"r4","types":[
+                        {"code":"salaja","face":"r4","types":[
                           {"name":"Patient","handling":"operational"}]}"""));
 
         assertTrue(refused.getMessage().contains("identity"), refused.getMessage());
@@ -97,7 +97,7 @@ class EveryTypeDeclaresItsIdentityTest {
     void aTypoIsNotAnIdentityClass() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> cloud.jengu.dbo.tenant.TenantSpec.parse("""
-                        {"code":"vale","fhirVersion":"r4","types":[
+                        {"code":"vale","face":"r4","types":[
                           {"name":"Patient","identity":"cannonical","handling":"operational"}]}"""));
 
         assertTrue(refused.getMessage().contains("cannonical"), refused.getMessage());

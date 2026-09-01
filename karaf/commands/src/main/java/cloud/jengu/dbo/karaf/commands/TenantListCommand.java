@@ -47,7 +47,7 @@ public class TenantListCommand implements Action {
             Tenant tenant = tenants.computeIfAbsent(code, Tenant::new);
             Object version = reference.getProperty(Tenants.FHIR_VERSION_PROPERTY);
             if (version != null) {
-                tenant.fhirVersion = String.valueOf(version);
+                tenant.face = String.valueOf(version);
             }
             Object interfaces = reference.getProperty("objectClass");
             if (interfaces instanceof String[] names) {
@@ -62,13 +62,13 @@ public class TenantListCommand implements Action {
 
         ShellTable table = new ShellTable();
         table.column("CODE");
-        table.column("FHIR");
+        table.column("FACE");
         table.column(surfaces ? "SURFACES" : "SERVICES");
         table.column("FHIR ENDPOINT");
         for (Tenant tenant : tenants.values()) {
             table.addRow().addContent(
                     tenant.code,
-                    tenant.fhirVersion == null ? "?" : tenant.fhirVersion,
+                    tenant.face == null ? "?" : tenant.face,
                     surfaces ? String.join(", ", tenant.surfaces)
                             : String.valueOf(tenant.surfaces.size()),
                     base + "/t/" + tenant.code + "/fhir");
@@ -84,7 +84,7 @@ public class TenantListCommand implements Action {
 
     private static final class Tenant {
         private final String code;
-        private String fhirVersion;
+        private String face;
         private final Set<String> surfaces = new TreeSet<>();
 
         private Tenant(String code) {
