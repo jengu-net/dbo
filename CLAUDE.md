@@ -26,6 +26,7 @@ over any impression the code gives.
 
 ## The traps, in order of how often they bite
 
+<!-- rules:begin — generated from docs/arc42-002-constraints/working-rules.md; do not edit. Regenerate: ./gradlew generateSkills -->
 **Failures here are runtime failures.** This codebase's characteristic bug
 compiles, resolves, publishes, and then dies on first use. It has happened
 through hand-written `Import-Package` lists, through a lazily-reached jar
@@ -56,6 +57,11 @@ a default heap dies as `HAPI-2330` with a null message, three frames above an
 
 **`dbo-core` has no dependencies**, and `dbo-postgres` only the JDBC driver.
 Adding a library to either needs a reason that survives being read aloud.
+<!-- rules:end -->
+
+The same document states these as installable skills, along with the rules for
+comments and for claiming a behaviour:
+[working rules](docs/arc42-002-constraints/working-rules.md).
 
 ## Logging
 

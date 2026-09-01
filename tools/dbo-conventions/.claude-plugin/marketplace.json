@@ -1,0 +1,12 @@
+{
+  "name": "dbo-conventions",
+  "owner": {
+    "name": "jengu-net"
+  },
+  "plugins": [
+    {
+      "name": "dbo-conventions",
+      "source": "./"
+    }
+  ]
+}

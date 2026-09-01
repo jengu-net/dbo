@@ -18,3 +18,7 @@
 - **Behaviour is promised in code before it is written**, declared once and
   cited from the test that proves it, with unstated ground named as a gap
   rather than left silent — [promise](promise.md).
+- **The rules a green build cannot enforce are stated once and projected**,
+  into installable skills and into the guidance read at the start of a
+  session, rather than kept as prose in several places —
+  [working rules](working-rules.md).

@@ -383,6 +383,40 @@ subprojects {
     }
 }
 
+// ─── Working rules, projected ──────────────────────────────────────
+//
+// The rules a green build cannot enforce are stated once, in a constraints
+// document, and projected from there into installable skills and into the
+// trap section of CLAUDE.md. A projection that can drift silently is a copy,
+// so the verify task regenerates and then refuses a dirty working tree —
+// the same arrangement the requirement catalogue is under, for the same
+// reason. Hung off `check` so it runs wherever the build does, rather than
+// in a lane somebody has to remember.
+val generateSkills by tasks.registering(Exec::class) {
+    group = "documentation"
+    description = "Projects the constraints documents' skill-blocks into tools/dbo-conventions/."
+    workingDir = rootDir
+    commandLine("python3", "scripts/generate-skills.py")
+    inputs.dir(layout.projectDirectory.dir("docs/arc42-002-constraints"))
+    inputs.file(layout.projectDirectory.file("scripts/generate-skills.py"))
+    outputs.dir(layout.projectDirectory.dir("tools/dbo-conventions"))
+    outputs.file(layout.projectDirectory.file("CLAUDE.md"))
+}
+
+val verifySkillProjection by tasks.registering(Exec::class) {
+    group = "verification"
+    description = "Fails when the committed skills or CLAUDE.md disagree with their source."
+    dependsOn(generateSkills)
+    workingDir = rootDir
+    commandLine("git", "diff", "--exit-code", "--stat", "tools/dbo-conventions", "CLAUDE.md")
+}
+
+// Hung off the harness's own check, which is the one task every lane of the
+// build already reaches. A root-level `check` looks tidier and is not run by
+// `./gradlew build` at all — a wiring that resolves, configures, and is never
+// invoked is exactly the failure the reachability rule describes.
+project(":core:harness").tasks.named("check") { dependsOn(verifySkillProjection) }
+
 // The development loop's one command: publish the runtime bundle set to the
 // local Maven repository, where the Karaf console's bundle:watch is looking.
 // Karaf only watches bundles installed from an mvn: location and re-reads them
