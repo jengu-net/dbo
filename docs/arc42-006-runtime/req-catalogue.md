@@ -335,17 +335,17 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ | Promise | Status | Proven by |
 |---|---|---|---|
 | REQ-DBO-PRM-NAME-IS-THE-CODE | A promise is declared exactly once, as an enum constant; its code derives from the constant's name and its catalogue's namespace, so a citation cannot drift from a declaration — there is no string to mistype and no generator to trust. | PROVEN | cloud.jengu.dbo.harness.PromiseCatalogueTest#reportRenders |
-| REQ-DBO-PRM-GAP-IS-FIRST-CLASS | Unstated ground is declared as a gap with plain text; a gap registers, carries a stable code, and counts against coverage until promoted to a named promise. | PLANNED |  |
+| REQ-DBO-PRM-GAP-IS-FIRST-CLASS | Unstated ground is declared as a gap with plain text; a gap registers, carries a stable code, and counts against coverage until promoted to a named promise. | ASSURED |  |
 | REQ-DBO-PRM-REGISTERED-AT-COMPILE-TIME | An annotated catalogue is registered during its own component's compilation — no classpath is swept, and a registration regenerated on every compile cannot drift or be lost. | PROVEN | cloud.jengu.dbo.harness.PromiseCatalogueTest#catalogueIsRegistered |
 | REQ-DBO-PRM-CATALOGUE-READ-WHOLE | The registry reads a catalogue's constants whole — proven, planned and gap alike — never as a side effect of what happened to be class-loaded. | PROVEN | cloud.jengu.dbo.harness.PromiseCatalogueTest#projectionIsCurrent |
-| REQ-DBO-PRM-DOWN-LINKS-ONLY | A classification declares the promises that fulfil it; a promise never names its classifications; the inverse is derived. One direction, one truth. | PLANNED |  |
-| REQ-DBO-PRM-AREAS-MERGE-BY-CODE | Composition merges same-code areas across catalogues and refuses two with conflicting prose rather than picking one. | PLANNED |  |
-| REQ-DBO-PRM-CITATION-IS-TYPED | A test cites promises through its product's own enum-typed annotation, recognised by meta-annotation — a mistyped citation is a compile error, and the framework never learns a product's types. | PLANNED |  |
+| REQ-DBO-PRM-DOWN-LINKS-ONLY | A classification declares the promises that fulfil it; a promise never names its classifications; the inverse is derived. One direction, one truth. | ASSURED |  |
+| REQ-DBO-PRM-AREAS-MERGE-BY-CODE | Composition merges same-code areas across catalogues and refuses two with conflicting prose rather than picking one. | ASSURED |  |
+| REQ-DBO-PRM-CITATION-IS-TYPED | A test cites promises through its product's own enum-typed annotation, recognised by meta-annotation — a mistyped citation is a compile error, and the framework never learns a product's types. | ASSURED |  |
 | REQ-DBO-PRM-PROOFS-INDEXED-AT-COMPILE-TIME | Citation sites are indexed during the product's own compilation; a renamed or deleted proof site cannot leave a stale citation behind. | PROVEN | cloud.jengu.dbo.harness.PromiseCatalogueTest#shapePromisesAreProven |
 | REQ-DBO-PRM-STATUS-IS-DERIVED | A promise's status is computed — cited is proven, named-uncited is planned, assurance is declared on the constant, a gap is a gap — never asserted at a proof site. | PROVEN | cloud.jengu.dbo.harness.PromiseCatalogueTest#shapePromisesAreProven |
 | REQ-DBO-PRM-COVERAGE-IS-A-FOLD | A classification's coverage is the fold of its declared promises' statuses, gaps included; an area's is the fold of its classifications. | PROVEN | cloud.jengu.dbo.harness.PromiseCatalogueTest#gdprFolds<br>cloud.jengu.dbo.harness.PromiseCatalogueTest#theGapWasPromoted |
 | REQ-DBO-PRM-PROJECTION-IS-GENERATED | The catalogue's prose form is generated from the composed model, never a second source; a hand-edit or a stale projection fails the build. | PROVEN | cloud.jengu.dbo.harness.PromiseCatalogueTest#projectionIsCurrent |
-| REQ-DBO-PRM-COVERAGE-ON-THE-RESULTS-PAGE | Every CI run's results page leads with the composed promise coverage report. | PLANNED |  |
+| REQ-DBO-PRM-COVERAGE-ON-THE-RESULTS-PAGE | Every CI run's results page leads with the composed promise coverage report. | PROVEN | cloud.jengu.dbo.harness.CoverageLeadsTheResultsPageTest#theReportReachesTheSummary |
 
 ## SCIM — staff provisioning surface
 
