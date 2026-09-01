@@ -301,6 +301,60 @@ The payoff is the reason this contract was named in the first place: the day som
 writes a face for a domain that is not healthcare, the engine tells them what they owe
 **before anything serves a request**, instead of after.
 
+## Declaring a face and serving one are priced differently
+
+A face for a domain that is not healthcare has been written, and what it cost is on
+record: three capabilities, eight methods — read a payload, say what type it is,
+validate one, render one this face built, open and close a document of many, write one
+member into it, say which storage domains it speaks for, and render the engine's own
+records in this domain's words. None of the eight names a standard. That is the
+**inward** contract, and it is neutral.
+
+The **outward** seam is not, and saying so plainly is better than implying otherwise.
+A face a tenant can name in its spec and be *served* through registers as a
+`FhirVersion` and produces a `FhirStoreFacade`. Most of that facade is neutral —
+create, update, read, read-for-serving, delete, search, knows-type — and **five methods
+a face must implement carry FHIR in their names**: conditional create, history bundle,
+capability statement, validation outcome, operation outcome.
+
+Two more are FHIR-named and *optional* — conditional update and bundle — each carrying a
+default that refuses by name, so a face that does not offer one implements nothing and
+answers "not offered here" rather than failing. They are cheaper and they are not free:
+a non-FHIR face still reads those names and decides to ignore them. The count was
+measured by the ratchet below rather than by reading, which is how the two came to
+light — an enumeration by eye had found only the five.
+
+**The decision is to accept that, rather than neutralise it**, and the reasons are
+worth stating because the opposite is superficially tidier.
+
+What those five *do* is not FHIR. Every served surface must answer write-if-nothing-
+matches, render one object's versions as a document, say what it serves, give a verdict
+on a submitted document, and render a refusal in its domain's own words. A face already
+controls all of that: the gadget face renders a run as a `job` rather than a `Task`,
+because the engine knows who did what to which version and only the domain knows what
+it is called. What is FHIR here is the **name of the method**, not the obligation
+behind it or the words that come out of it.
+
+And the name is honest about who the surface is for. The HTTP surface *is* FHIR REST —
+its paths, its media types, its interaction model. A neutral name over it would suggest
+a neutrality the surface does not have, which is a worse lie than a specific name over
+a general obligation.
+
+Renaming, meanwhile, is not free: it is exported API, and it moves the REST layer, the
+operator, the harness and every face at once, in exchange for nothing any caller is
+asking for today. R6 promises a version-agnostic **engine**, and that is what the
+inward contract holds and what the tests prove. It does not promise that every surface
+this store happens to expose is nameless.
+
+**What would change the answer** is a face that must be served over HTTP and is not
+FHIR. On that day the seam is renamed or a second surface is grown beside it, and the
+argument above is the one to re-read — every clause of it is about there being no such
+caller yet.
+
+Until then the boundary is held rather than remembered: those five are the whole of the
+FHIR-named surface, and a sixth is a decision somebody makes on purpose rather than a
+method somebody adds.
+
 ## The payload seam
 
 The obligations above that concern a payload — the codec, validation, conversion
