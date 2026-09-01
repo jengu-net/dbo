@@ -848,6 +848,19 @@ public enum DboPromises implements Promise {
             + "the write, where somebody is present to fix it, and nothing is advertised "
             + "or accepted until the reindex behind it has finished."),
 
+    // ── IDN — identification ──
+
+    IDN_IDENTIFICATION_IS_REACHABLE(
+            "A tenant identifies somebody through a door of its own: claims are presented "
+            + "and resolve to candidates rather than to an answer, a claim nobody verified "
+            + "is evidence for a person to weigh and never a match to act on, no candidate "
+            + "at all is an ordinary answer rather than a failure, a decision is recorded "
+            + "and shown to whoever meets the same near-match next, a binding says how "
+            + "strongly it was made and can be withdrawn without touching the care, and a "
+            + "subject who declared anonymity is refused rather than bound. The door "
+            + "carries its own scope, outside the resource grammar: a grant over the "
+            + "store's resources does not reach the act that de-anonymises somebody."),
+
     // ── FEED — migrated from hand-written prose (2026-08-27) ──
 
     FEED_ONE_PRIMITIVE(

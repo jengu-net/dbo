@@ -130,6 +130,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     /** The classification itself, re-evaluated every scan. */
     private final StepIncidents stepIncidents = new StepIncidents();
     private final Map<String, String> authorityContexts = new ConcurrentHashMap<>();
+    private final Map<String, String> identityContexts = new ConcurrentHashMap<>();
+    private final Map<String, String> erasureContexts = new ConcurrentHashMap<>();
     private final Map<String, String> scimContexts = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.pdi.PersonVault> vaults = new ConcurrentHashMap<>();
     private volatile cloud.jengu.dbo.auth.IdentityHub identityHub;
@@ -644,7 +646,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 authority.ensureClient("tenant-bootstrap", db.bootstrapClientSecret(),
                         java.util.List.of("system/*.read", "system/*.write",
                                 cloud.jengu.dbo.auth.Scopes.WORK,
-                                cloud.jengu.dbo.auth.Scopes.ERASURE));
+                                cloud.jengu.dbo.auth.Scopes.ERASURE,
+                                // Identification, granted explicitly for the
+                                // same reason erasure is and never as a
+                                // consequence of it. They are opposite acts on
+                                // one person: this attaches an identity, that
+                                // destroys the key that made one legible.
+                                cloud.jengu.dbo.auth.Scopes.IDENTITY));
             }
             if (db.rpClientSecret() != null) {
                 // The relying party's record is ensured FROM custody — id,
@@ -783,6 +791,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 String erasurePath = "/t/" + spec.code() + "/erasure";
                 cloud.jengu.dbo.work.Runs erasureRuns =
                         new cloud.jengu.dbo.work.Runs(runStores.get(spec.code()));
+                erasureContexts.put(spec.code(), erasurePath);
                 sharedServer.createContext(erasurePath, new ErasureHandler(authority,
                         new PersonErasure(vault, erasureRuns),
                         // Here the reference and the vault's person coincide —
@@ -796,6 +805,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             return id.isBlank() ? java.util.Optional.empty()
                                     : java.util.Optional.of(id);
                         }));
+            }
+            // Identification. Beside erasure rather than inside maintenance,
+            // and for the same reason erasure is: identifying somebody is an
+            // act performed for a person, not something done to the store.
+            //
+            // Mounted for a tenant that declares a type to hold identities.
+            // Without one there is nothing to resolve against, and a door
+            // answering "no candidates" for every claim would be a surface
+            // reporting emptiness as an answer.
+            String identityType = identityTypeOf(spec);
+            if (identityType != null) {
+                String identityPath = "/t/" + spec.code() + "/identity";
+                sharedServer.createContext(identityPath, new IdentityHandler(
+                        authority, runtime.engine(), identityPath, identityType));
+                identityContexts.put(spec.code(), identityPath);
             }
             // The participation surface: where a host that is NOT the
             // container obtains a lane. An appliance running dbo in-JVM builds
@@ -858,6 +882,24 @@ public final class TenantRuntimeManager implements AutoCloseable {
         runtimes.put(spec.code(), runtime);
         wireDependencies(spec, runtime, db);
         listener.tenantUp(runtime);
+    }
+
+    /**
+     * The type this tenant keeps identities on, or null if it keeps none.
+     *
+     * <p>Read from the spec rather than assumed, because assuming it would be
+     * the wiring knowing a domain: {@code Person} is the FHIR face's answer and
+     * another face's would be a different word. A tenant serving neither has no
+     * identification surface, which is a legitimate deployment rather than a
+     * gap — a store of gadgets identifies nobody.
+     */
+    private static String identityTypeOf(TenantSpec spec) {
+        for (cloud.jengu.dbo.fhir.common.FhirTypeConfig type : spec.types()) {
+            if ("Person".equals(type.typeName())) {
+                return type.typeName();
+            }
+        }
+        return null;
     }
 
     /**
@@ -1129,6 +1171,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         //. Same argument a third time: a lane's state, a placement and
         // a trackable are all this tenant's records, dropped when it is.
         all.addAll(cloud.jengu.dbo.work.TrackableModel.registrations());
+        // And what this tenant decided about who somebody is. Same argument
+        // once more: an adjudication, a binding and an anonymity declaration
+        // are records about the tenant's own people, so they belong in the
+        // tenant's own store rather than in the authority's — which is where
+        // the whole identity model had been registered, leaving a door that
+        // could be mounted, guarded and correct while the first verb failed on
+        // a type nobody had registered.
+        all.addAll(cloud.jengu.dbo.auth.IdentityModel.identificationRegistrations());
         ObjectStore engine = pdiWrapped(spec, db, all, face);
         // Runs go to the engine rather than through the policy decorator, and
         // everything that records them for this tenant uses the same one.
@@ -1265,6 +1315,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String scimPath = scimContexts.remove(code);
         if (scimPath != null) {
             sharedServer.removeContext(scimPath);
+        }
+        // Identification and erasure go with the rest. A door left mounted
+        // after its tenant is gone is a handle onto a closed pool that still
+        // answers, and these two are the ones where that matters most: both
+        // act on a person, and both would be answering for a tenant this
+        // deployment no longer serves. Erasure had been left behind here.
+        String identityPath = identityContexts.remove(code);
+        if (identityPath != null) {
+            sharedServer.removeContext(identityPath);
+        }
+        String erasurePath = erasureContexts.remove(code);
+        if (erasurePath != null) {
+            sharedServer.removeContext(erasurePath);
         }
         vaults.remove(code);
         String oidcPath = authorityContexts.remove(code);
