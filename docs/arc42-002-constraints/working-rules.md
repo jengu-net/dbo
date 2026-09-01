@@ -160,6 +160,60 @@ reference: docs/arc42-002-constraints/working-rules.md#what-a-comment-is-for
   it rather than a fact about it.
 <!-- /skill -->
 
+## Re-recording what is generated from what you changed
+
+Three artefacts in this repository are generated from something else and
+committed alongside it: the requirement catalogue from the promise constants,
+the exported-API ledger from the bundles' own signatures, and the skills and
+trap section from the constraints documents. Each has a ratchet that fails the
+build when what is committed disagrees with its source.
+
+The ratchets work. What they cannot do is run before you push, and the failure
+they produce is always one commit too late — the change compiles, the tests
+that cover the *behaviour* pass, and the build goes red on a file nobody was
+thinking about. Re-recording belongs in the same change as the edit that made
+it stale, not in a follow-up, because a follow-up means a red commit sits in
+the history and anybody bisecting through it lands on a failure that has
+nothing to do with what they are looking for.
+
+The exported-API ledger is the one that catches people out, because what makes
+it stale is rarely what you were doing. Adding a constant to a promise
+catalogue is an API change: the catalogue is an exported enum. Adding a
+component to a record removes its canonical constructor, which is a breaking
+change to anything compiled against it. Neither feels like touching an API,
+and both are.
+
+<!-- skill: dbo-recorded-projections -->
+```yaml
+name: dbo-recorded-projections
+applies-when: >-
+  Changing anything a generated artefact is derived from: a promise constant
+  or a Proving citation, any public or protected signature in a package a
+  bundle exports — including adding a constant to an exported enum or a
+  component to an exported record — or a skill-block or marked prose region in
+  a constraints document. Also whenever a build fails saying a projection,
+  ledger or catalogue disagrees with its source.
+reference: docs/arc42-002-constraints/working-rules.md#re-recording-what-is-generated-from-what-you-changed
+```
+**Rules**
+- MUST re-record every generated artefact its change makes stale, in the SAME
+  change: `./gradlew :core:harness:promiseProjection` for the requirement
+  catalogue, `./gradlew :core:harness:apiLedger` for the exported-API ledger,
+  `./gradlew generateSkills` for the skills and the trap section.
+- MUST treat adding a constant to an exported enum, or a component to an
+  exported record, as an API change. Neither feels like one; both move the
+  ledger, and the second removes a canonical constructor that callers compile
+  against.
+- MUST read the ledger's report rather than only re-recording it: what is GONE
+  stops anything compiled against it from linking, and that is worth knowing
+  before it is committed rather than after a consumer finds out.
+- MUST NOT hand-edit a generated artefact. Every one of them says so in its
+  own header, and the ratchet refuses it.
+- MUST NOT leave the re-record to a follow-up commit. The ratchet catches it
+  either way; a follow-up leaves a red commit in the history for whoever
+  bisects through it later.
+<!-- /skill -->
+
 ## Claiming a behaviour
 
 The catalogue is generated, and the generation is a separate step from the
