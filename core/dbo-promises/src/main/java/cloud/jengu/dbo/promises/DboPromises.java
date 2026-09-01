@@ -379,6 +379,13 @@ public enum DboPromises implements Promise {
             + "restored from a copy looks healthy while resuming a position that no "
             + "longer means anything."),
 
+    PROC_LANE_IS_A_TENANT_SERVICE("A tenant's replication lane stands in the service "
+            + "registry beside its store, so a bundle in the same framework takes the "
+            + "one the tenant's own door serves rather than assembling a second set of "
+            + "cursors for the same peer or re-entering over loopback with a credential. "
+            + "It stands there for every tenant: a lane needs no authority, because the "
+            + "registry never asks who is calling."),
+
     PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY("A record travels to an appliance because a "
             + "piece of work names it, and is removed when no open run there still "
             + "names it. Work-driven arrival without work-driven expiry is a bench "

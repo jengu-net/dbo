@@ -70,7 +70,22 @@ public final class TenantRuntimeManager implements AutoCloseable {
              * destination writes its own — so each runtime carries its own
              * rather than the wiring building one from whichever store is handy.
              */
-            cloud.jengu.dbo.core.face.GrainCodec grain) {}
+            cloud.jengu.dbo.core.face.GrainCodec grain,
+
+            /**
+             * This tenant's replication lane — the one instance of it.
+             *
+             * <p>It is here because a lane is not a surface: the HTTP door at
+             * {@code /t/{code}/replication} is one caller of it, and a bundle
+             * in the same framework is another. Building the second caller its
+             * own would give one peer two sets of cursors, so the runtime
+             * carries the lane and everyone is handed the same object.
+             *
+             * <p>Never null. The lane's bookkeeping types are registered for
+             * every tenant, so every tenant has one; what a tenant may not
+             * have is the door, which needs an authority to say who is asking.
+             */
+            cloud.jengu.dbo.sync.Lanes replication) {}
 
     /**
      * A dependent reached before its upstream. Not a failure: the scan comes
@@ -713,12 +728,34 @@ public final class TenantRuntimeManager implements AutoCloseable {
         publishVocabularies(engine, store, terminology, version.face());
         LOG.info("tenant bring-up cost: code={} facade={}ms vocabulary={}ms",
                 spec.code(), facadeMillis, System.currentTimeMillis() - vocabularyAt);
+        // The lane's own objects, built once for this tenant and shared by
+        // everything that reaches for a lane.
+        //
+        // The WORK domain's feed, not the tenant's content feed: runs and
+        // declarations are work-domain records, and a lane reading the
+        // content feed polls a stream runs never appear in — which looks
+        // exactly like a lane with no work, for ever.
+        cloud.jengu.dbo.core.api.feed.ChangeFeed laneFeed =
+                new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.work.WorkModel.DOMAIN);
+        cloud.jengu.dbo.work.Runs laneRuns =
+                new cloud.jengu.dbo.work.Runs(runStores.get(spec.code()));
+        // Built here rather than beside the door it used to be built beside.
+        // A lane needs no authority — an authority answers "who is asking",
+        // which is a question the framework's own registry never poses — so
+        // gating the lane on one gave a tenant without a door no lane at all,
+        // including for the bundle sitting next to it in the container.
+        cloud.jengu.dbo.sync.Lanes replication = new cloud.jengu.dbo.sync.Lanes(
+                runStores.get(spec.code()), laneFeed, laneRuns, spec.code(),
+                // The trail replicates through the audit refusal's one
+                // admission (§7.8); the engine below the policy wrapper is
+                // what everything else on this lane writes through.
+                engine instanceof cloud.jengu.dbo.core.api.AuditReplay admitted ? admitted : null);
         TenantRuntime runtime = new TenantRuntime(spec, engine, store,
                 new PgChangeFeed(db.dataSource(), version.domain()),
                 withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
                         terminology, "/t/" + spec.code() + "/fhir", guard), spec),
                         version.face(), engine),
-                terminology);
+                terminology, replication);
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no
         // way to say who is asking.
@@ -774,17 +811,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // lane acts on the tenant's work, and a tenant with no authority
             // has no way to say who is asking.
             String workPath = "/t/" + spec.code() + "/work";
-            // Built once and captured, not per request: these are the same
-            // objects the tenant's own bookkeeping uses, and a lane is a view
-            // onto them rather than a second copy of them.
-            cloud.jengu.dbo.work.Runs laneRuns =
-                    new cloud.jengu.dbo.work.Runs(runStores.get(spec.code()));
-            // The WORK domain's feed, not the tenant's content feed: runs and
-            // declarations are work-domain records, and a lane reading the
-            // content feed polls a stream runs never appear in — which looks
-            // exactly like a lane with no work, for ever.
-            cloud.jengu.dbo.core.api.feed.ChangeFeed laneFeed =
-                    new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.work.WorkModel.DOMAIN);
+            // The runs and the work feed come from the bring-up above, not
+            // from a second construction here: these are the same objects the
+            // tenant's own bookkeeping uses, and a lane is a view onto them
+            // rather than a second copy of them.
             cloud.jengu.dbo.work.Declarations laneDeclarations =
                     new cloud.jengu.dbo.work.Declarations(runtime.engine(), laneFeed,
                             DECLARATION_PATIENCE);
@@ -814,19 +844,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // cannot hold a Lanes — pull-not-push does not move that, because
             // whoever pulls, the cloud still builds the batch.
             //
-            // Built once and captured: the lane's own bookkeeping is records
-            // in this tenant's store, and a second Lanes over the same store
-            // would be a second set of cursors for one peer.
+            // The door serves the tenant's lane; it does not own one. The
+            // lane's bookkeeping is records in this tenant's store, so a
+            // second Lanes over the same store would be a second set of
+            // cursors for one peer — which is why the door and the framework's
+            // own consumers are handed the same object.
             String replicationPath = "/t/" + spec.code() + "/replication";
-            cloud.jengu.dbo.sync.Lanes replication = new cloud.jengu.dbo.sync.Lanes(
-                    runStores.get(spec.code()), laneFeed, laneRuns, spec.code(),
-                    // The trail replicates through the audit refusal's one
-                    // admission (§7.8); the engine below the policy wrapper is
-                    // what everything else on this lane writes through.
-                    runtime.engine() instanceof cloud.jengu.dbo.core.api.AuditReplay admitted
-                            ? admitted : null);
             sharedServer.createContext(replicationPath, new cloud.jengu.dbo.sync.http.LanesHandler(
-                    replicationPath, new ReplicationGrants(authority), () -> replication));
+                    replicationPath, new ReplicationGrants(authority),
+                    runtime::replication));
             replicationContexts.put(spec.code(), replicationPath);
         }
         runtimes.put(spec.code(), runtime);
