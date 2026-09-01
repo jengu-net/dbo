@@ -33,15 +33,14 @@ package cloud.jengu.dbo.core.face;
  * <p>Engine-neutral by construction: nothing here names a resource, a version,
  * or a domain. A face declares which of its types work this way.
  *
- * <p><b>An inward face obligation, and not yet a declared capability.</b>
- * It belongs beside {@link Coarsening} in this package and in that issue's
- * table. It is not offered through {@link DeclaredFace} because that lookup is
- * version-scoped and stateless — {@code FhirFace.of("r4")} is a constant — while
- * a grain codec reads and writes ONE TENANT's native form. Two tenants of the
- * same version need different instances, so it is passed rather than looked up.
- * Making it a declared capability means making a face per tenant, which is a
- * decision for the face contract rather than something to settle in passing
- * here.
+ * <p><b>A face obligation, and deliberately not a declared capability.</b>
+ * Reassembling a vocabulary means reading the concepts THIS TENANT holds, so a
+ * grain codec holds the tenant's store — and {@link DomainFace} draws its line
+ * exactly there. A declared capability is a pure function; something holding a
+ * store is an actor, and an actor could write inside an engine transaction
+ * where two faces over one store would disagree about who did what. So this is
+ * constructed by the version and passed, which is the second of that contract's
+ * three tiers rather than an exception to its first.
  */
 public interface GrainCodec {
 

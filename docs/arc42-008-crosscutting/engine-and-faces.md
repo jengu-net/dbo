@@ -267,32 +267,35 @@ own way, by canonical url, and the two keys would have drifted apart with nothin
 failing. So `GrainCodec.receive` writes only the part the engine has no place for and
 hands the rest straight back.
 
-## The limit this contract has today
+## Where a new obligation belongs
 
-`DeclaredFace` lookup is **version-scoped and stateless**: `FhirFace.of("r4")` is a
-constant, one face per version, capabilities looked up by type. Most of set 2 fits
-that anyway — audit and run rendering are declared and looked up like anything else,
-because the projection holds no shape and never learns the name of what it serves, so
-one instance serves every tenant of a version.
+The question that kept coming back was whether an obligation is scoped to a version
+or to a tenant, and both are answers to the wrong question. **The line is whether the
+thing holds a store**, because one that did would be an actor — and a translator that
+never acts is what lets two faces run over one store without disagreeing about who
+did what.
 
-The grain codec is the one that does not. It reads and writes one *tenant's* native
-form, so two tenants of the same version need different instances, and it is passed as
-an argument rather than declared. Making it a declared capability means making a face
-per tenant — which is the decision, and it is why the exception is a pointer to this
-section rather than a workaround somebody settled in passing.
+So an obligation is one of three things, and only the first is a declared capability:
 
-The way out follows from the three sets rather than from taste. **A face per version
-stays right for what the version defines**; what the store adds needs a per-tenant
-layer, because that is what it is. Collapsing both into one per-tenant face would
-multiply objects that genuinely are per version; adding a scope to the lookup names a
-division the code already has, badly.
+- **A version-scoped pure function**, declared and looked up by type. Coarsening knows
+  a birth date reduces to its year; audit and run rendering hold no shape and never
+  learn the name of what they serve, so one instance serves every tenant of a version.
+- **A tenant-scoped facade**, which holds the tenant's store and is therefore
+  *constructed* by the version rather than declared. The grain codec arrives this way:
+  reassembling a vocabulary means reading the concepts this tenant holds. Its absence
+  shows as a facade refusing by name, not as a missing capability.
+- **A per-request fact**, which is not a scope at all. Who is calling and what they
+  said the access is for travel beside the request, and the capability using them
+  stays a pure function taking values.
 
-**The caller exists, and it is where the scope question will be answered.** Bring-up
-reconciliation is the one place that knows both what this tenant requires and what its
-face provides, so it is where the two scopes have to be asked for differently. It
-asks for per-version capabilities today and would have to ask a per-tenant lookup for
-the rest — which is what makes extending the lookup a change with somewhere to land
-rather than a road nobody drives on.
+Neither alternative survives contact with that line. A face per tenant would put a
+tenant on every lookup to serve the one obligation that needs one, multiplying objects
+that genuinely are per version. A lookup that grew a scope would let a capability hold
+a store, which is the distinction the contract exists to keep.
+
+The rule is held by a test rather than by memory, because breaking it is silent: a
+capability that acquired a store would work perfectly until the day two faces ran at
+once, which is neither the day it was written nor the day anybody would look.
 
 The payoff is the reason this contract was named in the first place: the day somebody
 writes a face for a domain that is not healthcare, the engine tells them what they owe
