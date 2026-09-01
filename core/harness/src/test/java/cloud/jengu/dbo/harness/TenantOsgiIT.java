@@ -209,7 +209,8 @@ class TenantOsgiIT {
     // container was actually showing. Whichever fires, it should be the one
     // that carries a diagnosis.
     @Timeout(480)
-    @Proving(DboPromises.CONT_DYNAMIC_TENANT_SERVICES)
+    @Proving({DboPromises.CONT_DYNAMIC_TENANT_SERVICES,
+            DboPromises.TEN_REGISTRY_SCOPED_ACCESS})
     void aSpecFileLightsUpTheWholeChainInContainer() throws Exception {
         assertEquals(Bundle.ACTIVE, tenantBundle.getState());
         BundleContext ctx = framework.getBundleContext();
@@ -291,6 +292,29 @@ class TenantOsgiIT {
                 "cloud.jengu.dbo.core.api.feed.ChangeFeed", "(tenant=konteiner)");
         assertTrue(feeds != null && feeds.length == 1);
 
+        // Registration is half the promise; the other half is that what a
+        // consumer obtains this way is USABLE, and that obtaining it involved
+        // no credential. Finding the reference and never calling it would pass
+        // while the service was unusable from outside — which is this
+        // repository's characteristic defect, in the one place it was being
+        // asserted against.
+        //
+        // The only input here is a filter string. There is no URL, no user and
+        // no password anywhere on this path: the container resolved the tenant,
+        // and the operator gave it credentials this code never sees.
+        // And what the registry publishes about it carries nothing secret: a
+        // consumer that had to read a datasource URL off the service property
+        // would be a consumer holding a credential after all.
+        for (ServiceReference<?> published : new ServiceReference<?>[] {stores[0], feeds[0]}) {
+            for (String key : published.getPropertyKeys()) {
+                String lower = key.toLowerCase(java.util.Locale.ROOT);
+                assertTrue(!lower.contains("password") && !lower.contains("secret")
+                                && !lower.contains("jdbc") && !lower.contains("credential"),
+                        "a tenant service publishes '" + key + "', so reaching a tenant's "
+                                + "data means reading its credentials off the registry");
+            }
+        }
+
         // and a real write round-trips over HTTP
         HttpResponse<String> created = http.send(HttpRequest.newBuilder(URI.create(base + "/Patient"))
                         .header("Content-Type", "application/fhir+json")
@@ -299,6 +323,31 @@ class TenantOsgiIT {
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
         assertEquals(201, created.statusCode());
+
+        // Registration is half the promise; the other half is that what a
+        // consumer obtains this way is USABLE. Finding the reference and never
+        // calling it would pass while the service was unusable from outside,
+        // which is this repository's characteristic defect showing up in the
+        // one place it was being asserted against.
+        //
+        // The only input on this path is a filter string and a resource id.
+        // There is no URL, no user and no password: the container resolved the
+        // tenant, and the operator gave it credentials this code never sees.
+        java.util.regex.Matcher id = java.util.regex.Pattern
+                .compile("\"id\"\\s*:\\s*\"([^\"]+)\"").matcher(created.body());
+        assertTrue(id.find(), "no id in the created resource: " + created.body());
+
+        Object facade = ctx.getService(stores[0]);
+        assertTrue(facade != null, "the registered store service could not be obtained");
+        Object read = facade.getClass().getMethod("read", String.class, String.class)
+                .invoke(facade, "Patient", id.group(1));
+        // Compared as text on purpose: the service comes from the container's
+        // classloader, so the host cannot cast what it hands back to any type
+        // it knows. That is the consumer's real position too.
+        assertTrue(String.valueOf(read).contains("Konteiner"),
+                "a store obtained purely from the registry could not read the tenant's "
+                        + "own data, so registration proves nothing a consumer can use: "
+                        + read);
 
         // spec removal retracts the services
         Files.delete(dir.resolve("konteiner.json"));
