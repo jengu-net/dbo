@@ -208,6 +208,40 @@ tasks.jar {
                     "org.w3c.dom.ls;resolution:=optional",
                     "org.w3c.dom.events;resolution:=optional",
                     "org.ietf.jgss;resolution:=optional",
+                    // Reached by the embedded stack and previously undeclared,
+                    // found by TheStackImportsWhatItReachesForTest. A package
+                    // left out of a curated list resolves perfectly — OSGi
+                    // resolves what a bundle DECLARES — and throws
+                    // NoClassDefFoundError the first time the path that needs
+                    // it is taken, which is why none of these had surfaced.
+                    //
+                    // javax.xml is the one that matters: XMLConstants is how a
+                    // parser is configured for secure processing, so it sits on
+                    // a path the validator can genuinely reach. It is mandatory
+                    // for the same reason javax.xml.parsers above is — java.xml
+                    // is in every JDK, and a resolution failure at boot beats a
+                    // link error at first use.
+                    "javax.xml",
+                    // The rest are optional: either their module is separable
+                    // from a slimmed JDK, or nothing in this container provides
+                    // them at all. Optional says "if it is there, wire it",
+                    // which is the honest description of an integration this
+                    // deployment does not use.
+                    "javax.xml.crypto;resolution:=optional",
+                    "javax.xml.crypto.dom;resolution:=optional",
+                    "javax.xml.crypto.dsig;resolution:=optional",
+                    "javax.xml.crypto.dsig.dom;resolution:=optional",
+                    "javax.xml.crypto.dsig.keyinfo;resolution:=optional",
+                    "javax.xml.crypto.dsig.spec;resolution:=optional",
+                    "javax.imageio;resolution:=optional",
+                    "javax.script;resolution:=optional",
+                    "javax.lang.model.element;resolution:=optional",
+                    "javax.naming.directory;resolution:=optional",
+                    "javax.naming.ldap;resolution:=optional",
+                    // HAPI's servlet integration, which this deployment does
+                    // not install: the FHIR surface is a JDK HttpServer.
+                    "javax.servlet;resolution:=optional",
+                    "javax.servlet.http;resolution:=optional",
                 ).joinToString(","),
                 // The validator loads profile definitions out of
                 // org.hl7.fhir.rX.model.* resource directories that live in
