@@ -30,11 +30,21 @@ public interface Promise extends Coded {
     }
 
     /**
-     * A review-based assurance note, or null. Declared on the CONSTANT, not
-     * at a proof site: a promise assured by review rather than by an
-     * executable test carries that fact as its own property — there is no
-     * test to hang it on, and status stays derived
-     * (REQ-DBO-PRM-STATUS-IS-DERIVED).
+     * Why this promise is believed, when the reason is not a citation. Null
+     * when there is none.
+     *
+     * <p>Declared on the CONSTANT rather than at a proof site, because that is
+     * where the reason lives: there is no test to hang it on, and status stays
+     * derived (REQ-DBO-PRM-STATUS-IS-DERIVED).
+     *
+     * <p>Two kinds of ground reach here, and the note has to say which.
+     * <b>Review</b> — a property somebody checked and no executable test
+     * covers. And <b>proven but uncitable</b> — a test exists, passes, and
+     * structurally cannot name the constant: this framework's own promises are
+     * the standing case, since a catalogue that cited itself from here would be
+     * a dependency cycle. Calling the second one PLANNED would say nobody built
+     * it, and calling it PROVEN would claim a citation that does not exist;
+     * ASSURED with a note that names the test says the true thing.
      */
     default String assurance() {
         return null;

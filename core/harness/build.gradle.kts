@@ -173,6 +173,11 @@ tasks.withType<Test>().configureEach {
     // one check that would have spoken never runs.
     systemProperty("dbo.api.ledger", rootProject.file("config/api-ledger.txt").absolutePath)
     inputs.file(rootProject.file("config/api-ledger.txt"))
+    // Declared as an input for the same reason: a guard over a file Gradle
+    // does not know about is a guard that stops running when the file changes.
+    systemProperty("dbo.build.workflow",
+        rootProject.file(".github/workflows/build.yml").absolutePath)
+    inputs.file(rootProject.file(".github/workflows/build.yml"))
     // The ledger reads the same jars the boundary tests do; these are the
     // bundles no other test had needed staged.
     for ((prop, module) in ledgerBundles) {

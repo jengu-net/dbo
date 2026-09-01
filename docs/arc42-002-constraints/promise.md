@@ -59,8 +59,13 @@ against its own catalogue.
   only ever generated from a green build, the same trust the close-after-CI
   gate encodes, so a failing citation fails the build before any report
   exists; a declared constant with no citation is planned; an `assurance()`
-  note declared on the constant itself is review-based assurance (a property
-  of the promise, not of a test that does not exist); a gap is a gap. A
+  note declared on the constant itself carries why a promise is believed when
+  the reason is not a citation — either a property somebody reviewed and no
+  test covers, or one a test proves and structurally cannot name, which is
+  the standing case for this framework's own promises, since a catalogue that
+  cited itself from inside the framework would be a dependency cycle. The
+  note is a property of the promise rather than of a test that cannot be
+  hung on it, and it has to say which of the two it is. A gap is a gap. A
   gap's code is synthetic and stable — the hash of its text, qualified by
   the declaring catalogue's namespace — so reports diff cleanly and a
   promotion to a named constant shows as exactly that.
