@@ -126,10 +126,26 @@ class AnAuthorityMovesWithoutRekeyingIT {
                 "a tampered token verified, so the check above asserts nothing");
     }
 
-    /** The same token with its signature's last character changed. */
+    /**
+     * The same token with one bit of its signature flipped.
+     *
+     * <p>Changing the last CHARACTER instead is the obvious version and it is
+     * wrong: the final base64url character of a signature carries only two or
+     * four significant bits, so a different character can decode to identical
+     * bytes. That tamper is then no tamper, the token verifies, and the
+     * assertion reports that verification is not checking anything — which is
+     * true of the test rather than of the store. It passed locally and failed
+     * on the first signature whose trailing bits absorbed the change.
+     *
+     * <p>Decoding and flipping a bit is unconditional: the signature is
+     * different every time, by exactly one bit.
+     */
     private static String tampered(String jwt) {
-        char last = jwt.charAt(jwt.length() - 1);
-        return jwt.substring(0, jwt.length() - 1) + (last == 'A' ? 'B' : 'A');
+        String[] parts = jwt.split("\\.");
+        byte[] signature = Base64.getUrlDecoder().decode(parts[2]);
+        signature[0] ^= 0x01;
+        return parts[0] + "." + parts[1] + "."
+                + Base64.getUrlEncoder().withoutPadding().encodeToString(signature);
     }
 
     /** Reads one claim out of a JWS payload without a library, since we only need one. */
