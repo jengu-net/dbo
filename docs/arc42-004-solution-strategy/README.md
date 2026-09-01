@@ -1,6 +1,9 @@
 # Solution strategy
 
-The bets, each elaborated in its own section:
+The bets, each elaborated in its own section. Why the engine is shaped this
+way at all — what a mature implementation of the same problem teaches, what an
+earlier engine by the same authors got right, and what its post-mortem
+forbids — is [design rationale](design-rationale.md).
 
 1. **Version-agnostic core + personality bundles** — the engine knows objects
    (payload, envelope, identifiers, references); FHIR-version meaning lives in
@@ -12,7 +15,7 @@ The bets, each elaborated in its own section:
 3. **Single-writer tenancy** — durable tenant→pod assignment makes caches and
    subscription state local; Redis-class shared state is designed away
    ([§5](../arc42-007-deployment/README.md),
-   [§9](../arc42-008-crosscutting/design-rationale.md)).
+   [§9](design-rationale.md)).
 4. **DBOS/Postgres as the only substrate** — durable work in two planes split
    by content; cross-boundary hops platform-coordinated and audited (§7.4).
 5. **One feed primitive** — keyset cursors underneath pagination,

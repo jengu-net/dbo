@@ -61,7 +61,7 @@ lifecycle, shutdown, and things that went wrong. It is not for per-request or
 per-item events — and never for anything carrying identifying data. This store
 encrypts identifying elements inside the payload; writing them to a log with
 different retention and different access control undoes that. See
-[docs/arc42-008-crosscutting/personal-data-isolation.md](docs/arc42-008-crosscutting/personal-data-isolation.md).
+[docs/arc42-008-crosscutting/data-isolation.md](docs/arc42-008-crosscutting/data-isolation.md).
 
 ## Commits
 
