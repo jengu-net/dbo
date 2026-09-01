@@ -44,12 +44,25 @@ fi
 # and prose like "event #1". docs/tasks/ is exempt: those documents exist to
 # carry a topic between its issues and its concepts, and they are deleted when
 # their issues close.
-if hits=$(grep -rnE '(jengu-platform|jengu-infra|dbo)?#[0-9]{2,4}' \
+# A TODO or a FIXME is the exception, and the only one in the code: it is a
+# statement about work outstanding rather than about the store, so the issue
+# holding that work is the useful thing to name. The exemption covers the
+# marker's own line and the five after it, which is a comment block's worth.
+issue_hits=$(grep -rlE '(jengu-platform|jengu-infra|dbo)?#[0-9]{2,4}' \
         --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
         --exclude-dir=tasks --exclude=check-branding.sh --exclude=CLAUDE.md \
-        . 2>/dev/null); then
+        . 2>/dev/null \
+    | xargs -r awk '
+        FNR == 1 { todo = 0 }
+        /TODO|FIXME/ { todo = 6 }
+        {
+            if ($0 ~ /(jengu-platform|jengu-infra|dbo)?#[0-9][0-9][0-9]?[0-9]?/ && todo == 0)
+                print FILENAME ":" FNR ":" $0
+            if (todo > 0) todo--
+        }')
+if [ -n "$issue_hits" ]; then
     echo "Issue references found — state the constraint instead:" >&2
-    echo "$hits" >&2
+    echo "$issue_hits" >&2
     exit 1
 fi
 

@@ -98,9 +98,14 @@ a reader of this repository often cannot open one at all. The check is literal
 enough to catch a spelt-out example in prose, this paragraph included, which is
 why both shapes are described rather than shown.
 
-The one exception is `docs/tasks/`, whose documents exist precisely to carry a
-topic between its issues and its concepts, and which are deleted when their
-issues close.
+Two exceptions, both because the text is about outstanding work rather than
+about the store. `docs/tasks/` is exempt entirely: those documents exist to
+carry a topic between its issues and its concepts, and they are deleted when
+their issues close. And a **`TODO` or `FIXME` may name the issue holding the
+work** — if one is filed, name it, since a reader who wants to know what
+became of the gap has nowhere else to look. The check exempts the marker's
+line and the five after it, so the reference can sit where it reads naturally
+inside the comment rather than being forced into the marker.
 
 Documentation describes the current state. The journey belongs in commit
 messages.
