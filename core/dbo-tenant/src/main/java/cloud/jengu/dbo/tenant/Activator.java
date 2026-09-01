@@ -264,7 +264,20 @@ public final class Activator implements BundleActivator {
                         java.util.List<ServiceRegistration<?>> regs = new java.util.ArrayList<>(List.of(
                                 ctx.registerService(ObjectStore.class, runtime.engine(), props),
                                 ctx.registerService(FhirStoreFacade.class, runtime.store(), props),
-                                ctx.registerService(ChangeFeed.class, runtime.feed(), props)));
+                                ctx.registerService(ChangeFeed.class, runtime.feed(), props),
+                                // The lane a second site of this tenant needs.
+                                // It is here rather than only behind
+                                // /t/{code}/replication because the bundle
+                                // that carries the bytes runs in this
+                                // framework: reaching its own tenant's lane
+                                // over loopback would mean a credential in
+                                // ConfigAdmin to re-enter a process it never
+                                // left, and assembling its own would give one
+                                // peer two sets of cursors. So it takes the
+                                // captured instance off the whiteboard, the
+                                // way it already takes the store.
+                                ctx.registerService(cloud.jengu.dbo.sync.Lanes.class,
+                                        runtime.replication(), props)));
                         if (runtime.engine() instanceof cloud.jengu.dbo.policy.PolicyObjectStore p) {
                             // §15.1: module engines contribute custom audit
                             // events through this per-tenant recorder surface

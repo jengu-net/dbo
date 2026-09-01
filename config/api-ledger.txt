@@ -2033,6 +2033,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_INPU
 cloud.jengu.dbo.promises.DboPromises                                   PROC_INTRODUCTION_GRANTS_NOTHING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_LANE_EPOCH:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_LANE_IS_A_TENANT_SERVICE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MILESTONES_ARE_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE:cloud.jengu.dbo.promises.DboPromises
@@ -2727,8 +2728,9 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              equals(Ob
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              feed():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              grain():cloud.jengu.dbo.core.face.GrainCodec
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              hashCode():int
-cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              new(cloud.jengu.dbo.tenant.TenantSpec,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.common.FhirStoreFacade,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.rest.FhirHttpServer,cloud.jengu.dbo.core.face.GrainCodec)
+cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              new(cloud.jengu.dbo.tenant.TenantSpec,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.common.FhirStoreFacade,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.rest.FhirHttpServer,cloud.jengu.dbo.core.face.GrainCodec,cloud.jengu.dbo.sync.Lanes)
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              record
+cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              replication():cloud.jengu.dbo.sync.Lanes
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              spec():cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              store():cloud.jengu.dbo.fhir.common.FhirStoreFacade
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              toString():String

@@ -210,7 +210,8 @@ class TenantOsgiIT {
     // that carries a diagnosis.
     @Timeout(480)
     @Proving({DboPromises.CONT_DYNAMIC_TENANT_SERVICES,
-            DboPromises.TEN_REGISTRY_SCOPED_ACCESS})
+            DboPromises.TEN_REGISTRY_SCOPED_ACCESS,
+            DboPromises.PROC_LANE_IS_A_TENANT_SERVICE})
     void aSpecFileLightsUpTheWholeChainInContainer() throws Exception {
         assertEquals(Bundle.ACTIVE, tenantBundle.getState());
         BundleContext ctx = framework.getBundleContext();
@@ -349,13 +350,71 @@ class TenantOsgiIT {
                         + "own data, so registration proves nothing a consumer can use: "
                         + read);
 
+        // The lane a second site of this tenant needs, from the same place
+        // and on the same terms as the store above.
+        //
+        // It used to be the one thing this tenant built, captured and
+        // published nowhere: mounted at /t/konteiner/replication for whoever
+        // was outside, and unreachable from a bundle sitting beside it. That
+        // is this repository's characteristic defect — built, proven and
+        // unreachable — in a toolset whose only consumer is a bundle in this
+        // framework.
+        //
+        // Note there is no authority configured in this container. The lane is
+        // here anyway, which is the point: an authority answers "who is
+        // asking", and the registry does not ask.
+        ServiceReference<?>[] lanes = ctx.getAllServiceReferences(
+                "cloud.jengu.dbo.sync.Lanes", "(tenant=konteiner)");
+        assertTrue(lanes != null && lanes.length == 1,
+                "the tenant's replication lane must stand in the registry beside its "
+                        + "store, or the bundle that carries the bytes has to assemble its "
+                        + "own — a second set of cursors for one peer; " + inTheContainer(ctx));
+
+        Object lane = ctx.getService(lanes[0]);
+        assertTrue(lane != null, "the registered lane service could not be obtained");
+        ClassLoader inSync = lane.getClass().getClassLoader();
+        Object opened = lane.getClass().getMethod("open", String.class).invoke(lane, "teine-sait");
+        String epoch = String.valueOf(opened.getClass().getMethod("epoch").invoke(opened));
+
+        // And it acts on THIS tenant's store. Obtaining the reference and
+        // never calling it would pass while the lane wrote to nothing, so what
+        // is asserted is a record applied through the lane and read back
+        // through the facade — two services off the registry, one database,
+        // and no credential on either path.
+        String arrived = java.util.UUID.randomUUID().toString();
+        Class<?> itemType = inSync.loadClass("cloud.jengu.dbo.sync.Lanes$Item");
+        Class<?> batchType = inSync.loadClass("cloud.jengu.dbo.sync.Lanes$Batch");
+        Object item = itemType.getConstructor(String.class, String.class, long.class,
+                        java.time.Instant.class, byte[].class, boolean.class, List.class)
+                .newInstance("Patient", arrived, 1L, java.time.Instant.now(),
+                        ("{\"resourceType\":\"Patient\",\"id\":\"" + arrived
+                                + "\",\"name\":[{\"family\":\"Teisel\"}]}")
+                                .getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        false, List.of());
+        Object batch = batchType.getConstructor(String.class, String.class, String.class,
+                List.class).newInstance(epoch, "teine-sait", "c1", List.of(item));
+        Object applied = lane.getClass().getMethod("apply", String.class, batchType)
+                .invoke(lane, "teine-sait", batch);
+        assertEquals(1L, applied.getClass().getMethod("applied").invoke(applied),
+                "the lane took the batch and wrote nothing: " + applied);
+
+        Object readBack = facade.getClass().getMethod("read", String.class, String.class)
+                .invoke(facade, "Patient", arrived);
+        assertTrue(String.valueOf(readBack).contains("Teisel"),
+                "what arrived over the registry's lane is not in the tenant's store, so "
+                        + "the lane obtained there is not this tenant's: " + readBack);
+
         // spec removal retracts the services
         Files.delete(dir.resolve("konteiner.json"));
         deadline = System.currentTimeMillis() + 30_000;
         while (System.currentTimeMillis() < deadline) {
             ServiceReference<?>[] remaining = ctx.getAllServiceReferences(
                     "cloud.jengu.dbo.fhir.common.FhirStoreFacade", "(tenant=konteiner)");
-            if (remaining == null) {
+            // The lane goes with them. A lane left standing after its tenant
+            // is gone is a handle onto a closed pool that still looks live.
+            ServiceReference<?>[] laneLeft = ctx.getAllServiceReferences(
+                    "cloud.jengu.dbo.sync.Lanes", "(tenant=konteiner)");
+            if (remaining == null && laneLeft == null) {
                 return;
             }
             Thread.sleep(250);
