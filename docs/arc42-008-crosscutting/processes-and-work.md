@@ -171,6 +171,22 @@ never opened itself to that kind of participant. There is no implicit
 unrestricted — reach is stated when a participant is provisioned, so nobody's
 access depends on a parameter somebody forgot.
 
+**A participant is authenticated, not sealed to.** It holds a credential and
+never a key. What it receives arrives as ordinary readable data: the store
+resolves what the work entitles it to and hands that across. Nothing is
+encrypted such that only this participant could open it, and no participant
+offers the store anything to encrypt to.
+
+That is a boundary rather than an omission, and it decides who has to be
+trusted. The store owns no channel, so whatever carries the bytes is something
+it does not run and cannot see into — and everything that carrier moves, it can
+read. Where the participant is the tenant's own second site, there is nobody
+else in the picture and nothing to protect against. Where it belongs to
+somebody else, the carrier is a third party who is trusted by arrangement
+rather than by construction. That is the one place this store's usual answer —
+*make it structurally impossible rather than promise it* — does not apply, so
+work that cannot tolerate it stays inside the tenant's own machinery.
+
 ## Two sites of one tenant
 
 A site with an on-premises appliance and a cloud is **one tenant in two places**,
