@@ -51,11 +51,26 @@ public final class Scopes {
      */
     public static final String ERASURE = "erasure";
 
+    /**
+     * The identification scope: admits the door a subject is resolved,
+     * adjudicated and bound through, and nothing else. Outside the SMART
+     * grammar like the three above, and for the reason binding is the act no
+     * read control touches — an anonymous subject has no identity to read, so
+     * a credential bounded to reading resources protects nothing here.
+     *
+     * <p>Separate from {@link #ERASURE} rather than folded into it. Both act
+     * on a person and they are opposite acts: one attaches an identity, the
+     * other destroys the key that made one legible. A deployment that lets a
+     * desk identify people has not thereby said that desk may erase them.
+     */
+    public static final String IDENTITY = "identity";
+
     private static final String WORK_STEP = WORK + "/";
 
     /** Validates a declared scope string (as stored on a ClientApplication). */
     public static boolean isValid(String scope) {
         return SCIM.equals(scope) || WORK.equals(scope) || ERASURE.equals(scope)
+                || IDENTITY.equals(scope)
                 || isWorkStep(scope)
                 || SCOPE.matcher(scope).matches();
     }

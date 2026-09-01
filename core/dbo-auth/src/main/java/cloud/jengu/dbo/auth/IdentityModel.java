@@ -37,6 +37,32 @@ public final class IdentityModel {
     private IdentityModel() {
     }
 
+    /**
+     * The three identification records, on their own.
+     *
+     * <p>Separated because they live somewhere different from everything else
+     * here. Clients, keys and grants are the <b>authority's</b> own records and
+     * belong in the store the authority opens; an adjudication, a binding and
+     * an anonymity declaration are the <b>tenant's</b> records about people,
+     * and belong beside its content — versioned, audited, exported and
+     * replicated like any other, for the same reason a role grant is a record.
+     *
+     * <p>The distinction was found the way these usually are: a door was
+     * mounted over the tenant's engine and every request failed with
+     * {@code type not registered: Adjudication}, because the whole set was
+     * registered only for the authority's store. The types existed, the rules
+     * were proven, and nothing a caller could reach could write one.
+     */
+    public static List<TypeRegistration> identificationRegistrations() {
+        return registrations().stream()
+                .filter(t -> IDENTIFICATION.contains(t.typeName()))
+                .toList();
+    }
+
+    /** What {@link #identificationRegistrations()} selects, named once. */
+    private static final java.util.Set<String> IDENTIFICATION =
+            java.util.Set.of("AnonymityEvent", "BindingEvent", "Adjudication");
+
     public static List<TypeRegistration> registrations() {
         EnvelopeExtractor client = (type, payload) -> {
             Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));

@@ -55,6 +55,7 @@ cloud.jengu.dbo.auth.IdentityModel                                     KID_SYSTE
 cloud.jengu.dbo.auth.IdentityModel                                     LOGIN_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     ROLE_CODE_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     class
+cloud.jengu.dbo.auth.IdentityModel                                     identificationRegistrations():List
 cloud.jengu.dbo.auth.IdentityModel                                     registrations():List
 cloud.jengu.dbo.auth.Jwk                                               class
 cloud.jengu.dbo.auth.Jwk                                               parse(String):RSAPublicKey
@@ -78,6 +79,7 @@ cloud.jengu.dbo.auth.KeyProtector                                      new(byte[
 cloud.jengu.dbo.auth.KeyProtector                                      unwrap(byte[]):byte[]
 cloud.jengu.dbo.auth.KeyProtector                                      wrap(byte[]):byte[]
 cloud.jengu.dbo.auth.Scopes                                            ERASURE:String
+cloud.jengu.dbo.auth.Scopes                                            IDENTITY:String
 cloud.jengu.dbo.auth.Scopes                                            SCIM:String
 cloud.jengu.dbo.auth.Scopes                                            WORK:String
 cloud.jengu.dbo.auth.Scopes                                            admitsWork(List):boolean
@@ -1977,6 +1979,7 @@ cloud.jengu.dbo.promises.DboPromises                                   FEED_LEAN
 cloud.jengu.dbo.promises.DboPromises                                   FEED_NAMED_CONSUMERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   FEED_ONE_PRIMITIVE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   FEED_PUSH_ACK_RESUME:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   IDN_IDENTIFICATION_IS_REACHABLE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_ACCEPTED_ROOT_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_ARCHIVE_ROOT_OVER_CONTENTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_ATTESTATION_READS_AS_FHIR:cloud.jengu.dbo.promises.DboPromises
@@ -2648,6 +2651,10 @@ cloud.jengu.dbo.tenant.ErasureHandler                                  handle(Ht
 cloud.jengu.dbo.tenant.ErasureHandler                                  new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.tenant.PersonErasure,Function)
 cloud.jengu.dbo.tenant.FaceRequirements                                class
 cloud.jengu.dbo.tenant.FaceRequirements                                refuseUnservable(cloud.jengu.dbo.tenant.TenantSpec,cloud.jengu.dbo.core.face.DomainFace):void
+cloud.jengu.dbo.tenant.IdentityHandler                                 SCOPE:String
+cloud.jengu.dbo.tenant.IdentityHandler                                 class
+cloud.jengu.dbo.tenant.IdentityHandler                                 handle(HttpExchange):void
+cloud.jengu.dbo.tenant.IdentityHandler                                 new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.core.api.ObjectStore,String,String)
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               bootstrapClientSecret(String):String
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               bootstrapClientSecret(String,Duration):String
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               class
