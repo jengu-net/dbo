@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <b>step's</b> half lives at the primitive, where the declaration is: a step
  * that never opened itself to local execution refuses an executor at a local
  * scope, and a step cannot grant its executor more than the executor already
- * holds (ADR 0059). The <b>credential's</b> half lives at the lane, because the
+ * holds. The <b>credential's</b> half lives at the lane, because the
  * lane is the only door a participant has and only the host knows what the
  * credential covers.
  */
@@ -51,7 +51,7 @@ class ClaimIsTheIntersectionIT {
     private static final StepDeclaration NATIONAL =
             StepDeclaration.of("lab.result.sign", "1.0", WorkModel.DOMAIN);
 
-    /** Opened to organisations, deliberately (ADR 0059). */
+    /** Opened to organisations, deliberately. */
     private static final StepDeclaration LOCAL =
             StepDeclaration.of("lab.result.validate", "1.0", WorkModel.DOMAIN)
                     .overridableBy("organisation");

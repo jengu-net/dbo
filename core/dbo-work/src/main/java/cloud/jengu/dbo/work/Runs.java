@@ -77,14 +77,14 @@ public final class Runs {
             super("step '" + stepId + "' does not admit an executor at scope "
                     + by.scope().wire() + " ('" + by.name() + "'); it is "
                     + (overridable == null
-                            ? "not open to local execution at all (ADR 0059: not overridable "
+                            ? "not open to local execution at all (not overridable "
                                     + "is the default)"
                             : "open to " + overridable + " and wider"));
         }
     }
 
     /**
-     * Whether this step admits an executor at that scope (ADR 0059).
+     * Whether this step admits an executor at that scope.
      *
      * <p>The baseline always may — it is not an override, it is the rule — and
      * anything more local may only where the step said so. A step cannot grant
@@ -249,7 +249,7 @@ public final class Runs {
     }
 
     /**
-     * What resolution chose, recorded on the run (#72, ADR 0059).
+     * What resolution chose, recorded on the run (#72).
      *
      * <p>All four facts, because each answers a different question later:
      * what ran, which behaviour that was, whose code it was, and under whose

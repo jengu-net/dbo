@@ -5,7 +5,7 @@
 #   DBO_ADMIN_JDBC_URL/USER/PASSWORD  local default (database-per-tenant)
 #
 # DBO_MANAGEMENT_SPEC points at the spec of the tenant this deployment's own
-# history lives in — the juridical body operating it (ADR 0061). Outside
+# history lives in — the juridical body operating it. Outside
 # DBO_TENANT_DIR on purpose: the scan loop that retracts undeclared tenants
 # must not be able to retract the thing recording retractions. A deployment
 # whose management tenant will not come up serves nothing.

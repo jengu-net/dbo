@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.work;
 
 /**
- * Where a rule was declared, general to local (ADR 0059).
+ * Where a rule was declared, general to local.
  *
  * <p>The chain terminology and configuration already walk. Order is
  * specificity, and it is an order rather than a set because resolution asks

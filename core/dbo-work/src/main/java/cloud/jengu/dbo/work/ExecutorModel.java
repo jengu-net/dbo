@@ -25,7 +25,7 @@ import java.util.Set;
  *
  * <p><b>A declaration is a claim to be a candidate, never a grant.</b> What a
  * participant may actually take stays the intersection of its scopes and what
- * the step admits (ADR 0059): a step cannot grant its executor more than the
+ * the step admits: a step cannot grant its executor more than the
  * executor already holds, and this record cannot either. It is written through
  * the tenant's store like anything else, so a participant whose credential may
  * not write here is refused by the authority rather than by this model.

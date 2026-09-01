@@ -3,7 +3,7 @@ package cloud.jengu.dbo.work;
 import java.util.Optional;
 
 /**
- * What resolution decided, and why (ADR 0059).
+ * What resolution decided, and why.
  *
  * <p>The reason is part of the answer rather than a log line: "no automation
  * ran" and "automation was switched off in this zone" and "a narrower scope

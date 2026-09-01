@@ -158,7 +158,7 @@ place, it says so.
 | **audit rendering** | engine facts as the domain's audit resource | `core.face.RecordProjection`, **declared**; the surface that answers audit queries holds no shape and never learns the name of what it serves |
 | **attestation rendering** | an archive's root and signatures as a domain resource | **outside the contract** — `ArchiveProvenance`, a loose static in `dbo-fhir-common` (#34) |
 | **run rendering** | an execution record as the domain's work resource | `core.face.RecordProjection`, **declared** — the same capability, and having two consumers is what makes it one |
-| **catalogue projection** | process steps as the domain's definition resources | defined in #46 / ADR 0057 §5 (`PlanDefinition`, `ActivityDefinition`), platform-side today |
+| **catalogue projection** | process steps as the domain's definition resources | defined in #46 (`PlanDefinition`, `ActivityDefinition`), consumer-side today |
 | **identity projection** | a subject identity and its claims as domain resources | does not exist; waits on the identity toolset (#39) |
 
 Three of those — audit, attestation, run — are the same shape: **an engine fact said
@@ -306,5 +306,4 @@ The other half is subtraction: a domain that is not healthcare needs a face, not
 fork. Nothing above the engine should learn what FHIR is, and every obligation left
 outside the contract is a place where something already has.
 
-**See also:** [ADR 0057](https://github.com/jengu-net/jengu-platform/blob/main/docs/arc42-009-architecture-decisions/0057-dbo-is-an-engine-for-regulated-work-and-domains-are-faces-over-it.md)
-(the decision this describes), #38 (the contract's remaining work).
+**See also:** #38 — the contract's remaining work.

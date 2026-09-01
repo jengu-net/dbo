@@ -45,4 +45,16 @@ if hits=$(grep -rnE '(jengu-platform|jengu-infra|dbo)#[0-9]+' \
     exit 1
 fi
 
+# Decision records belong to the moment they were written and are superseded by
+# later ones; this repository documents the state it is in. A comment or a
+# document that leans on one is a comment that did not say what it meant, and
+# the record it leans on lives in another repository a reader here cannot open.
+if hits=$(grep -rnE 'ADR [0-9]{3,4}' \
+        --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
+        --exclude=check-branding.sh . 2>/dev/null); then
+    echo "Decision-record references found — state the constraint instead:" >&2
+    echo "$hits" >&2
+    exit 1
+fi
+
 echo "branding: clean"

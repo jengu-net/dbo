@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.work;
 
 /**
- * What a step says about being executed by somebody else (ADR 0059).
+ * What a step says about being executed by somebody else.
  *
  * <p><b>Precedence selects; the step grants the right to override.</b> Being
  * narrow is not a way to acquire authority: under precedence alone any party

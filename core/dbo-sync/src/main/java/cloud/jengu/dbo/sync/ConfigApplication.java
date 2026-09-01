@@ -25,7 +25,7 @@ import java.util.List;
  * why a partial application presents as "my configuration had no effect" rather
  * than as a failure.
  *
- * <p><b>Nothing reaches back</b> (ADR 0060). The correlation the declaration
+ * <p><b>Nothing reaches back</b>. The correlation the declaration
  * carried is echoed on the run, opaque and never parsed, and whoever declared it
  * closes their own run by re-evaluating against what this one says. dbo does not
  * call them: the moment it does, both systems have to be up together.
