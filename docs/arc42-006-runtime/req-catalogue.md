@@ -3,7 +3,7 @@
 > The whole catalogue, between the `promise:begin`/`promise:end` markers
 > below, is **generated** from the promise catalogue (`core/dbo-promises`)
 > — edit the enums and run `./gradlew :core:harness:promiseProjection`,
-> never the tables ([promise](../arc42-008-crosscutting/promise.md)). Every
+> never the tables ([promise](../arc42-002-constraints/promise.md)). Every
 > promise carries a derived status: PROVEN where a test cites it, ASSURED
 > where review does, GAP where nobody has stated it yet, and PLANNED where
 > it is declared but nothing proves it — most of the 2026-08-27 migration

@@ -90,7 +90,7 @@ The specification is an [arc42](https://arc42.org/) tree:
 - [docs/arc42-009-architecture-decisions](docs/arc42-009-architecture-decisions/README.md)
   — the resolved questions, including the
   [adoption path from an existing FHIR server](docs/arc42-009-architecture-decisions/README.md)
-- [docs/arc42-008-crosscutting/design-rationale.md](docs/arc42-008-crosscutting/design-rationale.md)
+- [docs/arc42-004-solution-strategy/design-rationale.md](docs/arc42-004-solution-strategy/design-rationale.md)
   — why the engine is shaped this way
 
 ## Modules

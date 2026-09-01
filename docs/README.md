@@ -4,9 +4,13 @@ Structured per [arc42](https://arc42.org/).
 
 - [arc42-001-introduction](arc42-001-introduction/README.md) — goals, quality
   goals, [founding requirements](arc42-001-introduction/founding-requirements.md)
-- [arc42-002-constraints](arc42-002-constraints/README.md)
+- [arc42-002-constraints](arc42-002-constraints/README.md) — including
+  [promise](arc42-002-constraints/promise.md) (requirements as code — how this
+  repository states and proves what it promises)
 - [arc42-003-context](arc42-003-context/README.md)
-- [arc42-004-solution-strategy](arc42-004-solution-strategy/README.md)
+- [arc42-004-solution-strategy](arc42-004-solution-strategy/README.md) — the bets,
+  and the [design rationale](arc42-004-solution-strategy/design-rationale.md) (§9)
+  behind them
 - [arc42-005-building-blocks](arc42-005-building-blocks/README.md) — layering (§1)
 - [arc42-006-runtime](arc42-006-runtime/README.md) — [REQ catalogue](arc42-006-runtime/req-catalogue.md)
 - [arc42-007-deployment](arc42-007-deployment/README.md) — scaling/routing (§5),
@@ -25,7 +29,6 @@ Structured per [arc42](https://arc42.org/).
   [processes and work](arc42-008-crosscutting/processes-and-work.md) (§8) and
   [the FHIR face](arc42-008-crosscutting/the-fhir-face.md) (every concept above
   as a FHIR client sees it — readable on its own),
-  [design rationale](arc42-008-crosscutting/design-rationale.md) (§9),
   [running it](arc42-008-crosscutting/running-it.md) (§11 — embedding,
   deployment shape, backup as export, upgrades),
   [who may act](arc42-008-crosscutting/who-may-act.md) (§13, §16 — the
@@ -33,9 +36,7 @@ Structured per [arc42](https://arc42.org/).
   [data isolation](arc42-008-crosscutting/data-isolation.md) (§14, tenant from
   tenant, person from everyone, and what is declared to cross),
   [declared rules](arc42-008-crosscutting/declared-rules.md) (§15, §17 — what a
-  tenant must do, what its jurisdiction says, and how the two layer),
-  [promise](arc42-008-crosscutting/promise.md) (requirements as code — how this
-  repository states and proves what it promises)
+  tenant must do, what its jurisdiction says, and how the two layer)
 - [arc42-009-architecture-decisions](arc42-009-architecture-decisions/README.md) —
   resolved questions & risks (§7)
 - [evidence/](evidence/) — the measured usage grounding the specification

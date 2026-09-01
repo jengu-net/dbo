@@ -15,3 +15,6 @@
   Where an existing server solved a problem with a proprietary resource field
   or operation, DBO solves it with a standard mechanism or declares it out of
   scope — it does not reproduce another product's vocabulary.
+- **Behaviour is promised in code before it is written**, declared once and
+  cited from the test that proves it, with unstated ground named as a gap
+  rather than left silent — [promise](promise.md).

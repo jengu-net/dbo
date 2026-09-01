@@ -101,11 +101,11 @@ its durable concepts are carried into this design rather than rediscovered:
   converters instead of data-rewriting DDL migrations.
 - **Two version axes, never conflated** — `payload_version` for the storage
   format, the shape stamp for the tenant-pack profile version an object was
-  validated under ([records you can rely on](records-you-can-rely-on.md)).
+  validated under ([records you can rely on](../arc42-008-crosscutting/records-you-can-rely-on.md)).
 - **Requirements as promises in code** — declared once as enum constants
   whose names are their codes, cited from tests and implementation alike,
   with gaps first-class and coverage computed, never asserted
-  ([promise](promise.md)).
+  ([promise](../arc42-002-constraints/promise.md)).
 - **Domain as a physical grouping knob** — which object types share a table
   set, tunable for performance.
 - **Version-driven leader election**: the node with the highest application
