@@ -16,6 +16,7 @@ and a link to the document that argues it.
 - **dbo-runtime-proof** ← `docs/arc42-002-constraints/working-rules.md`
 - **dbo-reachability** ← `docs/arc42-002-constraints/working-rules.md`
 - **dbo-comments** ← `docs/arc42-002-constraints/working-rules.md`
+- **dbo-recorded-projections** ← `docs/arc42-002-constraints/working-rules.md`
 - **dbo-promise** ← `docs/arc42-002-constraints/working-rules.md`
 
 ## Installing
