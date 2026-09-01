@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What this deployment does about its tenants is somebody's work, and it has a
- * record (#74, ADR 0061).
+ * record (#74).
  *
  * <p>`/runtime/tenants` answers what is true now; nothing answered what
  * happened, and nobody was the actor — "who retracted that tenant?" had no

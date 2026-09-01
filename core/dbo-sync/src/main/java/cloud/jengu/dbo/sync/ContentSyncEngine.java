@@ -112,7 +112,7 @@ public final class ContentSyncEngine {
      *
      * <p>The run belongs to the <b>dependent</b> — it is their work — with the
      * upstream named rather than parented, because parenthood cannot cross a
-     * tenant and a tenant is a legal person (ADR 0061).
+     * tenant and a tenant is a legal person.
      *
      * <p>Declared rather than assumed: this component is also the stream
      * mechanic used on its own, and a mechanic with nowhere to write runs is a

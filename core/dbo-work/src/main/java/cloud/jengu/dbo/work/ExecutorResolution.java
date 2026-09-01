@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * Which executor runs a step, decided the same way every time (#72, ADR 0059).
+ * Which executor runs a step, decided the same way every time (#72).
  *
  * <p>Resolution walks the overlay chain terminology and configuration already
  * walk — baseline, zone, organisation — and offers the work to the most local

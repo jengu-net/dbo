@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Which executor runs a step, and who is allowed to decide (#72, ADR 0059).
+ * Which executor runs a step, and who is allowed to decide (#72).
  *
  * <p>No store and no container: resolution is a decision over declarations, and
  * the whole point of deciding the rule rather than discovering it is that the

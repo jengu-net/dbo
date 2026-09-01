@@ -149,7 +149,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, ObjectStore> runStores = new ConcurrentHashMap<>();
     /** What went wrong for a tenant that is not serving, and whose problem it is. */
     private final Map<String, Trouble> trouble = new ConcurrentHashMap<>();
-    /** The tenant this deployment's own history lives in (#74, ADR 0061). */
+    /** The tenant this deployment's own history lives in (#74). */
     private volatile String managementCode;
 
     /** A tenant that is not serving, and why — the reason a card has to carry. */
@@ -269,7 +269,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * Brings up the tenant that records what this deployment does about the
-     * others (#74, ADR 0061).
+     * others (#74).
      *
      * <p>The managing party is <b>a tenant like the others</b> — the juridical
      * body operating the deployment, distinguished by role rather than by

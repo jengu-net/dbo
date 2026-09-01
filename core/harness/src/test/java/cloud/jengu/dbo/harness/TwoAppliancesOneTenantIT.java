@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * One tenant on two appliances, and the lane between them (#80, ADR 0062).
+ * One tenant on two appliances, and the lane between them (#80).
  *
  * <p>Two real stores, because every claim here is about what one appliance does
  * with what the other sent: applying twice, applying out of order, applying a

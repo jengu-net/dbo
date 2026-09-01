@@ -245,9 +245,6 @@ owed, by whom, and what happened is the store's.
 - **The exact rules and their proofs** — the participation entries in the
   [REQ catalogue](../arc42-006-runtime/req-catalogue.md), which carry each rule
   above in its precise form and name the test for it.
-- **Why the store never calls out** — ADR 0060. **Why precedence selects but a
-  step grants the right to override** — ADR 0059. **What may be disclosed about
-  work** — ADR 0058. **One tenant across two appliances** — ADR 0062.
 - **Why neutrality is the point**, and where a store shaped like this is worth
   building for an industry that is not this one —
   [a neutral repository for a competing industry](../plans/ifc-repository.md) and

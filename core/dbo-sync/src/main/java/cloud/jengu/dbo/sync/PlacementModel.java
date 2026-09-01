@@ -24,7 +24,7 @@ import java.util.Set;
  *
  * <p><b>The reference is in the record and never in the envelope.</b> What is
  * indexed is the run and the type; an envelope naming the subject would tell
- * everyone who can see that work exists who it is about (ADR 0058).
+ * everyone who can see that work exists who it is about.
  */
 public final class PlacementModel {
 

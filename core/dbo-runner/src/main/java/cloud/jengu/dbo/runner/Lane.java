@@ -25,7 +25,7 @@ import java.util.Set;
  * poll, claim, checkpoint, report, declare, and one read of an object the
  * work names. In-process, the host implements this over the tenant's own
  * objects ({@link #inProcess}) and the store handle stays on the host's side
- * of the line; a remote lane (the consumer's socket, ADR 0062) implements
+ * of the line; a remote lane (the consumer's socket) implements
  * the same interface over its transport, shipping the named objects with
  * the work. The runner cannot tell which it holds, and that indistinction
  * is the contract: a verb that only the in-process side could serve does

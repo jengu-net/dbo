@@ -13,7 +13,7 @@ with #131–#135, #145) · consumer:
 
 **Concepts** — [records you can rely on](../arc42-008-crosscutting/records-you-can-rely-on.md) ·
 [running it](../arc42-008-crosscutting/running-it.md) ·
-consumer-side ADR 0047 (still Medplum-shaped; see *Not doing*)
+the consumer's own decision record (still Medplum-shaped; see *Not doing*)
 
 ## What this is
 
@@ -122,9 +122,9 @@ an issue when a consumer's release cadence actually calls for it. The same
 judgement split the hand-back lane out of #133, and that slice then came in at
 a third of its estimate — the deferral was right twice.
 
-**ADR 0047 has not been revised.** It is still *Proposed* and Medplum-shaped,
-and it is the consumer's decision record, not the store's. Revising it is part
-of the consumer-side re-basing, not a store task.
+**The consumer's decision record for this has not been revised.** It is still
+proposed and Medplum-shaped, and it is theirs rather than the store's. Revising
+it is part of the consumer-side re-basing, not a store task.
 
 ## Verifying
 

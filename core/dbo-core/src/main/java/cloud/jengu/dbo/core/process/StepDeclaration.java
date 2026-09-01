@@ -4,7 +4,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * What a step is, before anything runs it (#71, ADR 0057 §5).
+ * What a step is, before anything runs it (#71).
  *
  * <p><b>Manual is the baseline; automation is an attachment.</b> A step is
  * fully defined — what it reads, what it writes, what shape it consumes and
@@ -34,7 +34,7 @@ import java.util.Set;
  *                    empty when it constrains nothing
  * @param produces    an opaque reference to the shape of what it makes
  * @param overridable which scope class may override it, and empty means
- *                    nobody: not overridable is the default (ADR 0059)
+ *                    nobody: not overridable is the default
  * @param actions     the acts this step contains — open a run, close it,
  *                    reopen a closed one. Roles narrow <b>actions</b>, not
  *                    steps, so without these there is nothing for a role to
@@ -94,7 +94,7 @@ public record StepDeclaration(StepId id, String version, Set<String> reads, Set<
                 consumes, Optional.of(shapeReference), overridable, actions, slots, milestones);
     }
 
-    /** Opened to a scope class, deliberately — the default is nobody (ADR 0059). */
+    /** Opened to a scope class, deliberately — the default is nobody. */
     public StepDeclaration overridableBy(String scopeClass) {
         return new StepDeclaration(id, version, reads, writes, consumes, produces,
                 Optional.of(scopeClass), actions, slots, milestones);

@@ -691,7 +691,7 @@ public final class TenantAuthority {
                     // held there rather than unioning with it — union can only
                     // ever add, so "clinician everywhere, read-only at lab-b"
                     // would be unsayable. Same rule the ScopeClass chain
-                    // resolves by (ADR 0059), on purpose.
+                    // resolves by, on purpose.
                     Optional<StoredObject> grant = organisationId == null
                             ? Optional.empty()
                             : activeGrant(roleCode, organisationId);

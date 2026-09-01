@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * A lane between two appliances of one tenant, as a record (#80, ADR 0062).
+ * A lane between two appliances of one tenant, as a record (#80).
  *
  * <p>What it holds is the pair of facts neither side can hold alone: the
  * <b>epoch</b> this lane is running under, and the <b>marker</b> the far side

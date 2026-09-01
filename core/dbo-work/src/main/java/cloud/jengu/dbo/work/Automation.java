@@ -2,7 +2,7 @@ package cloud.jengu.dbo.work;
 
 /**
  * Whether a step is automated here at all — declared configuration on the same
- * chain, not a code path (ADR 0059).
+ * chain, not a code path.
  *
  * <p>A zone switching automation off is a decision somebody made, and it is as
  * visible and as auditable as a terminology overlay. A step that is simply

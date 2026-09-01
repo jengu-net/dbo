@@ -210,7 +210,7 @@ public final class PersonVault {
         }
     }
 
-    /** The lookup-index system contact points are indexed under (ADR 0056). */
+    /** The system value contact points carry in the lookup index. */
     public static final String TELECOM_SYSTEM = "urn:dbo:pdi:telecom";
 
     /**

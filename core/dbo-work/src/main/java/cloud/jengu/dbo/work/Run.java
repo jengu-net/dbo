@@ -68,7 +68,7 @@ public record Run(String id, long versionId, String key, String process, String 
 
     /**
      * Who was chosen to run this and where — or, when nobody was, why the work
-     * is in front of a person (#72, ADR 0059).
+     * is in front of a person (#72).
      *
      * <p>Recorded rather than derivable: a provider can be withdrawn and a
      * scope can be re-declared, so a resolution nobody wrote down is a decision

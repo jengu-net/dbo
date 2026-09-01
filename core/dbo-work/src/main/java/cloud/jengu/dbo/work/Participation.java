@@ -24,9 +24,10 @@ import java.util.Set;
  * (REQ-DBO-FEED-ONE-PRIMITIVE). Which also means each participant's backlog and
  * lag are observable without anything being built for them.
  *
- * <p><b>Pull, never push.</b> dbo holding a client for every external system is
- * the shape ADR 0060 already rejected, and participants are precisely the
- * things behind NAT, on edges, and offline for a weekend. Pulling makes an
+ * <p><b>Pull, never push.</b> The store never opens a connection outwards —
+ * work crosses a boundary as a declaration something else comes and takes,
+ * never as a call the store makes — and participants are precisely the things
+ * behind NAT, on edges, and offline for a weekend. Pulling makes an
  * offline participant a lagging cursor rather than an outage.
  *
  * <p><b>You scale by adding claimants, never by relaxing the claim.</b> Two

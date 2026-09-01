@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.work;
 
 /**
- * What ran a step, named the way a run has to name it (ADR 0059).
+ * What ran a step, named the way a run has to name it.
  *
  * <p>All four, because each answers a different question a year later: the
  * <b>name</b> what ran, the <b>version</b> which behaviour that was, the

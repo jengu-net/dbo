@@ -25,13 +25,13 @@ import java.util.Set;
 
 /**
  * Moving work and the data it names between two appliances of one tenant
- * (#80, ADR 0062).
+ * (#80).
  *
  * <p><b>There is no channel here, and that is the design.</b> This hands a
  * caller a batch and takes one back; a connector outside dbo carries the bytes,
- * authenticates, reconnects and frames. dbo holding a client for every external
- * system is the shape ADR 0060 refused, and the first channel-aware method here
- * would be the one that ends with a transport inside the engine.
+ * authenticates, reconnects and frames. The store never opens a connection
+ * outwards, and the first channel-aware method here would be the one that ends
+ * with a transport inside the engine.
  *
  * <p><b>Two appliances, one tenant.</b> Same code, same declarations, so a lane
  * is same-version replication: no converter chain, and the stored bytes travel
