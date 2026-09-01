@@ -609,10 +609,28 @@ public enum DboPromises implements Promise {
             + "the tenant's own cached key set — no per-request dependency on any other "
             + "service."),
     AUTH_CREDENTIAL_FACTORS_BY_KIND(
-            "A local credential holds factors named by kind (RFC 8176 `amr`), and what "
-            + "may be held is decided per kind: a password only where the tenant is the "
-            + "identity provider for that subject, a bench PIN alongside federation "
-            + "because it serves the case federation cannot."),
+            "A local credential holds factors named by kind (RFC 8176 `amr`): a bench "
+            + "PIN, a password and a passkey are different kinds, setting one leaves the "
+            + "others alone, and a kind is never a field named after the first case."),
+    /**
+     * TODO: prove it in a test. Split out of the promise above, which claimed
+     * it and was PROVEN by tests covering only the factors-are-kinds half —
+     * so the catalogue asserted a rule nothing enforced, which is worse than
+     * PLANNED because PLANNED announces itself.
+     *
+     * <p>It is not enforceable yet, and the reason is worth keeping: the
+     * per-subject signal it needs does not exist in any populated form.
+     * Federated login resolves a person by national identifier and records
+     * nothing, and while {@code BindingEvent} models exactly this, no
+     * production code constructs one — the binding half of the identity
+     * toolset is built and unwired. A refusal reading that signal today could
+     * never fire.
+     */
+    AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP(
+            "A password is held only where the tenant is the identity provider for that "
+            + "subject; where the subject federates, the refusal names their identity "
+            + "provider rather than answering no. A bench PIN is unaffected — it serves "
+            + "the case federation cannot."),
     AUTH_SELF_SERVICE_CHANGE(
             "A signed-in subject can replace their own password by proving possession "
             + "of the current one. No ticket, no second channel, and no other factor is "
