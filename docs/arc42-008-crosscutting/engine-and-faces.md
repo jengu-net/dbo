@@ -134,11 +134,20 @@ is legitimately incomplete rather than broken. **Absence is only an error agains
 requirement**, which is exactly why a face declares what it provides rather than
 stubbing what it does not.
 
-It is also the missing consumer. `DeclaredFace` exists and nothing in production looks
-anything up through it, because the check that would is unwritten: **reconciling a
-tenant's requirements against its face's offer at bring-up**. Until that exists, a
-tenant whose spec needs something its face lacks comes up fine and fails at first use,
-two frames from the cause.
+It is also what the declaration is *for*. A tenant's spec is reconciled against its
+face's offer **at bring-up**, and a face that cannot serve the spec is refused there —
+before the tenant's database exists, so a refusal leaves nothing behind to clean up.
+Declaring types requires a face that parses them, frames search results over them and
+renders their audit trail; declaring personal-data isolation requires its coarsening.
+The refusal names every unmet requirement at once and says which part of the spec asks
+for each, because a spec author should fix the face or the spec in one round rather
+than one refusal at a time.
+
+The scar it closes is the reason it exists. Coarsening was published as a capability
+and the personal-data path was built without asking for it, so every element declared
+GENERALISE silently became a REMOVE — correct-looking output, quietly wrong, and
+nothing failed. That is what an absent capability does when it surfaces where it is
+first needed instead of at registration.
 
 ## The obligations, as they actually are
 
@@ -261,13 +270,16 @@ hands the rest straight back.
 ## The limit this contract has today
 
 `DeclaredFace` lookup is **version-scoped and stateless**: `FhirFace.of("r4")` is a
-constant, one face per version, capabilities looked up by type. That fits set 1
-exactly and set 2 not at all — a grain codec reads and writes one *tenant's* native
-form, and so does audit rendering. Two tenants of the same version need different
-instances, so those are passed as arguments instead of being declared.
+constant, one face per version, capabilities looked up by type. Most of set 2 fits
+that anyway — audit and run rendering are declared and looked up like anything else,
+because the projection holds no shape and never learns the name of what it serves, so
+one instance serves every tenant of a version.
 
-So the contract cannot express the half of its own table that this store adds, which
-is also the half that keeps growing.
+The grain codec is the one that does not. It reads and writes one *tenant's* native
+form, so two tenants of the same version need different instances, and it is passed as
+an argument rather than declared. Making it a declared capability means making a face
+per tenant — which is the decision, and it is why the exception is a pointer to this
+section rather than a workaround somebody settled in passing.
 
 The way out follows from the three sets rather than from taste. **A face per version
 stays right for what the version defines**; what the store adds needs a per-tenant
@@ -275,12 +287,12 @@ layer, because that is what it is. Collapsing both into one per-tenant face woul
 multiply objects that genuinely are per version; adding a scope to the lookup names a
 division the code already has, badly.
 
-**And the first thing to build is the caller, not the mechanism.** The reconciliation
-above — a tenant's spec against its face's offer, at bring-up — is what a scoped
-lookup is *for*: it is the one place that knows both what this tenant requires and
-what its face provides, so it is where the two scopes have to be asked for
-differently. Extending the lookup without it would be widening a road nobody drives
-on; writing it makes the scope question answer itself.
+**The caller exists, and it is where the scope question will be answered.** Bring-up
+reconciliation is the one place that knows both what this tenant requires and what its
+face provides, so it is where the two scopes have to be asked for differently. It
+asks for per-version capabilities today and would have to ask a per-tenant lookup for
+the rest — which is what makes extending the lookup a change with somewhere to land
+rather than a road nobody drives on.
 
 The payoff is the reason this contract was named in the first place: the day somebody
 writes a face for a domain that is not healthcare, the engine tells them what they owe
