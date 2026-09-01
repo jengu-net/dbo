@@ -83,6 +83,18 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
     /** The half that was in flight when the process went. */
     static final AtomicInteger THE_INTERRUPTED_PART = new AtomicInteger();
     static final CountDownLatch reachedTheSecondPart = new CountDownLatch(1);
+    /**
+     * Whether the dying process saw the work reach its second part — recorded
+     * there, asserted here.
+     *
+     * <p>It used to be an {@code assertTrue} inside {@link StepService#perform},
+     * which reaches the test only because {@code AssertionError} is an
+     * {@code Error} and the runner catches {@code RuntimeException}. That is
+     * luck, not design: a runner that ever broadened its catch would turn a
+     * failed assertion into a released run and a silently passing test.
+     */
+    static final java.util.concurrent.atomic.AtomicBoolean gotAsFarAsTheSecondPart =
+            new java.util.concurrent.atomic.AtomicBoolean();
     /** Held shut while the first process is alive, so its work is never finished. */
     static volatile CountDownLatch mayFinish = new CountDownLatch(1);
     static volatile DBOS local;
@@ -164,11 +176,72 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
                 new Executor(participant, "1.0", "cloud.jengu.test", Scope.BASELINE));
     }
 
+    /**
+     * A transaction on this database with an xid assigned, held open.
+     *
+     * <p>This is the condition that made the test flaky, made deliberate.
+     * {@code PgChangeFeed} delivers an event only when {@code xact_id} is below
+     * the local horizon, and while any backend on this database holds an xid
+     * the horizon falls back to the cluster's {@code xmin} — so an event
+     * committed AFTER this transaction started is withheld until it ends. DBOS
+     * keeps connections on this same database, so on a busy machine it produced
+     * this state by itself, at random, for a fraction of a second.
+     *
+     * <p>Opened before the run is written, because the order is the whole
+     * mechanism: a transaction younger than the event does not hold it back.
+     */
+    private static Connection anXidHeldOpen() throws Exception {
+        Connection c = DriverManager.getConnection(url,
+                SharedPostgres.get().getUsername(), SharedPostgres.get().getPassword());
+        c.setAutoCommit(false);
+        try (var st = c.createStatement()) {
+            st.execute("CREATE TABLE IF NOT EXISTS held_open (n int)");
+            c.commit();
+            st.execute("INSERT INTO held_open VALUES (1)"); // this is what assigns the xid
+        }
+        return c;
+    }
+
+    /**
+     * Cycles until the runner actually takes the work, rather than once.
+     *
+     * <p>One cycle was a coin flip, and the reason is a deliberate property of
+     * the store rather than a bug in it. A lane polls the change feed, and
+     * {@code PgChangeFeed} withholds an event while any transaction in the same
+     * database still holds an xid — otherwise a writer committing between a
+     * reader's snapshot and its liveness scan would have its event skipped for
+     * ever. DBOS keeps its own connections in this same database, by design
+     * (§7.4: the local executor's state lives in the tenant's database). So the
+     * run is written, correct, and not yet offered.
+     *
+     * <p>The consequence was a test that failed on commits which could not have
+     * touched it, reporting {@code expected: <1> but was: <0>} — a count, when
+     * the truth was that nothing had been asked to do anything at all. The
+     * second half of this test always looped; only the first half asserted
+     * after a single cycle.
+     */
+    private static void cycleUntilTheWorkIsTaken(StepRunner runner, String which)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
+        while (System.nanoTime() < deadline) {
+            if (runner.cycle() > 0) {
+                return;
+            }
+            Thread.sleep(100);
+        }
+        throw new AssertionError(which + " never took the work, so nothing below was ever "
+                + "asked to do anything — this is the lane never offering the run, not the "
+                + "layer below failing to resume it. The run stands as: " + runs.byKey(KEY));
+    }
+
     @Test
     @DisplayName("the participant dies mid-work: the run is owed again, and the half that was "
             + "finished is not done twice")
     @Proving({DboPromises.PROC_STEP_SERVICE_EMBEDDABLE, DboPromises.PROC_FAILURE_IS_RELEASED})
     void killingItMidWorkLosesNeitherHalf() throws Exception {
+        // Older than the run, and held open across the first poll: while it
+        // stands, the lane is correctly offered nothing.
+        Connection holdingTheFeedBack = anXidHeldOpen();
         runs.pipeline(PROCESS, STEP, KEY, List.of(WorkModel.DOMAIN));
 
         // ---- the first process: takes the work, gets halfway, and goes ----
@@ -191,8 +264,8 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
                     first.startWorkflow(() -> firstProxy.enrich(work.run().key()),
                             new StartWorkflowOptions(work.run().key()));
                     try {
-                        assertTrue(reachedTheSecondPart.await(20, TimeUnit.SECONDS),
-                                "the work got as far as its second part");
+                        gotAsFarAsTheSecondPart.set(
+                                reachedTheSecondPart.await(20, TimeUnit.SECONDS));
                     } catch (InterruptedException interrupted) {
                         Thread.currentThread().interrupt();
                     }
@@ -200,8 +273,22 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
                 }
             });
             dying.attach(lane("the-dying-one"));
-            dying.cycle();
+            // The state that used to fail this test, now arranged rather than
+            // waited for: the run is on the store and the feed is holding it.
+            // A single cycle here does nothing, and a test that asserted after
+            // one would report that the layer below re-ran finished work.
+            assertEquals(0, dying.cycle(),
+                    "an event committed after an open transaction must not be offered yet — "
+                            + "if it is, the barrier this test rides out no longer exists and "
+                            + "the loop below is asserting nothing");
+            holdingTheFeedBack.rollback();
+            holdingTheFeedBack.close();
+
+            cycleUntilTheWorkIsTaken(dying, "the dying process");
         }
+        assertTrue(gotAsFarAsTheSecondPart.get(),
+                "the work never reached its second part before the process went, so what "
+                        + "the restart resumes below is not the scenario this test describes");
         assertEquals(1, THE_EXPENSIVE_PART.get(), "the expensive part ran once, on the way down");
 
         // and the process goes, with its work still in flight below
