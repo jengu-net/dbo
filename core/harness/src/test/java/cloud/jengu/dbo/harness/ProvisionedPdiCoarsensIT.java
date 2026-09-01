@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A tenant that asks for PDI gets the coarsening its face publishes (#114).
+ * A tenant that asks for PDI gets the coarsening its face publishes.
  *
  * <p>The rule is that the engine declares an element is GENERALISED and the
  * face knows how — only a face knows a birth date reduces to its year. In

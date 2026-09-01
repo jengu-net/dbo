@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * The committed report changes only when conformance changes (#84).
+ * The committed report changes only when conformance changes.
  *
  * <p>Two runs that observed the same behaviour through different ephemeral
  * ports and different generated ids must render byte-identical files — that

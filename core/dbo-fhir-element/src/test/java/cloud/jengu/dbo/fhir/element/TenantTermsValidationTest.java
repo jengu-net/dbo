@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * REQ-DBO-TERM-VALIDATION-USES-TENANT-TERMINOLOGY (#50): coded values are
+ * REQ-DBO-TERM-VALIDATION-USES-TENANT-TERMINOLOGY: coded values are
  * resolved against the tenant's own terminology where the carried definitions
  * are silent — and a system the tenant does not hold is UNRESOLVABLE, which is
  * a different fact from a code being wrong.

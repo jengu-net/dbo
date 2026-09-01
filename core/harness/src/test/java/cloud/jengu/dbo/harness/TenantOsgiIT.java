@@ -93,7 +93,7 @@ class TenantOsgiIT {
                 "dbo.fhir.element.jar",
                 "dbo.fhir.r4.jar", "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar",
                 // the promise framework and the store's catalogue — dbo-pdi
-                // imports the catalogue to name promises in refusals (#140)
+                // imports the catalogue to name promises in refusals
                 "dbo.promise.jar", "dbo.promises.jar",
                 // the telemetry seam: a leaf the runner imports, so it has to
                 // be here even though nothing in this container exports
@@ -113,7 +113,7 @@ class TenantOsgiIT {
                 // exports leaves the tenant runtime unresolved, and the
                 // failure reads as the tenant bundle failing to start
                 "dbo.maintenance.jar",
-                // and the lane surface (#154): the tenant mounts it, so the
+                // and the lane surface: the tenant mounts it, so the
                 // runner's Lane must be exported to something. Same shape of
                 // requirement — an import nothing exports leaves the tenant
                 // bundle unresolved, and it reads as the tenant failing

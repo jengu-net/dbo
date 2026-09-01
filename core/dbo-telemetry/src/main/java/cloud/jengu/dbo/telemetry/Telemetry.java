@@ -5,7 +5,7 @@ import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 
 /**
- * Where numbers about this node go (#161).
+ * Where numbers about this node go.
  *
  * <p><b>Why a seam of our own rather than a metrics library's API.</b> The
  * engine's rule is that it carries no dependency it cannot justify aloud, and

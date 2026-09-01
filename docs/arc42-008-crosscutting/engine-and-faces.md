@@ -67,7 +67,7 @@ because the branches never chose a face: they chose those.
 **Where the code still does not keep R6**, stated precisely because a founding
 requirement is the thing being missed rather than a preference: one `fhirVersion` per
 tenant means **one face per tenant**. R6 asks for different domains *within* a tenant on
-different versions; a tenant gets one. Tracked in #38.
+different versions; a tenant gets one.
 
 ## What the split is
 
@@ -148,7 +148,7 @@ place, it says so.
 | Obligation | What it does | Today |
 |---|---|---|
 | **coarsening** | how a declared element is made coarser | `core.face.Coarsening`, **declared** via `DeclaredFace` — the reference case |
-| **grain codec** | reassemble a stored form for transport, take a transported form apart | `core.face.GrainCodec`, passed explicitly (#31) |
+| **grain codec** | reassemble a stored form for transport, take a transported form apart | `core.face.GrainCodec`, passed explicitly |
 | **ancestor rendering** | the engine's own facts, said in the domain's words — id, version, when, where from, under what shape, under what handling | one body, shared by serving, export and framing: the stored document copied token for token with the slots replaced; still saying two of the six facts |
 | **envelope extraction** | identifiers, references, indexable paths | a lambda on `TypeRegistration`, reading through the face's payload codec so a payload is read once |
 | **payload codec** | parse and render the wire format | `core.face.Payloads`, **declared** via `DeclaredFace` |
@@ -156,10 +156,10 @@ place, it says so.
 | **framing** | many objects as one document — a page, a history, an export | `core.face.PayloadFraming`, **declared**; a member's payload passes through with only the ancestor slots replaced |
 | **query compilation** | the domain's query language to engine criteria | inside the personality |
 | **audit rendering** | engine facts as the domain's audit resource | `core.face.RecordProjection`, **declared**; the surface that answers audit queries holds no shape and never learns the name of what it serves |
-| **attestation rendering** | an archive's root and signatures as a domain resource | **outside the contract** — `ArchiveProvenance`, a loose static in `dbo-fhir-common` (#34) |
+| **attestation rendering** | an archive's root and signatures as a domain resource | **outside the contract** — `ArchiveProvenance`, a loose static in `dbo-fhir-common` |
 | **run rendering** | an execution record as the domain's work resource | `core.face.RecordProjection`, **declared** — the same capability, and having two consumers is what makes it one |
-| **catalogue projection** | process steps as the domain's definition resources | defined in #46 (`PlanDefinition`, `ActivityDefinition`), consumer-side today |
-| **identity projection** | a subject identity and its claims as domain resources | does not exist; waits on the identity toolset (#39) |
+| **catalogue projection** | process steps as the domain's definition resources | `PlanDefinition` and `ActivityDefinition`, consumer-side today |
+| **identity projection** | a subject identity and its claims as domain resources | does not exist; waits on the identity toolset |
 
 Three of those — audit, attestation, run — are the same shape: **an engine fact said
 in the domain's vocabulary.** Two of them now share one seam, and the third does not.
@@ -250,7 +250,7 @@ Every obligation is a pure transformation: data in, data out. **No face method w
 to the store or re-enters the engine.** Otherwise there is re-entrancy inside a
 transaction, and two faces running in parallel can disagree about who wrote what.
 
-This is not a style rule, and #31 showed why. Terminology could have been applied by
+This is not a style rule, and terminology showed why. It could have been applied by
 handing the received CodeSystem to the face to ingest. But the sync engine writes
 copies under the **source's object id**, and its origin bookkeeping — which shadowing
 is built on — is keyed by that id. A face that wrote would have resolved identity its
@@ -306,4 +306,3 @@ The other half is subtraction: a domain that is not healthcare needs a face, not
 fork. Nothing above the engine should learn what FHIR is, and every obligation left
 outside the contract is a place where something already has.
 
-**See also:** #38 — the contract's remaining work.

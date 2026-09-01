@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>It would have failed on r6 before the element face grew a terminology
  * surface: every operation refused, and dbo's own vocabularies were written
  * whole rather than ingested, so a tenant on the newest version could read its
- * definitions and ask nothing about them (#101).
+ * definitions and ask nothing about them.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TerminologyOnEveryVersionIT {
@@ -96,7 +96,7 @@ class TerminologyOnEveryVersionIT {
                 code + ": the tree comes back: " + reassembled);
         assertEquals(1, occurrences(reassembled, "\"code\":\"cbc\""),
                 code + ": each code exactly once — twice is a sync round whose COPY "
-                        + "collides with itself and never acks (#97): " + reassembled);
+                        + "collides with itself and never acks: " + reassembled);
         assertTrue(reassembled.contains("Verepaneel"),
                 code + ": designations survive: " + reassembled);
         assertTrue(reassembled.contains("whole-blood"),
@@ -164,7 +164,7 @@ class TerminologyOnEveryVersionIT {
      * <p>The store validates what a client sends and then answers with
      * resources it never asked itself about — and when this test was written it
      * turned out two of the three operations were answering INVALID FHIR on all
-     * three faces (#103). A concept with no display came back either as a
+     * three faces. A concept with no display came back either as a
      * parameter with no value ({@code inv-1}) or as an empty string
      * ({@code ele-1}), and every single expansion was missing the
      * {@code timestamp} that {@code ValueSet.expansion} makes 1..1.
@@ -206,7 +206,7 @@ class TerminologyOnEveryVersionIT {
     }
 
     /**
-     * A concept property whose value is not a primitive (#105).
+     * A concept property whose value is not a primitive.
      *
      * <p>National terminologies routinely carry {@code valueCoding} properties.
      * HAPI answers {@code primitiveValue()} with null for those — the value is
@@ -218,8 +218,8 @@ class TerminologyOnEveryVersionIT {
      *
      * <p>The property is DROPPED rather than the system refused. The concepts,
      * their displays and the hierarchy are what anything clinical reads, and
-     * losing a whole vocabulary over one property's encoding is the trade #100
-     * already refused to make.
+     * losing a whole vocabulary over one property's encoding is a trade this
+     * store refuses to make.
      */
     @ParameterizedTest(name = "{0}")
     @MethodSource("versions")

@@ -54,7 +54,7 @@ import java.util.Set;
 public interface Lane {
 
     /**
-     * What the identity behind this lane is entitled to work (#77).
+     * What the identity behind this lane is entitled to work.
      *
      * <p>"What a participant may claim is the intersection of its scopes and
      * what the step admits." The step's half is decided at the primitive,
@@ -145,7 +145,7 @@ public interface Lane {
     Run checkpoint(Run run, Map<String, Long> counts, Duration holdFor);
 
     /**
-     * Progress that also names the milestone reached (#150). Deliberately
+     * Progress that also names the milestone reached. Deliberately
      * abstract, not defaulted: a default degrading this to a bare checkpoint
      * would be a step reporting where it is into a void, and a remote lane
      * that forgot to carry it would pass every test while dropping the one
@@ -166,9 +166,9 @@ public interface Lane {
     void declare(Declarations.Declared declared);
 
     /**
-     * Brings the step this participant performs into the catalogue (#147) —
+     * Brings the step this participant performs into the catalogue —
      * the declaration arriving over the link instead of by installation.
-     * Abstract, not defaulted (the #150 rule): a lane that quietly dropped an
+     * Abstract, not defaulted: a lane that quietly dropped an
      * introduction would leave the participant declaring candidacy for a
      * step the catalogue never learned. The introducer is this lane's
      * identity; an introduction grants it nothing.
@@ -179,7 +179,7 @@ public interface Lane {
     void withdraw(Declarations.Declared declared);
 
     /**
-     * What this participant can see behind it (#159) — the routed tree, and
+     * What this participant can see behind it — the routed tree, and
      * the counterpart to {@link #declare}: one says what it can do, this says
      * what it can reach.
      *
@@ -195,9 +195,9 @@ public interface Lane {
      * withdrawing one of them would drop half of it. A routed tree is not per
      * step. The alternative that kept the transport unchanged asked the engine
      * to read inside a block it promised to treat as opaque, which is the
-     * contract #148 rests on.
+     * contract this rests on.
      *
-     * <p>Abstract, not defaulted, by the #150 rule: a lane that quietly
+     * <p>Abstract, not defaulted: a lane that quietly
      * dropped a report would leave an operator reading a fleet that stopped
      * changing for no visible reason.
      */
@@ -210,13 +210,13 @@ public interface Lane {
      * boundary (review decision): a runner cannot ask for data, relevant or
      * not — it receives what the step's own declaration entitles the run to
      * carry, resolved by the party that legitimately holds the objects. The
-     * step declaration (#71) is the central profile of what a step consumes;
-     * the run's inputs (#149) are instances filling those slots; joining a
+     * step declaration is the central profile of what a step consumes;
+     * the run's inputs are instances filling those slots; joining a
      * step is agreeing to that API, automatically, because there is nothing
      * else to receive. A lane may — should — refuse a run this identity has
      * not claimed.
      *
-     * <p>Empty today: a claimable run names no inputs until #149 lands, and
+     * <p>Empty today: a claimable run names no inputs yet, and
      * an empty map is the honest answer rather than a placeholder.
      */
     Map<String, StoredObject> inputs(Run run);
@@ -233,7 +233,7 @@ public interface Lane {
 
     /**
      * The same, with the host's objects — what makes {@link #inputs} deliver
-     * (#149). The store handle stays on this side of the line: the runner
+     *. The store handle stays on this side of the line: the runner
      * receives resolved objects, never the handle.
      */
     static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
@@ -244,7 +244,7 @@ public interface Lane {
     }
 
     /**
-     * The same, with the catalogue's second door (#147): a service that
+     * The same, with the catalogue's second door: a service that
      * brings its own step introduces it through here. A host that wires no
      * {@code introductions} refuses an introduction loudly rather than
      * recording it nowhere.
@@ -258,7 +258,7 @@ public interface Lane {
     }
 
     /**
-     * The same, bounded to what this participant's credential covers (#77).
+     * The same, bounded to what this participant's credential covers.
      *
      * <p>A participant with no privileges beyond its own step sees only that
      * step's work: the entitlement narrows what {@code poll} offers and
@@ -276,7 +276,7 @@ public interface Lane {
     }
 
     /**
-     * The same, able to record what a participant routes (#159).
+     * The same, able to record what a participant routes.
      *
      * <p>Wired where the tenant's own records are, for the same reason
      * {@code introductions} is: a host that wires none refuses a report
@@ -403,7 +403,7 @@ public interface Lane {
                             + "' is not claimed by " + identity.name()
                             + " — inputs travel with a claim, never with a question");
                 }
-                // Resolution is this side's act (#149): references stay
+                // Resolution is this side's act: references stay
                 // opaque to the engine and the runner, and only what the
                 // host legitimately holds — Type/id, present here — arrives.
                 // What cannot be resolved does not, which is the honest

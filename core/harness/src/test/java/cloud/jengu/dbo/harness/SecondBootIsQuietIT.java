@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * Provisioning a tenant that already exists is quiet (#124).
+ * Provisioning a tenant that already exists is quiet.
  *
  * <p>The code always handled it — catch {@code 42P04}, attach — but Postgres
  * logs an ERROR whenever it raises one, whether or not the client catches it.

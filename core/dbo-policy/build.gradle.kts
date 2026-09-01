@@ -10,7 +10,7 @@ plugins {
 dependencies {
     api(project(":core:dbo-core"))
     api(project(":core:dbo-rest"))
-    // the retention sweep IS a sweep run (#69)
+    // the retention sweep IS a sweep run
     api(project(":core:dbo-work"))
 }
 

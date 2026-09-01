@@ -5,7 +5,7 @@ import cloud.jengu.dbo.promise.Promise;
 
 /**
  * The store's promise catalogue — whole (2026-08-27). The pilot carried
- * SHAPE and PDI (#140); everything else migrated in one pass from
+ * SHAPE and PDI; everything else migrated in one pass from
  * hand-written req-catalogue.md prose, verbatim, each row a constant. The
  * port and the citation were deliberately two passes, so a promise with no
  * test said so rather than reading PROVEN by proximity to ones that did; the
@@ -119,7 +119,7 @@ public enum DboPromises implements Promise {
             + "answer is empty. Anything inexact, unsystemed, or combined with other "
             + "predicates is refused, never half-answered."),
 
-    // ── PROC — distributed work; the first slice beyond the pilot (#149) ──
+    // ── PROC — distributed work; the first slice beyond the pilot ──
 
     PROC_STEP_DECLARES_ITS_SLOTS("A step declaration names its input slots — ordered, "
             + "named, each an opaque shape reference — and a runner that joins the step "
@@ -256,7 +256,7 @@ public enum DboPromises implements Promise {
 
     /** TODO: prove it in a test. The free-string process-domain code exists on Run and
      * is written; no test yet asserts a view or projection filtering BY it — that arrives
-     * with the console (#75). */
+     * with the console. */
     PROC_DOMAIN_CODE_FILTER("Every process and step carries a free-string process-domain "
             + "code; views and projections filter by it."),
 

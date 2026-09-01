@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A consumer states the version of FHIR it was built against, and this bundle
- * either satisfies it or says so (#47).
+ * either satisfies it or says so.
  *
  * <p>A package exported without a version is exported at <b>0.0.0</b>, which is
  * in no stated range — and bnd computes a range for every consumer by default,

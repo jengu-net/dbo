@@ -107,7 +107,7 @@ public final class Activator implements BundleActivator {
         if (!Boolean.parseBoolean(ctx.getProperty("dbo.face.watch"))) {
             return live;
         }
-        // Gated on purpose (#55): the check costs a volatile read per call and
+        // Gated on purpose: the check costs a volatile read per call and
         // a stack walk per hand-out, and what it catches is a deployment fault
         // rather than a daily one — a tenant still being served by a face
         // bundle nobody can see any more. Worth paying for while a container's
@@ -166,7 +166,7 @@ public final class Activator implements BundleActivator {
     }
 
     /**
-     * The step catalogue as the registry sees it (#71) — same rule as the
+     * The step catalogue as the registry sees it — same rule as the
      * versions above: a module contributes its steps by being installed, so a
      * catalogue bundle started later is seen by the next scan, and the
      * classpath fallback (which sees no other bundle's providers) is never
@@ -282,7 +282,7 @@ public final class Activator implements BundleActivator {
                         }
                     }
                 }, authority, registered(ctx), stepsFromRegistry(ctx));
-        // #74: the tenant this deployment's own history lives in, brought up
+        // The tenant this deployment's own history lives in, brought up
         // before anything else and declared by configuration rather than by a
         // file in the watched directory. A deployment whose management tenant
         // will not come up serves nothing — the one failure with nowhere to be
@@ -299,7 +299,7 @@ public final class Activator implements BundleActivator {
                 throw e;
             }
         }
-        // #67: a runtime can be asked what it is serving, when a deployment has
+        // A runtime can be asked what it is serving, when a deployment has
         // said who may ask.
         manager.serveRuntimeState(ctx.getProperty("dbo.tenant.ops.token"));
         manager.start(2_000);

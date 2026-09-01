@@ -4,7 +4,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * What a step is, before anything runs it (#71).
+ * What a step is, before anything runs it.
  *
  * <p><b>Manual is the baseline; automation is an attachment.</b> A step is
  * fully defined — what it reads, what it writes, what shape it consumes and
@@ -45,14 +45,14 @@ import java.util.Set;
  *                    perform. Empty means the step has not said, not that it
  *                    admits nothing.
  * @param slots       the step's named input slots, in order, each an opaque
- *                    shape reference (#149) — the documents work over this
+ *                    shape reference — the documents work over this
  *                    step travels with, beside the {@code consumes} shape of
  *                    the thing the step acts on. This is the input API a
  *                    runner agrees to by joining the step: a run fills these
  *                    slots at creation, and there is nothing else a runner
  *                    can receive.
  * @param milestones  the named points of a long run of this step, in order
- *                    (#150) — the step's own map of itself, which is what
+ * — the step's own map of itself, which is what
  *                    lets completeness be <em>derived</em> from a reported
  *                    name rather than asserted by each executor differently.
  *                    Empty means the step has not said, not that progress may
@@ -107,7 +107,7 @@ public record StepDeclaration(StepId id, String version, Set<String> reads, Set<
     }
 
     /**
-     * Declares one more input slot, in declaration order (#149). Every
+     * Declares one more input slot, in declaration order. Every
      * declared slot is mandatory: an input the step can do without is not a
      * slot.
      */
@@ -122,7 +122,7 @@ public record StepDeclaration(StepId id, String version, Set<String> reads, Set<
     }
 
     /**
-     * Declares the run's milestones, in order (#150) — the step's own map of
+     * Declares the run's milestones, in order — the step's own map of
      * itself, so a reported name has a derivable position.
      */
     public StepDeclaration reaching(String... milestones) {

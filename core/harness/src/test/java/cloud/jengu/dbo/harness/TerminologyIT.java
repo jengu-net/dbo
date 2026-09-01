@@ -130,7 +130,7 @@ class TerminologyIT {
     }
 
     /**
-     * A CodeSystem stored WHOLE still travels with each code once (#97).
+     * A CodeSystem stored WHOLE still travels with each code once.
      *
      * <p>The stored form is meant to be a shell, its concepts living natively —
      * but a CodeSystem written some other way keeps them in the document, and
@@ -140,7 +140,7 @@ class TerminologyIT {
      * from the same cursor forever, thousands of stack traces per boot, with
      * everything queued behind it on that stream stuck too.
      *
-     * <p>dbo published its own run vocabulary this way in e217f4c (#91), which
+     * <p>dbo published its own run vocabulary this way in e217f4c, which
      * is how a latent shape became a live deadlock — but the fault is in
      * transport, so this holds transport to it rather than only fixing the
      * one document that exposed it.

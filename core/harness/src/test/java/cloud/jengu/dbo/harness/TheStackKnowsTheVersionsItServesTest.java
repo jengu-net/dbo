@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The shared stack knows the version codes the faces it carries are served
- * under (#58).
+ * under.
  *
  * <p>This looks like a test of a library, and it is not. Definitions arrive as
  * a package and a version arrives as a code inside them, and the stack either

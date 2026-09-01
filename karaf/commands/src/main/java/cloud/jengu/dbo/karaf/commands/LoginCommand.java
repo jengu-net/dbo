@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 
 /**
  * Assume the identity you already hold, so that what you do carries your name
- * (#76).
+ *.
  *
  * <p>Through the tenant's own authority, by the same request an HTTP caller
  * makes: a refusal here is the authority's refusal, arrived at by the code that

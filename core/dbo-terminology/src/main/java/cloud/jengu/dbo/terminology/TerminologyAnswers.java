@@ -39,7 +39,7 @@ public final class TerminologyAnswers {
      * value, which fails {@code inv-1} ("one and only one of value, resource,
      * part"). This one emitted {@code "valueString": ""}, which fails
      * {@code ele-1}: a FHIR string cannot be empty. Both were refused by this
-     * store's own validator, asked for the first time in #103.
+     * store's own validator, the first time it was asked.
      *
      * <p>So absence is the only legal encoding of "no display" — FHIR has no
      * way to say the display is the empty string, and a caller cannot be given
@@ -86,7 +86,7 @@ public final class TerminologyAnswers {
      *
      * <p>The {@code timestamp} is not decoration: it is 1..1 on
      * {@code ValueSet.expansion}, and every expansion all three faces ever
-     * answered was invalid without it (#103). It says when THIS expansion was
+     * answered was invalid without it. It says when THIS expansion was
      * computed, which is now — an expansion is a snapshot of concepts that can
      * change under it, and a caller keeping one needs to know how old it is.
      */

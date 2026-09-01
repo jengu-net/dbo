@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * How work reaches whoever does it, and how they say what happened (#77).
+ * How work reaches whoever does it, and how they say what happened.
  *
  * <p>A run says who holds it; this is how a holder — a service, an edge, a
  * hospital's own system, a person at a screen — <b>gets</b> it. Without it

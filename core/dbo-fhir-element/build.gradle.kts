@@ -22,7 +22,7 @@ dependencies {
     api(project(":core:dbo-fhir-common"))
     // the HL7 engine: this bundle imports it, one exporter for the framework
     api(project(":core:dbo-fhir-stack"))
-    // the native form validation consults for the tenant's own codes (#50)
+    // the native form validation consults for the tenant's own codes
     api(project(":core:dbo-terminology"))
     compileOnly("org.slf4j:slf4j-api:2.0.18")
     compileOnly("org.osgi:osgi.core:8.0.0")
@@ -39,7 +39,7 @@ dependencies {
     testImplementation(project(":core:dbo-promises"))
     // the promise framework's processor indexes @Proving citations at THIS
     // module's test-compile time; without this configuration the index is
-    // silently absent (#140)
+    // silently absent
     testAnnotationProcessor(project(":promise"))
     // the engine logs; compileOnly above is the runtime's arrangement, and a
     // test has no bundle to import it from
@@ -75,7 +75,7 @@ data class Definitions(
     val announced: Boolean = true,
 )
 
-// Pinned. A ballot moves with the core's version codes (#59), so these two
+// Pinned. A ballot moves with the core's version codes, so these two
 // numbers are changed together and never one of them.
 val definitions = listOf(
     // R4 — the version most of the world speaks, and the one with an incumbent
@@ -187,7 +187,7 @@ tasks.jar {
     // but not declared, Gradle called this task up to date after the stack's
     // exports changed underneath it — and the bundle then asked the container
     // for a package nothing exports any more, which fails at bring-up in a
-    // test nobody would connect to a build-cache decision (#32).
+    // test nobody would connect to a build-cache decision.
     inputs.file(stackJar.get().archiveFile)
     into("META-INF") { from(rootProject.file("THIRD-PARTY.md")) }
     bundle {
@@ -212,7 +212,7 @@ tasks.jar {
                 // reference to a sibling bundle needs no edit here. This is
                 // the bundle that had the longest hand-kept list in the repo,
                 // and the one whose list went stale in the same commit that
-                // added cloud.jengu.dbo.core.process (#32).
+                // added cloud.jengu.dbo.core.process.
                 "Import-Package: " + (engineImports() + listOf(
                     "cloud.jengu.dbo.*",
                     "org.slf4j",

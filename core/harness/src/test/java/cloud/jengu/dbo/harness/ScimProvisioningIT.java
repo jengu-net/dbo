@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The tenant's SCIM 2.0 provisioning surface (#143): an identity provider
+ * The tenant's SCIM 2.0 provisioning surface: an identity provider
  * drives the staff directory over RFC 7644, the mapping lands on the
  * tenant's own Person/Practitioner records behind the membrane, and the
  * by-system enumeration a list needs never leaves the store.
@@ -265,7 +265,7 @@ class ScimProvisioningIT {
         assertFalse(manager.runtime("clear-headed").isPresent(),
                 "a staff directory over identity in the clear is refused, not served");
         assertTrue(String.valueOf(manager.troubles()).contains("scim requires pdi"),
-                "and the refusal is answerable from the trouble ledger (#144), not only "
+                "and the refusal is answerable from the trouble ledger, not only "
                         + "as an absent endpoint: " + manager.troubles());
     }
 

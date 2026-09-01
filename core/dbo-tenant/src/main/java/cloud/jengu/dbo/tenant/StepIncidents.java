@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Which of a tenant's mandatory steps are missing, and since when it has been
- * worth saying (#71).
+ * worth saying.
  *
  * <p><b>Not a gate.</b> This system is asynchronous by design: work buffers on
  * the queue when nothing serves a step, and a participant that arrives later

@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * How work reaches whoever does it (#77).
+ * How work reaches whoever does it.
  *
  * <p>Over a real store and a real feed, because every claim in this issue is
  * about what two processes do to one row: at-most-one holder comes from a

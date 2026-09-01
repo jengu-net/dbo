@@ -16,12 +16,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * The reference runner (#79): step services in, consumption out.
+ * The reference runner: step services in, consumption out.
  *
  * <p>Registering a {@link StepService} starts everything the participation
  * doctrine demands, written once: declared as a candidate on every lane
- * (#78), work pulled and claimed, performed, checkpointed, reported — and
- * the service re-declared with its vitals as it goes (#148), so an operator
+ *, work pulled and claimed, performed, checkpointed, reported — and
+ * the service re-declared with its vitals as it goes, so an operator
  * sees throughput and health beside the presence the cursor already proves.
  *
  * <p><b>Stateless over tenants</b>: tenants arrive as {@link Lane}s and the
@@ -49,7 +49,7 @@ public final class StepRunner implements AutoCloseable {
     private final Duration holdFor;
     private final Duration pollEvery;
     /**
-     * Where the numbers go, beside where they are declared (#161).
+     * Where the numbers go, beside where they are declared.
      *
      * <p>Vitals annotate presence at the point of resolution, for the tenant
      * whose work they describe; these are the same events aggregated for
@@ -202,8 +202,8 @@ public final class StepRunner implements AutoCloseable {
         // writes the state it was handed, so reporting twice from a stale copy
         // silently erases the first — a step that named a milestone and then
         // checkpointed lost the milestone, which is the one thing the report
-        // said (#150). It matters most on the way out: a released run is read
-        // by the next taker, and #150's promise is that they resume from a
+        // said. It matters most on the way out: a released run is read
+        // by the next taker, and the promise is that they resume from a
         // fact. Found by driving the runner over a lane it could only reach
         // across a boundary.
         java.util.concurrent.atomic.AtomicReference<Run> latest =
@@ -267,7 +267,7 @@ public final class StepRunner implements AutoCloseable {
     private void declare(Lane lane, String step) {
         try {
             // A service that brings its own step introduces it BESIDE its
-            // candidacy (#147), so the catalogue learns the step the moment
+            // candidacy, so the catalogue learns the step the moment
             // presence can be derived. Idempotent per introducer, like the
             // declaration itself.
             StepService service = services.get(step);
@@ -283,7 +283,7 @@ public final class StepRunner implements AutoCloseable {
     }
 
     /**
-     * One run's outcome, as numbers (#161).
+     * One run's outcome, as numbers.
      *
      * <p>Labelled from what the run's envelope already discloses, minus the
      * fields that are identifiers or come from another system — see
@@ -326,7 +326,7 @@ public final class StepRunner implements AutoCloseable {
 
     /**
      * The runner's own soft accounting, rendered into the declaration's
-     * vitals block (#148) — reconstructible from nothing, lost without loss.
+     * vitals block — reconstructible from nothing, lost without loss.
      */
     private static final class Vitals {
 

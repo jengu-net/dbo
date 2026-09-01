@@ -296,7 +296,7 @@ class Tier1SearchIT {
 
     /**
      * A date parameter reads a date as the span it names, at whatever precision
-     * the caller wrote it (#53).
+     * the caller wrote it.
      *
      * <p>Read as an instant instead, a bare date means midnight exactly and so
      * finds nothing that happened during the day it names — the failure that

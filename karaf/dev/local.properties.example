@@ -10,7 +10,7 @@
 # it takes the tenant down.
 dbo.tenant.dir=karaf/dev/tenants
 
-# The tenant this node's own history lives in (#74). Deliberately NOT under
+# The tenant this node's own history lives in. Deliberately NOT under
 # dbo.tenant.dir: the scan loop that retracts undeclared tenants would retract
 # the thing recording retractions.
 dbo.tenant.management.spec=karaf/dev/management/haldur.json

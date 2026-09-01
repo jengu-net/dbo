@@ -12,7 +12,7 @@ import org.osgi.framework.FrameworkUtil;
 
 /**
  * One run in full: what it did, what is left, who ran it, and what it was
- * given (#75).
+ * given.
  *
  * <p>Item outcomes name a record and a reason, which is what somebody needs in
  * order to act. Nothing else here names anything: the envelope is a disclosure

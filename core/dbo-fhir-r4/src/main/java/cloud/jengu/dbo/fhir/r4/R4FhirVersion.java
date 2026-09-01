@@ -15,7 +15,7 @@ import javax.sql.DataSource;
 import java.util.List;
 
 /**
- * FHIR R4 as the tenant runtime asks for it — served by the shared face (#58).
+ * FHIR R4 as the tenant runtime asks for it — served by the shared face.
  *
  * <p>Reading, validating, framing, extracting and serving are the element
  * face's, over R4's own definitions: one implementation for every version
@@ -82,8 +82,8 @@ public final class R4FhirVersion implements FhirVersion {
          * With the tenant's database, forwarded rather than dropped.
          *
          * <p>A personality serves THROUGH the element face, so anything that
-         * face needs the tenant's own data for — its terminology (#50), its
-         * StructureDefinitions (#87) — arrives only if this forwards it. It
+         * face needs the tenant's own data for — its terminology, its
+         * StructureDefinitions — arrives only if this forwards it. It
          * did not, which meant a tenant validated against the carried pack
          * alone the moment it declared r4 or r5, while an r6 tenant beside it
          * validated against its own.

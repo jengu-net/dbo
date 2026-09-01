@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * One version of FHIR, served from carried definitions through one
- * implementation (#58).
+ * implementation.
  *
  * <p>What a bring-up asks for is here; what the engine asks for is on
  * {@link #face()}. Neither knows which version this is: the code, the payload
@@ -162,7 +162,7 @@ public class ElementFhirVersion implements FhirVersion {
             ElementStore store = new ElementStore(engine, version, types, baseUrl,
                     cloud.jengu.dbo.core.process.Steps.of(), new StoreTerms(terminology));
             // Said out loud because a first boot's cost was a bound inferred
-            // from a task's wall clock, and a bound is not a measurement (#93).
+            // from a task's wall clock, and a bound is not a measurement.
             org.slf4j.LoggerFactory.getLogger("dbo.face").info(
                     "face bring-up cost: version={} terminologyBaseline={}ms profiles={}ms",
                     version.code(), baselineMillis,
@@ -187,7 +187,7 @@ public class ElementFhirVersion implements FhirVersion {
             // One implementation, declared on the face and reached here. The
             // method stays because FhirVersion's callers use it; what changed
             // is that the obligation is now placed rather than duplicated
-            // wherever somebody needs it (#106).
+            // wherever somebody needs it.
             return version.face().require(PortableRendering.class);
         }
     }

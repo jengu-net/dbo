@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A reference that is a question is answered when the document is written
- * (#89).
+ *.
  *
  * <p>The writer knows an identifier and not an id — a device, an integration,
  * a bundle author allocating nothing. Stored unresolved, such a reference

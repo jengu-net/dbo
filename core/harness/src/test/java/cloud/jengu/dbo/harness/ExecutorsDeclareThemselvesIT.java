@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A tenant is a store plus the participants that hold its steps (#78).
+ * A tenant is a store plus the participants that hold its steps.
  *
  * <p>Over a real store and feed, because the claim is that resolution sees a
  * participant nothing installed here knows about, and stops seeing it when its

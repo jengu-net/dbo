@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * One runner, two tenants, and nothing of one reaches the other (#160).
+ * One runner, two tenants, and nothing of one reaches the other.
  *
  * <p>A runner is stateless over tenants by design — a lane is the unit of
  * everything it does — but its counters were keyed by step alone, so a runner

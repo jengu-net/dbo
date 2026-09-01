@@ -1,11 +1,11 @@
-// The embeddable step runner (#79): registers step services, consumes their
+// The embeddable step runner: registers step services, consumes their
 // work over the participation seams, reports outcomes and vitals back. It
 // runs wherever work runs — inside the consuming platform's container, on a
 // separate machine, or in a pod scaled per step — and its activator is the
 // whiteboard the runtime's own bundles never fill: with no StepService and
 // no Lane registered it cycles over nothing.
 //
-// It also carries the HOST's half of the lane (#154): the participation
+// It also carries the HOST's half of the lane: the participation
 // surface a tenant mounts, and the HTTP lane a host that is not the container
 // holds instead of an in-process one. Both are Lane and its wire and nothing
 // else — no store handle crosses this module's line in either direction —

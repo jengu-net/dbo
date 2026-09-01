@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.telemetry;
 
 /**
- * The only things a measurement may be labelled with (#161).
+ * The only things a measurement may be labelled with.
  *
  * <p><b>A closed set, enforced rather than described.</b> The run envelope is
  * already the audited answer to what may be said about a piece of work without

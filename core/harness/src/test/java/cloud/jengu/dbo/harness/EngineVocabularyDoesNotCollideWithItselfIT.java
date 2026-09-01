@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * dbo's own vocabulary does not collide with itself across a stream (#102).
+ * dbo's own vocabulary does not collide with itself across a stream.
  *
  * <p>Every tenant is given the engine's vocabulary at bring-up — that is what
  * makes a {@code urn:dbo:} code resolvable in the tenant that served it. A
@@ -114,7 +114,7 @@ class EngineVocabularyDoesNotCollideWithItselfIT {
                 "the engine's own vocabulary arriving from upstream is the same publication "
                         + "this tenant already has, not a local override of it");
 
-        // The other half of the harm, measured where it lands (#125): the
+        // The other half of the harm, measured where it lands: the
         // dedup used to be DISCOVERED by a failed INSERT, so every first
         // delivery put a duplicate-key ERROR in the Postgres log — six per
         // fresh bring-up, one per vocabulary, describing a situation the code

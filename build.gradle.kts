@@ -57,7 +57,7 @@ val dboRuntimeModules = listOf(
     // run records, before the modules that write them
     ":core:dbo-work",
     ":core:dbo-policy", ":core:dbo-sync",
-    // the lane and the surface a tenant serves it on (#154) — dbo-tenant
+    // the lane and the surface a tenant serves it on — dbo-tenant
     // imports it to mount the participation surface, so the runner bundle
     // is in the container as the HOST's half. Its own half (the activator,
     // step services) is still only installed where work is actually done
@@ -118,7 +118,7 @@ extra["dboKarafVersion"] = dboKarafVersion
 // and they are what applies when no dial is set — an IDE running one module,
 // or a cleared property. The dial itself ships in gradle.properties, because
 // the CI runner VM holds 6g for EVERYTHING and a check whose numbers exist
-// only inside a workflow is a check nobody can run (#94).
+// only inside a workflow is a check nobody can run.
 subprojects {
     // A jar built twice from one commit is the same jar. Without this it is
     // not: Gradle stamps entry timestamps and bnd stamps Bnd-LastModified, so
@@ -190,7 +190,7 @@ extra["dboLoggingExtension"] = dboLoggingExtension
  * StructureDefinition it reads with `Unknown FHIRVersion code
  * '6.0.0-ballot5'`. That coupling is permanent — **a ballot needs a core
  * release that knows its code** — so this number and the definition packages
- * move together (#58).
+ * move together.
  *
  * <p>Here rather than in the stack bundle because the bundle is not the only
  * consumer. `dbo-fhir-stack` embeds the core and exports it; the harness, the
@@ -212,7 +212,7 @@ extra["hl7CoreVersion"] = hl7CoreVersion
  * <p>It was a literal string in four build files, which is the shape of the
  * problem one level in: nothing compared them, so a bump that missed one would
  * have embedded two HAPI versions in one runtime and surfaced as a linkage
- * error rather than as a build failure (#47).
+ * error rather than as a build failure.
  */
 val hapiVersion = "8.10.1"
 extra["hapiVersion"] = hapiVersion

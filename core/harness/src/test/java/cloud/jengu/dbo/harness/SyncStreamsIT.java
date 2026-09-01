@@ -85,7 +85,7 @@ class SyncStreamsIT {
 
         PgObjectStore zoneEngine = new PgObjectStore(zoneDs, zoneP.registrations());
         midEngine = new PgObjectStore(midDs, midP.registrations());
-        // the leaf records what its stream does, in its own store (#73)
+        // the leaf records what its stream does, in its own store
         leafEngine = new PgObjectStore(leafDs, Registrations.withRuns(leafP.registrations()));
         zone = new R4Store(zoneEngine, zoneP, "https://zone.test");
         mid = new R4Store(midEngine, midP, "https://mid.test");
@@ -271,7 +271,7 @@ class SyncStreamsIT {
 
     /**
      * A parked shadow is work a person can see, and it closes itself when they
-     * fix the world (#73). The shadow table alone is the dead-letter complaint
+     * fix the world. The shadow table alone is the dead-letter complaint
      * one subsystem over: a row exists, and nothing queries it, versions it, or
      * puts it in front of anybody.
      */

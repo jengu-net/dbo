@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * The byte-level div strip (#111): exact about escapes, and about touching
+ * The byte-level div strip: exact about escapes, and about touching
  * nothing that is not a Narrative's div.
  */
 class WithoutNarrativeTest {

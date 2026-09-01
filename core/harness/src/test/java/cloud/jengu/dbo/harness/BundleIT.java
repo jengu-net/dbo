@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A Bundle POSTed to the base is a first-class request (#86).
+ * A Bundle POSTed to the base is a first-class request.
  *
  * <p>REQ-DBO-CORE-BATCH-ANSWERS-PER-ENTRY: a batch answers one entry per
  * request entry, in order, each with its own status — a failing entry says

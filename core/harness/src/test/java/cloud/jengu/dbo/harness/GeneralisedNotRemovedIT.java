@@ -62,7 +62,7 @@ class GeneralisedNotRemovedIT {
         // a zone that treats marital status as identifying, and refuses to let
         // a birth date be coarsened at all
         // The amendment carries the parameters that reach what it added
-        // (#123): only the jurisdiction knows those, and a REMOVE element the
+        //: only the jurisdiction knows those, and a REMOVE element the
         // guard cannot see would be stripped from the payload while a search
         // on it answered empty.
         PdiSpec zone = base.overriddenBy(Map.of("Patient", Map.of(
@@ -91,7 +91,7 @@ class GeneralisedNotRemovedIT {
 
     /**
      * A zone that declares its own identifying element is refused unless the
-     * search guard can see it (#123).
+     * search guard can see it.
      *
      * <p>`overriddenBy` exists so a jurisdiction can amend what counts as
      * identifying — and an amendment the guard cannot see is worse than none,

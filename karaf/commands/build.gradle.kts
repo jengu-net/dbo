@@ -26,7 +26,7 @@ dependencies {
     // Runs are read TYPED, from the tenant's own store service. There is no
     // HTTP surface to read them over and there should not be: the store's REST
     // is never public, and a run over a domain no face claims renders to
-    // nothing on purpose (#70). The console is where that half becomes visible.
+    // nothing on purpose. The console is where that half becomes visible.
     compileOnly(project(":core:dbo-core"))
     compileOnly(project(":core:dbo-work"))
 

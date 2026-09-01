@@ -335,7 +335,7 @@ public final class TenantOperator implements AutoCloseable {
                 sb.append(",\"").append(block).append("\":").append(genericJson(value));
             }
         }
-        // zone/broker/acceptedBrokers/dependencies (#121): the same
+        // zone/broker/acceptedBrokers/dependencies: the same
         // pass-through as the §14/§15 blocks above, because a CR whose spec
         // parses fine without them is a tenant that comes up serving and
         // healthy without the vocabulary it was supposed to inherit — no

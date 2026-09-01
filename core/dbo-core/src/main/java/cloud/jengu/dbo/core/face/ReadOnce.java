@@ -86,7 +86,7 @@ public final class ReadOnce<D> implements Payloads<D> {
     }
 
     /**
-     * Against a named shape (#71), passed through like everything else.
+     * Against a named shape, passed through like everything else.
      *
      * <p>A decorator that did not forward this would answer the interface's
      * default — "this face cannot check a named shape" — for a face that can,
@@ -98,7 +98,7 @@ public final class ReadOnce<D> implements Payloads<D> {
         return delegate.validate(typeName, document, shapeReference);
     }
 
-    /** Everything the face has to say, forwarded like the rest (#50). */
+    /** Everything the face has to say, forwarded like the rest. */
     @Override
     public List<Issue> check(String typeName, D document, String shapeReference) {
         return delegate.check(typeName, document, shapeReference);

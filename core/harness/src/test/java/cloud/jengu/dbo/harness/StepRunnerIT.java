@@ -36,9 +36,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The reference runner (#79): step services in, consumption out — stateless
+ * The reference runner: step services in, consumption out — stateless
  * over tenants, no access to the tenant's dbo, vitals riding the
- * declaration (#148).
+ * declaration.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -145,8 +145,8 @@ class StepRunnerIT {
         assertTrue(!after.open(), "the run is closed, not parked: " + after.holder());
         assertEquals(1L, after.tally().get("validated"),
                 "the tally landed on the record: " + after.tally());
-        // Work.inputs is the seam the step's declared API (#71) fills via
-        // the run's slots (#149). This run's step declares none, so none
+        // Work.inputs is the seam the step's declared API fills via
+        // the run's slots. This run's step declares none, so none
         // is what arrives — and there is no verb a service or runner could
         // ask for more with, which is the security boundary.
         assertTrue(received.get().inputs().isEmpty(),
@@ -158,7 +158,7 @@ class StepRunnerIT {
                         .map(d -> new String(d.payload(), StandardCharsets.UTF_8))
                         .anyMatch(d -> d.contains("\"performed\":\"1\"")
                                 && d.contains("meanMillis")),
-                "the vitals ride the declaration record (#148)");
+                "the vitals ride the declaration record");
     }
 
     @Test

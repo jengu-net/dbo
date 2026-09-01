@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * What a token reaches on the tenant's lane surface (#154).
+ * What a token reaches on the tenant's lane surface.
  *
  * <p>The entitlement is derived here — from the credential, by the party that
  * understands credentials — and never asked for by the caller. That is the
@@ -54,7 +54,7 @@ final class WorkGrants implements LaneHandler.Grants {
     }
 
     /**
-     * The credential's half of reach (#77). The bare scope is a host saying it
+     * The credential's half of reach. The bare scope is a host saying it
      * is the tenant; a bounded one narrows to exactly the steps it names, and
      * the lane enforces the intersection with what each step admits.
      */

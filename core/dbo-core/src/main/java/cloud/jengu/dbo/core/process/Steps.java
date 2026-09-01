@@ -8,10 +8,10 @@ import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * The steps this container knows how to talk about (#71).
+ * The steps this container knows how to talk about.
  *
  * <p><b>Installed, not listed.</b> A module contributes its steps by being
- * installed — the same rule faces already follow (#54) — so nothing maintains a
+ * installed — the same rule faces already follow — so nothing maintains a
  * central catalogue that can disagree with what is deployed. In the container it
  * is backed by the service registry; on a plain classpath it is what declared
  * itself.

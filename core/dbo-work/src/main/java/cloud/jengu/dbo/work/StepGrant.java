@@ -13,7 +13,7 @@ package cloud.jengu.dbo.work;
  * omission by whoever wrote it in a hurry.
  *
  * <p>Where the grant comes from is not resolution's business — a catalogue
- * declares it (#71), and until there is one it arrives from whoever knows.
+ * declares it, and until there is one it arrives from whoever knows.
  * What resolution needs is the answer, not its provenance.
  *
  * @param overridableBy the <b>most local</b> class that may override, and

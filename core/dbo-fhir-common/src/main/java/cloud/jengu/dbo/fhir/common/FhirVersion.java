@@ -67,7 +67,7 @@ public interface FhirVersion {
         /**
          * The same, knowing the tenant's database — which is where the
          * tenant's OWN validation truth lives: its terminology today, its
-         * structure definitions next (#50, #83). The default ignores it, so a
+         * structure definitions next. The default ignores it, so a
          * face whose validation reads nothing but carried definitions is
          * unchanged; a face that validates against current data overrides.
          */
@@ -77,7 +77,7 @@ public interface FhirVersion {
         }
 
         /**
-         * The same, knowing the steps this container has (#49, #71).
+         * The same, knowing the steps this container has.
          *
          * <p>Passed in rather than discovered: a face inside a bundle that
          * scanned the classpath for catalogues would find whatever happened to

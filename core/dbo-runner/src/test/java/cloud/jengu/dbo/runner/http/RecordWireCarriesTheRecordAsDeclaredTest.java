@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The wire carries the record as it is declared, not as somebody wrote it out
  * once.
  *
- * <p>{@code Run} grew milestones (#150) and named inputs (#149) after it
+ * <p>{@code Run} grew milestones and named inputs after it
  * existed, and a field-by-field encoder written before either would have
  * dropped both — silently, at the far end, where it reads as a step that
  * reported nothing rather than as an encoder that forgot. So the test asserts

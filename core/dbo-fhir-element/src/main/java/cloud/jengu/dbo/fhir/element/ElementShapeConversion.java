@@ -17,7 +17,7 @@ import java.util.Optional;
 
 /**
  * The FHIR face's shape conversion: pack-shipped StructureMaps, executed in
- * process (#133).
+ * process.
  *
  * <p>FHIR can express its own converters as data — a StructureMap is a
  * published resource, authored in FHIR Mapping Language — so converters ship
@@ -78,7 +78,7 @@ final class ElementShapeConversion implements ShapeConversion {
      *
      * <p>Fetched from the tenant's own context on every call rather than
      * cached: a pack that gains a converter must take effect without a
-     * restart, exactly as a profile does (#87), and a conversion run is
+     * restart, exactly as a profile does, and a conversion run is
      * page-paced work where one definition lookup is not the cost.
      */
     private Optional<StructureMap> mapFor(String profile, int targetMajor) {

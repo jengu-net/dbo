@@ -108,7 +108,7 @@ public final class ContentSyncEngine {
 
     /**
      * Records this stream's rounds as runs in the dependent tenant's store
-     * (#73).
+     *.
      *
      * <p>The run belongs to the <b>dependent</b> — it is their work — with the
      * upstream named rather than parented, because parenthood cannot cross a
@@ -229,10 +229,10 @@ public final class ContentSyncEngine {
 
     /**
      * Null when applied; otherwise the id of the LOCAL record whose override
-     * shadows this item. Returned rather than swallowed (#109): the shadow row
+     * shadows this item. Returned rather than swallowed: the shadow row
      * records which record stands in front of it, so the serving path can say
      * so on that record -- a parked shadow was visible only to whoever queried
-     * the sync engine, and #102 showed how long one can sit there unnoticed.
+     * the sync engine, where one can sit unnoticed for a very long time.
      */
     private String tryApply(FeedItem item) {
         if (item.kind() == ChangeKind.DELETED || item.deleted()) {
@@ -269,7 +269,7 @@ public final class ContentSyncEngine {
         }
         // Computed before the try, not inside it: the conflict handler
         // compares what WOULD have been written against what is already here,
-        // so it has to be in scope where the conflict is caught (#102).
+        // so it has to be in scope where the conflict is caught.
         // the destination takes the wire form apart into its own: concepts
         // to the native store, and the shell back here to be written under
         // the source's identity like everything else
@@ -293,7 +293,7 @@ public final class ContentSyncEngine {
                             .stamped(item.shape()),
                     cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
             // Only now, with the write ACCEPTED, do the parts with their own
-            // home land there (#109): taking a CodeSystem apart before the
+            // home land there: taking a CodeSystem apart before the
             // engine had ruled replaced a local override's concepts with the
             // parked publication's -- the shadow protected the document and
             // lost the answers, and $lookup served the copy shadowing was
@@ -318,7 +318,7 @@ public final class ContentSyncEngine {
                 // shadow nobody could clear: every round re-attempted it, every
                 // round raised a unique-constraint violation in the database
                 // log, and removing "the override" was impossible because
-                // there was none (#102).
+                // there was none.
                 //
                 // The engine's own vocabulary is how this arises. Every tenant
                 // is given it at bring-up so that urn:dbo: codes resolve in the
@@ -370,7 +370,7 @@ public final class ContentSyncEngine {
      */
     /**
      * Whether the local claimant already holds this publication, judged on the
-     * WHOLE thing (#109). For a grain type the stored form is a shell, and two
+     * WHOLE thing. For a grain type the stored form is a shell, and two
      * shells are byte-equal whenever their counts are — so comparing stored
      * forms judged two different code lists to be the same publication, deduped
      * the arrival, and the shadow that should have said 'a local decision

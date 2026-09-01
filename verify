@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #
 # The check. CI runs this file and nothing else, so "green locally" and
-# "green on CI" are the same sentence about the same command (#94).
+# "green on CI" are the same sentence about the same command.
 #
 # TWO PHASES, and the daemon stops between them. This is not tidiness: a full
 # build and :core:harness:distTest cannot share one daemon on a developer
 # machine, because the dist test boots the shipped distribution as a SECOND
 # JVM on top of a build's resident memory and the daemon is killed mid-task.
 # CI does not hit it — a runner starts from a stopped daemon and the split
-# made in #32 keeps the two out of one JVM's lifetime there — which is exactly
+# keeps the two out of one JVM's lifetime there — which is exactly
 # why the workflow cannot be the place this order is written down.
 #
 # The dials are NOT here. They are in gradle.properties, so that a bare

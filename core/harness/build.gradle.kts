@@ -4,7 +4,7 @@
 // main jar never pulls in. Without this line those citations exist,
 // compile, and are simply invisible to this module's projector, which
 // reads PLANNED where a real proof already runs (found the hard way while
-// migrating #71's hand-written PROC rows, 2026-08-27).
+// migrating the hand-written PROC rows, 2026-08-27).
 evaluationDependsOn(":core:dbo-work")
 val dboWorkTestOutput = project(":core:dbo-work")
         .extensions.getByType(SourceSetContainer::class.java)
@@ -33,14 +33,14 @@ dependencies {
     testImplementation(karafCommandsTestOutput)
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))
-    // The reference LOCAL executor under a step service (#79). Test-only and
+    // The reference LOCAL executor under a step service. Test-only and
     // deliberately not on dbo-runner: the participation contract names no
     // orchestrator, and a runner that compiled against one would be naming it.
     testImplementation("dev.dbos:transact:1.0.0")
     testImplementation(project(":core:dbo-runner"))
     // the promise framework's processor indexes @Proving citations at THIS
     // module's test-compile time; without this configuration the index is
-    // silently absent (#140)
+    // silently absent
     testAnnotationProcessor(project(":promise"))
     testImplementation(project(":core:dbo-postgres"))
     testImplementation(project(":core:dbo-test-model"))
@@ -113,7 +113,7 @@ tasks.test {
     maxHeapSize = "4g"
 }
 
-// The composed promise report and the catalogue projection (#141): both run
+// The composed promise report and the catalogue projection: both run
 // on the TEST runtime classpath, because that is where the catalogue
 // registration and the citation index live.
 val promiseReport by tasks.registering(JavaExec::class) {
@@ -185,7 +185,7 @@ tasks.withType<Test>().configureEach {
         )
     }
     // The versions the stack exports at, so a test can state the range a
-    // consumer built against them would state (#47).
+    // consumer built against them would state.
     systemProperty("dbo.hapi.version", rootProject.extra["hapiVersion"] as String)
     systemProperty("dbo.hl7.core.version", rootProject.extra["hl7CoreVersion"] as String)
     doFirst {

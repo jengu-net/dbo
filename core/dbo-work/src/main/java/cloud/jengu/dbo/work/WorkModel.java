@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The run sibling model (#46): a run is a <b>regular record</b> in the tenant's
+ * The run sibling model: a run is a <b>regular record</b> in the tenant's
  * own store — envelope-queryable, versioned, feed-visible, carried by the
  * backup, dropped with the tenant.
  *

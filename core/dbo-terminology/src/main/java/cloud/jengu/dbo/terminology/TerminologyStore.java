@@ -46,7 +46,7 @@ public final class TerminologyStore {
      * transactions to move them — measured at 2704ms of writing against 28ms
      * of parsing, which is round-trip overhead rather than work. Here it is
      * one transaction and one COPY stream: the system is a column in the row,
-     * so the rows of every system travel together (#93).
+     * so the rows of every system travel together.
      *
      * @return how many concepts landed
      */
@@ -169,7 +169,7 @@ public final class TerminologyStore {
     /**
      * Whether this store holds the system at all, and at which version — the
      * question that separates "not a code of X" from "X is not here", which
-     * are different facts with different fixes (#50). Answered from the
+     * are different facts with different fixes. Answered from the
      * system registry rather than by counting concepts, so an imported-empty
      * system is still a held system.
      */

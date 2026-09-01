@@ -38,7 +38,7 @@ public final class Criteria {
 
     public record Referencing(String refType, String targetType, String targetId) {}
 
-    /** Owner has an edge of this type to ANY of the targets — the compartment shape (#126). */
+    /** Owner has an edge of this type to ANY of the targets — the compartment shape. */
     public record ReferencingAny(String refType, String targetType,
             java.util.List<String> targetIds) {
         public ReferencingAny {

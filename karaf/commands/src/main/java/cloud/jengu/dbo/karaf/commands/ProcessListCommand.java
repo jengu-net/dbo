@@ -9,7 +9,7 @@ import org.apache.karaf.shell.api.console.Session;
 import org.osgi.framework.FrameworkUtil;
 
 /**
- * What this node knows how to do (#75).
+ * What this node knows how to do.
  *
  * <p>The local half of the network map: the steps installed modules contribute
  * and the ones linked participants introduced, with where each came from. It

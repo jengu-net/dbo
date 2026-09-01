@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Reshape (#133): the store converts stamped stock to a target major in
+ * Reshape: the store converts stamped stock to a target major in
  * place — the engine owning the loop, the face owning the transformation.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

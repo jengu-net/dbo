@@ -486,7 +486,7 @@ class HumanAuthIT {
 
     /**
      * A person sets their own first secret, and nobody else ever knows it
-     * (#68).
+     *.
      *
      * <p>The alternative it replaces is an operator setting a secret and
      * handing it over — a shared secret, in a channel nobody controls, for
@@ -518,7 +518,7 @@ class HumanAuthIT {
     }
 
     /**
-     * Asking for a grant tells the caller nothing about the subject (#68), and
+     * Asking for a grant tells the caller nothing about the subject, and
      * every refusal on the way back is the same refusal.
      */
     @Test
@@ -553,7 +553,7 @@ class HumanAuthIT {
                 "retirement holds against a ceremony as against a sign-in");
     }
 
-    /** A grant authenticates nothing and cannot be exchanged for a token (#68). */
+    /** A grant authenticates nothing and cannot be exchanged for a token. */
     @Test
     @Order(12)
     @Proving(DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT)
@@ -576,7 +576,7 @@ class HumanAuthIT {
     }
 
     /**
-     * An appliance is approved and given a credential of its own (#119).
+     * An appliance is approved and given a credential of its own.
      *
      * <p>This is the last step of the consumer's edge-registration path with no
      * counterpart here, and edge binding happens at boot — so its absence is

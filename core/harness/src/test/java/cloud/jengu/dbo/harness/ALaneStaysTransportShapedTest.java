@@ -109,7 +109,7 @@ class ALaneStaysTransportShapedTest {
                 .toList();
 
         // milestone and introduce are abstract for exactly this reason, each
-        // with a paragraph saying so (#150, #147): a default degrading
+        // with a paragraph saying so: a default degrading
         // milestone to a checkpoint, or swallowing an introduction, passes
         // every test while losing the one thing the report said. The rule is
         // not about those two verbs — it is about the next one.

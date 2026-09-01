@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Another authority's publication is held as published, not refused for being
- * imperfect (#100).
+ * imperfect.
  *
  * <p>A national terminology fails R4 rules this store enforces — a property URI
  * written {@code exclude} rather than as an absolute URI, a property the

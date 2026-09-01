@@ -14,7 +14,7 @@ import org.osgi.framework.FrameworkUtil;
 import java.util.Set;
 
 /**
- * Where the console is standing (#76).
+ * Where the console is standing.
  *
  * <p>Once a command is about <em>a</em> tenant, "which tenant" becomes a flag
  * on every line, and a flag repeated on every line is where the wrong tenant

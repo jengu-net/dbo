@@ -19,7 +19,7 @@ public record Handling(Authority authority, Mutability mutability,
                        Durability durability, Travel travel, Provenance provenance) {
 
     /**
-     * Whether a change to it has to belong to a piece of work (#82).
+     * Whether a change to it has to belong to a piece of work.
      *
      * <p>A change that belongs to nothing can still be seen — history has it,
      * audit names who — but nobody can say <b>what it was for</b>, and the
@@ -66,7 +66,7 @@ public record Handling(Authority authority, Mutability mutability,
          * ARRIVES and this says who it BELONGS to, and only the second decides
          * whether a defect in it can be fixed. Config we author reaches the
          * store the same way and is entirely ours to correct; a national
-         * vocabulary is not, however it travelled (#100).
+         * vocabulary is not, however it travelled.
          */
         EXTERNAL_PUBLISHER,
         /** Published by another tenant — a zone's terminology, replicated here. */
@@ -143,7 +143,7 @@ public record Handling(Authority authority, Mutability mutability,
     /** Clinical and business records the tenant's own people create. */
     /**
      * The declared class's name on the wire, or null for a handling no spec
-     * can declare (#109).
+     * can declare.
      *
      * <p>Derived by recognition rather than stored, so the record's shape --
      * and every hand-built instance in tests -- stays untouched. The seven
@@ -199,7 +199,7 @@ public record Handling(Authority authority, Mutability mutability,
      * is exactly the statement that nobody here may touch it. The only thing
      * such a refusal changes is that the vocabulary is absent rather than
      * imperfect, and a jurisdiction's clinicians lose their diagnosis coding
-     * over a property URI that is not absolute (#100).
+     * over a property URI that is not absolute.
      *
      * <p>Deliberately narrower than "not authored by this tenant's users":
      * configuration projected from git is authored by us through a lane, and
@@ -223,7 +223,7 @@ public record Handling(Authority authority, Mutability mutability,
      * <p>Writable the way projected configuration is — the lane has to be able
      * to put it there — but not OURS, which is the whole difference. A defect
      * in it cannot be fixed here and cannot be fixed at the source by us, so
-     * validation records rather than refuses (#100). Correcting it locally
+     * validation records rather than refuses. Correcting it locally
      * would be worse than holding it as published: our copy of a national
      * vocabulary would then differ from everyone else's.
      *
@@ -278,7 +278,7 @@ public record Handling(Authority authority, Mutability mutability,
      * <p>They had drifted, and in the direction that matters: the statement
      * asked {@code isWritableBy(TENANT_USERS)} and omitted {@code create} for
      * every type a lane owns, while the engine happily accepted those creates
-     * — so a store advertised a type as read-only and then wrote it (#104).
+     * — so a store advertised a type as read-only and then wrote it.
      *
      * <p>The engine's rule is the deliberate one. {@code replicated()} chose
      * {@link Mutability#READ_ONLY_HERE} and {@code projectedConfig()} chose

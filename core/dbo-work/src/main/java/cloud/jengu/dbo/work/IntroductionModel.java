@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * A step declaration that arrived over the link (#147).
+ * A step declaration that arrived over the link.
  *
  * <p>Modules contribute by being installed; a linked participant is the
  * second contributor kind, and its contribution is this record: the full
@@ -24,14 +24,14 @@ import java.util.Set;
  * <p>Kept until withdrawn rather than dropped with presence: a run recorded
  * under an introduced step still needs its declaration to be interpreted
  * while its participant naps. Candidacy is what presence gates, and that is
- * the executor declaration's business (#78), not this record's.
+ * the executor declaration's business, not this record's.
  */
 public final class IntroductionModel {
 
     /** The type name an introduced step is registered under. */
     public static final String TYPE = "StepIntroduction";
 
-    /** An introduction's own key: the step id, globally stable (#69). */
+    /** An introduction's own key: the step id, globally stable. */
     public static final String KEY_SYSTEM = "urn:dbo:step";
 
     private IntroductionModel() {

@@ -46,7 +46,7 @@ public record PdiSpec(Map<String, Map<String, Disposition>> personTypes,
         // A REMOVE element is unsearchable by construction — it never reaches
         // the inner payload — so the guard must know which search paths reach
         // it, or a query on it answers empty and empty reads as "nobody
-        // matches" (#115, #123). This is where a zone amendment gets caught:
+        // matches". This is where a zone amendment gets caught:
         // overriddenBy exists so a jurisdiction can declare what IT considers
         // identifying, and a declaration the guard cannot see is worse than no
         // declaration, because it looks like protection.
@@ -69,7 +69,7 @@ public record PdiSpec(Map<String, Map<String, Disposition>> personTypes,
 
     /**
      * The search paths that match on an identifying element, which is not the
-     * same list as the elements themselves (#115).
+     * same list as the elements themselves.
      *
      * <p>FHIR reaches one element by several parameter names: {@code email} and
      * {@code phone} are both {@code telecom}, {@code family} and {@code given}
@@ -175,7 +175,7 @@ public record PdiSpec(Map<String, Map<String, Disposition>> personTypes,
 
     /**
      * The same, with the search paths that reach whatever the amendment adds
-     * (#123).
+     *.
      *
      * <p>A jurisdiction declaring an element identifying is the only party who
      * knows which parameters reach it — this store cannot anticipate that, and

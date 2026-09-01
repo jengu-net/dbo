@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * The catalogue's second door: steps introduced over the link (#147).
+ * The catalogue's second door: steps introduced over the link.
  *
  * <p>The groundwork left this door open on purpose — a step id is opaque and
  * globally stable, fixed with the record rather than the catalogue, so a

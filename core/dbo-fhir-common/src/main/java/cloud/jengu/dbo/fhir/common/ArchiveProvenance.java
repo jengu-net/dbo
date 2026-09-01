@@ -24,7 +24,7 @@ import java.util.List;
  */
 public final class ArchiveProvenance {
 
-    // PLACED, not moved (#106). This is a version-scoped, stateless obligation
+    // PLACED, not moved. This is a version-scoped, stateless obligation
     // — the same tier as Coarsening and PortableRendering — and it belongs
     // behind the face contract as a declared capability.
     //
@@ -32,7 +32,7 @@ public final class ArchiveProvenance {
     // test renders an archive's Provenance today, and declaring it now would
     // put an interface and a Signer record into the engine's core so that one
     // test could reach them through a lookup. That is machinery ahead of a
-    // caller, which is the mistake the grain pieces (#112, #113) were
+    // caller, which is the mistake the grain pieces were
     // deliberately filed to avoid.
     //
     // The trigger is the first production attestation: at that point it is a

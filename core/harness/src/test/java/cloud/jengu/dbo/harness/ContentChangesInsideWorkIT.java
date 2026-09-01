@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Content changes inside a piece of work, and the work says which versions it
- * made (#82).
+ * made.
  *
  * <p>The point is not that a change is visible — history has it and audit names
  * who. It is that the change belongs to something, so the account of what

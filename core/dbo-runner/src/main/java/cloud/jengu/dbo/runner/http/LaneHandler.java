@@ -21,7 +21,7 @@ import java.util.Set;
 
 /**
  * The tenant's participation surface, for a host that is not the container
- * (#154).
+ *.
  *
  * <p><b>Why this exists.</b> {@code Lane.inProcess} needs {@code Runs} and a
  * {@code ChangeFeed} — the store's internals — which is right for a host that
@@ -69,7 +69,7 @@ public final class LaneHandler implements HttpHandler {
      *
      * @param clientId    who presented it — the only executor name a bounded
      *                    credential may claim as
-     * @param entitlement what it covers, stated rather than defaulted (#77)
+     * @param entitlement what it covers, stated rather than defaulted
      * @param isTheTenant whether this credential is the tenant itself, and so
      *                    may serve a lane in another participant's name
      */

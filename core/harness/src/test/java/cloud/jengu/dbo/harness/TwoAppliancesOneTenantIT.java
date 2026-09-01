@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * One tenant on two appliances, and the lane between them (#80).
+ * One tenant on two appliances, and the lane between them.
  *
  * <p>Two real stores, because every claim here is about what one appliance does
  * with what the other sent: applying twice, applying out of order, applying a
@@ -257,7 +257,7 @@ class TwoAppliancesOneTenantIT {
     }
 
     /**
-     * A weekend's absence, converged in bounded rounds (#80).
+     * A weekend's absence, converged in bounded rounds.
      *
      * <p>Every other test here hands over one batch big enough to hold
      * everything, which proves what a batch contains and nothing about
@@ -338,7 +338,7 @@ class TwoAppliancesOneTenantIT {
     }
 
     /**
-     * When the source recorded it, not when we heard about it (#155).
+     * When the source recorded it, not when we heard about it.
      *
      * <p>A version's timestamp is evidence: it says when somebody knew a thing
      * and could act on it. Replication used to stamp the arrival, which reads

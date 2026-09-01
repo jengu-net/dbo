@@ -39,7 +39,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     @Override
     public TenantDatabase provision(TenantSpec spec) {
         String dbName = spec.databaseName(); // Postgres-safe, collision-free
-        // Asked before created (#124): Postgres has no CREATE DATABASE IF NOT
+        // Asked before created: Postgres has no CREATE DATABASE IF NOT
         // EXISTS in any version, and it logs an ERROR whenever it raises one,
         // whether or not the client catches it — so the catch-and-attach path,
         // correct as it is, put "database already exists" into the server log
@@ -223,7 +223,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     private void applyTimeouts(String dbName) {
         try (Connection c = adminConnection()) {
             // The server knows its own version, so it is asked once rather
-            // than probed by a statement whose failure it logs (#124):
+            // than probed by a statement whose failure it logs:
             // transaction_timeout arrived in PG17, and an embedding host on
             // PG16 was collecting an "unrecognized configuration parameter"
             // ERROR per tenant per boot for a condition the code handles.

@@ -42,7 +42,7 @@ public interface RecordProjection {
 
     /**
      * The vocabularies this face publishes, as canonical resources a client
-     * can fetch (#91).
+     * can fetch.
      *
      * <p>dbo owns concepts the domain has no word for — a run's holder, the
      * tally of what a step did — and minting a system for them is how the
@@ -113,7 +113,7 @@ public interface RecordProjection {
 
         /**
          * The stable id the poster gave this record, or null if it gave none
-         * (#120).
+         *.
          *
          * <p>An appliance forwards its audit at-least-once, and the receiving
          * side makes that effectively-once by writing each event under the id

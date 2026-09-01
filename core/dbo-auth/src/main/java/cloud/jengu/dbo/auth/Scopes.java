@@ -36,7 +36,7 @@ public final class Scopes {
      * responsibility for who it serves lanes on behalf of. Suffixed —
      * {@code work/<module>.<process>.<step>} — it bounds the holder to the
      * steps its credential covers, which is the entitlement's half of reach
-     * (#77) written where credentials are written. There is no implicit
+     * written where credentials are written. There is no implicit
      * unrestricted: a credential carrying no work scope reaches no lane.
      */
     public static final String WORK = "work";

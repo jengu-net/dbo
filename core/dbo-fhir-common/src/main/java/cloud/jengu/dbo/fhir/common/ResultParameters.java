@@ -10,7 +10,7 @@ package cloud.jengu.dbo.fhir.common;
  * and a client met two contracts on one server depending on which types
  * happened to sit behind a surface — "the last N events, newest first", the
  * query an audit page IS, worked on one path and answered 400 on the other
- * (#92).
+ *.
  *
  * <p>So the spelling lives here and the surfaces decide only what they can
  * honour. A surface that cannot order by a field refuses that field; none of

@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The face renders a run; the engine never spells one (#70).
+ * The face renders a run; the engine never spells one.
  *
  * <p>Over real definitions, because the claim is that the document is valid in
  * every version this face serves — and a projection that is merely well-formed

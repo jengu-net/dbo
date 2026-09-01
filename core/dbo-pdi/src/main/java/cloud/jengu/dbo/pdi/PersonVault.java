@@ -71,7 +71,7 @@ public final class PersonVault {
                     // code: pdi_identifier_claim above is what makes a claim
                     // race-safe, and a value several people may hold cannot
                     // live under it. Keeping them apart says which job each
-                    // row is doing (#115).
+                    // row is doing.
                     """
                     CREATE TABLE IF NOT EXISTS pdi.lookup (
                         person_id uuid NOT NULL,
@@ -183,7 +183,7 @@ public final class PersonVault {
     }
 
     /**
-     * Index a value for lookup WITHOUT staking a claim on it (#115).
+     * Index a value for lookup WITHOUT staking a claim on it.
      *
      * <p>The identifier index does two jobs and only one is inherent to the
      * membrane. FINDING a person by a value is what replaces plaintext search
@@ -302,7 +302,7 @@ public final class PersonVault {
     // ------------------------------------------------------------- shredding
 
     /**
-     * What a shred actually did (#165).
+     * What a shred actually did.
      *
      * <p>It returns rather than being void because the caller cannot otherwise
      * tell <b>erased</b> from <b>was never here</b>, and those are different
@@ -463,7 +463,7 @@ public final class PersonVault {
     /**
      * The fingerprint of a value as this vault indexes it — hex of the same
      * HMAC the index holds, so an auditor who has the value can compute it and
-     * find out whether anybody looked it up (#115).
+     * find out whether anybody looked it up.
      */
     public String fingerprintOf(String value) {
         byte[] mac = valueHmac(value);

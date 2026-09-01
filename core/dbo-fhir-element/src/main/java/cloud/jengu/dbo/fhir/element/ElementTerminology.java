@@ -35,7 +35,7 @@ import java.util.Set;
  * true for: it refused every operation, and because
  * {@code publishVocabularies} reads an empty {@code operations()} as "cannot
  * hold concepts natively", dbo's own vocabularies were written whole here and
- * resolved nothing (#101).
+ * resolved nothing.
  *
  * <p>Reading a client's CodeSystem is where this differs from the typed faces
  * and why it is a separate class rather than a shared one: they parse with a
@@ -302,7 +302,7 @@ final class ElementTerminology implements FhirTerminology {
         // stored whole, and adding the native concepts to the ones already in
         // the document produced a resource carrying every code twice — on the
         // wire, a sync round whose COPY collides with itself on (system, code)
-        // and a stream that never acks (#97). What this store holds natively is
+        // and a stream that never acks. What this store holds natively is
         // the answer, whatever the stored document carries beside it.
         shell.getChildren().removeIf(child -> "concept".equals(child.getName()));
 

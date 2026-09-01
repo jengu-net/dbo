@@ -26,7 +26,7 @@ public final class IdentityModel {
     public static final String LOGIN_SYSTEM = "urn:dbo:auth:login";
 
     /**
-     * A one-time grant, found by the hash of what the holder presents (#68).
+     * A one-time grant, found by the hash of what the holder presents.
      *
      * <p>The grant itself is never stored: it is a bearer secret for its short
      * life, and a store that holds one holds something an operator reading a
@@ -55,7 +55,7 @@ public final class IdentityModel {
         EnvelopeExtractor roleGrant = (type, payload) -> {
             Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
             Envelope e = new Envelope();
-            // The claim is role AND place (#126): "clinician" and "clinician
+            // The claim is role AND place: "clinician" and "clinician
             // at the main lab" are different grants and may both exist, so the
             // organisation is part of what identifies one. An unscoped grant
             // claims the bare code and keeps its old meaning, tenant-wide.

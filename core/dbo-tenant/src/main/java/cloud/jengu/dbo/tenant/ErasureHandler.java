@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * The door a consumer asks for an erasure through (#165).
+ * The door a consumer asks for an erasure through.
  *
  * <p>It is deliberately <b>not</b> an operation on the maintenance surface,
  * which archives, restores and reshapes — things done to the store. Erasing a

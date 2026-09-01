@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What resolution chose, on the record (#72).
+ * What resolution chose, on the record.
  *
  * <p>Over a real store, because the claim is that a decision made today can be
  * explained next year: an executor named in a variable proves nothing about

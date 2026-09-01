@@ -72,7 +72,7 @@ public interface Payloads<D> {
     }
 
     /**
-     * Everything a face has to say about a document, at every severity (#50).
+     * Everything a face has to say about a document, at every severity.
      *
      * <p>{@link #validate} is the refusing half of this and nothing else: a
      * write is held to the errors, and a caller asking {@code $validate} is
@@ -101,7 +101,7 @@ public interface Payloads<D> {
 
     /**
      * The same, against the shape a <b>step</b> declares it consumes or
-     * produces (#71, #49).
+     * produces.
      *
      * <p>Not new machinery, deliberately: this face already validates a
      * document against the shape the document itself claims, and this is the

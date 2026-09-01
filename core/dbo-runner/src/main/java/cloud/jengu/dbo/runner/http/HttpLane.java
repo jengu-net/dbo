@@ -22,7 +22,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 /**
- * A tenant's lane, held by a host that reaches the store over HTTP (#154).
+ * A tenant's lane, held by a host that reaches the store over HTTP.
  *
  * <p>The answer to "where does a cloud get a {@code Lane}". It implements the
  * participation protocol against {@link LaneHandler} on the tenant's private

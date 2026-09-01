@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * What is out there, and who last saw it (#158).
+ * What is out there, and who last saw it.
  *
  * <p><b>Only a connected worker reports, and it may report for others.</b>
  * That is the whole mechanism: {@link #routes} takes the tree a worker can see

@@ -83,19 +83,24 @@ this repository cannot open them. Run it before committing.
 
 ## Conventions
 
-Commit messages explain why, not what. **Comments explain the constraint, not
-the ticket**: a bare `(#159)` is provenance, and the sentence it hangs off has
-to stand on its own for a reader who never opens it. That is the rule that
-matters, and the one a comment can fail while passing every check.
+Commit messages explain why, not what. **Comments explain the constraint, and
+only the constraint.** A tracker reference is not provenance a comment may
+lean on: an issue is a moment, superseded by later ones, and its value is the
+chronology rather than the state. If a sentence needs the ticket to make
+sense, the sentence has not said what it means yet.
 
-**Cross-repository references are refused outright.**
-`.github/scripts/check-branding.sh` rejects a repository name glued to an
-issue number — `<repo>#<n>`, for this repository or a sibling — because a
-reader here cannot open one and it is dead the moment either tracker moves.
-The check is literal enough to catch a spelt-out example in prose, this
-paragraph included, which is why the shape is described rather than shown.
-Bare `#159` is allowed and used widely, pointing at this repository's own
-issues.
+**Tracker and decision-record references are refused outright.**
+`.github/scripts/check-branding.sh` rejects an issue number — bare, or with a
+repository name glued to it — anywhere in the code or the specification tree,
+and rejects decision-record citations the same way and for the same reason.
+Both are moment-bound: they are superseded, they die when a tracker moves, and
+a reader of this repository often cannot open one at all. The check is literal
+enough to catch a spelt-out example in prose, this paragraph included, which is
+why both shapes are described rather than shown.
+
+The one exception is `docs/tasks/`, whose documents exist precisely to carry a
+topic between its issues and its concepts, and which are deleted when their
+issues close.
 
 Documentation describes the current state. The journey belongs in commit
 messages.

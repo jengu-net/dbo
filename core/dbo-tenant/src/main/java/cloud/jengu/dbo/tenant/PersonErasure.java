@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Erasing a person is work, and the run is the receipt (#165).
+ * Erasing a person is work, and the run is the receipt.
  *
  * <p>The erasure itself has existed for a long time — destroy the key, drop the
  * index, keep the ledger entry so a restore cannot resurrect anybody. What did

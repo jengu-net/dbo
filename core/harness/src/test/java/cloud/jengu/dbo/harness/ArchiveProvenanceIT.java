@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The attestation, said in the reader's vocabulary — a `Provenance` carrying
- * FHIR's `Signature` (§11, #34).
+ * FHIR's `Signature` (§11).
  *
  * <p>The proof that matters is not that the JSON looks right: it is that a
  * real personality parses and validates it. A rendering nobody can check is

@@ -45,7 +45,7 @@ public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
     // ----------------------------------------------------------- operations
 
     /**
-     * The three operations this facade answers (#51).
+     * The three operations this facade answers.
      *
      * <p>Each carries its own status decision: an unregistered ValueSet is a
      * 404 from {@code $expand}, an unknown code is a 404 from {@code $lookup},
@@ -208,12 +208,12 @@ public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
                 // writer as an HTTP 500 reading `Cannot invoke
                 // "String.length()" because "s" is null`, for a document whose
                 // only sin was a property type this store had not considered
-                // (#105).
+                //.
                 //
                 // Dropped rather than refused: the concepts, their displays and
                 // the hierarchy are what anything clinical reads, and losing a
                 // national vocabulary over one property's encoding is the trade
-                // #100 already declined. The concept row carries text; what it
+                // already declined. The concept row carries text; what it
                 // cannot carry it does not pretend to.
                 String value = prop.hasCode() && prop.getValue() != null
                         ? prop.getValue().primitiveValue() : null;
@@ -248,7 +248,7 @@ public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
 
         // Replaced, not appended: a CodeSystem stored whole would otherwise
         // carry every code twice on the wire, and the receiving COPY collides
-        // with itself on (system, code) — a sync stream that never acks (#97).
+        // with itself on (system, code) — a sync stream that never acks.
         shell.setConcept(new ArrayList<>());
         Map<String, CodeSystem.ConceptDefinitionComponent> byCode = new LinkedHashMap<>();
         List<Concept> all = terminology.allConcepts(url);
@@ -285,7 +285,7 @@ public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
      * parameter with no value at all, which fails {@code inv-1}, and every
      * expansion was missing the {@code timestamp} that {@code ValueSet} makes
      * 1..1. Both were invalid against this store's own validator, which is what
-     * finally asked (#103).
+     * finally asked.
      *
      * <p>Reading a client's CodeSystem stays here: that genuinely differs
      * between a typed model and the element model, and joining the two would

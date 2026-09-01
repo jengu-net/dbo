@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A step says what it is before anything runs it (#71).
+ * A step says what it is before anything runs it.
  *
  * <p>The two things that make a declaration load-bearing rather than
  * descriptive: a run records the version it ran under, and a payload can be

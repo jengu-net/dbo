@@ -2,7 +2,7 @@ plugins {
     id("biz.aQute.bnd.builder")
 }
 
-// Run records: what a step did, who holds it now, and what is left (#46).
+// Run records: what a step did, who holds it now, and what is left.
 // Engine-side and domain-free — a run is stored, never rendered here, because
 // rendering it as a domain's work resource is a face's translation.
 //

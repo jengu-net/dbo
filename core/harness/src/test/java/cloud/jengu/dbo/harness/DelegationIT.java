@@ -224,7 +224,7 @@ class DelegationIT {
     }
 
     /**
-     * Discovery names every grant the token endpoint serves (#95, #91).
+     * Discovery names every grant the token endpoint serves.
      *
      * <p>Token exchange was served all along and discovery did not say so, so
      * a consumer read `grant_types_supported`, concluded the delegation chain

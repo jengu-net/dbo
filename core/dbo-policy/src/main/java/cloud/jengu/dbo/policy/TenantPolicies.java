@@ -45,7 +45,7 @@ public record TenantPolicies(
     }
 
     /**
-     * Which reference element says whose a record is (#126): type name to the
+     * Which reference element says whose a record is: type name to the
      * reference path holding its owning {@code Organization} — the name the
      * envelope's reference edges carry, which is the <b>SearchParameter
      * code</b> with hyphens as underscores: {@code "service_provider"} for an

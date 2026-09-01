@@ -218,7 +218,7 @@ class SubscriptionsIT {
                 .anyMatch(d -> d.subscriptionId().equals(brokenSub)));
         assertEquals(4, attempts.get("/hook4-broken").get(), "maxAttempts exhausted");
 
-        // #69: and it is a RECORD, not a private row — a card in front of a
+        // And it is a RECORD, not a private row — a card in front of a
         // person, in the tenant's own store, with the endpoint it could not
         // reach on it. The old dead-letter table could be read by nothing but
         // the engine that wrote it.

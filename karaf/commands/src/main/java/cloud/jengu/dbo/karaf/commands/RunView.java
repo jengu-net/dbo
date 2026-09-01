@@ -24,8 +24,8 @@ import java.util.TreeMap;
  * Wiring}). Nothing reflects on this class, and it is loaded only after the
  * guard says the packages are here.
  *
- * <p>Runs are a tenant's records (#69), including the management tenant's for
- * tenant-lifecycle work (#74), so there is no node-wide list to read — this
+ * <p>Runs are a tenant's records, including the management tenant's for
+ * tenant-lifecycle work, so there is no node-wide list to read — this
  * asks each tenant the node is serving.
  *
  * <p><b>It binds a tenant-plane service from the registry</b>, which the console
@@ -34,7 +34,7 @@ import java.util.TreeMap;
  * reason — this bundle is not in the serving distribution. It is development
  * tooling, dropped into a deploy folder by somebody who already holds the
  * database credentials. A console that ships reads this through the
- * authenticated surface with a session behind it (#76), and it is not this.
+ * authenticated surface with a session behind it, and it is not this.
  */
 final class RunView {
 

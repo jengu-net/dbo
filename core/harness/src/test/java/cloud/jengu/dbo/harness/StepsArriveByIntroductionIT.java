@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A participant introduces the step it performs, and the catalogue learns it
- * (#147).
+ *.
  *
  * <p>The groundwork left this door open on purpose: a step id is opaque and
  * globally stable, fixed with the record rather than the catalogue, so a

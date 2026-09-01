@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A trackable may route other trackables (#158).
+ * A trackable may route other trackables.
  *
  * <p>The topology is a tree and only its root has a cursor: a connector talks
  * to the store, appliances sit behind it, instruments sit behind those. All of

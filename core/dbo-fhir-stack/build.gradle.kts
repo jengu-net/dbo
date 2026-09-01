@@ -93,7 +93,7 @@ configurations.named("embedded") {
  * against this bundle. A host platform's driver SPI importing
  * `org.hl7.fhir.r4.model;version="[6.9,7)"` is the case that found this:
  * unversioned, this bundle cannot satisfy it, and the framework where the
- * store owns the FHIR classes does not come up at all (#47).
+ * store owns the FHIR classes does not come up at all.
  *
  * The two families are NOT one number: `ca.uhn.fhir.*` is HAPI's own version
  * while `org.hl7.fhir.*` is the HL7 core family HAPI ships (8.10.1 carries

@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The console says who would run a step, and it is the store's answer (#75).
+ * The console says who would run a step, and it is the store's answer.
  *
  * <p>The catalogue half of these commands is proven without a store, because
  * it needs none. This is the other half, and it is the half an operator opens

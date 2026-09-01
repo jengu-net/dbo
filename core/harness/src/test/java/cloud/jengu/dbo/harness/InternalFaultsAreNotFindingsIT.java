@@ -16,7 +16,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A fault in the store is not a finding about the caller's document (#105).
+ * A fault in the store is not a finding about the caller's document.
  *
  * <p>Both used to arrive as {@code severity: error, code: exception}, so an
  * operator could only tell them apart by reading a diagnostics string that

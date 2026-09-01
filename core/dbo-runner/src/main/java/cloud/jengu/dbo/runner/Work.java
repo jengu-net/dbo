@@ -12,8 +12,8 @@ import java.util.Map;
  * @param run    the claimed run — the global truth this work answers to
  * @param inputs the run's declared inputs, resolved and slot-keyed. A
  *               service never fetches, and cannot: the step's declaration
- *               (#71) is the API it joined, the run fills those slots
- *               (#149), and a runner has no verb that takes a reference —
+ * is the API it joined, the run fills those slots
+ *, and a runner has no verb that takes a reference —
  *               which is what closes the door on asking for data the step
  *               was never entitled to.
  */
@@ -29,7 +29,7 @@ public record Work(Run run, Map<String, StoredObject> inputs, Progress progress)
      * that is alive and getting nowhere, and counts are how "getting
      * somewhere" is said on the record.
      *
-     * <p>Two methods, both abstract, on purpose (#150): a default degrading
+     * <p>Two methods, both abstract, on purpose: a default degrading
      * {@link #milestone} to a bare checkpoint would let a decorator drop the
      * one thing the report said while passing every test — the same trap
      * {@code ReadOnce} fell into with the payload overload.

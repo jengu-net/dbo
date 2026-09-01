@@ -204,7 +204,7 @@ same anonymity posture as the rest of the store.
 `dbo-tenant:list` and `dbo-tenant:capabilities` are T0/T1: the registry, and a
 tenant's own `/metadata`.
 
-`dbo-run:list` and `dbo-run:describe` (#75) are the first commands to read a
+`dbo-run:list` and `dbo-run:describe` are the first commands to read a
 tenant's **records**, and they exist because there is nowhere else that answer
 can come from: a run over `identity`, `audit` or a configuration domain renders
 to nothing on purpose, so the surface that shows clinical work cannot show
@@ -215,7 +215,7 @@ this bundle is not in the serving distribution. Whoever runs it already holds
 the database credentials. A console that ships reads this through the
 authenticated surface with a session behind it, not through the registry.
 
-`dbo:context` and `dbo:login` (#76) are the session: a position, and an
+`dbo:context` and `dbo:login` are the session: a position, and an
 identity when it acts. The position is where commands about a tenant take their
 tenant from; the identity is assumed through the tenant's own authority, by the
 same request an HTTP caller makes, so a refusal is the authority's. The secret

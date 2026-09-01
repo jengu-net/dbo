@@ -3,7 +3,7 @@ package cloud.jengu.dbo.runner.http;
 import java.util.Optional;
 
 /**
- * The participation surface's vocabulary, in one place (#154).
+ * The participation surface's vocabulary, in one place.
  *
  * <p>Both ends read it: the handler routes on it and the client posts to it.
  * Two spellings of one verb is how a surface comes to answer 404 for a lane
@@ -49,7 +49,7 @@ public enum LaneVerbs {
     public static final String DECLARED = "declared";
     public static final String STEP = "step";
     /**
-     * The trackables a participant reports behind it (#159). No observer
+     * The trackables a participant reports behind it. No observer
      * travels with them: the handler's lane stamps its own participant, so
      * an attestation cannot be forged by the side making the claim.
      */

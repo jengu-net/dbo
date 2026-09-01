@@ -44,7 +44,7 @@ final class ElementPayloads implements Payloads<Element> {
 
     /**
      * The tenant form: {@code terms} answers for systems the definitions do
-     * not carry. Two consequences, split by their nature (#50):
+     * not carry. Two consequences, split by their nature:
      * value-set membership rides the validator through {@link TenantContext},
      * where binding strength decides severity — and system membership is
      * checked here, after the validator, because a code claiming a system the
@@ -91,7 +91,7 @@ final class ElementPayloads implements Payloads<Element> {
         }
 
         /**
-         * Everything the validator had to say, at every severity (#50).
+         * Everything the validator had to say, at every severity.
          *
          * <p>Only the errors used to survive, which threw away the half of the
          * answer this store is best placed to give: an <b>extensible</b>
@@ -113,7 +113,7 @@ final class ElementPayloads implements Payloads<Element> {
             // answer, not a crash. HAPI resolves meta.profile itself and
             // throws an Error the request thread does not survive — the
             // caller gets no bytes at all, which is the one response that
-            // tells them nothing (#87).
+            // tells them nothing.
             for (Element claimed : document.getChildrenByName("meta").stream()
                     .flatMap(meta -> meta.getChildrenByName("profile").stream()).toList()) {
                 String url = claimed.primitiveValue();
@@ -204,7 +204,7 @@ final class ElementPayloads implements Payloads<Element> {
         }
 
         /**
-         * Against the profile a step declares (#71).
+         * Against the profile a step declares.
          *
          * <p>The same validator and the same message shape — what changes is
          * which definition it is held to. A profile this face does not carry is
@@ -239,7 +239,7 @@ final class ElementPayloads implements Payloads<Element> {
     }
 
     /**
-     * Validators, lent one at a time (#127).
+     * Validators, lent one at a time.
      *
      * <p>Bounded so a burst of concurrent writes cannot retain validators for
      * a load level that has passed. Above the cap a validator is built, used
@@ -342,7 +342,7 @@ final class ElementPayloads implements Payloads<Element> {
 
     /**
      * One lookup, one truth: the same {@code fetchResource} the validator
-     * resolves a claimed profile through (#87) answers what version of it the
+     * resolves a claimed profile through answers what version of it the
      * pack currently publishes. A claim the pack does not carry, or a
      * StructureDefinition without a version, yields no stamp — the store
      * stamps only shapes the pack publishes a version for.
@@ -374,7 +374,7 @@ final class ElementPayloads implements Payloads<Element> {
     /**
      * What this tenant's pack declares for {@code profile} today, or null
      * when it carries no such shape — which is an ordinary answer, not a
-     * conflict: a stamp outlives the pack version that made it (#133).
+     * conflict: a stamp outlives the pack version that made it.
      */
     String declaredVersionOf(String profile) {
         org.hl7.fhir.r5.model.StructureDefinition sd = context.fetchResource(
@@ -393,13 +393,13 @@ final class ElementPayloads implements Payloads<Element> {
         return reading.validate(typeName, document);
     }
 
-    /** Against a step's declared shape (#71) — the same validator, held to a named profile. */
+    /** Against a step's declared shape — the same validator, held to a named profile. */
     @Override
     public List<String> validate(String typeName, Element document, String shapeReference) {
         return reading.validate(typeName, document, shapeReference);
     }
 
-    /** Everything, at every severity (#50). */
+    /** Everything, at every severity. */
     @Override
     public List<Issue> check(String typeName, Element document, String shapeReference) {
         return reading.check(typeName, document, shapeReference);

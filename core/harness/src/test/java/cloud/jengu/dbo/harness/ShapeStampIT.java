@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The written-under stamp (#131): every accepted object records the versions
+ * The written-under stamp: every accepted object records the versions
  * of the pack profiles it was validated against, as a fact of the accept
  * event — stored beside the payload, served in {@code meta} as
  * {@code urn:dbo:shape}, per-version in history, replaced never accumulated.

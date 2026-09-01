@@ -171,7 +171,7 @@ public final class TenantAuthority {
      * <p>The retirement is stamped with the moment it happened, because that is
      * what decides when the key may go: a token signed under it is valid for
      * {@link #TOKEN_TTL_SECONDS}, so the key has to outlive the last token it
-     * signed and no longer (#122). Without the stamp there is no way to tell a
+     * signed and no longer. Without the stamp there is no way to tell a
      * key retired a minute ago from one retired last year, and the safe reading
      * of "no idea" is "keep it forever" — which is how a leaked key goes on
      * verifying indefinitely.
@@ -191,7 +191,7 @@ public final class TenantAuthority {
     }
 
     /**
-     * Remove retired keys that can no longer be verifying anything (#122).
+     * Remove retired keys that can no longer be verifying anything.
      *
      * <p>Rotation alone is not rotation: a key that stays published forever
      * still verifies forever, so a leaked one is never actually retired. The
@@ -300,8 +300,8 @@ public final class TenantAuthority {
         // The secret AND the scopes: ensuring is saying what the record
         // should be, and a record that kept yesterday's scopes because the
         // secret still matched would deny a surface nobody could see it had
-        // not been granted (#154, where the participation scope was added to
-        // a credential every tenant already had).
+        // not been granted — as happens whenever a new scope is added to a
+        // credential every tenant already had.
         if (existing.isPresent() && SecretHash.verify(secret, field(existing.get(), "secretHash"))
                 && Set.copyOf(scopesOf(existing.get())).equals(Set.copyOf(scopes))) {
             return;
@@ -386,7 +386,7 @@ public final class TenantAuthority {
     }
 
     /**
-     * The same, granted at ONE organisation rather than tenant-wide (#126):
+     * The same, granted at ONE organisation rather than tenant-wide:
      * "clinician" and "clinician at the main lab" are different grants and may
      * both exist. Where both apply to one relation, the organisation's wins
      * outright for the role held there — most local wins, as everywhere else.
@@ -584,7 +584,7 @@ public final class TenantAuthority {
      *        at least one applied grant was unscoped. The whole token shares
      *        one reach: authorization is a union of what a person's relations
      *        allow, and the SMART scope grammar has no room to bind each
-     *        scope to its own place (#126, noted there as the honest limit).
+     *        scope to its own place. That is the honest limit.
      */
     public record Grants(List<String> scopes, List<String> roles, List<String> organisations) {
 
@@ -623,7 +623,7 @@ public final class TenantAuthority {
 
     /**
      * The organisations plus everything under them: a grant at a parent
-     * covers its departments (#126), which is the same most-local-wins chain
+     * covers its departments, which is the same most-local-wins chain
      * rules already walk — walked here once, where the tree is at hand,
      * rather than on every read.
      */
@@ -677,7 +677,7 @@ public final class TenantAuthority {
             if (!periodActive(payload)) {
                 continue;
             }
-            // The relation says where it holds (#126): the PractitionerRole
+            // The relation says where it holds: the PractitionerRole
             // names its organisation, which authorization now reads.
             String organisationId = organisationOf(payload);
             for (Object code : Json.array(payload, "code")) {
@@ -1079,7 +1079,7 @@ public final class TenantAuthority {
         // The reach is computed AT MINT from the relations as they stand, not
         // carried through the authorization dance: a refresh re-derives it, so
         // a grant revoked at an organisation narrows the next token rather
-        // than surviving until the person logs out (#126). Empty = tenant-wide
+        // than surviving until the person logs out. Empty = tenant-wide
         // and no claim is written, so an unscoped tenant's tokens are
         // byte-identical to what they were before organisations existed.
         List<String> reach = evaluateGrants(personId).organisations();
@@ -1131,7 +1131,7 @@ public final class TenantAuthority {
 
     /**
      * @param purposeOfUse what the caller says the access is for, minted into
-     *                     the token as IUA carries it (#117). An assertion
+     *                     the token as IUA carries it. An assertion
      *                     rather than a grant — it does not widen what the
      *                     client may read, and the store records it rather than
      *                     consulting it. Constraining which purposes a client
@@ -1186,12 +1186,12 @@ public final class TenantAuthority {
      * @param purposeOfUse what this token says the access is for, or null.
      *                     IHE's IUA profile carries it as a token claim, which
      *                     is why nothing about a purpose reaches the wire as a
-     *                     header or a parameter (#117). It is not permission —
+     *                     header or a parameter. It is not permission —
      *                     the scopes are — and the store records it rather than
      *                     consulting it.
      */
     /**
-     * @param organisations the reach the token was minted with (#126) — null
+     * @param organisations the reach the token was minted with — null
      *        means unbounded, the shape every token had before organisations
      *        became an axis, so machine tokens and unscoped tenants change
      *        nothing.
@@ -1245,7 +1245,7 @@ public final class TenantAuthority {
      * The purpose of use a token states, if it states one.
      *
      * <p>IUA carries it as a list, because an assertion may name more than one.
-     * A read discloses under ONE purpose or it is two accesses (#117), so the
+     * A read discloses under ONE purpose or it is two accesses, so the
      * first is taken and the rest ignored rather than joined into a string
      * nobody can match on later.
      */
@@ -1280,8 +1280,8 @@ public final class TenantAuthority {
                 // has handled it all along while this said otherwise, so a
                 // consumer reading discovery correctly concluded the
                 // delegation chain was unreachable and reported it as
-                // unimplemented (#95). A capability a client cannot discover
-                // is one it does not have (#91).
+                // unimplemented. A capability a client cannot discover
+                // is one it does not have.
                 + ",\"grant_types_supported\":[\"client_credentials\",\"authorization_code\""
                 + ",\"refresh_token\",\"urn:ietf:params:oauth:grant-type:token-exchange\"]"
                 + ",\"code_challenge_methods_supported\":[\"S256\"]"
@@ -1366,7 +1366,7 @@ public final class TenantAuthority {
 
     /**
      * Mints a one-time grant for a subject to set their own first secret
-     * (#68).
+     *.
      *
      * <p><b>The authority never sends anything.</b> Recovery needs a second
      * channel this authority does not have, and acquiring one would put mail
@@ -1415,7 +1415,7 @@ public final class TenantAuthority {
     }
 
     /**
-     * The holder presents the grant and the secret they have chosen (#68).
+     * The holder presents the grant and the secret they have chosen.
      *
      * <p><b>Burnt on presentation, not on success.</b> A grant spent only when
      * it worked is a grant somebody can keep trying — against a weak-password

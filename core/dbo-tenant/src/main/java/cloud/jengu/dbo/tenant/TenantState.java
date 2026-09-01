@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.tenant;
 
 /**
- * What a runtime is doing about one tenant it has been told about (#67).
+ * What a runtime is doing about one tenant it has been told about.
  *
  * <p>A runtime is the only party that knows this. A spec directory says what
  * was <b>declared</b>; only the runtime knows that a spec was written and its

@@ -90,7 +90,7 @@ final class ConformanceReport {
      * proves the header was there and well-formed, which is the assertion.
      *
      * <p>Applied where the report is rendered rather than where each rule is
-     * written, so a new rule inherits it (#84). Without this, every run
+     * written, so a new rule inherits it. Without this, every run
      * changed the ephemeral port and a generated id in three files — and a
      * report that always differs is a report nobody reads the diff of, so an
      * actual conformance change arrives in the same shape as the churn.

@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What a read of a person discloses is a decision, not a consequence of holding
- * a key (#114).
+ * a key.
  *
  * <p>Before this, PDI was protection at rest plus erasure rights: any caller
  * who could read a person type got the name, the address and the identifiers in
@@ -80,7 +80,7 @@ class DisclosureModesIT {
                   {"name":"Practitioner","identity":"internal","handling":"operational"}]}""");
         // The same tenant shape with the ordinary audit level, which is what
         // made an identifying read untraceable: a disclosure has to be recorded
-        // whatever a tenant chose to keep of ordinary traffic (#114).
+        // whatever a tenant chose to keep of ordinary traffic.
         Files.writeString(dir.resolve("vaikne.json"), """
                 {"code":"vaikne","fhirVersion":"r4","pdi":true,
                  "audit":{"level":"writes"},"types":[
@@ -158,7 +158,7 @@ class DisclosureModesIT {
 
     /**
      * A search that would match on an identity is refused, never silently
-     * empty (#115).
+     * empty.
      *
      * <p>Under the membrane the identifying elements are not in the inner
      * payload, so the query matches nothing and returns an empty result — which
@@ -208,7 +208,7 @@ class DisclosureModesIT {
 
     /**
      * "Who is behind this address" is answerable again, from the index rather
-     * than from plaintext (#115 point 2).
+     * than from plaintext.
      *
      * <p>It is the lookup that breaks first when the membrane goes on — an
      * ordinary provisioning and sign-in question, not an investigative one —
@@ -216,7 +216,7 @@ class DisclosureModesIT {
      * plaintext is at rest or in the query.
      */
     /**
-     * Exact identifier resolution through the vault (#136): "which record
+     * Exact identifier resolution through the vault: "which record
      * claims this identifier" is the question every external-identity lane
      * starts with, and the standard FHIR spelling of it is an exact
      * identifier token search. The match runs over the claim index's HMACs;
@@ -325,7 +325,7 @@ class DisclosureModesIT {
     }
 
     /**
-     * The same question, through every method a surface might call (#118).
+     * The same question, through every method a surface might call.
      *
      * <p>The lookup was wired into {@code select} and {@code count} and not
      * into {@code page}, and a FHIR search over REST is a paged read — so the
@@ -380,7 +380,7 @@ class DisclosureModesIT {
 
     /**
      * An auditor asking "did anybody look this person up" can find out, and the
-     * address is nowhere in the answer (#115 point 3).
+     * address is nowhere in the answer.
      *
      * <p>The trail is append-only against everyone, so a plaintext address in
      * it would put an immutable audit and an erasure right in direct conflict.
@@ -402,7 +402,7 @@ class DisclosureModesIT {
 
     /**
      * A tenant that keeps no record of ordinary reads still records a
-     * disclosure (#114).
+     * disclosure.
      *
      * <p>The level is a preference about volume; the disclosure record is a
      * requirement. Answering both with one dial left an identifying read at
@@ -472,7 +472,7 @@ class DisclosureModesIT {
         // audits reads. A tenant at audit=writes records no read at all, so an
         // identifying disclosure leaves nothing — the purpose is stated to
         // nobody. Whether an identifying read should be audited REGARDLESS of
-        // level is a policy question #114 does not settle and this test does
+        // level is a policy question nothing here settles and this test does
         // not decide.
     }
 

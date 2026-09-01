@@ -27,7 +27,7 @@ import java.util.Set;
 
 /**
  * The FHIR-facing facade over one tenant's store, driven entirely by what the
- * face declares (#58).
+ * face declares.
  *
  * <p>There is one of these rather than one per version, and that is the point:
  * validating a write, framing a page, following an {@code _include} and putting
@@ -45,7 +45,7 @@ public final class ElementStore implements FhirStoreFacade {
     /**
      * Not final: a tenant that writes a StructureDefinition has changed what
      * validation means for it, and the next write is held to the new shape
-     * rather than to whatever was true when the tenant came up (#87).
+     * rather than to whatever was true when the tenant came up.
      */
     private volatile Payloads<Object> payloads;
     private final PayloadFraming framing;
@@ -54,7 +54,7 @@ public final class ElementStore implements FhirStoreFacade {
 
     @SuppressWarnings("unchecked")
     /**
-     * What is declared here, so a step id can be asked about (#49, #71).
+     * What is declared here, so a step id can be asked about.
      *
      * <p>Given rather than discovered. A face inside a bundle scanning the
      * classpath finds whatever is on it and cannot load half of it, which is
@@ -78,7 +78,7 @@ public final class ElementStore implements FhirStoreFacade {
 
     /**
      * The tenant-terminology form: validation consults {@code terms} for
-     * systems the carried definitions do not answer (#50). Null keeps the
+     * systems the carried definitions do not answer. Null keeps the
      * shared, definitions-only payloads — the engine's own extraction path
      * and every caller with no tenant database stay exactly as they were.
      */
@@ -116,7 +116,7 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     /**
-     * The same, with a resolver consulted BEFORE the store (#129): a
+     * The same, with a resolver consulted BEFORE the store: a
      * transaction's entries may answer a conditional reference the store
      * cannot — the referent is being created a few lines further down the
      * document — so the bundle path passes its own claims here. A reference
@@ -132,7 +132,7 @@ public final class ElementStore implements FhirStoreFacade {
                     return inBundle.isPresent() ? inBundle : identified(typeName, query);
                 };
         // A reference that is a question is answered HERE, in the tree that
-        // was already read (#89). Re-reading would be a second read of one
+        // was already read. Re-reading would be a second read of one
         // payload, and keeping the original bytes would store a document the
         // validator never saw. Composed once, and only when something moved.
         boolean moved = false;
@@ -241,7 +241,7 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     /**
-     * The identity a conditional names, parsed the one way (#129): the bundle
+     * The identity a conditional names, parsed the one way: the bundle
      * path keys its own entries' claims by exactly this, so a reference and
      * the entry it points at agree on what the identity IS however the query
      * spells it.
@@ -322,7 +322,7 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     /**
-     * Conditional update: absent it is created, present it is replaced (#99).
+     * Conditional update: absent it is created, present it is replaced.
      *
      * <p>R4 says several matches answer 412. Under the identity-only rule that
      * cannot arise: an identity resolves through a unique index, so a
@@ -431,7 +431,7 @@ public final class ElementStore implements FhirStoreFacade {
             String stamped = entry.substring(bar + 1);
             String declared = pack.declaredVersionOf(profile);
             // A shape the pack no longer carries is not a conflict — the
-            // stamp outlives its pack (#133). Only a pack that declares an
+            // stamp outlives its pack. Only a pack that declares an
             // OLDER major than the stamp is one.
             if (declared != null && majorOf(stamped) > majorOf(declared)) {
                 throw new cloud.jengu.dbo.core.api.ShapeTooNewException(
@@ -453,7 +453,7 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     /**
-     * The engine's claims about this record, for {@code meta} (#109): the
+     * The engine's claims about this record, for {@code meta}: the
      * upstream a streamed copy came from, and the handling class the tenant
      * declared for its type — which is the classification a reader is being
      * governed by and was, until now, never told.
@@ -475,7 +475,7 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     /**
-     * A written profile takes effect at once, for this tenant only (#87).
+     * A written profile takes effect at once, for this tenant only.
      *
      * <p>Rebuilt from the write rather than from a timer or a global refresh:
      * the tenant that changed its shapes is the tenant whose view moves, and
@@ -489,7 +489,7 @@ public final class ElementStore implements FhirStoreFacade {
      */
     @SuppressWarnings("unchecked")
     /**
-     * Rebuild because somebody else wrote a profile here (#87).
+     * Rebuild because somebody else wrote a profile here.
      *
      * <p>Unconditional where {@link #rebuiltIfShapesMoved} is conditional: the
      * caller has already established that a StructureDefinition moved, and it
@@ -509,7 +509,7 @@ public final class ElementStore implements FhirStoreFacade {
         // A converter moving matters exactly as much as a shape moving: a map
         // written into the pack must take effect without a restart, or a
         // reshape answers "no converter" about one the tenant is holding
-        // (#133 — found by the test, not by review).
+        // (found by the test, not by review).
         if (terms == null
                 || !("StructureDefinition".equals(typeName) || "StructureMap".equals(typeName))) {
             return;
@@ -525,7 +525,7 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     /**
-     * The tenant's own StructureDefinitions, read once at construction (#87).
+     * The tenant's own StructureDefinitions, read once at construction.
      *
      * <p>Read HERE rather than by the face: a face capability is a pure
      * transformation and never reaches the store, so what a tenant defined
@@ -544,7 +544,7 @@ public final class ElementStore implements FhirStoreFacade {
                 : java.util.Optional.empty();
     }
 
-    /** The tenant's own converters, alongside its own profiles (#133). */
+    /** The tenant's own converters, alongside its own profiles. */
     private static List<String> storedMaps(ObjectStore engine) {
         try {
             return engine.select(cloud.jengu.dbo.core.api.Criteria.of("StructureMap")
@@ -607,7 +607,7 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     /**
-     * A page is written as it is produced (#55): the frame first, then each
+     * A page is written as it is produced: the frame first, then each
      * member as the cursor reaches it. Memory is one member rather than one
      * page, and a reader sees the first byte before the last row is read.
      */
@@ -707,8 +707,8 @@ public final class ElementStore implements FhirStoreFacade {
     private PayloadFraming.Member member(StoredObject stored, String role,
             List<String> elements) {
         // A search whose answer would contain a too-new object is refused
-        // WHOLE, naming it. Quietly omitting it is the failure #81 and #115
-        // both named: a short answer looks like an answer.
+        // WHOLE, naming it. Quietly omitting it is the failure this store
+        // refuses everywhere: a short answer looks like an answer.
         refuseIfTooNew(stored);
         ElementAncestors.Stamps stamps = stampsFor(stored);
         return new PayloadFraming.Member(stored.typeName(), stored.id(), stored.versionId(),
@@ -750,14 +750,14 @@ public final class ElementStore implements FhirStoreFacade {
     // ------------------------------------------------------------- telling
 
     /**
-     * What this store answers (#51): {@code $validate}, on every type it
+     * What this store answers: {@code $validate}, on every type it
      * serves, on every version this face serves.
      *
      * <p>It lives here rather than in each personality because the face is one
      * implementation for all three versions — and because a store that declared
      * no operations was how {@code $validate} came to be announced by two
      * personalities and reachable through neither: the runtime builds this
-     * store, and this store returned an empty list (#49).
+     * store, and this store returned an empty list.
      */
     @Override
     public List<FhirOperation> operations() {
@@ -796,7 +796,7 @@ public final class ElementStore implements FhirStoreFacade {
     public String validationOutcome(String resourceJson) {
         Object document = payloads.read(null, resourceJson.getBytes(StandardCharsets.UTF_8));
         // Everything the face has to say, not only what would refuse the write
-        // (#50): a caller asking whether this is acceptable is also asking what
+        //: a caller asking whether this is acceptable is also asking what
         // is questionable about it.
         return ElementOutcomes.issues(payloads.check(payloads.typeOf(document), document, null),
                 null);
@@ -804,7 +804,7 @@ public final class ElementStore implements FhirStoreFacade {
 
     /**
      * Against a named shape: a canonical this face carries, or a declared
-     * step's input shape (#49, #71).
+     * step's input shape.
      *
      * <p>A step id is accepted where a profile is expected because that is the
      * question a caller actually has — <em>would this be accepted as the input

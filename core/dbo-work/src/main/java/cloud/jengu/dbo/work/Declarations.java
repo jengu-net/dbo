@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Who has said they can run what, and whether they are still answering (#78).
+ * Who has said they can run what, and whether they are still answering.
  *
  * <p>Resolution walks these rather than the bundles installed here, which is
  * what makes a local implementation and a remote participant two candidates for
@@ -71,14 +71,14 @@ public final class Declarations {
             metadata = metadata == null ? java.util.Map.of() : java.util.Map.copyOf(metadata);
         }
 
-        /** Compatibility with callers that predate {@code metadata} (#148). */
+        /** Compatibility with callers that predate {@code metadata}. */
         public Declared(String process, String step, String name, String version,
                 String provider, Scope scope, String consumer) {
             this(process, step, name, version, provider, scope, consumer, java.util.Map.of());
         }
 
         /**
-         * The same declaration carrying this vitals block instead (#148):
+         * The same declaration carrying this vitals block instead:
          * extensible key/value, opaque to the engine — health, throughput,
          * whatever a component kind brings. Re-declaring REPLACES it, because
          * {@link Declarations#declare} is an idempotent update by key; a

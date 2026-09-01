@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The participant that automates nothing (#79).
+ * The participant that automates nothing.
  *
  * <p>Its whole job is to carry work to wherever the work is actually done and
  * carry the result back, so the interesting claim is that the run afterwards

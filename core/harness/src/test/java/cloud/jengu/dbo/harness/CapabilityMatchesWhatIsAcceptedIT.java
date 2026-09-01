@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What the store advertises and what the store accepts are the same thing
- * (REQ-DBO-SRCH-HONEST-CAPABILITY, #104).
+ * (REQ-DBO-SRCH-HONEST-CAPABILITY).
  *
  * <p>The promise is usually read one way — do not announce what would be
  * refused — and it holds in both. A store that hides what it accepts is lying

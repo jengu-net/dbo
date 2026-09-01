@@ -203,7 +203,7 @@ class PolicyIT {
         RetentionSweep sweep = new RetentionSweep(ds, R4Personality.DOMAIN, policies, store, runs);
         assertTrue(sweep.sweepOnce() >= 1);
 
-        // #69: the count went somewhere. A sweep is one durable run per scope,
+        // The count went somewhere. A sweep is one durable run per scope,
         // found rather than started, and what it removed is a checkpoint on it
         // — not a return value handed to a caller who has already gone.
         cloud.jengu.dbo.work.Run swept = runs.byKey(

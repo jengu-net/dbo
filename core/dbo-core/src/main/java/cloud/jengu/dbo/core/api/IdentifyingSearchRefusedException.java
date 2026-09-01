@@ -2,7 +2,7 @@ package cloud.jengu.dbo.core.api;
 
 /**
  * A search that would match on an identifying element, asked without a purpose
- * (#115).
+ *.
  *
  * <p>Refused, and the refusal is the point. {@code name=Potter} is a question
  * about a person, and under the membrane the identifying elements are not in

@@ -22,7 +22,7 @@ import java.util.Map;
  * at tenant bring-up (which makes a restored pre-sweep archive come up
  * already swept) and periodically thereafter.
  *
- * <p>It is a <b>sweep</b> in the run model's sense (#46, #69): one durable run
+ * <p>It is a <b>sweep</b> in the run model's sense: one durable run
  * per tenant domain, found rather than started, and every pass is a checkpoint
  * on it. A rule that cannot be applied stays open as an item until a pass stops
  * finding it — so a person fixes the world and the next round closes the card

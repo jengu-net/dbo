@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A host that is not the container holds a lane, and the runner cannot tell
- * (#154).
+ *.
  *
  * <p>{@code Lane.inProcess} needs {@code Runs} and a {@code ChangeFeed}, which
  * an appliance running dbo in-JVM has and a cloud does not — its dbo is a
@@ -132,7 +132,7 @@ class ALaneOverHttpIsIndistinguishableIT {
                 @Override
                 public Optional<StepDeclaration> declaration() {
                     // Nothing installed this step, so it reaches the catalogue
-                    // only by crossing as an introduction (#147).
+                    // only by crossing as an introduction.
                     return Optional.of(StepDeclaration.of(PROCESS + "." + STEP, "1.0",
                             WorkModel.DOMAIN));
                 }

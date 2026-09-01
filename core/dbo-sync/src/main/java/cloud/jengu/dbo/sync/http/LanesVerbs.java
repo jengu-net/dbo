@@ -3,7 +3,7 @@ package cloud.jengu.dbo.sync.http;
 import java.util.Optional;
 
 /**
- * The replication surface's vocabulary, in one place (#157).
+ * The replication surface's vocabulary, in one place.
  *
  * <p>Both ends read it, for the same reason the participation surface's does:
  * two spellings of one verb is how a surface answers 404 for something that is

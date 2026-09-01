@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A date search value names a span, at whatever precision it was written (#53).
+ * A date search value names a span, at whatever precision it was written.
  *
  * <p>FHIR says {@code 2020}, {@code 2020-01}, {@code 2020-01-01} and a full
  * instant are all dates. Read as instants they are not: {@code 2020} does not

@@ -15,7 +15,7 @@ public interface AuditSurface {
     /**
      * The search parameters this surface actually honours — declared by the
      * thing that implements them, so the capability statement cannot drift
-     * from the filtering (#90).
+     * from the filtering.
      *
      * <p>The trail is searched over the store's OWN facts about an
      * interaction. What a domain contributed rides opaquely and is not
@@ -37,7 +37,7 @@ public interface AuditSurface {
 
     /**
      * The same, saying whether this posting created the entry or found one
-     * already recorded under the id the poster gave it (#120).
+     * already recorded under the id the poster gave it.
      *
      * @param rendered the entry, whichever of the two it is
      * @param created  false when an earlier delivery of the same event had

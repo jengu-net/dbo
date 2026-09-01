@@ -310,7 +310,7 @@ public final class SubscriptionEngine implements AutoCloseable {
     /**
      * A delivery that ran out of attempts.
      *
-     * <p>A view over the runs, not a table of its own (#69): what is left of a
+     * <p>A view over the runs, not a table of its own: what is left of a
      * failed delivery is a card in front of a person, and a private row is a
      * card nobody can be shown — nothing queries it, nothing versions it,
      * nothing carries it into the backup.

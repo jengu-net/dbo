@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A run is a record, so it can be seen, queried and acted on (#46).
+ * A run is a record, so it can be seen, queried and acted on.
  *
  * <p>The alternative — a private table — is visible in the sense that rows
  * exist and invisible in every sense that matters: no envelope to query it by,

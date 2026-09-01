@@ -107,5 +107,3 @@ build and fails on any difference, naming the regeneration command. The full
 report renders on every CI run's results page via the job summary, so the
 build's meaning — promises proven, by which tests, and what is still a gap —
 leads, and the method inventory does not.
-
-Delivery epic: [#137](https://github.com/jengu-net/dbo/issues/137).

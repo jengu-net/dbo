@@ -49,7 +49,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * What this runtime is doing about each tenant it has been told about
-     * (#67) — kept as the scan goes rather than derived afterwards.
+     * — kept as the scan goes rather than derived afterwards.
      *
      * <p>Derived afterwards, it would have to re-read the spec directory, and
      * the answer would agree with the configuration by construction: the
@@ -107,7 +107,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * The steps this container knows about, for classifying a mandatory
-     * step's absence as an incident (#71). Like {@link #versions}:
+     * step's absence as an incident. Like {@link #versions}:
      * registry-backed in the container, classpath-backed on a plain JVM.
      */
     private final cloud.jengu.dbo.core.process.Steps steps;
@@ -124,23 +124,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
     /**
      * The tenants' authorities, kept so the sweep can reach them: a retired
      * signing key has to be REMOVED eventually, or it goes on verifying and
-     * the rotation was only cosmetic (#122).
+     * the rotation was only cosmetic.
      */
     private final Map<String, cloud.jengu.dbo.auth.TenantAuthority> authorities =
             new ConcurrentHashMap<>();
     private final Map<String, String> maintenanceContexts = new java.util.concurrent.ConcurrentHashMap<>();
     /**
      * How long a participant may be behind and unmoving before its
-     * declaration stops being a candidate (#77). Long enough that a slow
+     * declaration stops being a candidate. Long enough that a slow
      * participant is not disqualified for being slow, and short enough that
      * an operator asking "who is running this step" is not told about a
      * machine that left last week.
      */
     private static final java.time.Duration DECLARATION_PATIENCE =
             java.time.Duration.ofMinutes(2);
-    /** Where each tenant's lane surface is mounted (#154), for the same teardown. */
+    /** Where each tenant's lane surface is mounted, for the same teardown. */
     private final Map<String, String> workContexts = new java.util.concurrent.ConcurrentHashMap<>();
-    /** And its replication surface (#157). */
+    /** And its replication surface. */
     private final Map<String, String> replicationContexts =
             new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<String, java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine>> syncEngines =
@@ -149,7 +149,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, ObjectStore> runStores = new ConcurrentHashMap<>();
     /** What went wrong for a tenant that is not serving, and whose problem it is. */
     private final Map<String, Trouble> trouble = new ConcurrentHashMap<>();
-    /** The tenant this deployment's own history lives in (#74). */
+    /** The tenant this deployment's own history lives in. */
     private volatile String managementCode;
 
     /** A tenant that is not serving, and why — the reason a card has to carry. */
@@ -269,7 +269,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * Brings up the tenant that records what this deployment does about the
-     * others (#74).
+     * others.
      *
      * <p>The managing party is <b>a tenant like the others</b> — the juridical
      * body operating the deployment, distinguished by role rather than by
@@ -308,7 +308,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /** One deterministic reconciliation round. Returns codes currently served. */
     /**
-     * What a declared tenant that is not serving would say if asked (#144):
+     * What a declared tenant that is not serving would say if asked:
      * the trouble ledger, code (or {@code spec:<file>} for a spec that never
      * parsed) to reason. A bring-up failure is caught into this ledger and
      * the tenant simply never serves — so a caller that only probes the
@@ -411,11 +411,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         states.keySet().retainAll(declared);
         trouble.keySet().removeIf(key -> !declared.contains(key) && !key.startsWith("spec:"));
-        // Mandatory steps classify, they do not gate (#71): a serving tenant
+        // Mandatory steps classify, they do not gate: a serving tenant
         // with a mandatory step nothing contributes keeps serving — its runs
         // queue — and the absence is an incident here, re-evaluated every
         // pass because the catalogue changes as modules and participants
-        // come and go. The catalogue read is the COMPOSED one (#147):
+        // come and go. The catalogue read is the COMPOSED one:
         // installed modules plus the steps linked participants introduced
         // into this tenant's own store — which is exactly how the platform's
         // steps satisfy a tenant's mandatory list when it connects over the
@@ -441,7 +441,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * Per serving tenant, the mandatory steps nothing has contributed — the
-     * operator's incident read (#71). A tenant absent here has no open step
+     * operator's incident read. A tenant absent here has no open step
      * incident; the tenant itself is never taken down for one.
      */
     public Map<String, Set<String>> stepIncidents() {
@@ -449,7 +449,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
-     * Serves the runtime's own state at {@code /runtime/tenants} (#67).
+     * Serves the runtime's own state at {@code /runtime/tenants}.
      *
      * <p>Registered only when a token is configured, so a deployment that has
      * not decided who may ask does not have a surface to be asked through —
@@ -517,7 +517,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * What this runtime is doing about each tenant it has been told about
-     * (#67).
+     *.
      *
      * <p>Serving, coming up and failed are different facts, and the third is
      * the one an operator most wants: a list that silently omitted a tenant
@@ -584,7 +584,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // nothing provides is refused because nothing provides it, and asking
         // first means the refusal leaves no database behind to clean up.
         FhirVersion version = versions.require(spec.fhirVersion());
-        // The refusing half of the face contract (#107): what this spec
+        // The refusing half of the face contract: what this spec
         // requires, compared against what the face declares, before the
         // database exists. An absent capability used to surface where it was
         // first needed — mid-request, or as a quiet degradation.
@@ -613,7 +613,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
             if (db.bootstrapClientSecret() != null) {
                 // The deployment's own credential for this tenant, and the
-                // participation scope is part of that (#154): a host holding
+                // participation scope is part of that: a host holding
                 // a lane over HTTP is the tenant saying so, which is exactly
                 // what this credential already is. It grants strictly less
                 // than the system scopes beside it — a lane is twelve verbs,
@@ -621,7 +621,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // credentials — work/<step>, bounded at issue — are minted
                 // per participant by whoever operates the fleet.
                 // Erasure is granted EXPLICITLY here, and that is the whole
-                // point of it being its own scope (#165): the deployment's own
+                // point of it being its own scope: the deployment's own
                 // credential may destroy a person's key, and the broad write
                 // grant sitting beside it does not imply that. A credential
                 // that could write every type still cannot erase anybody
@@ -655,7 +655,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // that carry it are registered whether or not the tenant listed them:
         // a client meeting urn:dbo:run:holder must be able to fetch what
         // defines it, and "the tenant did not ask for CodeSystem" is not an
-        // answer a consumer can act on (#91).
+        // answer a consumer can act on.
         FhirVersion.ForTypes declared = version.forTypes(withVocabularyTypes(spec.types(),
                 version.face()));
         cloud.jengu.dbo.policy.PolicyObjectStore engine =
@@ -693,14 +693,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         // With the tenant's database: a face that validates against current
         // data — the tenant's terminology, and in time its own structure
-        // definitions — needs to know where that data lives (#50).
+        // definitions — needs to know where that data lives.
         // Bring-up says what it cost, in the plain log. A first boot on a
         // fresh database does work a later one does not — importing the
         // terminology baseline, publishing the face's vocabulary, reading the
         // tenant's profiles — and the budget test measures the SECOND boot on
         // purpose, so none of this was visible in a number anybody read. It
         // stopped being invisible the day it quadrupled under memory pressure
-        // and surfaced as a closed connection pool (#93).
+        // and surfaced as a closed connection pool.
         long facadeAt = System.currentTimeMillis();
         FhirStoreFacade store = declared.store(engine, base, db.dataSource());
         long facadeMillis = System.currentTimeMillis() - facadeAt;
@@ -733,10 +733,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             (cloud.jengu.dbo.policy.PolicyObjectStore) runtime.engine()),
                     // a reshape writes through the tenant's own engine, so it
                     // is audited, policy-guarded and re-stamped exactly like
-                    // any other write (#133)
+                    // any other write
                     runtime.engine(), runtime.store()));
             maintenanceContexts.put(spec.code(), adminPath);
-            // Asking for a person's erasure (#165). Its own door and its own
+            // Asking for a person's erasure. Its own door and its own
             // scope, beside maintenance rather than inside it: archiving and
             // reshaping are things done to the store, and an erasure is an act
             // performed for somebody that has to leave a run behind. The run
@@ -760,7 +760,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     : java.util.Optional.of(id);
                         }));
             }
-            // The participation surface (#154): where a host that is NOT the
+            // The participation surface: where a host that is NOT the
             // container obtains a lane. An appliance running dbo in-JVM builds
             // its own over its own store and never comes here; a cloud, whose
             // dbo is a separate deployment precisely so the application holds
@@ -790,7 +790,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             DECLARATION_PATIENCE);
             cloud.jengu.dbo.work.Introductions laneIntroductions =
                     new cloud.jengu.dbo.work.Introductions(runtime.engine(), steps);
-            // What participants report behind them (#159). Built once beside
+            // What participants report behind them. Built once beside
             // the declarations, over the same engine: a trackable is one of
             // this tenant's records, and a second Trackables would be a
             // second view of one fleet.
@@ -808,7 +808,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     runtime.engine(), laneIntroductions, entitlement,
                                     laneTrackables)));
             workContexts.put(spec.code(), workPath);
-            // The replication surface (#157): the same asymmetry one layer up.
+            // The replication surface: the same asymmetry one layer up.
             // Declarations flow cloud → appliance, so the cloud is the side
             // that must PRODUCE outbound batches, and it is the side that
             // cannot hold a Lanes — pull-not-push does not move that, because
@@ -878,7 +878,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * The stream, recording what it does in the dependent tenant's own store
-     * (#73) — so a parked shadow is a card somebody can see rather than a row
+     * — so a parked shadow is a card somebody can see rather than a row
      * in a table nothing reads.
      */
     private cloud.jengu.dbo.sync.ContentSyncEngine withRuns(TenantSpec spec,
@@ -898,7 +898,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * Remove signing keys retired longer ago than any token they signed can
-     * still be live (#122).
+     * still be live.
      *
      * <p>Rotation leaves the old key published so nothing signed a moment
      * before it breaks. That is correct and it is only half: a key that is
@@ -926,7 +926,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * One round of watching each tenant's own change feed for profiles that
-     * arrived without this facade's knowledge (#87, point 2).
+     * arrived without this facade's knowledge.
      *
      * <p>A write THROUGH the facade rebuilds that tenant's validation view at
      * the write, and always did. A profile that reaches the engine another way
@@ -1045,7 +1045,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // reduces to its year. Built without it, every GENERALISE element
         // silently became a REMOVE — a tenant that asked for a coarse birth
         // date got none at all, and the capability was published all along
-        // (#114).
+        //.
         cloud.jengu.dbo.pdi.PersonVault vault =
                 new cloud.jengu.dbo.pdi.PersonVault(db.dataSource(), authorityConfig.kek());
         vaults.put(spec.code(), vault);
@@ -1071,9 +1071,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         all.addAll(cloud.jengu.dbo.policy.AuditModel.registrations());
         // Runs join them for the same reason audit entries do: what this
         // deployment did about a tenant belongs in that tenant's own store,
-        // queryable and versioned and dropped with it (#46).
+        // queryable and versioned and dropped with it.
         all.addAll(cloud.jengu.dbo.work.WorkModel.registrations());
-        // And the replication lane's own bookkeeping (#157): where each peer
+        // And the replication lane's own bookkeeping: where each peer
         // has reached, and what arrived for which work. Same argument again —
         // a lane's state is this tenant's, dropped when the tenant is. Without
         // these the surface comes up and the first verb fails on a type
@@ -1081,7 +1081,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         all.addAll(cloud.jengu.dbo.sync.LaneModel.registrations());
         all.addAll(cloud.jengu.dbo.sync.PlacementModel.registrations());
         // And what a connected worker reports about the things behind it
-        // (#158). Same argument a third time: a lane's state, a placement and
+        //. Same argument a third time: a lane's state, a placement and
         // a trackable are all this tenant's records, dropped when it is.
         all.addAll(cloud.jengu.dbo.work.TrackableModel.registrations());
         ObjectStore engine = pdiWrapped(spec, db, all, face);
@@ -1185,7 +1185,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         TenantRuntime runtime = runtimes.remove(code);
         // Goes with the runtime: a tenant that is not served has no keys for
         // the sweep to prune, and holding its authority would keep the whole
-        // object alive for a tenant nobody can reach (#122).
+        // object alive for a tenant nobody can reach.
         authorities.remove(code);
         if (runtime == null) {
             return;
@@ -1231,7 +1231,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     // --------------------------------------------------- management history
 
-    /** Tenant management as a process: observe, serve, retract, erase (#74). */
+    /** Tenant management as a process: observe, serve, retract, erase. */
     public static final String TENANT_PROCESS = "dbo.tenant.serving";
 
     /** The sweep: what this deployment is doing about the tenants it was told about. */
@@ -1255,7 +1255,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * The serving sweep: one item per tenant that is not serving, in the
-     * management tenant's own store (#74).
+     * management tenant's own store.
      *
      * <p>Written from {@link #tenantStates()} rather than from a second walk of
      * the directory — the three states are the same reasoning, and reasoning
@@ -1307,7 +1307,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * A retraction, recorded with who did it — or, when nobody did, with what
-     * happened instead (#74).
+     * happened instead.
      *
      * <p>"Who retracted that tenant?" had no answer, because the actor was a
      * process reading a directory. It still is, sometimes, and that is now
@@ -1341,7 +1341,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
-     * Erasure: the tenant's data is removed (#74).
+     * Erasure: the tenant's data is removed.
      *
      * <p>An <b>operator act</b>, and deliberately not reachable from the scan
      * path — nothing in reconciliation calls this, and a spec disappearing
@@ -1388,7 +1388,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         sweeps.values().forEach(cloud.jengu.dbo.policy.RetentionSweep::sweepOnce);
                         // On the same hourly beat: a key retired longer ago
                         // than any token it signed can still be live is gone.
-                        // Rotation without this is not rotation (#122).
+                        // Rotation without this is not rotation.
                         pruneSigningKeys();
                     }
                     Thread.sleep(pollMillis);
@@ -1463,7 +1463,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // concepts, exactly as a client's would: written the ordinary
                 // way it is stored whole and answers nothing, so $lookup and
                 // $validate-code cannot resolve dbo's own vocabulary even
-                // though the document is fetchable (#98). Ingest is
+                // though the document is fetchable. Ingest is
                 // replace-all and cheap for these — six systems of a few
                 // codes — so it runs every bring-up rather than being skipped,
                 // which also repairs a tenant that stored one whole before.
@@ -1473,7 +1473,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // ~500ms for the set, which is not a price to pay on every
                     // boot for definitions that have not moved — so the stored
                     // version decides, and it is derived from the vocabulary
-                    // rather than from dbo's release number (#93, #98).
+                    // rather than from dbo's release number.
                     if (!publishedVersionOf(engine, definition).equals(fieldOf(definition,
                             "\"version\""))) {
                         terminology.ingestCodeSystem(definition);
@@ -1483,7 +1483,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // Asked before written. A conditional create is a full
                 // validate and a write every time, and a definition that has
                 // not changed since the last boot needs neither — measured at
-                // ~300ms per bring-up for work already done (#93). The lookup
+                // ~300ms per bring-up for work already done. The lookup
                 // is on canonical identity, which is indexed, so a warm tenant
                 // pays one read per definition and nothing else.
                 if (!engine.getByIdentifier(resourceTypeOf(definition),
@@ -1497,7 +1497,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS).
                 store.conditionalCreate(definition, java.util.Map.of("url", url));
             } catch (cloud.jengu.dbo.core.api.HandlingRefusedException refused) {
-                // Anticipated, not wrong (#125): on a tenant whose CodeSystem
+                // Anticipated, not wrong: on a tenant whose CodeSystem
                 // is somebody else's publication, the engine's own vocabulary
                 // arrives through the replication lane instead — the source
                 // published the same six at ITS bring-up, and the stream
@@ -1516,7 +1516,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (!holdsConceptsNatively) {
             // Said out loud rather than left to be discovered: the definitions
             // are fetchable, and a client cannot resolve a code in them. The
-            // face's terminology surface is the missing half (#50, #98).
+            // face's terminology surface is the missing half.
             LOG.warn("face {} holds no terminology natively: its vocabularies are published "
                     + "as documents, so $lookup and $validate-code answer nothing for them",
                     face.name());
@@ -1545,7 +1545,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // A NamingSystem carries no url in every version — the element does
         // not exist in R4 — and is identified by the namespace it names, which
         // the face claims from its uniqueId. The same value, read the way this
-        // layer reads everything else about a definition it was handed (#91).
+        // layer reads everything else about a definition it was handed.
         return url != null ? url : fieldOf(definition, "\"value\"");
     }
 

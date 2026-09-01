@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A caller can ask whether a resource would be accepted, without writing it
- * (#48).
+ *.
  *
  * <p>The property worth having is not that the operation answers — it is that
  * <b>the two answers agree</b>. What `$validate` accepts, a write accepts; what
@@ -151,7 +151,7 @@ class ValidateOperationIT {
     }
 
     /**
-     * REQ-DBO-SRCH-HONEST-CAPABILITY, extended to operations (#51): what the
+     * REQ-DBO-SRCH-HONEST-CAPABILITY, extended to operations: what the
      * statement declares is what the router answers, and nothing else.
      *
      * <p>A registry makes drift unlikely. This makes reintroducing it loud —
