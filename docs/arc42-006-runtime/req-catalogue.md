@@ -150,7 +150,7 @@ deliberately have no REQs yet — they get them when scheduled.
 
 | REQ | Promise | Status | Proven by |
 |---|---|---|---|
-| REQ-DBO-TEN-STRUCTURAL-SCOPING | No code path can read or write data without an explicit tenant context. (R3) | PLANNED |  |
+| REQ-DBO-TEN-STRUCTURAL-SCOPING | No code path can read or write data without an explicit tenant context. (R3) | PROVEN | cloud.jengu.dbo.harness.ATenantIsAStoreNotAFilterIT#aSearchIsScopedByWhichHandleAnsweredIt<br>cloud.jengu.dbo.harness.ATenantIsAStoreNotAFilterIT#theSameIdInTwoTenantsIsTwoRecords<br>cloud.jengu.dbo.harness.ATenantIsAStoreNotAFilterIT#whatOnlyTheNeighbourHoldsIsNotThere<br>cloud.jengu.dbo.harness.TheEngineApiCannotNameATenantTest#theApiOffersNoPlaceToPutATenant |
 | REQ-DBO-TEN-DEDICATED-DATABASE-TIER | A tenant can run on a dedicated database; this tier is the design anchor. (R5) | PROVEN | cloud.jengu.dbo.harness.OperatorIT#aRegistrationBecomesDatabaseRoleSecretAndConfigMapEntry<br>cloud.jengu.dbo.harness.ServerDistIT#theDistServesAnOperatorProvisionedTenant |
 | REQ-DBO-TEN-CREDENTIAL-BLIND-PROVISIONING | Tenant databases and buckets are provisioned by an external operator; credentials exist only as platform secrets and are never readable by tenant-manager code. (R5, §4) | PROVEN | cloud.jengu.dbo.harness.OperatorIT#aRegistrationBecomesDatabaseRoleSecretAndConfigMapEntry<br>cloud.jengu.dbo.harness.ServerDistIT#theDistServesAnOperatorProvisionedTenant |
 | REQ-DBO-TEN-REGISTRY-SCOPED-ACCESS | Application code obtains a tenant's data services from the service registry and can use them without ever seeing credentials. (R5, §4) | PLANNED |  |
