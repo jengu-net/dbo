@@ -17,7 +17,7 @@ import java.util.function.Supplier;
 
 /**
  * A tenant's replication, driven by a host that reaches the store over HTTP
- * (#157).
+ *.
  *
  * <p>The answer to "where does a cloud get a {@code Lanes}". It carries the
  * seven verbs to {@link LanesHandler} on the tenant's private surface, and

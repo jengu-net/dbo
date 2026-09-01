@@ -29,7 +29,7 @@ final class UntilServed {
     /**
      * Scans until {@code served} holds, and answers what is being served.
      *
-     * <p>Exhaustion FAILS, naming the trouble ledger (#144): a bring-up
+     * <p>Exhaustion FAILS, naming the trouble ledger: a bring-up
      * failure is caught into the manager's ledger and the tenant simply
      * never serves, so a test that carried on met a bare 404 three steps
      * and eighty polled seconds away from the cause. The cause belongs

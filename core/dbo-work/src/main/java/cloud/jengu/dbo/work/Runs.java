@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * The runs of one tenant's store (#46).
+ * The runs of one tenant's store.
  *
  * <p>Everything that advances a run goes through here, because every advance is
  * a version, a history link and a feed event: a caller holding a payload and
@@ -29,7 +29,7 @@ public final class Runs {
     private final ObjectStore store;
 
     /**
-     * The step catalogue, for reporting through declared actions (#77).
+     * The step catalogue, for reporting through declared actions.
      * Empty means nothing is declared here and no verb is narrowed.
      */
     private final cloud.jengu.dbo.core.process.Steps steps;
@@ -53,7 +53,7 @@ public final class Runs {
 
     /**
      * A report verb the step does not declare, refused naming both sides
-     * (#77): the act, and what the step actually contains. A step that has
+     *: the act, and what the step actually contains. A step that has
      * not declared actions is not narrowed — empty means "has not said",
      * never "admits nothing" — and an undeclared step is not narrowed
      * either, because a run may name a step nothing has declared yet.
@@ -66,7 +66,7 @@ public final class Runs {
     }
 
     /**
-     * An executor the step does not admit, refused naming both sides (#77).
+     * An executor the step does not admit, refused naming both sides.
      *
      * <p>Half of "what a participant may claim is the intersection of its
      * scopes and what the step admits"; the other half — what the credential
@@ -130,7 +130,7 @@ public final class Runs {
     }
 
     /**
-     * A run of a <b>declared</b> step (#71).
+     * A run of a <b>declared</b> step.
      *
      * <p>The run records the step's version alongside the executor's, because
      * reproducing last year's decision needs the definition as well as the
@@ -146,8 +146,8 @@ public final class Runs {
     }
 
     /**
-     * The same, with inputs filling the step's declared slots (#149,
-     * REQ-DBO-PROC-RUN-INPUTS-FILL-THE-SLOTS).
+     * The same, with inputs filling the step's declared slots
+     * (REQ-DBO-PROC-RUN-INPUTS-FILL-THE-SLOTS).
      *
      * <p>Fixed at creation — what the work is over is part of what the work
      * <em>is</em> — and refused at the door, both ways: a slot the step does
@@ -249,7 +249,7 @@ public final class Runs {
     }
 
     /**
-     * What resolution chose, recorded on the run (#72).
+     * What resolution chose, recorded on the run.
      *
      * <p>All four facts, because each answers a different question later:
      * what ran, which behaviour that was, whose code it was, and under whose
@@ -289,7 +289,7 @@ public final class Runs {
     }
 
     /**
-     * Takes this run, or does not (#77).
+     * Takes this run, or does not.
      *
      * <p><b>At-most-one actor needs no lease service.</b> The claim is a
      * conditional write against the version the claimant saw: two participants
@@ -328,7 +328,7 @@ public final class Runs {
     }
 
     /**
-     * Progress, which is what extends a claim (#77).
+     * Progress, which is what extends a claim.
      *
      * <p>A checkpoint and never a heartbeat: a tick proves a process is alive,
      * and what a deadline is protecting against is a process that is alive and
@@ -344,8 +344,8 @@ public final class Runs {
     }
 
     /**
-     * A checkpoint that also names the milestone reached (#150,
-     * REQ-DBO-PROC-PROGRESS-NAMES-THE-MILESTONE).
+     * A checkpoint that also names the milestone reached
+     * (REQ-DBO-PROC-PROGRESS-NAMES-THE-MILESTONE).
      *
      * <p>Same act, more said: it extends the claim exactly as counts do —
      * evidence, never a tick — and the run records the named point replaced,
@@ -382,7 +382,7 @@ public final class Runs {
                         until)));
     }
 
-    /** A point the step's own map does not contain, refused naming both sides (#150). */
+    /** A point the step's own map does not contain, refused naming both sides. */
     public static final class NotAMilestone extends RuntimeException {
         NotAMilestone(String stepId, String name, List<String> declared) {
             super("step '" + stepId + "' declares no milestone '" + name
@@ -391,7 +391,7 @@ public final class Runs {
     }
 
     /**
-     * Hands back what a claim no longer holds (#77).
+     * Hands back what a claim no longer holds.
      *
      * <p>Released, not done — the difference is the whole point of a deadline.
      * A run that says "done" because whoever held it stopped answering is the
@@ -409,7 +409,7 @@ public final class Runs {
                 .map(Run::of)
                 .filter(run -> run.assignment() != null && run.assignment().until() != null
                         && !run.assignment().until().isAfter(now))
-                // A deadline is judged where the run lives (#151). A mirror's
+                // A deadline is judged where the run lives. A mirror's
                 // deadline is the other appliance's to notice, and this side's
                 // clock reading it would release work whose checkpoint is
                 // merely still in flight.
@@ -429,7 +429,7 @@ public final class Runs {
     public static final int NAMED_VERSIONS = 200;
 
     /**
-     * Records a version this run produced (#82).
+     * Records a version this run produced.
      *
      * <p>Called by whatever wrote it — the store cannot, because a store
      * writing into the work domain on every content write is the engine
@@ -452,7 +452,7 @@ public final class Runs {
      * A run that succeeded: nothing is owed, and nobody holds it.
      *
      * <p>Closing is an act of judgment and goes through the step's declared
-     * actions (#77) — a step whose actions omit {@code close} has said its
+     * actions — a step whose actions omit {@code close} has said its
      * closure is somebody else's act (a human's, typically), and an
      * automated participant reporting done is refused by name. Releasing is
      * NEVER narrowed the same way: released-is-not-done is failure honesty,
@@ -465,14 +465,14 @@ public final class Runs {
     }
 
     /**
-     * A closed run, deliberately open again (#77,
-     * REQ-DBO-PROC-CLOSED-CAN-BE-REOPENED).
+     * A closed run, deliberately open again
+     * (REQ-DBO-PROC-CLOSED-CAN-BE-REOPENED).
      *
      * <p>Discovering a close was wrong must not require inventing a second
      * run to disagree with the first: the run itself becomes claimable again
      * — the released shape, a holder and no executor — with the reason on
      * the record. It goes through the step's declared {@code reopen} action,
-     * which is what a supervisor's role will later narrow (#76): reopening
+     * which is what a supervisor's role will later narrow: reopening
      * is the judgment the action vocabulary exists for.
      */
     public Run reopen(Run run, String because) {
@@ -556,7 +556,7 @@ public final class Runs {
 
     /**
      * The automation backlog: work waiting for a person at this step, here
-     * (#72). A number, per step and per zone, rather than an opinion about how
+     *. A number, per step and per zone, rather than an opinion about how
      * much is automated.
      */
     public long backlog(String process, String step, Scope at) {
@@ -644,7 +644,7 @@ public final class Runs {
     }
 
     /**
-     * This run and its items, as the record a face renders (#70).
+     * This run and its items, as the record a face renders.
      *
      * <p>Assembled here because a face never reaches for the store: rendering
      * takes the record as data, so whatever belongs to the run has to arrive
@@ -679,7 +679,7 @@ public final class Runs {
     /**
      * A run this appliance is advancing must be this appliance's own.
      *
-     * <p>#151's decision: a mirror is a read-only account of somebody else's
+     * <p>A mirror is a read-only account of somebody else's
      * work. Across two stores with a lagging lane, "the deadline passed" and
      * "the checkpoint is in flight" can both be true, and a peer acting on the
      * first would have the work done twice — so the side that authored a run
@@ -745,7 +745,7 @@ public final class Runs {
                     domains, assignment, produced, stepVersion, Map.of());
         }
 
-        /** The pre-milestone shape (#150). */
+        /** The pre-milestone shape. */
         State(String key, String process, String step, RunKind kind, Holder holder,
                 String parent, String correlation, Map<String, Long> tally, Run.Item item,
                 List<String> domains, Run.Assignment assignment, Run.Produced produced,

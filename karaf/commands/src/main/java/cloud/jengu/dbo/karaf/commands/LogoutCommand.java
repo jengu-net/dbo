@@ -7,7 +7,7 @@ import org.apache.karaf.shell.api.action.lifecycle.Service;
 import org.apache.karaf.shell.api.console.Session;
 
 /**
- * Puts the identity down and leaves the position (#76).
+ * Puts the identity down and leaves the position.
  *
  * <p>Reads need no identity — somebody who can run the console can run
  * {@code psql} — so this is about what the next action would be attributed to,

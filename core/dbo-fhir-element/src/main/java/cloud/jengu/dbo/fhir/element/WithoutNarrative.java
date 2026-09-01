@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The carried definitions, minus the documentation nobody here reads (#128).
+ * The carried definitions, minus the documentation nobody here reads.
  *
  * <p>Every StructureDefinition, ValueSet and CodeSystem in a published FHIR
  * package carries {@code text.div} — the human-readable rendering, tables of
@@ -49,7 +49,7 @@ final class WithoutNarrative implements IContextResourceLoader {
     }
 
     /**
-     * The narrative removed from the BYTES, before any parser runs (#111).
+     * The narrative removed from the BYTES, before any parser runs.
      *
      * <p>Stripping after the parse (above) frees the memory and left the cost:
      * profiling a version's first-use context build put ~40% of the r5 samples

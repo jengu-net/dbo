@@ -61,7 +61,7 @@ public final class MaintenanceHandler implements HttpHandler {
     }
 
     /**
-     * The same, able to run a reshape (#133): the engine to write through and
+     * The same, able to run a reshape: the engine to write through and
      * the face to convert with. Both absent — a tenant whose face declares no
      * {@link cloud.jengu.dbo.core.face.ShapeConversion} — leaves the
      * operation refusing by name rather than missing.
@@ -151,7 +151,7 @@ public final class MaintenanceHandler implements HttpHandler {
     }
 
     /**
-     * Converts stock stamped below a target major, in place (#133).
+     * Converts stock stamped below a target major, in place.
      *
      * <p>Query-parameterised rather than bodied: an operator drives this from
      * a shell, and a run is a repeatable question — which type, which shape,
@@ -197,7 +197,7 @@ public final class MaintenanceHandler implements HttpHandler {
     }
 
     /**
-     * A page of stock for a converter that is not this store's (#145).
+     * A page of stock for a converter that is not this store's.
      *
      * <p>Available whether or not the face can convert in process: the
      * hand-back lane is the floor under both cases — the only lane for a
@@ -224,7 +224,7 @@ public final class MaintenanceHandler implements HttpHandler {
         }
     }
 
-    /** Converted forms handed back, re-accepted through the face (#145). */
+    /** Converted forms handed back, re-accepted through the face. */
     private void reshapeApply(HttpExchange exchange) throws IOException {
         java.util.Map<String, String> q = query(exchange);
         String typeName = q.get("type");

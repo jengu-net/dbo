@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A consumer learns the domain's API and nothing else (#91).
+ * A consumer learns the domain's API and nothing else.
  *
  * <p>dbo owns concepts FHIR has no word for — what a run's holder is, what an
  * audited interaction was — and minting a system for them is how the domain is
@@ -87,7 +87,7 @@ class VocabularyIsDiscoverableIT {
                  "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
         // the SAME tenant on the newest version, because a promise about a
         // tenant's own vocabulary that only holds on one face is not a promise
-        // about the store (#101)
+        // about the store
         Files.writeString(dir.resolve("sonavara6.json"), """
                 {"code":"sonavara6","fhirVersion":"r6",
                  "audit":{"level":"writes"},
@@ -155,9 +155,9 @@ class VocabularyIsDiscoverableIT {
     }
 
     /**
-     * Fetchable is not resolvable (#98).
+     * Fetchable is not resolvable.
      *
-     * <p>#91 published the definitions and stopped there: written the ordinary
+     * <p>Publishing the definitions is not enough on its own: written the ordinary
      * FHIR way a CodeSystem is stored whole and its concepts never reach the
      * native form, so the operations a client would actually use to resolve a
      * code answered nothing while the document sat there looking complete.
@@ -186,7 +186,7 @@ class VocabularyIsDiscoverableIT {
 
     /**
      * A definition says what it knows and what it does not — and where the
-     * codes actually are (#98).
+     * codes actually are.
      *
      * <p>This asserted `content: complete` with the codes inline until the
      * vocabulary started going through ingest, which is what made $lookup
@@ -235,7 +235,7 @@ class VocabularyIsDiscoverableIT {
         // url. A NamingSystem has none, so its identity is claimed from the
         // namespace it names — and if that claim is not made, the second
         // bring-up's conditional write matches nothing and quietly writes a
-        // second copy of every namespace (#91).
+        // second copy of every namespace.
         String namespaces = get(base + "/NamingSystem?value=urn:dbo:run");
         assertEquals(1, countEntries(namespaces, "NamingSystem"),
                 "a namespace is one record after two bring-ups, not two: " + namespaces);
@@ -264,7 +264,7 @@ class VocabularyIsDiscoverableIT {
 
     /**
      * The extension this face puts on a served resource has a definition a
-     * client can fetch (#91).
+     * client can fetch.
      *
      * <p>Asserted rather than assumed, because failing to publish is silent:
      * {@code publishVocabularies} logs a definition this store cannot hold and
@@ -288,7 +288,7 @@ class VocabularyIsDiscoverableIT {
 
     /**
      * The Task a run is rendered as has a definition, not just an example
-     * (#91).
+     *.
      *
      * <p>Its seven dbo-owned systems were each discoverable on their own — a
      * CodeSystem here, a NamingSystem there — and nothing said which element
@@ -334,7 +334,7 @@ class VocabularyIsDiscoverableIT {
 
     /**
      * A run's OUTPUT codes and a run's KEY are different things and no longer
-     * share a URI (#91).
+     * share a URI.
      *
      * <p>Nothing serves runs yet, so this is asserted at the definition rather
      * than on the wire — which is the point of doing it now: after the

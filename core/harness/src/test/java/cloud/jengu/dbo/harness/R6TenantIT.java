@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A tenant on FHIR R6 comes up and is served — by the same facade every other
- * version will be served by (#58).
+ * version will be served by.
  *
  * <p>R6 goes first because it has no incumbent: there is no R6 personality to
  * regress, and no generated R6 model to fall back on, so a store that answers

@@ -182,7 +182,7 @@ public final class PgObjectStore implements ObjectStore {
         }
         Handling handling = type.handling();
         // The same question the CapabilityStatement asks, so what is advertised
-        // and what is accepted cannot drift apart again (#104).
+        // and what is accepted cannot drift apart again.
         switch (handling.refusalFor(caller, created)) {
             case APPEND_ONLY -> throw new HandlingRefusedException(type.typeName(),
                     "append-only", "it may be written once and never altered — by anyone, "
@@ -194,7 +194,7 @@ public final class PgObjectStore implements ObjectStore {
             case null -> { }
         }
         if (handling.requiresARun() && Caller.run() == null) {
-            // #82: the change would belong to nothing. History would still have
+            // The change would belong to nothing. History would still have
             // it and audit would still name who, and nobody could say what it
             // was for — which is also the moment the run stops being a complete
             // account of what changed, and stops being usable as a manifest.
@@ -309,7 +309,7 @@ public final class PgObjectStore implements ObjectStore {
         for (Identifier ident : identifiers) {
             boolean identity = registry.isIdentityBearing(type, ident);
             if (identity) {
-                // Asked before inserted (#125). An exclusive claim held by
+                // Asked before inserted. An exclusive claim held by
                 // another object is an ANTICIPATED answer — the sync lane
                 // meets it on every first delivery of a publication the
                 // tenant already holds, and resolves it by content. Letting
@@ -807,7 +807,7 @@ public final class PgObjectStore implements ObjectStore {
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         items.add(read(rs));
-                        // By label, not position: the origin column (#109)
+                        // By label, not position: the origin column
                         // sits between the fixed seven and this one, and a
                         // positional read here is how every cursor silently
                         // became the previous row's origin.
@@ -1059,7 +1059,7 @@ public final class PgObjectStore implements ObjectStore {
     private StoredObject read(ResultSet rs) throws SQLException {
         // By label rather than position for the origin column only: one query
         // appends its own sort_key after the fixed seven, so position eight is
-        // not one thing (#109).
+        // not one thing.
         String origin;
         String shadowing;
         String shapeJson;

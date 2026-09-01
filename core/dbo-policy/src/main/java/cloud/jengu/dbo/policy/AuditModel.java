@@ -23,7 +23,7 @@ public final class AuditModel {
     public static final String DOMAIN = "audit";
 
     /**
-     * The system a forwarded entry's own id is claimed under (#120).
+     * The system a forwarded entry's own id is claimed under.
      *
      * <p>An appliance forwards its audit at-least-once and the receiving side
      * makes that effectively-once, which needs the forwarder's id to be an
@@ -69,7 +69,7 @@ public final class AuditModel {
         // IDENTIFIER rather than INTERNAL, and only barely: the ONLY system
         // that identifies an entry is the forwarder's own id, and an entry
         // this store wrote emits none — so nothing dbo records claims
-        // anything, and a forwarded one claims exactly once (#120).
+        // anything, and a forwarded one claims exactly once.
         return List.of(new TypeRegistration("AuditEntry", DOMAIN, IdentityClass.IDENTIFIER,
                 Set.of(FORWARDED_SYSTEM), Handling.audit(), extractor, List.of()));
     }
@@ -133,7 +133,7 @@ public final class AuditModel {
     }
 
     /**
-     * The same, carrying the stable id a forwarder gave this event (#120).
+     * The same, carrying the stable id a forwarder gave this event.
      *
      * <p>It is written into the record rather than kept beside it because the
      * envelope is recomputed from the payload: an id that lived only in the
@@ -164,14 +164,14 @@ public final class AuditModel {
         // What the caller said they needed an identity for. Recorded because
         // the purpose is the only part of a disclosure that outlives the
         // request: the read is gone, and "who saw this person, and why" is what
-        // somebody asks a year later (#114).
+        // somebody asks a year later.
         String purpose = cloud.jengu.dbo.core.api.Disclosure.purpose();
         if (purpose != null) {
             sb.append(",\"purpose\":\"").append(purpose).append("\"");
         }
         // What was matched on, as a fingerprint. Taken rather than read, so it
         // lands on the entry for the search that produced it and on no other
-        // (#115).
+        //.
         String matched = cloud.jengu.dbo.core.api.Disclosure.takeMatched();
         if (matched != null) {
             sb.append(",\"matched\":\"").append(matched).append("\"");

@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A consumer can ask for an erasure, and is answered with a run (#165).
+ * A consumer can ask for an erasure, and is answered with a run.
  *
  * <p>The erasure itself was proven long ago. What was missing was any way to
  * <b>ask</b>: the shred was reachable only from inside the runtime, so a

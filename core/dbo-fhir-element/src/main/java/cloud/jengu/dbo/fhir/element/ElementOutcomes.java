@@ -35,7 +35,7 @@ final class ElementOutcomes {
     }
 
     /**
-     * The same verdict, naming the shape it was held to (#49).
+     * The same verdict, naming the shape it was held to.
      *
      * <p>A caller told "invalid" against an unnamed profile cannot tell whether
      * they used the wrong shape or the wrong data — and the two have different
@@ -62,7 +62,7 @@ final class ElementOutcomes {
 
     /**
      * The verdict with everything the face had to say, at the severity it said
-     * it (#50).
+     * it.
      *
      * <p>What a caller does with a warning is their business; what they cannot
      * do is act on advice nobody gave them. The code is {@code invalid} for a
@@ -113,7 +113,7 @@ final class ElementOutcomes {
 
     /**
      * A fault in this store, said so that nobody has to read the diagnostics to
-     * know it (#105).
+     * know it.
      *
      * <p>{@code severity: fatal} is FHIR's own word for it — "the action failed
      * and no further checking could be performed" — which is exactly what an

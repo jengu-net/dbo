@@ -4,7 +4,7 @@ import java.util.Optional;
 
 /**
  * What one tenant's terminology knows about a code — the seam through which
- * validation reaches CURRENT data rather than carried definitions (#50, #83).
+ * validation reaches CURRENT data rather than carried definitions.
  *
  * <p>The carried definitions are static: what a version's specification said
  * when it was published. A tenant's codes are not — its own systems, its
@@ -13,7 +13,7 @@ import java.util.Optional;
  * consulted the carried definitions would call a tenant's own codes unknown
  * forever.
  *
- * <p>Three answers, and the difference between the last two is #50's central
+ * <p>Three answers, and the difference between the last two is the central
  * distinction:
  *
  * <ul>

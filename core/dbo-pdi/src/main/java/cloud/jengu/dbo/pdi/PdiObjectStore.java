@@ -166,7 +166,7 @@ public final class PdiObjectStore implements ObjectStore {
 
     /**
      * Matching on an identifying element is an identifying access, held to the
-     * same rule as reading one (#115).
+     * same rule as reading one.
      *
      * <p>Under the membrane those elements never reach the inner payload, so a
      * query on one matches nothing and comes back empty — indistinguishable
@@ -226,7 +226,7 @@ public final class PdiObjectStore implements ObjectStore {
 
     /**
      * An exact lookup on an indexed identifying value, answered from the vault
-     * rather than from an index that cannot hold it (#115).
+     * rather than from an index that cannot hold it.
      *
      * <p>Deliberately narrow: ONE predicate, equality, on an element the vault
      * indexes. That is a lookup — "who is behind this address", "which record
@@ -274,7 +274,7 @@ public final class PdiObjectStore implements ObjectStore {
             // A claimed identifier resolves only as its full (system, value)
             // pair. A bare value would ask every system at once — enumeration
             // wearing a smaller coat — so it falls through to the guard's
-            // refusal instead of an answer (#136).
+            // refusal instead of an answer.
             if (!(only.value() instanceof EnvelopeValue.Token token)
                     || token.system() == null || token.system().isBlank()
                     || token.code() == null || token.code().isBlank()) {
@@ -388,7 +388,7 @@ public final class PdiObjectStore implements ObjectStore {
         }
         // Telecom goes into the index and is NEVER claimed: "who is behind
         // this address" is an ordinary provisioning and sign-in question, and
-        // it is the lookup that breaks first once the plaintext is gone (#115).
+        // it is the lookup that breaks first once the plaintext is gone.
         // Two people share a phone and neither is wrong, so indexing and
         // exclusivity part company here — the one place they should.
         Object telecomList = identifying.get("telecom");
@@ -452,7 +452,7 @@ public final class PdiObjectStore implements ObjectStore {
             // Refused before anything is decrypted, and refused rather than
             // downgraded: a caller handed a pseudonymous resource where it
             // asked for a whole one carries on as though it had what it asked
-            // for, and nothing records why an identity was seen (#114).
+            // for, and nothing records why an identity was seen.
             throw new cloud.jengu.dbo.core.api.DisclosureRefusedException(typeName);
         }
         if (mode == cloud.jengu.dbo.core.api.Disclosure.Mode.ENCRYPTED) {
@@ -513,7 +513,7 @@ public final class PdiObjectStore implements ObjectStore {
         // satisfied by a pseudonymous file, and ciphertext they hold no key for
         // satisfies it even less. So this states its purpose rather than
         // inheriting whatever the request was doing — PATRQT, which is exactly
-        // what this is, and which the audit entry then carries (#114).
+        // what this is, and which the audit entry then carries.
         cloud.jengu.dbo.core.api.Disclosure.Mode restore =
                 cloud.jengu.dbo.core.api.Disclosure.mode();
         String restorePurpose = cloud.jengu.dbo.core.api.Disclosure.purpose();

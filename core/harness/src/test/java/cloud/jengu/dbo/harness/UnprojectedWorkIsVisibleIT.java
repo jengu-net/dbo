@@ -22,10 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Work nobody can render is still work somebody is holding (#75).
+ * Work nobody can render is still work somebody is holding.
  *
  * <p>A run over {@code identity}, {@code audit} or a configuration domain
- * renders to nothing on purpose (#70), which means the surface that shows
+ * renders to nothing on purpose, which means the surface that shows
  * clinical work cannot show operational work at all. The console reads the
  * records instead — this is the query underneath it, and the claim it has to
  * make is that a card is findable precisely where a face has nothing to say.

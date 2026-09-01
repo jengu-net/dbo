@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * One thing whose state is worth knowing (#158).
+ * One thing whose state is worth knowing.
  *
  * <p>One shape at every depth: the connector a store talks to, the appliance
  * behind it, and the instrument behind that are all this record. What differs

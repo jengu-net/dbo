@@ -61,7 +61,7 @@ public final class R5Personality {
     /**
      * The engine-level search dimensions this personality accepts, beyond the
      * type's own parameters. Read by the search compiler and the capability
-     * statement alike (#52).
+     * statement alike.
      */
     static final java.util.Map<String, String> META_SEARCH_PARAMS =
             new java.util.LinkedHashMap<>(java.util.Map.of(
@@ -390,7 +390,7 @@ public final class R5Personality {
             case DATE -> {
                 Criteria.RangeOp op = tryPrefixOp(value);
                 // A date names a span at whatever precision it was written,
-                // and no prefix means the whole span (#53). The same reading
+                // and no prefix means the whole span. The same reading
                 // the serving compiler uses, so a subscription's criteria and
                 // a search agree about what a date means.
                 cloud.jengu.dbo.core.api.DateKeys.Window window =
@@ -545,7 +545,7 @@ public final class R5Personality {
      * <p>Runs under a TCCL the caller has already pinned. The retry and the
      * refusal to answer live here rather than in each entry point, because a
      * second entry point that forgot them would answer "invalid" on a busy
-     * machine — which is the bug #42 was.
+     * machine — which is exactly the bug this guards.
      */
     private ValidationResult validated(IBaseResource resource) {
         return R5Version.validated(resource);

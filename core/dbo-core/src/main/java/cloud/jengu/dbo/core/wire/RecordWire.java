@@ -18,7 +18,7 @@ import java.util.Set;
  * Records on a wire, mapped as they are declared.
  *
  * <p><b>The record as declared, never field by field.</b> {@code Run} gained
- * milestones (#150) and named inputs (#149) after the type existed, and
+ * milestones and named inputs after the type existed, and
  * {@code StepDeclaration} and {@code Declarations.Declared} have both grown
  * since they were written. A hand-written encoder freezes the shape at the
  * moment somebody wrote it and drops whatever is added next — silently, at

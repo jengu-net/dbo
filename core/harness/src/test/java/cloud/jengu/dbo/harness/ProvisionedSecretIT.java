@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Asking for a tenant's secret waits for provisioning, and refuses rather than
- * answering with a null (#40).
+ * answering with a null.
  *
  * <p>`scanOnce()` returning is not provisioning having finished. Five setups
  * assumed it was, and the null they got travelled as far as

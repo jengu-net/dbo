@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A posted Bundle, answered entry by entry (#86).
+ * A posted Bundle, answered entry by entry.
  *
  * <p>Two request kinds, two promises. A <b>batch</b>'s entries are
  * independent: each is applied exactly as the standalone request would be,
@@ -149,7 +149,7 @@ final class ElementBundles {
                 // with these contents". Conditional CREATE cannot stand in —
                 // it is a no-op when the resource is present, so a definition
                 // changed upstream keeps its old contents and the caller is
-                // told it worked (#99).
+                // told it worked.
                 int question = entry.url().indexOf('?');
                 if (question > 0) {
                     PutResult result = store.conditionalUpdate(json(required(entry)),
@@ -194,7 +194,7 @@ final class ElementBundles {
 
     /**
      * One spelling for one identity, however the query writes it: parsed by
-     * the same rules a reference is (#129), so an entry claiming
+     * the same rules a reference is, so an entry claiming
      * {@code ?identifier=a%7Cb} and a reference asking {@code ?identifier=a|b}
      * meet at the same key.
      */
@@ -217,7 +217,7 @@ final class ElementBundles {
     private String transaction(List<Entry> entries) {
         Map<String, String> resolved = new HashMap<>();
         Map<Integer, String> allocated = new HashMap<>();
-        // The document's own claims (#129): identity -> the id it will have.
+        // The document's own claims: identity -> the id it will have.
         // Collected across EVERY entry before any reference resolves, which is
         // what makes a parent declared after its child the same tree.
         Map<String, String> claimed = new HashMap<>();
@@ -278,7 +278,7 @@ final class ElementBundles {
             resolveReferences(required(entry), resolved, entry.index());
         }
         // The entries' claims answer a conditional reference before the store
-        // (#129, REQ-DBO-CORE-CONDITIONAL-REFERENCES as amended): the referent
+        // (REQ-DBO-CORE-CONDITIONAL-REFERENCES as amended): the referent
         // may be a few lines further down this document. A question neither
         // the document nor the store answers refuses exactly as it always did.
         ElementReferences.Resolver inDocument = (type, query) ->

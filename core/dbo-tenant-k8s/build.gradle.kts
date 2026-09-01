@@ -24,7 +24,7 @@ dependencies {
 
 // bnd COMPUTES Import-Package from this bundle's bytecode and from what
 // rides in lib/. What is written here is policy — what the container
-// provides, and what may go unresolved — never the list of packages (#32).
+// provides, and what may go unresolved — never the list of packages.
 tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     // Whose code rides in this jar, and under what terms. A recipient of
@@ -39,7 +39,7 @@ tasks.jar {
                 "Bundle-ClassPath: ." + jars.joinToString("") { ",lib/${it.name}" },
                 "-includeresource: " + jars.joinToString(",") { "lib/${it.name}=${it.absolutePath}" },
                 // NOTHING is exported, and that is the honest answer to what
-                // this bundle is (#85). Its classes are constructed by its own
+                // this bundle is. Its classes are constructed by its own
                 // Activator, which registers TenantDatabaseProvisioner — a
                 // core.api type — as the service other bundles consume. No
                 // bundle imported this package; the export existed only to

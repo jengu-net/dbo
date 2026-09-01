@@ -18,7 +18,7 @@ import java.util.Optional;
 public interface TerminologyFacade {
 
     /**
-     * The operations this facade answers (#51). A facade that was never wired
+     * The operations this facade answers. A facade that was never wired
      * is never asked, so nothing it offers is routed or declared — the absence
      * says itself.
      */

@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A runtime can be asked which tenants it is serving, and what it is doing
- * about the ones it is not (#67).
+ * about the ones it is not.
  *
  * <p>The consumer is a drift report: an operator asks the store what it serves
  * and compares that against what the configuration declares. The cheap answer —

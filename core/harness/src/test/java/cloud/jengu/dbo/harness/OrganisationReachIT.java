@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * An organisation is an axis of authorization, not only of rule resolution
- * (#126): a role grant may hold at one organisation, the token carries where
+ *: a role grant may hold at one organisation, the token carries where
  * the grants were made, and what comes back over the surface is what the
  * caller may reach — a department's clinician does not read another
  * department's work, and cannot learn its ids from the difference between

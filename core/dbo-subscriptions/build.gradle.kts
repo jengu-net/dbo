@@ -14,7 +14,7 @@ configurations.implementation.get().extendsFrom(embedded)
 
 dependencies {
     api(project(":core:dbo-core"))
-    // an exhausted delivery is a run, not a private table (#69)
+    // an exhausted delivery is a run, not a private table
     api(project(":core:dbo-work"))
     embedded("dev.dbos:transact:1.0.0")
     // slf4j-api is SHARED, not embedded: one binding for the whole
@@ -25,7 +25,7 @@ dependencies {
 
 // bnd COMPUTES Import-Package from this bundle's bytecode and from what
 // rides in lib/. The hand-written part is policy — what is private, what may
-// go unresolved — never the list of packages itself (#32).
+// go unresolved — never the list of packages itself.
 tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     // Whose code rides in this jar, and under what terms. A recipient of

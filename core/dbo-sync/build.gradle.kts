@@ -9,7 +9,7 @@ plugins {
 
 dependencies {
     api(project(":core:dbo-core"))
-    // applying a declaration and streaming a dependency are both sweeps (#73)
+    // applying a declaration and streaming a dependency are both sweeps
     api(project(":core:dbo-work"))
 }
 

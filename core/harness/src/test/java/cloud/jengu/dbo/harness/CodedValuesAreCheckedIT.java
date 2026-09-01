@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What a coded value is checked against, and what the answer says about it
- * (#50).
+ *.
  *
  * <p>A resource can be syntactically valid and semantically empty — a code no
  * consumer can resolve — and that failure is the expensive kind: found by

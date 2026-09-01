@@ -10,14 +10,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * What a tenant's spec requires of its face, refused at bring-up (#107).
+ * What a tenant's spec requires of its face, refused at bring-up.
  *
  * <p>The declaring half of the face contract was load-bearing and the
  * refusing half did not exist: an absent capability surfaced where it was
  * first needed — an exception in the middle of a request, or worse, a quiet
  * degradation. The PDI path had exactly that scar: built without the face's
  * coarsening, every GENERALISE element silently became a REMOVE, and the
- * capability was published all along (#114).
+ * capability was published all along.
  *
  * <p><b>Absence is only an error against a requirement.</b> A face is not
  * required to provide everything — that is the point of declaring rather than
@@ -64,7 +64,7 @@ public final class FaceRequirements {
         if (spec.pdi()) {
             // The engine declares THAT an element is generalised; only a face
             // knows a birth date reduces to its year. Built without it, every
-            // GENERALISE silently became a REMOVE (#114) — the exact
+            // GENERALISE silently became a REMOVE — the exact
             // late-arriving failure this check exists to move to bring-up.
             required.add(new Requirement(Coarsening.class,
                     "pdi is declared, and a generalised element needs the face's coarsening"));

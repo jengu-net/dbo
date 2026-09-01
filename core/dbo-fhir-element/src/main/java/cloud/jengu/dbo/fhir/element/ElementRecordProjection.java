@@ -35,12 +35,12 @@ final class ElementRecordProjection implements RecordProjection {
      * system of a run's KEY. One URI meaning both a namespace and a code
      * system left a client meeting it unable to tell which it had met, and
      * publishing both a NamingSystem and a CodeSystem there described the
-     * ambiguity rather than resolving it (#91). Named like its siblings —
+     * ambiguity rather than resolving it. Named like its siblings —
      * {@code :run:holder}, {@code :run:tally} — which were never ambiguous
      * because they were never the run's own identifier.
      */
     /**
-     * The shape a run takes when this face renders it (#91). A client meets a
+     * The shape a run takes when this face renders it. A client meets a
      * Task carrying seven dbo-owned systems; this is where it looks them up as
      * one thing rather than seven, and it is published before runs are served
      * over HTTP on purpose — after that, changing it is changing a live API.
@@ -85,7 +85,7 @@ final class ElementRecordProjection implements RecordProjection {
 
     /**
      * What dbo says that FHIR has no word for, defined where a client can
-     * fetch it (#91).
+     * fetch it.
      *
      * <p>Two resources for two kinds of thing, because conflating them would
      * be the same imprecision this is fixing: a set of codes is a
@@ -125,8 +125,8 @@ final class ElementRecordProjection implements RecordProjection {
                                 + "step's own declared points, and the position beside "
                                 + "them is derived by the store, never asserted.", null),
                 // Meta.security stamps carry this system on every served
-                // resource (#109), and a system on the wire must resolve
-                // (#91). The seven codes are exactly the seven handling
+                // resource, and a system on the wire must resolve
+                //. The seven codes are exactly the seven handling
                 // classes a tenant spec may declare -- the classification the
                 // reader is being governed by, said where FHIR says it.
                 codeSystem("urn:dbo:sync", "DboSync",
@@ -142,7 +142,7 @@ final class ElementRecordProjection implements RecordProjection {
                                 "store-authored", "audit", "ephemeral")),
                 // The IDENTIFIER namespaces, answered the way FHIR answers
                 // "what is this identifier system" — with a NamingSystem, not
-                // with a CodeSystem it is not (#91). A client that meets
+                // with a CodeSystem it is not. A client that meets
                 // urn:dbo:run as an identifier's system finds this by asking
                 // the tenant it came from: NamingSystem?value=urn:dbo:run,
                 // which is a search parameter every version defines.
@@ -157,12 +157,12 @@ final class ElementRecordProjection implements RecordProjection {
                 // The one extension this face puts on a served resource. A dbo
                 // concept that rides in a resource is described by a definition
                 // a client can fetch, or it is a convention somebody has to be
-                // told about (#91).
+                // told about.
                 originalContentExtension(),
-                // The written-under stamp (#131): meta carries which pack
+                // The written-under stamp: meta carries which pack
                 // profile versions a record was validated under, and a dbo
                 // concept on the wire is described by a definition a client
-                // can fetch (#91).
+                // can fetch.
                 shapeStampExtension(),
                 runTaskProfile());
     }
@@ -198,11 +198,11 @@ final class ElementRecordProjection implements RecordProjection {
      * to look it up.
      *
      * <p>Differential only, as an extension definition normally is: the face
-     * generates the snapshot when it caches the profile (#87), the same as for
+     * generates the snapshot when it caches the profile, the same as for
      * a tenant's own.
      */
     /**
-     * A run as a {@code Task}, described where a client can fetch it (#91).
+     * A run as a {@code Task}, described where a client can fetch it.
      *
      * <p>The face already renders a run as a Task a FHIR client understands.
      * What it could not do was <em>say</em> so: the seven dbo-owned systems on
@@ -324,7 +324,7 @@ final class ElementRecordProjection implements RecordProjection {
             List<String> codes) {
         // A version that changes when the VOCABULARY changes and not
         // otherwise, so a bring-up can tell "already published" from
-        // "published something else" with one read (#98). Derived from what
+        // "published something else" with one read. Derived from what
         // the definition says rather than from dbo's release number, which
         // moves for reasons a code system does not care about.
         String version = Integer.toHexString(
@@ -388,14 +388,14 @@ final class ElementRecordProjection implements RecordProjection {
         // it to a code and a target would be answering an R4 client in dbo's
         // vocabulary instead of its own — the poster's coding systems, source,
         // entity and extensions are what makes the answer an AuditEvent it
-        // recognises (#90, #91). The engine carries these bytes and never
+        // recognises. The engine carries these bytes and never
         // reads them; reading them is this class's, on the way back out.
         return Optional.of(new Posted(firstCode(posted), targetType, targetId,
                 document.getBytes(StandardCharsets.UTF_8), forwardedId(posted)));
     }
 
     /**
-     * The stable id the poster gave this event, from {@code meta.tag} (#120).
+     * The stable id the poster gave this event, from {@code meta.tag}.
      *
      * <p>R4 gives {@code AuditEvent} no {@code identifier} element, and
      * stamping one anyway is not a workaround: the version's own parser drops
@@ -486,7 +486,7 @@ final class ElementRecordProjection implements RecordProjection {
         json.append(",\"status\":\"").append(status(holder)).append('"')
                 .append(",\"businessStatus\":{\"coding\":[{\"system\":\"").append(HOLDER)
                 .append("\",\"code\":\"").append(holder).append("\"}");
-        // Where the work is, said the step's own way (#150): one concept, two
+        // Where the work is, said the step's own way: one concept, two
         // codings — the holder above, and the milestone reached when one is
         // recorded — with the derived position as the human reader's text.
         // The position was computed by the store over the step's declared
@@ -593,7 +593,7 @@ final class ElementRecordProjection implements RecordProjection {
     }
 
     /**
-     * The step's slots, as the run filled them (#149) — FHIR's own element
+     * The step's slots, as the run filled them — FHIR's own element
      * for named work parameters, in declaration order.
      *
      * <p>Displayed rather than resolved, exactly as {@code focus} is: an

@@ -3,7 +3,7 @@ package cloud.jengu.dbo.core.api;
 import java.util.Set;
 
 /**
- * The per-request organisational reach (#126): which organisations' records
+ * The per-request organisational reach: which organisations' records
  * this request may touch, or unbounded when the caller's grants are
  * tenant-wide.
  *

@@ -20,7 +20,7 @@ public record FeedItem(
         String payloadVersion,
         java.util.List<String> shape) {
 
-    /** Compatibility with callers that predate {@code shape} (#131): the
+    /** Compatibility with callers that predate {@code shape}: the
      * written-under stamp travels the wire beside {@code payloadVersion}, so
      * a mirrored copy keeps the stamp of the store that validated it. */
     public FeedItem(long seq, String objectId, String typeName, long versionId,

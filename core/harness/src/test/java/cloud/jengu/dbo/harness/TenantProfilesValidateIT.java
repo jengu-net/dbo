@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Validation runs against the carried pack PLUS what the tenant defined (#87).
+ * Validation runs against the carried pack PLUS what the tenant defined.
  *
  * <p>A profile a tenant authored is a shape its writes are held to — not
  * "a shape this face does not carry", which is what the store answered before

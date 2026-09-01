@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * One run, as it stands (#46).
+ * One run, as it stands.
  *
  * <p>A read-only view over the stored record: advancing a run is
  * {@link Runs}' business, because every advance is a version, a history link
@@ -21,7 +21,7 @@ public record Run(String id, long versionId, String key, String process, String 
         Map<String, String> inputs, Milestone milestone) {
 
     /**
-     * Where a long run is, in the step's own words (#150) — replaced on each
+     * Where a long run is, in the step's own words — replaced on each
      * report, never accumulated, and kept across release and retake so the
      * next taker resumes from a fact.
      *
@@ -35,7 +35,7 @@ public record Run(String id, long versionId, String key, String process, String 
     public record Milestone(String name, int position, int total) {}
 
     /**
-     * What this run changed (#82).
+     * What this run changed.
      *
      * <p>A run that names the versions it produced is a complete account of a
      * change, and reading runs in order reads the changes in order — which is
@@ -68,7 +68,7 @@ public record Run(String id, long versionId, String key, String process, String 
 
     /**
      * Who was chosen to run this and where — or, when nobody was, why the work
-     * is in front of a person (#72).
+     * is in front of a person.
      *
      * <p>Recorded rather than derivable: a provider can be withdrawn and a
      * scope can be re-declared, so a resolution nobody wrote down is a decision
@@ -81,7 +81,7 @@ public record Run(String id, long versionId, String key, String process, String 
      *                 it refused on the way to the one that did — a refused
      *                 override is a fact about somebody's rule and does not
      *                 stop being one because the step's own executor ran
-     * @param until    how long the claim holds (#77), or null when nothing is
+     * @param until    how long the claim holds, or null when nothing is
      *                 claimed. A deadline rather than a lease service: a
      *                 participant that dies mid-claim must not hold work for
      *                 ever, and the only thing that can be relied on to notice
@@ -120,7 +120,7 @@ public record Run(String id, long versionId, String key, String process, String 
     public record Item(String reference, Failure failure, String message) {}
 
     /**
-     * The version of the step declaration this run ran under (#71), or null for
+     * The version of the step declaration this run ran under, or null for
      * a run whose step nobody has declared yet.
      *
      * <p>Beside the executor's version rather than instead of it: reproducing a

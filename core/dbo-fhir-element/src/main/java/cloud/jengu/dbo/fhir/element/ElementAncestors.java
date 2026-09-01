@@ -51,7 +51,7 @@ final class ElementAncestors {
     }
 
     /**
-     * The engine's claims about a record, said in {@code meta} (#109): where a
+     * The engine's claims about a record, said in {@code meta}: where a
      * streamed copy came from ({@code Meta.source}), and the handling class
      * this store enforces on it ({@code Meta.security}). Facts in, document
      * out — the face never fetches them.
@@ -205,7 +205,7 @@ final class ElementAncestors {
     /** urn:dbo:handling — the coding system Meta.security stamps carry. */
     static final String HANDLING_SYSTEM = "urn:dbo:handling";
 
-    /** urn:dbo:sync — the coding system Meta.tag's sync facts carry (#109). */
+    /** urn:dbo:sync — the coding system Meta.tag's sync facts carry. */
     static final String SYNC_SYSTEM = "urn:dbo:sync";
 
     /** The Meta.tag code: this record locally overrides a parked upstream copy. */

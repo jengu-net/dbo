@@ -32,13 +32,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What the statement says about a type is what the store does with it (#52).
+ * What the statement says about a type is what the store does with it.
  *
  * <p>The document used to declare `create`, `update` and `delete` for every
  * configured type, whatever the type declared — so it told a client it could
- * create a replicated vocabulary, and the store answered 403. That cost real
- * time during #31, where a `CodeSystem` declared `replicated` refused a POST
- * while the statement said otherwise.
+ * create a replicated vocabulary, and the store answered 403. That has cost
+ * real time: a `CodeSystem` declared `replicated` refused a POST while the
+ * statement said otherwise.
  *
  * <p>A generated document that misleads is worse than an absent one, because it
  * is trusted. So the claims are checked against behaviour rather than against
@@ -164,10 +164,10 @@ class CapabilityHonestyIT {
                     name + " is accepted but undeclared: " + blockFor("Observation"));
             // accepted means it compiles rather than being refused as unknown.
             // _id takes this store's own id shape: a non-UUID raises rather
-            // than returning no results, noted on #53.
+            // than returning no results.
             store.search("Observation", Map.of(name, switch (name) {
                 case "_id" -> "01a01576-cf32-771c-a65c-e606c803d157";
-                // a bare date, which is what a conformant client sends (#53)
+                // a bare date, which is what a conformant client sends
                 case "_lastUpdated" -> "2020-01-01";
                 default -> "x";
             }), null);

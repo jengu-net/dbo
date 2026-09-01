@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A report lands through the actions the step declares (#77).
+ * A report lands through the actions the step declares.
  *
  * <p>Closing and reopening are acts of judgment; a step's declaration says
  * which of them it contains, and a verb it does not contain is refused naming

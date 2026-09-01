@@ -19,7 +19,7 @@ import java.util.List;
  * version's, the terminology is the tenant's.
  *
  * <p>The shared {@link SimpleWorkerContext} is one per version and takes
- * seconds to build (#83); a tenant cannot have its own. What a tenant has is a
+ * seconds to build; a tenant cannot have its own. What a tenant has is a
  * copy — the copy constructor shares the loaded definition managers, ~100ms —
  * with the {@code validateCode} family overridden to consult the tenant's
  * {@link Terms} for systems the definitions do not carry.
@@ -32,7 +32,7 @@ import java.util.List;
  *   <li>a system it does not carry is asked of the tenant's store — a held
  *       system answers definitively, in or out;</li>
  *   <li>a system neither holds falls through to the toolchain's own honest
- *       "cannot validate" — <i>unresolvable</i>, never <i>invalid</i> (#50).</li>
+ *       "cannot validate" — <i>unresolvable</i>, never <i>invalid</i>.</li>
  * </ol>
  *
  * <p>Binding strength is deliberately NOT decided here. This class answers the
@@ -53,7 +53,7 @@ final class TenantContext extends SimpleWorkerContext {
     }
 
     /**
-     * The tenant's own StructureDefinitions join the view (#87).
+     * The tenant's own StructureDefinitions join the view.
      *
      * <p>Real validation never runs against the standard pack alone: it runs
      * against the pack PLUS what a tenant defined on top — the profiles its
@@ -72,7 +72,7 @@ final class TenantContext extends SimpleWorkerContext {
     }
 
     /**
-     * The same, with the tenant's own converters (#133).
+     * The same, with the tenant's own converters.
      *
      * <p>A pack's StructureMaps are pack content exactly as its profiles are
      * — authored in the tenant's own store, synced with the shapes they

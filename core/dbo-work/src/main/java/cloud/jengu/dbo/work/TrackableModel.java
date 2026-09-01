@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Something whose state is worth knowing, at any depth (#158).
+ * Something whose state is worth knowing, at any depth.
  *
  * <p><b>The topology is a tree, and only its root has a cursor.</b> A
  * connected worker reports for itself; it may also be a <b>router</b>,

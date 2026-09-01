@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The three shapes a token search comes in, and the count that answers them
- * (#81).
+ *.
  *
  * <p>FHIR's token syntax is three questions, not one: {@code sys|code} is this
  * code in this system, {@code code} is this code in any system, and {@code

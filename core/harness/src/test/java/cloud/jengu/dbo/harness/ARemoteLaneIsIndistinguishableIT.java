@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A lane the runner reaches across a boundary, and cannot tell from the one
- * beside it (#79).
+ * beside it.
  *
  * <p>The participation doctrine's load-bearing claim is that the same runner
  * embeds in the cloud, on an edge, or in a pod — the lane being the only door
@@ -66,7 +66,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ARemoteLaneIsIndistinguishableIT {
 
     // module.process, so that process + "." + step is a whole StepId: a
-    // service that brings its own declaration (#147) needs the id to parse,
+    // service that brings its own declaration needs the id to parse,
     // and a four-part one does not.
     private static final String PROCESS = "dbo.lab";
     private static final String STEP = "validate-remote";
@@ -351,7 +351,7 @@ class ARemoteLaneIsIndistinguishableIT {
     void aRefusalCrossesAsARefusal() {
         // An entitlement the lane will not honour: the far side throws, and a
         // relay that swallowed it would make "you may not" indistinguishable
-        // from "there is nothing", which is the failure mode #77 named.
+        // from "there is nothing", which is the failure mode this refuses.
         Lane bounded = Lane.inProcess("t-remote", runs,
                 new PgChangeFeed(ds, WorkModel.DOMAIN), declarations, "bounded-remote",
                 new Executor("bounded-remote", "1.0", "cloud.jengu.test", Scope.BASELINE),

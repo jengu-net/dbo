@@ -35,9 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A routed tree reaches the store as a lane verb (#159).
+ * A routed tree reaches the store as a lane verb.
  *
- * <p>#158 normalised the state and registered the type per tenant, and left
+ * <p>Normalising the state and registering the type per tenant left
  * exactly one thing missing: nothing outside the container could carry a tree
  * to it. That is the shape this repository now names as a trap — built,
  * proven, unreachable — so the proof here is deliberately over real HTTP with

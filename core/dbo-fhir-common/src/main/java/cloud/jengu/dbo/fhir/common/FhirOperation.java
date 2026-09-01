@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * One FHIR operation, described by whatever answers it (#51).
+ * One FHIR operation, described by whatever answers it.
  *
  * <p>A registration is the only way an operation becomes reachable, and the
  * CapabilityStatement is generated from the same registrations — so an

@@ -18,9 +18,9 @@ import java.util.Map;
  * The carried terminology packages, imported once into a tenant's store.
  *
  * <p>This is where the terminology baseline STOPS being parsed into heap on
- * every boot (#83) and starts being what it is: data, in the tenant's
+ * every boot and starts being what it is: data, in the tenant's
  * database, next to the tenant's own systems and aliases, answered by the
- * same lookup validation already consults (#50). The packages stay carried in
+ * same lookup validation already consults. The packages stay carried in
  * the bundle — they are the source this import reads — but the worker context
  * no longer loads them, which was 40–50% of its build.
  *
@@ -62,7 +62,7 @@ final class TerminologyBaseline {
      * <p>Per system it was one transaction each, and a baseline package
      * carries some nine hundred of them: 2704ms of writing against 28ms of
      * parsing, which is round-trip overhead rather than work. Applying a face
-     * is a bulk load, so it is written as one (#93).
+     * is a bulk load, so it is written as one.
      */
     private static void importPackage(TerminologyStore store, CarriedDefinitions.Carried pkg) {
         try {

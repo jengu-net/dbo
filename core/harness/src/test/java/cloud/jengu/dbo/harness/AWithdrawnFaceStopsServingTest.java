@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A face taken from the registry stops working when the bundle providing it
- * goes (#55).
+ * goes.
  *
  * <p>The failure without this is the quiet kind: a bundle is uninstalled and
  * every tenant carries on being served by it, because the classes are loaded

@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Who may drive this tenant's replication (#157).
+ * Who may drive this tenant's replication.
  *
  * <p>Beside {@link WorkGrants} rather than inside it: they guard two surfaces
  * with two different rules, and one class answering both would have to be read

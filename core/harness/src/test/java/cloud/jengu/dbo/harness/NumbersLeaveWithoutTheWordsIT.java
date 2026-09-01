@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What a node reports about work, and what it refuses to (#161).
+ * What a node reports about work, and what it refuses to.
  *
  * <p>The reason a telemetry seam needs a test at all is that its failure mode
  * is silent and delayed: a field nobody meant to send arrives at a collector

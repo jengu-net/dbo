@@ -308,7 +308,7 @@ public final class AuthorityHandler implements HttpHandler {
 
     /**
      * Mints a one-time grant for a subject to set their own first secret
-     * (#68).
+     *.
      *
      * <p>Privileged, because asking for one is an administrative act. It
      * answers identically whether or not the subject exists, whether or not
@@ -321,7 +321,7 @@ public final class AuthorityHandler implements HttpHandler {
      * enters the trust root.
      */
     /**
-     * Register a machine credential, or a relying party (#119).
+     * Register a machine credential, or a relying party.
      *
      * <p>An appliance authenticates with a credential of its own so that one
      * can be revoked without touching the others, and it has no human and no
@@ -381,7 +381,7 @@ public final class AuthorityHandler implements HttpHandler {
     }
 
     /**
-     * Rotate this tenant's signing key (#122).
+     * Rotate this tenant's signing key.
      *
      * <p>A route rather than only a schedule, because the case that cannot
      * wait for one is a key somebody believes is compromised. The old key
@@ -423,7 +423,7 @@ public final class AuthorityHandler implements HttpHandler {
     }
 
     /**
-     * The holder presents the grant and the secret they chose (#68).
+     * The holder presents the grant and the secret they chose.
      *
      * <p>Unauthenticated by design: whoever holds the grant is who this is for,
      * and requiring a token would mean the person needed a credential in order

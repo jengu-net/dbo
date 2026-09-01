@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Two engine facts are said where FHIR says them (#109): {@code Meta.security}
+ * Two engine facts are said where FHIR says them: {@code Meta.security}
  * carries the handling class this store enforces on the record, and
  * {@code Meta.source} says which upstream streamed a copy here. Before this, a
  * client received the data and not the classification governing it — the
@@ -155,9 +155,9 @@ class MetaSaysTheEnginesFactsIT {
     }
 
     /**
-     * A record locally overriding a parked upstream copy says so (#109): the
+     * A record locally overriding a parked upstream copy says so: the
      * shadow used to be visible only to whoever queried the sync engine, and
-     * #102 showed how long one sits there unnoticed. Meta.tag is where the
+     * one can sit there unnoticed for a very long time. Meta.tag is where the
      * record itself tells its reader.
      */
     @Test
@@ -198,11 +198,11 @@ class MetaSaysTheEnginesFactsIT {
                 "an ordinary copy is not tagged: " + unshadowed);
     }
 
-    /** The system on the wire resolves, per the #91 ratchet. */
+    /** The system on the wire resolves, per the ratchet. */
     @Test
     void theHandlingSystemResolvesWhereItIsServedFrom() throws Exception {
         // 200 is the discriminator: the answer for a known code carries no
-        // display because the handling codes have none (#50's shape), so the
+        // display because the handling codes have none, so the
         // body is not the thing to match -- the unknown code refusing is.
         HttpResponse<String> lookup = get(base("allikas")
                 + "/CodeSystem/$lookup?system=urn:dbo:handling&code=mirrored");

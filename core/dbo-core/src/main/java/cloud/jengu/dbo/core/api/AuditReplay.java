@@ -28,7 +28,7 @@ import java.time.Instant;
  * <p><b>Effectively once.</b> A lane delivers at least once, because a
  * transport that guarantees less loses events and one that guarantees more
  * does not exist. The claim on the source's identity is what makes the second
- * delivery find the first (#120) instead of landing beside it.
+ * delivery find the first instead of landing beside it.
  */
 public interface AuditReplay {
 

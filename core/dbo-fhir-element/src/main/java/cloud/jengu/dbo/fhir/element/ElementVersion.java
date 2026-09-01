@@ -65,7 +65,7 @@ public final class ElementVersion {
                 // stored payload needs this version's definitions and nothing
                 // else. It was reachable only through a method on FhirVersion,
                 // which is where an obligation goes when nobody has decided
-                // which kind it is (#106).
+                // which kind it is.
                 .providing(PortableRendering.class,
                         (payload, id, versionId) -> new String(
                                 ElementAncestors.rendered(context, payload, id, versionId),
@@ -224,7 +224,7 @@ public final class ElementVersion {
     /**
      * A payloads view bound to one tenant's terminology: the same definitions,
      * with code membership answered by the tenant's own store where the
-     * definitions are silent (#50, #83). Costs one context copy (~100ms),
+     * definitions are silent. Costs one context copy (~100ms),
      * paid once per tenant at facade construction, never per request.
      */
     ElementPayloads payloadsFor(Terms terms) {
@@ -232,7 +232,7 @@ public final class ElementVersion {
     }
 
     /**
-     * The same, with the tenant's own StructureDefinitions in the view (#87):
+     * The same, with the tenant's own StructureDefinitions in the view:
      * validation runs against the carried pack PLUS what this tenant defined
      * on top of it.
      */
@@ -240,7 +240,7 @@ public final class ElementVersion {
         return payloadsFor(terms, profiles, java.util.List.of());
     }
 
-    /** The same, with the tenant's own converters in the view too (#133). */
+    /** The same, with the tenant's own converters in the view too. */
     ElementPayloads payloadsFor(Terms terms, java.util.List<String> profiles,
             java.util.List<String> maps) {
         try {

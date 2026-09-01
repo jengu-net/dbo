@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Would this be accepted <em>as the input to this step</em> (#49)?
+ * Would this be accepted <em>as the input to this step</em>?
  *
  * <p>A resource is assembled for a step, and the step's shape is narrower than
  * the type's — so a caller who can only ask the weaker question gets a resource
@@ -53,7 +53,7 @@ class ValidateAgainstAStepsShapeIT {
     void theStepsShapeIsTheNarrowerQuestion() {
         String againstTheType = fhir.validationOutcome(PLAIN_OBSERVATION);
         // Valid, which is not the same as unremarkable: the local code system
-        // is unresolvable here, and the outcome says so as advice (#50).
+        // is unresolvable here, and the outcome says so as advice.
         assertFalse(againstTheType.contains("\"severity\":\"error\""),
                 "it is a valid Observation: " + againstTheType);
 

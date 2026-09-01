@@ -100,7 +100,7 @@ public final class SchemaManager {
                 + "(type, system, value) WHERE identity").formatted(d, d));
         execute(c, "CREATE INDEX IF NOT EXISTS %s_identifier_obj_ix ON state.%s_identifier (object_id)"
                 .formatted(d, d));
-        // Owned here rather than by the sync engine (#109): the serving path
+        // Owned here rather than by the sync engine: the serving path
         // reads a record's origin to say Meta.source, and a subselect against
         // a table only dependent tenants have would break every tenant
         // without one. The sync engine's own CREATE IF NOT EXISTS remains and

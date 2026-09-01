@@ -67,7 +67,7 @@ class EngineKnowsNoFaceIT {
                                 || i.startsWith("ca.uhn.fhir") || i.startsWith("cloud.jengu.dbo.fhir"))
                         .toList(),
                 "a participant that imported an orchestrator would not be the same binary on "
-                        + "an edge that has none, and #46 requires a step to be runnable by a "
+                        + "an edge that has none, and a step must be runnable by a "
                         + "DBOS workflow, by a synchronous call, or by neither");
     }
 

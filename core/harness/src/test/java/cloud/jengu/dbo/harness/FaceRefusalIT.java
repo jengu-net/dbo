@@ -29,13 +29,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A tenant whose face cannot serve its spec is refused at bring-up, by name
- * (#107).
+ *.
  *
  * <p>The declaring half of the face contract was load-bearing; the refusing
  * half did not exist, so an absent capability surfaced where it was first
  * needed — an exception mid-request, or the PDI scar: built without the
  * face's coarsening, every GENERALISE element silently became a REMOVE while
- * the capability was published all along (#114). This proves the failure now
+ * the capability was published all along. This proves the failure now
  * arrives at bring-up, named, and — just as load-bearing — that a tenant
  * requiring nothing unusual still comes up on the same face.
  */

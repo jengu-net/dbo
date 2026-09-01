@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A tenant's mandatory steps classify incidents; they never gate (#71).
+ * A tenant's mandatory steps classify incidents; they never gate.
  *
  * <p>This system is asynchronous by design: work buffers on the queue when
  * nothing serves a step, and a participant arriving later drains it. So a
@@ -88,7 +88,7 @@ class MandatoryStepsClassifyIncidentsIT {
                 {"code":"ootel","fhirVersion":"r4",
                  "mandatorySteps":["lab.result.sign"],"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
-        // its mandatory step will arrive by INTRODUCTION over the link (#147)
+        // its mandatory step will arrive by INTRODUCTION over the link
         Files.writeString(dir.resolve("sisse.json"), """
                 {"code":"sisse","fhirVersion":"r4",
                  "mandatorySteps":["ee-lab.result.sign"],"types":[

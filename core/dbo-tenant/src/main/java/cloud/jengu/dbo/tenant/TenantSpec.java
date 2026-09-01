@@ -139,7 +139,7 @@ public record TenantSpec(String code, String fhirVersion, List<FhirTypeConfig> t
      * "mandatorySteps":["&lt;module&gt;.&lt;process&gt;.&lt;step&gt;"]}.
      *
      * <p>{@code mandatorySteps} is the catalogue's one consistency claim
-     * (#71): the steps whose absence is an incident rather than normal
+     *: the steps whose absence is an incident rather than normal
      * elasticity. The tenant serves and its runs queue either way — the list
      * classifies ({@link StepIncidents}), it never gates — and every step not
      * listed is non-critical by construction.

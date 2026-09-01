@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A profile takes effect however it arrived (#87, point 2).
+ * A profile takes effect however it arrived.
  *
  * <p>A profile written THROUGH the facade rebuilds that tenant's validation
  * view at the write, and always did. This is about every other way one can

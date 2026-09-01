@@ -224,7 +224,7 @@ val console = tasks.register("console") {
         tenantDir.mkdirs()
         settings.setProperty("dbo.tenant.dir", tenantDir.absolutePath)
 
-        // #74: the tenant this node's own history lives in. Outside the
+        // The tenant this node's own history lives in. Outside the
         // watched directory on purpose — the scan loop that retracts
         // undeclared tenants must not retract the thing recording
         // retractions — so the console declares it the way a deployment does,

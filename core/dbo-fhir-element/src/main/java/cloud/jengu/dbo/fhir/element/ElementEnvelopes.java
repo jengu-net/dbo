@@ -56,9 +56,9 @@ final class ElementEnvelopes {
         }
         // The meta dimensions the search surface already dispatches on
         // (_profile, _tag in ElementSearch). They are engine-level — no
-        // SearchParameter in the pack expresses them — and until #132 nothing
-        // wrote them: a search by profile or tag answered empty, which looks
-        // like "nobody matches" and is not (#81's lesson, found again).
+        // SearchParameter in the pack expresses them — and nothing wrote them
+        // for a long time: a search by profile or tag answered empty, which
+        // looks like "nobody matches" and is not.
         for (Element meta : document.getChildren("meta")) {
             for (Element profile : meta.getChildren("profile")) {
                 String url = profile.primitiveValue();
@@ -98,7 +98,7 @@ final class ElementEnvelopes {
      * <p>Taken uniformly rather than "url where the version has one": the same
      * namespace replicated between an r4 tenant and an r5 tenant has to be the
      * same object, and it would not be if its identity changed with the
-     * version that happened to store it (#91).
+     * version that happened to store it.
      */
     static String canonicalIdentity(Element document) {
         String url = document.getNamedChildValue("url");
@@ -164,7 +164,7 @@ final class ElementEnvelopes {
      * {@code sys|} is <b>anything at all</b> in this system. The index answers
      * by containment, so a form it does not carry is a search that silently
      * finds nothing — which is worse than an error, because a count of zero
-     * looks like an answer (#81).
+     * looks like an answer.
      */
     private static void tokenForms(Envelope envelope, String path, String system, String code) {
         if (code == null) {

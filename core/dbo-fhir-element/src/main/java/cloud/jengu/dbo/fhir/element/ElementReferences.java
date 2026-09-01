@@ -7,7 +7,7 @@ import java.util.Optional;
 
 /**
  * A reference that is a question, answered before the document is written
- * (#89).
+ *.
  *
  * <p>FHIR lets a writer point at a resource it can describe but cannot name:
  * {@code "reference": "Patient?identifier=https://ehr.example|12345"}. The

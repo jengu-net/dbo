@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Faces handed out here are held to their provider's lifetime (#55).
+ * Faces handed out here are held to their provider's lifetime.
  *
  * <p>A face is a service, so it can go: a bundle is uninstalled, or updated, or
  * simply stops. What a caller took from it keeps working — the classes are

@@ -11,7 +11,7 @@ plugins {
 dependencies {
     api(project(":core:dbo-core"))
     // the store's promise catalogue: a refusal that paraphrases a promise
-    // names it (#140). A leaf of enums and one framework interface — the
+    // names it. A leaf of enums and one framework interface — the
     // "zero new dependencies" note above still holds in spirit: nothing
     // third-party enters.
     implementation(project(":core:dbo-promises"))

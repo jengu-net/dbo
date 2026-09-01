@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A busy machine does not tell a caller their resource is malformed
- * (REQ-DBO-VER-SPECIFIED-VALIDATION, #42).
+ * (REQ-DBO-VER-SPECIFIED-VALIDATION).
  *
  * <p>HL7's ReDoS guard runs each primitive-type regex on its own thread against
  * a 500ms wall clock, so under load it expires on values that match in

@@ -110,7 +110,7 @@ final class ElementSearch {
 
     private static void sort(Criteria criteria, String typeName,
             Map<String, SearchParameter> known, String value) {
-        // Spelled once, for every surface (#92): what -date means is not this
+        // Spelled once, for every surface: what -date means is not this
         // path's to decide differently from the trail's.
         cloud.jengu.dbo.fhir.common.ResultParameters.Sort asked =
                 cloud.jengu.dbo.fhir.common.ResultParameters.sort(value, typeName);

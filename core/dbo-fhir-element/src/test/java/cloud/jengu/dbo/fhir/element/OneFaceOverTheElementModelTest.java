@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * One face, over definitions rather than a generated model (#58).
+ * One face, over definitions rather than a generated model.
  *
  * <p>Everything here is asked of the version's own package: what a payload
  * parses into, what is valid, what a search parameter means. Nothing in the
@@ -100,7 +100,7 @@ class OneFaceOverTheElementModelTest {
                         + envelope.paths().keySet());
         // All three shapes a token search can ask for, because the index
         // answers by containment and a shape it does not carry is a search
-        // that silently finds nothing (#81): sys|code, sys| — anything in that
+        // that silently finds nothing: sys|code, sys| — anything in that
         // system — and the bare code in whatever system it is in.
         assertEquals(List.of(new EnvelopeValue.Token("https://ee.ee/eid", "38001010001"),
                         new EnvelopeValue.Token("https://ee.ee/eid", null),

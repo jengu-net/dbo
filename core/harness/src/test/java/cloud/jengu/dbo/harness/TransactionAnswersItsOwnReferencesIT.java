@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A conditional reference resolves against the transaction's own entries as
- * well as the store (#129, REQ-DBO-CORE-CONDITIONAL-REFERENCES as amended):
+ * well as the store (REQ-DBO-CORE-CONDITIONAL-REFERENCES as amended):
  * a hierarchy authored as one document — each entry a conditional PUT on its
  * identity, each child naming its parent by that identity — lands whole, in
  * any entry order, and re-applying the same document converges onto the same

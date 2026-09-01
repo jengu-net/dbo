@@ -45,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * An edge's trail reaches the cloud as the edge recorded it (#80, §7.8).
+ * An edge's trail reaches the cloud as the edge recorded it (§7.8).
  *
  * <p>The last of the replication toolset. Everything else on the lane is
  * content, and content is written the way anything is written; audit is not —

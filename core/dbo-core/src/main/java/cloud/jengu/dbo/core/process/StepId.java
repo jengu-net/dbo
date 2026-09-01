@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.core.process;
 
 /**
- * What a step is called, everywhere (#71).
+ * What a step is called, everywhere.
  *
  * <p>{@code <module>.<process>.<step>} — opaque, globally stable, and a string
  * a run can name before anything has declared it. Cross-module references then
@@ -11,7 +11,7 @@ package cloud.jengu.dbo.core.process;
  *
  * <p>Stable is the load-bearing word. Runs record the id they ran under, so a
  * catalogue that renames a step breaks retroactively — which is why the scheme
- * was fixed with the record (#69) rather than with the catalogue.
+ * was fixed with the record rather than with the catalogue.
  */
 public record StepId(String module, String process, String step) {
 

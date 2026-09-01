@@ -11,7 +11,7 @@ import org.osgi.framework.FrameworkUtil;
 
 /**
  * One step in full, and the question this command exists for: <b>which
- * executor would run it here now</b> (#75).
+ * executor would run it here now</b>.
  *
  * <p>That answer currently costs reading three declarations and a chain, which
  * is why "a local implementation and a hospital's own system are two candidates

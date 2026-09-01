@@ -471,7 +471,7 @@ one entry per entry, forever.
 bytes, time. Nothing is re-derived on arrival: an entry rebuilt here would say
 what this side can express rather than what the other side recorded. The claim
 on the source's identity is what makes an at-least-once lane land exactly once
-(#120's mechanism, reused rather than reinvented), and it is also why a second
+(an existing mechanism, reused rather than reinvented), and it is also why a second
 delivery cannot rewrite the first — a replayed entry is appended or found,
 never updated.
 

@@ -10,7 +10,7 @@ import org.osgi.framework.FrameworkUtil;
 
 /**
  * What this node is holding: automation running, retries scheduled, and — the
- * one an operator opens the console for — work waiting for a person (#75).
+ * one an operator opens the console for — work waiting for a person.
  *
  * <p>Held by a person is the default, because a list that shows everything
  * answers "what is happening" while looking like it answered "what needs me".

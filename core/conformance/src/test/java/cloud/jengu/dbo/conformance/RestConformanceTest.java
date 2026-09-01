@@ -53,7 +53,7 @@ class RestConformanceTest {
             .connectTimeout(TIMEOUT).build();
 
     /**
-     * One server per version, wired the way a tenant is (#58): the version is
+     * One server per version, wired the way a tenant is: the version is
      * resolved by its code and asked for what a bring-up asks for. So a report
      * says what the store actually serves rather than what a rig assembled for
      * the occasion — and a third version is a line in a list.

@@ -5,7 +5,7 @@ import org.apache.karaf.shell.api.console.Session;
 import java.time.Instant;
 
 /**
- * Where the console keeps who you are and where you are standing (#76).
+ * Where the console keeps who you are and where you are standing.
  *
  * <p>Two honest reasons and no third. <b>Provenance:</b> signing in is assuming
  * an identity you already possess, so that what you do carries your name —

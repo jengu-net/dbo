@@ -15,7 +15,7 @@ import java.util.Set;
 
 /**
  * The tenant's replication surface, for a host that is not the container
- * (#157).
+ *.
  *
  * <p><b>The same asymmetry {@code LaneHandler} answers, one layer up.</b>
  * {@code Lanes} takes the store's internals, so only a host that <em>is</em>

@@ -66,7 +66,7 @@ public final class AuditProjection implements AuditSurface {
 
         /**
          * The same, effectively-once under the stable id the poster gave the
-         * event (#120).
+         * event.
          *
          * <p>A recorder that cannot dedupe appends, which is the honest
          * degradation: the entry lands, and the trail carries a duplicate
@@ -87,7 +87,7 @@ public final class AuditProjection implements AuditSurface {
         }
 
         /**
-         * The same recording, saying which of the two happened (#120).
+         * The same recording, saying which of the two happened.
          *
          * <p>Default: a recorder that cannot dedupe appends and reports a
          * creation, which is what it did. Honest degradation — the entry
@@ -236,7 +236,7 @@ public final class AuditProjection implements AuditSurface {
         // opaque to everything between here and the face that renders it.
         // The dedup key rides with the rest: WHICH event this is, in the face's
         // reading of the document. An appliance forwards at-least-once, and
-        // this is where that becomes effectively-once (#120).
+        // this is where that becomes effectively-once.
         Recorder.Entry entry = recorder.recordForwarded(posted.code(), posted.targetType(),
                 posted.targetId(), Map.of(), posted.contributed(), posted.dedupKey());
         return new Recorded(read(entry.id()).orElseThrow(), entry.created());

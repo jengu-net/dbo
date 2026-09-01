@@ -132,7 +132,7 @@ public final class PolicyObjectStore implements ObjectStore,
     }
 
     /**
-     * Whether this record is inside the caller's organisational reach (#126).
+     * Whether this record is inside the caller's organisational reach.
      *
      * <p>Three ways to be inside, in the order they decide: the request is
      * unbounded (tenant-wide grants, or no caller seam at all — internal
@@ -270,7 +270,7 @@ public final class PolicyObjectStore implements ObjectStore,
         // ordinary traffic to keep. A disclosure record is a requirement: who
         // saw an identity, and why they said they needed it. Answering both
         // with one dial is what left an identifying read untraceable at
-        // audit=writes, with the purpose stated to nobody (#114).
+        // audit=writes, with the purpose stated to nobody.
         //
         // So a read that asked for an identity is recorded whatever the level,
         // and nothing else changes: a request with no purpose is ordinary
@@ -315,7 +315,7 @@ public final class PolicyObjectStore implements ObjectStore,
 
     /**
      * The same, effectively-once when the caller says which event this is
-     * (#120).
+     *.
      *
      * <p>An appliance forwards its audit at-least-once, because a transport
      * that guarantees less loses events and one that guarantees more does not
@@ -370,7 +370,7 @@ public final class PolicyObjectStore implements ObjectStore,
             long sourceVersion, byte[] payload, java.time.Instant recordedAt) {
         String claim = sourceAppliance + "/" + sourceEntryId;
         // putIfAbsent, not put: a lane delivers at least once and the claim is
-        // what makes the second delivery find the first (#120). A replayed
+        // what makes the second delivery find the first. A replayed
         // entry is also never updated — appending is the only thing that
         // happens to a trail, here as everywhere else.
         PutResult result = inner.putIfAbsent(

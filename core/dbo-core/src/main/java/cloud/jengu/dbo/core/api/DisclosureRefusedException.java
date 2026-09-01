@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.core.api;
 
 /**
- * A read asked to reveal an identity and did not say why (#114).
+ * A read asked to reveal an identity and did not say why.
  *
  * <p>Refused rather than quietly downgraded to {@link Disclosure.Mode#OMIT}: a
  * caller that asked for a whole person and received a pseudonymous one would

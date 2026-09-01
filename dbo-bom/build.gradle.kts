@@ -3,7 +3,7 @@ plugins {
 }
 
 // What a consumer of dbo compiles against, published as an artifact rather
-// than left as a fact people remember (#47).
+// than left as a fact people remember.
 //
 // dbo's runtime supplies the FHIR classes: the shared stack embeds HAPI and
 // the HL7 core and exports them, and in a framework where the store owns those
@@ -32,7 +32,7 @@ dependencies {
         // HAPI and the HL7 core are two families with two numbers, and this is
         // the file that says so out loud. `ca.uhn.fhir.*` is HAPI; the
         // `org.hl7.fhir.*` artifacts are the core it ships, pinned apart
-        // because a FHIR ballot needs a core release that knows its code (#58).
+        // because a FHIR ballot needs a core release that knows its code.
         api("ca.uhn.hapi.fhir:hapi-fhir-base:$hapi")
         api("ca.uhn.hapi.fhir:hapi-fhir-structures-r4:$hapi")
         api("ca.uhn.hapi.fhir:hapi-fhir-structures-r5:$hapi")

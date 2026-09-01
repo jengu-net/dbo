@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Why a record is on this appliance: it came with a piece of work (#80).
+ * Why a record is on this appliance: it came with a piece of work.
  *
  * <p>Work-driven arrival implies work-driven expiry. Without a note of what
  * brought a record here, an appliance cannot tell a copy that arrived for a

@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A run names its inputs, and they travel with the work (#149).
+ * A run names its inputs, and they travel with the work.
  *
  * <p>The step declaration is the central profile of what a step consumes —
  * named slots, each an opaque shape reference — a run fills them at creation,

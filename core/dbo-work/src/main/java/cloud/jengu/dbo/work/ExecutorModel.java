@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * What a participant says it can run (#78).
+ * What a participant says it can run.
  *
  * <p>A tenant is not a process that runs somewhere. It is a store plus the
  * participants that hold its steps — an edge, a hospital's own system, a second

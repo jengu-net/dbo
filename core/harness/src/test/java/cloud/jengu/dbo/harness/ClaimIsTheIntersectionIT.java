@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What a participant may claim is the intersection of what its credential
- * covers and what the step admits (#77).
+ * covers and what the step admits.
  *
  * <p>Two halves, enforced in two places for the same reason each is there. The
  * <b>step's</b> half lives at the primitive, where the declaration is: a step

@@ -35,16 +35,16 @@ public final class AuthorityAuthenticator implements RequestAuthenticator {
         }
         // What the token says this access is for. Absent, the store's default
         // stands and the read omits identity — a caller that asked for nothing
-        // gets nothing identifying, which is the point of the default (#114).
+        // gets nothing identifying, which is the point of the default.
         // Present, it selects the disclosing mode and is recorded; it is NOT
-        // what permits the read, which the scopes above already decided (#117).
+        // what permits the read, which the scopes above already decided.
         if (context.get().purposeOfUse() != null) {
             cloud.jengu.dbo.core.api.Disclosure.set(
                     cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE,
                     context.get().purposeOfUse());
         }
         if (context.get().organisations() != null) {
-            // The token's reach becomes the request's (#126): the policy layer
+            // The token's reach becomes the request's: the policy layer
             // constrains what comes back to the organisations the grants were
             // made at. Absent, nothing is bound — the shape every token had
             // before organisations became an axis.

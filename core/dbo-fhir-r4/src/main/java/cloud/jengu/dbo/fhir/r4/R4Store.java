@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The FHIR R4 store surface, served by the shared facade (#58).
+ * The FHIR R4 store surface, served by the shared facade.
  *
  * <p>This used to be 278 lines that {@code R5Store} repeated almost exactly —
  * validate, put, read, search, history, conditional create — none of which is
@@ -24,7 +24,7 @@ import java.util.Map;
  *
  * <p>What is left here is the name and the constructor a caller already holds.
  * The one thing this adds is {@code $validate}, which is registered rather than
- * routed by name (#51) — an operation is declared because it is reachable.
+ * routed by name — an operation is declared because it is reachable.
  */
 public final class R4Store implements FhirStoreFacade {
 
@@ -38,18 +38,18 @@ public final class R4Store implements FhirStoreFacade {
     }
 
     /**
-     * What this store answers (#51): {@code $validate}, on every type it serves.
+     * What this store answers: {@code $validate}, on every type it serves.
      *
      * <p>Registered rather than routed by name, so it is announced by the same
      * act that makes it reachable.
      */
     /**
-     * What this store answers (#51), which is what the face it is served by
+     * What this store answers, which is what the face it is served by
      * answers.
      *
      * <p>It used to be declared here, in each personality, while the runtime
      * built the face's store — so the operation was announced twice and
-     * reachable through neither (#49). One implementation, for every version
+     * reachable through neither. One implementation, for every version
      * the face serves.
      */
     @Override

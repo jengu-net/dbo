@@ -39,7 +39,7 @@ class ApiBoundaryTest {
     }
 
     /**
-     * The same rule, for EVERY bundle that exports a dbo package (#85).
+     * The same rule, for EVERY bundle that exports a dbo package.
      *
      * <p>The personality tests above are the rule's origin — HAPI must not
      * cross a personality's public API — and this is the rule itself: what a
@@ -50,7 +50,7 @@ class ApiBoundaryTest {
      * published cannot be used from outside at all. It reads as callable and
      * is not.
      *
-     * <p>Found by bnd during the #32 conversion and enforced here, because a
+     * <p>Found by bnd during the conversion and enforced here, because a
      * warning nobody fails on is a warning nobody reads.
      */
     private static final List<String> BUNDLES = List.of("dbo.core", "dbo.fhir.common",

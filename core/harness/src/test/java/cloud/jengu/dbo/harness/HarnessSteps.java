@@ -6,7 +6,7 @@ import cloud.jengu.dbo.core.process.Steps;
 import java.util.Set;
 
 /**
- * The steps this harness contributes by being on the classpath (#71) — which
+ * The steps this harness contributes by being on the classpath — which
  * is how a module contributes them anywhere.
  */
 public final class HarnessSteps implements Steps.Catalogue {

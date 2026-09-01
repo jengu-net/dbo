@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * An R4 face serves AuditEvent as R4 (#90): what a client posts is what it
+ * An R4 face serves AuditEvent as R4: what a client posts is what it
  * reads back, except the two facts the container owns.
  *
  * <p>REQ-DBO-POL-CUSTOM-AUDIT-EVENTS — the trail can be enriched — and

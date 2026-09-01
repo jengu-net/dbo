@@ -85,7 +85,7 @@ tasks.jar {
     // but not declared, Gradle called this task up to date after the stack's
     // exports changed underneath it — and the bundle then asked the container
     // for a package nothing exports any more, which fails at bring-up in a
-    // test nobody would connect to a build-cache decision (#32).
+    // test nobody would connect to a build-cache decision.
     inputs.file(stackJar.get().archiveFile)
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     // Whose code rides in this jar, and under what terms. A recipient of

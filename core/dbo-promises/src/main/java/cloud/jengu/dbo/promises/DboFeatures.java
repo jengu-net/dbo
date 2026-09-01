@@ -23,8 +23,8 @@ public enum DboFeatures implements Feature {
                     DboPromises.SHAPE_RESHAPE_RESUMABLE,
                     DboPromises.SHAPE_REFUSED_OBJECT_LEFT_BEHIND,
                     // The gap this feature declared while the catalogue was
-                    // being written, now stated: #133 answered it, so it is a
-                    // named promise rather than a hole.
+                    // being written, since answered, so it is a named promise
+                    // rather than a hole.
                     DboPromises.SHAPE_STAMP_OUTLIVES_ITS_PACK,
                     DboPromises.SHAPE_NEWER_DATA_REFUSED,
                     DboPromises.SHAPE_TOO_NEW_IS_ITS_OWN_ANSWER,

@@ -11,7 +11,7 @@ import java.util.Set;
 
 /**
  * The embeddable participant: declare, pull, claim, checkpoint, report,
- * release (#79).
+ * release.
  *
  * <p>Every place that does work needs the same three things — pull, claim,
  * report — and none of them should be written twice. A hospital integrating
@@ -83,7 +83,7 @@ public final class Runner {
     private final Duration hold;
 
     /**
-     * @param self  what this participant announces itself as (#78)
+     * @param self  what this participant announces itself as
      * @param hold  how long it claims work for. Long enough to do it, short
      *              enough that this participant's death is noticed.
      */
@@ -97,7 +97,7 @@ public final class Runner {
                 Set.of(self.step()), self.executor());
     }
 
-    /** Announces itself, so resolution can see it (#78). Idempotent. */
+    /** Announces itself, so resolution can see it. Idempotent. */
     public Runner declare() {
         declarations.declare(self);
         return this;
@@ -167,7 +167,7 @@ public final class Runner {
         return runs.released(claimed, why);
     }
 
-    /** How far behind this participant is (#77). */
+    /** How far behind this participant is. */
     public long lag() {
         return participation.lag();
     }

@@ -33,7 +33,7 @@ import java.util.TreeMap;
  *
  * <p><b>The catalogue has two doors and this reads both.</b> A module
  * contributes steps by being installed, and a linked participant introduces
- * the step it performs (#147). An operator asking what this node knows how to
+ * the step it performs. An operator asking what this node knows how to
  * do wants one answer, with the provenance beside each row rather than two
  * lists to reconcile.
  *
@@ -218,7 +218,7 @@ final class ProcessView {
     }
 
     /**
-     * What a participant last said about itself (#148), beside the presence
+     * What a participant last said about itself, beside the presence
      * this node worked out for itself.
      *
      * <p><b>The order of those two columns is the point.</b> Presence is

@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Two layers, owning different failures (#79).
+ * Two layers, owning different failures.
  *
  * <p>The participation contract names no orchestrator, and this is what that
  * buys: a step service may put whatever it likes underneath itself, and dbo
@@ -52,7 +52,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code StepService}. Nothing in {@code dbo-runner} compiles against it,
  * because a runner that compiled against an orchestrator would be naming one.
  *
- * <p>The claim is the last clause of #79's definition of done: killing a
+ * <p>The claim is the last clause of the definition of done: killing a
  * participant mid-work loses nothing. Both halves have to hold at once, and
  * they are different halves.
  *

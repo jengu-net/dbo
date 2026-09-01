@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * One server, one answer about how many and in what order (#92).
+ * One server, one answer about how many and in what order.
  *
  * <p>dbo serves some types through the ordinary FHIR path and some through a
  * surface of their own — the audit trail today, runs tomorrow. A client should

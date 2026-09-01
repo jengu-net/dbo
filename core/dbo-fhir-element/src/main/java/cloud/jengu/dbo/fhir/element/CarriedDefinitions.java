@@ -119,7 +119,7 @@ public final class CarriedDefinitions {
         // The terminology packages are carried but NOT loaded: 40-50% of this
         // build was parsing them into heap, and the concepts they carry are
         // tenant data now — imported into each tenant's store once and
-        // consulted there by validation (#50, #83). What the context keeps is
+        // consulted there by validation. What the context keeps is
         // the version's own definitions: structures, search parameters, and
         // the code systems the core package itself carries.
         List<Carried> packages = forVersion(fhirVersion).stream()

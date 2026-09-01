@@ -44,7 +44,7 @@ import java.util.Set;
  * <h2>Where a new obligation belongs</h2>
  *
  * <p>The question that kept coming back was whether a capability is scoped to a
- * version or to a tenant (#106). It is the wrong question. The line is not
+ * version or to a tenant. It is the wrong question. The line is not
  * scope, it is <b>whether the thing holds a store</b> — because one that did
  * would be an actor, and the rule above is what keeps two faces able to run
  * over one store without disagreeing.

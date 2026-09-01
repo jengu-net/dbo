@@ -11,7 +11,7 @@ import java.util.Map;
 public interface FhirStoreFacade {
 
     /**
-     * How this tenant converts stored shapes, when it can (#133).
+     * How this tenant converts stored shapes, when it can.
      *
      * <p>Tenant-scoped rather than version-scoped, and that is the whole
      * reason it lives here: converters ship in the tenant's own pack beside
@@ -39,7 +39,7 @@ public interface FhirStoreFacade {
      * replaced. Conditional CREATE cannot stand in: it is a no-op when the
      * resource exists, so a definition changed upstream keeps its old
      * contents and the caller is told it worked, which is worse than a
-     * refusal (#99).
+     * refusal.
      */
     default PutResult conditionalUpdate(String resourceJson, Map<String, String> condition) {
         throw new UnsupportedOperationException("this store does not accept conditional updates");
@@ -96,7 +96,7 @@ public interface FhirStoreFacade {
 
     /**
      * The operations this store answers, for the router and the statement
-     * alike (#51). One list, two readers — that is the whole point.
+     * alike. One list, two readers — that is the whole point.
      */
     default java.util.List<FhirOperation> operations() {
         return java.util.List.of();
@@ -116,7 +116,7 @@ public interface FhirStoreFacade {
 
     /**
      * The same, told which types are served by a surface of their own and
-     * with which search parameters — the audit trail today (#90).
+     * with which search parameters — the audit trail today.
      *
      * <p>Passed in rather than assumed: the thing that implements a filter is
      * the only honest source for which filters exist, and a capability that
@@ -131,7 +131,7 @@ public interface FhirStoreFacade {
 
     /** An OperationOutcome document for error responses. */
     /**
-     * Would this resource be accepted — answered without writing it (#48).
+     * Would this resource be accepted — answered without writing it.
      *
      * <p>The verdict comes from the write path's own validation rather than a
      * second implementation of the rules. Two validators would eventually
@@ -151,7 +151,7 @@ public interface FhirStoreFacade {
     String validationOutcome(String resourceJson);
 
     /**
-     * The same question against a <b>named</b> shape (#49).
+     * The same question against a <b>named</b> shape.
      *
      * <p>A resource is often assembled <em>for a step</em>, and the step's
      * shape is narrower than the type's — so a caller who can only ask the
@@ -173,7 +173,7 @@ public interface FhirStoreFacade {
 
     /**
      * A transaction or batch Bundle posted to the base, answered as a
-     * response bundle (#86). The default refuses by name — a facade that has
+     * response bundle. The default refuses by name — a facade that has
      * not implemented bundles answers "not offered here", never a 500.
      */
     default String bundle(String bundleJson) {
@@ -185,7 +185,7 @@ public interface FhirStoreFacade {
      * A StructureDefinition reached this tenant's store by some path other than
      * this facade — replication from a zone, an archive restored, the engine
      * written directly — and the shapes this facade validates against are now
-     * older than the store it validates for (#87).
+     * older than the store it validates for.
      *
      * <p>Writes THROUGH the facade rebuild the view themselves, at the write.
      * This is the other half, and it exists because a facade cannot notice what
@@ -202,7 +202,7 @@ public interface FhirStoreFacade {
 
     /**
      * An outcome for a fault in THIS STORE, as opposed to a finding about the
-     * caller's content (#105).
+     * caller's content.
      *
      * <p>The two were indistinguishable without reading the diagnostics string,
      * so an internal fault was attributed to whoever posted the document. The

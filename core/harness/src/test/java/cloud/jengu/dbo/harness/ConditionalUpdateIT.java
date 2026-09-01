@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Conditional update: this resource, identified by its canonical, should exist
- * with these contents (R4 §3.1.0.7.1, #99).
+ * with these contents (R4 §3.1.0.7.1).
  *
  * <p>A catalogue's job is to make the store match configuration. Conditional
  * CREATE cannot express that — it is a no-op when the resource is present, so

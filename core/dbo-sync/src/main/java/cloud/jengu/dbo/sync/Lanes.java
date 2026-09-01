@@ -25,7 +25,7 @@ import java.util.Set;
 
 /**
  * Moving work and the data it names between two appliances of one tenant
- * (#80).
+ *.
  *
  * <p><b>There is no channel here, and that is the design.</b> This hands a
  * caller a batch and takes one back; a connector outside dbo carries the bytes,
@@ -223,7 +223,7 @@ public final class Lanes {
                 continue;
             }
             if (WorkModel.authoredElsewhere(run.get().key())) {
-                // An appliance offers only what it authored (#151). A mirror
+                // An appliance offers only what it authored. A mirror
                 // sent back is a NEW record at the far side — filed under this
                 // appliance, prefixed again — so a pair that echoed would
                 // deepen a key and add a run every round, for ever. The same
@@ -448,7 +448,7 @@ public final class Lanes {
     // ------------------------------------------------------------ revocation
 
     /**
-     * Removes what arrived for work that is over (#80).
+     * Removes what arrived for work that is over.
      *
      * <p>A record stays while any work that brought it is still open, and goes
      * when the last of them closes — so a bench holds the people it is treating

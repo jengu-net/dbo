@@ -10,7 +10,7 @@ import cloud.jengu.dbo.work.Runs;
 import java.util.List;
 
 /**
- * Applying what a declaration says, as a run (#73).
+ * Applying what a declaration says, as a run.
  *
  * <p>Configuration arrives from somewhere that declared it — a git-backed
  * loader, an admin commit, an importer — and applying it is a <b>sweep</b>: it

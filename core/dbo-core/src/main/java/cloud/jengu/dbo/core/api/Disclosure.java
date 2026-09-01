@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.core.api;
 
 /**
- * What this read is allowed to reveal about a person, and why (§15.1, #114).
+ * What this read is allowed to reveal about a person, and why (§15.1).
  *
  * <p>A sibling of {@link Caller} and deliberately the same tiny shape: set by
  * the serving surface once the request is understood, read by the layer that
@@ -82,7 +82,7 @@ public final class Disclosure {
 
     /**
      * Record that this request matched a person by an identifying term, as the
-     * fingerprint of that term and never as the term (#115).
+     * fingerprint of that term and never as the term.
      *
      * <p>The trail is append-only against everyone, so a plaintext address in
      * it would force a choice between an immutable audit and an erasure right.

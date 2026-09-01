@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The pilot carrying real weight (#140): the store's own catalogue is
+ * The pilot carrying real weight: the store's own catalogue is
  * registered by its compilation, the citations in this module's tests are
  * indexed by theirs, and the composed model reads both — the first time the
  * whole pipeline runs outside its own fixtures.
@@ -54,7 +54,7 @@ class PromiseCatalogueTest {
     /**
      * The gap this feature declared when the catalogue was first written —
      * what happens to stock stamped under a version the pack withdraws —
-     * was answered by #133 and promoted to a named promise. What the fold
+     * was answered and promoted to a named promise. What the fold
      * shows now is the point of the mechanism: unstated ground was visible
      * until somebody stated it, and then it stopped being a gap.
      */

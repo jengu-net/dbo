@@ -38,7 +38,7 @@ public final class FhirHttpServer implements AutoCloseable {
     private final boolean ownsServer;
     private final RequestAuthenticator authenticator;
     /**
-     * Every operation this server answers, keyed by {@code Type/$name} (#51).
+     * Every operation this server answers, keyed by {@code Type/$name}.
      *
      * <p>Built from what was actually wired: the store's own, plus a
      * terminology facade's if one was given. The router dispatches from here
@@ -213,7 +213,7 @@ public final class FhirHttpServer implements AutoCloseable {
             // An Error is not this thread's to die of silently. The toolchain
             // throws one for a canonical it cannot resolve, and a dead handler
             // answers with no bytes at all — which a caller cannot tell from a
-            // network fault and cannot act on either (#87).
+            // network fault and cannot act on either.
             respond(exchange, 500, store.internalFault(
                     t.getClass().getSimpleName() + ": " + t.getMessage()));
         } finally {
@@ -241,7 +241,7 @@ public final class FhirHttpServer implements AutoCloseable {
             // anonymous by REQ-DBO-AUTH-OPEN-CAPABILITY; declares the auth mode
             // The audit trail has a surface of its own, so the statement
             // advertises the parameters THAT surface honours rather than
-            // every one the version defines (#90).
+            // every one the version defines.
             respond(exchange, 200, securityDeclared(
                     store.capabilityStatement(baseUrl(), declaredOperations,
                             auditSurface == null ? Map.of()
@@ -288,7 +288,7 @@ public final class FhirHttpServer implements AutoCloseable {
                     // 200 when this event had already been delivered: an
                     // appliance forwards at-least-once, and the status is how
                     // it learns its retry landed on the entry it already made
-                    // rather than beside it (#120).
+                    // rather than beside it.
                     AuditSurface.Recorded recorded = auditSurface.record(
                             new String(exchange.getRequestBody().readAllBytes(),
                                     java.nio.charset.StandardCharsets.UTF_8));
@@ -300,7 +300,7 @@ public final class FhirHttpServer implements AutoCloseable {
             return;
         }
 
-        // Operations, dispatched from the registry and nowhere else (#51). A
+        // Operations, dispatched from the registry and nowhere else. A
         // hand-written branch beside this would be the second list all over
         // again, so there is not one.
         if (segments.length == 2 && segments[1].startsWith("$")) {
@@ -324,7 +324,7 @@ public final class FhirHttpServer implements AutoCloseable {
             return;
         }
 
-        // The base itself. POST is a request bundle (#86); anything else at
+        // The base itself. POST is a request bundle; anything else at
         // the base is refused with its name — the index-out-of-bounds this
         // replaced told a caller to retry a request that could never work.
         if (segments.length == 0) {
@@ -356,7 +356,7 @@ public final class FhirHttpServer implements AutoCloseable {
                     // condition, no id. Absent it creates, present it
                     // replaces — the upsert-by-canonical a catalogue needs,
                     // which conditional create cannot express because it is a
-                    // no-op when the resource exists (#99).
+                    // no-op when the resource exists.
                     case "PUT" -> {
                         if (query.isEmpty()) {
                             respond(exchange, 400, store.operationOutcome("invalid",

@@ -137,11 +137,11 @@ class PdiIT {
 
     /**
      * Reads whole, the way an authorised caller does: a stated purpose and the
-     * mode that goes with it (#114).
+     * mode that goes with it.
      *
      * <p>These tests were written when a read with a key returned everything,
      * so they read plainly and expected identity back. The default is now to
-     * omit it, which is the disruption #114 intended — so what they assert
+     * omit it, which is the disruption intended — so what they assert
      * about an AUTHORISED read they now have to ask for.
      */
     private static <T> T reading(java.util.function.Supplier<T> read) {
@@ -230,7 +230,7 @@ class PdiIT {
 
     /**
      * The subject's own export states its own purpose rather than inheriting
-     * the request's (#114).
+     * the request's.
      *
      * <p>Article 20 is not satisfied by a pseudonymous file, and ciphertext the
      * subject holds no key for satisfies it even less — so this path says
@@ -262,7 +262,7 @@ class PdiIT {
 
     /**
      * A tenant archive carries the carrier form, and does so by construction
-     * rather than by remembering to ask (#114).
+     * rather than by remembering to ask.
      *
      * <p>The export copies rows, so what it holds is what is at rest:
      * ciphertext and coarse values. That is {@code ENCRYPTED} without anyone
@@ -325,7 +325,7 @@ class PdiIT {
                 "no new identifying data for a shredded person");
         assertTrue(refused.getMessage().contains(
                         DboPromises.PDI_CRYPTO_SHREDDING.code()),
-                "the refusal names the promise it enforces (#140): " + refused.getMessage());
+                "the refusal names the promise it enforces: " + refused.getMessage());
 
         // restore the pre-shred archive: the ledger MERGES and replays
         CoSignedArchive.over(archive.toByteArray(), ownerKey)
@@ -338,7 +338,7 @@ class PdiIT {
     }
     /**
      * After erasure, exact identifier resolution answers "nobody" — which is
-     * then the true answer, not a lie (#136). The claim rows went with the
+     * then the true answer, not a lie. The claim rows went with the
      * shred, and the pre-shred archive restored in the previous step could
      * not resurrect them either.
      */

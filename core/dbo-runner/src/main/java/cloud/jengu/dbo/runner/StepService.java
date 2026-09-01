@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.runner;
 
 /**
- * One step, performed — the whole integration surface (#79).
+ * One step, performed — the whole integration surface.
  *
  * <p>An integrator writes this and registers it; registration starts
  * consumption. Everything else — pulling, claiming, checkpointing, reporting,
@@ -22,7 +22,7 @@ public interface StepService {
 
     /**
      * The declaration this service brings with it, when it performs a step
-     * the catalogue has not declared (#147) — a linked participant carrying
+     * the catalogue has not declared — a linked participant carrying
      * its own capability. Empty is the honest default: a service performing
      * an installed step brings nothing, because the module already
      * contributed it. The runner introduces it beside the candidacy, so the

@@ -201,7 +201,7 @@ class AuthorityIT {
 
     /**
      * An operator can rotate a key, and a key that can verify nothing is
-     * eventually gone (#122).
+     * eventually gone.
      *
      * <p>The capability existed and nothing deployed could ask for it, so a
      * store signed every token with a key it could never change. And rotation
@@ -278,7 +278,7 @@ class AuthorityIT {
         String location = created.headers().firstValue("Location").orElseThrow();
         String id = location.replaceAll(".*/Patient/([^/]+).*", "$1");
         // This token states no purpose, so it gets what any caller who says
-        // nothing gets: the resource without its identity (#114). The default
+        // nothing gets: the resource without its identity. The default
         // is the strict one and a surface cannot leak by inaction.
         String read = get(fhir("kolm") + "/Patient/" + id, token).body();
         assertFalse(read.contains("Peidetud") || read.contains("49001010062"),
@@ -288,7 +288,7 @@ class AuthorityIT {
 
         // A token that DOES state one discloses, and nothing new reached the
         // wire to say so — the purpose rides the token, as IUA carries it
-        // (#117). The scopes are unchanged: this widens what is disclosed, not
+        //. The scopes are unchanged: this widens what is disclosed, not
         // what may be read.
         String forTreatment = get(fhir("kolm") + "/Patient/" + id,
                 token("kolm", null, "TREAT")).body();
@@ -352,7 +352,7 @@ class AuthorityIT {
      * asserted over those, which passed only because bring-up happened to
      * write fewer than ten before the interesting one — publishing four more
      * definitions moved the entry out of the window and the test failed
-     * without anything about auditing having changed (#91). A trail is
+     * without anything about auditing having changed. A trail is
      * append-only and a test that cares whether something is IN it must look
      * at all of it.
      */
@@ -380,7 +380,7 @@ class AuthorityIT {
 
     /**
      * An appliance forwards its audit at-least-once, and the trail receives it
-     * once (#120).
+     * once.
      *
      * <p>R4 gives {@code AuditEvent} no {@code identifier} element, so there
      * was nothing on the resource a conditional write could name, and a
@@ -471,7 +471,7 @@ class AuthorityIT {
         assertFalse(posted.body().contains("evil-impostor"), "claimed agent must be ignored");
         assertFalse(posted.body().contains("1999-01-01"), "claimed time must be ignored");
 
-        // An r4 face answers an r4 client in the client's own words (#90): what
+        // An r4 face answers an r4 client in the client's own words: what
         // was posted comes back, minus only the two facts the container owns.
         // Before this, the trail answered in dbo's vocabulary — urn:dbo:audit,
         // observer "dbo" — and everything else the poster said was discarded,
@@ -521,7 +521,7 @@ class AuthorityIT {
         // surface always did both internally — it just could not be asked.
         // Refusing a RESULT parameter was the wrong half of refuse-don't-
         // ignore: an ignored filter returns rows nobody asked for, while an
-        // ignored bound returns more rows, never wrong ones (#92).
+        // ignored bound returns more rows, never wrong ones.
         assertTrue(capability.contains("\"_count\"") && capability.contains("\"_sort\""),
                 "the statement declares the result parameters ONCE, at the server, because "
                         + "that is what they are: " + capability);

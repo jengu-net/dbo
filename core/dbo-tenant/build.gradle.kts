@@ -24,7 +24,7 @@ dependencies {
     implementation(project(":core:dbo-scim"))
     api(project(":core:dbo-policy"))
     implementation(project(":core:dbo-work"))
-    // The HOST's half of the lane (#154): Lane.inProcess and the surface a
+    // The HOST's half of the lane: Lane.inProcess and the surface a
     // tenant mounts it behind. The runner's own half — StepRunner, the
     // activator, the step services — is not installed here and does not join
     // the runtime bundle set; what the tenant uses is the interface it serves.
@@ -49,7 +49,7 @@ dependencies {
 // rides in lib/. What stays written by hand is POLICY rather than inventory:
 // which packages are private, and which imports may go unresolved. The list
 // of packages itself is never written down, so it cannot drift from the code
-// the way a hand-kept list does (#32).
+// the way a hand-kept list does.
 tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     // Whose code rides in this jar, and under what terms. A recipient of

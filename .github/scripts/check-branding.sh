@@ -36,11 +36,19 @@ if hits=$(grep -rniE 'jengu' \
     exit 1
 fi
 
-# Issue references die with the tracker they point at.
-if hits=$(grep -rnE '(jengu-platform|jengu-infra|dbo)#[0-9]+' \
+# An issue is a moment: superseded by later ones, dead when a tracker moves,
+# and often not openable by a reader of this repository at all. Code and the
+# specification tree describe the state the store is in, so a comment that
+# needs its ticket to make sense has not said what it means yet. Two-to-four
+# digits, which passes over package coordinates like `hl7.fhir.r4.core#4.0.1`
+# and prose like "event #1". docs/tasks/ is exempt: those documents exist to
+# carry a topic between its issues and its concepts, and they are deleted when
+# their issues close.
+if hits=$(grep -rnE '(jengu-platform|jengu-infra|dbo)?#[0-9]{2,4}' \
         --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
-        --exclude=check-branding.sh . 2>/dev/null); then
-    echo "Issue references found — a reader of this repository cannot open them:" >&2
+        --exclude-dir=tasks --exclude=check-branding.sh --exclude=CLAUDE.md \
+        . 2>/dev/null); then
+    echo "Issue references found — state the constraint instead:" >&2
     echo "$hits" >&2
     exit 1
 fi

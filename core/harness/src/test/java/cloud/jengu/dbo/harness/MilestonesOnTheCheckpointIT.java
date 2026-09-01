@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A long-running step says where it is (#150).
+ * A long-running step says where it is.
  *
  * <p>Milestones ride the checkpoint the way events ride a tracing span: the
  * executor asserts only the name, the store derives the position over the

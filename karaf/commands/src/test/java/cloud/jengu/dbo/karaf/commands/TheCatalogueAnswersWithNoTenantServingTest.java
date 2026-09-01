@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The catalogue is what is installed, not what is running (#75).
+ * The catalogue is what is installed, not what is running.
  *
  * <p>The load-bearing claim of {@code dbo-process:list}: a node serving no
  * tenant at all still answers what it knows how to do. A command that quietly

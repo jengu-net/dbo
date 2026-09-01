@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Data newer than the pack understands (#134): refused, loudly, rather than
+ * Data newer than the pack understands: refused, loudly, rather than
  * read best-effort — a silent misreading is indistinguishable from a correct
  * read to whoever is holding the result.
  */
@@ -127,7 +127,7 @@ class NewerDataRefusedIT {
         assertEquals(200, get("/Basic/" + unstamped).statusCode(),
                 "unstamped is not the same as too new");
 
-        // #133's rule, pinned here so the two cannot drift: a stamp outlives
+        // The rule, pinned here so the two cannot drift: a stamp outlives
         // the pack version that made it, so a withdrawn shape is not a
         // conflict — only a pack declaring an OLDER version is.
         assertTrue(delete("/StructureDefinition/" + withdrawnShapeId).statusCode() < 400,

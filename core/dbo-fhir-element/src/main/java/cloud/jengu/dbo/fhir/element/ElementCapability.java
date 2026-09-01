@@ -49,7 +49,7 @@ final class ElementCapability {
      * @param narrowedSearch types served by a surface of their own, mapped to
      *                       the search parameters that surface honours — for
      *                       those, the statement advertises exactly those and
-     *                       nothing the version happens to define (#90)
+     *                       nothing the version happens to define
      */
     static String statement(ElementVersion version, List<FhirTypeConfig> types, String baseUrl,
             Collection<FhirOperation> served,
@@ -67,7 +67,7 @@ final class ElementCapability {
                 // whatever is being read. Per-type they would be repeated for
                 // every resource and still missed by a surface that keeps its
                 // own list — which is exactly how one path came to accept them
-                // and another to refuse them (#92).
+                // and another to refuse them.
                 .append(",\"searchParam\":[{\"name\":\"_count\",\"type\":\"number\"")
                 .append(",\"documentation\":\"How many members a page carries.\"}")
                 .append(",{\"name\":\"_sort\",\"type\":\"string\"")
@@ -86,7 +86,7 @@ final class ElementCapability {
         // trail is served whenever the tenant has a policy layer, whether or
         // not AuditEvent is one of its declared types. Serving it and not
         // declaring it is the same dishonesty as declaring filters nothing
-        // runs: a client cannot discover what is there (#90, #91).
+        // runs: a client cannot discover what is there.
         for (Map.Entry<String, java.util.Set<String>> surfaced : narrowedSearch.entrySet()) {
             if (types.stream().anyMatch(t -> t.typeName().equals(surfaced.getKey()))) {
                 continue;
@@ -129,7 +129,7 @@ final class ElementCapability {
         // What the ENGINE would refuse, not who owns the type. Those are
         // different questions and this asked the second while answering the
         // first: every lane-owned type was advertised as uncreatable and the
-        // store then accepted the create (#104). A zone's CodeSystem is the
+        // store then accepted the create. A zone's CodeSystem is the
         // case in the field — the loader posts one against a statement saying
         // it cannot.
         boolean writable = handling.refusalFor(Handling.Authority.TENANT_USERS, true) == null;
@@ -206,7 +206,7 @@ final class ElementCapability {
                     .append('}');
         }
         out.append(']');
-        // declared because registered, not because remembered (#51)
+        // declared because registered, not because remembered
         List<FhirOperation> operations = served.stream()
                 .filter(operation -> operation.types().contains(type.typeName())).toList();
         if (!operations.isEmpty()) {

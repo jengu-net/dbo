@@ -231,7 +231,7 @@ class OperatorIT {
                 Map.entry("writeDiscipline", Map.of("default", "append-only")),
                 Map.entry("retention",
                         Map.of("perType", Map.of("Observation", Map.of("removeAfter", "P30D")))),
-                // #121: zone/broker/acceptedBrokers/dependencies are the gap
+                // zone/broker/acceptedBrokers/dependencies are the gap
                 // this test exists to close, on the same round trip as the
                 // §14/§15 blocks above — CRD schema, re-emit, and TenantSpec
                 // all have to agree, or a tenant provisioned through the CR
@@ -243,7 +243,7 @@ class OperatorIT {
                         Map.of("name", "ee", "types", List.of("CodeSystem", "ValueSet")))),
                 Map.entry("types", List.of(
                         // r6, and mirrored: the two enum gaps found alongside
-                        // the missing fields (#100, epic #58) — a CRD that
+                        // the missing fields — a CRD that
                         // silently could not express either would fail the
                         // same way, at bring-up rather than at the API server.
                         Map.of("name", "Patient", "identity", "internal",
@@ -270,7 +270,7 @@ class OperatorIT {
         cloud.jengu.dbo.tenant.TenantSpec parsed = cloud.jengu.dbo.tenant.TenantSpec.parse(specJson);
         assertTrue(parsed.pdi() && parsed.policies().auditsWrites());
 
-        // #121: the fields TenantSpec accepts and the CR could not express —
+        // The fields TenantSpec accepts and the CR could not express —
         // asserted on the PARSED spec, not the JSON string, so a re-emit that
         // changed shape without changing content would still be caught.
         assertEquals("r6", parsed.fhirVersion(), "the CRD's enum gap: this store serves r6");
@@ -280,7 +280,7 @@ class OperatorIT {
         assertEquals(1, parsed.dependencies().size());
         assertEquals("ee", parsed.dependencies().get(0).name());
         assertEquals(Set.of("CodeSystem", "ValueSet"), parsed.dependencies().get(0).types());
-        // The CRD's second enum gap: "mirrored" (#100) reaches the parsed
+        // The CRD's second enum gap: "mirrored" reaches the parsed
         // spec as the classification that means "another authority's
         // publication, carried by our own lane" — not the ownership
         // "replicated" declares.

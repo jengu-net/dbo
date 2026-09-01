@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * A store that tells the run in scope what it produced (#82).
+ * A store that tells the run in scope what it produced.
  *
  * <p>The rule is that content changes inside a piece of work; this is what
  * makes the run <b>say so</b>. Without it, a run in scope proves a change

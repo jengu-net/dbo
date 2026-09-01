@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Every version this face carries can still be read, checked and searched —
- * the gate on the toolchain underneath it (#58).
+ * the gate on the toolchain underneath it.
  *
  * <p>This is not a test of a library. A version arrives as a package and a
  * version code inside it, and the stack either knows that code or refuses the

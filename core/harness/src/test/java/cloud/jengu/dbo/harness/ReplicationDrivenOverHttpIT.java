@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A host that is not the container drives replication (#157).
+ * A host that is not the container drives replication.
  *
  * <p>The asymmetry {@code HttpLane} answered for the participation verbs, one
  * layer up: {@code Lanes} takes the store's internals, and the cloud — the
