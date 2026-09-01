@@ -152,12 +152,18 @@ is down because somebody is running one.
 
 ## Binary content
 
-Large content lives in **per-tenant storage provisioned credential-blind** — the
-operator provisions it without holding readable credentials, the same discipline
-as the databases. Erasure by dropping the tenant's store extends there too. A
-small deployment falls back to keeping it in the database behind the same
-interface, so the choice is a deployment decision rather than a different
-product.
+Documents, audio and device backups are **not rows**. A store that keeps them
+as rows charges for them in every backup it ever takes, which is the operational
+cost that decides this rather than any preference about storage engines. So the
+record and the bytes part company: what the store holds is the description and
+a hash of the content, and the content itself lives in the tenant's own storage,
+reached directly or through the store according to how the deployment is exposed.
+
+That storage is **provisioned credential-blind** — the operator provisions it
+without holding readable credentials, the same discipline as the databases — and
+erasure by dropping the tenant's store extends there too. A small deployment
+falls back to keeping the bytes in the database behind the same interface, so
+the choice is a deployment decision rather than a different product.
 
 ## What this costs
 

@@ -41,7 +41,7 @@ Every API, table, index, event and cache is tenant-scoped from the first line.
 Tenancy is structural, not a column that queries may forget: there must be no code
 path that can read or write data without an explicit tenant context. (The earlier engine's
 tenant column — present in constraints, absent from predicates — is the
-anti-pattern; see §9.6.)
+anti-pattern; see §9.5.)
 
 ## R4 — PostgreSQL storage, DBOS as the background engine
 
@@ -84,7 +84,7 @@ version-specific knowledge (parsing, validation, search-parameter extraction) to
 pluggable per-version bundles.
 
 The same property keeps the engine open to **sibling models that FHIR does not
-cover** — the insight worth keeping from the earlier engine (§9.5): the storage models
+cover** — the insight worth keeping from the earlier engine (§9.4): the storage models
 "FHIR-like objects", fully expandable, so non-FHIR domain objects ride on the same
 engine rather than beside it.
 
@@ -116,7 +116,7 @@ Whether the internal implementation is DBOS streams, a thin custom event layer o
 Postgres, or both, is a concept-phase decision — but delivery must be durable,
 tenant-scoped, and replayable from the outbox.
 
-## Derived requirements (from the earlier engine's post-mortem, §9.6)
+## Derived requirements (from the earlier engine's post-mortem, §9.5)
 
 - **D1 — Synchronous read-your-writes.** A create/update returns only after data
   and outbox are committed in one transaction; FHIR interaction semantics
@@ -127,4 +127,4 @@ tenant-scoped, and replayable from the outbox.
 - **D4 — Partitionable event ownership.** No single master processes all tenants'
   events; ownership shards per tenant/domain.
 - **D5 — Migration as deployment.** Version-driven promotion (highest-version node
-  leads, migrates, others passivate) is retained from the earlier design (§9.5).
+  leads, migrates, others passivate) is retained from the earlier design (§9.4).

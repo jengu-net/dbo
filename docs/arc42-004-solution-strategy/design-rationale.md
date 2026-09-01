@@ -73,20 +73,7 @@ instance ownership and the component has no work left to do.
   resource fields.** Identity artifacts are records with declared handling
   (§13.2); configuration arrives from outside and flows one direction.
 
-## 9.4 Binary content
-
-Binary content — documents, audio, device backups — does not belong in
-Postgres rows, and a store that pretends otherwise pays for it in every
-backup. Direction: per-tenant object storage (a bucket or a prefix)
-provisioned by the same credential-blind operator flow as the database (R5);
-`Binary` metadata and hash in the store, content in the tenant's bucket;
-presigned or proxied access according to deployment posture; erasure-by-drop
-extends to the bucket. Small deployments may fall back to Postgres large
-objects behind the same interface.
-
-This is specified and not built (the MNT blob element).
-
-## 9.5 What the earlier engine got right
+## 9.4 What the earlier engine got right
 
 An earlier storage engine ("db-objects") is not part of this repository, but
 its durable concepts are carried into this design rather than rediscovered:
@@ -115,7 +102,7 @@ its durable concepts are carried into this design rather than rediscovered:
 - **A framework-free core** — the engine's own small interfaces, no
   serialization library as a hard dependency.
 
-## 9.6 What the earlier engine got wrong
+## 9.5 What the earlier engine got wrong
 
 These are the derived requirements D1–D5 with their reasons attached, and
 they are the most useful thing the post-mortem produced.
