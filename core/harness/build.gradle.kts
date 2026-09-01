@@ -125,6 +125,39 @@ val promiseReport by tasks.registering(JavaExec::class) {
     args("report", layout.buildDirectory.file("reports/promise/report.md").get().asFile.absolutePath)
 }
 
+// Every bundle whose jar the ledger reads. The recorder refuses to run with
+// one missing rather than recording a smaller surface, so this list and
+// ApiLedger.BUNDLES have to agree — a mismatch stops the task instead of
+// quietly narrowing what is guarded.
+val ledgerBundles = mapOf(
+    "dbo.core" to "dbo-core", "dbo.postgres" to "dbo-postgres", "dbo.auth" to "dbo-auth",
+    "dbo.pdi" to "dbo-pdi", "dbo.policy" to "dbo-policy", "dbo.work" to "dbo-work",
+    "dbo.runner" to "dbo-runner", "dbo.sync" to "dbo-sync",
+    "dbo.maintenance" to "dbo-maintenance", "dbo.terminology" to "dbo-terminology",
+    "dbo.subscriptions" to "dbo-subscriptions", "dbo.rest" to "dbo-rest",
+    "dbo.scim" to "dbo-scim", "dbo.telemetry" to "dbo-telemetry",
+    "dbo.promises" to "dbo-promises", "dbo.tenant" to "dbo-tenant",
+    "dbo.tenant.k8s" to "dbo-tenant-k8s", "dbo.fhir.common" to "dbo-fhir-common",
+    "dbo.fhir.element" to "dbo-fhir-element", "dbo.fhir.r4" to "dbo-fhir-r4",
+    "dbo.fhir.r5" to "dbo-fhir-r5",
+)
+
+val apiLedger by tasks.registering(JavaExec::class) {
+    group = "documentation"
+    description = "Re-records config/api-ledger.txt from the exported packages of every bundle."
+    dependsOn(tasks.named("testClasses"))
+    ledgerBundles.values.forEach { dependsOn(":core:$it:jar") }
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("cloud.jengu.dbo.harness.ApiLedger")
+    for ((prop, module) in ledgerBundles) {
+        systemProperty(
+            "$prop.jar",
+            project(":core:$module").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
+        )
+    }
+    args(rootProject.file("config/api-ledger.txt").absolutePath)
+}
+
 val promiseProjection by tasks.registering(JavaExec::class) {
     group = "documentation"
     description = "Rewrites the generated block in docs/arc42-006-runtime/req-catalogue.md."
@@ -135,6 +168,20 @@ val promiseProjection by tasks.registering(JavaExec::class) {
 }
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    // The ledger is an INPUT, not just a file the test happens to open: without
+    // this Gradle calls the task up to date after the ledger changes, and the
+    // one check that would have spoken never runs.
+    systemProperty("dbo.api.ledger", rootProject.file("config/api-ledger.txt").absolutePath)
+    inputs.file(rootProject.file("config/api-ledger.txt"))
+    // The ledger reads the same jars the boundary tests do; these are the
+    // bundles no other test had needed staged.
+    for ((prop, module) in ledgerBundles) {
+        dependsOn(":core:$module:jar")
+        systemProperty(
+            "$prop.jar",
+            project(":core:$module").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
+        )
+    }
     dependsOn(":core:dbo-core:jar", ":core:dbo-postgres:jar", ":core:dbo-fhir-r4:jar")
     systemProperty(
         "dbo.core.jar",
