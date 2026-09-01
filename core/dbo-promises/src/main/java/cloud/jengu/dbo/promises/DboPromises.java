@@ -816,7 +816,7 @@ public enum DboPromises implements Promise {
      * parameters a type can be searched by come from what the version defines,
      * cached per type, and nothing extracts, reindexes or indexes for one that
      * arrives afterwards. PLANNED is the honest status; a test here would be
-     * fiction.
+     * fiction. TODO: #167 carries the wiring.
      */
     SRCH_CUSTOM_PARAMETERS(
             "A tenant or module can register a custom search parameter; extraction, "
