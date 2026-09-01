@@ -81,7 +81,7 @@ class OrganisationReachIT {
         // Encounter is partitioned by its serviceProvider; Patient deliberately
         // is NOT, so the test can prove a shared type stays shared.
         Files.writeString(dir.resolve("osak.json"), """
-                {"code":"osak","fhirVersion":"r4",
+                {"code":"osak","face":"r4",
                  "organisations":{"perType":{"Encounter":"service_provider"}},
                  "types":[
                   {"name":"Patient","identity":"internal","handling":"operational"},

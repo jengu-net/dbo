@@ -115,7 +115,7 @@ class PolicyIT {
         assertThrows(IllegalArgumentException.class, () -> TenantPolicies.parse(Map.of(
                 "audit", Map.of("level", "verbose"))));
         assertThrows(IllegalArgumentException.class, () -> TenantSpec.parse("""
-                {"code":"halb","fhirVersion":"r4","writeDiscipline":{"default":"immutable"},
+                {"code":"halb","face":"r4","writeDiscipline":{"default":"immutable"},
                  "types":[{"name":"Task","identity":"internal","handling":"operational"}]}"""));
     }
 

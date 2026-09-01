@@ -55,7 +55,7 @@ class OneResultContractIT {
                 postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
         Files.writeString(dir.resolve("uhtlepingud.json"), """
-                {"code":"uhtlepingud","fhirVersion":"r4",
+                {"code":"uhtlepingud","face":"r4",
                  "audit":{"level":"writes"},
                  "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
         UntilServed.scan(manager, up -> up.contains("uhtlepingud"));

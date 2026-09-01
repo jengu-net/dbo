@@ -238,7 +238,7 @@ class TenantOsgiIT {
 
         // drop a spec: the manager provisions and registers the service set
         Files.writeString(dir.resolve("konteiner.json"), """
-                {"code":"konteiner","fhirVersion":"r4","types":[
+                {"code":"konteiner","face":"r4","types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
 
         String base = "http://127.0.0.1:" + httpPort + "/t/konteiner/fhir";

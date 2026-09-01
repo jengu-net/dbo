@@ -194,7 +194,7 @@ class ServerDistIT {
         cr.setKind("TenantRegistration");
         cr.setMetadata(new ObjectMetaBuilder().withName(CODE).withNamespace(NS).build());
         cr.setAdditionalProperty("spec", Map.of(
-                "code", CODE, "fhirVersion", "r4", "deletionPolicy", "Delete",
+                "code", CODE, "face", "r4", "deletionPolicy", "Delete",
                 "types", List.of(
                         Map.of("name", "Patient", "identity", "identifier", "systems", List.of(EID), "handling", "operational"),
                         Map.of("name", "Observation", "identity", "internal", "handling", "operational"))));

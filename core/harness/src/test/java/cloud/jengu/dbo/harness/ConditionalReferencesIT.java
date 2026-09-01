@@ -57,7 +57,7 @@ class ConditionalReferencesIT {
                 postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
         Files.writeString(dir.resolve("viide.json"), """
-                {"code":"viide","fhirVersion":"r4","types":[
+                {"code":"viide","face":"r4","types":[
                   {"name":"Patient","identity":"identifier","systems":["%s"],
                    "handling":"operational"},
                   {"name":"Observation","identity":"internal","handling":"operational"}]}"""

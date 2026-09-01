@@ -32,7 +32,7 @@ class HandlingTest {
     void anUnclassifiedTypeInASpecCannotBeParsed() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> cloud.jengu.dbo.tenant.TenantSpec.parse("""
-                        {"code":"unsaid","fhirVersion":"r4","types":[
+                        {"code":"unsaid","face":"r4","types":[
                           {"name":"Patient","identity":"internal"}]}"""));
 
         assertTrue(refused.getMessage().contains("unsaid/Patient"), refused.getMessage());
@@ -45,7 +45,7 @@ class HandlingTest {
     void aTypoIsNotAClassification() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> cloud.jengu.dbo.tenant.TenantSpec.parse("""
-                        {"code":"typo","fhirVersion":"r4","types":[
+                        {"code":"typo","face":"r4","types":[
                           {"name":"Patient","identity":"internal","handling":"operatoinal"}]}"""));
 
         assertTrue(refused.getMessage().contains("operatoinal"), refused.getMessage());
@@ -55,7 +55,7 @@ class HandlingTest {
     @DisplayName("a classified spec parses, and the type carries what it declared")
     void aClassifiedSpecCarriesItsDeclaration() {
         var spec = cloud.jengu.dbo.tenant.TenantSpec.parse("""
-                {"code":"said","fhirVersion":"r4","types":[
+                {"code":"said","face":"r4","types":[
                   {"name":"CodeSystem","identity":"canonical","handling":"replicated"}]}""");
 
         assertEquals(Handling.replicated(), spec.types().get(0).handling());

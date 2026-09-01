@@ -64,9 +64,9 @@ class AuthorityIT {
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve("yks.json"), """
-                {"code":"yks","fhirVersion":"r4","types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
+                {"code":"yks","face":"r4","types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
         Files.writeString(dir.resolve("kaks.json"), """
-                {"code":"kaks","fhirVersion":"r4","types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
+                {"code":"kaks","face":"r4","types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
         UntilServed.scan(manager, "yks", "kaks");
     }
 
@@ -264,7 +264,7 @@ class AuthorityIT {
     @Order(7)
     void aPdiTenantDisclosesOnlyWhatTheTokenAsksFor() throws Exception {
         java.nio.file.Files.writeString(dir.resolve("kolm.json"), """
-                {"code":"kolm","fhirVersion":"r4","pdi":true,"types":[
+                {"code":"kolm","face":"r4","pdi":true,"types":[
                   {"name":"Patient","identity":"identifier","systems":["%s"],"handling":"operational"}]}""".formatted(
                 "https://eesti.ee/isikukood"));
         UntilServed.scan(manager, "kolm");
@@ -314,7 +314,7 @@ class AuthorityIT {
     @Order(8)
     void appendOnlyTenantRefusesDeleteOverRest() throws Exception {
         java.nio.file.Files.writeString(dir.resolve("neli.json"), """
-                {"code":"neli","fhirVersion":"r4",
+                {"code":"neli","face":"r4",
                  "audit":{"level":"writes"},
                  "writeDiscipline":{"default":"append-only"},
                  "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");

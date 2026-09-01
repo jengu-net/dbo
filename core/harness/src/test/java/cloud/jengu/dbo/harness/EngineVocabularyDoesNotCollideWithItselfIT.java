@@ -75,7 +75,7 @@ class EngineVocabularyDoesNotCollideWithItselfIT {
 
     private static String spec(String code, String dependencies) {
         return """
-                {"code":"%s","fhirVersion":"r4","types":[
+                {"code":"%s","face":"r4","types":[
                   {"name":"CodeSystem","identity":"canonical","handling":"mirrored"},
                   {"name":"ValueSet","identity":"canonical","handling":"mirrored"}]%s}"""
                 .formatted(code, dependencies);

@@ -20,14 +20,19 @@ spec:
           properties:
             spec:
               type: object
-              required: [code, fhirVersion, types]
+              required: [code, face, types]
               properties:
                 code:
                   type: string
                   pattern: '^[a-z][a-z0-9_]{0,15}$'
-                fhirVersion:
+                # The face this tenant is served through. Not an enum: which
+                # faces exist is decided by what a deployment installs, and a
+                # closed list here refuses a face the container can serve —
+                # including one that is not a FHIR version at all. The pattern
+                # keeps it a name; bring-up answers whether anything serves it.
+                face:
                   type: string
-                  enum: [r4, r5, r6]
+                  pattern: '^[a-z][a-z0-9-]{0,31}$'
                 zone:
                   type: string
                 broker:
@@ -114,6 +119,6 @@ spec:
         - name: Phase
           type: string
           jsonPath: .status.phase
-        - name: FHIR
+        - name: Face
           type: string
-          jsonPath: .spec.fhirVersion
+          jsonPath: .spec.face

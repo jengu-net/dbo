@@ -70,7 +70,7 @@ class CapabilityMatchesWhatIsAcceptedIT {
         for (String handling : HANDLINGS) {
             String code = "h" + handling.replace("-", "");
             Files.writeString(dir.resolve(code + ".json"), """
-                    {"code":"%s","fhirVersion":"r4",
+                    {"code":"%s","face":"r4",
                      "types":[{"name":"CodeSystem","identity":"canonical","handling":"%s"}]}"""
                     .formatted(code, handling));
         }

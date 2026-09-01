@@ -325,7 +325,7 @@ public final class TenantOperator implements AutoCloseable {
     static String specJson(GenericKubernetesResource cr) {
         Map<String, Object> spec = (Map<String, Object>) cr.getAdditionalProperties().get("spec");
         StringBuilder sb = new StringBuilder("{\"code\":").append(jsonString((String) spec.get("code")))
-                .append(",\"fhirVersion\":").append(jsonString((String) spec.get("fhirVersion")));
+                .append(",\"face\":").append(jsonString((String) spec.get("face")));
         // §14/§15 blocks pass through verbatim — the CRD schema validated them
         if (Boolean.TRUE.equals(spec.get("pdi"))) {
             sb.append(",\"pdi\":true");

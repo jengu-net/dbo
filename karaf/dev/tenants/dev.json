@@ -1,6 +1,6 @@
 {
   "code": "dev",
-  "fhirVersion": "r4",
+  "face": "r4",
   "pdi": false,
   "types": [
     {

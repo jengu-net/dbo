@@ -72,7 +72,7 @@ class ProvisionedSecretIT {
             // the dependent alone: its upstream does not exist yet, which is the
             // ordering a filesystem listing can hand us on any boot
             java.nio.file.Files.writeString(dir.resolve("jargnev.json"), """
-                    {"code":"jargnev","fhirVersion":"r4","types":[
+                    {"code":"jargnev","face":"r4","types":[
                       {"name":"CodeSystem","identity":"canonical","handling":"replicated"}],
                      "dependencies":[{"name":"ulemine","types":["CodeSystem"]}]}""");
 
@@ -83,7 +83,7 @@ class ProvisionedSecretIT {
             // and when the upstream arrives, the next scan brings both up —
             // the wait was a wait, not a permanent failure
             java.nio.file.Files.writeString(dir.resolve("ulemine.json"), """
-                    {"code":"ulemine","fhirVersion":"r4","types":[
+                    {"code":"ulemine","face":"r4","types":[
                       {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}""");
 
             // Scanning until it holds, not once: a scan walks the directory in
@@ -106,7 +106,7 @@ class ProvisionedSecretIT {
     @DisplayName("a secret produced while the caller is waiting is returned, not refused")
     void aSecretThatArrivesLateIsWaitedFor() throws Exception {
         TenantSpec spec = TenantSpec.parse("""
-                {"code":"hilinev","fhirVersion":"r4","types":[
+                {"code":"hilinev","face":"r4","types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
 
         // provisioning finishing a moment after the ask IS the race, so the test

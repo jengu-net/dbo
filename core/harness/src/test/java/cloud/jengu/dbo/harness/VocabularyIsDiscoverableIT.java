@@ -82,14 +82,14 @@ class VocabularyIsDiscoverableIT {
         // face's vocabulary is served because dbo publishes it, not because
         // the tenant remembered to ask for it
         Files.writeString(dir.resolve("sonavara.json"), """
-                {"code":"sonavara","fhirVersion":"r4",
+                {"code":"sonavara","face":"r4",
                  "audit":{"level":"writes"},
                  "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
         // the SAME tenant on the newest version, because a promise about a
         // tenant's own vocabulary that only holds on one face is not a promise
         // about the store
         Files.writeString(dir.resolve("sonavara6.json"), """
-                {"code":"sonavara6","fhirVersion":"r6",
+                {"code":"sonavara6","face":"r6",
                  "audit":{"level":"writes"},
                  "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}""");
         UntilServed.scan(manager, up -> up.contains("sonavara") && up.contains("sonavara6"));

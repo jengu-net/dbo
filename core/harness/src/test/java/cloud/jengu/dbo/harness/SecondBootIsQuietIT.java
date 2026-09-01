@@ -53,7 +53,7 @@ class SecondBootIsQuietIT {
     @Test
     void reprovisioningAnExistingTenantAddsNothingToTheServerLog() throws Exception {
         TenantSpec spec = TenantSpec.parse("""
-                {"code":"vaikne","fhirVersion":"r4","types":[
+                {"code":"vaikne","face":"r4","types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         assertNotNull(provisioner.provision(spec).dataSource());
 

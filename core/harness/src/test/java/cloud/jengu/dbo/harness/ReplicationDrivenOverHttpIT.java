@@ -78,7 +78,7 @@ class ReplicationDrivenOverHttpIT {
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
         Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","fhirVersion":"r4","types":[
+                {"code":"%s","face":"r4","types":[
                   {"name":"Basic","identity":"internal","handling":"operational"}]}"""
                 .formatted(TENANT));
         UntilServed.scan(manager, TENANT);

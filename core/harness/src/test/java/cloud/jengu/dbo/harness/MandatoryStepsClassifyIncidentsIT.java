@@ -80,17 +80,17 @@ class MandatoryStepsClassifyIncidentsIT {
 
         // its mandatory step is contributed — no incident
         Files.writeString(dir.resolve("terve.json"), """
-                {"code":"terve","fhirVersion":"r4",
+                {"code":"terve","face":"r4",
                  "mandatorySteps":["lab.result.validate"],"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         // names a step nobody contributed — serves anyway, with an open incident
         Files.writeString(dir.resolve("ootel.json"), """
-                {"code":"ootel","fhirVersion":"r4",
+                {"code":"ootel","face":"r4",
                  "mandatorySteps":["lab.result.sign"],"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         // its mandatory step will arrive by INTRODUCTION over the link
         Files.writeString(dir.resolve("sisse.json"), """
-                {"code":"sisse","fhirVersion":"r4",
+                {"code":"sisse","face":"r4",
                  "mandatorySteps":["ee-lab.result.sign"],"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
         UntilServed.scan(manager, "terve", "ootel", "sisse");
@@ -184,7 +184,7 @@ class MandatoryStepsClassifyIncidentsIT {
     void aMalformedMandatoryStepIdIsRefusedAtParse() {
         IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class,
                 () -> TenantSpec.parse("""
-                        {"code":"vigane","fhirVersion":"r4",
+                        {"code":"vigane","face":"r4",
                          "mandatorySteps":["not-a-step-id"],"types":[
                           {"name":"Patient","identity":"internal","handling":"operational"}]}"""));
         assertTrue(refusal.getMessage().contains("not-a-step-id"),

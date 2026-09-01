@@ -78,7 +78,7 @@ class ProfilesArrivingOutOfBandTakeEffectIT {
                 postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
         Files.writeString(dir.resolve("saabuja.json"), """
-                {"code":"saabuja","fhirVersion":"r4","types":[
+                {"code":"saabuja","face":"r4","types":[
                   {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
                   {"name":"Observation","identity":"internal","handling":"operational"}]}""");
         UntilServed.scan(manager, up -> up.contains("saabuja"));
