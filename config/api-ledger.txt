@@ -266,6 +266,7 @@ cloud.jengu.dbo.core.TypeRegistry                                      domains()
 cloud.jengu.dbo.core.TypeRegistry                                      identityIdentifier(cloud.jengu.dbo.core.api.TypeRegistration,cloud.jengu.dbo.core.api.IdentityRef):cloud.jengu.dbo.core.api.Identifier
 cloud.jengu.dbo.core.TypeRegistry                                      isIdentityBearing(cloud.jengu.dbo.core.api.TypeRegistration,cloud.jengu.dbo.core.api.Identifier):boolean
 cloud.jengu.dbo.core.TypeRegistry                                      new(Collection)
+cloud.jengu.dbo.core.TypeRegistry                                      replace(cloud.jengu.dbo.core.api.TypeRegistration):void
 cloud.jengu.dbo.core.TypeRegistry                                      require(String):cloud.jengu.dbo.core.api.TypeRegistration
 cloud.jengu.dbo.core.UuidV7                                            class
 cloud.jengu.dbo.core.UuidV7                                            newId():String
@@ -637,6 +638,8 @@ cloud.jengu.dbo.core.api.ObjectStore                                   put(cloud
 cloud.jengu.dbo.core.api.ObjectStore                                   putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.core.api.ObjectStore                                   putIfAbsent(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.core.api.ObjectStore                                   rebuildEnvelopes(String):int
+cloud.jengu.dbo.core.api.ObjectStore                                   registrationOf(String):cloud.jengu.dbo.core.api.TypeRegistration
+cloud.jengu.dbo.core.api.ObjectStore                                   reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration):int
 cloud.jengu.dbo.core.api.ObjectStore                                   select(cloud.jengu.dbo.core.api.Criteria):List
 cloud.jengu.dbo.core.api.ObjectStore                                   transact(List):List
 cloud.jengu.dbo.core.api.Paths                                         class
@@ -1121,6 +1124,7 @@ cloud.jengu.dbo.fhir.common.FhirStoreFacade                            read(Stri
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            readForServing(String,String):cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            search(String,Map,String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            search(String,Map,String,OutputStream):void
+cloud.jengu.dbo.fhir.common.FhirStoreFacade                            searchParametersChanged():int
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            shapeConversion():Optional
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            shapesChanged():void
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            update(String,Long,String):cloud.jengu.dbo.core.api.PutResult
@@ -1266,6 +1270,7 @@ cloud.jengu.dbo.fhir.element.ElementStore                              read(Stri
 cloud.jengu.dbo.fhir.element.ElementStore                              readForServing(String,String):cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult
 cloud.jengu.dbo.fhir.element.ElementStore                              search(String,Map,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              search(String,Map,String,OutputStream):void
+cloud.jengu.dbo.fhir.element.ElementStore                              searchParametersChanged():int
 cloud.jengu.dbo.fhir.element.ElementStore                              shapeConversion():Optional
 cloud.jengu.dbo.fhir.element.ElementStore                              shapesChanged():void
 cloud.jengu.dbo.fhir.element.ElementStore                              update(String,Long,String):cloud.jengu.dbo.core.api.PutResult
@@ -1275,9 +1280,12 @@ cloud.jengu.dbo.fhir.element.ElementVersion                            class
 cloud.jengu.dbo.fhir.element.ElementVersion                            code():String
 cloud.jengu.dbo.fhir.element.ElementVersion                            extractor(String):cloud.jengu.dbo.core.api.EnvelopeExtractor
 cloud.jengu.dbo.fhir.element.ElementVersion                            extractor(String,boolean):cloud.jengu.dbo.core.api.EnvelopeExtractor
+cloud.jengu.dbo.fhir.element.ElementVersion                            extractor(String,boolean,List):cloud.jengu.dbo.core.api.EnvelopeExtractor
 cloud.jengu.dbo.fhir.element.ElementVersion                            face():cloud.jengu.dbo.core.face.DomainFace
+cloud.jengu.dbo.fhir.element.ElementVersion                            indexesFor(List):List
 cloud.jengu.dbo.fhir.element.ElementVersion                            of(String):cloud.jengu.dbo.fhir.element.ElementVersion
 cloud.jengu.dbo.fhir.element.ElementVersion                            payloadVersion():String
+cloud.jengu.dbo.fhir.element.ElementVersion                            whyNotEvaluable(String):Optional
 cloud.jengu.dbo.fhir.element.R6FhirVersion                             class
 cloud.jengu.dbo.fhir.element.R6FhirVersion                             new()
 cloud.jengu.dbo.fhir.element.Terms                                     NONE:cloud.jengu.dbo.fhir.element.Terms
@@ -1660,6 +1668,8 @@ cloud.jengu.dbo.pdi.PdiObjectStore                                     put(cloud
 cloud.jengu.dbo.pdi.PdiObjectStore                                     putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.pdi.PdiObjectStore                                     putIfAbsent(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.pdi.PdiObjectStore                                     rebuildEnvelopes(String):int
+cloud.jengu.dbo.pdi.PdiObjectStore                                     registrationOf(String):cloud.jengu.dbo.core.api.TypeRegistration
+cloud.jengu.dbo.pdi.PdiObjectStore                                     reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration):int
 cloud.jengu.dbo.pdi.PdiObjectStore                                     select(cloud.jengu.dbo.core.api.Criteria):List
 cloud.jengu.dbo.pdi.PdiObjectStore                                     transact(List):List
 cloud.jengu.dbo.pdi.PdiObjectStore                                     vault():cloud.jengu.dbo.pdi.PersonVault
@@ -1746,6 +1756,8 @@ cloud.jengu.dbo.policy.PolicyObjectStore                               recordCus
 cloud.jengu.dbo.policy.PolicyObjectStore                               recordCustom(String,String,String,Map,byte[]):String
 cloud.jengu.dbo.policy.PolicyObjectStore                               recordCustom(String,String,String,Map,byte[],String):String
 cloud.jengu.dbo.policy.PolicyObjectStore                               recordForwarded(String,String,String,Map,byte[],String):cloud.jengu.dbo.rest.AuditProjection.Recorder.Entry
+cloud.jengu.dbo.policy.PolicyObjectStore                               registrationOf(String):cloud.jengu.dbo.core.api.TypeRegistration
+cloud.jengu.dbo.policy.PolicyObjectStore                               reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration):int
 cloud.jengu.dbo.policy.PolicyObjectStore                               replayAuditEntry(String,String,long,byte[],Instant):boolean
 cloud.jengu.dbo.policy.PolicyObjectStore                               select(cloud.jengu.dbo.core.api.Criteria):List
 cloud.jengu.dbo.policy.PolicyObjectStore                               transact(List):List
@@ -1814,6 +1826,8 @@ cloud.jengu.dbo.postgres.PgObjectStore                                 putCondit
 cloud.jengu.dbo.postgres.PgObjectStore                                 putIfAbsent(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.postgres.PgObjectStore                                 rebuildEnvelopes(String):int
 cloud.jengu.dbo.postgres.PgObjectStore                                 rebuildEnvelopes(String,int):int
+cloud.jengu.dbo.postgres.PgObjectStore                                 registrationOf(String):cloud.jengu.dbo.core.api.TypeRegistration
+cloud.jengu.dbo.postgres.PgObjectStore                                 reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration):int
 cloud.jengu.dbo.postgres.PgObjectStore                                 select(cloud.jengu.dbo.core.api.Criteria):List
 cloud.jengu.dbo.postgres.PgObjectStore                                 transact(List):List
 cloud.jengu.dbo.postgres.PgObjectStore                                 verifyChain(String,String):cloud.jengu.dbo.postgres.PgObjectStore.ChainCheck
@@ -3217,5 +3231,7 @@ cloud.jengu.dbo.work.WorkScopedStore                                   put(cloud
 cloud.jengu.dbo.work.WorkScopedStore                                   putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.work.WorkScopedStore                                   putIfAbsent(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.work.WorkScopedStore                                   rebuildEnvelopes(String):int
+cloud.jengu.dbo.work.WorkScopedStore                                   registrationOf(String):cloud.jengu.dbo.core.api.TypeRegistration
+cloud.jengu.dbo.work.WorkScopedStore                                   reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration):int
 cloud.jengu.dbo.work.WorkScopedStore                                   select(cloud.jengu.dbo.core.api.Criteria):List
 cloud.jengu.dbo.work.WorkScopedStore                                   transact(List):List

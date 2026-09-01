@@ -42,7 +42,7 @@ final class ElementCapability {
 
     static String statement(ElementVersion version, List<FhirTypeConfig> types, String baseUrl,
             Collection<FhirOperation> served) {
-        return statement(version, types, baseUrl, served, Map.of());
+        return statement(version, ParametersInForce.of(version), types, baseUrl, served, Map.of());
     }
 
     /**
@@ -51,7 +51,8 @@ final class ElementCapability {
      *                       those, the statement advertises exactly those and
      *                       nothing the version happens to define
      */
-    static String statement(ElementVersion version, List<FhirTypeConfig> types, String baseUrl,
+    static String statement(ElementVersion version, ParametersInForce inForce,
+            List<FhirTypeConfig> types, String baseUrl,
             Collection<FhirOperation> served,
             Map<String, java.util.Set<String>> narrowedSearch) {
         StringBuilder out = new StringBuilder(2048);
@@ -80,7 +81,7 @@ final class ElementCapability {
                 out.append(',');
             }
             firstType = false;
-            resource(out, version, type, served, narrowedSearch.get(type.typeName()));
+            resource(out, version, inForce, type, served, narrowedSearch.get(type.typeName()));
         }
         // A surface can serve a type the tenant never registered — the audit
         // trail is served whenever the tenant has a policy layer, whether or
@@ -123,7 +124,8 @@ final class ElementCapability {
         out.append("]}");
     }
 
-    private static void resource(StringBuilder out, ElementVersion version, FhirTypeConfig type,
+    private static void resource(StringBuilder out, ElementVersion version,
+            ParametersInForce inForce, FhirTypeConfig type,
             Collection<FhirOperation> served, java.util.Set<String> narrowed) {
         Handling handling = type.handling();
         // What the ENGINE would refuse, not who owns the type. Those are
@@ -184,7 +186,7 @@ final class ElementCapability {
             out.append("]}");
             return;
         }
-        for (SearchParameter parameter : version.parametersFor(type.typeName())) {
+        for (SearchParameter parameter : inForce.forType(type.typeName())) {
             if (!served(parameter.getType())) {
                 continue;
             }

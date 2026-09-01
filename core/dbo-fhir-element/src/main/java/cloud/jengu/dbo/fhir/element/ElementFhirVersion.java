@@ -132,16 +132,14 @@ public class ElementFhirVersion implements FhirVersion {
          * Declared indexes for the sort paths a clinical search actually uses:
          * the date parameters this version defines for the type
          * (REQ-DBO-SRCH-DECLARED-INDEXES).
+         *
+         * <p>What a tenant later authors declares its index by the same rule,
+         * which is why the rule lives on the version rather than here: a
+         * bring-up registration and a re-registration that must agree about
+         * what an index is should not be two derivations of it.
          */
         private List<IndexSpec> indexes(String typeName) {
-            List<IndexSpec> specs = new ArrayList<>();
-            for (SearchParameter parameter : version.parametersFor(typeName)) {
-                if (parameter.getType() == Enumerations.SearchParamType.DATE) {
-                    specs.add(new IndexSpec(parameter.getCode().replace('-', '_'),
-                            ValueKind.DATE));
-                }
-            }
-            return specs;
+            return ElementVersion.indexesFor(version.parametersFor(typeName));
         }
 
         @Override

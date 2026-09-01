@@ -157,5 +157,15 @@ class OneReadPerRequestTest {
         public int rebuildEnvelopes(String typeName) {
             return 0;
         }
+
+        @Override
+        public cloud.jengu.dbo.core.api.TypeRegistration registrationOf(String typeName) {
+            throw new UnsupportedOperationException("this stub counts reads; it registers nothing");
+        }
+
+        @Override
+        public int reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration replacement) {
+            throw new UnsupportedOperationException("this stub counts reads; it registers nothing");
+        }
     }
 }

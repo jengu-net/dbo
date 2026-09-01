@@ -839,18 +839,14 @@ public enum DboPromises implements Promise {
     SRCH_DECLARED_INDEXES(
             "Indexing (including side tables for hard parameters) is declared by the "
             + "personality as part of its search contract, from day one."),
-    /**
-     * Not built, rather than built and unasserted. A tenant may store a
-     * {@code SearchParameter} — it is an ordinary canonical type — and
-     * searching by it is refused with "unsupported search parameter": the
-     * parameters a type can be searched by come from what the version defines,
-     * cached per type, and nothing extracts, reindexes or indexes for one that
-     * arrives afterwards. PLANNED is the honest status; a test here would be
-     * fiction. TODO: #167 carries the wiring.
-     */
     SRCH_CUSTOM_PARAMETERS(
             "A tenant or module can register a custom search parameter; extraction, "
-            + "reindex and the new index follow automatically."),
+            + "reindex and the new index follow automatically — over the rows already "
+            + "stored as well as the ones that come after, because a parameter that "
+            + "answered only about the latter would omit the tenant's history while "
+            + "looking healthy. An expression the store cannot evaluate is refused at "
+            + "the write, where somebody is present to fix it, and nothing is advertised "
+            + "or accepted until the reindex behind it has finished."),
 
     // ── FEED — migrated from hand-written prose (2026-08-27) ──
 

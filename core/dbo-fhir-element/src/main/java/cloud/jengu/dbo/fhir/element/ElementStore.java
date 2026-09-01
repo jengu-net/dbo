@@ -12,6 +12,7 @@ import cloud.jengu.dbo.fhir.common.FhirOperation;
 import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.common.ValidationFailedException;
+import org.hl7.fhir.r5.model.SearchParameter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -51,6 +52,20 @@ public final class ElementStore implements FhirStoreFacade {
     private final PayloadFraming framing;
     /** Null when this store validates against carried definitions alone. */
     private final Terms terms;
+    /**
+     * What this TENANT has authored, by type — empty for almost every tenant.
+     *
+     * <p>Not final, for the same reason {@link #payloads} is not: a tenant that
+     * writes a SearchParameter has changed what its own data can be asked, and
+     * the next search is answered under the new set rather than the one that
+     * was true at bring-up.
+     *
+     * <p>Published only once the reindex behind it has finished. A parameter
+     * that answered before its rows were extracted would return the handful
+     * written since it arrived and silently omit the rest, which is a worse
+     * answer than the refusal it replaced.
+     */
+    private volatile Map<String, List<SearchParameter>> authoredHere = Map.of();
 
     @SuppressWarnings("unchecked")
     /**
@@ -95,6 +110,18 @@ public final class ElementStore implements FhirStoreFacade {
                 ? (Payloads<Object>) version.face().require(Payloads.class)
                 : (Payloads<Object>) (Payloads<?>) version.payloadsFor(terms, storedProfiles(store), storedMaps(store));
         this.framing = version.face().require(PayloadFraming.class);
+    }
+
+    /**
+     * What a type may be searched by here: the version's own, plus this
+     * tenant's. One view, handed to the search compiler and to the capability
+     * statement alike — REQ-DBO-SRCH-HONEST-CAPABILITY is the promise that
+     * those two can never be given different answers.
+     */
+    private ParametersInForce inForce() {
+        Map<String, List<SearchParameter>> tenants = authoredHere;
+        return typeName -> ElementVersion.union(version.parametersFor(typeName),
+                tenants.getOrDefault(typeName, List.of()));
     }
 
     // ------------------------------------------------------------- writing
@@ -172,6 +199,23 @@ public final class ElementStore implements FhirStoreFacade {
                 issues.add("version '" + declared + "' has no leading integer major — "
                         + "the ordering rule compares majors, and a shape without one "
                         + "would stamp objects no version bound can ever match");
+            }
+        }
+        // A parameter this store could never evaluate, refused where a person
+        // is standing. The version's own are evaluable by construction and a
+        // test holds that; a tenant's expression is arbitrary input, and the
+        // only alternative to refusing it here is a reindex failing later
+        // about a document nobody is watching. Joined to the findings rather
+        // than thrown, so a replicated copy is held-and-warned like any other
+        // arrival while an authored write refuses.
+        if (SEARCH_PARAMETER.equals(type)) {
+            java.util.Optional<String> why = version.whyNotEvaluable(
+                    Json.str(Json.parse(new String(payload, StandardCharsets.UTF_8)),
+                            "expression"));
+            if (why.isPresent()) {
+                issues = new java.util.ArrayList<>(issues);
+                issues.add("the expression cannot be evaluated, so this parameter would be "
+                        + "stored and then never answer anything: " + why.get());
             }
         }
         if (!issues.isEmpty()) {
@@ -500,6 +544,146 @@ public final class ElementStore implements FhirStoreFacade {
         rebuiltIfShapesMoved("StructureDefinition");
     }
 
+    /**
+     * The type a tenant authors its own search parameters as.
+     *
+     * <p>An ordinary canonical resource. A tenant that does not serve it has
+     * authored none and never can, so the whole of this is skipped for it —
+     * which is nearly every tenant.
+     */
+    private static final String SEARCH_PARAMETER = "SearchParameter";
+
+    /**
+     * A tenant has authored, changed or withdrawn a search parameter.
+     *
+     * <p>What happens is the whole of REQ-DBO-SRCH-CUSTOM-PARAMETERS: the
+     * affected types are re-registered so extraction knows the new expression,
+     * every existing row is rebuilt so the answer covers the tenant's history
+     * rather than only what arrived since, the declared index is created on the
+     * way through, and only then does the parameter start being advertised and
+     * accepted.
+     *
+     * <p>That order is the honest one and it is not free — a large type is a
+     * real reindex, which is why this is called from a round that can report
+     * how long it took rather than from the write that caused it. The
+     * alternative sequencing advertises a parameter that answers about a
+     * fraction of the data, and a search that quietly omits most of the
+     * matches is worse than one that refuses.
+     *
+     * <p>Unconditional, like {@link #shapesChanged()}: the caller has already
+     * established that a SearchParameter moved, and it can see paths this
+     * facade cannot — a lane's write, a restore, a zone's replication.
+     *
+     * @return how many objects were reindexed, across every affected type
+     */
+    @Override
+    public int searchParametersChanged() {
+        if (types.stream().noneMatch(t -> SEARCH_PARAMETER.equals(t.typeName()))) {
+            return 0;
+        }
+        Map<String, List<SearchParameter>> authored = new java.util.LinkedHashMap<>();
+        for (StoredObject stored : store.select(
+                cloud.jengu.dbo.core.api.Criteria.of(SEARCH_PARAMETER))) {
+            SearchParameter parameter = readParameter(stored);
+            if (parameter == null) {
+                continue;
+            }
+            for (String base : basesOf(stored)) {
+                if (types.stream().anyMatch(t -> t.typeName().equals(base))) {
+                    authored.computeIfAbsent(base, ignored -> new ArrayList<>()).add(parameter);
+                }
+            }
+        }
+        int rebuilt = 0;
+        // Every type this tenant serves, not only the ones with parameters
+        // now: a withdrawn parameter has to take its extraction with it, and a
+        // type that dropped to none is exactly the case a loop over the new
+        // map would skip.
+        Set<String> touched = new java.util.LinkedHashSet<>(authored.keySet());
+        touched.addAll(authoredHere.keySet());
+        for (String typeName : touched) {
+            List<SearchParameter> mine = authored.getOrDefault(typeName, List.of());
+            if (codesOf(mine).equals(codesOf(authoredHere.getOrDefault(typeName, List.of())))) {
+                continue; // this type's set is what it already was
+            }
+            cloud.jengu.dbo.core.api.TypeRegistration current = store.registrationOf(typeName);
+            rebuilt += store.reindexUnder(new cloud.jengu.dbo.core.api.TypeRegistration(
+                    current.typeName(), current.domain(), current.identityClass(),
+                    current.identitySystems(), current.handling(),
+                    version.extractor(typeName,
+                            current.identityClass()
+                                    == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL,
+                            mine),
+                    ElementVersion.indexesFor(ElementVersion.union(
+                            version.parametersFor(typeName), mine)),
+                    current.payloadVersion()));
+            LOG.info("tenant search parameters changed: type={} authored={} reindexed={}",
+                    typeName, codesOf(mine), rebuilt);
+        }
+        // Published last: until here the parameter is neither advertised nor
+        // accepted, which is the only state in which the statement and the
+        // surface agree.
+        authoredHere = Map.copyOf(authored);
+        return rebuilt;
+    }
+
+    private static Set<String> codesOf(List<SearchParameter> parameters) {
+        Set<String> codes = new java.util.TreeSet<>();
+        parameters.forEach(p -> codes.add(p.getCode() + "=" + p.getExpression()));
+        return codes;
+    }
+
+    /** The types a stored parameter says it is about. */
+    private List<String> basesOf(StoredObject stored) {
+        return Json.strings(Json.parse(new String(stored.payload(), StandardCharsets.UTF_8)),
+                "base");
+    }
+
+    /**
+     * One stored parameter as the extraction engine needs it.
+     *
+     * <p>Read off the JSON rather than through the element model, because the
+     * fields that matter — code, type, expression — are spelled the same in
+     * every version this store serves, while the typed model is R5's. A
+     * conversion here would be a whole converter chain to read four strings.
+     *
+     * <p>Null for one this store cannot use, said out loud. The door refuses an
+     * unevaluable expression, but a parameter can arrive without passing a
+     * door: replicated from a zone, restored from an archive, applied by a
+     * lane. Dropping it silently would leave a tenant holding a definition
+     * that does nothing, with nothing anywhere saying why.
+     */
+    private SearchParameter readParameter(StoredObject stored) {
+        Object node = Json.parse(new String(stored.payload(), StandardCharsets.UTF_8));
+        String code = Json.str(node, "code");
+        String expression = Json.str(node, "expression");
+        String type = Json.str(node, "type");
+        if (code == null || code.startsWith("_") || type == null) {
+            LOG.warn("a stored SearchParameter names no usable code or type and is not in "
+                    + "force: id={} code={} type={}", stored.id(), code, type);
+            return null;
+        }
+        java.util.Optional<String> why = version.whyNotEvaluable(expression);
+        if (why.isPresent()) {
+            LOG.warn("a stored SearchParameter is not evaluable and is not in force: "
+                    + "id={} code={} reason={}", stored.id(), code, why.get());
+            return null;
+        }
+        org.hl7.fhir.r5.model.Enumerations.SearchParamType kind;
+        try {
+            kind = org.hl7.fhir.r5.model.Enumerations.SearchParamType.fromCode(type);
+        } catch (Exception unknownType) {
+            LOG.warn("a stored SearchParameter declares an unknown type and is not in force: "
+                    + "id={} code={} type={}", stored.id(), code, type);
+            return null;
+        }
+        SearchParameter parameter = new SearchParameter();
+        parameter.setCode(code);
+        parameter.setExpression(expression);
+        parameter.setType(kind);
+        return parameter;
+    }
+
     /** A converter arriving out of band — a sync lane's write, a restore. */
     public void convertersChanged() {
         rebuiltIfShapesMoved("StructureMap");
@@ -614,7 +798,7 @@ public final class ElementStore implements FhirStoreFacade {
     @Override
     public void search(String typeName, Map<String, String> params, String cursor,
             OutputStream out) throws IOException {
-        ElementSearch.Compiled compiled = ElementSearch.compile(version, typeName, params);
+        ElementSearch.Compiled compiled = ElementSearch.compile(inForce(), typeName, params);
 
         if (compiled.byId() != null) {
             List<StoredObject> hit = store.get(typeName, compiled.byId())
@@ -864,7 +1048,7 @@ public final class ElementStore implements FhirStoreFacade {
     @Override
     public String capabilityStatement(String base, Collection<FhirOperation> served,
             java.util.Map<String, java.util.Set<String>> narrowedSearch) {
-        return ElementCapability.statement(version, types, base, served, narrowedSearch);
+        return ElementCapability.statement(version, inForce(), types, base, served, narrowedSearch);
     }
 
     @Override
