@@ -1921,6 +1921,7 @@ cloud.jengu.dbo.promises.DboPromises                                   AUTH_NO_S
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_ONE_CEREMONY_MANY_TENANTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_ON_BEHALF_OF:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_ORG_MODEL_IS_THE_AUTH_MODEL:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_PORTABLE_AUTHORITY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_PRIVATE_SURFACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_PSEUDONYMOUS_TOKENS:cloud.jengu.dbo.promises.DboPromises
@@ -2061,6 +2062,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_STEP
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TASK_CARRIES_THE_INPUTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TASK_SAYS_WHERE_THE_WORK_IS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TRACE_JOIN:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_TRACE_RIDES_THE_LANE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SCAL_DURABLE_ASSIGNMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SCAL_NO_SHARED_STATE_BROKER:cloud.jengu.dbo.promises.DboPromises
@@ -2990,7 +2992,7 @@ cloud.jengu.dbo.work.Run                                               key():Str
 cloud.jengu.dbo.work.Run                                               kind():cloud.jengu.dbo.work.RunKind
 cloud.jengu.dbo.work.Run                                               milestone():cloud.jengu.dbo.work.Run.Milestone
 cloud.jengu.dbo.work.Run                                               needsAPerson():boolean
-cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,cloud.jengu.dbo.work.Holder,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone)
+cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,cloud.jengu.dbo.work.Holder,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone)
 cloud.jengu.dbo.work.Run                                               open():boolean
 cloud.jengu.dbo.work.Run                                               parent():String
 cloud.jengu.dbo.work.Run                                               process():String
@@ -3000,6 +3002,8 @@ cloud.jengu.dbo.work.Run                                               step():St
 cloud.jengu.dbo.work.Run                                               stepVersion():String
 cloud.jengu.dbo.work.Run                                               tally():Map
 cloud.jengu.dbo.work.Run                                               toString():String
+cloud.jengu.dbo.work.Run                                               trace():String
+cloud.jengu.dbo.work.Run                                               traceContext():Optional
 cloud.jengu.dbo.work.Run                                               versionId():long
 cloud.jengu.dbo.work.Run.Assignment                                    at():cloud.jengu.dbo.work.Scope
 cloud.jengu.dbo.work.Run.Assignment                                    equals(Object):boolean
@@ -3106,6 +3110,7 @@ cloud.jengu.dbo.work.Runs                                              selected(
 cloud.jengu.dbo.work.Runs                                              sweep(String,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              sweep(String,String,String,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              tally(cloud.jengu.dbo.work.Run,Map):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              traced(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs.NotAMilestone                                class
 cloud.jengu.dbo.work.Runs.NotAdmitted                                  class
 cloud.jengu.dbo.work.Runs.NotAnAction                                  class

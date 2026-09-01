@@ -304,6 +304,11 @@ public enum DboPromises implements Promise {
             + "echoed and never interpreted, so a cross-system join is queryable from "
             + "either side without that system's vocabulary entering the engine."),
 
+    PROC_TRACE_RIDES_THE_LANE("A run carries the trace context it was given, across "
+            + "the participation lane and down to the runs it causes, so work claimed in "
+            + "one process and performed in another is one chain. It is carried and never "
+            + "minted, and never a metric dimension."),
+
     PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT("A run's envelope carries holder, "
             + "step, state and counts — never item references or messages. The "
             + "envelope is a disclosure surface, and progress must not name what was "
