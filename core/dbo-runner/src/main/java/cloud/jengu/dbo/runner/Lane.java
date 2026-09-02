@@ -222,6 +222,24 @@ public interface Lane {
     Map<String, StoredObject> inputs(Run run);
 
     /**
+     * The same inputs as work leaves the tenant: a manifest anybody carrying
+     * it may read, and each document sealed under a key of its own, wrapped
+     * to this identity's enrolment key. What a participant that offered a
+     * key gets instead of {@link #inputs}, so a carrier between the two
+     * holds the manifest and nothing readable. Refused, by name, for an
+     * identity that offered no key — a seal to nobody is not a seal.
+     */
+    cloud.jengu.dbo.work.SealedWork sealed(Run run);
+
+    /**
+     * This identity opened one sealed document of the run, with the key it
+     * holds. Reported from where the key is used, because that is the only
+     * place the opening is a fact; lands on the document as its access
+     * entry, with the run as the occasion.
+     */
+    void opened(Run run, String reference);
+
+    /**
      * The in-process implementation, built and held by the HOST — the party
      * that legitimately has the tenant's objects. The runner receives the
      * interface and never the parts.
@@ -283,9 +301,26 @@ public interface Lane {
      * not that anybody looked at it. The lane knows the hop happened; where
      * the entry lands is the host's business, because the host holds the trail.
      */
-    @FunctionalInterface
     interface Trail {
         void handedTo(Run run, String participant);
+
+        /**
+         * A participant opened one sealed document of a run, where its key
+         * is. The access entry: on the DOCUMENT, naming the run as its
+         * occasion — the place every other reading of that document lands.
+         */
+        void opened(Run run, String participant, String typeName, String id);
+    }
+
+    /**
+     * What a host knows about its participants' enrolment keys — the public
+     * half each offered when it enrolled. What payload data keys are wrapped
+     * to; a participant that offered none is sealed to by nobody, and a host
+     * that wires none seals nothing.
+     */
+    @FunctionalInterface
+    interface Keys {
+        Optional<cloud.jengu.dbo.core.api.seal.ParticipantKey> of(String participant);
     }
 
     /**
@@ -315,6 +350,21 @@ public interface Lane {
             cloud.jengu.dbo.core.api.ObjectStore objects,
             cloud.jengu.dbo.work.Introductions introductions,
             Entitlement entitlement, Trackables trackables, Trail trail) {
+        return inProcess(tenant, runs, feed, declarations, participant, identity, objects,
+                introductions, entitlement, trackables, trail, null);
+    }
+
+    /**
+     * The same, knowing its participants' enrolment keys, so a run's inputs
+     * can leave sealed. A host that wires none serves work in the clear to
+     * every asker, which is right for a tenant's own machinery and is what
+     * every host did before there was anything to seal to.
+     */
+    static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
+            Declarations declarations, String participant, Executor identity,
+            cloud.jengu.dbo.core.api.ObjectStore objects,
+            cloud.jengu.dbo.work.Introductions introductions,
+            Entitlement entitlement, Trackables trackables, Trail trail, Keys keys) {
         return new Lane() {
 
             @Override
@@ -445,6 +495,13 @@ public interface Lane {
                 // host legitimately holds — Type/id, present here — arrives.
                 // What cannot be resolved does not, which is the honest
                 // answer for what is not in this store.
+                if (keys != null && keys.of(identity.name()).isPresent()) {
+                    // What a participant holds decides how its work arrives:
+                    // one that offered a key is sealed to, and its inputs
+                    // never leave in the clear — not even when it asks.
+                    throw new IllegalStateException(tenant + ": '" + identity.name()
+                            + "' enrolled with a key, and its inputs travel sealed");
+                }
                 Map<String, StoredObject> resolved = new java.util.LinkedHashMap<>();
                 if (objects != null) {
                     // This read IS the opening, today: the objects arrive in
@@ -473,6 +530,81 @@ public interface Lane {
                     }
                 }
                 return java.util.Collections.unmodifiableMap(resolved);
+            }
+
+            @Override
+            public cloud.jengu.dbo.work.SealedWork sealed(Run run) {
+                Run current = claimedByThisIdentity(run);
+                cloud.jengu.dbo.core.api.seal.ParticipantKey key = keys == null
+                        ? null : keys.of(identity.name()).orElse(null);
+                if (key == null) {
+                    throw new IllegalStateException(tenant + ": '" + identity.name()
+                            + "' offered no key at enrolment; there is nothing to seal to");
+                }
+                Map<String, cloud.jengu.dbo.core.api.seal.ParticipantKey> recipients =
+                        Map.of(identity.name(), key);
+                List<cloud.jengu.dbo.work.SealedPayload> payload = new java.util.ArrayList<>();
+                if (objects != null) {
+                    // The machinery's own read, in the carrier form, sealed
+                    // before anything present can look: not a disclosure, and
+                    // recorded as none. The opening is recorded where the key
+                    // is used, through opened().
+                    cloud.jengu.dbo.core.api.Disclosure.toSeal();
+                    try {
+                        current.inputs().forEach((slot, reference) -> {
+                            int slash = reference.indexOf('/');
+                            if (slash > 0 && reference.indexOf('/', slash + 1) < 0) {
+                                objects.get(reference.substring(0, slash),
+                                                reference.substring(slash + 1))
+                                        .ifPresent(object -> payload.add(
+                                                cloud.jengu.dbo.work.SealedPayload.seal(
+                                                        slot, reference, object, recipients)));
+                            }
+                        });
+                    } finally {
+                        cloud.jengu.dbo.core.api.Disclosure.clear();
+                    }
+                }
+                return new cloud.jengu.dbo.work.SealedWork(
+                        // The step as it was declared — process and step —
+                        // because that is the name a fleet routes on.
+                        new cloud.jengu.dbo.work.Manifest(tenant,
+                                current.process() + "." + current.step(), current.key(),
+                                current.inputs(), List.copyOf(recipients.keySet())),
+                        payload);
+            }
+
+            @Override
+            public void opened(Run run, String reference) {
+                Run current = claimedByThisIdentity(run);
+                if (!current.inputs().containsValue(reference)) {
+                    throw new IllegalStateException(tenant + ": run '" + current.key()
+                            + "' names no input '" + reference + "' to have opened");
+                }
+                if (trail == null) {
+                    // An opening nobody records is a disclosure nobody can
+                    // answer for; a host with no trail may not serve sealed
+                    // work, and this is where it finds out.
+                    throw new IllegalStateException(tenant + ": this host keeps no trail "
+                            + "to record an opening in");
+                }
+                int slash = reference.indexOf('/');
+                trail.opened(current, identity.name(), reference.substring(0, slash),
+                        reference.substring(slash + 1));
+            }
+
+            /** The guard inputs() promises, shared by every verb answered against a claim. */
+            private Run claimedByThisIdentity(Run run) {
+                Run current = runs.byKey(run.key()).orElseThrow(() -> new IllegalStateException(
+                        tenant + ": no run '" + run.key() + "'"));
+                if (current.assignment() == null
+                        || !identity.equals(current.assignment().executor())
+                        || !current.claimed(java.time.Instant.now())) {
+                    throw new IllegalStateException(tenant + ": run '" + run.key()
+                            + "' is not claimed by " + identity.name()
+                            + " — inputs travel with a claim, never with a question");
+                }
+                return current;
             }
         };
     }

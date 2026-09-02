@@ -47,6 +47,7 @@ public final class Disclosure {
     private static final ThreadLocal<String> MATCHED = new ThreadLocal<>();
     private static final ThreadLocal<Mode> MODE = new ThreadLocal<>();
     private static final ThreadLocal<String> PURPOSE = new ThreadLocal<>();
+    private static final ThreadLocal<Boolean> SEALING = new ThreadLocal<>();
 
     private Disclosure() {
     }
@@ -67,6 +68,23 @@ public final class Disclosure {
 
     public static void set(Mode mode) {
         set(mode, null);
+    }
+
+    /**
+     * This read is the machinery's own, to seal what it reads for a
+     * participant that will open it elsewhere. The carrier form, and a
+     * statement about what the read is for: a read whose result is sealed
+     * before anybody present can look at it discloses nothing here, and the
+     * trail records the opening where the key is used rather than this.
+     */
+    public static void toSeal() {
+        set(Mode.ENCRYPTED, null);
+        SEALING.set(Boolean.TRUE);
+    }
+
+    /** Whether the current read is one that seals its result unread. */
+    public static boolean sealing() {
+        return Boolean.TRUE.equals(SEALING.get());
     }
 
     /**
@@ -148,5 +166,6 @@ public final class Disclosure {
         PURPOSE.remove();
         MATCHED.remove();
         FOR_AUDIENCE.remove();
+        SEALING.remove();
     }
 }

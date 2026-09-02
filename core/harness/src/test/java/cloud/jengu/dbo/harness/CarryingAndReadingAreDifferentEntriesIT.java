@@ -108,8 +108,18 @@ class CarryingAndReadingAreDifferentEntriesIT {
         return Lane.inProcess("t-trail", runs, new PgChangeFeed(ds, WorkModel.DOMAIN),
                 declarations, participant, identity, store, null,
                 Lane.Entitlement.everything(), null,
-                (run, to) -> store.recordCustom("travel", WorkModel.TYPE, run.id(),
-                        Map.of("to", to, "key", run.key())));
+                new Lane.Trail() {
+                    @Override
+                    public void handedTo(Run run, String to) {
+                        store.recordCustom("travel", WorkModel.TYPE, run.id(),
+                                Map.of("to", to, "key", run.key()));
+                    }
+
+                    @Override
+                    public void opened(Run run, String by, String typeName, String id) {
+                        throw new AssertionError("nothing is sealed here, so nothing is opened");
+                    }
+                });
     }
 
     @Test

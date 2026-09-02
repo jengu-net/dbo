@@ -92,13 +92,13 @@ something the store already knows it issued.
 
 ## What the store cannot do yet
 
-- **Travel and access are different entries for work in the clear.** A hop
-  leaves a travel entry on the task naming who it was handed to; a
-  participant's read of a named document leaves an access entry on the
-  document naming the run, whatever the tenant's audit level. So *nobody
-  looked* is now sayable — but only because the read that resolves an input
-  is today the only way to open it. Once payloads are sealed the opening
-  moves to where the key is used, and the recording has to move with it.
+- **Travel and access are different entries.** A hop leaves a travel entry
+  on the task naming who it was handed to. A participant that opened a sealed
+  document reports it from where its key is, and that lands on the document
+  as an access entry naming the run; the store's own read to seal records
+  nothing. So *nobody looked* is sayable, with the limit the review accepted:
+  an intended recipient can open and not say so, and that is the one thing
+  the trail cannot see.
 - **Nothing is chained across participants**, so a chain with a hole is not a
   thing the store can notice, and a completion is accepted on its own word.
 - **A result carries no chain head**, so there is nothing to verify it

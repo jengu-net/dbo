@@ -1,7 +1,8 @@
 # Sealed work
 
-**Status** — designed and decided; two slices built — travel and access are
-different entries, and a participant offers its key at enrolment. Ten issues carry it,
+**Status** — designed and decided; three slices built — travel and access
+are different entries, a participant offers its key at enrolment, and work
+leaves as a readable manifest and a payload sealed to the claimant. Ten issues carry it,
 three of them re-scoped from questions to builds.
 
 **Issues** — roots: [#166](https://github.com/jengu-net/dbo/issues/166)
@@ -47,13 +48,16 @@ callback into every tenant.
 
 ## Where it stands
 
-One piece of the mechanism exists: a hop leaves a travel entry on the task,
-naming who it was handed to, and a participant's read of a named document
-leaves an access entry on the document naming the run, whatever the audit
-level. The tenant wires the trail into its lane; an embedded runner over a
-bare store wires none and records no travel, which is honest for a host with
-no trail. The clause that the machinery's own read to seal records nothing
-waits for sealing — today that read *is* the opening.
+Built: a hop leaves a travel entry on the task; a keyed participant's inputs
+leave as a manifest plus payloads sealed under a per-payload key wrapped to
+its enrolment key, and it opens them on its side and reports each opening,
+which lands on the document as the access entry naming the run; the store's
+own read to seal records nothing, proven at audit level full; a keyless
+participant is served in the clear and refused a seal by name; the carrier
+form is what is sealed, so a shred reaches a copy in flight with no special
+case. Not built: wrapping to a routee behind the claimant (the recipients a
+manifest names are one, the claimant), which is what the router-holds-the-
+claim shape needs and what the duplex lane will carry.
 
 Everything else it rests on already does:
 
@@ -140,15 +144,15 @@ closed, never chain detail.
 | Duplex lane over the store's stream — #177  | `PROC-A-LANE-OVER-THE-STREAM` | **NEXT** |
 | Enrolment key exchange — #166  | `PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` | **DONE** 2026-09-02; the constraints now state the one asymmetric exception (R5) |
 | Stories cited by promises — #180  | `PRM-A-STORY-IS-CITED-NOT-CLAIMED` | **READY**, small; do early |
-| Manifest/payload split and sealing in the carrier form — #174  | `PROC-WORK-TRAVELS-SEALED` | **NEXT** — the key to wrap to exists; a seal to a participant that offered none is refused by name |
+| Manifest/payload split and sealing in the carrier form — #174  | `PROC-WORK-TRAVELS-SEALED` | **DONE** 2026-09-02, wrapped to the claimant; routee recipients move to #172 |
 | The chain: link on entry, travel names recipient, participant signs, result carries head, refuse-and-name — #176  | `POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | **READY** — the enrolment key that signs a link exists |
 | Partner relation composed with audience — #179  | `TEN-A-PARTNER-MANAGES-TENANTS` | **READY**, needs the partner relation declared in the registration path; owner: the store |
-| `perform` waits, one hop further for a router — #172  | `PROC-DONE-MEANS-DONE` · `PROC-THE-ROUTER-HOLDS-THE-CLAIM` | **READY**, docs and contract text only |
-| Plane promise reworded, plaintext ratchet, erasure-reaches-the-copy proof — #173  | `WF-TWO-PLANES` · `WF-CONTENT-FREE-PLATFORM-PLANE` | **PARTLY BLOCKED** — reword now; the proofs need #174 |
+| `perform` waits, one hop further for a router; a router names its routee as the recipient — #172  | `PROC-DONE-MEANS-DONE` · `PROC-THE-ROUTER-HOLDS-THE-CLAIM` | **READY** — now also the recipients a manifest names, since a router opens nothing |
+| Plane promise reworded, plaintext ratchet, erasure-reaches-the-copy proof — #173  | `WF-TWO-PLANES` · `WF-CONTENT-FREE-PLATFORM-PLANE` | **READY** — the seal is on the wire; the substrate ratchet and the erasure proof's plane half remain |
 | Departed routee kept with last attestation — #178  | `PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` | **READY**, small |
 
-Critical path: **#174 → #176**. #177 is independent. Everything else can
-land whenever somebody is nearby.
+Critical path: **#176**. #177 and #172 are independent of it. Everything
+else can land whenever somebody is nearby.
 
 ## Not doing
 

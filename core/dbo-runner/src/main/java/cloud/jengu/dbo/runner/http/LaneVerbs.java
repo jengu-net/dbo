@@ -28,7 +28,11 @@ public enum LaneVerbs {
     INTRODUCE("introduce"),
     WITHDRAW("withdraw"),
     ROUTES("routes"),
-    INPUTS("inputs");
+    INPUTS("inputs"),
+    /** The same run's inputs, sealed to the asker's enrolment key: what a keyed participant gets. */
+    SEALED("sealed"),
+    /** The asker opened one sealed document — the access entry, from where the key was used. */
+    OPENED("opened");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
     public static final String PARTICIPANT = "participant";
@@ -55,6 +59,7 @@ public enum LaneVerbs {
      */
     public static final String BEHIND = "behind";
     /** Every answer's one field, so an empty answer is still a shape. */
+    public static final String REFERENCE = "reference";
     public static final String RESULT = "result";
     /** A refusal travels as a refusal: this flag, and why. */
     public static final String REFUSED = "refused";

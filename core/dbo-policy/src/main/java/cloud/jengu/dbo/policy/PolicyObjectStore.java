@@ -330,6 +330,15 @@ public final class PolicyObjectStore implements ObjectStore,
         if ("AuditEntry".equals(typeName)) {
             return;
         }
+        if (cloud.jengu.dbo.core.api.Disclosure.sealing()) {
+            // The machinery's own read to seal a payload for a participant
+            // that will open it elsewhere. Nothing present can look at what
+            // comes back, so nothing was disclosed here; the opening is
+            // recorded where the key is used, on this document, naming the
+            // run. Recording this read too would put a reading on the
+            // document that nobody made.
+            return;
+        }
         // A tenant's audit level is a preference about VOLUME — how much of
         // ordinary traffic to keep. A disclosure record is a requirement: who
         // saw an identity, and why they said they needed it. Answering both

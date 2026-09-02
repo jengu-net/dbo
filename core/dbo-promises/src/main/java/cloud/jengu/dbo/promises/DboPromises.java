@@ -388,7 +388,6 @@ public enum DboPromises implements Promise {
 
     // ── sealed work — decided in review, nothing built; see docs/tasks ──
 
-    /** TODO: prove it in a test — a carrier holding no key reads the manifest and cannot read the payload. */
     PROC_WORK_TRAVELS_SEALED(
             "Work travels in two parts. The manifest — tenant, step, the task, and "
             + "references to the documents named — is readable, because routing on it "
