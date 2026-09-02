@@ -10,11 +10,13 @@ a table mapping each leg of the journey to the promises that already carry it.
 A story whose value is a single leg belongs as a step of the story that owns
 that leg.
 
-**A story claims no evidence.** The joins table says which promises the
-journey depends on; it does not make them proven, and several of them are
-proven for a simpler world than the story describes. A leg marked *planned*
-cites a promise that exists and is not yet cited by any test — the catalogue
-shows it as `PLANNED`, which is the honest state and the one to watch move. Every story therefore
+**A story claims no evidence.** Each story is a constant in the promise
+catalogue (`DboStories`) declaring the promises its journey rests on, and its
+joins table is projected from that declaration — never written by hand. So a
+story cannot cite a promise that does not exist, cannot claim a leg nothing
+promises, and reads *unproven* while every leg it rests on is only planned.
+A leg shown `PLANNED` cites a promise that exists and is not yet cited by any
+test, which is the honest state and the one to watch move. Every story also
 carries a *What the store cannot do yet* section, written as a gap rather than
 designed around, and an *Open decisions* section for the choices still to
 make.
@@ -32,13 +34,11 @@ tenant.
 | [US-DBO-PARTNER-TRACKING](us-dbo-partner-tracking.md) | A partner following work through the tenants it manages, without being able to read it |
 | [US-DBO-TRAIL-ANSWERS](us-dbo-trail-answers.md) | Answering *did anybody read this?* with **nobody** rather than *no record* — travel and access as different kinds, and a chain that makes absence mean something |
 
-## What is missing to make these enforceable
+## How a story stays true
 
-There is no `DboStories` peer to `DboPromises`, so nothing checks that a cited
-code exists, that a story is reachable from the promises it claims, or that a
-retired promise leaves a story quietly wrong. The joins tables above are
-hand-written and will drift.
-
-Deciding whether to add that machinery — a story enum, promises citing the
-stories they serve, and a projection that fails when the two disagree — is the
-next step if these are to be more than prose.
+`DboStories` is the peer of `DboPromises`: one constant per story, code
+matched to filename, declaring the promises the story leans on. The projection
+(`./gradlew :core:harness:promiseProjection`) rewrites each story's joins
+block from that declaration, refuses a story constant with no page, and a
+build test refuses a page whose joins have gone stale. A retired promise is
+then a compile error in the story, not a quiet lie on a page.

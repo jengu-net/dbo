@@ -78,17 +78,27 @@ something the store already knows it issued.
 
 ## Joins
 
-| Leg | Promised by |
-|---|---|
-| Audit entries are records, kept like any other | `REQ-DBO-POL-AUDIT-AS-RECORDS` |
-| The actor is stamped from the validated token, never claimed by the caller | `REQ-DBO-POL-ACTOR-FROM-AUTHORITY`, `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` |
-| The trail cannot be edited or backdated, whatever the tenant's write discipline says | `REQ-DBO-POL-AUDIT-UNCONDITIONALLY-APPEND-ONLY` |
-| A version links to the one before it, so a rewrite is detectable offline | `REQ-DBO-CORE-VERSIONED-HISTORY` |
-| Work not completed is released and visibly still owed | `REQ-DBO-PROC-FAILURE-IS-RELEASED` |
-| A run names what ran it | `REQ-DBO-PROC-RUN-NAMES-WHAT-RAN-IT` |
-| The trail survives a restore rather than being replayed into something new | `REQ-DBO-POL-POLICY-REPLAY-ON-RESTORE` |
-| Carried four times, opened once — travel and access as different entries | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` |
-| A completion with a hole is refused and told which link | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
+The promises this story rests on, projected from the catalogue rather than
+written here: a story claims no evidence, and a leg is what its promise's own
+citations say it is.
+
+<!-- story:begin — generated from the promise catalogue; do not edit. Regenerate: ./gradlew :core:harness:promiseProjection -->
+
+| Promise | Says | Status |
+|---|---|---|
+| `REQ-DBO-POL-AUDIT-AS-RECORDS` | Audit entries are regular, pseudonymous records in the tenant's own store — feed-visible, exported and restored with the tenant, re-identifiable only through the vault. | PROVEN |
+| `REQ-DBO-POL-ACTOR-FROM-AUTHORITY` | Every audit entry names its actor from the tenant authority's token (client and subject) — no anonymous mutations under any audited policy. | PROVEN |
+| `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` | Applications contribute business-level audit events; the machinery stamps actor and time from the validated token and its own clock, overriding caller claims — the trail can be enriched, never impersonated or backdated. | PROVEN |
+| `REQ-DBO-POL-AUDIT-UNCONDITIONALLY-APPEND-ONLY` | Audit entries are exempt from the tenant's write discipline: no update, no tombstone under any policy; retention's sweep is the only removal. | PROVEN |
+| `REQ-DBO-CORE-VERSIONED-HISTORY` | Every write appends an immutable version; version-aware reads and optimistic concurrency (ETag) are first-class. | PROVEN |
+| `REQ-DBO-PROC-FAILURE-IS-RELEASED` | A failing or throwing step service releases the run with the reason — never closed, never lost — and a later cycle may take it again. | PROVEN |
+| `REQ-DBO-PROC-RUN-NAMES-WHAT-RAN-IT` | A run records the executor, its version, its provider and the scope it was chosen at. A provider can be withdrawn and a scope re-declared, so a resolution nobody wrote down is a decision nobody can reproduce. | PROVEN |
+| `REQ-DBO-POL-POLICY-REPLAY-ON-RESTORE` | Before a restored tenant serves, the machinery re-applies the shred ledger and the retention sweep — an archive cannot resurrect what policy required gone; archives carry removeAfter themselves. | PROVEN |
+| `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` | One trail; the target says what an entry is about. A hop that carried work leaves a travel entry about the task. A participant that opened a payload leaves an access entry about the document, landing where every other reading of it lands and naming the task execution as its occasion. The machinery's own read to seal a payload records nothing: a read that yields only ciphertext is not a disclosure. So who read this is answered from the document by somebody who need not know work exists, and where did this go from the task, and the trail can say that nobody looked. | PROVEN |
+| `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | A run's travel and access entries each carry a link to the one before, rooted in the task the store minted, so a participant cannot present a journey that never started. The result that closes the run is the last link and carries the head it commits to; the store checks the chain when the result lands, and a completion with a gap is refused and told which link. A travel entry names who it handed to, so a skipped hop is exposed by the next author. Links are signed by the participant, which buys non-forgery and non-repudiation and not omission-proofing: an intended recipient can open a payload and never say so, and that limit is accepted. The link lives on the entry, so the chain outlives nothing the trail does not, and a pruned predecessor reads unchained rather than broken. | PROVEN |
+
+Coverage: {PROVEN=10} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+<!-- story:end -->
 
 ## What the store cannot do yet
 

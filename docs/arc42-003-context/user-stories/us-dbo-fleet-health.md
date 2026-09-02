@@ -61,15 +61,23 @@ that could ask would be reading about benches beside it.
 
 ## Joins
 
-| Leg | Promised by |
-|---|---|
-| A trackable may route others, one shape at every depth | `REQ-DBO-PROC-A-TRACKABLE-MAY-ROUTE-OTHERS` |
-| Reports arrive as a verb of the lane, and the observer is stamped rather than sent | `REQ-DBO-PROC-A-ROUTED-TREE-TRAVELS-AS-A-LANE-VERB` |
-| Presence is derived from a moving cursor; vitals never supply it | `REQ-DBO-PROC-PRESENCE-IS-DERIVED` |
-| A runner signs what it reports about itself | `REQ-DBO-PROC-RUNNER-SIGNS-ITS-VITALS` |
-| The tree is readable from outside the container, with its own scope | `REQ-DBO-PROC-A-ROUTED-TREE-TRAVELS-AS-A-LANE-VERB` |
-| A participant declares itself rather than being configured in | `REQ-DBO-PROC-STEP-DECLARES-ITSELF` |
-| A routee that has gone is a statement, kept with its last attestation | `REQ-DBO-PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` |
+The promises this story rests on, projected from the catalogue rather than
+written here: a story claims no evidence, and a leg is what its promise's own
+citations say it is.
+
+<!-- story:begin — generated from the promise catalogue; do not edit. Regenerate: ./gradlew :core:harness:promiseProjection -->
+
+| Promise | Says | Status |
+|---|---|---|
+| `REQ-DBO-PROC-STEP-DECLARES-ITSELF` | A step declares its id, version, the storage domains it reads and writes, opaque shape references for what it consumes and produces, the actions it contains, and whether it may be overridden. Ids are <module>.<process>.<step>, globally stable, contributed by being installed, and a step referenced but not installed is refused by name. | PROVEN |
+| `REQ-DBO-PROC-RUNNER-DECLARES-ITS-VITALS` | The runner re-declares each service with an extensible metadata block, replaced never accumulated; presence stays derived from the cursor, and vitals annotate it. | PROVEN |
+| `REQ-DBO-PROC-A-TRACKABLE-MAY-ROUTE-OTHERS` | Something whose state is worth knowing is one record at any depth, and a connected worker may route others: it reports the state of what sits behind it, to arbitrary depth, normalised per trackable so the rule exists once rather than once per router. Presence stays derived where there is a cursor and is attested where there is not, the attestation naming the worker that saw it rather than the parent it sits behind. The store imposes no freshness rule on what a router reports: it has no path of its own to ask, and one threshold across a serial line and a socket would be wrong for both. | PROVEN |
+| `REQ-DBO-PROC-A-ROUTED-TREE-TRAVELS-AS-A-LANE-VERB` | A participant reports what it can reach the way it reports what it can do: a verb of the participation lane, beside declare. The observer is stamped from the lane's own participant rather than carried on the wire, so a router cannot attest as somebody else. Vitals do not carry it, because vitals ride a declaration and a declaration is keyed per step — a router declaring two steps would carry one fleet twice, and withdrawing either would drop half of it. | PROVEN |
+| `REQ-DBO-PROC-PRESENCE-IS-DERIVED` | A participant is present while its named feed cursor moves; a declaration whose consumer is behind and unmoving is declared-but-not-present, skipped by resolution and shown as such. No heartbeat and no lease — and a caught-up participant's cursor does not move either, so silence with nothing waiting is not absence. | PROVEN |
+| `REQ-DBO-PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` | A routee missing from a router's report is something the router said, not a gap — distinguishable from a quiet router because the cursor moved. A departed routee is kept with its last attestation and marked no longer reported, so gone reads as last seen by X at T, absent from X's report at T+1. No freshness rule comes with it. | PROVEN |
+
+Coverage: {PROVEN=6} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+<!-- story:end -->
 
 ## What the store cannot do yet
 

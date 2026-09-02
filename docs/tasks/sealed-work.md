@@ -147,7 +147,7 @@ closed, never chain detail.
 | Travel and access as distinct entries; one trail, two targets — #175  | `POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` · `WF-HOPS-AUDITED` | **DONE** 2026-09-02, for work in the clear; the decrypt-callback weld moves to #174 |
 | Duplex lane over the store's stream — #177  | `PROC-A-LANE-OVER-THE-STREAM` | **DONE** 2026-09-02; one door workflow per tenant on the substrate, verbs serialised per tenant |
 | Enrolment key exchange — #166  | `PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` | **DONE** 2026-09-02; the constraints now state the one asymmetric exception (R5) |
-| Stories cited by promises — #180  | `PRM-A-STORY-IS-CITED-NOT-CLAIMED` | **READY**, small; do early |
+| Stories cited by promises — #180  | `PRM-A-STORY-IS-CITED-NOT-CLAIMED` | **DONE** 2026-09-02; the projection caught a renamed promise in a hand table on its first run |
 | Manifest/payload split and sealing in the carrier form — #174  | `PROC-WORK-TRAVELS-SEALED` | **DONE** 2026-09-02, wrapped to the claimant; routee recipients move to #172 |
 | The chain: link on entry, travel names recipient, participant signs, result carries head, refuse-and-name — #176  | `POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | **DONE** 2026-09-02; a forward's travel link waits for a router that forwards (#172) |
 | Partner relation composed with audience — #179  | `TEN-A-PARTNER-MANAGES-TENANTS` | **READY**, needs the partner relation declared in the registration path; owner: the store |
@@ -155,8 +155,8 @@ closed, never chain detail.
 | Plane promise reworded, plaintext ratchet, erasure-reaches-the-copy proof — #173  | `WF-TWO-PLANES` · `WF-CONTENT-FREE-PLATFORM-PLANE` | **DONE** 2026-09-02; the ratchet caught a token and a clear verb on the plane before it passed |
 | Departed routee kept with last attestation — #178  | `PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` | **DONE** 2026-09-02 |
 
-Critical path: none left. What remains — stories cited by promises — can
-land whenever somebody is nearby, and this file goes with it.
+Critical path: none left. Every sequenced step is done; what keeps this
+file open is the partner relation, which has its own issue and shape.
 
 ## Not doing
 

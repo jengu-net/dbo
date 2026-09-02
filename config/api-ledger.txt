@@ -2243,6 +2243,15 @@ cloud.jengu.dbo.promises.DboPromises                                   enum
 cloud.jengu.dbo.promises.DboPromises                                   text():String
 cloud.jengu.dbo.promises.DboPromises                                   valueOf(String):cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   values():cloud.jengu.dbo.promises.DboPromises[]
+cloud.jengu.dbo.promises.DboStories                                    EDGE_ROUNDTRIP:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    FLEET_HEALTH:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    PARTNER_TRACKING:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    TRAIL_ANSWERS:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    enum
+cloud.jengu.dbo.promises.DboStories                                    promises():List
+cloud.jengu.dbo.promises.DboStories                                    title():String
+cloud.jengu.dbo.promises.DboStories                                    valueOf(String):cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    values():cloud.jengu.dbo.promises.DboStories[]
 cloud.jengu.dbo.promises.Proving                                       annotation
 cloud.jengu.dbo.promises.Proving                                       value():cloud.jengu.dbo.promises.DboPromises[]
 cloud.jengu.dbo.rest.AuditProjection                                   class
