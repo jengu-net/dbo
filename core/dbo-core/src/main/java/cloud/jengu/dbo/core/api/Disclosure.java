@@ -69,8 +69,39 @@ public final class Disclosure {
         set(mode, null);
     }
 
-    /** What this read may reveal; {@link Mode#OMIT} when nobody said. */
+    /**
+     * The mode this read is fixed at because of who it is for, if anybody.
+     *
+     * <p>Set beside {@link Audience} by the layer that reads the tenant's
+     * declaration. It <b>replaces</b> what the caller asked for rather than
+     * capping it: what a recipient receives is derivable from the tenant's
+     * declaration, and a recipient that could negotiate upwards would make the
+     * declaration advice.
+     */
+    private static final ThreadLocal<Mode> FOR_AUDIENCE = new ThreadLocal<>();
+
+    /** Fixes this read's mode because of the audience it is being answered for. */
+    public static void forAudience(Mode mode) {
+        if (mode == null) {
+            FOR_AUDIENCE.remove();
+        } else {
+            FOR_AUDIENCE.set(mode);
+        }
+    }
+
+    /**
+     * What this read may reveal; {@link Mode#OMIT} when nobody said.
+     *
+     * <p>An audience's declared mode wins over the caller's request. Asking is
+     * how a tenant's own surface says what it needs; a declaration is how the
+     * tenant says what somebody else gets, and only one of those two can be
+     * the answer.
+     */
     public static Mode mode() {
+        Mode declared = FOR_AUDIENCE.get();
+        if (declared != null) {
+            return declared;
+        }
         Mode mode = MODE.get();
         return mode == null ? Mode.OMIT : mode;
     }
@@ -116,5 +147,6 @@ public final class Disclosure {
         MODE.remove();
         PURPOSE.remove();
         MATCHED.remove();
+        FOR_AUDIENCE.remove();
     }
 }

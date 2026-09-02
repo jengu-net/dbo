@@ -118,8 +118,47 @@ public final class PolicyObjectStore implements ObjectStore,
 
     // ------------------------------------------------------------- reads
 
+    /**
+     * Whether this type is something the audience being served is answered
+     * about at all — and, on the way, fixes what a read of it reveals.
+     *
+     * <p>Nobody named is the tenant working with its own records, which is
+     * nearly every request, and nothing changes for it.
+     *
+     * <p><b>An audience nobody declared sees nothing.</b> Failing closed here
+     * rather than open, because the two ways to arrive at an undeclared name
+     * are a typo in a serving surface and a partner who was removed, and both
+     * of those want silence rather than the tenant's own view.
+     *
+     * <p>What a type outside the declaration gets is <b>absence</b>, not a
+     * refusal. A refusal naming the type would tell a recipient that it exists
+     * here, which is the same leak an organisational compartment avoids for
+     * the same reason.
+     */
+    private boolean answerableToTheAudience(String typeName) {
+        String named = cloud.jengu.dbo.core.api.Audience.named();
+        if (named == null) {
+            return true;
+        }
+        TenantPolicies.Audience declared = policies.audience(named);
+        if (declared == null) {
+            cloud.jengu.dbo.core.api.Disclosure.forAudience(
+                    cloud.jengu.dbo.core.api.Disclosure.Mode.OMIT);
+            return false;
+        }
+        // Fixed rather than capped: what a recipient receives follows the
+        // tenant's declaration, and one that could ask for more would make the
+        // declaration advice.
+        cloud.jengu.dbo.core.api.Disclosure.forAudience(declared.reveals());
+        return declared.types().contains(typeName);
+    }
+
+
     @Override
     public Optional<StoredObject> get(String typeName, String id) {
+        if (!answerableToTheAudience(typeName)) {
+            return Optional.empty();
+        }
         Optional<StoredObject> result = inner.get(typeName, id);
         if (result.isPresent() && !withinReach(typeName, id)) {
             // Absent, not forbidden: a 403 for an id in another organisation
@@ -180,6 +219,9 @@ public final class PolicyObjectStore implements ObjectStore,
 
     @Override
     public List<StoredObject> getByIdentifier(String typeName, List<Identifier> identifiers) {
+        if (!answerableToTheAudience(typeName)) {
+            return List.of();
+        }
         List<StoredObject> result = inner.getByIdentifier(typeName, identifiers).stream()
                 .filter(o -> withinReach(typeName, o.id()))
                 .toList();
@@ -217,6 +259,9 @@ public final class PolicyObjectStore implements ObjectStore,
 
     @Override
     public List<StoredObject> history(String typeName, String id) {
+        if (!answerableToTheAudience(typeName)) {
+            return List.of();
+        }
         if (!withinReach(typeName, id)) {
             auditRead("history", typeName, id);
             return List.of();
@@ -228,6 +273,9 @@ public final class PolicyObjectStore implements ObjectStore,
 
     @Override
     public List<StoredObject> select(Criteria criteria) {
+        if (!answerableToTheAudience(criteria.typeName())) {
+            return List.of();
+        }
         List<StoredObject> result = selectReached(criteria);
         auditRead("search", criteria.typeName(), null);
         return result;
@@ -235,6 +283,9 @@ public final class PolicyObjectStore implements ObjectStore,
 
     @Override
     public long count(Criteria criteria) {
+        if (!answerableToTheAudience(criteria.typeName())) {
+            return 0;
+        }
         if ("Organization".equals(criteria.typeName())) {
             return selectReached(criteria).size();
         }
@@ -243,6 +294,9 @@ public final class PolicyObjectStore implements ObjectStore,
 
     @Override
     public FeedChunk<StoredObject> page(Criteria criteria, String cursor) {
+        if (!answerableToTheAudience(criteria.typeName())) {
+            return new FeedChunk<>(List.of(), cursor, true);
+        }
         FeedChunk<StoredObject> result = inner.page(reached(criteria), cursor);
         result = organisationFiltered(result);
         auditRead("search", criteria.typeName(), null);

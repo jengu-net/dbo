@@ -14,7 +14,48 @@ public record TenantPolicies(
         Discipline writeDiscipline,
         Map<String, Discipline> perTypeDiscipline,
         Map<String, Retention> retention,
-        Map<String, String> organisationPaths) {
+        Map<String, String> organisationPaths,
+        Map<String, Audience> audiences) {
+
+    /**
+     * What one named recipient receives.
+     *
+     * <p>A declaration rather than a rule the store accumulates. The tenant
+     * says, in its configuration, which types an audience is answered about
+     * and what a read of one of them reveals; the store reads that and applies
+     * it. The distinction matters: a store growing one row per partner becomes
+     * a policy engine nobody can audit, while configuration is swept, reviewed
+     * and diffed like everything else a tenant declares.
+     *
+     * @param types   the types this audience is answered about at all. A type
+     *                outside the list is not refused loudly — it is simply not
+     *                theirs, and an answer that named it would tell them it
+     *                exists.
+     * @param reveals what a read of one of those types contains, fixed here
+     *                rather than asked for.
+     */
+    public record Audience(java.util.Set<String> types,
+            cloud.jengu.dbo.core.api.Disclosure.Mode reveals) {
+        public Audience {
+            types = java.util.Set.copyOf(types);
+            java.util.Objects.requireNonNull(reveals, "reveals");
+            if (types.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "an audience that may see no type at all is a refusal written as a "
+                                + "declaration — leave it undeclared instead");
+            }
+        }
+    }
+
+    /**
+     * Compatibility shape: no audiences declared, so every request is the
+     * tenant's own.
+     */
+    public TenantPolicies(AuditLevel audit, Discipline writeDiscipline,
+            Map<String, Discipline> perTypeDiscipline, Map<String, Retention> retention,
+            Map<String, String> organisationPaths) {
+        this(audit, writeDiscipline, perTypeDiscipline, retention, organisationPaths, Map.of());
+    }
 
     /**
      * Compatibility shape: no organisation partitioning declared.
@@ -42,6 +83,7 @@ public record TenantPolicies(
         perTypeDiscipline = Map.copyOf(perTypeDiscipline);
         retention = Map.copyOf(retention);
         organisationPaths = Map.copyOf(organisationPaths);
+        audiences = Map.copyOf(audiences);
     }
 
     /**
@@ -62,6 +104,22 @@ public record TenantPolicies(
      */
     public String organisationPathFor(String typeName) {
         return organisationPaths.get(typeName);
+    }
+
+    /** What a declaration means by a mode, refused by name when it means nothing. */
+    private static cloud.jengu.dbo.core.api.Disclosure.Mode revealsOf(String declared) {
+        return switch (declared) {
+            case "omit" -> cloud.jengu.dbo.core.api.Disclosure.Mode.OMIT;
+            case "include" -> cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE;
+            case "encrypted" -> cloud.jengu.dbo.core.api.Disclosure.Mode.ENCRYPTED;
+            default -> throw new IllegalArgumentException("an audience reveals one of "
+                    + "omit, include or encrypted; this one says '" + declared + "'");
+        };
+    }
+
+    /** The declaration for this audience, or null when nobody declared one. */
+    public Audience audience(String name) {
+        return name == null ? null : audiences.get(name);
     }
 
     public static TenantPolicies defaults() {
@@ -135,7 +193,21 @@ public record TenantPolicies(
             perTypeOrg.forEach((type, path) ->
                     organisationPaths.put(String.valueOf(type), String.valueOf(path)));
         }
-        return new TenantPolicies(audit, discipline, perType, retention, organisationPaths);
+        Map<String, Audience> audiences = new LinkedHashMap<>();
+        if (root.get("disclosure") instanceof Map<?, ?> disclosure
+                && disclosure.get("perAudience") instanceof Map<?, ?> perAudience) {
+            perAudience.forEach((name, value) -> {
+                Map<String, Object> rule = (Map<String, Object>) value;
+                java.util.Set<String> types = new java.util.LinkedHashSet<>();
+                if (rule.get("types") instanceof java.util.List<?> declared) {
+                    declared.forEach(t -> types.add(String.valueOf(t)));
+                }
+                audiences.put(String.valueOf(name),
+                        new Audience(types, revealsOf(String.valueOf(rule.get("reveals")))));
+            });
+        }
+        return new TenantPolicies(audit, discipline, perType, retention, organisationPaths,
+                audiences);
     }
 
     /**

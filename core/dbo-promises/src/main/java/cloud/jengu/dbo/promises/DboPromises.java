@@ -905,6 +905,18 @@ public enum DboPromises implements Promise {
             + "carries its own scope, outside the resource grammar: a grant over the "
             + "store's resources does not reach the act that de-anonymises somebody."),
 
+    IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED(
+            "What may leave and what this particular recipient may see are different "
+            + "questions, and a tenant answers the second by declaring an audience: which "
+            + "types it is answered about at all, and what a read of one of them reveals. "
+            + "A type outside the declaration is absent rather than refused, because a "
+            + "refusal naming it would tell the recipient it exists. The mode follows the "
+            + "declaration rather than the request — a recipient that could ask for more "
+            + "would make the declaration advice — and an audience nobody declared sees "
+            + "nothing, because a typo in a serving surface and a partner who was removed "
+            + "both want silence. Naming no audience is the tenant working with its own "
+            + "records, and nothing about it changes."),
+
     // ── FEED — migrated from hand-written prose (2026-08-27) ──
 
     FEED_ONE_PRIMITIVE(
