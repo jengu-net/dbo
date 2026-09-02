@@ -55,6 +55,8 @@ public final class HttpLane implements Lane {
     private final String participant;
     private final Executor identity;
     private final HttpClient http;
+    /** The private half of this participant's enrolment keypair, or null for one that offered none. */
+    private final java.security.PrivateKey holding;
 
     /**
      * @param base        the tenant's lane surface, e.g.
@@ -87,8 +89,27 @@ public final class HttpLane implements Lane {
                 HttpClient.newHttpClient());
     }
 
+    /**
+     * A lane for a participant that offered a key at enrolment and holds the
+     * private half here. Its inputs arrive sealed, are opened on this side,
+     * and each opening is reported home before the document is handed on —
+     * the two are one act, and neither is optional.
+     */
+    public static HttpLane holding(URI base, Supplier<String> bearer, String tenant,
+            String participant, Executor identity, java.security.PrivateKey privateKey) {
+        return new HttpLane(base, bearer, tenant, participant, identity, null,
+                HttpClient.newHttpClient(), privateKey);
+    }
+
     public HttpLane(URI base, Supplier<String> bearer, String tenant, String participant,
             Executor identity, Set<String> boundTo, HttpClient http) {
+        this(base, bearer, tenant, participant, identity, boundTo, http, null);
+    }
+
+    public HttpLane(URI base, Supplier<String> bearer, String tenant, String participant,
+            Executor identity, Set<String> boundTo, HttpClient http,
+            java.security.PrivateKey holding) {
+        this.holding = holding;
         this.base = base;
         this.bearer = bearer;
         this.tenant = tenant;
@@ -195,9 +216,52 @@ public final class HttpLane implements Lane {
 
     @Override
     public Map<String, StoredObject> inputs(Run run) {
+        if (holding != null) {
+            // What this participant holds decides how its work arrives. The
+            // far side refuses the clear verb to a keyed identity anyway;
+            // asking sealed first is the runner not needing to know that.
+            return open(sealed(run), run);
+        }
         Map<String, Object> body = verb();
         body.put(LaneVerbs.RUN, RecordWire.encode(run));
         return RecordWire.decodeMap(post(LaneVerbs.INPUTS, body), StoredObject.class);
+    }
+
+    @Override
+    public cloud.jengu.dbo.work.SealedWork sealed(Run run) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        return RecordWire.decode(post(LaneVerbs.SEALED, body),
+                cloud.jengu.dbo.work.SealedWork.class);
+    }
+
+    @Override
+    public void opened(Run run, String reference) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        body.put(LaneVerbs.REFERENCE, reference);
+        post(LaneVerbs.OPENED, body);
+    }
+
+    /**
+     * Opens each document with the key held here and says so home, one
+     * document at a time and the saying before the handing on: a document
+     * the service receives is one whose opening the tenant already holds.
+     */
+    private Map<String, StoredObject> open(cloud.jengu.dbo.work.SealedWork work, Run run) {
+        Map<String, StoredObject> resolved = new LinkedHashMap<>();
+        for (cloud.jengu.dbo.work.SealedPayload payload : work.payload()) {
+            StoredObject document;
+            try {
+                document = payload.open(identity.name(), holding);
+            } catch (java.security.GeneralSecurityException cannot) {
+                throw new IllegalStateException(tenant + ": '" + identity.name()
+                        + "' cannot open " + payload.reference() + " with the key it holds", cannot);
+            }
+            opened(run, payload.reference());
+            resolved.put(payload.slot(), document);
+        }
+        return java.util.Collections.unmodifiableMap(resolved);
     }
 
     /** Who is asking and who is working — on every verb, because the surface is stateless. */

@@ -874,9 +874,43 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     // an application uses — actor and time
                                     // stamped by the machinery, never by the
                                     // lane.
-                                    (run, to) -> engine.recordCustom("travel",
-                                            cloud.jengu.dbo.work.WorkModel.TYPE, run.id(),
-                                            java.util.Map.of("to", to, "key", run.key())))));
+                                    new cloud.jengu.dbo.runner.Lane.Trail() {
+                                        @Override
+                                        public void handedTo(cloud.jengu.dbo.work.Run run,
+                                                String to) {
+                                            engine.recordCustom("travel",
+                                                    cloud.jengu.dbo.work.WorkModel.TYPE, run.id(),
+                                                    java.util.Map.of("to", to, "key", run.key()));
+                                        }
+
+                                        // An opening is an access entry on the
+                                        // DOCUMENT with the run as its occasion,
+                                        // beside every other reading of it —
+                                        // the same join the run-occasioned read
+                                        // carries, so "who read this" and
+                                        // "what did this task open" meet on it.
+                                        @Override
+                                        public void opened(cloud.jengu.dbo.work.Run run,
+                                                String by, String typeName, String id) {
+                                            String outer = cloud.jengu.dbo.core.api.Caller.run();
+                                            cloud.jengu.dbo.core.api.Caller.setRun(run.key());
+                                            try {
+                                                engine.recordCustom("access", typeName, id,
+                                                        java.util.Map.of("by", by,
+                                                                "run", run.key()));
+                                            } finally {
+                                                if (outer == null) {
+                                                    cloud.jengu.dbo.core.api.Caller.clearRun();
+                                                } else {
+                                                    cloud.jengu.dbo.core.api.Caller.setRun(outer);
+                                                }
+                                            }
+                                        }
+                                    },
+                                    // The enrolment keys, from the same
+                                    // authority that validated the token: what
+                                    // a participant holds is what it is sealed to.
+                                    authority::participantKey)));
             workContexts.put(spec.code(), workPath);
             // What this tenant knows about the things behind its
             // participants. Beside replication rather than as a verb on the

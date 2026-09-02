@@ -128,37 +128,31 @@ operates and can read.
 | The envelope discloses state, not the subject | `REQ-DBO-PROC-RUN-ENVELOPE-DISCLOSES-STATE-NOT-SUBJECT` |
 | A participant contributes an event and cannot forge who or when | `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` |
 | A version links to the one before it, so a rewrite is detectable | `REQ-DBO-CORE-VERSIONED-HISTORY` |
-| Work travels as a readable manifest and a sealed payload, in the carrier form, wrapped per participant — *planned* | `REQ-DBO-PROC-WORK-TRAVELS-SEALED` |
+| Work travels as a readable manifest and a sealed payload, in the carrier form, wrapped per participant | `REQ-DBO-PROC-WORK-TRAVELS-SEALED` |
 | The analyser offers its public key when it enrols | `REQ-DBO-PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` |
 | Carrying and reading are different entries, on the task and on the document | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`, `REQ-DBO-WF-HOPS-AUDITED` |
 | The events come home chained from the task, and the result is the last link — *planned* | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 | One duplex channel carries work out and events home — *planned* | `REQ-DBO-PROC-A-LANE-OVER-THE-STREAM` |
 | The service holds the claim and waits for the analyser — *planned* | `REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM`, `REQ-DBO-PROC-DONE-MEANS-DONE` |
-| The shared plane holds the sealed copy and nothing readable — *planned* | `REQ-DBO-WF-TWO-PLANES`, `REQ-DBO-WF-CONTENT-FREE-PLATFORM-PLANE` |
+| The shared plane holds the sealed copy and nothing readable — *stated, proofs pending* | `REQ-DBO-WF-TWO-PLANES`, `REQ-DBO-WF-CONTENT-FREE-PLATFORM-PLANE` |
 
 ## What the store cannot do yet
 
-- **Payloads are not sealed.** Work travels as plain bytes; there is no
-  encryption on the transport at all.
-- **Nothing is wrapped to the enrolment key yet.** The exchange exists: an
-  analyser offers its X25519 public key as it enrols, the store records it
-  and names the version by its thumbprint, and a data key wrapped to it is
-  opened only by the holder of the private half. What is missing is the
-  payload that would carry such a key.
-- **There is no decryption callback.** Carrying and reading are already
-  different entries — a hop leaves a travel entry on the task, and a
-  participant's read of a named document leaves an access entry on the
-  document naming the run — but today that read *is* the opening, because
-  nothing is sealed. Nothing yet welds the recording to a decryption, and the
-  machinery's own read to seal is not yet a thing apart from a participant's.
+- **A payload is sealed to the claimant only.** The service holding the claim
+  for an analyser behind it cannot yet name the analyser as the recipient, so
+  the router-holds-the-claim shape wraps to the wrong party; the recipients
+  a manifest names are one, and that one is whoever claimed.
+- **The plane proofs are not written.** That the shared plane holds nothing
+  readable is stated and the sealing is proven on the wire; the ratchet that
+  no plaintext lands in the substrate is its own issue.
 - **There is no work-event chain.** Object versions are chained and the
   reasoning is written down; nothing chains the events of a run across the
   participants that handled it, and no result carries the head it commits to.
 - **The stream is not a lane transport.** In-process and HTTP exist; carrying
   work out and events home on one duplex channel does not.
 
-Every leg above that is `PROVEN` is proven for work in the clear. The story
-is written whole so the gap is visible as a gap.
+Every leg above that is `PROVEN` is proven for a participant that claims
+for itself. The story is written whole so the gap is visible as a gap.
 
 ## Decided in review
 

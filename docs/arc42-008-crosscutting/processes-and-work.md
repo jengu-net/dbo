@@ -220,11 +220,13 @@ sealed copy is **a copy in flight, not the record**: the store keeps the
 original, still indexes and searches it, and the copy is bounded by the work
 that caused it.
 
-Today work travels in the clear. A participant may already hold a key — it
-offers the public half as it enrols, the store records it and wraps to it —
-but no payload is yet wrapped; the mechanism
-is the live topic [sealed work](../tasks/sealed-work.md), and this paragraph
-describes what it delivers.
+What a participant holds decides how its work arrives. One that offered a
+key at enrolment is answered with a manifest and sealed payloads, and is
+refused its inputs in the clear even when it asks; one that offered none is
+served in the clear, as every participant was before there was anything to
+seal to, and is refused a seal by name. Wrapping to a routee behind the
+claimant, and the lane over the store's own stream, are the live topic
+[sealed work](../tasks/sealed-work.md) still.
 
 ## Two sites of one tenant
 
@@ -291,12 +293,13 @@ payload and never say so, and that limit is accepted rather than hidden — the
 data was legitimately theirs, and what is lost is the entry for an authorised
 read on a device the tenant answers for.
 
-Travel and access entries exist for work in the clear: the tenant wires a
-trail into its lane, a claim writes the hop, and the read that resolves a
-run's inputs — today the only way to open one — is recorded on the document
-with the run as its occasion, whatever the audit level. The chain, and the
-sealed read that records nothing, are [sealed work](../tasks/sealed-work.md)
-still.
+The tenant wires a trail into its lane. A claim writes the hop on the task.
+A participant that opens a sealed document says so from where its key is,
+and that lands on the document as its access entry naming the run; for a
+participant served in the clear, the read that resolves its inputs is the
+opening and is recorded the same way, whatever the audit level. The store's
+own read to seal is recorded as nothing. The chain is
+[sealed work](../tasks/sealed-work.md) still.
 
 **The store's own housekeeping runs on this model rather than beside it.**
 Notification delivery, retention, configuration application, tenant serving,

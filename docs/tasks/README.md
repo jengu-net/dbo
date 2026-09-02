@@ -93,7 +93,7 @@ can tell a wait from a stall. Close the table with the critical path, so
 | [Data versioning](data-versioning.md) | store side delivered; consumer side pending | [platform#778](https://github.com/jengu-net/jengu-platform/issues/778) |
 | [The face contract](face-contract.md) | active, four slices open | [#38](https://github.com/jengu-net/dbo/issues/38) |
 | [An operator's control plane](operator-control-plane.md) | read half built and one node wide; reach and authority open | [#160](https://github.com/jengu-net/dbo/issues/160), [#161](https://github.com/jengu-net/dbo/issues/161), [#162](https://github.com/jengu-net/dbo/issues/162) |
-| [Sealed work](sealed-work.md) | decided; trail entries and enrolment key built, nothing sealed yet | [#166](https://github.com/jengu-net/dbo/issues/166), [#172](https://github.com/jengu-net/dbo/issues/172)–[#180](https://github.com/jengu-net/dbo/issues/180) |
+| [Sealed work](sealed-work.md) | decided; trail, enrolment key and the seal built; chain and stream open | [#166](https://github.com/jengu-net/dbo/issues/166), [#172](https://github.com/jengu-net/dbo/issues/172)–[#180](https://github.com/jengu-net/dbo/issues/180) |
 
 Everything else open in this repository is backlog: it has an issue, and it
 does not yet have enough shape to need one of these.

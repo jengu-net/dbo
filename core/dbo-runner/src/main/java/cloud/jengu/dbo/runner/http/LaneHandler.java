@@ -210,6 +210,15 @@ public final class LaneHandler implements HttpHandler {
             // The one read, and the lane guards it: a run this identity has
             // not claimed is refused there rather than filtered here.
             case INPUTS -> respond(exchange, lane.inputs(run(body)));
+            case SEALED -> respond(exchange, lane.sealed(run(body)));
+            case OPENED -> {
+                String reference = string(body, LaneVerbs.REFERENCE);
+                if (reference == null) {
+                    throw new IllegalArgumentException("an opening names the document opened");
+                }
+                lane.opened(run(body), reference);
+                respond(exchange, null);
+            }
         }
     }
 

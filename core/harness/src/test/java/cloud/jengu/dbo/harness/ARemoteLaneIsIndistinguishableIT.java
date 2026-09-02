@@ -236,6 +236,19 @@ class ARemoteLaneIsIndistinguishableIT {
             // not, which is the whole shape of the verb.
             return across("inputs", () -> farSide.inputs(run));
         }
+
+        @Override
+        public cloud.jengu.dbo.work.SealedWork sealed(Run run) {
+            return across("sealed", () -> farSide.sealed(run));
+        }
+
+        @Override
+        public void opened(Run run, String reference) {
+            across("opened", () -> {
+                farSide.opened(run, reference);
+                return null;
+            });
+        }
     }
 
     private Lane hostLane(String participant) {
