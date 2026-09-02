@@ -163,6 +163,42 @@ class NothingCrossesThatTheFaceCannotDefineIT {
                         + "identifier's namespace as a NamingSystem — or stop sending it.");
     }
 
+    @Test
+    @DisplayName("and the statement does not announce them, which was decided rather than "
+            + "overlooked")
+    @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
+    void theStatementInventsNoSlotForOurOwnVocabulary() throws Exception {
+        String statement = get("/metadata").body();
+
+        // Reading it is the check: if a list of what this server mints ever
+        // appears here, a client has to learn OUR extension in order to
+        // discover that there is nothing else of ours to learn — which is the
+        // leak the rest of this test exists to close, wearing a helpful face.
+        //
+        // Failing here does not mean the addition is wrong. It means the
+        // paragraph in the-fhir-face.md that says the statement stays quiet is
+        // now describing something else, and the FHIR-shaped answers — an
+        // implementation guide, or rest.resource.profile on the carrying types
+        // — are what to reach for instead of a list.
+        Matcher ours = SYSTEM.matcher(statement);
+        TreeSet<String> announced = new TreeSet<>();
+        while (ours.find()) {
+            announced.add(ours.group());
+        }
+        assertTrue(announced.isEmpty(),
+                "the CapabilityStatement now carries " + announced + ". FHIR has no slot "
+                        + "for the systems a server mints, so this is an extension of ours "
+                        + "that a client must learn before it can discover we have nothing "
+                        + "else it must learn. The decision is recorded in "
+                        + "docs/arc42-008-crosscutting/the-fhir-face.md — change it there "
+                        + "and here together, or publish through a guide instead.");
+
+        // And the statement is real, so the assertion above is about a
+        // document rather than about an empty string.
+        assertTrue(statement.contains("CapabilityStatement"),
+                "there is no statement to be quiet: " + statement);
+    }
+
     /** Discoverable means the tenant answers for it, in whichever shape fits. */
     private static boolean resolves(String system) throws Exception {
         String encoded = URLEncoder.encode(system, StandardCharsets.UTF_8);
