@@ -397,7 +397,6 @@ public enum DboPromises implements Promise {
             + "meant to open it and to nobody who merely carries it. A sealed payload is "
             + "a copy in flight and not the record: the store keeps the original, and the "
             + "copy is bounded by the work that caused it."),
-    /** TODO: prove it in a test — a copy of the enrolment records opens nothing. */
     PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT(
             "A participant generates its keypair before it is enrolled and offers the "
             + "public half as part of enrolling; the private half never crosses. Payload "

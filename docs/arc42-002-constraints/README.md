@@ -8,6 +8,14 @@
 - **PostgreSQL is the only supported data store**; DBOS is the background
   engine for durable tasks, streams and inter-instance communication — no
   external broker, no Redis-class shared-state service. (R4)
+- **JDK cryptography only, and the store holds one kind of asymmetric
+  material.** Everything the store seals for itself is symmetric under a key
+  the sealer already holds — the container key, the per-person keys derived
+  from it, an owner's archive key. The one exception is deliberate: a
+  participant offers the public half of its own X25519 keypair when it
+  enrols, and payload data keys are wrapped to it, because a participant is
+  something the store authenticates but could not otherwise encrypt *to*.
+  No other asymmetric encryption, and no second curve. (R5)
 - **Kubernetes** is responsible only for running parallel instances and the
   security layer (network policy, secrets, the provisioning operator);
   tenant-aware routing happens at the application level. (R7)

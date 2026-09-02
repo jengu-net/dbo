@@ -9,6 +9,7 @@ import cloud.jengu.dbo.core.api.IdentityRef;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.StoredObject;
+import cloud.jengu.dbo.core.api.seal.ParticipantKey;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
@@ -20,6 +21,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -326,23 +328,38 @@ public final class TenantAuthority {
      * secret custody (the k8s Secret) is authoritative.
      */
     public void ensureClient(String clientId, String secret, List<String> scopes) {
+        ensureClient(clientId, secret, scopes, (ParticipantKey) null);
+    }
+
+    /**
+     * The same, with the public half of the keypair the participant generated
+     * before it was enrolled. The private half never crosses: the store
+     * records what it was offered and wraps payload data keys to it, and a
+     * copy of this record opens nothing. The caller's key is authoritative
+     * exactly as its secret is — re-ensuring with another key replaces it,
+     * and the version is the key's own thumbprint rather than anything the
+     * store minted.
+     */
+    public void ensureClient(String clientId, String secret, List<String> scopes,
+            ParticipantKey participantKey) {
         scopes.forEach(scope -> {
             if (!Scopes.isValid(scope)) {
                 throw new IllegalArgumentException("invalid scope: " + scope);
             }
         });
         Optional<StoredObject> existing = findClient(clientId);
-        // The secret AND the scopes: ensuring is saying what the record
-        // should be, and a record that kept yesterday's scopes because the
-        // secret still matched would deny a surface nobody could see it had
-        // not been granted — as happens whenever a new scope is added to a
-        // credential every tenant already had.
+        // The secret AND the scopes AND the key: ensuring is saying what the
+        // record should be, and a record that kept yesterday's scopes because
+        // the secret still matched would deny a surface nobody could see it
+        // had not been granted — as happens whenever a new scope is added to
+        // a credential every tenant already had.
         if (existing.isPresent() && SecretHash.verify(secret, field(existing.get(), "secretHash"))
-                && Set.copyOf(scopesOf(existing.get())).equals(Set.copyOf(scopes))) {
+                && Set.copyOf(scopesOf(existing.get())).equals(Set.copyOf(scopes))
+                && Objects.equals(participantKeyOf(existing.get()).orElse(null), participantKey)) {
             return;
         }
         String payload = clientPayload(clientId, SecretHash.hash(secret), scopes,
-                "confidential", List.of());
+                "confidential", List.of(), participantKey);
         if (existing.isPresent()) {
             store.put(PutRequest.update("ClientApplication", existing.get().id(),
                     existing.get().versionId(), payload.getBytes(StandardCharsets.UTF_8)));
@@ -362,7 +379,7 @@ public final class TenantAuthority {
         });
         String payload = clientPayload(clientId,
                 secretOrNull != null ? SecretHash.hash(secretOrNull) : null,
-                scopes, clientType, redirectUris);
+                scopes, clientType, redirectUris, null);
         Optional<StoredObject> existing = findClient(clientId);
         if (existing.isPresent()) {
             store.put(PutRequest.update("ClientApplication", existing.get().id(),
@@ -379,10 +396,28 @@ public final class TenantAuthority {
                 new String(client.payload(), StandardCharsets.UTF_8)), "scopes");
     }
 
+    /**
+     * The key a participant offered at enrolment, if it offered one. What
+     * payload data keys are wrapped to; a participant without one has nothing
+     * to be sealed to, and a seal to it is refused by name rather than made
+     * under a key the carrier could hold.
+     */
+    public Optional<ParticipantKey> participantKey(String clientId) {
+        return findClient(clientId).flatMap(TenantAuthority::participantKeyOf);
+    }
+
+    private static Optional<ParticipantKey> participantKeyOf(StoredObject client) {
+        Object node = Json.parse(new String(client.payload(), StandardCharsets.UTF_8));
+        Object key = ((Map<?, ?>) node).get("publicKey");
+        return key == null ? Optional.empty()
+                : Optional.of(ParticipantKey.parse(Json.render(key)));
+    }
+
     private static String clientPayload(String clientId, String secretHash, List<String> scopes,
-            String clientType, List<String> redirectUris) {
+            String clientType, List<String> redirectUris, ParticipantKey participantKey) {
         return "{\"clientId\":\"" + clientId + "\""
                 + (secretHash != null ? ",\"secretHash\":\"" + secretHash + "\"" : "")
+                + (participantKey != null ? ",\"publicKey\":" + participantKey.render() : "")
                 + ",\"scopes\":[" + scopes.stream().map(s -> "\"" + s + "\"")
                         .collect(Collectors.joining(",")) + "]"
                 + ",\"clientType\":\"" + clientType + "\""
