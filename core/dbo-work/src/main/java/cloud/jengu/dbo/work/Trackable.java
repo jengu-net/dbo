@@ -37,9 +37,22 @@ import java.util.Map;
  *                   its own; null where presence is derived instead. Not
  *                   second-class trust — knowing which hop last saw something
  *                   is what tells an operator where to look
+ * @param unreported the moment a report from whoever last saw it no longer
+ *                   included it, or null while it is reported. A departed
+ *                   routee is a statement, not a gap: the router spoke and
+ *                   left it out, which is distinguishable from a router that
+ *                   went quiet. Kept with its last attestation, so gone reads
+ *                   as <i>last seen by X at T, absent from X's report at T+1</i>.
+ *                   No freshness rule comes with it
  */
 public record Trackable(String id, String kind, String routedBy, Map<String, String> state,
-        Attested attested) {
+        Attested attested, java.time.Instant unreported) {
+
+    /** A trackable as reported: not departed. */
+    public Trackable(String id, String kind, String routedBy, Map<String, String> state,
+            Attested attested) {
+        this(id, kind, routedBy, state, attested, null);
+    }
 
     public Trackable {
         if (id == null || id.isBlank()) {
@@ -74,5 +87,15 @@ public record Trackable(String id, String kind, String routedBy, Map<String, Str
     /** Whether this one speaks for itself, which is what decides how presence is read. */
     public boolean reportsForItself() {
         return routedBy == null;
+    }
+
+    /** Whether the last report from whoever sees it still included it. */
+    public boolean reported() {
+        return unreported == null;
+    }
+
+    /** The same trackable, absent from its observer's report as of the moment given. */
+    public Trackable departed(java.time.Instant at) {
+        return new Trackable(id, kind, routedBy, state, attested, at);
     }
 }

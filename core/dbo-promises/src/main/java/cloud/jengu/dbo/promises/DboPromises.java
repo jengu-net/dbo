@@ -418,7 +418,6 @@ public enum DboPromises implements Promise {
             + "HTTP: work goes out and travel, access and result events come home as they "
             + "happen on the same channel. It serves exactly the verbs the other two do, "
             + "and a runner cannot tell which it holds."),
-    /** TODO: prove it in a test — a router reports two routees, then one; the missing one is still readable and says it is no longer reported. */
     PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT(
             "A routee missing from a router's report is something the router said, not a "
             + "gap — distinguishable from a quiet router because the cursor moved. A "

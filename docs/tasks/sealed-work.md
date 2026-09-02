@@ -153,10 +153,10 @@ closed, never chain detail.
 | Partner relation composed with audience — #179  | `TEN-A-PARTNER-MANAGES-TENANTS` | **READY**, needs the partner relation declared in the registration path; owner: the store |
 | `perform` waits, one hop further for a router; a router names its routee as the recipient — #172  | `PROC-DONE-MEANS-DONE` · `PROC-THE-ROUTER-HOLDS-THE-CLAIM` | **DONE** 2026-09-02 |
 | Plane promise reworded, plaintext ratchet, erasure-reaches-the-copy proof — #173  | `WF-TWO-PLANES` · `WF-CONTENT-FREE-PLATFORM-PLANE` | **DONE** 2026-09-02; the ratchet caught a token and a clear verb on the plane before it passed |
-| Departed routee kept with last attestation — #178  | `PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` | **READY**, small |
+| Departed routee kept with last attestation — #178  | `PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` | **DONE** 2026-09-02 |
 
-Critical path: none left. What remains — the departed routee and stories
-cited by promises — can land whenever somebody is nearby.
+Critical path: none left. What remains — stories cited by promises — can
+land whenever somebody is nearby, and this file goes with it.
 
 ## Not doing
 
