@@ -93,6 +93,17 @@ public final class LaneHandler implements HttpHandler {
      * surface adds a transport and never a second implementation of the
      * participation protocol.
      */
+    /**
+     * Who may ask, decided from a signature rather than a token: a door on a
+     * plane that must hold no credential authenticates the ask by the key
+     * the participant enrolled with, and derives its reach from the same
+     * record a token would have.
+     */
+    @FunctionalInterface
+    public interface SignedGrants {
+        Access of(String participant, byte[] signed, String signature);
+    }
+
     @FunctionalInterface
     public interface Lanes {
         Lane laneFor(String participant, Executor identity, Lane.Entitlement entitlement);

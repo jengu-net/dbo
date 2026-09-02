@@ -134,16 +134,13 @@ operates and can read.
 | The events come home chained from the task, and the result is the last link | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 | One duplex channel carries work out and events home | `REQ-DBO-PROC-A-LANE-OVER-THE-STREAM` |
 | The service holds the claim and waits for the analyser | `REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM`, `REQ-DBO-PROC-DONE-MEANS-DONE` |
-| The shared plane holds the sealed copy and nothing readable — *stated, proofs pending* | `REQ-DBO-WF-TWO-PLANES`, `REQ-DBO-WF-CONTENT-FREE-PLATFORM-PLANE` |
+| The shared plane holds the sealed copy and nothing readable | `REQ-DBO-WF-TWO-PLANES`, `REQ-DBO-WF-CONTENT-FREE-PLATFORM-PLANE` |
 
 ## What the store cannot do yet
 
-- **The plane proofs are not written.** That the shared plane holds nothing
-  readable is stated and the sealing is proven on the wire; the ratchet that
-  no plaintext lands in the substrate is its own issue.
-
-Every leg above that is `PROVEN` is proven over the HTTP lane. The story is
-written whole so the gap is visible as a gap.
+Nothing this story tells. Every leg above is proven over the HTTP lane and
+the stream, and the gaps it was written with have closed one by one; it stays
+whole so the next gap has somewhere to be visible.
 
 ## Decided in review
 

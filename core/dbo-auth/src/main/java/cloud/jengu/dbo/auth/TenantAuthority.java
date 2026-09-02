@@ -418,6 +418,15 @@ public final class TenantAuthority {
         return findClient(clientId).flatMap(TenantAuthority::participantKeyOf);
     }
 
+    /**
+     * What a client record grants, by client id — for a door that
+     * authenticates an ask by the participant's signature rather than by a
+     * token, and still decides reach from the same record a token would.
+     */
+    public Optional<List<String>> clientScopes(String clientId) {
+        return findClient(clientId).map(TenantAuthority::scopesOf);
+    }
+
     /** The key a participant signs its links with, if it offered one. */
     public Optional<SigningKey> signingKey(String clientId) {
         return findClient(clientId).flatMap(TenantAuthority::signingKeyOf);

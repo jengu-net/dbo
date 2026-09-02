@@ -967,8 +967,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // the substrate and to nothing else. Opened before the HTTP
                 // door so a door that fails to open leaves nothing mounted
                 // that a retry would trip over.
+                WorkGrants grants = new WorkGrants(authority);
                 doors.put(spec.code(), new cloud.jengu.dbo.stream.StreamDoor(substrate,
-                        spec.code(), new WorkGrants(authority), laneFactory));
+                        spec.code(), grants, laneFactory));
             }
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
                     workPath, new WorkGrants(authority), laneFactory));

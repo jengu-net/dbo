@@ -1029,14 +1029,12 @@ public enum DboPromises implements Promise {
     WF_POSTGRES_SUBSTRATE(
             "Durable tasks, streams and inter-instance communication run on the "
             + "DBOS/Postgres substrate; no external broker. (R4)"),
-    /** TODO: prove it in a test. */
     WF_TWO_PLANES(
             "Records live in the tenant plane, structurally isolated. The shared platform "
             + "plane carries coordination and the copies work needs in flight — manifests "
             + "readable, because routing is what they are for, and payloads sealed to the "
             + "participant meant to open them. Isolation of a record is structural; of a "
             + "copy in flight, cryptographic."),
-    /** TODO: prove it in a test — a known identifying value written into a run and searched for in the shared plane's tables. */
     WF_CONTENT_FREE_PLATFORM_PLANE(
             "The platform plane never holds tenant credentials, and never holds resource "
             + "content in a form readable in that plane. A sealed payload satisfies this; "

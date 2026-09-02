@@ -105,9 +105,12 @@ form the encrypted disclosure mode already hands out. So the fleet sees, across
 tenants, which tenant has which task naming which documents, and that is the
 whole of what it sees. It is a chosen position rather than a leak, and it is
 the declaration this rule asks for: the shared plane never holds resource
-content in a form readable there. The seal is built and proven on the wire;
-the ratchet over the substrate is the live topic [sealed
-work](../tasks/sealed-work.md).
+content in a form readable there — and it is checked by looking: a test
+drives a marked document across the substrate and reads every row of every
+table there, finding the manifest and nothing else. Nor does the plane hold
+a credential: an ask on the stream is signed with the participant's
+enrolment key rather than carrying a token, and the clear verb has no answer
+there at all.
 
 **An audit trail replicates as it was recorded** — original actor, original
 time, the appliance named — because an account of who did what is worthless if

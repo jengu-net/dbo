@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Supplier;
 import javax.sql.DataSource;
 
 /**
@@ -25,7 +24,10 @@ import javax.sql.DataSource;
  * fleet holds: the host connects to the substrate it already runs on, and
  * every tenant's door is a workflow there. A verb is a message to that door
  * and the answer is an event on it; nothing here opens a connection into a
- * tenant, and the tenant accepts no callback. The verbs are
+ * tenant, and the tenant accepts no callback. The plane between holds no
+ * token and nothing readable: an ask is signed with the participant's
+ * enrolment key rather than carrying a credential, and inputs are only ever
+ * asked for sealed. The verbs are
  * {@link WireLane}'s — encoded once — so a runner holding this cannot tell it
  * from the other two, which is the contract.
  *
@@ -37,24 +39,22 @@ public final class StreamLane extends WireLane implements AutoCloseable {
 
     private final Substrate substrate;
 
-    public static StreamLane to(DataSource substrate, Supplier<String> bearer, String tenant,
-            String participant, Executor identity) {
-        return new StreamLane(substrate, bearer, tenant, participant, identity, null, null, null);
-    }
-
-    /** A lane for a participant holding the private halves of the keys it enrolled with. */
-    public static StreamLane holding(DataSource substrate, Supplier<String> bearer, String tenant,
-            String participant, Executor identity, java.security.PrivateKey privateKey,
+    /**
+     * A lane for a participant holding the private halves of the keys it
+     * enrolled with — the only kind there is on this wire. Every ask is
+     * signed with the signing key, because the plane it crosses holds no
+     * token; every payload arrives sealed to the other, because that plane
+     * holds nothing readable.
+     */
+    public static StreamLane holding(DataSource substrate, String tenant, String participant,
+            Executor identity, java.security.PrivateKey privateKey,
             java.security.PrivateKey signingKey) {
-        return new StreamLane(substrate, bearer, tenant, participant, identity, null,
-                privateKey, signingKey);
-    }
-
-    private StreamLane(DataSource substrate, Supplier<String> bearer, String tenant,
-            String participant, Executor identity, Set<String> boundTo,
-            java.security.PrivateKey holding, java.security.PrivateKey signing) {
-        this(new Substrate(substrate, bearer, tenant, participant), tenant, participant, identity,
-                boundTo, holding, signing);
+        if (signingKey == null || privateKey == null) {
+            throw new IllegalArgumentException("a lane on the stream is held by a participant "
+                    + "enrolled with both keys: one it signs with, one it is sealed to");
+        }
+        return new StreamLane(new Substrate(substrate, tenant, identity.name(), signingKey),
+                tenant, participant, identity, null, privateKey, signingKey);
     }
 
     private StreamLane(Substrate substrate, String tenant, String participant, Executor identity,
@@ -62,6 +62,16 @@ public final class StreamLane extends WireLane implements AutoCloseable {
             java.security.PrivateKey signing) {
         super(substrate, tenant, participant, identity, boundTo, holding, signing);
         this.substrate = substrate;
+    }
+
+    /**
+     * The clear verb, asked for directly. A keyed lane never asks this way —
+     * {@code inputs} goes sealed — and the door refuses it; this exists so a
+     * test can show the refusal rather than assume it.
+     */
+    public java.util.Map<String, cloud.jengu.dbo.core.api.StoredObject> askedInTheClear(
+            cloud.jengu.dbo.work.Run run) {
+        return inputsInTheClear(run);
     }
 
     @Override
@@ -74,13 +84,16 @@ public final class StreamLane extends WireLane implements AutoCloseable {
 
         private static final Duration ANSWER = Duration.ofSeconds(30);
         private final DBOS dbos;
-        private final Supplier<String> bearer;
         private final String tenant;
+        private final String participant;
+        private final java.security.PrivateKey signing;
         private volatile int generation = 0;
 
-        Substrate(DataSource substrate, Supplier<String> bearer, String tenant, String participant) {
-            this.bearer = bearer;
+        Substrate(DataSource substrate, String tenant, String participant,
+                java.security.PrivateKey signing) {
             this.tenant = tenant;
+            this.participant = participant;
+            this.signing = signing;
             // A substrate connection with no workflows of its own: this side
             // sends and waits, and executes nothing the door enqueues.
             this.dbos = new DBOS(DBOSConfig.defaults("dbo-lane-" + tenant + "-" + participant)
@@ -96,12 +109,15 @@ public final class StreamLane extends WireLane implements AutoCloseable {
             String id = UUID.randomUUID().toString();
             Map<String, Object> ask = new LinkedHashMap<>();
             ask.put("id", id);
-            String token = bearer.get();
-            if (token != null) {
-                ask.put("authorization", "Bearer " + token);
-            }
+            ask.put("participant", participant);
             ask.put("verb", verb.path());
-            ask.put("body", RecordWire.read(body));
+            Object parsed = RecordWire.read(body);
+            ask.put("body", parsed);
+            // Signed as it travels: id, verb and the body's own rendering, so
+            // the door can check that what arrived is what was asked.
+            String signed = id + "\n" + verb.path() + "\n" + RecordWire.write(parsed);
+            ask.put("signature", cloud.jengu.dbo.core.api.seal.SigningKey.sign(
+                    signed.getBytes(java.nio.charset.StandardCharsets.UTF_8), signing));
             String door = door();
             if (door == null) {
                 throw new cloud.jengu.dbo.core.api.StoreUnreachableException(
