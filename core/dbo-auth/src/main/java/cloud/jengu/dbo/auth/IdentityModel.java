@@ -97,6 +97,12 @@ public final class IdentityModel {
             Envelope e = new Envelope();
             e.identifier(LOGIN_SYSTEM, Json.str(n, "login"));
             e.value("status", EnvelopeValue.of(Json.str(n, "status")));
+            // Whose credential it is, searchable. The rule that a password is
+            // held only where this tenant is the identity provider has to find
+            // a person's credentials from the person, and a scan over every
+            // login in the tenant to answer it would be a scan on the sign-in
+            // path.
+            e.value("personId", EnvelopeValue.of(Json.str(n, "personId")));
             return e;
         };
         // Every claim that was presented becomes a (non-identity) identifier on
