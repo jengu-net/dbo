@@ -65,12 +65,25 @@ public final class Scopes {
      */
     public static final String IDENTITY = "identity";
 
+    /**
+     * The fleet scope: admits the door a deployment reads routed state
+     * through, and nothing else. Outside the SMART grammar like the others.
+     *
+     * <p>Separate from {@link #WORK} on purpose, and it is the distinction the
+     * surface exists for. Participation is what a bench may <em>do</em>; this
+     * is what a deployment may <em>ask about the fleet</em>, and a bench that
+     * could ask would be reading about benches it has no business knowing.
+     * Neither implies the other: a runner needs no view of the tree, and
+     * whoever watches the tree performs no work.
+     */
+    public static final String FLEET = "fleet";
+
     private static final String WORK_STEP = WORK + "/";
 
     /** Validates a declared scope string (as stored on a ClientApplication). */
     public static boolean isValid(String scope) {
         return SCIM.equals(scope) || WORK.equals(scope) || ERASURE.equals(scope)
-                || IDENTITY.equals(scope)
+                || IDENTITY.equals(scope) || FLEET.equals(scope)
                 || isWorkStep(scope)
                 || SCOPE.matcher(scope).matches();
     }
