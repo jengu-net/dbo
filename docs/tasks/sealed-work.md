@@ -125,18 +125,18 @@ closed, never chain detail.
 
 ## Sequence
 
-| step | status |
-|---|---|
-| Travel and access as distinct entries; one trail, two targets — #175 | **NEXT** |
-| Duplex lane over the store's stream — #177 | **NEXT** |
-| Enrolment key exchange — #166 | **READY**, needs the decision to widen the store to asymmetric crypto restated in the constraints; owner: the store |
-| Stories cited by promises — #180 | **READY**, small; do early |
-| Manifest/payload split and sealing in the carrier form — #174 | **BLOCKED by #166** (a seal with no key to wrap to is refused there) |
-| The chain: link on entry, travel names recipient, participant signs, result carries head, refuse-and-name — #176 | **BLOCKED by #175, #166** |
-| Partner relation composed with audience — #179 | **BLOCKED by #175** (travel entries are what the journey is made of) |
-| `perform` waits, one hop further for a router — #172 | **READY**, docs and contract text only |
-| Plane promise reworded, plaintext ratchet, erasure-reaches-the-copy proof — #173 | **PARTLY BLOCKED** — reword now; the proofs need #174 |
-| Departed routee kept with last attestation — #178 | **READY**, small |
+| step | promise (REQ-DBO-…) | status |
+|---|---|---|
+| Travel and access as distinct entries; one trail, two targets — #175  | `POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` · `WF-HOPS-AUDITED` | **NEXT** |
+| Duplex lane over the store's stream — #177  | `PROC-A-LANE-OVER-THE-STREAM` | **NEXT** |
+| Enrolment key exchange — #166  | `PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` | **READY**, needs the decision to widen the store to asymmetric crypto restated in the constraints; owner: the store |
+| Stories cited by promises — #180  | `PRM-A-STORY-IS-CITED-NOT-CLAIMED` | **READY**, small; do early |
+| Manifest/payload split and sealing in the carrier form — #174  | `PROC-WORK-TRAVELS-SEALED` | **BLOCKED by #166** (a seal with no key to wrap to is refused there) |
+| The chain: link on entry, travel names recipient, participant signs, result carries head, refuse-and-name — #176  | `POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | **BLOCKED by #175, #166** |
+| Partner relation composed with audience — #179  | `TEN-A-PARTNER-MANAGES-TENANTS` | **BLOCKED by #175** (travel entries are what the journey is made of) |
+| `perform` waits, one hop further for a router — #172  | `PROC-DONE-MEANS-DONE` · `PROC-THE-ROUTER-HOLDS-THE-CLAIM` | **READY**, docs and contract text only |
+| Plane promise reworded, plaintext ratchet, erasure-reaches-the-copy proof — #173  | `WF-TWO-PLANES` · `WF-CONTENT-FREE-PLATFORM-PLANE` | **PARTLY BLOCKED** — reword now; the proofs need #174 |
+| Departed routee kept with last attestation — #178  | `PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` | **READY**, small |
 
 Critical path: **#175 → #176**, with **#166 → #174** beside it and #176 waiting
 on both. Everything else can land whenever somebody is nearby.

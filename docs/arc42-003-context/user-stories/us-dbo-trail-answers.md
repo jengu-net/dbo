@@ -87,6 +87,8 @@ something the store already knows it issued.
 | Work not completed is released and visibly still owed | `REQ-DBO-PROC-FAILURE-IS-RELEASED` |
 | A run names what ran it | `REQ-DBO-PROC-RUN-NAMES-WHAT-RAN-IT` |
 | The trail survives a restore rather than being replayed into something new | `REQ-DBO-POL-POLICY-REPLAY-ON-RESTORE` |
+| Carried four times, opened once — travel and access as different entries — *planned* | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` |
+| A completion with a hole is refused and told which link — *planned* | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 
 ## What the store cannot do yet
 

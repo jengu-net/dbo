@@ -82,6 +82,9 @@ reach by asking about more tenants.
 | The run envelope discloses state rather than the subject | `REQ-DBO-PROC-RUN-ENVELOPE-DISCLOSES-STATE-NOT-SUBJECT` |
 | What a particular recipient sees is declared, not negotiated | `REQ-DBO-IDN-WHAT-A-RECIPIENT-SEES-IS-DECLARED` |
 | A contributed event carries an actor the machinery stamped, not one the caller claimed | `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` |
+| A partner manages tenants: the relation says which, the audience says what of each — *planned* | `REQ-DBO-TEN-A-PARTNER-MANAGES-TENANTS` |
+| The page is made of travel entries about the task — *planned* | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`, `REQ-DBO-WF-HOPS-AUDITED` |
+| A missing hop is missing detectably — *planned* | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 | A tenant's records are reachable only through that tenant's own store | `REQ-DBO-TEN-STRUCTURAL-SCOPING` |
 
 ## What the store cannot do yet

@@ -1243,6 +1243,14 @@ public enum DboPromises implements Promise {
                     + "prove itself would invert the design it exists to enforce.";
         }
     },
+    /** TODO: prove it in a test — a story citing a promise that does not exist fails the projection; a story whose every leg is PLANNED reads unproven. */
+    PRM_A_STORY_IS_CITED_NOT_CLAIMED(
+            "A user story is a constant beside the promises, and promises declare the "
+            + "stories they serve; a story's legs are projected from those declarations "
+            + "rather than written by hand, so a story cannot cite a promise that does "
+            + "not exist, cannot claim a leg nothing promises, and reads unproven while "
+            + "every leg it rests on is only planned. A story claims no evidence: coverage "
+            + "arrives only through promises citing it."),
     PRM_REGISTERED_AT_COMPILE_TIME(
             "An annotated catalogue is registered during its own component's "
             + "compilation — no classpath is swept, and a registration regenerated on "
