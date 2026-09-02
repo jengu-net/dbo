@@ -255,6 +255,9 @@ class OperatorIT {
         // poll-until-condition: a just-created CR may miss the next list on
         // a slow API server — reconcile until the ConfigMap carries the key
         String specJson = null;
+        // Not the suite's feed number (see Eventually), on purpose: what is
+        // being waited for here is a fake Kubernetes API server answering a
+        // list, which no transaction horizon delays.
         long deadline = System.currentTimeMillis() + 30_000;
         while (specJson == null && System.currentTimeMillis() < deadline) {
             operator.reconcileOnce();
@@ -294,12 +297,13 @@ class OperatorIT {
         // retraction for the same reason as the creation
         client.genericKubernetesResources(TenantOperator.CRD_CONTEXT)
                 .inNamespace(NS).withName("poliis").delete();
-        deadline = System.currentTimeMillis() + 30_000;
-        while (System.currentTimeMillis() < deadline && client.configMaps().inNamespace(NS)
-                .withName(TenantOperator.CONFIGMAP).get().getData().containsKey("poliis.json")) {
-            operator.reconcileOnce();
-            Thread.sleep(250);
-        }
+        // Asserted rather than merely waited out. This loop used to end
+        // either way, so a retraction that never happened left the test
+        // passing on the strength of having been patient about it.
+        Eventually.until("the retracted tenant left the ConfigMap",
+                operator::reconcileOnce,
+                () -> !client.configMaps().inNamespace(NS).withName(TenantOperator.CONFIGMAP)
+                        .get().getData().containsKey("poliis.json"));
     }
 
     /** Full chain: ConfigMap → SpecDirSync → runtime manager + secret-backed pool → live endpoint. */

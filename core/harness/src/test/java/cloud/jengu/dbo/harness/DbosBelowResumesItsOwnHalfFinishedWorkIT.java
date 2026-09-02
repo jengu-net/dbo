@@ -222,7 +222,7 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
      */
     private static void cycleUntilTheWorkIsTaken(StepRunner runner, String which)
             throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
+        long deadline = System.nanoTime() + Eventually.PATIENCE.toNanos();
         while (System.nanoTime() < deadline) {
             if (runner.cycle() > 0) {
                 return;
@@ -331,7 +331,7 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
             });
             restarted.attach(lane("the-restarted-one"));
 
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
+            long deadline = System.nanoTime() + Eventually.PATIENCE.toNanos();
             while (runs.byKey(KEY).orElseThrow().open() && System.nanoTime() < deadline) {
                 restarted.cycle();
                 Thread.sleep(100);

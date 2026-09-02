@@ -149,7 +149,7 @@ class TopicSubscriptionsIT {
      */
     private static void await(SubscriptionEngine engine, String what, BooleanSupplier condition)
             throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 60_000;
+        long deadline = System.currentTimeMillis() + Eventually.PATIENCE.toMillis();
         while (System.currentTimeMillis() < deadline) {
             engine.dispatchOnce(500);
             if (condition.getAsBoolean()) {

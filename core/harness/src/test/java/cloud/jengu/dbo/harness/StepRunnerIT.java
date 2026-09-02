@@ -70,31 +70,6 @@ class StepRunnerIT {
                 Duration.ofSeconds(30));
     }
 
-    /**
-     * Cycles until the condition holds, or gives up after 30 seconds.
-     *
-     * <p>Delivery is at-least-once and a cycle is one poll, so "did the work
-     * arrive" is a question about eventual arrival, never about a particular
-     * pass. The sibling retake test already worked this way; the two that did
-     * not were the two that went red under a loaded CI runner, which is the
-     * whole argument for the convention.
-     */
-    private static boolean cycleUntil(StepRunner runner, java.util.function.BooleanSupplier done) {
-        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
-        while (System.nanoTime() < deadline) {
-            runner.cycle();
-            if (done.getAsBoolean()) {
-                return true;
-            }
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return done.getAsBoolean();
-            }
-        }
-        return done.getAsBoolean();
-    }
 
     /**
      * The host's side of the line: the store handle stays HERE, and the
@@ -137,8 +112,8 @@ class StepRunnerIT {
             // machine and not a defect. Asserting on the first cycle made
             // this test a load gauge: it went red twice on a CI runner
             // carrying two suites at once while passing everywhere else.
-            assertTrue(cycleUntil(runner, () -> received.get() != null),
-                    "the item run was performed within the deadline");
+            Eventually.cycling(runner, "the item run reached the service", 
+                    () -> received.get() != null);
         }
 
         Run after = runs.byId(work.id()).orElseThrow();
@@ -212,8 +187,7 @@ class StepRunnerIT {
             // Thirty seconds was enough until a heavier class joined the four
             // that run concurrently, at which point this failed on a commit
             // that could not have touched it.
-            long deadline = System.nanoTime()
-                    + java.util.concurrent.TimeUnit.SECONDS.toNanos(240);
+            long deadline = System.nanoTime() + Eventually.PATIENCE.toNanos();
             while (runs.byId(work.id()).orElseThrow().open()
                     && System.nanoTime() < deadline) {
                 try {
@@ -269,9 +243,8 @@ class StepRunnerIT {
             });
             runner.attach(lane("t-a", "runner-a"));
             runner.attach(lane("t-b", "runner-b"));
-            assertTrue(cycleUntil(runner,
-                            () -> servedBy.contains(one.key()) || servedBy.contains(two.key())),
-                    "work flowed through the lanes within the deadline: " + servedBy);
+            Eventually.cycling(runner, "work flowed through one of the two lanes",
+                    () -> servedBy.contains(one.key()) || servedBy.contains(two.key()));
         }
         assertTrue(servedBy.contains(one.key()) || servedBy.contains(two.key()),
                 "work flowed through the lanes: " + servedBy);

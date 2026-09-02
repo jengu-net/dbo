@@ -165,7 +165,8 @@ class SpecDeclaredSyncIT {
      * arrived and were rebuilt here.
      */
     private String awaitCopy(String tenant, String expected) throws Exception {
-        long deadline = System.currentTimeMillis() + 60_000;
+        // The suite's one number for a wait on the feed (see Eventually).
+        long deadline = System.currentTimeMillis() + Eventually.PATIENCE.toMillis();
         String body = "";
         while (System.currentTimeMillis() < deadline) {
             manager.syncRound();

@@ -146,10 +146,8 @@ class ALaneOverHttpIsIndistinguishableIT {
             });
             runner.attach(lane);
 
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
-            while (received.get() == null && System.nanoTime() < deadline) {
-                runner.cycle();
-            }
+            Eventually.cycling(runner, "the service was handed work over the surface",
+                    () -> received.get() != null);
         }
 
         assertTrue(received.get() != null, "the service was handed work over the surface");
