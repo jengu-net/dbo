@@ -247,6 +247,34 @@ Absent rather than hidden, and each for a reason:
 - **Cursors, planes and pod assignment** — operational machinery with no
   clinical meaning.
 
+## Looking up what we mint
+
+Everything of ours that reaches you can be resolved from the tenant that sent
+it. The codes are `CodeSystem`s and the identifier namespaces are
+`NamingSystem`s — so meeting `urn:dbo:run` in an `identifier.system` is
+answered by `NamingSystem?value=urn:dbo:run`, a search parameter every version
+defines. A tenant serves them whether or not it asked for those types, because
+"this tenant did not declare `CodeSystem`" is not an answer you can act on.
+
+That is checked rather than promised: a test drives the surfaces you actually
+use, collects every `urn:dbo:` it is *handed*, and fails the build if one of
+them does not resolve. Collecting from the responses rather than from our own
+list is the point — a value that reaches the wire by a path nobody thought
+about is exactly the one that would otherwise go unnoticed.
+
+**The `CapabilityStatement` does not list them, and that is deliberate.** It
+has no slot for "systems this server mints", so announcing them there would
+mean inventing one — and you would have to learn *our* extension in order to
+discover that there is nothing else of ours to learn, which is the leak this
+whole arrangement exists to close. The flow that actually happens is that you
+meet a system in a payload and resolve it, and that is the half which has to
+work.
+
+If discovery-before-first-contact is ever wanted, the FHIR-shaped answers are
+an implementation guide or `rest.resource.profile` on the carrying types.
+Both are real pieces of work rather than a list, and neither has a caller
+asking for it today.
+
 ## If you are integrating
 
 Four things that most often surprise people, in the order they usually bite:
