@@ -388,9 +388,9 @@ public enum DboPromises implements Promise {
 
     // ── sealed work — decided in review, nothing built; see docs/tasks ──
 
-    /** TODO: prove it in a test — a carrier holding no key reads the envelope and cannot read the payload. */
+    /** TODO: prove it in a test — a carrier holding no key reads the manifest and cannot read the payload. */
     PROC_WORK_TRAVELS_SEALED(
-            "Work travels in two parts. The envelope — tenant, step, the task, and "
+            "Work travels in two parts. The manifest — tenant, step, the task, and "
             + "references to the documents named — is readable, because routing on it "
             + "is its job. The payload — the documents themselves — is sealed in the "
             + "carrier form under a data key of its own, wrapped once per participant "
@@ -1039,7 +1039,7 @@ public enum DboPromises implements Promise {
     /** TODO: prove it in a test. */
     WF_TWO_PLANES(
             "Records live in the tenant plane, structurally isolated. The shared platform "
-            + "plane carries coordination and the copies work needs in flight — envelopes "
+            + "plane carries coordination and the copies work needs in flight — manifests "
             + "readable, because routing is what they are for, and payloads sealed to the "
             + "participant meant to open them. Isolation of a record is structural; of a "
             + "copy in flight, cryptographic."),

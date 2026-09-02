@@ -96,9 +96,9 @@ at all. What is worth knowing is that the traffic is bounded by what the work
 names rather than by following references outward, so an appliance holds what it
 is working on rather than a copy of the collection.
 
-**Work leaves a tenant sealed, and its envelope does not.** A runner fleet that
+**Work leaves a tenant sealed, and its manifest does not.** A runner fleet that
 serves every tenant carries every tenant's work, and what it carries is
-declared in two parts: an envelope — tenant, step, task, and references to the
+declared in two parts: a manifest — tenant, step, task, and references to the
 documents named — readable, because routing on it is its job; and a payload —
 the documents — sealed to the participant meant to open it, in the carrier
 form the encrypted disclosure mode already hands out. So the fleet sees, across

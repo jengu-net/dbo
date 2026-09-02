@@ -38,7 +38,7 @@ it may do.
 
 Four things have to become true for that sentence to hold while the fleet
 stays convenient, and each is an issue above: work splits into a readable
-envelope and a sealed payload; opening a payload and carrying one become
+manifest and a sealed payload; opening a payload and carrying one become
 different kinds of audit entry; the entries of a run are chained from the task
 the store minted so the trail's completeness can be checked; and the lane runs
 over the store's own stream in both directions so one service needs no
@@ -131,7 +131,7 @@ closed, never chain detail.
 | Duplex lane over the store's stream — #177 | **NEXT** |
 | Enrolment key exchange — #166 | **READY**, needs the decision to widen the store to asymmetric crypto restated in the constraints; owner: the store |
 | Stories cited by promises — #180 | **READY**, small; do early |
-| Envelope/payload split and sealing in the carrier form — #174 | **BLOCKED by #166** (a seal with no key to wrap to is refused there) |
+| Manifest/payload split and sealing in the carrier form — #174 | **BLOCKED by #166** (a seal with no key to wrap to is refused there) |
 | The chain: link on entry, travel names recipient, participant signs, result carries head, refuse-and-name — #176 | **BLOCKED by #175, #166** |
 | Partner relation composed with audience — #179 | **BLOCKED by #175** (travel entries are what the journey is made of) |
 | `perform` waits, one hop further for a router — #172 | **READY**, docs and contract text only |
