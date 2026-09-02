@@ -41,6 +41,17 @@ jobs:
     # images job has), because a public fork PR on a self-hosted runner is
     # arbitrary code execution on the machine that runs it.
     runs-on: self-hosted
+    # There is ONE self-hosted runner, so a job that hangs does not fail by
+    # itself — it holds every later commit behind it. GitHub's default bound
+    # is six hours, which on this machine means a wedged step blocks the day.
+    #
+    # Sized from what the job actually costs rather than from a round number:
+    # the full suite has run between fifteen and thirty-six minutes on this
+    # runner, so sixty is roughly twice the worst observed. Tight enough that
+    # a hang frees the queue while somebody is still awake, loose enough that
+    # a slow-but-working run is not killed — which is the failure mode that
+    # costs more, because a false red teaches people to re-run without reading.
+    timeout-minutes: 60
     # the test reporter writes a check run and annotates failing lines
     permissions:
       contents: read
@@ -131,6 +142,8 @@ jobs:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: self-hosted
+    # Minutes, not hours: it resolves a graph and posts it.
+    timeout-minutes: 20
     # writing the snapshot to the dependency graph is a write
     permissions:
       contents: write
@@ -150,6 +163,9 @@ jobs:
     if: github.event_name != 'pull_request'
     # self-hosted for the same budget reason as build; never on pull_request
     runs-on: self-hosted
+    # Assembles and uploads. The bound is about a network call that never
+    # returns rather than about how long publishing takes.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v5
@@ -197,6 +213,10 @@ jobs:
     # a job on this runner, is the whole vulnerability.
     if: github.event_name != 'pull_request'
     runs-on: self-hosted
+    # Kept at forty: a two-architecture build is genuinely slow, and this is
+    # the job that hung on an unreachable LAN registry — where the bound is
+    # what eventually frees the runner. Forty minutes of a blocked queue is
+    # the cost of not killing a legitimate multi-arch build.
     timeout-minutes: 40
     # ONE job for both images, not a matrix entry each. The matrix bought
     # nothing and cost twice: two Gradle bootstraps assembling the same
@@ -340,6 +360,7 @@ jobs:
     if: needs.build.outputs.is_release == 'true'
     # self-hosted for the same budget reason as build; release tags only
     runs-on: self-hosted
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v5
