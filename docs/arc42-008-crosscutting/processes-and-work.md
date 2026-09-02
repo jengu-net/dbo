@@ -188,11 +188,11 @@ receives what the work it holds entitles it to, resolved by the side that
 legitimately has it.
 
 What it receives has two parts, and the split is what lets one participant serve
-many tenants without reading any of them. The **envelope** — which tenant, which
+many tenants without reading any of them. The **manifest** — which tenant, which
 step, the task, and *references* to the documents the work names — is readable,
 because routing on it is its job. The **payload** — the documents themselves —
 is sealed to the participant meant to open it. Whoever merely carries the work
-reads the envelope and holds no key.
+reads the manifest and holds no key.
 
 What it may work on is the **intersection** of what its credential covers and
 what the step admits. Neither widens the other: a step cannot grant its executor
@@ -229,7 +229,7 @@ describes what it delivers.
 A site with an on-premises appliance and a cloud is **one tenant in two places**,
 not two tenants: same code, same declarations, different local settings. What
 travels between them is the stored bytes as they are, in the carrier form —
-sealed to the site meant to open them, readable in their envelope by whatever
+sealed to the site meant to open them, readable in their manifest by whatever
 carries them.
 
 - **The store builds no channel.** It hands a caller a batch and accepts one

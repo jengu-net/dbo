@@ -10,7 +10,7 @@
 > and carries results back.
 >
 > Most of what it carries, it cannot read. A worklist arrives as an
-> envelope it routes on and a payload it never opens. When the analyser
+> manifest it routes on and a payload it never opens. When the analyser
 > genuinely needs the specimen document, the store's own callback opens it
 > *there*, on the analyser, and says so back down the channel. That saying
 > is what the practice sees in its audit trail as a reading. The twenty
@@ -44,11 +44,11 @@ that carries the sealed bytes.
 
 A run is claimed for a tenant, and what travels is two parts:
 
-- the **envelope** — which tenant, which step, the task, and *references* to
+- the **manifest** — which tenant, which step, the task, and *references* to
   the documents the work names. Readable, because routing is what it is for.
 - the **payload** — the documents themselves. Sealed.
 
-Ines's service reads the envelope, decides which analyser the work belongs
+Ines's service reads the manifest, decides which analyser the work belongs
 to, and forwards it. **It never holds a key.** The one thing it must not be
 able to do is the one thing it structurally cannot.
 
