@@ -129,6 +129,14 @@ quietly become successes and the next person cannot tell a job that finished fro
 one that gave up. Whether a participant may close a step at all — as opposed to
 only advancing it — is something the step declared.
 
+**A participant does not say done before the work is done.** A run closes on
+what the participant reports, and the store has no view below that seam, so a
+report that arrives early is a true-looking record of something that has not
+happened — and nobody looks for work the store says is finished. A participant
+with durable execution underneath waits for it; a router waits for its edge. A
+wedged one then lets the claim lapse, and the run reads *released* rather than
+*done*, which is the honest state.
+
 ## Who is out there
 
 Nobody registers a participant in a configuration file. A participant
@@ -156,6 +164,21 @@ Where something has a cursor, presence is derived from it; where it does not, th
 record carries who last saw it and when, because "where it sits" and "who to ask
 about it" are different questions.
 
+**The thing that can reach the store is the participant, and it holds the
+claim.** An instrument behind a router is routed *because* it cannot reach the
+lane, so the router claims the run, forwards it, waits, and reports — holding a
+claim on work it cannot read, which sounds strange and is exactly the point. The
+instrument holds the key and does the work. Participant versus routee is a fact
+about the attachment, not the device: a bench with its own lane is a participant,
+and the same bench behind a router is a routee.
+
+A routee that stops being reported is a statement, not a gap. A router reports
+the full set behind it, so an absence from that report is something the router
+said — distinguishable from a quiet router, whose cursor did not move. The store
+keeps a departed routee with its last attestation and marks it no longer
+reported, so "gone" reads as *last seen by X at T, absent from X's report at
+T+1*: absence with a timestamp, which is a fact.
+
 ## What a participant may see and do
 
 A participant's whole world is a few verbs: ask for work, take it, report on it,
@@ -164,6 +187,13 @@ request takes a reference — so it cannot ask for data, relevant or not. It
 receives what the work it holds entitles it to, resolved by the side that
 legitimately has it.
 
+What it receives has two parts, and the split is what lets one participant serve
+many tenants without reading any of them. The **envelope** — which tenant, which
+step, the task, and *references* to the documents the work names — is readable,
+because routing on it is its job. The **payload** — the documents themselves —
+is sealed to the participant meant to open it. Whoever merely carries the work
+reads the envelope and holds no key.
+
 What it may work on is the **intersection** of what its credential covers and
 what the step admits. Neither widens the other: a step cannot grant its executor
 more than the executor already holds, and a credential cannot reach a step that
@@ -171,27 +201,36 @@ never opened itself to that kind of participant. There is no implicit
 unrestricted — reach is stated when a participant is provisioned, so nobody's
 access depends on a parameter somebody forgot.
 
-**A participant is authenticated, not sealed to.** It holds a credential and
-never a key. What it receives arrives as ordinary readable data: the store
-resolves what the work entitles it to and hands that across. Nothing is
-encrypted such that only this participant could open it, and no participant
-offers the store anything to encrypt to.
+**A participant is sealed to, and a carrier is not.** A participant offers a
+public key when it enrols; the private half never crosses, so a copy of the
+enrolment records opens nothing. From then on each payload sent to it is sealed
+under a data key of its own, wrapped to that participant — and to nobody who
+merely carries it. That is the store's usual answer applied to transport: a
+carrier that holds no key cannot read what it moves, whatever it is told it may
+do, and the arrangement needs no trust in the carrier to hold.
 
-That is a boundary rather than an omission, and it decides who has to be
-trusted. The store owns no channel, so whatever carries the bytes is something
-it does not run and cannot see into — and everything that carrier moves, it can
-read. Where the participant is the tenant's own second site, there is nobody
-else in the picture and nothing to protect against. Where it belongs to
-somebody else, the carrier is a third party who is trusted by arrangement
-rather than by construction. That is the one place this store's usual answer —
-*make it structurally impossible rather than promise it* — does not apply, so
-work that cannot tolerate it stays inside the tenant's own machinery.
+Three consequences are worth stating because each could have gone the other way.
+The seal is **per payload, wrapped per participant**, not per tenant — a carrier
+enrolled in a tenant would otherwise hold that tenant's key, and the carrier is
+the thing being excluded. What is sealed is the **carrier form** — the record as
+the store's own encrypted disclosure mode hands it out, identifying elements
+already under the person's key — so a sealed copy still in flight after an
+erasure is in the same state as the store's own records after a shred. And a
+sealed copy is **a copy in flight, not the record**: the store keeps the
+original, still indexes and searches it, and the copy is bounded by the work
+that caused it.
+
+Today work travels in the clear and no participant holds a key; the mechanism
+is the live topic [sealed work](../tasks/sealed-work.md), and this paragraph
+describes what it delivers.
 
 ## Two sites of one tenant
 
 A site with an on-premises appliance and a cloud is **one tenant in two places**,
 not two tenants: same code, same declarations, different local settings. What
-travels between them is the stored bytes as they are.
+travels between them is the stored bytes as they are, in the carrier form —
+sealed to the site meant to open them, readable in their envelope by whatever
+carries them.
 
 - **The store builds no channel.** It hands a caller a batch and accepts one
   back; something outside carries the bytes, authenticates and reconnects. A
@@ -229,6 +268,30 @@ nothing decides anything on it; it is for trends and alerting, not for state. Wh
 may be said there is a closed set, and a failure's own words are not in it: they
 stay on the run, in the store of the tenant whose work it was.
 
+**"What happened to this run, and who read what?"** — the trail, and it is one
+trail with two kinds of subject. A hop that carried the work leaves a **travel**
+entry about the *task*: the journey belongs to the work. A participant that
+opened a payload leaves an **access** entry about the *document*, landing where
+every other reading of that document lands and naming the task execution as its
+occasion. So *who has read this?* is answered from the document by somebody who
+need not know work exists, and *where did this go?* from the task; the occasion
+is the join. The machinery's own read to seal a payload records nothing, because
+a read that yields only ciphertext is not a disclosure.
+
+The entries of a run are chained, each committing to the one before, rooted in
+the task the store minted — so a participant cannot present a journey that never
+started, and a hop that skipped its own entry is exposed by the next, because
+every travel entry names who it handed to. The result that closes the run is the
+chain's last link and always was; the store checks the chain when the result
+lands, and a completion with a gap is refused and told which link. What the chain
+cannot do is compel a participant to send: an intended recipient can open a
+payload and never say so, and that limit is accepted rather than hidden — the
+data was legitimately theirs, and what is lost is the entry for an authorised
+read on a device the tenant answers for.
+
+Travel entries, access entries and the chain do not exist yet; they are
+[sealed work](../tasks/sealed-work.md) too.
+
 **The store's own housekeeping runs on this model rather than beside it.**
 Notification delivery, retention, configuration application, tenant serving,
 upstream sync — each is a declared process with runs like any other. That is a
@@ -253,6 +316,13 @@ nothing to partition and no rebalancing to get wrong.
 service, on an appliance with nothing else on it, or as a screen with a person in
 front of it. Whatever runs work locally may be durable in its own way; what is
 owed, by whom, and what happened is the store's.
+
+That is a statement about the *contract*, not about the store's deployment. The
+store's own durable substrate is named in its constraints and used by its own
+code; what the seam keeps neutral is *meaning* — a run, a claim and an outcome
+say the same thing whether the work happened in a workflow, in a loop, or in
+front of a person — which is what lets a bench with nothing on it be a
+participant without anybody installing a substrate there.
 
 ## Where the detail is written down
 
