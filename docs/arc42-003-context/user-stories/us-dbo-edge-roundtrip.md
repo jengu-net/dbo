@@ -129,7 +129,7 @@ operates and can read.
 | A participant contributes an event and cannot forge who or when | `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` |
 | A version links to the one before it, so a rewrite is detectable | `REQ-DBO-CORE-VERSIONED-HISTORY` |
 | Work travels as a readable manifest and a sealed payload, in the carrier form, wrapped per participant — *planned* | `REQ-DBO-PROC-WORK-TRAVELS-SEALED` |
-| The analyser offers its public key when it enrols — *planned* | `REQ-DBO-PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` |
+| The analyser offers its public key when it enrols | `REQ-DBO-PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` |
 | Carrying and reading are different entries, on the task and on the document | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`, `REQ-DBO-WF-HOPS-AUDITED` |
 | The events come home chained from the task, and the result is the last link — *planned* | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 | One duplex channel carries work out and events home — *planned* | `REQ-DBO-PROC-A-LANE-OVER-THE-STREAM` |
@@ -140,10 +140,11 @@ operates and can read.
 
 - **Payloads are not sealed.** Work travels as plain bytes; there is no
   encryption on the transport at all.
-- **There is no enrolment key exchange.** No asymmetric encryption exists in
-  the production sources, and the one key that does exist is a single
-  framework key shared by every tenant — so there is nothing per-tenant to
-  seal with.
+- **Nothing is wrapped to the enrolment key yet.** The exchange exists: an
+  analyser offers its X25519 public key as it enrols, the store records it
+  and names the version by its thumbprint, and a data key wrapped to it is
+  opened only by the holder of the private half. What is missing is the
+  payload that would carry such a key.
 - **There is no decryption callback.** Carrying and reading are already
   different entries — a hop leaves a travel entry on the task, and a
   participant's read of a named document leaves an access entry on the

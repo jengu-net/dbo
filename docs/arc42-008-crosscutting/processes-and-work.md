@@ -220,7 +220,9 @@ sealed copy is **a copy in flight, not the record**: the store keeps the
 original, still indexes and searches it, and the copy is bounded by the work
 that caused it.
 
-Today work travels in the clear and no participant holds a key; the mechanism
+Today work travels in the clear. A participant may already hold a key — it
+offers the public half as it enrols, the store records it and wraps to it —
+but no payload is yet wrapped; the mechanism
 is the live topic [sealed work](../tasks/sealed-work.md), and this paragraph
 describes what it delivers.
 

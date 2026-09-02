@@ -355,6 +355,22 @@ public final class AuthorityHandler implements HttpHandler {
         List<String> scopes = Json.strings(body, "scope");
         String clientType = Json.strOpt(body, "client_type");
         List<String> redirectUris = Json.strings(body, "redirect_uris");
+        // The public half of a keypair the participant generated before it
+        // came here, offered as a JWK. What payload data keys will be wrapped
+        // to; the private half is the one thing this call must never see,
+        // and a JWK carrying it is refused rather than stripped.
+        Object offered = ((java.util.Map<?, ?>) body).get("public_key");
+        cloud.jengu.dbo.core.api.seal.ParticipantKey participantKey = null;
+        if (offered != null) {
+            try {
+                participantKey = cloud.jengu.dbo.core.api.seal.ParticipantKey.parse(
+                        offered instanceof String s ? s : Json.render(offered));
+            } catch (IllegalArgumentException refused) {
+                respond(exchange, 400, "{\"error\":\"invalid_request\",\"error_description\":\""
+                        + String.valueOf(refused.getMessage()).replace("\"", "'") + "\"}");
+                return;
+            }
+        }
         try {
             if (clientType == null && redirectUris.isEmpty()) {
                 // The machine shape: a secret it holds and the scopes it may
@@ -366,7 +382,15 @@ public final class AuthorityHandler implements HttpHandler {
                             + "credential — this store does not mint one\"}");
                     return;
                 }
-                authority.ensureClient(clientId, secret, scopes);
+                authority.ensureClient(clientId, secret, scopes, participantKey);
+            } else if (participantKey != null) {
+                // A relying party is a place people log in, not a thing work
+                // is sealed to; a key on it would be recorded and wrapped to
+                // by nothing.
+                respond(exchange, 400, "{\"error\":\"invalid_request\","
+                        + "\"error_description\":\"a public key is offered by a machine "
+                        + "credential, not a relying party\"}");
+                return;
             } else {
                 authority.ensureClient(clientId, secret, scopes, clientType, redirectUris);
             }
@@ -377,7 +401,12 @@ public final class AuthorityHandler implements HttpHandler {
                     + String.valueOf(refused.getMessage()).replace("\"", "'") + "\"}");
             return;
         }
-        respond(exchange, 200, "{\"client_id\":\"" + clientId + "\"}");
+        // The kid is the thumbprint of what was offered: the version the
+        // store will wrap to, so the holder can tell a wrap made to this key
+        // from one made to a key it has since replaced.
+        respond(exchange, 200, "{\"client_id\":\"" + clientId + "\""
+                + (participantKey != null ? ",\"kid\":\"" + participantKey.kid() + "\"" : "")
+                + "}");
     }
 
     /**
