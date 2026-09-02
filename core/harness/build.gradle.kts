@@ -165,7 +165,8 @@ val promiseProjection by tasks.registering(JavaExec::class) {
     dependsOn(tasks.named("testClasses"))
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("cloud.jengu.dbo.harness.PromiseProjection")
-    args("project", rootProject.file("docs/arc42-006-runtime/req-catalogue.md").absolutePath)
+    args("project", rootProject.file("docs/arc42-006-runtime/req-catalogue.md").absolutePath,
+        rootProject.file("docs/arc42-003-context/user-stories").absolutePath)
 }
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()

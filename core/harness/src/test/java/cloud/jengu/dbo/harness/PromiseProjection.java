@@ -33,6 +33,9 @@ public final class PromiseProjection {
     static final String BEGIN = "<!-- promise:begin — generated from the promise catalogue;"
             + " do not edit. Regenerate: ./gradlew :core:harness:promiseProjection -->";
     static final String END = "<!-- promise:end -->";
+    static final String STORY_BEGIN = "<!-- story:begin — generated from the promise catalogue;"
+            + " do not edit. Regenerate: ./gradlew :core:harness:promiseProjection -->";
+    static final String STORY_END = "<!-- story:end -->";
 
     private PromiseProjection() {
     }
@@ -52,6 +55,15 @@ public final class PromiseProjection {
                 Path catalogue = Path.of(args[1]);
                 Files.writeString(catalogue, projected(model, Files.readString(catalogue)));
                 System.out.println("promise projection refreshed: " + catalogue);
+                if (args.length > 2) {
+                    Path stories = Path.of(args[2]);
+                    for (cloud.jengu.dbo.promise.Story story : stories(model)) {
+                        Path file = storyFile(stories, model, story);
+                        Files.writeString(file, projectedStory(model, story,
+                                Files.readString(file)));
+                        System.out.println("story projection refreshed: " + file);
+                    }
+                }
             }
             default -> throw new IllegalArgumentException("report|project, not " + args[0]);
         }
@@ -67,6 +79,72 @@ public final class PromiseProjection {
         }
         return catalogueFile.substring(0, begin) + BEGIN + "\n" + block(model)
                 + catalogueFile.substring(end);
+    }
+
+    /** Every story the catalogue declares, in declaration order. */
+    static java.util.List<cloud.jengu.dbo.promise.Story> stories(Registry.Model model) {
+        return model.classifications().stream()
+                .filter(c -> c instanceof cloud.jengu.dbo.promise.Story)
+                .map(c -> (cloud.jengu.dbo.promise.Story) c).toList();
+    }
+
+    /**
+     * Where a story's markdown lives: the code, lowercased, in the stories
+     * directory. A story constant with no scene to tell is refused rather
+     * than projected into nothing.
+     */
+    static Path storyFile(Path stories, Registry.Model model, cloud.jengu.dbo.promise.Story story) {
+        Path file = stories.resolve(story.code().toLowerCase(java.util.Locale.ROOT) + ".md");
+        if (!Files.exists(file)) {
+            throw new IllegalStateException("story " + story.code() + " is declared and has no "
+                    + "scene at " + file + " — a story is a constant AND a page, or it is neither");
+        }
+        return file;
+    }
+
+    /** The story file with its generated joins block replaced. */
+    static String projectedStory(Registry.Model model, cloud.jengu.dbo.promise.Story story,
+            String storyFile) {
+        int begin = storyFile.indexOf(STORY_BEGIN);
+        int end = storyFile.indexOf(STORY_END);
+        if (begin < 0 || end < 0) {
+            throw new IllegalStateException(story.code() + " carries no story markers — the "
+                    + "generated joins have nowhere to live");
+        }
+        return storyFile.substring(0, begin) + STORY_BEGIN + "\n" + storyBlock(model, story)
+                + storyFile.substring(end);
+    }
+
+    /**
+     * A story's joins, projected: the promises it declares, each with the
+     * status its own citations give it. A story claims no evidence, so a
+     * story whose every leg is planned says so in one line rather than
+     * listing legs a reader would take as proven.
+     */
+    static String storyBlock(Registry.Model model, cloud.jengu.dbo.promise.Story story) {
+        if (story.promises().isEmpty()) {
+            throw new IllegalStateException(story.code() + " declares no promise — a story "
+                    + "with no joins is prose, and belongs as a step of one that has them");
+        }
+        StringBuilder out = new StringBuilder("\n| Promise | Says | Status |\n|---|---|---|\n");
+        boolean anyProven = false;
+        for (Promise promise : story.promises()) {
+            var status = model.statusOf(promise);
+            anyProven |= status == cloud.jengu.dbo.promise.PromiseStatus.PROVEN
+                    || status == cloud.jengu.dbo.promise.PromiseStatus.ASSURED;
+            out.append("| `").append(model.codeOf(promise)).append("` | ")
+                    .append(promise.text()).append(" | ").append(status).append(" |\n");
+        }
+        Map<cloud.jengu.dbo.promise.PromiseStatus, Long> coverage = model.coverage(story);
+        out.append("\n");
+        if (!anyProven) {
+            out.append("**Unproven.** Every leg this story rests on is planned; nothing here "
+                    + "is evidence yet.\n");
+        } else {
+            out.append("Coverage: ").append(coverage).append(" — a leg marked PLANNED cites "
+                    + "a promise that exists and is not yet cited by any test.\n");
+        }
+        return out.toString();
     }
 
     /** The generated tables: promise-managed areas, grouped by code prefix. */

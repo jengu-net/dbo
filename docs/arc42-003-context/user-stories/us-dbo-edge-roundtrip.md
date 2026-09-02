@@ -117,24 +117,39 @@ operates and can read.
 
 ## Joins
 
-| Leg | Promised by |
-|---|---|
-| One service, many tenants, no state carried between them | `REQ-DBO-PROC-STEP-SERVICE-EMBEDDABLE`, `REQ-DBO-TEN-STRUCTURAL-SCOPING` |
-| The same lane across a wire as in the container, and a worker that never holds a store handle | `REQ-DBO-PROC-A-HOST-HOLDS-A-LANE-WHEREVER-IT-IS` |
-| The work names its inputs, and the run says what it produced | `REQ-DBO-PROC-TASK-CARRIES-THE-INPUTS`, `REQ-DBO-PROC-A-RUN-NAMES-WHAT-IT-PRODUCED` |
-| A participant may claim only what its credential and the step allow | `REQ-DBO-PROC-CLAIM-IS-THE-INTERSECTION` |
-| Killing the analyser mid-work loses neither half | `REQ-DBO-PROC-FAILURE-IS-RELEASED` |
-| Opening a document is recorded against the purpose it was opened for | `REQ-DBO-POL-AUDIT-AS-RECORDS`, `REQ-DBO-POL-ACTOR-FROM-AUTHORITY` |
-| The envelope discloses state, not the subject | `REQ-DBO-PROC-RUN-ENVELOPE-DISCLOSES-STATE-NOT-SUBJECT` |
-| A participant contributes an event and cannot forge who or when | `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` |
-| A version links to the one before it, so a rewrite is detectable | `REQ-DBO-CORE-VERSIONED-HISTORY` |
-| Work travels as a readable manifest and a sealed payload, in the carrier form, wrapped per participant | `REQ-DBO-PROC-WORK-TRAVELS-SEALED` |
-| The analyser offers its public key when it enrols | `REQ-DBO-PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` |
-| Carrying and reading are different entries, on the task and on the document | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`, `REQ-DBO-WF-HOPS-AUDITED` |
-| The events come home chained from the task, and the result is the last link | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
-| One duplex channel carries work out and events home | `REQ-DBO-PROC-A-LANE-OVER-THE-STREAM` |
-| The service holds the claim and waits for the analyser | `REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM`, `REQ-DBO-PROC-DONE-MEANS-DONE` |
-| The shared plane holds the sealed copy and nothing readable | `REQ-DBO-WF-TWO-PLANES`, `REQ-DBO-WF-CONTENT-FREE-PLATFORM-PLANE` |
+The promises this story rests on, projected from the catalogue rather than
+written here: a story claims no evidence, and a leg is what its promise's own
+citations say it is.
+
+<!-- story:begin — generated from the promise catalogue; do not edit. Regenerate: ./gradlew :core:harness:promiseProjection -->
+
+| Promise | Says | Status |
+|---|---|---|
+| `REQ-DBO-PROC-STEP-SERVICE-EMBEDDABLE` | One embeddable runner registers step services and needs only the participation lane — no orchestrator, no transport, no access to the tenant's dbo — so the same bundle runs inside the platform's container, on a separate machine, or in a pod scaled per step, stateless over the tenants whose lanes it is handed. | PROVEN |
+| `REQ-DBO-TEN-STRUCTURAL-SCOPING` | No code path can read or write data without an explicit tenant context. (R3) | PROVEN |
+| `REQ-DBO-PROC-A-HOST-HOLDS-A-LANE-WHEREVER-IT-IS` | A host that reaches the store over HTTP obtains the same lane as one that holds the store in-process: the tenant serves the participation verbs on its own private surface, guarded by its own authority, and a runner cannot tell the two apart. The entitlement is derived from the credential and never asked for by the caller, and a credential bounded to steps may work only as itself. | PROVEN |
+| `REQ-DBO-PROC-TASK-CARRIES-THE-INPUTS` | The face renders each input as Task.input — the slot name as the parameter's code, the reference displayed rather than resolved, exactly as focus is — in every version the face serves. | PROVEN |
+| `REQ-DBO-PROC-A-RUN-NAMES-WHAT-IT-PRODUCED` | A run records the versions it produced, individually up to a cap and as a per-type high-water mark past it, and says which of the two it is. Reading runs in order then reads the content changes in order, so another appliance asks for what it is missing rather than comparing two stores. | PROVEN |
+| `REQ-DBO-PROC-CLAIM-IS-THE-INTERSECTION` | What a participant may claim is the intersection of what its credential covers and what the step admits: the lane narrows the work it offers and refuses a claim outside the entitlement, and the store refuses an executor at a scope the step never opened itself to. A step cannot grant its executor more than the executor already holds. | PROVEN |
+| `REQ-DBO-PROC-FAILURE-IS-RELEASED` | A failing or throwing step service releases the run with the reason — never closed, never lost — and a later cycle may take it again. | PROVEN |
+| `REQ-DBO-POL-AUDIT-AS-RECORDS` | Audit entries are regular, pseudonymous records in the tenant's own store — feed-visible, exported and restored with the tenant, re-identifiable only through the vault. | PROVEN |
+| `REQ-DBO-POL-ACTOR-FROM-AUTHORITY` | Every audit entry names its actor from the tenant authority's token (client and subject) — no anonymous mutations under any audited policy. | PROVEN |
+| `REQ-DBO-PROC-RUN-ENVELOPE-DISCLOSES-STATE-NOT-SUBJECT` | A run's envelope carries holder, step, state and counts — never item references or messages. The envelope is a disclosure surface, and progress must not name what was being processed. | PROVEN |
+| `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` | Applications contribute business-level audit events; the machinery stamps actor and time from the validated token and its own clock, overriding caller claims — the trail can be enriched, never impersonated or backdated. | PROVEN |
+| `REQ-DBO-CORE-VERSIONED-HISTORY` | Every write appends an immutable version; version-aware reads and optimistic concurrency (ETag) are first-class. | PROVEN |
+| `REQ-DBO-PROC-WORK-TRAVELS-SEALED` | Work travels in two parts. The manifest — tenant, step, the task, and references to the documents named — is readable, because routing on it is its job. The payload — the documents themselves — is sealed in the carrier form under a data key of its own, wrapped once per participant meant to open it and to nobody who merely carries it. A sealed payload is a copy in flight and not the record: the store keeps the original, and the copy is bounded by the work that caused it. | PROVEN |
+| `REQ-DBO-PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` | A participant generates its keypair before it is enrolled and offers the public half as part of enrolling; the private half never crosses. Payload data keys are wrapped to that key, so what a participant may open is decided by what it holds rather than by what it is told. | PROVEN |
+| `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` | One trail; the target says what an entry is about. A hop that carried work leaves a travel entry about the task. A participant that opened a payload leaves an access entry about the document, landing where every other reading of it lands and naming the task execution as its occasion. The machinery's own read to seal a payload records nothing: a read that yields only ciphertext is not a disclosure. So who read this is answered from the document by somebody who need not know work exists, and where did this go from the task, and the trail can say that nobody looked. | PROVEN |
+| `REQ-DBO-WF-HOPS-AUDITED` | Every hop leaves a travel entry about the task — who handed to whom — and a travel entry is not a reading: audit of the journey is structural, not per-integration, and it never says anybody looked at the content. | PROVEN |
+| `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | A run's travel and access entries each carry a link to the one before, rooted in the task the store minted, so a participant cannot present a journey that never started. The result that closes the run is the last link and carries the head it commits to; the store checks the chain when the result lands, and a completion with a gap is refused and told which link. A travel entry names who it handed to, so a skipped hop is exposed by the next author. Links are signed by the participant, which buys non-forgery and non-repudiation and not omission-proofing: an intended recipient can open a payload and never say so, and that limit is accepted. The link lives on the entry, so the chain outlives nothing the trail does not, and a pruned predecessor reads unchained rather than broken. | PROVEN |
+| `REQ-DBO-PROC-A-LANE-OVER-THE-STREAM` | A lane runs over the store's own stream, full duplex, beside in-process and HTTP: work goes out and travel, access and result events come home as they happen on the same channel. It serves exactly the verbs the other two do, and a runner cannot tell which it holds. | PROVEN |
+| `REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM` | The thing that can reach the store is the participant, and it holds the claim. An instrument behind a router is routed because it cannot reach the lane, so the router claims, forwards, waits and reports — holding a claim on work it cannot read — while the instrument holds the key and does the work. Participant versus routee is a fact about the attachment, not the device. | PROVEN |
+| `REQ-DBO-PROC-DONE-MEANS-DONE` | A participant does not report done before the work is done. A run closes on what is reported and the store has no view below that seam, so an early report is a true-looking record of something that has not happened. A participant with durable execution underneath waits for it; a router waits for its edge; a wedged one lets the claim lapse and the run reads released. | PROVEN |
+| `REQ-DBO-WF-TWO-PLANES` | Records live in the tenant plane, structurally isolated. The shared platform plane carries coordination and the copies work needs in flight — manifests readable, because routing is what they are for, and payloads sealed to the participant meant to open them. Isolation of a record is structural; of a copy in flight, cryptographic. | PROVEN |
+| `REQ-DBO-WF-CONTENT-FREE-PLATFORM-PLANE` | The platform plane never holds tenant credentials, and never holds resource content in a form readable in that plane. A sealed payload satisfies this; the plaintext form would not, however briefly. | PROVEN |
+
+Coverage: {PROVEN=22} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+<!-- story:end -->
 
 ## What the store cannot do yet
 

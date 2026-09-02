@@ -96,6 +96,18 @@ class PromiseCatalogueTest {
         assertEquals(PromiseProjection.projected(model(), onDisk), onDisk,
                 "req-catalogue.md's generated block differs from the model — run "
                         + "./gradlew :core:harness:promiseProjection instead of editing");
+        // The stories' joins are projected the same way, and go stale the
+        // same way: a promise renamed, retired or newly proven changes what
+        // a story may say about itself.
+        java.nio.file.Path stories = java.nio.file.Path.of("../..",
+                "docs/arc42-003-context/user-stories").toAbsolutePath().normalize();
+        for (cloud.jengu.dbo.promise.Story story : PromiseProjection.stories(model())) {
+            java.nio.file.Path file = PromiseProjection.storyFile(stories, model(), story);
+            String page = java.nio.file.Files.readString(file);
+            assertEquals(PromiseProjection.projectedStory(model(), story, page), page,
+                    file.getFileName() + "'s joins differ from the catalogue — run "
+                            + "./gradlew :core:harness:promiseProjection instead of editing");
+        }
     }
 
     @Test
