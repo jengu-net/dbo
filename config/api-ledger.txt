@@ -2041,6 +2041,7 @@ cloud.jengu.dbo.promises.DboPromises                                   POL_POLIC
 cloud.jengu.dbo.promises.DboPromises                                   POL_RETENTION_SWEEP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_AREAS_MERGE_BY_CODE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PRM_A_STORY_IS_CITED_NOT_CLAIMED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_CATALOGUE_READ_WHOLE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_CITATION_IS_TYPED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_COVERAGE_IS_A_FOLD:cloud.jengu.dbo.promises.DboPromises

@@ -12,7 +12,9 @@ that leg.
 
 **A story claims no evidence.** The joins table says which promises the
 journey depends on; it does not make them proven, and several of them are
-proven for a simpler world than the story describes. Every story therefore
+proven for a simpler world than the story describes. A leg marked *planned*
+cites a promise that exists and is not yet cited by any test — the catalogue
+shows it as `PLANNED`, which is the honest state and the one to watch move. Every story therefore
 carries a *What the store cannot do yet* section, written as a gap rather than
 designed around, and an *Open decisions* section for the choices still to
 make.

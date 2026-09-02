@@ -69,6 +69,7 @@ that could ask would be reading about benches beside it.
 | A runner signs what it reports about itself | `REQ-DBO-PROC-RUNNER-SIGNS-ITS-VITALS` |
 | The tree is readable from outside the container, with its own scope | `REQ-DBO-PROC-A-ROUTED-TREE-TRAVELS-AS-A-LANE-VERB` |
 | A participant declares itself rather than being configured in | `REQ-DBO-PROC-STEP-DECLARES-ITSELF` |
+| A routee that has gone is a statement, kept with its last attestation — *planned* | `REQ-DBO-PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` |
 
 ## What the store cannot do yet
 
