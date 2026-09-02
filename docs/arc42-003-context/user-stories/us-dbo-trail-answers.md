@@ -30,14 +30,20 @@ Three things have to be true before the honest answer exists:
 
 ## The question
 
-Ines queries the run. She gets the chain: the task the store minted, then a
-travel entry per hop in order, then one access entry, then the result that
-closed it.
+The practice's own question is about a document, so it is answered where every
+reading of that document is answered: **the record's own entries.** One of
+them says the analyser opened it, at 09:16, and names the task execution that
+occasioned it. There is nothing special to know — it is the same trail a
+clinician's read would appear in.
 
-**The access entry is the only one that says a person or a program saw the
-content.** Every other entry says something moved. So "opened once, by the
-analyser" is a fact the trail states, rather than an inference from what is
-missing.
+Ines follows the occasion across to the task, and gets the journey: the task
+the store minted, a travel entry per hop in order, and the result that closed
+it. **No entry there says anybody saw the content**, because none of them is
+that kind of record.
+
+So "opened once, by the analyser" is a fact the trail states rather than an
+inference from what is missing — and the two halves of the answer sit where
+each belongs, joined by the occasion rather than piled into one log.
 
 ## The answer she can give
 
