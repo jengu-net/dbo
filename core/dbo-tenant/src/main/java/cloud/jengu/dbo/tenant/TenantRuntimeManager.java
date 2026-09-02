@@ -158,6 +158,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
             java.time.Duration.ofMinutes(2);
     /** Where each tenant's lane surface is mounted, for the same teardown. */
     private final Map<String, String> workContexts = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Each tenant's door on the stream, while it is served; none unless a substrate was given. */
+    private final Map<String, cloud.jengu.dbo.stream.StreamDoor> doors =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    private volatile javax.sql.DataSource substrate;
+
+    /**
+     * The durable substrate this container opens each tenant's stream door
+     * on. Optional: a container without one serves its lanes over HTTP and
+     * in-process only, which is every container there was before the fleet.
+     */
+    public void substrate(javax.sql.DataSource substrate) {
+        this.substrate = substrate;
+    }
     /** And its replication surface. */
     private final Map<String, String> replicationContexts =
             new java.util.concurrent.ConcurrentHashMap<>();
@@ -858,12 +871,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // second view of one fleet.
             cloud.jengu.dbo.work.Trackables laneTrackables =
                     new cloud.jengu.dbo.work.Trackables(runtime.engine());
-            sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
-                    workPath, new WorkGrants(authority),
-                    // The host's own in-process lane, built per asker: the
-                    // participant is its feed cursor and the identity is what
-                    // claims, both from the request; the entitlement is from
-                    // the credential and never from the request.
+            // The lane built per asker, the same behind every door: the
+            // participant is its feed cursor and the identity is what
+            // claims, both from the request; the entitlement is from the
+            // credential and never from the request.
+            cloud.jengu.dbo.runner.http.LaneHandler.Lanes laneFactory =
                     (participant, identity, entitlement) ->
                             cloud.jengu.dbo.runner.Lane.inProcess(spec.code(), laneRuns,
                                     laneFeed, laneDeclarations, participant, identity,
@@ -947,7 +959,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                                 signing(String participant) {
                                             return authority.signingKey(participant);
                                         }
-                                    })));
+                                    });
+            if (substrate != null) {
+                // The same lane on the store's own stream: a door per tenant
+                // on the substrate, guarded by the same authority and the
+                // same participation scope, for a service that connects to
+                // the substrate and to nothing else. Opened before the HTTP
+                // door so a door that fails to open leaves nothing mounted
+                // that a retry would trip over.
+                doors.put(spec.code(), new cloud.jengu.dbo.stream.StreamDoor(substrate,
+                        spec.code(), new WorkGrants(authority), laneFactory));
+            }
+            sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
+                    workPath, new WorkGrants(authority), laneFactory));
             workContexts.put(spec.code(), workPath);
             // What this tenant knows about the things behind its
             // participants. Beside replication rather than as a verb on the
@@ -1402,6 +1426,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String workPath = workContexts.remove(code);
         if (workPath != null) {
             sharedServer.removeContext(workPath);
+        }
+        cloud.jengu.dbo.stream.StreamDoor door = doors.remove(code);
+        if (door != null) {
+            door.close();
         }
         String replicationPath = replicationContexts.remove(code);
         if (replicationPath != null) {

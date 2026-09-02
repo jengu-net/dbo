@@ -38,6 +38,7 @@ dependencies {
     // orchestrator, and a runner that compiled against one would be naming it.
     testImplementation("dev.dbos:transact:1.0.0")
     testImplementation(project(":core:dbo-runner"))
+    testImplementation(project(":core:dbo-stream"))
     // the promise framework's processor indexes @Proving citations at THIS
     // module's test-compile time; without this configuration the index is
     // silently absent
@@ -132,7 +133,7 @@ val promiseReport by tasks.registering(JavaExec::class) {
 val ledgerBundles = mapOf(
     "dbo.core" to "dbo-core", "dbo.postgres" to "dbo-postgres", "dbo.auth" to "dbo-auth",
     "dbo.pdi" to "dbo-pdi", "dbo.policy" to "dbo-policy", "dbo.work" to "dbo-work",
-    "dbo.runner" to "dbo-runner", "dbo.sync" to "dbo-sync",
+    "dbo.runner" to "dbo-runner", "dbo.stream" to "dbo-stream", "dbo.sync" to "dbo-sync",
     "dbo.maintenance" to "dbo-maintenance", "dbo.terminology" to "dbo-terminology",
     "dbo.subscriptions" to "dbo-subscriptions", "dbo.rest" to "dbo-rest",
     "dbo.scim" to "dbo-scim", "dbo.telemetry" to "dbo-telemetry",
@@ -202,7 +203,7 @@ tasks.withType<Test>().configureEach {
         ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar",
         ":core:dbo-tenant-k8s:jar", ":core:dbo-auth:jar", ":core:dbo-pdi:jar", ":core:dbo-scim:jar", ":core:dbo-policy:jar",
         ":promise:jar", ":core:dbo-promises:jar", ":core:dbo-telemetry:jar",
-        ":core:dbo-work:jar", ":core:dbo-runner:jar",
+        ":core:dbo-work:jar", ":core:dbo-runner:jar", ":core:dbo-stream:jar",
         ":core:dbo-server:installDist")
     systemProperty(
         "dbo.promise.jar",
@@ -229,6 +230,7 @@ tasks.withType<Test>().configureEach {
         "dbo.policy.jar" to "dbo-policy",
         "dbo.work.jar" to "dbo-work",
         "dbo.runner.jar" to "dbo-runner",
+        "dbo.stream.jar" to "dbo-stream",
         "dbo.fhir.element.jar" to "dbo-fhir-element",
     )) {
         systemProperty(

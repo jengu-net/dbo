@@ -117,7 +117,9 @@ class TenantOsgiIT {
                 // runner's Lane must be exported to something. Same shape of
                 // requirement — an import nothing exports leaves the tenant
                 // bundle unresolved, and it reads as the tenant failing
-                "dbo.runner.jar")) {
+                "dbo.runner.jar",
+                // the third carrier for the lane, imported by dbo-tenant for the door
+                "dbo.stream.jar")) {
             ctx.installBundle("file:" + System.getProperty(prop)).start();
         }
         tenantBundle = ctx.installBundle("file:" + System.getProperty("dbo.tenant.jar"));

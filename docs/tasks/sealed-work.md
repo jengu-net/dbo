@@ -1,10 +1,11 @@
 # Sealed work
 
-**Status** — designed and decided; five slices built — travel and access
+**Status** — designed and decided; six slices built — travel and access
 are different entries, a participant offers its keys at enrolment, work
 leaves as a readable manifest and a payload sealed past the carrier to the
 participant named, the run's entries are chained from the task with the
-result as the last link, and a router holds the claim for the edge behind it. Ten issues carry it,
+result as the last link, a router holds the claim for the edge behind it,
+and the lane runs over the store's own stream beside HTTP and in-process. Ten issues carry it,
 three of them re-scoped from questions to builds.
 
 **Issues** — roots: [#166](https://github.com/jengu-net/dbo/issues/166)
@@ -144,7 +145,7 @@ closed, never chain detail.
 | step | promise (REQ-DBO-…) | status |
 |---|---|---|
 | Travel and access as distinct entries; one trail, two targets — #175  | `POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` · `WF-HOPS-AUDITED` | **DONE** 2026-09-02, for work in the clear; the decrypt-callback weld moves to #174 |
-| Duplex lane over the store's stream — #177  | `PROC-A-LANE-OVER-THE-STREAM` | **NEXT** |
+| Duplex lane over the store's stream — #177  | `PROC-A-LANE-OVER-THE-STREAM` | **DONE** 2026-09-02; one door workflow per tenant on the substrate, verbs serialised per tenant |
 | Enrolment key exchange — #166  | `PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` | **DONE** 2026-09-02; the constraints now state the one asymmetric exception (R5) |
 | Stories cited by promises — #180  | `PRM-A-STORY-IS-CITED-NOT-CLAIMED` | **READY**, small; do early |
 | Manifest/payload split and sealing in the carrier form — #174  | `PROC-WORK-TRAVELS-SEALED` | **DONE** 2026-09-02, wrapped to the claimant; routee recipients move to #172 |
@@ -154,9 +155,8 @@ closed, never chain detail.
 | Plane promise reworded, plaintext ratchet, erasure-reaches-the-copy proof — #173  | `WF-TWO-PLANES` · `WF-CONTENT-FREE-PLATFORM-PLANE` | **READY** — the seal is on the wire; the substrate ratchet and the erasure proof's plane half remain |
 | Departed routee kept with last attestation — #178  | `PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` | **READY**, small |
 
-Critical path: none left; **#177** (the lane over the stream) is the one
-that remains with shape. Everything else can land whenever somebody is
-nearby.
+Critical path: none left. What remains — the plane ratchet, the departed
+routee, stories cited by promises — can land whenever somebody is nearby.
 
 ## Not doing
 

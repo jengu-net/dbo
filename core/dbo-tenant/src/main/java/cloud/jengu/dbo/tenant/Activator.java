@@ -315,6 +315,18 @@ public final class Activator implements BundleActivator {
         // A runtime can be asked what it is serving, when a deployment has
         // said who may ask.
         manager.serveRuntimeState(ctx.getProperty("dbo.tenant.ops.token"));
+        // The durable substrate, when this deployment has one: each tenant's
+        // lane then has a door on the stream beside its HTTP door, for a
+        // fleet that connects to the substrate and to nothing else.
+        String substrateUrl = ctx.getProperty("dbo.substrate.url");
+        if (substrateUrl != null) {
+            com.zaxxer.hikari.HikariConfig substrate = new com.zaxxer.hikari.HikariConfig();
+            substrate.setJdbcUrl(substrateUrl);
+            substrate.setUsername(ctx.getProperty("dbo.substrate.user"));
+            substrate.setPassword(ctx.getProperty("dbo.substrate.password"));
+            substrate.setPoolName("dbo-substrate");
+            manager.substrate(new com.zaxxer.hikari.HikariDataSource(substrate));
+        }
         manager.start(2_000);
     }
 

@@ -28,6 +28,7 @@ val moduleBlurbs = mapOf(
     "promise" to "Requirements as code: promises declared once, cited everywhere, composed across products.",
     "dbo-promises" to "The store's own promise catalogue: SHAPE and PDI as the pilot.",
     "dbo-runner" to "The embeddable step runner: register step services, work arrives, outcomes and vitals go back.",
+    "dbo-stream" to "The lane over the store's own stream: the same verbs, carried on the durable substrate.",
 )
 
 // The runtime bundle set, in install order. ONE list: the serving
@@ -62,6 +63,8 @@ val dboRuntimeModules = listOf(
     // is in the container as the HOST's half. Its own half (the activator,
     // step services) is still only installed where work is actually done
     ":core:dbo-runner",
+    // the third carrier for the lane, imported by dbo-tenant for the door
+    ":core:dbo-stream",
     // dbo-tenant imports it for the maintenance surface
     ":core:dbo-maintenance", ":core:dbo-tenant", ":core:dbo-tenant-k8s",
 )
