@@ -1,9 +1,10 @@
 # Sealed work
 
-**Status** — designed and decided; four slices built — travel and access
+**Status** — designed and decided; five slices built — travel and access
 are different entries, a participant offers its keys at enrolment, work
-leaves as a readable manifest and a payload sealed to the claimant, and the
-run's entries are chained from the task with the result as the last link. Ten issues carry it,
+leaves as a readable manifest and a payload sealed past the carrier to the
+participant named, the run's entries are chained from the task with the
+result as the last link, and a router holds the claim for the edge behind it. Ten issues carry it,
 three of them re-scoped from questions to builds.
 
 **Issues** — roots: [#166](https://github.com/jengu-net/dbo/issues/166)
@@ -56,9 +57,9 @@ which lands on the document as the access entry naming the run; the store's
 own read to seal records nothing, proven at audit level full; a keyless
 participant is served in the clear and refused a seal by name; the carrier
 form is what is sealed, so a shred reaches a copy in flight with no special
-case. Not built: wrapping to a routee behind the claimant (the recipients a
-manifest names are one, the claimant), which is what the router-holds-the-
-claim shape needs and what the duplex lane will carry.
+case; a router names its routee as the recipient, is sealed past, carries
+the routee's signed opening home and closes on the head it left, and a
+routee that never answers lets the claim lapse so the run reads released.
 
 Everything else it rests on already does:
 
@@ -149,14 +150,13 @@ closed, never chain detail.
 | Manifest/payload split and sealing in the carrier form — #174  | `PROC-WORK-TRAVELS-SEALED` | **DONE** 2026-09-02, wrapped to the claimant; routee recipients move to #172 |
 | The chain: link on entry, travel names recipient, participant signs, result carries head, refuse-and-name — #176  | `POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | **DONE** 2026-09-02; a forward's travel link waits for a router that forwards (#172) |
 | Partner relation composed with audience — #179  | `TEN-A-PARTNER-MANAGES-TENANTS` | **READY**, needs the partner relation declared in the registration path; owner: the store |
-| `perform` waits, one hop further for a router; a router names its routee as the recipient — #172  | `PROC-DONE-MEANS-DONE` · `PROC-THE-ROUTER-HOLDS-THE-CLAIM` | **READY** — now also the recipients a manifest names, since a router opens nothing |
+| `perform` waits, one hop further for a router; a router names its routee as the recipient — #172  | `PROC-DONE-MEANS-DONE` · `PROC-THE-ROUTER-HOLDS-THE-CLAIM` | **DONE** 2026-09-02 |
 | Plane promise reworded, plaintext ratchet, erasure-reaches-the-copy proof — #173  | `WF-TWO-PLANES` · `WF-CONTENT-FREE-PLATFORM-PLANE` | **READY** — the seal is on the wire; the substrate ratchet and the erasure proof's plane half remain |
 | Departed routee kept with last attestation — #178  | `PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` | **READY**, small |
 
-Critical path: none left; **#172** (router forwards, names its routee,
-leaves the forward's travel link) and **#177** (the lane over the stream) are
-the two that remain with shape. Everything else can land whenever somebody
-is nearby.
+Critical path: none left; **#177** (the lane over the stream) is the one
+that remains with shape. Everything else can land whenever somebody is
+nearby.
 
 ## Not doing
 

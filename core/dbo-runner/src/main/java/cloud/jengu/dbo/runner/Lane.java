@@ -242,6 +242,17 @@ public interface Lane {
     cloud.jengu.dbo.work.SealedWork sealed(Run run);
 
     /**
+     * The same, sealed to the participants named — this identity, or things
+     * it has declared behind it. This is the router's verb: a router holds
+     * the claim on work it cannot read and names its routee as the recipient,
+     * so what it forwards is sealed past it. Naming a routee is handing the
+     * work on, and leaves the travel link that makes the routee the next
+     * author; naming something not declared behind this participant, or a
+     * routee that offered no key, is refused by name.
+     */
+    cloud.jengu.dbo.work.SealedWork sealed(Run run, List<String> recipients);
+
+    /**
      * This identity opened one sealed document of the run, with the key it
      * holds. Reported from where the key is used, because that is the only
      * place the opening is a fact; lands on the document as its access
@@ -589,15 +600,57 @@ public interface Lane {
 
             @Override
             public cloud.jengu.dbo.work.SealedWork sealed(Run run) {
+                return sealed(run, List.of(identity.name()));
+            }
+
+            @Override
+            public cloud.jengu.dbo.work.SealedWork sealed(Run run, List<String> named) {
                 Run current = claimedByThisIdentity(run);
-                cloud.jengu.dbo.core.api.seal.ParticipantKey key = keys == null
-                        ? null : keys.of(identity.name()).orElse(null);
-                if (key == null) {
-                    throw new IllegalStateException(tenant + ": '" + identity.name()
-                            + "' offered no key at enrolment; there is nothing to seal to");
+                if (named == null || named.isEmpty()) {
+                    throw new IllegalStateException(tenant + ": a payload is sealed to somebody, "
+                            + "and nobody was named");
                 }
                 Map<String, cloud.jengu.dbo.core.api.seal.ParticipantKey> recipients =
-                        Map.of(identity.name(), key);
+                        new java.util.LinkedHashMap<>();
+                for (String recipient : named) {
+                    if (!recipient.equals(identity.name()) && !routee(recipient)) {
+                        // Only what this participant has declared behind it:
+                        // a router seals past itself to its own edges, and
+                        // to nothing it merely knows the name of.
+                        throw new IllegalStateException(tenant + ": '" + identity.name()
+                                + "' has not declared '" + recipient
+                                + "' behind it, and may not seal to it");
+                    }
+                    cloud.jengu.dbo.core.api.seal.ParticipantKey key = keys == null
+                            ? null : keys.of(recipient).orElse(null);
+                    if (key == null) {
+                        throw new IllegalStateException(tenant + ": '" + recipient
+                                + "' offered no key at enrolment; there is nothing to seal to");
+                    }
+                    recipients.put(recipient, key);
+                }
+                // Naming a routee is handing the work on. The forward is a
+                // hop on the task's journey — a travel link, authored by the
+                // router, naming the routee — and it is what makes the
+                // routee the next author the chain expects. Once per routee
+                // per run: asking for the seal again is not a second hop.
+                if (trail != null) {
+                    for (String recipient : recipients.keySet()) {
+                        if (recipient.equals(identity.name())) {
+                            continue;
+                        }
+                        boolean forwarded = trail.links(current).stream().anyMatch(link ->
+                                "travel".equals(link.code()) && recipient.equals(link.subject()));
+                        if (!forwarded) {
+                            String previous = head(current);
+                            trail.handedTo(current, recipient, new cloud.jengu.dbo.work.RunChain.Link(
+                                    "travel", previous,
+                                    cloud.jengu.dbo.work.RunChain.travelLink(previous,
+                                            current.key(), recipient),
+                                    identity.name(), recipient, null));
+                        }
+                    }
+                }
                 List<cloud.jengu.dbo.work.SealedPayload> payload = new java.util.ArrayList<>();
                 if (objects != null) {
                     // The machinery's own read, in the carrier form, sealed
@@ -651,6 +704,17 @@ public interface Lane {
                 // that never came home — and it must be the link the store
                 // computes from the same facts, under the participant's own
                 // signature.
+                // Who opened: this identity, or a routee behind it whose
+                // signed link the router is carrying home. A router cannot
+                // open, so an opening it forwards is its edge's, signed with
+                // the edge's own key — which is what stops a router
+                // manufacturing one.
+                String by = link == null || link.author() == null ? identity.name() : link.author();
+                if (!by.equals(identity.name()) && !routee(by)) {
+                    throw new IllegalStateException(tenant + ": '" + identity.name()
+                            + "' has not declared '" + by + "' behind it, and cannot report "
+                            + "an opening of its");
+                }
                 String previous = head(current);
                 if (link == null || !previous.equals(link.previous())) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
@@ -660,28 +724,34 @@ public interface Lane {
                             + "'; a link is missing before it");
                 }
                 String expected = cloud.jengu.dbo.work.RunChain.accessLink(previous,
-                        current.key(), reference, identity.name());
+                        current.key(), reference, by);
                 if (!expected.equals(link.link())) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
                             + "' — the opening's link is not the link of what it says");
                 }
                 cloud.jengu.dbo.core.api.seal.SigningKey signer = keys == null
-                        ? null : keys.signing(identity.name()).orElse(null);
+                        ? null : keys.signing(by).orElse(null);
                 if (signer == null) {
-                    throw new IllegalStateException(tenant + ": '" + identity.name()
+                    throw new IllegalStateException(tenant + ": '" + by
                             + "' offered no signing key at enrolment; an opening is signed");
                 }
                 if (!signer.verifies(link.link().getBytes(
                         java.nio.charset.StandardCharsets.UTF_8), link.signature())) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
-                            + "' — the opening is not signed by '" + identity.name() + "'");
+                            + "' — the opening is not signed by '" + by + "'");
                 }
                 int slash = reference.indexOf('/');
-                trail.opened(current, identity.name(), reference.substring(0, slash),
+                trail.opened(current, by, reference.substring(0, slash),
                         reference.substring(slash + 1),
                         new cloud.jengu.dbo.work.RunChain.Link("access", previous, link.link(),
-                                identity.name(), reference, link.signature()));
+                                by, reference, link.signature()));
                 return link.link();
+            }
+
+            /** Whether this participant has declared the named thing directly behind it. */
+            private boolean routee(String name) {
+                return trackables != null && trackables.behind(participant).stream()
+                        .anyMatch(behind -> name.equals(behind.id()));
             }
 
             /** The chain's head as the trail holds it; the root when the trail holds nothing. */

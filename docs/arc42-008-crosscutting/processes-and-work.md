@@ -225,9 +225,12 @@ What a participant holds decides how its work arrives. One that offered a
 key at enrolment is answered with a manifest and sealed payloads, and is
 refused its inputs in the clear even when it asks; one that offered none is
 served in the clear, as every participant was before there was anything to
-seal to, and is refused a seal by name. Wrapping to a routee behind the
-claimant, and the lane over the store's own stream, are the live topic
-[sealed work](../tasks/sealed-work.md) still.
+seal to, and is refused a seal by name. A router names its routee as the
+recipient and is sealed past: it may name only what it has declared behind
+it, naming is the forward and leaves the travel link that makes the routee
+the chain's next author, and the opening it carries home is its routee's,
+signed with the routee's own key. The lane over the store's own stream is the
+live topic [sealed work](../tasks/sealed-work.md) still.
 
 ## Two sites of one tenant
 

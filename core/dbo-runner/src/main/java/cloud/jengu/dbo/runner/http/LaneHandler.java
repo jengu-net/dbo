@@ -215,7 +215,11 @@ public final class LaneHandler implements HttpHandler {
             // The one read, and the lane guards it: a run this identity has
             // not claimed is refused there rather than filtered here.
             case INPUTS -> respond(exchange, lane.inputs(run(body)));
-            case SEALED -> respond(exchange, lane.sealed(run(body)));
+            case SEALED -> {
+                Object recipients = field(body, LaneVerbs.RECIPIENTS);
+                respond(exchange, recipients == null ? lane.sealed(run(body))
+                        : lane.sealed(run(body), RecordWire.decodeList(recipients, String.class)));
+            }
             case OPENED -> {
                 String reference = string(body, LaneVerbs.REFERENCE);
                 if (reference == null) {
@@ -224,7 +228,8 @@ public final class LaneHandler implements HttpHandler {
                 respond(exchange, lane.opened(run(body), reference,
                         new cloud.jengu.dbo.work.RunChain.Link("access",
                                 string(body, LaneVerbs.PREVIOUS), string(body, LaneVerbs.LINK),
-                                null, reference, string(body, LaneVerbs.SIGNATURE))));
+                                string(body, LaneVerbs.AUTHOR), reference,
+                                string(body, LaneVerbs.SIGNATURE))));
             }
         }
     }

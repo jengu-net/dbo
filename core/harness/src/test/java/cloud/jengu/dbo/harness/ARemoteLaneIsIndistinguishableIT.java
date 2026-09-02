@@ -243,6 +243,11 @@ class ARemoteLaneIsIndistinguishableIT {
         }
 
         @Override
+        public cloud.jengu.dbo.work.SealedWork sealed(Run run, List<String> recipients) {
+            return across("sealed", () -> farSide.sealed(run, recipients));
+        }
+
+        @Override
         public String opened(Run run, String reference, cloud.jengu.dbo.work.RunChain.Link link) {
             return across("opened", () -> farSide.opened(run, reference, link));
         }

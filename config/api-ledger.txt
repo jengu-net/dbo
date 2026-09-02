@@ -2322,6 +2322,7 @@ cloud.jengu.dbo.runner.Lane                                            releaseLa
 cloud.jengu.dbo.runner.Lane                                            released(cloud.jengu.dbo.work.Run,String):void
 cloud.jengu.dbo.runner.Lane                                            routes(List):void
 cloud.jengu.dbo.runner.Lane                                            sealed(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.SealedWork
+cloud.jengu.dbo.runner.Lane                                            sealed(cloud.jengu.dbo.work.Run,List):cloud.jengu.dbo.work.SealedWork
 cloud.jengu.dbo.runner.Lane                                            tenant():String
 cloud.jengu.dbo.runner.Lane                                            withdraw(cloud.jengu.dbo.work.Declarations.Declared):void
 cloud.jengu.dbo.runner.Lane.Entitlement                                class
@@ -2397,6 +2398,7 @@ cloud.jengu.dbo.runner.http.HttpLane                                   releaseLa
 cloud.jengu.dbo.runner.http.HttpLane                                   released(cloud.jengu.dbo.work.Run,String):void
 cloud.jengu.dbo.runner.http.HttpLane                                   routes(List):void
 cloud.jengu.dbo.runner.http.HttpLane                                   sealed(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.SealedWork
+cloud.jengu.dbo.runner.http.HttpLane                                   sealed(cloud.jengu.dbo.work.Run,List):cloud.jengu.dbo.work.SealedWork
 cloud.jengu.dbo.runner.http.HttpLane                                   tenant():String
 cloud.jengu.dbo.runner.http.HttpLane                                   to(URI,Supplier,String,String,cloud.jengu.dbo.work.Executor):cloud.jengu.dbo.runner.http.HttpLane
 cloud.jengu.dbo.runner.http.HttpLane                                   withdraw(cloud.jengu.dbo.work.Declarations.Declared):void
@@ -2424,6 +2426,7 @@ cloud.jengu.dbo.runner.http.LaneHandler.Grants                         interface
 cloud.jengu.dbo.runner.http.LaneHandler.Grants                         of(String):cloud.jengu.dbo.runner.http.LaneHandler.Access
 cloud.jengu.dbo.runner.http.LaneHandler.Lanes                          interface
 cloud.jengu.dbo.runner.http.LaneHandler.Lanes                          laneFor(String,cloud.jengu.dbo.work.Executor,cloud.jengu.dbo.runner.Lane.Entitlement):cloud.jengu.dbo.runner.Lane
+cloud.jengu.dbo.runner.http.LaneVerbs                                  AUTHOR:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  BEHIND:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  CHECKPOINT:cloud.jengu.dbo.runner.http.LaneVerbs
 cloud.jengu.dbo.runner.http.LaneVerbs                                  CLAIM:cloud.jengu.dbo.runner.http.LaneVerbs
@@ -2446,6 +2449,7 @@ cloud.jengu.dbo.runner.http.LaneVerbs                                  PARTICIPA
 cloud.jengu.dbo.runner.http.LaneVerbs                                  POLL:cloud.jengu.dbo.runner.http.LaneVerbs
 cloud.jengu.dbo.runner.http.LaneVerbs                                  PREVIOUS:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  REASON:String
+cloud.jengu.dbo.runner.http.LaneVerbs                                  RECIPIENTS:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  REFERENCE:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  REFUSED:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  RELEASED:cloud.jengu.dbo.runner.http.LaneVerbs

@@ -60,6 +60,8 @@ public enum LaneVerbs {
     public static final String BEHIND = "behind";
     /** Every answer's one field, so an empty answer is still a shape. */
     public static final String REFERENCE = "reference";
+    public static final String RECIPIENTS = "recipients";
+    public static final String AUTHOR = "author";
     public static final String HEAD = "head";
     public static final String PREVIOUS = "previous";
     public static final String LINK = "link";

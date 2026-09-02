@@ -401,14 +401,12 @@ public enum DboPromises implements Promise {
             + "public half as part of enrolling; the private half never crosses. Payload "
             + "data keys are wrapped to that key, so what a participant may open is "
             + "decided by what it holds rather than by what it is told."),
-    /** TODO: prove it in a test — a wedged edge lapses the router's claim and the run reads released. */
     PROC_THE_ROUTER_HOLDS_THE_CLAIM(
             "The thing that can reach the store is the participant, and it holds the "
             + "claim. An instrument behind a router is routed because it cannot reach the "
             + "lane, so the router claims, forwards, waits and reports — holding a claim on "
             + "work it cannot read — while the instrument holds the key and does the work. "
             + "Participant versus routee is a fact about the attachment, not the device."),
-    /** TODO: prove it in a test — a service that returns before its workflow finishes must not close the run. */
     PROC_DONE_MEANS_DONE(
             "A participant does not report done before the work is done. A run closes on "
             + "what is reported and the store has no view below that seam, so an early "
