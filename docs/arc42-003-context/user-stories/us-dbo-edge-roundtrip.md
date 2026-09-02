@@ -157,11 +157,6 @@ is written whole so the gap is visible as a gap.
 - Whether the payload seal is per tenant or per enrolled participant. Per
   participant is what makes a shared carrier structurally unable to read;
   per tenant is simpler and leaves the carrier out of the key set anyway.
-- Whether travel and access entries share one trail. One place keeps the
-  journey together and risks burying the rare entry among the routine ones;
-  two keeps a reading scarce and legible at the cost of a second thing to
-  query. Distinct codes make them separable either way — the question is
-  whether separable is enough.
 - Who computes the chain links. If the participant does, it can rewrite a
   chain it has not yet sent, which is why streaming them home matters more
   than the hashing does. Whether links additionally need signing is a real
