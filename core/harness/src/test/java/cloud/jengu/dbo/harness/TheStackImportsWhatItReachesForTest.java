@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -53,6 +55,7 @@ class TheStackImportsWhatItReachesForTest {
 
     @Test
     @DisplayName("every framework-wired package the embedded stack reaches for is imported")
+    @Proving(DboPromises.CONT_IMPORTS_ARE_COMPUTED_OR_CHECKED)
     void theCuratedListCoversTheBytecode() throws Exception {
         Path jar = Path.of(System.getProperty("dbo.fhir.stack.jar"));
 

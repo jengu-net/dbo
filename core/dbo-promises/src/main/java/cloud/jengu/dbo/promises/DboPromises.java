@@ -603,6 +603,15 @@ public enum DboPromises implements Promise {
     CONT_EMBEDDED_IN_JVM(
             "A host application can boot the full store inside its own JVM for "
             + "dev/test; the only shared dependencies are Felix and the OSGi API. (R2)"),
+    CONT_IMPORTS_ARE_COMPUTED_OR_CHECKED(
+            "Every bundle with source of its own computes its imports from its bytecode; "
+            + "what is written by hand is policy — which JDK surfaces may be absent, and "
+            + "what a private stack reaches for that the container does not provide — "
+            + "never an inventory a new reference can drift from. The one bundle without "
+            + "source, the shared HL7 stack, keeps a closed hand-written list and is "
+            + "checked for it: every class it embeds is walked, and a framework-wired "
+            + "package it reaches for and neither carries nor imports fails the build "
+            + "rather than the first use."),
     CONT_PRIVATE_DEPENDENCIES(
             "Heavy third-party stacks (DBOS, HAPI) are embedded as private packages and "
             + "served through DBO-owned whiteboard interfaces; their types never cross "

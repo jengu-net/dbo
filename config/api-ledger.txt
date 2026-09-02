@@ -2030,6 +2030,7 @@ cloud.jengu.dbo.promises.DboPromises                                   CONT_DYNA
 cloud.jengu.dbo.promises.DboPromises                                   CONT_EMBEDDED_IN_JVM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_FAST_COLD_START:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_FRAMEWORK_FREE_CORE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   CONT_IMPORTS_ARE_COMPUTED_OR_CHECKED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_PRIVATE_DEPENDENCIES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_ATOMIC_TRANSACTION_BUNDLE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_BATCH_ANSWERS_PER_ENTRY:cloud.jengu.dbo.promises.DboPromises
