@@ -96,6 +96,18 @@ at all. What is worth knowing is that the traffic is bounded by what the work
 names rather than by following references outward, so an appliance holds what it
 is working on rather than a copy of the collection.
 
+**Work leaves a tenant sealed, and its envelope does not.** A runner fleet that
+serves every tenant carries every tenant's work, and what it carries is
+declared in two parts: an envelope — tenant, step, task, and references to the
+documents named — readable, because routing on it is its job; and a payload —
+the documents — sealed to the participant meant to open it, in the carrier
+form the encrypted disclosure mode already hands out. So the fleet sees, across
+tenants, which tenant has which task naming which documents, and that is the
+whole of what it sees. It is a chosen position rather than a leak, and it is
+the declaration this rule asks for: the shared plane never holds resource
+content in a form readable there. The mechanism is the live topic [sealed
+work](../tasks/sealed-work.md).
+
 **An audit trail replicates as it was recorded** — original actor, original
 time, the appliance named — because an account of who did what is worthless if
 the act of moving it rewrites its provenance.
@@ -156,6 +168,17 @@ The declaration is configuration rather than records, deliberately. A store
 that accumulated one rule per partner would be a policy engine nobody can
 audit; configuration is swept, reviewed and diffed like everything else a
 tenant declares.
+
+**A partner is an audience, and something more.** A tenant that manages other
+tenants — a reseller — needs two answers that compose rather than compete. A
+*managed by* relation, declared when the managed tenant is created, says
+*which tenants* the partner may read at all. Within each of them, the partner
+is an ordinary declared audience saying *what of each*: runs and the journey
+they took, not the documents; stated purposes only if the managed tenant opts
+in. What the partner is shown is assembled outside the store — a store
+instance is one tenant's store, and the cross-tenant query the tenancy design
+exists to remove is not grown to serve a support desk. The relation does not
+exist yet; it is part of [sealed work](../tasks/sealed-work.md).
 
 ## What stays outside
 
