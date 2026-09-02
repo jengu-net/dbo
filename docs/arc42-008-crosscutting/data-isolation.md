@@ -181,8 +181,12 @@ is an ordinary declared audience saying *what of each*: runs and the journey
 they took, not the documents; stated purposes only if the managed tenant opts
 in. What the partner is shown is assembled outside the store — a store
 instance is one tenant's store, and the cross-tenant query the tenancy design
-exists to remove is not grown to serve a support desk. The relation does not
-exist yet; it is part of [sealed work](../tasks/sealed-work.md).
+exists to remove is not grown to serve a support desk. The relation is made
+true at the door: a managed tenant trusts its partner's own authority because
+it declared the partner, answers that credential as the partner audience, and
+serves its trail by run so a journey is one ask; a tenant that declared no
+partner refuses the same credential at signature verification, as it refuses
+every other tenant's.
 
 ## What stays outside
 

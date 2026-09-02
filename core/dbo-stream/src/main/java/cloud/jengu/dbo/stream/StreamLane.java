@@ -119,9 +119,22 @@ public final class StreamLane extends WireLane implements AutoCloseable {
             ask.put("signature", cloud.jengu.dbo.core.api.seal.SigningKey.sign(
                     signed.getBytes(java.nio.charset.StandardCharsets.UTF_8), signing));
             String door = door();
+            for (int patience = 0; door == null && patience < 20; patience++) {
+                // A generation hands over to the next in a moment nobody can
+                // see from here; a door not found is asked for again before
+                // it is reported away.
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                door = door();
+            }
             if (door == null) {
                 throw new cloud.jengu.dbo.core.api.StoreUnreachableException(
-                        tenant + ": no door is open on the stream for '" + verb.path() + "'");
+                        tenant + ": no door is open on the stream for '" + verb.path()
+                                + "' — generations seen: " + generationsSeen());
             }
             dbos.send(door, RecordWire.write(ask), StreamDoor.TOPIC, id);
             Optional<String> answer = dbos.getEvent(door, id, ANSWER);
@@ -137,6 +150,20 @@ public final class StreamLane extends WireLane implements AutoCloseable {
             int status = envelope instanceof Map<?, ?> map && map.get("status") instanceof Number n
                     ? n.intValue() : 500;
             return new Reply(status, answer.get());
+        }
+
+        /** What the probe saw, for a refusal that explains itself. */
+        private String generationsSeen() {
+            StringBuilder seen = new StringBuilder();
+            for (int candidate = 1; candidate < 50; candidate++) {
+                Optional<WorkflowStatus> status =
+                        dbos.getWorkflowStatus(StreamDoor.workflowId(tenant, candidate));
+                if (status.isEmpty()) {
+                    break;
+                }
+                seen.append(candidate).append('=').append(status.get().status()).append(' ');
+            }
+            return seen.length() == 0 ? "none" : seen.toString().trim();
         }
 
         /** The door's current generation: the newest still pending, probed from the last known. */

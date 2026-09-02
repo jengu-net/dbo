@@ -618,8 +618,6 @@ public enum DboPromises implements Promise {
             "Tenant databases and buckets are provisioned by an external operator; "
             + "credentials exist only as platform secrets and are never readable by "
             + "tenant-manager code. (R5, §4)"),
-    /** TODO: prove it in a test. */
-    /** TODO: prove it in a test — a partner credential reads a managed tenant's journey, is answered empty by one it does not manage, and never receives a document from either. */
     TEN_A_PARTNER_MANAGES_TENANTS(
             "A partner is a tenant that manages other tenants, declared when the managed "
             + "tenant is created. The relation says which tenants the partner may read at "

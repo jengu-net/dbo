@@ -16,7 +16,22 @@ import java.util.regex.Pattern;
 public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
         String zone, String broker, List<String> acceptedBrokers,
-        List<Dependency> dependencies, Scim scim, List<String> mandatorySteps) {
+        List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+        String managedBy) {
+
+    /**
+     * Without a partner: the shape every tenant had before one tenant could
+     * manage others. {@code managedBy} names the partner tenant that may
+     * follow this tenant's work — declared here, at creation, never inferred
+     * from who happens to be looking.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, null);
+    }
 
     /** Compatibility: the pre-mandatory-steps shape. */
     public TenantSpec(String code, String face, List<FhirTypeConfig> types,
@@ -218,7 +233,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 cloud.jengu.dbo.policy.TenantPolicies.parse(root),
                 Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),
                 Json.strings(root, "acceptedBrokers"), dependencies, scim,
-                Json.strings(root, "mandatorySteps"));
+                Json.strings(root, "mandatorySteps"), Json.strOpt(root, "managedBy"));
     }
 
     /**

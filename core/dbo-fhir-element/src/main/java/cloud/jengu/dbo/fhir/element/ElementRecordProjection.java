@@ -761,6 +761,17 @@ final class ElementRecordProjection implements RecordProjection {
                     .append("\"},\"requestor\":false}");
         }
         json.append(']').append(",\"source\":{\"observer\":{\"display\":\"dbo\"}}");
+        if (entry.get("purpose") != null) {
+            // What the caller said they needed an identity for, as the
+            // standard purpose-of-use coding; named purposeOfEvent where the
+            // version still calls it that and authorization where it was
+            // renamed. Present only when the entry carries one, and an
+            // audience the tenant did not opt in for never sees it.
+            json.append(",\"").append(auditIsCategorised ? "authorization" : "purposeOfEvent")
+                    .append("\":[{\"coding\":[{\"system\":"
+                            + "\"http://terminology.hl7.org/CodeSystem/v3-ActReason\",\"code\":")
+                    .append(Json.quoted(String.valueOf(entry.get("purpose")))).append("}]}]");
+        }
         StringBuilder entities = new StringBuilder();
         if (entry.get("targetId") != null) {
             entities.append("{\"what\":{\"reference\":\"").append(entry.get("targetType"))

@@ -117,6 +117,21 @@ public record TenantPolicies(
         };
     }
 
+    /**
+     * These policies with one more audience, unless the tenant already
+     * declared that name — a tenant's own word about what a recipient sees
+     * beats a default, however sensible.
+     */
+    public TenantPolicies withAudienceUnlessDeclared(String name, Audience audience) {
+        if (audiences.containsKey(name)) {
+            return this;
+        }
+        Map<String, Audience> widened = new LinkedHashMap<>(audiences);
+        widened.put(name, audience);
+        return new TenantPolicies(audit, writeDiscipline, perTypeDiscipline, retention,
+                organisationPaths, widened);
+    }
+
     /** The declaration for this audience, or null when nobody declared one. */
     public Audience audience(String name) {
         return name == null ? null : audiences.get(name);
