@@ -147,6 +147,7 @@ public enum DboFeatures implements Feature {
             List.of(DboPromises.PROC_A_NODE_ANSWERS_ITS_CATALOGUE,
                     DboPromises.PROC_NETWORK_MAP, DboPromises.PROC_TRACE_JOIN,
                     DboPromises.PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT,
+                    DboPromises.OPS_NUMBERS_LEAVE_THE_NODE,
                     DboPromises.PROC_REPORTING_RUNS_WHERE_NOTHING_COLLECTS)),
 
     CORE_MIGRATED("the object engine — migrated whole from hand-written prose; each promise below carries its own proof status.",

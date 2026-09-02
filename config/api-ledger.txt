@@ -2078,6 +2078,7 @@ cloud.jengu.dbo.promises.DboPromises                                   MNT_OWNER
 cloud.jengu.dbo.promises.DboPromises                                   MNT_PORTABLE_STATE_EXPORT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_SNAPSHOT_CONSISTENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   OPS_MIGRATION_AS_DEPLOYMENT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   OPS_NUMBERS_LEAVE_THE_NODE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   OPS_RUNTIME_SAYS_WHAT_IT_SERVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   OPS_TENANT_BLOB_STORAGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_BLIND_OPERATIONS:cloud.jengu.dbo.promises.DboPromises

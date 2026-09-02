@@ -21,10 +21,18 @@ tasks.test { useJUnitPlatform() }
 
 tasks.jar {
     bundle {
+        // The ServiceLoader lookup in Telemetry.installed() is mediated by
+        // SPI-Fly, the way slf4j-api's is: without these headers the lookup
+        // inside a bundle finds nothing and the exporter a deployment
+        // installed is silently discarded — the failure that resolves and
+        // dies on first use, in its quietest form. Optional, because a
+        // runtime with no exporter installed must still resolve and discard.
         bnd("""
             Bundle-SymbolicName: cloud.jengu.dbo.telemetry
             Export-Package: cloud.jengu.dbo.telemetry
             -noimportjava: true
+            Require-Capability: osgi.extender;filter:="(&(osgi.extender=osgi.serviceloader.processor)(version>=1.0.0)(!(version>=2.0.0)))";resolution:=optional, osgi.serviceloader;filter:="(osgi.serviceloader=cloud.jengu.dbo.telemetry.Telemetry)";resolution:=optional;cardinality:=multiple
+            SPI-Consumer: *
         """)
     }
 }

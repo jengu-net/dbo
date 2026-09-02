@@ -100,6 +100,7 @@ class TenantOsgiIT {
                 // anywhere — an import nothing satisfies leaves the runner
                 // bundle unresolved, and that reads as the tenant failing
                 "dbo.telemetry.jar",
+                "dbo.telemetry.otlp.jar",
                 "dbo.pdi.jar",
                 // the provisioning door the manager mounts — imports auth
                 // and pdi, imported by the tenant bundle
