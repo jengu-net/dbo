@@ -56,10 +56,24 @@ public final class Trackables {
     public int routes(String reporter, List<Trackable> behind) {
         Instant seen = Instant.now();
         int written = 0;
+        java.util.Set<String> reported = new java.util.HashSet<>();
         for (Trackable trackable : behind) {
             write(new Trackable(trackable.id(), trackable.kind(), trackable.routedBy(),
                     trackable.state(), new Trackable.Attested(reporter, seen)));
+            reported.add(trackable.id());
             written++;
+        }
+        // The report is the full set, so what this reporter last saw and did
+        // not name this time has departed — a statement the reporter made,
+        // recorded as one: the row stays, its last attestation stays, and
+        // the moment it stopped being reported goes beside them. Deleting it
+        // would make a bench that went away read like a connector that went
+        // quiet, and those want different phone calls.
+        for (Trackable last : observedBy(reporter)) {
+            if (!reported.contains(last.id()) && last.reported()) {
+                write(last.departed(seen));
+                written++;
+            }
         }
         return written;
     }
@@ -132,6 +146,10 @@ public final class Trackables {
                     .append(",\"observedAt\":")
                     .append(Json.quoted(trackable.attested().at().toString()));
         }
+        if (trackable.unreported() != null) {
+            json.append(",\"unreportedAt\":")
+                    .append(Json.quoted(trackable.unreported().toString()));
+        }
         if (!trackable.state().isEmpty()) {
             json.append(",\"state\":{");
             boolean first = true;
@@ -161,7 +179,9 @@ public final class Trackables {
                         Instant.parse(Json.str(node, "observedAt")));
         return new Trackable(Json.str(node, "id"), Json.str(node, "kind"),
                 fields.get("routedBy") == null ? null : Json.str(node, "routedBy"),
-                state, attested);
+                state, attested,
+                fields.get("unreportedAt") == null ? null
+                        : Instant.parse(Json.str(node, "unreportedAt")));
     }
 
     /** Every trackable reachable from a router, depth first — the whole subtree. */
