@@ -105,6 +105,58 @@ with what it may contain, before it leaves. Whoever adds the next one owes the
 same declaration — and if the answer involves a free-text field, the answer is
 not finished.
 
+## What a particular recipient sees
+
+Whether something may leave and what *this* recipient may see are different
+questions, and for a long time only the first had an answer.
+
+A type's declared **travel** says whether it goes into a backup, into an export
+a customer leaves with, as a snapshot, or nowhere. Those are kinds of
+destination, not people. A face's **coarsening** reduces a value — a birth date
+to its year — and is by construction the same for everybody: it takes a value
+and returns a value, and it never learns who is on the other end. That
+restriction is load-bearing and stays.
+
+So a clinic sharing with a referral hospital and with a research recipient
+shared the same thing with both, or declared a type unshareable and shared it
+with neither. Coarsen the birth date and the referral hospital is guessing at
+the patient's age; leave it precise and the researcher is holding an
+identifier.
+
+**A tenant now declares audiences.** Each says which types it is answered about
+at all, and what a read of one of them reveals:
+
+```json
+"disclosure": { "perAudience": {
+  "referral": { "types": ["Patient", "Observation"], "reveals": "include" },
+  "research": { "types": ["Observation"],            "reveals": "omit" }
+}}
+```
+
+Four things about that, each of which could reasonably have gone the other way:
+
+- **The recipient travels beside the request**, as a per-request fact rather
+  than a scope — the third tier of [the face
+  contract](engine-and-faces.md#where-a-new-obligation-belongs). Nothing
+  becomes recipient-scoped; the store stays a function taking values.
+- **A type outside the declaration is absent, not refused.** A refusal naming
+  the type would tell the recipient it exists here, which is the leak an
+  organisational compartment already avoids for the same reason.
+- **The mode follows the declaration, not the request.** A recipient asking for
+  the whole record with a stated purpose gets what the tenant declared. One
+  that could negotiate upwards would make the declaration advice.
+- **An audience nobody declared sees nothing.** The two ways to arrive at an
+  undeclared name are a typo in a serving surface and a partner who was
+  removed, and both want silence rather than the tenant's own view.
+
+**Naming no audience is the tenant working with its own records**, which is
+nearly every request, and nothing about it changes.
+
+The declaration is configuration rather than records, deliberately. A store
+that accumulated one rule per partner would be a policy engine nobody can
+audit; configuration is swept, reviewed and diffed like everything else a
+tenant declares.
+
 ## What stays outside
 
 Consent semantics and co-ownership — who must agree before a person's key may be

@@ -274,6 +274,10 @@ cloud.jengu.dbo.core.TypeRegistry                                      replace(c
 cloud.jengu.dbo.core.TypeRegistry                                      require(String):cloud.jengu.dbo.core.api.TypeRegistration
 cloud.jengu.dbo.core.UuidV7                                            class
 cloud.jengu.dbo.core.UuidV7                                            newId():String
+cloud.jengu.dbo.core.api.Audience                                      class
+cloud.jengu.dbo.core.api.Audience                                      clear():void
+cloud.jengu.dbo.core.api.Audience                                      named():String
+cloud.jengu.dbo.core.api.Audience                                      serving(String):void
 cloud.jengu.dbo.core.api.AuditReplay                                   interface
 cloud.jengu.dbo.core.api.AuditReplay                                   replayAuditEntry(String,String,long,byte[],Instant):boolean
 cloud.jengu.dbo.core.api.Caller                                        class
@@ -446,6 +450,7 @@ cloud.jengu.dbo.core.api.DateKeys.Window                               toString(
 cloud.jengu.dbo.core.api.DateKeys.Window                               until():Instant
 cloud.jengu.dbo.core.api.Disclosure                                    class
 cloud.jengu.dbo.core.api.Disclosure                                    clear():void
+cloud.jengu.dbo.core.api.Disclosure                                    forAudience(cloud.jengu.dbo.core.api.Disclosure.Mode):void
 cloud.jengu.dbo.core.api.Disclosure                                    matched(String):void
 cloud.jengu.dbo.core.api.Disclosure                                    mode():cloud.jengu.dbo.core.api.Disclosure.Mode
 cloud.jengu.dbo.core.api.Disclosure                                    purpose():String
@@ -1770,6 +1775,8 @@ cloud.jengu.dbo.policy.RetentionSweep                                  STEP:Stri
 cloud.jengu.dbo.policy.RetentionSweep                                  class
 cloud.jengu.dbo.policy.RetentionSweep                                  new(DataSource,String,cloud.jengu.dbo.policy.TenantPolicies,cloud.jengu.dbo.policy.PolicyObjectStore,cloud.jengu.dbo.work.Runs)
 cloud.jengu.dbo.policy.RetentionSweep                                  sweepOnce():int
+cloud.jengu.dbo.policy.TenantPolicies                                  audience(String):cloud.jengu.dbo.policy.TenantPolicies.Audience
+cloud.jengu.dbo.policy.TenantPolicies                                  audiences():Map
 cloud.jengu.dbo.policy.TenantPolicies                                  audit():cloud.jengu.dbo.policy.TenantPolicies.AuditLevel
 cloud.jengu.dbo.policy.TenantPolicies                                  auditsReads():boolean
 cloud.jengu.dbo.policy.TenantPolicies                                  auditsWrites():boolean
@@ -1780,6 +1787,7 @@ cloud.jengu.dbo.policy.TenantPolicies                                  equals(Ob
 cloud.jengu.dbo.policy.TenantPolicies                                  hashCode():int
 cloud.jengu.dbo.policy.TenantPolicies                                  new(cloud.jengu.dbo.policy.TenantPolicies.AuditLevel,cloud.jengu.dbo.policy.TenantPolicies.Discipline,Map,Map)
 cloud.jengu.dbo.policy.TenantPolicies                                  new(cloud.jengu.dbo.policy.TenantPolicies.AuditLevel,cloud.jengu.dbo.policy.TenantPolicies.Discipline,Map,Map,Map)
+cloud.jengu.dbo.policy.TenantPolicies                                  new(cloud.jengu.dbo.policy.TenantPolicies.AuditLevel,cloud.jengu.dbo.policy.TenantPolicies.Discipline,Map,Map,Map,Map)
 cloud.jengu.dbo.policy.TenantPolicies                                  organisationPathFor(String):String
 cloud.jengu.dbo.policy.TenantPolicies                                  organisationPaths():Map
 cloud.jengu.dbo.policy.TenantPolicies                                  parse(Object):cloud.jengu.dbo.policy.TenantPolicies
@@ -1788,6 +1796,13 @@ cloud.jengu.dbo.policy.TenantPolicies                                  record
 cloud.jengu.dbo.policy.TenantPolicies                                  retention():Map
 cloud.jengu.dbo.policy.TenantPolicies                                  toString():String
 cloud.jengu.dbo.policy.TenantPolicies                                  writeDiscipline():cloud.jengu.dbo.policy.TenantPolicies.Discipline
+cloud.jengu.dbo.policy.TenantPolicies.Audience                         equals(Object):boolean
+cloud.jengu.dbo.policy.TenantPolicies.Audience                         hashCode():int
+cloud.jengu.dbo.policy.TenantPolicies.Audience                         new(Set,cloud.jengu.dbo.core.api.Disclosure.Mode)
+cloud.jengu.dbo.policy.TenantPolicies.Audience                         record
+cloud.jengu.dbo.policy.TenantPolicies.Audience                         reveals():cloud.jengu.dbo.core.api.Disclosure.Mode
+cloud.jengu.dbo.policy.TenantPolicies.Audience                         toString():String
+cloud.jengu.dbo.policy.TenantPolicies.Audience                         types():Set
 cloud.jengu.dbo.policy.TenantPolicies.AuditLevel                       FULL:cloud.jengu.dbo.policy.TenantPolicies.AuditLevel
 cloud.jengu.dbo.policy.TenantPolicies.AuditLevel                       NONE:cloud.jengu.dbo.policy.TenantPolicies.AuditLevel
 cloud.jengu.dbo.policy.TenantPolicies.AuditLevel                       WRITES:cloud.jengu.dbo.policy.TenantPolicies.AuditLevel
@@ -1987,6 +2002,7 @@ cloud.jengu.dbo.promises.DboPromises                                   IDN_A_DEC
 cloud.jengu.dbo.promises.DboPromises                                   IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   IDN_IDENTIFICATION_IS_REACHABLE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_ACCEPTED_ROOT_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_ARCHIVE_ROOT_OVER_CONTENTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_ATTESTATION_READS_AS_FHIR:cloud.jengu.dbo.promises.DboPromises
