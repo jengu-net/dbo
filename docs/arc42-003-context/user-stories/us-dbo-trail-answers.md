@@ -99,11 +99,6 @@ something the store already knows it issued.
   nothing. So *nobody looked* is sayable, with the limit the review accepted:
   an intended recipient can open and not say so, and that is the one thing
   the trail cannot see.
-- **The chain is per participant, not yet per hop between participants.** A
-  router that forwards to an edge does not exist yet, so the travel link a
-  forward would leave — the one that makes a skipped hop visible to the next
-  author — is only ever the claim's. The shape is there; the second author is
-  not.
 
 ## Decided in review
 

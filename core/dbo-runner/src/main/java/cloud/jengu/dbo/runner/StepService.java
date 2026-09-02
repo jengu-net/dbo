@@ -44,6 +44,19 @@ public interface StepService {
      * <p>Throwing is the same as returning {@link Outcome#failed}: the run is
      * released with the reason — released is not done — and a later cycle may
      * take it again (REQ-DBO-PROC-FAILURE-IS-RELEASED).
+     *
+     * <p><b>The outcome describes work that has already happened.</b> A run
+     * closes on what this returns and the store has no view below that seam,
+     * so returning {@code done} before the work is done leaves the store
+     * holding a true-looking record of something that did not occur — and
+     * nobody looks for work the store says is finished. A service with
+     * durable execution underneath waits for its workflow rather than
+     * returning its handle; a service that forwards the work — a router,
+     * holding the claim on behalf of an edge that cannot reach the lane —
+     * waits for what it forwarded to. A wedged workflow or a silent edge
+     * then blocks here, the claim lapses, and the run reads <i>released</i>:
+     * visibly still owed, which is the outcome the design wants
+     * (REQ-DBO-PROC-DONE-MEANS-DONE, REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM).
      */
     Outcome perform(Work work);
 }

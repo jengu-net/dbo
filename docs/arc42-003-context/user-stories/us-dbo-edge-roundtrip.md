@@ -133,23 +133,19 @@ operates and can read.
 | Carrying and reading are different entries, on the task and on the document | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`, `REQ-DBO-WF-HOPS-AUDITED` |
 | The events come home chained from the task, and the result is the last link | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 | One duplex channel carries work out and events home — *planned* | `REQ-DBO-PROC-A-LANE-OVER-THE-STREAM` |
-| The service holds the claim and waits for the analyser — *planned* | `REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM`, `REQ-DBO-PROC-DONE-MEANS-DONE` |
+| The service holds the claim and waits for the analyser | `REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM`, `REQ-DBO-PROC-DONE-MEANS-DONE` |
 | The shared plane holds the sealed copy and nothing readable — *stated, proofs pending* | `REQ-DBO-WF-TWO-PLANES`, `REQ-DBO-WF-CONTENT-FREE-PLATFORM-PLANE` |
 
 ## What the store cannot do yet
 
-- **A payload is sealed to the claimant only.** The service holding the claim
-  for an analyser behind it cannot yet name the analyser as the recipient, so
-  the router-holds-the-claim shape wraps to the wrong party; the recipients
-  a manifest names are one, and that one is whoever claimed.
 - **The plane proofs are not written.** That the shared plane holds nothing
   readable is stated and the sealing is proven on the wire; the ratchet that
   no plaintext lands in the substrate is its own issue.
 - **The stream is not a lane transport.** In-process and HTTP exist; carrying
   work out and events home on one duplex channel does not.
 
-Every leg above that is `PROVEN` is proven for a participant that claims
-for itself. The story is written whole so the gap is visible as a gap.
+Every leg above that is `PROVEN` is proven over the HTTP lane. The story is
+written whole so the gap is visible as a gap.
 
 ## Decided in review
 

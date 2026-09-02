@@ -247,10 +247,25 @@ public final class HttpLane implements Lane {
 
     @Override
     public cloud.jengu.dbo.work.SealedWork sealed(Run run) {
+        return sealed(run, null);
+    }
+
+    @Override
+    public cloud.jengu.dbo.work.SealedWork sealed(Run run, List<String> recipients) {
         Map<String, Object> body = verb();
         body.put(LaneVerbs.RUN, RecordWire.encode(run));
-        return RecordWire.decode(post(LaneVerbs.SEALED, body),
+        if (recipients != null) {
+            body.put(LaneVerbs.RECIPIENTS, RecordWire.encode(recipients));
+        }
+        cloud.jengu.dbo.work.SealedWork work = RecordWire.decode(post(LaneVerbs.SEALED, body),
                 cloud.jengu.dbo.work.SealedWork.class);
+        // A router forwarding sealed work carries its routee's openings home
+        // and closes on the head they leave; the manifest says where the
+        // chain stands when the work leaves.
+        if (work.manifest().head() != null) {
+            heads.put(run.key(), work.manifest().head());
+        }
+        return work;
     }
 
     @Override
@@ -260,6 +275,11 @@ public final class HttpLane implements Lane {
         body.put(LaneVerbs.REFERENCE, reference);
         body.put(LaneVerbs.PREVIOUS, link.previous());
         body.put(LaneVerbs.LINK, link.link());
+        if (link.author() != null) {
+            // Who opened: this participant, or the routee whose signed link
+            // it is carrying home.
+            body.put(LaneVerbs.AUTHOR, link.author());
+        }
         if (link.signature() != null) {
             body.put(LaneVerbs.SIGNATURE, link.signature());
         }
