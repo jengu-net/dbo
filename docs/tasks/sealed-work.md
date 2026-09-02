@@ -1,7 +1,8 @@
 # Sealed work
 
-**Status** — designed and decided; nothing built. Ten issues carry it, three
-of them re-scoped from questions to builds.
+**Status** — designed and decided; the first slice is built — travel and
+access are different entries, for work in the clear. Ten issues carry it,
+three of them re-scoped from questions to builds.
 
 **Issues** — roots: [#166](https://github.com/jengu-net/dbo/issues/166)
 (enrolment key exchange), [#175](https://github.com/jengu-net/dbo/issues/175)
@@ -46,7 +47,15 @@ callback into every tenant.
 
 ## Where it stands
 
-Nothing of the mechanism exists. Everything it rests on does:
+One piece of the mechanism exists: a hop leaves a travel entry on the task,
+naming who it was handed to, and a participant's read of a named document
+leaves an access entry on the document naming the run, whatever the audit
+level. The tenant wires the trail into its lane; an embedded runner over a
+bare store wires none and records no travel, which is honest for a host with
+no trail. The clause that the machinery's own read to seal records nothing
+waits for sealing — today that read *is* the opening.
+
+Everything else it rests on already does:
 
 - the sealing format — `SealedArchive` mints a random data key per payload and
   wraps it, which is the multi-recipient shape one wrap per participant away;
@@ -127,19 +136,20 @@ closed, never chain detail.
 
 | step | promise (REQ-DBO-…) | status |
 |---|---|---|
-| Travel and access as distinct entries; one trail, two targets — #175  | `POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` · `WF-HOPS-AUDITED` | **NEXT** |
+| Travel and access as distinct entries; one trail, two targets — #175  | `POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` · `WF-HOPS-AUDITED` | **DONE** 2026-09-02, for work in the clear; the decrypt-callback weld moves to #174 |
 | Duplex lane over the store's stream — #177  | `PROC-A-LANE-OVER-THE-STREAM` | **NEXT** |
 | Enrolment key exchange — #166  | `PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` | **READY**, needs the decision to widen the store to asymmetric crypto restated in the constraints; owner: the store |
 | Stories cited by promises — #180  | `PRM-A-STORY-IS-CITED-NOT-CLAIMED` | **READY**, small; do early |
 | Manifest/payload split and sealing in the carrier form — #174  | `PROC-WORK-TRAVELS-SEALED` | **BLOCKED by #166** (a seal with no key to wrap to is refused there) |
-| The chain: link on entry, travel names recipient, participant signs, result carries head, refuse-and-name — #176  | `POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | **BLOCKED by #175, #166** |
-| Partner relation composed with audience — #179  | `TEN-A-PARTNER-MANAGES-TENANTS` | **BLOCKED by #175** (travel entries are what the journey is made of) |
+| The chain: link on entry, travel names recipient, participant signs, result carries head, refuse-and-name — #176  | `POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | **BLOCKED by #166** (link on entry can start now; the signed link needs the enrolment key) |
+| Partner relation composed with audience — #179  | `TEN-A-PARTNER-MANAGES-TENANTS` | **READY**, needs the partner relation declared in the registration path; owner: the store |
 | `perform` waits, one hop further for a router — #172  | `PROC-DONE-MEANS-DONE` · `PROC-THE-ROUTER-HOLDS-THE-CLAIM` | **READY**, docs and contract text only |
 | Plane promise reworded, plaintext ratchet, erasure-reaches-the-copy proof — #173  | `WF-TWO-PLANES` · `WF-CONTENT-FREE-PLATFORM-PLANE` | **PARTLY BLOCKED** — reword now; the proofs need #174 |
 | Departed routee kept with last attestation — #178  | `PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` | **READY**, small |
 
-Critical path: **#175 → #176**, with **#166 → #174** beside it and #176 waiting
-on both. Everything else can land whenever somebody is nearby.
+Critical path: **#166 → #174**, with **#176** waiting on #166 for the signed
+link. #177 is independent. Everything else can land whenever somebody is
+nearby.
 
 ## Not doing
 

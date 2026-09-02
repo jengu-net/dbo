@@ -289,8 +289,12 @@ payload and never say so, and that limit is accepted rather than hidden — the
 data was legitimately theirs, and what is lost is the entry for an authorised
 read on a device the tenant answers for.
 
-Travel entries, access entries and the chain do not exist yet; they are
-[sealed work](../tasks/sealed-work.md) too.
+Travel and access entries exist for work in the clear: the tenant wires a
+trail into its lane, a claim writes the hop, and the read that resolves a
+run's inputs — today the only way to open one — is recorded on the document
+with the run as its occasion, whatever the audit level. The chain, and the
+sealed read that records nothing, are [sealed work](../tasks/sealed-work.md)
+still.
 
 **The store's own housekeeping runs on this model rather than beside it.**
 Notification delivery, retention, configuration application, tenant serving,

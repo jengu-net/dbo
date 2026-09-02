@@ -130,7 +130,7 @@ operates and can read.
 | A version links to the one before it, so a rewrite is detectable | `REQ-DBO-CORE-VERSIONED-HISTORY` |
 | Work travels as a readable manifest and a sealed payload, in the carrier form, wrapped per participant — *planned* | `REQ-DBO-PROC-WORK-TRAVELS-SEALED` |
 | The analyser offers its public key when it enrols — *planned* | `REQ-DBO-PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` |
-| Carrying and reading are different entries, on the task and on the document — *planned* | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`, `REQ-DBO-WF-HOPS-AUDITED` |
+| Carrying and reading are different entries, on the task and on the document | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`, `REQ-DBO-WF-HOPS-AUDITED` |
 | The events come home chained from the task, and the result is the last link — *planned* | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 | One duplex channel carries work out and events home — *planned* | `REQ-DBO-PROC-A-LANE-OVER-THE-STREAM` |
 | The service holds the claim and waits for the analyser — *planned* | `REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM`, `REQ-DBO-PROC-DONE-MEANS-DONE` |
@@ -144,12 +144,12 @@ operates and can read.
   the production sources, and the one key that does exist is a single
   framework key shared by every tenant — so there is nothing per-tenant to
   seal with.
-- **There is no decryption callback**, and therefore no access event
-  distinct from a travel event. The recording half exists — a participant can
-  already contribute an event whose actor and time the machinery stamps from
-  the validated token rather than trusting the caller, and a re-delivered one
-  lands exactly once — but nothing distinguishes *opened* from *carried*, and
-  nothing welds the recording to the decryption.
+- **There is no decryption callback.** Carrying and reading are already
+  different entries — a hop leaves a travel entry on the task, and a
+  participant's read of a named document leaves an access entry on the
+  document naming the run — but today that read *is* the opening, because
+  nothing is sealed. Nothing yet welds the recording to a decryption, and the
+  machinery's own read to seal is not yet a thing apart from a participant's.
 - **There is no work-event chain.** Object versions are chained and the
   reasoning is written down; nothing chains the events of a run across the
   participants that handled it, and no result carries the head it commits to.

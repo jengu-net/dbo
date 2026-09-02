@@ -2263,6 +2263,7 @@ cloud.jengu.dbo.runner.Lane                                            inProcess
 cloud.jengu.dbo.runner.Lane                                            inProcess(String,cloud.jengu.dbo.work.Runs,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Declarations,String,cloud.jengu.dbo.work.Executor,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Introductions):cloud.jengu.dbo.runner.Lane
 cloud.jengu.dbo.runner.Lane                                            inProcess(String,cloud.jengu.dbo.work.Runs,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Declarations,String,cloud.jengu.dbo.work.Executor,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Introductions,cloud.jengu.dbo.runner.Lane.Entitlement):cloud.jengu.dbo.runner.Lane
 cloud.jengu.dbo.runner.Lane                                            inProcess(String,cloud.jengu.dbo.work.Runs,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Declarations,String,cloud.jengu.dbo.work.Executor,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Introductions,cloud.jengu.dbo.runner.Lane.Entitlement,cloud.jengu.dbo.work.Trackables):cloud.jengu.dbo.runner.Lane
+cloud.jengu.dbo.runner.Lane                                            inProcess(String,cloud.jengu.dbo.work.Runs,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Declarations,String,cloud.jengu.dbo.work.Executor,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Introductions,cloud.jengu.dbo.runner.Lane.Entitlement,cloud.jengu.dbo.work.Trackables,cloud.jengu.dbo.runner.Lane.Trail):cloud.jengu.dbo.runner.Lane
 cloud.jengu.dbo.runner.Lane                                            inputs(cloud.jengu.dbo.work.Run):Map
 cloud.jengu.dbo.runner.Lane                                            interface
 cloud.jengu.dbo.runner.Lane                                            introduce(cloud.jengu.dbo.core.process.StepDeclaration):void
@@ -2278,6 +2279,8 @@ cloud.jengu.dbo.runner.Lane.Entitlement                                covers(St
 cloud.jengu.dbo.runner.Lane.Entitlement                                everything():cloud.jengu.dbo.runner.Lane.Entitlement
 cloud.jengu.dbo.runner.Lane.Entitlement                                ofSteps(String[]):cloud.jengu.dbo.runner.Lane.Entitlement
 cloud.jengu.dbo.runner.Lane.Entitlement                                toString():String
+cloud.jengu.dbo.runner.Lane.Trail                                      handedTo(cloud.jengu.dbo.work.Run,String):void
+cloud.jengu.dbo.runner.Lane.Trail                                      interface
 cloud.jengu.dbo.runner.Outcome                                         done():cloud.jengu.dbo.runner.Outcome
 cloud.jengu.dbo.runner.Outcome                                         done(Map):cloud.jengu.dbo.runner.Outcome
 cloud.jengu.dbo.runner.Outcome                                         failed(String):cloud.jengu.dbo.runner.Outcome

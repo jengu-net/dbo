@@ -87,16 +87,18 @@ something the store already knows it issued.
 | Work not completed is released and visibly still owed | `REQ-DBO-PROC-FAILURE-IS-RELEASED` |
 | A run names what ran it | `REQ-DBO-PROC-RUN-NAMES-WHAT-RAN-IT` |
 | The trail survives a restore rather than being replayed into something new | `REQ-DBO-POL-POLICY-REPLAY-ON-RESTORE` |
-| Carried four times, opened once — travel and access as different entries — *planned* | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` |
+| Carried four times, opened once — travel and access as different entries | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` |
 | A completion with a hole is refused and told which link — *planned* | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 
 ## What the store cannot do yet
 
-- **There is no travel entry**, so absence proves nothing yet. This story's
-  central claim — *nobody looked* — is exactly the one the store cannot
-  currently make.
-- **There is no access entry distinct from an ordinary read**, so a carry and
-  a reading are not yet different kinds of record.
+- **Travel and access are different entries for work in the clear.** A hop
+  leaves a travel entry on the task naming who it was handed to; a
+  participant's read of a named document leaves an access entry on the
+  document naming the run, whatever the tenant's audit level. So *nobody
+  looked* is now sayable — but only because the read that resolves an input
+  is today the only way to open it. Once payloads are sealed the opening
+  moves to where the key is used, and the recording has to move with it.
 - **Nothing is chained across participants**, so a chain with a hole is not a
   thing the store can notice, and a completion is accepted on its own word.
 - **A result carries no chain head**, so there is nothing to verify it
