@@ -263,6 +263,13 @@ public enum DboPromises implements Promise {
     /** TODO: prove it in a test. ArchiveCoversEveryTableIT proves every TABLE is archived,
      * generically — no test isolates the run type's own claim (envelope-queryable,
      * versioned, dropped with the tenant) the way BackupCoversTheTenantIT does for PDI. */
+    PROC_WORK_IS_AUTHORED_ON_THE_SURFACE(
+            "Work is authored on the tenant's own surface, never on the lane: a document "
+            + "posted there that names a declared step becomes a run, created through the "
+            + "same door every run is minted at and refused by name where its rules are "
+            + "not met — an unknown step, an undeclared slot, an unfilled declared slot, a "
+            + "key already used. The run is what is stored, and it reads back as the "
+            + "same document as it advances. A participation credential cannot author."),
     PROC_RUN_HAS_A_RECORD("Every run of a step is a record in a tenant's own store — a "
             + "registered type, so it is envelope-queryable, versioned, carried by the "
             + "backup and dropped with the tenant. A run in a private table has none of "

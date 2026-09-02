@@ -129,6 +129,17 @@ quietly become successes and the next person cannot tell a job that finished fro
 one that gave up. Whether a participant may close a step at all — as opposed to
 only advancing it — is something the step declared.
 
+**Work is authored on the tenant's own surface, never on the lane.** A
+participant holds a lane and takes work; whoever authors work holds the
+tenant's store credential and states an obligation. So a document posted on
+the surface that names a declared step — the same document the face renders a
+run as — becomes a run, minted through the door every run is minted at, and
+refused by name where its rules are not met: an unknown step, an undeclared
+slot, an unfilled declared slot, a name already used. The run is what is
+stored, it reads back as the same document as it advances, and a participation
+credential cannot post one. A router built against this store then has real
+work to claim in a real deployment, authored by the side that originates it.
+
 **A participant does not say done before the work is done.** A run closes on
 what the participant reports, and the store has no view below that seam, so a
 report that arrives early is a true-looking record of something that has not

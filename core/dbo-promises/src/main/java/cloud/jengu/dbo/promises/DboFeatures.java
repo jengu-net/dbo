@@ -48,6 +48,7 @@ public enum DboFeatures implements Feature {
             List.of(DboPromises.PROC_STEP_DECLARES_ITS_SLOTS,
                     DboPromises.PROC_RUN_INPUTS_FILL_THE_SLOTS,
                     DboPromises.PROC_TASK_CARRIES_THE_INPUTS,
+                    DboPromises.PROC_WORK_IS_AUTHORED_ON_THE_SURFACE,
                     DboPromises.PROC_INPUTS_ARRIVE_WITH_THE_WORK)),
 
     WORK_SAYS_WHERE_IT_IS("A long-running step is visible between claim and outcome: "

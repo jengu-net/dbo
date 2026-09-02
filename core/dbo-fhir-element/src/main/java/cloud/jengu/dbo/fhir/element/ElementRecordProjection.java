@@ -360,6 +360,82 @@ final class ElementRecordProjection implements RecordProjection {
         };
     }
 
+    /**
+     * A posted {@code Task} read back the way this face renders one: the step
+     * from the process and step codings (or a canonical whose last segment
+     * is the step id), the scope from the run identifier, the inputs by slot
+     * from {@code input} — reference or display, since the render carries
+     * the reference as a display. What is not there is left absent, so the
+     * engine's own refusals say what is missing by name.
+     */
+    @Override
+    public Optional<PostedRun> readPostedRun(String document) {
+        Map<?, ?> posted = (Map<?, ?>) Json.parse(document);
+        if (!"Task".equals(posted.get("resourceType"))) {
+            return Optional.empty();
+        }
+        String process = null;
+        String step = null;
+        if (posted.get("code") instanceof Map<?, ?> code
+                && code.get("coding") instanceof List<?> codings) {
+            for (Object c : codings) {
+                if (c instanceof Map<?, ?> coding) {
+                    if (PROCESS.equals(coding.get("system"))) {
+                        process = String.valueOf(coding.get("code"));
+                    } else if (STEP.equals(coding.get("system"))) {
+                        step = String.valueOf(coding.get("code"));
+                    }
+                }
+            }
+        }
+        String stepId = process != null && step != null ? process + "." + step : null;
+        if (stepId == null && posted.get("instantiatesCanonical") instanceof List<?> canonicals
+                && !canonicals.isEmpty()) {
+            String canonical = String.valueOf(canonicals.get(0));
+            stepId = canonical.substring(canonical.lastIndexOf('/') + 1);
+        }
+        String scope = null;
+        if (posted.get("identifier") instanceof List<?> identifiers) {
+            for (Object i : identifiers) {
+                if (i instanceof Map<?, ?> identifier && RUN.equals(identifier.get("system"))) {
+                    scope = String.valueOf(identifier.get("value"));
+                }
+            }
+        }
+        if (scope != null && stepId != null && scope.startsWith(stepId + "/")) {
+            // The render carries the whole key; a poster may echo it back.
+            scope = scope.substring(stepId.length() + 1);
+        }
+        Map<String, String> inputs = new LinkedHashMap<>();
+        if (posted.get("input") instanceof List<?> declared) {
+            for (Object i : declared) {
+                if (!(i instanceof Map<?, ?> input)) {
+                    continue;
+                }
+                String slot = null;
+                if (input.get("type") instanceof Map<?, ?> type
+                        && type.get("coding") instanceof List<?> codings) {
+                    for (Object c : codings) {
+                        if (c instanceof Map<?, ?> coding && RUN_INPUT.equals(coding.get("system"))) {
+                            slot = String.valueOf(coding.get("code"));
+                        }
+                    }
+                }
+                String reference = null;
+                if (input.get("valueReference") instanceof Map<?, ?> value) {
+                    reference = value.get("reference") != null
+                            ? String.valueOf(value.get("reference"))
+                            : value.get("display") != null ? String.valueOf(value.get("display"))
+                            : null;
+                }
+                if (slot != null && reference != null) {
+                    inputs.put(slot, reference);
+                }
+            }
+        }
+        return Optional.of(new PostedRun(stepId, scope, inputs));
+    }
+
     @Override
     public Optional<Posted> readPosted(String typeName, String document) {
         if (!"AuditEntry".equals(typeName)) {
