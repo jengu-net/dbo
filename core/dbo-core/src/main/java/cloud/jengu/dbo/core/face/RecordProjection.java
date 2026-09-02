@@ -75,6 +75,30 @@ public interface RecordProjection {
     }
 
     /**
+     * The reverse of rendering a run: what a posted document that the face
+     * renders runs as means — which step, under what key, with which inputs
+     * — without the engine learning what the document is called. Empty when
+     * the face renders no runs, or the document is not one.
+     */
+    default Optional<PostedRun> readPostedRun(String document) {
+        return Optional.empty();
+    }
+
+    /**
+     * A run as somebody outside the container authored it.
+     *
+     * @param stepId the declared step, as {@code <module>.<process>.<step>}
+     * @param scope  the run's own name under that step — the key is the step and this
+     * @param inputs slot to reference, exactly as the run will name them
+     */
+    record PostedRun(String stepId, String scope, java.util.Map<String, String> inputs) {
+
+        public PostedRun {
+            inputs = inputs == null ? java.util.Map.of() : java.util.Map.copyOf(inputs);
+        }
+    }
+
+    /**
      * One record to render, with what belongs to it.
      *
      * @param children the records that are part of this one — a run's items.

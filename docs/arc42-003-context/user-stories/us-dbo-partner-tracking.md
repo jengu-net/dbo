@@ -81,7 +81,7 @@ citations say it is.
 
 | Promise | Says | Status |
 |---|---|---|
-| `REQ-DBO-PROC-RUN-HAS-A-RECORD` | Every run of a step is a record in a tenant's own store — a registered type, so it is envelope-queryable, versioned, carried by the backup and dropped with the tenant. A run in a private table has none of those, and cannot be seen or acted on. | PLANNED |
+| `REQ-DBO-PROC-RUN-HAS-A-RECORD` | Every run of a step is a record in a tenant's own store — a registered type, so it is envelope-queryable, versioned, carried by the backup and dropped with the tenant. A run in a private table has none of those, and cannot be seen or acted on. | PROVEN |
 | `REQ-DBO-PROC-RUN-SAYS-WHO-HOLDS-IT` | A run's load-bearing field is who holds it now: automation running, automation with a retry scheduled, a person, or nobody. Every other field answers a question somebody asks after that one. | PROVEN |
 | `REQ-DBO-PROC-RUN-NAMES-WHAT-RAN-IT` | A run records the executor, its version, its provider and the scope it was chosen at. A provider can be withdrawn and a scope re-declared, so a resolution nobody wrote down is a decision nobody can reproduce. | PROVEN |
 | `REQ-DBO-PROC-PROGRESS-NAMES-THE-MILESTONE` | A checkpoint can carry the milestone reached; the run records it replaced-never-accumulated, with its position over the declared order derived by the store rather than asserted by the executor, and it survives release and retake. A service that reports nothing behaves exactly as today. | PROVEN |
@@ -98,7 +98,7 @@ citations say it is.
 | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | A run's travel and access entries each carry a link to the one before, rooted in the task the store minted, so a participant cannot present a journey that never started. The result that closes the run is the last link and carries the head it commits to; the store checks the chain when the result lands, and a completion with a gap is refused and told which link. A travel entry names who it handed to, so a skipped hop is exposed by the next author. Links are signed by the participant, which buys non-forgery and non-repudiation and not omission-proofing: an intended recipient can open a payload and never say so, and that limit is accepted. The link lives on the entry, so the chain outlives nothing the trail does not, and a pruned predecessor reads unchained rather than broken. | PROVEN |
 | `REQ-DBO-TEN-STRUCTURAL-SCOPING` | No code path can read or write data without an explicit tenant context. (R3) | PROVEN |
 
-Coverage: {PROVEN=15, PLANNED=1} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=16} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet
@@ -109,10 +109,6 @@ Coverage: {PROVEN=15, PLANNED=1} — a leg marked PLANNED cites a promise that e
   assembles the answer outside — the store will not grow a query that spans
   them. This is a position, not a gap, and it stays here so nobody mistakes
   its absence for an oversight.
-- **`REQ-DBO-PROC-RUN-HAS-A-RECORD` reads PLANNED.** The run record exists and
-  is exercised throughout, but the promise that a run *is* a record carries no
-  citation yet — so the leg this story leans on hardest is the one the
-  catalogue is quietest about.
 
 ## Decided in review
 

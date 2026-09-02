@@ -1370,13 +1370,22 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return server;
     }
 
-    private static FhirHttpServer withAuditSurface(FhirHttpServer server,
+    private FhirHttpServer withAuditSurface(FhirHttpServer server,
             cloud.jengu.dbo.core.face.DomainFace face, ObjectStore engine) {
         if (engine instanceof cloud.jengu.dbo.policy.PolicyObjectStore policyStore) {
             // the face renders it; the surface only decides which records
             // answer the query and what a posted document records
             server.auditSurface = new cloud.jengu.dbo.rest.AuditProjection(
                     policyStore, policyStore, face);
+        }
+        if (face.capability(cloud.jengu.dbo.core.face.RecordProjection.class).isPresent()) {
+            // The run's face: authored on the store surface under the
+            // tenant's write authority, against the composed step catalogue
+            // — installed modules plus what participants introduced here.
+            cloud.jengu.dbo.core.process.Steps composed =
+                    new cloud.jengu.dbo.work.Introductions(engine, steps).composedWith();
+            server.workSurface = new WorkProjection(engine,
+                    new cloud.jengu.dbo.work.Runs(engine, composed), composed, face);
         }
         return server;
     }

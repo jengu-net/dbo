@@ -62,6 +62,8 @@ public final class FhirHttpServer implements AutoCloseable {
     public volatile String policyNote;
     /** §15.1: when set, /AuditEvent is served as a projection of the trail. */
     public volatile AuditSurface auditSurface;
+    /** The run's face, when the tenant serves one: a posted Task becomes a run. */
+    public volatile WorkSurface workSurface;
 
     public FhirHttpServer(FhirStoreFacade store, TerminologyFacade terminology,
             String host, int port, String basePath) {
@@ -245,8 +247,7 @@ public final class FhirHttpServer implements AutoCloseable {
             // every one the version defines.
             respond(exchange, 200, securityDeclared(
                     store.capabilityStatement(baseUrl(), declaredOperations,
-                            auditSurface == null ? Map.of()
-                                    : Map.of("AuditEvent", auditSurface.searchParameters()))));
+                            surfaceParameters())));
             return;
         }
         if (authenticator != null) {
@@ -267,6 +268,43 @@ public final class FhirHttpServer implements AutoCloseable {
                         store.operationOutcome("security", denial.diagnostics()));
                 return;
             }
+        }
+        // The run's face: a posted Task becomes a run, and a run reads back
+        // as the Task it renders as. Update and delete never exist: a run
+        // advances through its lane, not by editing its document.
+        if (workSurface != null && segments.length >= 1 && "Task".equals(segments[0])) {
+            switch (method) {
+                case "GET" -> {
+                    if (segments.length == 1) {
+                        respond(exchange, 404, store.operationOutcome("not-supported",
+                                "runs are read by id; the trail is searched by run"));
+                    } else {
+                        var rendered = workSurface.read(segments[1]);
+                        if (rendered.isPresent()) {
+                            respond(exchange, 200, rendered.get());
+                        } else {
+                            respond(exchange, 404, store.operationOutcome("not-found",
+                                    "no such Task"));
+                        }
+                    }
+                }
+                case "POST" -> {
+                    try {
+                        WorkSurface.Authored authored = workSurface.create(readBody(exchange));
+                        exchange.getResponseHeaders().set("Location",
+                                baseUrl() + "/Task/" + authored.id());
+                        exchange.getResponseHeaders().set("ETag", etag(authored.versionId()));
+                        respond(exchange, 201, authored.rendered());
+                    } catch (WorkSurface.Refused refused) {
+                        respond(exchange, refused.status(), store.operationOutcome(
+                                refused.status() == 409 ? "duplicate" : "invalid",
+                                refused.getMessage()));
+                    }
+                }
+                default -> respond(exchange, 405, store.operationOutcome("not-supported",
+                        "a run advances through its lane, not by editing its Task"));
+            }
+            return;
         }
         // §15.1 audit surface: read renders the trail, POST maps into a
         // native custom entry, update/delete never exist
@@ -612,6 +650,18 @@ public final class FhirHttpServer implements AutoCloseable {
                 body.close();
             }
         }
+    }
+
+    /** What the surfaces beside the store honour, for the capability statement. */
+    private Map<String, java.util.Set<String>> surfaceParameters() {
+        Map<String, java.util.Set<String>> parameters = new java.util.LinkedHashMap<>();
+        if (auditSurface != null) {
+            parameters.put("AuditEvent", auditSurface.searchParameters());
+        }
+        if (workSurface != null) {
+            parameters.put("Task", java.util.Set.of());
+        }
+        return parameters;
     }
 
     private void respond(HttpExchange exchange, int status, String body) throws IOException {
