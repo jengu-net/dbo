@@ -88,9 +88,16 @@ public final class HttpLanes {
     }
 
     public Lanes.Batch outbound(String peer, int limit, Set<String> processes) {
+        return outbound(peer, limit, processes, Set.of());
+    }
+
+    /** Both bounds: the processes by work, and the types by declaration. */
+    public Lanes.Batch outbound(String peer, int limit, Set<String> processes,
+            Set<String> types) {
         Map<String, Object> body = with(peer);
         body.put(LanesVerbs.LIMIT, limit);
         body.put(LanesVerbs.PROCESSES, RecordWire.encode(List.copyOf(processes)));
+        body.put(LanesVerbs.TYPES, RecordWire.encode(List.copyOf(types)));
         return RecordWire.decode(post(LanesVerbs.OUTBOUND, body), Lanes.Batch.class);
     }
 

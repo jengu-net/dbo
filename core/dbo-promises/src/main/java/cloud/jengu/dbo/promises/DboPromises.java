@@ -432,6 +432,15 @@ public enum DboPromises implements Promise {
             + "reported, so gone reads as last seen by X at T, absent from X's report at "
             + "T+1. No freshness rule comes with it."),
 
+    PROC_THE_LANE_HAS_TWO_BOUNDS(
+            "What moves between two appliances of one tenant has two bounds, deliberately "
+            + "different: declarations by type — the tenant's own definitions, none of it "
+            + "about anybody — which travel as every version of the types asked for since "
+            + "the peer's position, filed under their source, read-only there, shadowed by a "
+            + "local override and never revoked by work; and patient data by work, which "
+            + "arrives with a task and leaves with it. What a run produced travels with the "
+            + "run as a copy that outlives it. A type the lane does not admit is refused by "
+            + "name, never quietly left out."),
     PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY("A record travels to an appliance because a "
             + "piece of work names it, and is removed when no open run there still "
             + "names it. Work-driven arrival without work-driven expiry is a bench "
