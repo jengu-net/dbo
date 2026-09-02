@@ -137,7 +137,8 @@ class ALaneOverTheStreamIsIndistinguishableIT {
 
     @Test
     @DisplayName("the same runner and service do the same work to the same outcome over HTTP "
-            + "and over the stream, and every verb lands on the tenant's own store")
+            + "and over the stream — sealed on both, signed on the stream — and every verb "
+            + "lands on the tenant's own store")
     @Proving({DboPromises.PROC_A_LANE_OVER_THE_STREAM,
             DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS})
     void theRunnerCannotTellWhichCarriedIt() throws Exception {
@@ -161,11 +162,12 @@ class ALaneOverTheStreamIsIndistinguishableIT {
         Run overHttp = runFor("over-http");
         Run overStream = runFor("over-stream");
         try (StepRunner runner = new StepRunner(Duration.ofMinutes(5), Duration.ofMillis(50));
-                StreamLane stream = StreamLane.to(substrate, () -> token("courier", "courier-secret"),
-                        TENANT, "courier-on-the-stream", executor("courier"))) {
+                StreamLane stream = StreamLane.holding(substrate, TENANT, "analyser-on-the-stream",
+                        executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
             runner.register(service);
-            runner.attach(HttpLane.to(laneUri, () -> token("courier", "courier-secret"), TENANT,
-                    "courier-over-http", executor("courier")));
+            runner.attach(HttpLane.holding(laneUri, () -> token("analyser", "analyser-secret"),
+                    TENANT, "analyser-over-http", executor("analyser"), sealing.getPrivate(),
+                    signing.getPrivate()));
             runner.attach(stream);
             long deadline = System.nanoTime() + Eventually.PATIENCE.toNanos();
             while (System.nanoTime() < deadline && (runs.byKey(overHttp.key()).orElseThrow().open()
@@ -193,8 +195,8 @@ class ALaneOverTheStreamIsIndistinguishableIT {
     @Proving(DboPromises.PROC_A_LANE_OVER_THE_STREAM)
     void workOutAndEventsHomeOnOneChannel() throws Exception {
         Run run = runFor("duplex");
-        try (StreamLane lane = StreamLane.holding(substrate, () -> token("analyser", "analyser-secret"),
-                TENANT, "analyser", executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
+        try (StreamLane lane = StreamLane.holding(substrate, TENANT, "analyser",
+                executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
             Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
             assertEquals(1, lane.inputs(held).size(), "opened here, with the key held here");
             lane.closed(held);

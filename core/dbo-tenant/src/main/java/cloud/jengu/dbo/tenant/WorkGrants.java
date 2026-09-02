@@ -22,7 +22,7 @@ import java.util.Optional;
  * garbage — wrong issuer, wrong keys — rather than being a valid token
  * refused, which is the strongest anti-enumeration property available.
  */
-final class WorkGrants implements LaneHandler.Grants {
+final class WorkGrants implements LaneHandler.Grants, LaneHandler.SignedGrants {
 
     private final TenantAuthority authority;
 
@@ -58,6 +58,29 @@ final class WorkGrants implements LaneHandler.Grants {
      * is the tenant; a bounded one narrows to exactly the steps it names, and
      * the lane enforces the intersection with what each step admits.
      */
+    /**
+     * The same decision from a signature: the participant named must have
+     * enrolled with a signing key, the signature must be its, and its reach
+     * is what its client record grants — exactly what a token would carry,
+     * without a token ever lying on the plane the ask crossed.
+     */
+    @Override
+    public LaneHandler.Access of(String participant, byte[] signed, String signature) {
+        Optional<cloud.jengu.dbo.core.api.seal.SigningKey> key =
+                participant == null ? Optional.empty() : authority.signingKey(participant);
+        if (key.isEmpty() || !key.get().verifies(signed, signature)) {
+            return new LaneHandler.Denied(401, null,
+                    "an ask on the stream is signed by the participant's enrolment key");
+        }
+        List<String> granted = authority.clientScopes(participant).orElse(List.of());
+        if (!Scopes.admitsWork(granted)) {
+            return new LaneHandler.Denied(403, null,
+                    "this credential carries no participation scope");
+        }
+        return new LaneHandler.Grant(participant, entitlementOf(granted),
+                Scopes.worksAsTheTenant(granted));
+    }
+
     private static Lane.Entitlement entitlementOf(List<String> granted) {
         if (Scopes.worksAsTheTenant(granted)) {
             return Lane.Entitlement.everything();

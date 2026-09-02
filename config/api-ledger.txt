@@ -101,6 +101,7 @@ cloud.jengu.dbo.auth.TenantAuthority                                   beginAuth
 cloud.jengu.dbo.auth.TenantAuthority                                   beginFederated(String,String,String,String,String):String
 cloud.jengu.dbo.auth.TenantAuthority                                   changeOwnSecret(String,String,String,String):boolean
 cloud.jengu.dbo.auth.TenantAuthority                                   class
+cloud.jengu.dbo.auth.TenantAuthority                                   clientScopes(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   completeFederated(String,String):cloud.jengu.dbo.auth.TenantAuthority.FederatedOutcome
 cloud.jengu.dbo.auth.TenantAuthority                                   completeLogin(String,String,String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.LoginResult
 cloud.jengu.dbo.auth.TenantAuthority                                   createDelegation(String,String,String,List,long):Optional
@@ -2408,9 +2409,12 @@ cloud.jengu.dbo.runner.http.LaneHandler.Grants                         interface
 cloud.jengu.dbo.runner.http.LaneHandler.Grants                         of(String):cloud.jengu.dbo.runner.http.LaneHandler.Access
 cloud.jengu.dbo.runner.http.LaneHandler.Lanes                          interface
 cloud.jengu.dbo.runner.http.LaneHandler.Lanes                          laneFor(String,cloud.jengu.dbo.work.Executor,cloud.jengu.dbo.runner.Lane.Entitlement):cloud.jengu.dbo.runner.Lane
+cloud.jengu.dbo.runner.http.LaneHandler.SignedGrants                   interface
+cloud.jengu.dbo.runner.http.LaneHandler.SignedGrants                   of(String,byte[],String):cloud.jengu.dbo.runner.http.LaneHandler.Access
 cloud.jengu.dbo.runner.http.LaneVerbService                            class
 cloud.jengu.dbo.runner.http.LaneVerbService                            new(cloud.jengu.dbo.runner.http.LaneHandler.Grants,cloud.jengu.dbo.runner.http.LaneHandler.Lanes)
 cloud.jengu.dbo.runner.http.LaneVerbService                            serve(String,cloud.jengu.dbo.runner.http.LaneVerbs,Object):cloud.jengu.dbo.runner.http.LaneVerbService.Answer
+cloud.jengu.dbo.runner.http.LaneVerbService                            serve(cloud.jengu.dbo.runner.http.LaneHandler.Access,cloud.jengu.dbo.runner.http.LaneVerbs,Object):cloud.jengu.dbo.runner.http.LaneVerbService.Answer
 cloud.jengu.dbo.runner.http.LaneVerbService.Answer                     interface
 cloud.jengu.dbo.runner.http.LaneVerbService.Answer.Denied              equals(Object):boolean
 cloud.jengu.dbo.runner.http.LaneVerbService.Answer.Denied              hashCode():int
@@ -2481,6 +2485,7 @@ cloud.jengu.dbo.runner.http.WireLane                                   closed(cl
 cloud.jengu.dbo.runner.http.WireLane                                   declare(cloud.jengu.dbo.work.Declarations.Declared):void
 cloud.jengu.dbo.runner.http.WireLane                                   identity():cloud.jengu.dbo.work.Executor
 cloud.jengu.dbo.runner.http.WireLane                                   inputs(cloud.jengu.dbo.work.Run):Map
+cloud.jengu.dbo.runner.http.WireLane                                   inputsInTheClear(cloud.jengu.dbo.work.Run):Map
 cloud.jengu.dbo.runner.http.WireLane                                   introduce(cloud.jengu.dbo.core.process.StepDeclaration):void
 cloud.jengu.dbo.runner.http.WireLane                                   milestone(cloud.jengu.dbo.work.Run,String,Map,Duration):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.runner.http.WireLane                                   new(cloud.jengu.dbo.runner.http.WireLane.Transport,String,String,cloud.jengu.dbo.work.Executor,Set,PrivateKey,PrivateKey)
@@ -2507,14 +2512,14 @@ cloud.jengu.dbo.scim.ScimHandler                                       handle(Ht
 cloud.jengu.dbo.scim.ScimHandler                                       new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,String,String)
 cloud.jengu.dbo.stream.StreamDoor                                      class
 cloud.jengu.dbo.stream.StreamDoor                                      close():void
-cloud.jengu.dbo.stream.StreamDoor                                      new(DataSource,String,cloud.jengu.dbo.runner.http.LaneHandler.Grants,cloud.jengu.dbo.runner.http.LaneHandler.Lanes)
+cloud.jengu.dbo.stream.StreamDoor                                      new(DataSource,String,cloud.jengu.dbo.runner.http.LaneHandler.SignedGrants,cloud.jengu.dbo.runner.http.LaneHandler.Lanes)
 cloud.jengu.dbo.stream.StreamDoor                                      workflowId(String,int):String
 cloud.jengu.dbo.stream.StreamDoor.Flows                                interface
 cloud.jengu.dbo.stream.StreamDoor.Flows                                serve(String,int):String
+cloud.jengu.dbo.stream.StreamLane                                      askedInTheClear(cloud.jengu.dbo.work.Run):Map
 cloud.jengu.dbo.stream.StreamLane                                      class
 cloud.jengu.dbo.stream.StreamLane                                      close():void
-cloud.jengu.dbo.stream.StreamLane                                      holding(DataSource,Supplier,String,String,cloud.jengu.dbo.work.Executor,PrivateKey,PrivateKey):cloud.jengu.dbo.stream.StreamLane
-cloud.jengu.dbo.stream.StreamLane                                      to(DataSource,Supplier,String,String,cloud.jengu.dbo.work.Executor):cloud.jengu.dbo.stream.StreamLane
+cloud.jengu.dbo.stream.StreamLane                                      holding(DataSource,String,String,cloud.jengu.dbo.work.Executor,PrivateKey,PrivateKey):cloud.jengu.dbo.stream.StreamLane
 cloud.jengu.dbo.subscriptions.NotificationComposer                     compose(cloud.jengu.dbo.subscriptions.TopicSubscription,cloud.jengu.dbo.subscriptions.TopicSpec,cloud.jengu.dbo.core.api.feed.FeedItem,long):String
 cloud.jengu.dbo.subscriptions.NotificationComposer                     interface
 cloud.jengu.dbo.subscriptions.NotificationTransport                    deliver(String,String):void

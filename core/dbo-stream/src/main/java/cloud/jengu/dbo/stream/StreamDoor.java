@@ -20,8 +20,9 @@ import javax.sql.DataSource;
  * A tenant's door onto its lane, opened on the store's own stream.
  *
  * <p>One durable workflow per tenant sits on the substrate and receives
- * verbs as messages: each carries the asker's credential, the verb and its
- * body exactly as the HTTP door would have received them, and is answered
+ * verbs as messages: each carries the verb and its body exactly as the HTTP
+ * door would have received them, signed by the asker's enrolment key rather
+ * than carrying a token — this plane holds no credential — and is answered
  * through the same {@link LaneVerbService} — who may ask, as whom, and what
  * each verb does are decided once, behind every door. The answer goes back
  * as an event keyed by the message, so the asker waits on the substrate and
@@ -62,10 +63,16 @@ public final class StreamDoor implements AutoCloseable {
     private final AtomicBoolean closing = new AtomicBoolean();
     private volatile Thread keeper;
 
-    public StreamDoor(DataSource substrate, String tenant, LaneHandler.Grants grants,
+    private final LaneHandler.SignedGrants grants;
+
+    public StreamDoor(DataSource substrate, String tenant, LaneHandler.SignedGrants grants,
             LaneHandler.Lanes lanes) {
         this.tenant = tenant;
-        this.service = new LaneVerbService(grants, lanes);
+        this.grants = grants;
+        // No token door: on this plane an ask is authenticated by signature,
+        // so the service is handed an access already decided.
+        this.service = new LaneVerbService(authorization -> new LaneHandler.Denied(401, null,
+                "the stream door takes no token"), lanes);
         // Its own executor id: on launch an instance recovers the pending
         // workflows of its executor, and a door must never pick up an
         // asker's, nor an asker a door's.
@@ -146,10 +153,27 @@ public final class StreamDoor implements AutoCloseable {
             envelope.put(LaneVerbs.REASON, "no such lane verb: " + ask.get("verb"));
             return RecordWire.write(envelope);
         }
+        if (verb.get() == LaneVerbs.INPUTS) {
+            // Over the stream everything crosses a plane that must hold no
+            // resource content readable there, so the clear verb has no
+            // answer here: inputs travel sealed, or not on this wire.
+            envelope.put("status", 409);
+            envelope.put(LaneVerbs.REFUSED, Boolean.TRUE);
+            envelope.put(LaneVerbs.REASON, tenant + ": over the stream, inputs travel sealed — "
+                    + "ask for them sealed, with the key enrolled for it");
+            return RecordWire.write(envelope);
+        }
         LaneVerbService.Answer answer;
         try {
-            answer = service.serve(ask.get("authorization") == null ? null
-                    : String.valueOf(ask.get("authorization")), verb.get(), ask.get("body"));
+            // What was signed: the ask's id, verb and body exactly as they
+            // travelled, so a body altered on the plane fails as a forgery.
+            String signed = ask.get("id") + "\n" + ask.get("verb") + "\n"
+                    + RecordWire.write(ask.get("body"));
+            LaneHandler.Access access = grants.of(
+                    ask.get("participant") == null ? null : String.valueOf(ask.get("participant")),
+                    signed.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    ask.get("signature") == null ? null : String.valueOf(ask.get("signature")));
+            answer = service.serve(access, verb.get(), ask.get("body"));
         } catch (RuntimeException failed) {
             envelope.put("status", 500);
             envelope.put(LaneVerbs.REFUSED, Boolean.TRUE);

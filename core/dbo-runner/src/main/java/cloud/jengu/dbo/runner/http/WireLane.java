@@ -187,6 +187,11 @@ public class WireLane implements Lane {
             // asking sealed first is the runner not needing to know that.
             return open(sealed(run), run);
         }
+        return inputsInTheClear(run);
+    }
+
+    /** The clear verb as such — what a keyless participant asks, and what a keyed one never does. */
+    protected Map<String, StoredObject> inputsInTheClear(Run run) {
         Map<String, Object> body = verb();
         body.put(LaneVerbs.RUN, RecordWire.encode(run));
         return RecordWire.decodeMap(post(LaneVerbs.INPUTS, body), StoredObject.class);

@@ -48,7 +48,11 @@ public final class LaneVerbService {
 
     /** One verb, from whoever carries the authorization named, on the body given. */
     public Answer serve(String authorization, LaneVerbs verb, Object body) {
-        LaneHandler.Access access = grants.of(authorization);
+        return serve(grants.of(authorization), verb, body);
+    }
+
+    /** One verb, from whoever the door has already decided is asking. */
+    public Answer serve(LaneHandler.Access access, LaneVerbs verb, Object body) {
         if (access instanceof LaneHandler.Denied denied) {
             return new Answer.Denied(denied.status(), denied.wwwAuthenticate(), denied.reason());
         }

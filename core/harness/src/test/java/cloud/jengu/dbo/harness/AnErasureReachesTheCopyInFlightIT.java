@@ -109,7 +109,7 @@ class AnErasureReachesTheCopyInFlightIT {
     @Test
     @DisplayName("a copy sealed before the shred yields, after it, a record whose identity "
             + "no key can reassemble — the same state as the store's own records")
-    @Proving(DboPromises.PROC_WORK_TRAVELS_SEALED)
+    @Proving({DboPromises.PROC_WORK_TRAVELS_SEALED, DboPromises.WF_TWO_PLANES})
     void theCopyInFlightIsInTheSameStateAsTheRecord() throws Exception {
         String patientId = store.put(PutRequest.create("Patient",
                 ("{\"resourceType\":\"Patient\",\"identifier\":[{\"system\":\"" + EID

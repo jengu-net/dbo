@@ -239,7 +239,11 @@ the same authority and the same participation scope as the HTTP door — and a
 verb is a message to that door with its answer an event on it. Work goes out
 and the signed openings and the result come home on the one channel, no
 tenant accepts a callback, and the verbs are encoded once for both wires so
-nothing can be served on one that the other cannot carry. A container given
+nothing can be served on one that the other cannot carry. The plane between
+holds no credential and nothing readable: an ask is signed with the
+participant's enrolment key rather than carrying a token, so a lane on the
+stream is held only by a participant enrolled with both keys, and the clear
+verb is refused there by name. A container given
 no substrate serves its lanes over HTTP and in-process only, as every
 container did before the fleet.
 
