@@ -12,10 +12,11 @@
   material.** Everything the store seals for itself is symmetric under a key
   the sealer already holds — the container key, the per-person keys derived
   from it, an owner's archive key. The one exception is deliberate: a
-  participant offers the public half of its own X25519 keypair when it
-  enrols, and payload data keys are wrapped to it, because a participant is
-  something the store authenticates but could not otherwise encrypt *to*.
-  No other asymmetric encryption, and no second curve. (R5)
+  participant offers the public halves of its own keypairs when it enrols —
+  X25519, which payload data keys are wrapped to, and Ed25519, which it signs
+  its trail links with — because a participant is something the store
+  authenticates but could not otherwise encrypt *to* or hold to its word.
+  No other asymmetric material, and no other curves. (R5)
 - **Kubernetes** is responsible only for running parallel instances and the
   security layer (network policy, secrets, the provisioning operator);
   tenant-aware routing happens at the application level. (R7)

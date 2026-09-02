@@ -43,14 +43,17 @@ every version, changes flow through the change stream so anything can watch
 credential lifecycle, provenance applies, and administering identity can itself
 be a governed process rather than a privileged side channel.
 
-A machine credential may carry one more thing: **the public half of a keypair
-the participant generated before it enrolled.** It is offered at registration
-beside the secret, recorded on the same record, and named by its own
-thumbprint. It is what payload data keys are wrapped to when work leaves the
-tenant, so what a participant may open is decided by what it holds. The
-private half never crosses, which is why a copy of the enrolment records opens
-nothing — the one asymmetric key this store keeps, and it keeps only the half
-that unlocks nothing ([constraints](../arc42-002-constraints/README.md)).
+A machine credential may carry two more things: **the public halves of the
+keypairs the participant generated before it enrolled** — one it is sealed
+to, one it signs with. They are offered at registration beside the secret,
+recorded on the same record, and each named by its own thumbprint. The first
+is what payload data keys are wrapped to when work leaves the tenant, so what
+a participant may open is decided by what it holds; the second is what its
+trail links are checked against, so what it said it opened cannot be forged
+by a carrier or denied by itself. The private halves never cross, which is
+why a copy of the enrolment records opens nothing and signs nothing — the
+only asymmetric material this store keeps, and it keeps only the halves that
+unlock nothing ([constraints](../arc42-002-constraints/README.md)).
 
 The consequence worth stating on its own: because the tenant's export carries
 its authority, **restoring a tenant restores who may access it**. Recovery does

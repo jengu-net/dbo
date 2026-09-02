@@ -20,9 +20,10 @@ import java.util.Map;
  * @param run        the run's key, which is what the trail is rooted in
  * @param inputs     slot to reference, exactly as the run names them
  * @param recipients the participants the payload beside this is wrapped to
+ * @param head       the head of the run's chain as the store holds it, which the next link commits to
  */
 public record Manifest(String tenant, String step, String run, Map<String, String> inputs,
-        List<String> recipients) {
+        List<String> recipients, String head) {
 
     public Manifest {
         inputs = inputs == null ? Map.of() : Map.copyOf(inputs);

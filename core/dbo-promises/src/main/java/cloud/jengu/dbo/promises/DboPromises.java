@@ -796,7 +796,6 @@ public enum DboPromises implements Promise {
             + "only ciphertext is not a disclosure. So who read this is answered from the "
             + "document by somebody who need not know work exists, and where did this go "
             + "from the task, and the trail can say that nobody looked."),
-    /** TODO: prove it in a test — a suppressed middle link is exposed by the next; a result whose head does not match is refused by name. */
     POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK(
             "A run's travel and access entries each carry a link to the one before, "
             + "rooted in the task the store minted, so a participant cannot present a "

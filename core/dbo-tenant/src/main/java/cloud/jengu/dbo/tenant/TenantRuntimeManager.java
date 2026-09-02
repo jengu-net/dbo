@@ -877,10 +877,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     new cloud.jengu.dbo.runner.Lane.Trail() {
                                         @Override
                                         public void handedTo(cloud.jengu.dbo.work.Run run,
-                                                String to) {
-                                            engine.recordCustom("travel",
+                                                String to, cloud.jengu.dbo.work.RunChain.Link link) {
+                                            underRun(run, () -> engine.recordCustom("travel",
                                                     cloud.jengu.dbo.work.WorkModel.TYPE, run.id(),
-                                                    java.util.Map.of("to", to, "key", run.key()));
+                                                    java.util.Map.of("to", to, "key", run.key(),
+                                                            "previous", link.previous(),
+                                                            "link", link.link())));
+                                        }
+
+                                        // The chain as the trail holds it:
+                                        // every travel and access entry of
+                                        // the run, each carrying its link.
+                                        @Override
+                                        public java.util.List<cloud.jengu.dbo.work.RunChain.Link>
+                                                links(cloud.jengu.dbo.work.Run run) {
+                                            return TrailLinks.of(engine, run);
                                         }
 
                                         // An opening is an access entry on the
@@ -891,13 +902,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                         // "what did this task open" meet on it.
                                         @Override
                                         public void opened(cloud.jengu.dbo.work.Run run,
-                                                String by, String typeName, String id) {
+                                                String by, String typeName, String id,
+                                                cloud.jengu.dbo.work.RunChain.Link link) {
+                                            java.util.Map<String, String> detail =
+                                                    new java.util.LinkedHashMap<>();
+                                            detail.put("by", by);
+                                            detail.put("run", run.key());
+                                            detail.put("previous", link.previous());
+                                            detail.put("link", link.link());
+                                            if (link.signature() != null) {
+                                                detail.put("signature", link.signature());
+                                            }
+                                            underRun(run, () -> engine.recordCustom("access",
+                                                    typeName, id, detail));
+                                        }
+
+                                        private void underRun(cloud.jengu.dbo.work.Run run,
+                                                Runnable write) {
                                             String outer = cloud.jengu.dbo.core.api.Caller.run();
                                             cloud.jengu.dbo.core.api.Caller.setRun(run.key());
                                             try {
-                                                engine.recordCustom("access", typeName, id,
-                                                        java.util.Map.of("by", by,
-                                                                "run", run.key()));
+                                                write.run();
                                             } finally {
                                                 if (outer == null) {
                                                     cloud.jengu.dbo.core.api.Caller.clearRun();
@@ -910,7 +935,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     // The enrolment keys, from the same
                                     // authority that validated the token: what
                                     // a participant holds is what it is sealed to.
-                                    authority::participantKey)));
+                                    new cloud.jengu.dbo.runner.Lane.Keys() {
+                                        @Override
+                                        public java.util.Optional<cloud.jengu.dbo.core.api.seal.ParticipantKey>
+                                                of(String participant) {
+                                            return authority.participantKey(participant);
+                                        }
+
+                                        @Override
+                                        public java.util.Optional<cloud.jengu.dbo.core.api.seal.SigningKey>
+                                                signing(String participant) {
+                                            return authority.signingKey(participant);
+                                        }
+                                    })));
             workContexts.put(spec.code(), workPath);
             // What this tenant knows about the things behind its
             // participants. Beside replication rather than as a verb on the

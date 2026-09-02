@@ -128,7 +128,7 @@ class ALaneStaysTransportShapedTest {
         // Guards against passing vacuously: if the verbs ever move to a
         // superinterface, getDeclaredMethods returns nothing and both rules
         // above become true of an empty list.
-        assertEquals(16, verbs.size(),
+        assertEquals(17, verbs.size(),
                 "the verb count changed; a new verb is exactly what these rules are for");
         return verbs;
     }

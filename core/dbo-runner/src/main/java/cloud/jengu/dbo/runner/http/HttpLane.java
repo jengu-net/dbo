@@ -57,6 +57,10 @@ public final class HttpLane implements Lane {
     private final HttpClient http;
     /** The private half of this participant's enrolment keypair, or null for one that offered none. */
     private final java.security.PrivateKey holding;
+    /** The private half of the key this participant signs its links with, beside {@code holding}. */
+    private final java.security.PrivateKey signing;
+    /** The head of each run's chain as this side last saw it: what the next link commits to. */
+    private final Map<String, String> heads = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * @param base        the tenant's lane surface, e.g.
@@ -96,20 +100,22 @@ public final class HttpLane implements Lane {
      * the two are one act, and neither is optional.
      */
     public static HttpLane holding(URI base, Supplier<String> bearer, String tenant,
-            String participant, Executor identity, java.security.PrivateKey privateKey) {
+            String participant, Executor identity, java.security.PrivateKey privateKey,
+            java.security.PrivateKey signingKey) {
         return new HttpLane(base, bearer, tenant, participant, identity, null,
-                HttpClient.newHttpClient(), privateKey);
+                HttpClient.newHttpClient(), privateKey, signingKey);
     }
 
     public HttpLane(URI base, Supplier<String> bearer, String tenant, String participant,
             Executor identity, Set<String> boundTo, HttpClient http) {
-        this(base, bearer, tenant, participant, identity, boundTo, http, null);
+        this(base, bearer, tenant, participant, identity, boundTo, http, null, null);
     }
 
     public HttpLane(URI base, Supplier<String> bearer, String tenant, String participant,
             Executor identity, Set<String> boundTo, HttpClient http,
-            java.security.PrivateKey holding) {
+            java.security.PrivateKey holding, java.security.PrivateKey signing) {
         this.holding = holding;
+        this.signing = signing;
         this.base = base;
         this.bearer = bearer;
         this.tenant = tenant;
@@ -175,9 +181,21 @@ public final class HttpLane implements Lane {
 
     @Override
     public void closed(Run run) {
+        // A participant that signs closes with the head it commits to — the
+        // last link it made or saw — without the runner having to know
+        // chains exist.
+        closed(run, signing == null ? null : heads.get(run.key()));
+    }
+
+    @Override
+    public void closed(Run run, String head) {
         Map<String, Object> body = verb();
         body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        if (head != null) {
+            body.put(LaneVerbs.HEAD, head);
+        }
         post(LaneVerbs.CLOSED, body);
+        heads.remove(run.key());
     }
 
     @Override
@@ -236,11 +254,34 @@ public final class HttpLane implements Lane {
     }
 
     @Override
-    public void opened(Run run, String reference) {
+    public String opened(Run run, String reference, cloud.jengu.dbo.work.RunChain.Link link) {
         Map<String, Object> body = verb();
         body.put(LaneVerbs.RUN, RecordWire.encode(run));
         body.put(LaneVerbs.REFERENCE, reference);
-        post(LaneVerbs.OPENED, body);
+        body.put(LaneVerbs.PREVIOUS, link.previous());
+        body.put(LaneVerbs.LINK, link.link());
+        if (link.signature() != null) {
+            body.put(LaneVerbs.SIGNATURE, link.signature());
+        }
+        String head = String.valueOf(post(LaneVerbs.OPENED, body));
+        heads.put(run.key(), head);
+        return head;
+    }
+
+    /** This side's link for an opening: computed here, signed here, committing to the head it holds. */
+    private cloud.jengu.dbo.work.RunChain.Link linkFor(Run run, String reference) {
+        String previous = heads.get(run.key());
+        if (previous == null) {
+            throw new IllegalStateException(tenant + ": '" + identity.name()
+                    + "' holds no head for run '" + run.key() + "' to chain an opening to");
+        }
+        String link = cloud.jengu.dbo.work.RunChain.accessLink(previous, run.key(), reference,
+                identity.name());
+        String signature = signing == null ? null
+                : cloud.jengu.dbo.core.api.seal.SigningKey.sign(
+                        link.getBytes(StandardCharsets.UTF_8), signing);
+        return new cloud.jengu.dbo.work.RunChain.Link("access", previous, link, identity.name(),
+                reference, signature);
     }
 
     /**
@@ -250,6 +291,11 @@ public final class HttpLane implements Lane {
      */
     private Map<String, StoredObject> open(cloud.jengu.dbo.work.SealedWork work, Run run) {
         Map<String, StoredObject> resolved = new LinkedHashMap<>();
+        // The manifest says where the chain stands; every opening from here
+        // commits to that, then to the one before it.
+        if (work.manifest().head() != null) {
+            heads.put(run.key(), work.manifest().head());
+        }
         for (cloud.jengu.dbo.work.SealedPayload payload : work.payload()) {
             StoredObject document;
             try {
@@ -258,7 +304,7 @@ public final class HttpLane implements Lane {
                 throw new IllegalStateException(tenant + ": '" + identity.name()
                         + "' cannot open " + payload.reference() + " with the key it holds", cannot);
             }
-            opened(run, payload.reference());
+            opened(run, payload.reference(), linkFor(run, payload.reference()));
             resolved.put(payload.slot(), document);
         }
         return java.util.Collections.unmodifiableMap(resolved);

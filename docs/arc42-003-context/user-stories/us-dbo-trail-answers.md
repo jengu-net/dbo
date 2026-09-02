@@ -88,7 +88,7 @@ something the store already knows it issued.
 | A run names what ran it | `REQ-DBO-PROC-RUN-NAMES-WHAT-RAN-IT` |
 | The trail survives a restore rather than being replayed into something new | `REQ-DBO-POL-POLICY-REPLAY-ON-RESTORE` |
 | Carried four times, opened once — travel and access as different entries | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` |
-| A completion with a hole is refused and told which link — *planned* | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
+| A completion with a hole is refused and told which link | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 
 ## What the store cannot do yet
 
@@ -99,10 +99,11 @@ something the store already knows it issued.
   nothing. So *nobody looked* is sayable, with the limit the review accepted:
   an intended recipient can open and not say so, and that is the one thing
   the trail cannot see.
-- **Nothing is chained across participants**, so a chain with a hole is not a
-  thing the store can notice, and a completion is accepted on its own word.
-- **A result carries no chain head**, so there is nothing to verify it
-  against at the moment it would be cheapest to check.
+- **The chain is per participant, not yet per hop between participants.** A
+  router that forwards to an edge does not exist yet, so the travel link a
+  forward would leave — the one that makes a skipped hop visible to the next
+  author — is only ever the claim's. The shape is there; the second author is
+  not.
 
 ## Decided in review
 

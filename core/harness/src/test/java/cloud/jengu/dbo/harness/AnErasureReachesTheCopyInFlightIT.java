@@ -7,6 +7,7 @@ import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.core.api.TypeRegistration;
 import cloud.jengu.dbo.core.api.seal.KeyWrap;
 import cloud.jengu.dbo.core.api.seal.ParticipantKey;
+import cloud.jengu.dbo.core.api.seal.SigningKey;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.core.wire.RecordWire;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
@@ -23,6 +24,7 @@ import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.RunChain;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
@@ -74,7 +76,9 @@ class AnErasureReachesTheCopyInFlightIT {
     static Runs runs;
     static Declarations declarations;
     static KeyPair analyser;
+    static KeyPair signer;
     static final List<String> openings = new ArrayList<>();
+    static final List<RunChain.Link> links = new ArrayList<>();
 
     @BeforeAll
     void up() {
@@ -99,6 +103,7 @@ class AnErasureReachesTheCopyInFlightIT {
         declarations = new Declarations(store, new PgChangeFeed(ds, WorkModel.DOMAIN),
                 Duration.ofSeconds(30));
         analyser = KeyWrap.newParticipantKeyPair();
+        signer = SigningKey.newKeyPair();
     }
 
     @Test
@@ -118,14 +123,32 @@ class AnErasureReachesTheCopyInFlightIT {
                 declarations, "analyser", identity, store, null,
                 Lane.Entitlement.everything(), null, new Lane.Trail() {
                     @Override
-                    public void handedTo(Run r, String to) {
+                    public void handedTo(Run r, String to, RunChain.Link link) {
+                        links.add(link);
                     }
 
                     @Override
-                    public void opened(Run r, String by, String typeName, String id) {
+                    public void opened(Run r, String by, String typeName, String id,
+                            RunChain.Link link) {
                         openings.add(typeName + "/" + id + " by " + by);
+                        links.add(link);
                     }
-                }, participant -> Optional.of(ParticipantKey.of(analyser.getPublic())));
+
+                    @Override
+                    public List<RunChain.Link> links(Run r) {
+                        return List.copyOf(links);
+                    }
+                }, new Lane.Keys() {
+                    @Override
+                    public Optional<ParticipantKey> of(String participant) {
+                        return Optional.of(ParticipantKey.of(analyser.getPublic()));
+                    }
+
+                    @Override
+                    public Optional<SigningKey> signing(String participant) {
+                        return Optional.of(SigningKey.of(signer.getPublic()));
+                    }
+                });
         Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
 
         SealedWork inFlight = lane.sealed(held);
@@ -141,7 +164,11 @@ class AnErasureReachesTheCopyInFlightIT {
         assertFalse(openedBefore.contains("Kask") || openedBefore.contains("1970-01-01"),
                 "the seal hands out what the store's encrypted disclosure mode hands out, "
                         + "and that is not the identity: " + openedBefore);
-        lane.opened(held, "Patient/" + patientId);
+        String previous = inFlight.manifest().head();
+        String link = RunChain.accessLink(previous, held.key(), "Patient/" + patientId, "analyser");
+        lane.opened(held, "Patient/" + patientId, new RunChain.Link("access", previous, link,
+                "analyser", "Patient/" + patientId,
+                SigningKey.sign(link.getBytes(StandardCharsets.UTF_8), signer.getPrivate())));
         assertEquals(List.of("Patient/" + patientId + " by analyser"), openings,
                 "the opening is reported from where the key was used");
 

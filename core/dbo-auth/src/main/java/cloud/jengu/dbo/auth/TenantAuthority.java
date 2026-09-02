@@ -10,6 +10,7 @@ import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.core.api.seal.ParticipantKey;
+import cloud.jengu.dbo.core.api.seal.SigningKey;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
@@ -342,6 +343,16 @@ public final class TenantAuthority {
      */
     public void ensureClient(String clientId, String secret, List<String> scopes,
             ParticipantKey participantKey) {
+        ensureClient(clientId, secret, scopes, participantKey, null);
+    }
+
+    /**
+     * The same, with the key the participant signs its links with beside
+     * the one it is sealed to. Two keys because the curve that agrees cannot
+     * sign; both the participant's own, both public halves only.
+     */
+    public void ensureClient(String clientId, String secret, List<String> scopes,
+            ParticipantKey participantKey, SigningKey signingKey) {
         scopes.forEach(scope -> {
             if (!Scopes.isValid(scope)) {
                 throw new IllegalArgumentException("invalid scope: " + scope);
@@ -355,11 +366,12 @@ public final class TenantAuthority {
         // a credential every tenant already had.
         if (existing.isPresent() && SecretHash.verify(secret, field(existing.get(), "secretHash"))
                 && Set.copyOf(scopesOf(existing.get())).equals(Set.copyOf(scopes))
-                && Objects.equals(participantKeyOf(existing.get()).orElse(null), participantKey)) {
+                && Objects.equals(participantKeyOf(existing.get()).orElse(null), participantKey)
+                && Objects.equals(signingKeyOf(existing.get()).orElse(null), signingKey)) {
             return;
         }
         String payload = clientPayload(clientId, SecretHash.hash(secret), scopes,
-                "confidential", List.of(), participantKey);
+                "confidential", List.of(), participantKey, signingKey);
         if (existing.isPresent()) {
             store.put(PutRequest.update("ClientApplication", existing.get().id(),
                     existing.get().versionId(), payload.getBytes(StandardCharsets.UTF_8)));
@@ -379,7 +391,7 @@ public final class TenantAuthority {
         });
         String payload = clientPayload(clientId,
                 secretOrNull != null ? SecretHash.hash(secretOrNull) : null,
-                scopes, clientType, redirectUris, null);
+                scopes, clientType, redirectUris, null, null);
         Optional<StoredObject> existing = findClient(clientId);
         if (existing.isPresent()) {
             store.put(PutRequest.update("ClientApplication", existing.get().id(),
@@ -406,6 +418,17 @@ public final class TenantAuthority {
         return findClient(clientId).flatMap(TenantAuthority::participantKeyOf);
     }
 
+    /** The key a participant signs its links with, if it offered one. */
+    public Optional<SigningKey> signingKey(String clientId) {
+        return findClient(clientId).flatMap(TenantAuthority::signingKeyOf);
+    }
+
+    private static Optional<SigningKey> signingKeyOf(StoredObject client) {
+        Object node = Json.parse(new String(client.payload(), StandardCharsets.UTF_8));
+        Object key = ((Map<?, ?>) node).get("signingKey");
+        return key == null ? Optional.empty() : Optional.of(SigningKey.parse(Json.render(key)));
+    }
+
     private static Optional<ParticipantKey> participantKeyOf(StoredObject client) {
         Object node = Json.parse(new String(client.payload(), StandardCharsets.UTF_8));
         Object key = ((Map<?, ?>) node).get("publicKey");
@@ -414,10 +437,12 @@ public final class TenantAuthority {
     }
 
     private static String clientPayload(String clientId, String secretHash, List<String> scopes,
-            String clientType, List<String> redirectUris, ParticipantKey participantKey) {
+            String clientType, List<String> redirectUris, ParticipantKey participantKey,
+            SigningKey signingKey) {
         return "{\"clientId\":\"" + clientId + "\""
                 + (secretHash != null ? ",\"secretHash\":\"" + secretHash + "\"" : "")
                 + (participantKey != null ? ",\"publicKey\":" + participantKey.render() : "")
+                + (signingKey != null ? ",\"signingKey\":" + signingKey.render() : "")
                 + ",\"scopes\":[" + scopes.stream().map(s -> "\"" + s + "\"")
                         .collect(Collectors.joining(",")) + "]"
                 + ",\"clientType\":\"" + clientType + "\""

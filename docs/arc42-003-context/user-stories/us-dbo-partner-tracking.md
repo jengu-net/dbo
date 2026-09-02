@@ -84,7 +84,7 @@ reach by asking about more tenants.
 | A contributed event carries an actor the machinery stamped, not one the caller claimed | `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` |
 | A partner manages tenants: the relation says which, the audience says what of each — *planned* | `REQ-DBO-TEN-A-PARTNER-MANAGES-TENANTS` |
 | The page is made of travel entries about the task | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`, `REQ-DBO-WF-HOPS-AUDITED` |
-| A missing hop is missing detectably — *planned* | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
+| A missing hop is missing detectably | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 | A tenant's records are reachable only through that tenant's own store | `REQ-DBO-TEN-STRUCTURAL-SCOPING` |
 
 ## What the store cannot do yet
@@ -97,8 +97,6 @@ reach by asking about more tenants.
   Whatever serves a partner reads each managed tenant's store separately and
   assembles the answer outside — the store will not grow a query that spans
   them.
-- **Nothing is chained across participants**, so a page assembled today would
-  be a list that could quietly omit a leg.
 - **Hops are not indexed.** A travel entry per hop now exists on the task's
   trail, so the page's central column has its material; nothing answers
   "show me this run's hops" in one ask.
