@@ -279,10 +279,8 @@ class ARemoteLaneIsIndistinguishableIT {
             });
             runner.attach(relay);
 
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
-            while (received.get() == null && System.nanoTime() < deadline) {
-                runner.cycle();
-            }
+            Eventually.cycling(runner, "the service was handed work over the boundary",
+                    () -> received.get() != null);
         } finally {
             relay.close();
         }
@@ -328,11 +326,11 @@ class ARemoteLaneIsIndistinguishableIT {
             });
             runner.attach(relay);
 
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
-            while (runs.byId(work.id()).orElseThrow().milestone() == null
-                    && System.nanoTime() < deadline) {
-                runner.cycle();
-            }
+            // This one used to fall out of its loop and say nothing: a
+            // milestone that never arrived reached the assertions below as a
+            // null, which reported the wrong thing about the wrong layer.
+            Eventually.cycling(runner, "the step left a milestone behind",
+                    () -> runs.byId(work.id()).orElseThrow().milestone() != null);
         } finally {
             relay.close();
         }

@@ -264,6 +264,9 @@ class TenantOsgiIT {
         // Both were one 180-second wait before, which made the fast answer
         // slow and the slow answer a false red: this failed twice on CI with
         // the tenant still coming up, and would have passed with more room.
+        // Deliberately larger than the suite's feed number (see Eventually):
+        // this waits on a whole tenant bring-up inside a container, which is a
+        // different order of thing from an event reaching a lane.
         long deadline = System.currentTimeMillis() + 420_000;
         int status = 0;
         while (System.currentTimeMillis() < deadline) {
@@ -406,7 +409,7 @@ class TenantOsgiIT {
 
         // spec removal retracts the services
         Files.delete(dir.resolve("konteiner.json"));
-        deadline = System.currentTimeMillis() + 30_000;
+        deadline = System.currentTimeMillis() + Eventually.PATIENCE.toMillis();
         while (System.currentTimeMillis() < deadline) {
             ServiceReference<?>[] remaining = ctx.getAllServiceReferences(
                     "cloud.jengu.dbo.fhir.common.FhirStoreFacade", "(tenant=konteiner)");

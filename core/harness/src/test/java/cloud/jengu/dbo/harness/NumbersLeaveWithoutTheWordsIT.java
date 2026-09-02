@@ -90,8 +90,8 @@ class NumbersLeaveWithoutTheWordsIT {
             runner.register(service(() -> {
                 throw new IllegalStateException(WORDS);
             })).attach(lane);
-            assertTrue(cycleUntil(runner, () -> !recorded.measurements.isEmpty()),
-                    "nothing was reported at all");
+            Eventually.cycling(runner, "something was reported at all",
+                    () -> !recorded.measurements.isEmpty());
         }
 
         assertTrue(recorded.measurements.stream()
@@ -126,8 +126,8 @@ class NumbersLeaveWithoutTheWordsIT {
         try (StepRunner runner = new StepRunner(
                 Duration.ofMinutes(5), Duration.ofMillis(50), recorded)) {
             runner.register(service(() -> Outcome.done(Map.of("records", 1L)))).attach(lane);
-            assertTrue(cycleUntil(runner, () -> recorded.valuesOf(Label.OUTCOME)
-                    .contains("closed")), "the run never closed: " + recorded.measurements);
+            Eventually.cycling(runner, "the run closed",
+                    () -> recorded.valuesOf(Label.OUTCOME).contains("closed"));
         }
 
         // Vacuously true of the type — Labels takes a Label and there is no
@@ -153,10 +153,11 @@ class NumbersLeaveWithoutTheWordsIT {
         // which resolves whatever this runtime has — here, nothing.
         try (StepRunner runner = new StepRunner(Duration.ofMinutes(5), Duration.ofMillis(50))) {
             runner.register(service(() -> Outcome.done(Map.of()))).attach(lane);
-            assertTrue(cycleUntil(runner, () -> runs.byKey(PROCESS + "/" + STEP + "/quiet")
-                            .map(r -> r.assignment() != null).orElse(false)),
-                    "the work did not happen without a collector, which means emission is "
-                            + "not the same path with and without one");
+            Eventually.cycling(runner,
+                    "the work happened with nothing collecting — emission is the same path "
+                            + "with and without a collector",
+                    () -> runs.byKey(PROCESS + "/" + STEP + "/quiet")
+                            .map(r -> r.assignment() != null).orElse(false));
         }
 
         assertTrue(Telemetry.installed() instanceof Telemetry.Discarding,
@@ -178,22 +179,6 @@ class NumbersLeaveWithoutTheWordsIT {
         };
     }
 
-    private static boolean cycleUntil(StepRunner runner, java.util.function.BooleanSupplier done) {
-        for (long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
-                System.nanoTime() < deadline; ) {
-            runner.cycle();
-            if (done.getAsBoolean()) {
-                return true;
-            }
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                return done.getAsBoolean();
-            }
-        }
-        return done.getAsBoolean();
-    }
 
     /** Everything the runner tried to report, kept whole so it can be searched. */
     private static final class Recording implements Telemetry {

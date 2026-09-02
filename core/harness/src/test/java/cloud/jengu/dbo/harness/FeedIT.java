@@ -169,7 +169,8 @@ class FeedIT {
         }
 
         Set<String> delivered = new HashSet<>();
-        long deadline = System.currentTimeMillis() + 90_000;
+        // The suite's one number for a wait on the feed (see Eventually).
+        long deadline = System.currentTimeMillis() + Eventually.PATIENCE.toMillis();
         while (System.currentTimeMillis() < deadline) {
             FeedChunk<FeedItem> chunk = feed.readFor(consumer, 17);
             for (FeedItem item : chunk.items()) {

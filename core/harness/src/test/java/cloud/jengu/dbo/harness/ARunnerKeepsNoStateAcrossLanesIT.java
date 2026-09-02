@@ -119,9 +119,8 @@ class ARunnerKeepsNoStateAcrossLanesIT {
             });
             runner.attach(busy.lane()).attach(quiet.lane());
 
-            assertTrue(cycleUntil(runner,
-                    () -> "1".equals(busy.vitals().get("failed"))),
-                    "the busy tenant never recorded the failure: " + busy.vitals());
+            Eventually.cycling(runner, "the busy tenant recorded the failure",
+                    () -> "1".equals(busy.vitals().get("failed")));
 
             Map<String, String> untouched = quiet.vitals();
             assertEquals("0", untouched.get("performed"),
@@ -161,8 +160,8 @@ class ARunnerKeepsNoStateAcrossLanesIT {
                 }
             });
             runner.attach(busy.lane());
-            assertTrue(cycleUntil(runner, () -> !"0".equals(busy.vitals().get("performed"))),
-                    "nothing was performed: " + busy.vitals());
+            Eventually.cycling(runner, "the busy tenant performed something",
+                    () -> !"0".equals(busy.vitals().get("performed")));
 
             runner.detach(busy.code());
             runner.attach(busy.lane());
@@ -174,21 +173,4 @@ class ARunnerKeepsNoStateAcrossLanesIT {
         }
     }
 
-    /** Cycles until the condition holds; a cycle is one poll, so arrival is eventual. */
-    private static boolean cycleUntil(StepRunner runner, BooleanSupplier done) {
-        for (long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
-                System.nanoTime() < deadline; ) {
-            runner.cycle();
-            if (done.getAsBoolean()) {
-                return true;
-            }
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                return done.getAsBoolean();
-            }
-        }
-        return done.getAsBoolean();
-    }
 }

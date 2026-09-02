@@ -138,15 +138,9 @@ class SubscriptionsIT {
      * happening to land after the write became visible.
      */
     private static void await(String what, BooleanSupplier condition) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 60_000;
-        while (System.currentTimeMillis() < deadline) {
-            engine.dispatchOnce(500);
-            if (condition.getAsBoolean()) {
-                return;
-            }
-            Thread.sleep(50);
-        }
-        throw new AssertionError("timed out waiting for: " + what);
+        // One number for every wait that depends on the feed, and one place
+        // that explains a timeout.
+        Eventually.until(what, () -> engine.dispatchOnce(500), condition);
     }
 
     // ------------------------------------------------------------ scenarios

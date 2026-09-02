@@ -181,16 +181,9 @@ class ExecutorsDeclareThemselvesIT {
         // Polling converges rather than resetting the clock, because a call
         // re-sights only when the cursor MOVES, and a quiet participant's does
         // not.
-        boolean absent = false;
-        for (long deadline = System.currentTimeMillis() + 5_000;
-                System.currentTimeMillis() < deadline; Thread.sleep(10)) {
-            if (!declarations.present(quiet)) {
-                absent = true;
-                break;
-            }
-        }
-        assertTrue(absent,
-                "declared and not answering is a different sentence from nothing declared");
+        Eventually.until("the quiet participant stopped being present — declared and not "
+                        + "answering is a different sentence from nothing declared",
+                () -> { }, () -> !declarations.present(quiet));
         assertTrue(new ExecutorResolution(declarations::candidates)
                         .resolve(StepGrant.of(PROCESS, step).overridableBy(ScopeClass.ZONE),
                                 CHAIN, List.of(), work(step))
@@ -221,16 +214,10 @@ class ExecutorsDeclareThemselvesIT {
         runs.pipeline(PROCESS, step, PROCESS + "/" + step + "/unread", List.of(WorkModel.DOMAIN));
         declarations.present(boasting);
 
-        boolean absent = false;
-        for (long deadline = System.currentTimeMillis() + 5_000;
-                System.currentTimeMillis() < deadline; Thread.sleep(10)) {
-            if (!declarations.present(boasting)) {
-                absent = true;
-                break;
-            }
-        }
-        assertTrue(absent, "what a component says about itself is exactly what a stuck one "
-                + "keeps saying, so it cannot be what presence is read from");
+        Eventually.until("the boasting participant stopped being present — what a component "
+                        + "says about itself is exactly what a stuck one keeps saying, so it "
+                        + "cannot be what presence is read from",
+                () -> { }, () -> !declarations.present(boasting));
 
         // And the block is still there to be read beside that verdict: the
         // operator wants both — it is absent, and here is the last thing it

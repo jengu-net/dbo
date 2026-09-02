@@ -142,7 +142,8 @@ class EachTypeStreamsAtItsOwnGrainIT {
     }
 
     private static String await(String what, Probe probe) throws Exception {
-        long deadline = System.currentTimeMillis() + 60_000;
+        // The suite's one number for a wait on the feed (see Eventually).
+        long deadline = System.currentTimeMillis() + Eventually.PATIENCE.toMillis();
         while (System.currentTimeMillis() < deadline) {
             manager.syncRound();
             String answer = probe.get();
