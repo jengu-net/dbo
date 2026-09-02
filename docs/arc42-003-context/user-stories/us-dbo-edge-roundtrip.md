@@ -77,10 +77,19 @@ which is what makes it worth reading.
 
 ## Every hop says it happened, and that is not a reading
 
-Each carry leaves a travel entry. That is deliberately a different kind of
-record from an access: it says a thing moved, not that anybody looked at it.
-Collapsing the two would fill the trail with accesses nobody made, and bury
-the handful that matter.
+Each carry leaves a travel entry **about the task** — the journey belongs to
+the work. The access entry above is **about the document**, and lands exactly
+where every other reading of that document lands, naming the task execution as
+its occasion.
+
+That is what decides who can ask what. The practice asking *who has read this
+result?* reads the document's own entries and never has to know that work
+exists as a concept. Ines asking *where did this task go?* reads the task's.
+Neither question has to understand the other, and the occasion is the join
+when somebody wants to cross between them.
+
+Collapsing the two into one target would fill a document's history with
+carries nobody made, and bury the one reading that matters.
 
 It also means the trail can say **nobody looked** — the gap between two travel
 entries is positive evidence rather than missing information.
