@@ -99,14 +99,14 @@ public final class LaneHandler implements HttpHandler {
     }
 
     private final String basePath;
-    private final Grants grants;
-    private final Lanes lanes;
+    private final LaneVerbService service;
 
     public LaneHandler(String basePath, Grants grants, Lanes lanes) {
         this.basePath = basePath.endsWith("/")
                 ? basePath.substring(0, basePath.length() - 1) : basePath;
-        this.grants = grants;
-        this.lanes = lanes;
+        // HTTP is one door onto the verbs; the verbs themselves — who may
+        // ask, as whom, and what each does — are the same behind every door.
+        this.service = new LaneVerbService(grants, lanes);
     }
 
     @Override
@@ -128,30 +128,20 @@ public final class LaneHandler implements HttpHandler {
                 fail(exchange, 405, "the lane's verbs are posted");
                 return;
             }
-            Access access = grants.of(exchange.getRequestHeaders().getFirst("Authorization"));
-            if (access instanceof Denied denied) {
-                if (denied.wwwAuthenticate() != null) {
-                    exchange.getResponseHeaders().set("WWW-Authenticate", denied.wwwAuthenticate());
+            LaneVerbService.Answer answer = service.serve(
+                    exchange.getRequestHeaders().getFirst("Authorization"), verb.get(),
+                    body(exchange));
+            switch (answer) {
+                case LaneVerbService.Answer.Ok ok -> respond(exchange, ok.result());
+                case LaneVerbService.Answer.Refused refused -> refuse(exchange, refused.reason());
+                case LaneVerbService.Answer.Denied denied -> {
+                    if (denied.wwwAuthenticate() != null) {
+                        exchange.getResponseHeaders().set("WWW-Authenticate",
+                                denied.wwwAuthenticate());
+                    }
+                    fail(exchange, denied.status(), denied.reason());
                 }
-                fail(exchange, denied.status(), denied.reason());
-                return;
             }
-            Grant grant = (Grant) access;
-            Object body = body(exchange);
-            String participant = string(body, LaneVerbs.PARTICIPANT);
-            Executor identity = RecordWire.decode(field(body, LaneVerbs.IDENTITY), Executor.class);
-            if (participant == null || identity == null || identity.name() == null) {
-                fail(exchange, 400, "a lane verb says which participant is asking and "
-                        + "which executor is working");
-                return;
-            }
-            if (!grant.isTheTenant() && !identity.name().equals(grant.clientId())) {
-                fail(exchange, 403, "'" + grant.clientId() + "' may work as itself, and this "
-                        + "asked to work as '" + identity.name() + "'");
-                return;
-            }
-            answer(exchange, verb.get(), lanes.laneFor(participant, identity,
-                    narrowed(grant.entitlement(), body)), body);
         } catch (IllegalStateException refused) {
             // What a lane refuses, said as a refusal — the reason travels,
             // because the far side's recovery depends on which refusal it is.
@@ -165,144 +155,12 @@ public final class LaneHandler implements HttpHandler {
         }
     }
 
-    private void answer(HttpExchange exchange, LaneVerbs verb, Lane lane, Object body)
-            throws IOException {
-        switch (verb) {
-            case POLL -> respond(exchange, lane.poll(
-                    Set.copyOf(RecordWire.decodeList(field(body, LaneVerbs.STEPS), String.class)),
-                    (int) number(body, LaneVerbs.LIMIT)));
-            // Optional on the wire is the empty answer, not a 404: nobody took
-            // it is an outcome of the claim race, and the loser takes the next
-            // run rather than treating it as an error.
-            case CLAIM -> respond(exchange,
-                    lane.claim(run(body), holdFor(body)).orElse(null));
-            case CHECKPOINT -> respond(exchange,
-                    lane.checkpoint(run(body), counts(body), holdFor(body)));
-            case MILESTONE -> respond(exchange, lane.milestone(run(body),
-                    string(body, LaneVerbs.MILESTONE_NAME), counts(body), holdFor(body)));
-            case RELEASED -> {
-                lane.released(run(body), string(body, LaneVerbs.REASON));
-                respond(exchange, null);
-            }
-            case CLOSED -> {
-                String head = string(body, LaneVerbs.HEAD);
-                if (head == null) {
-                    lane.closed(run(body));
-                } else {
-                    lane.closed(run(body), head);
-                }
-                respond(exchange, null);
-            }
-            case RELEASE_LAPSED -> respond(exchange, (long) lane.releaseLapsed());
-            case DECLARE -> {
-                lane.declare(declared(body));
-                respond(exchange, null);
-            }
-            case WITHDRAW -> {
-                lane.withdraw(declared(body));
-                respond(exchange, null);
-            }
-            case ROUTES -> {
-                lane.routes(RecordWire.decodeList(field(body, LaneVerbs.BEHIND),
-                        cloud.jengu.dbo.work.Trackable.class));
-                respond(exchange, null);
-            }
-            case INTRODUCE -> {
-                lane.introduce(RecordWire.decode(field(body, LaneVerbs.STEP),
-                        StepDeclaration.class));
-                respond(exchange, null);
-            }
-            // The one read, and the lane guards it: a run this identity has
-            // not claimed is refused there rather than filtered here.
-            case INPUTS -> respond(exchange, lane.inputs(run(body)));
-            case SEALED -> {
-                Object recipients = field(body, LaneVerbs.RECIPIENTS);
-                respond(exchange, recipients == null ? lane.sealed(run(body))
-                        : lane.sealed(run(body), RecordWire.decodeList(recipients, String.class)));
-            }
-            case OPENED -> {
-                String reference = string(body, LaneVerbs.REFERENCE);
-                if (reference == null) {
-                    throw new IllegalArgumentException("an opening names the document opened");
-                }
-                respond(exchange, lane.opened(run(body), reference,
-                        new cloud.jengu.dbo.work.RunChain.Link("access",
-                                string(body, LaneVerbs.PREVIOUS), string(body, LaneVerbs.LINK),
-                                string(body, LaneVerbs.AUTHOR), reference,
-                                string(body, LaneVerbs.SIGNATURE))));
-            }
-        }
-    }
-
-    /**
-     * The credential's reach, optionally narrowed by the asker.
-     *
-     * <p><b>Narrowing only, and it is an intersection rather than a
-     * replacement.</b> A host that is the tenant may serve a lane to a
-     * participant it has authenticated some other way, and the reach it means
-     * is that participant's — not its own. Letting it say so is safe, because
-     * it could always have asked for everything it holds; letting it say more
-     * than it holds is not, so what is asked for is filtered through what the
-     * credential covers rather than replacing it. An asker naming only steps
-     * it does not hold gets a lane that offers nothing, which is the honest
-     * outcome and not the same as an unbounded one.
-     */
-    private static Lane.Entitlement narrowed(Lane.Entitlement credential, Object body) {
-        Object asked = field(body, LaneVerbs.ENTITLED_STEPS);
-        if (asked == null) {
-            return credential;
-        }
-        List<String> steps = RecordWire.decodeList(asked, String.class).stream()
-                .filter(credential::covers).toList();
-        return Lane.Entitlement.ofSteps(steps.toArray(String[]::new));
-    }
-
-    private static Run run(Object body) {
-        Run run = RecordWire.decode(field(body, LaneVerbs.RUN), Run.class);
-        if (run == null) {
-            throw new IllegalArgumentException("this verb is about a run, and none was named");
-        }
-        return run;
-    }
-
-    private static Declarations.Declared declared(Object body) {
-        Declarations.Declared declared =
-                RecordWire.decode(field(body, LaneVerbs.DECLARED), Declarations.Declared.class);
-        if (declared == null) {
-            throw new IllegalArgumentException("this verb is about a declaration, "
-                    + "and none was carried");
-        }
-        return declared;
-    }
-
-    private static Duration holdFor(Object body) {
-        return Duration.ofMillis(number(body, LaneVerbs.HOLD_FOR_MILLIS));
-    }
-
-    private static Map<String, Long> counts(Object body) {
-        return RecordWire.decodeMap(field(body, LaneVerbs.COUNTS), Long.class);
-    }
-
     private static Object body(HttpExchange exchange) throws IOException {
         byte[] bytes = exchange.getRequestBody().readAllBytes();
         if (bytes.length == 0) {
             return new LinkedHashMap<String, Object>();
         }
         return RecordWire.read(new String(bytes, StandardCharsets.UTF_8));
-    }
-
-    private static Object field(Object body, String name) {
-        return body instanceof Map<?, ?> map ? map.get(name) : null;
-    }
-
-    private static String string(Object body, String name) {
-        Object value = field(body, name);
-        return value == null ? null : String.valueOf(value);
-    }
-
-    private static long number(Object body, String name) {
-        Object value = field(body, name);
-        return value instanceof Number n ? n.longValue() : 0L;
     }
 
     /** Every answer is the same envelope, so an empty one is still an answer. */

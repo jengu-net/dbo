@@ -413,7 +413,6 @@ public enum DboPromises implements Promise {
             + "report is a true-looking record of something that has not happened. A "
             + "participant with durable execution underneath waits for it; a router waits "
             + "for its edge; a wedged one lets the claim lapse and the run reads released."),
-    /** TODO: prove it in a test — the same runner, the same work, the same outcome over all three transports. */
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "
             + "HTTP: work goes out and travel, access and result events come home as they "

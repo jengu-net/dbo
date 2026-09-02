@@ -229,8 +229,19 @@ seal to, and is refused a seal by name. A router names its routee as the
 recipient and is sealed past: it may name only what it has declared behind
 it, naming is the forward and leaves the travel link that makes the routee
 the chain's next author, and the opening it carries home is its routee's,
-signed with the routee's own key. The lane over the store's own stream is the
-live topic [sealed work](../tasks/sealed-work.md) still.
+signed with the routee's own key.
+
+The lane has three carriers and a runner cannot tell which it holds:
+in-process, HTTP, and the store's own stream. The third is the one a shared
+fleet holds. The host connects to the durable substrate it already runs on,
+each served tenant opens a door there — one long-lived workflow, guarded by
+the same authority and the same participation scope as the HTTP door — and a
+verb is a message to that door with its answer an event on it. Work goes out
+and the signed openings and the result come home on the one channel, no
+tenant accepts a callback, and the verbs are encoded once for both wires so
+nothing can be served on one that the other cannot carry. A container given
+no substrate serves its lanes over HTTP and in-process only, as every
+container did before the fleet.
 
 ## Two sites of one tenant
 

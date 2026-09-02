@@ -29,6 +29,8 @@ dependencies {
     // activator, the step services — is not installed here and does not join
     // the runtime bundle set; what the tenant uses is the interface it serves.
     implementation(project(":core:dbo-runner"))
+    // the door onto the lane over the store's own stream, opened per tenant
+    implementation(project(":core:dbo-stream"))
     compileOnly("org.osgi:osgi.core:8.0.0")
     // slf4j-api is SHARED, not embedded: one binding for the whole runtime
     // instead of a private copy per bundle. HikariCP drags it in
