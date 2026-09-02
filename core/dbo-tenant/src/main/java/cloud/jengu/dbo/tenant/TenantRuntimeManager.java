@@ -375,6 +375,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         cloud.jengu.dbo.core.api.Disclosure.Mode.OMIT));
     }
 
+    /** The types a lane may carry by type: the tenant's declared types minus the person-typed ones. */
+    static Set<String> declarationTypes(TenantSpec spec) {
+        Set<String> people = spec.pdi()
+                ? cloud.jengu.dbo.pdi.PdiSpec.fhir().personTypes().keySet() : Set.of();
+        Set<String> admitted = new java.util.TreeSet<>();
+        for (cloud.jengu.dbo.fhir.common.FhirTypeConfig type : spec.types()) {
+            if (!people.contains(type.typeName())) {
+                admitted.add(type.typeName());
+            }
+        }
+        return admitted;
+    }
+
     /** A partner's issuer, derived from this tenant's own: the same authority base, the partner's code. */
     private static String partnerIssuer(String ownIssuer, String code, String partner) {
         return ownIssuer.replace("/t/" + code + "/", "/t/" + partner + "/");
@@ -800,7 +813,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // The trail replicates through the audit refusal's one
                 // admission (§7.8); the engine below the policy wrapper is
                 // what everything else on this lane writes through.
-                engine instanceof cloud.jengu.dbo.core.api.AuditReplay admitted ? admitted : null);
+                engine instanceof cloud.jengu.dbo.core.api.AuditReplay admitted ? admitted : null,
+                // The second bound: declarations by type, from the tenant's
+                // content feed. What the lane admits by type is every type
+                // the tenant declared except the ones about a person — those
+                // travel by work or not at all.
+                new PgChangeFeed(db.dataSource(), version.domain()),
+                declarationTypes(spec));
         TenantRuntime runtime = new TenantRuntime(spec, engine, store,
                 new PgChangeFeed(db.dataSource(), version.domain()),
                 withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,

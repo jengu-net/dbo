@@ -68,8 +68,13 @@ public final class Lanes {
     /** The audit type, which travels but is never written like other content. */
     private static final String AUDIT = "AuditEntry";
 
+    /** The run a copy is filed under in its placement: none, so revocation never takes it. */
+    static final String COPY = "copy:";
+
     private final ObjectStore store;
     private final ChangeFeed workFeed;
+    private final ChangeFeed contentFeed;
+    private final Set<String> admitted;
     private final Runs runs;
     private final String appliance;
     private final cloud.jengu.dbo.core.api.AuditReplay auditReplay;
@@ -105,8 +110,23 @@ public final class Lanes {
      */
     public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String appliance,
             cloud.jengu.dbo.core.api.AuditReplay auditReplay) {
+        this(store, workFeed, runs, appliance, auditReplay, null, Set.of());
+    }
+
+    /**
+     * The same, with the lane's second bound: a content feed to carry
+     * declarations from by type, and the types this lane admits by type at
+     * all. What is not admitted does not travel and is refused by name when
+     * asked for — a consumer's own promise that a bench holds no register of
+     * people rests on that refusal.
+     */
+    public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String appliance,
+            cloud.jengu.dbo.core.api.AuditReplay auditReplay, ChangeFeed contentFeed,
+            Set<String> admitted) {
         this.store = store;
         this.workFeed = workFeed;
+        this.contentFeed = contentFeed;
+        this.admitted = Set.copyOf(admitted);
         this.runs = runs;
         this.appliance = appliance;
         this.auditReplay = auditReplay;
@@ -114,7 +134,12 @@ public final class Lanes {
 
     /** One lane's state: who it is with, under which epoch, and where both sides are. */
     public record Lane(String key, String peer, String epoch, String ourCursor,
-            String theirMarker) {}
+            String theirMarker, String contentCursor) {
+        /** A lane before the second bound: no position on the content feed. */
+        public Lane(String key, String peer, String epoch, String ourCursor, String theirMarker) {
+            this(key, peer, epoch, ourCursor, theirMarker, null);
+        }
+    }
 
     /**
      * One object as it stands here, for a caller that is about to carry it
@@ -133,11 +158,28 @@ public final class Lanes {
      *             something absent.
      */
     public record Item(String typeName, String id, long version, Instant recordedAt,
-            byte[] payload, boolean work, List<String> forRuns) {
+            byte[] payload, boolean work, List<String> forRuns, boolean copy) {
+
+        /** An item of the by-work bound, or a run: what every batch carried before the second bound. */
+        public Item(String typeName, String id, long version, Instant recordedAt, byte[] payload,
+                boolean work, List<String> forRuns) {
+            this(typeName, id, version, recordedAt, payload, work, forRuns, false);
+        }
 
         /** A run travelling on its own account. */
         public static Item work(String id, long version, Instant recordedAt, byte[] payload) {
             return new Item(WorkModel.TYPE, id, version, recordedAt, payload, true, List.of());
+        }
+
+        /**
+         * A copy: a declaration travelling by type, or a version a run
+         * produced. Filed under its source, read-only there, shadowed by a
+         * local override, and never revoked by work — a declaration is not
+         * work-bound, and what a run produced outlives the run.
+         */
+        public static Item copy(String typeName, String id, long version, Instant recordedAt,
+                byte[] payload) {
+            return new Item(typeName, id, version, recordedAt, payload, false, List.of(), true);
         }
     }
 
@@ -148,7 +190,13 @@ public final class Lanes {
      * far side has said it applied, so a batch lost on the wire is re-sent
      * rather than skipped.
      */
-    public record Batch(String epoch, String from, String cursor, List<Item> items) {
+    public record Batch(String epoch, String from, String cursor, List<Item> items,
+            String contentCursor) {
+
+        /** A batch of the by-work bound alone. */
+        public Batch(String epoch, String from, String cursor, List<Item> items) {
+            this(epoch, from, cursor, items, null);
+        }
 
         public boolean isEmpty() {
             return items.isEmpty();
@@ -205,6 +253,30 @@ public final class Lanes {
      * Observation → everything is how a bench ends up holding a register.
      */
     public Batch outbound(String peer, int limit, Set<String> processes) {
+        return outbound(peer, limit, processes, Set.of());
+    }
+
+    /**
+     * The lane's two bounds in one batch: the runs of the processes asked
+     * for, with what they name and what they produced; and every version of
+     * the types asked for since the peer's position on the content feed.
+     *
+     * <p>Declarations by type — terminology, canonicals, the tenant's own
+     * definitions, none of it about anybody — and patient data by work are
+     * deliberately different bounds. A type this lane does not admit is
+     * refused by name rather than quietly left out.
+     */
+    public Batch outbound(String peer, int limit, Set<String> processes, Set<String> types) {
+        for (String type : types) {
+            if (!admitted.contains(type)) {
+                throw new IllegalStateException(appliance + ": this lane does not carry '" + type
+                        + "' by type; it admits " + new java.util.TreeSet<>(admitted));
+            }
+        }
+        if (!types.isEmpty() && contentFeed == null) {
+            throw new IllegalStateException(appliance
+                    + ": this lane has no content feed to carry declarations from");
+        }
         Lane lane = open(peer);
         FeedChunk<FeedItem> chunk = workFeed.read(lane.ourCursor(), limit);
         List<Item> work = new ArrayList<>();
@@ -244,12 +316,53 @@ public final class Lanes {
         }
         List<Item> items = new ArrayList<>();
         forRuns.forEach((reference, named) -> resolve(reference, named).ifPresent(items::add));
+        // What a travelling run produced travels with it: individually while
+        // the run still names every version; past the cap the receiver holds
+        // the watermark in the run itself and asks by type from it.
+        for (String key : travelling) {
+            runs.byKey(key).ifPresent(run -> run.produced().versions().forEach(produced ->
+                    producedVersion(produced).ifPresent(items::add)));
+        }
+        String contentCursor = lane.contentCursor();
+        if (!types.isEmpty()) {
+            FeedChunk<FeedItem> content = contentFeed.read(lane.contentCursor(), limit);
+            for (FeedItem event : content.items()) {
+                if (!types.contains(event.typeName()) || event.deleted()
+                        || event.kind() == cloud.jengu.dbo.core.api.feed.ChangeKind.DELETED) {
+                    continue;
+                }
+                store.get(event.typeName(), event.objectId()).ifPresent(stored -> items.add(
+                        Item.copy(stored.typeName(), stored.id(), stored.versionId(),
+                                stored.lastUpdated(), stored.payload())));
+            }
+            contentCursor = content.nextCursor();
+        }
         items.addAll(work);
         // Data, then work, then the account of what was done — an entry names
         // the run it was part of, and a trail arriving before the run it joins
         // to would be readable only in hindsight.
         items.addAll(trail(travelling));
-        return new Batch(lane.epoch(), appliance, chunk.nextCursor(), List.copyOf(items));
+        return new Batch(lane.epoch(), appliance, chunk.nextCursor(), List.copyOf(items),
+                contentCursor);
+    }
+
+    /** The exact version a run named as produced, from history, as a copy. */
+    private Optional<Item> producedVersion(String produced) {
+        String[] parts = produced.split("/");
+        if (parts.length != 3) {
+            return Optional.empty();
+        }
+        long version;
+        try {
+            version = Long.parseLong(parts[2]);
+        } catch (NumberFormatException notAVersion) {
+            return Optional.empty();
+        }
+        return store.history(parts[0], parts[1]).stream()
+                .filter(stored -> stored.versionId() == version && !stored.deleted())
+                .findFirst()
+                .map(stored -> Item.copy(stored.typeName(), stored.id(), stored.versionId(),
+                        stored.lastUpdated(), stored.payload()));
     }
 
     /**
@@ -263,7 +376,8 @@ public final class Lanes {
     public Lane sent(String peer, Batch batch) {
         Lane lane = open(peer);
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), batch.cursor(),
-                lane.theirMarker()));
+                lane.theirMarker(),
+                batch.contentCursor() != null ? batch.contentCursor() : lane.contentCursor()));
     }
 
     /**
@@ -367,9 +481,10 @@ public final class Lanes {
                     // a working copy.
                     written = admit(batch.from(), item);
                 } else {
-                    written = item.work() ? mirror(batch.from(), item) : replicate(item);
+                    written = item.copy() ? copy(batch.from(), item)
+                            : item.work() ? mirror(batch.from(), item) : replicate(item);
                 }
-                if (!item.work() && !AUDIT.equals(item.typeName())) {
+                if (!item.work() && !item.copy() && !AUDIT.equals(item.typeName())) {
                     // Note what brought it, so what arrives with work can leave
                     // with it. Without this the appliance cannot tell a copy
                     // from something of its own, and keeps everything.
@@ -407,6 +522,52 @@ public final class Lanes {
         }
         return auditReplay.replayAuditEntry(from, item.id(), item.version(), item.payload(),
                 item.recordedAt());
+    }
+
+    /**
+     * A copy from the far side: written under its source's authority, byte
+     * for byte, and noted as a copy from that appliance so nothing revokes
+     * it and the note answers why this appliance holds it. A record this
+     * appliance authored itself stands in front of it — the local override
+     * wins, as it does for a streamed copy — and the copy is skipped.
+     */
+    private boolean copy(String from, Item item) {
+        String reference = item.typeName() + "/" + item.id();
+        String key = reference + " " + COPY + from;
+        Optional<StoredObject> here = store.get(item.typeName(), item.id());
+        boolean noted = !store.getByIdentifier(PlacementModel.TYPE,
+                List.of(PlacementModel.key(key))).isEmpty();
+        if (here.isPresent() && !noted) {
+            return false;
+        }
+        if (here.isPresent() && here.get().versionId() >= item.version()) {
+            return false;
+        }
+        store.put(new PutRequest(item.typeName(), item.id(),
+                here.map(StoredObject::versionId).orElse(null), item.payload(),
+                item.version(), item.recordedAt(), true),
+                cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
+        if (!noted) {
+            store.putIfAbsent(IdentityRef.identifier(PlacementModel.KEY_SYSTEM, key),
+                    PutRequest.create(PlacementModel.TYPE, ("{\"key\":" + Json.quoted(key)
+                            + ",\"reference\":" + Json.quoted(reference)
+                            + ",\"run\":" + Json.quoted(COPY + from)
+                            + ",\"type\":" + Json.quoted(item.typeName()) + "}")
+                            .getBytes(StandardCharsets.UTF_8)));
+        }
+        return true;
+    }
+
+    /** Whether this appliance holds the record as a copy from another, and from which. */
+    public Optional<String> copiedFrom(String typeName, String id) {
+        String reference = typeName + "/" + id;
+        for (StoredObject stored : store.select(Criteria.of(PlacementModel.TYPE))) {
+            Placed placed = placed(stored);
+            if (placed.reference().equals(reference) && placed.run().startsWith(COPY)) {
+                return Optional.of(placed.run().substring(COPY.length()));
+            }
+        }
+        return Optional.empty();
     }
 
     /** True when it was written, false when this side already had it or better. */
@@ -470,7 +631,8 @@ public final class Lanes {
         }
         for (Map.Entry<String, List<Placed>> entry : byObject.entrySet()) {
             boolean stillNeeded = entry.getValue().stream()
-                    .anyMatch(placed -> runs.byKey(placed.run()).map(Run::open).orElse(false));
+                    .anyMatch(placed -> placed.run().startsWith(COPY)
+                            || runs.byKey(placed.run()).map(Run::open).orElse(false));
             if (stillNeeded) {
                 kept++;
                 continue;
@@ -532,7 +694,7 @@ public final class Lanes {
                     Object json = Json.parse(new String(stored.payload(), StandardCharsets.UTF_8));
                     return new Lane(Json.str(json, "key"), Json.str(json, "peer"),
                             Json.str(json, "epoch"), optional(json, "ourCursor"),
-                            optional(json, "theirMarker"));
+                            optional(json, "theirMarker"), optional(json, "contentCursor"));
                 });
     }
 
@@ -565,6 +727,9 @@ public final class Lanes {
         }
         if (lane.theirMarker() != null) {
             json.append(",\"theirMarker\":").append(Json.quoted(lane.theirMarker()));
+        }
+        if (lane.contentCursor() != null) {
+            json.append(",\"contentCursor\":").append(Json.quoted(lane.contentCursor()));
         }
         return json.append('}').toString().getBytes(StandardCharsets.UTF_8);
     }

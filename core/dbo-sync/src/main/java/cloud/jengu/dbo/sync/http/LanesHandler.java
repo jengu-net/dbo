@@ -119,6 +119,8 @@ public final class LanesHandler implements HttpHandler {
             case OUTBOUND -> respond(exchange, lanes.outbound(peer(body),
                     (int) number(body, LanesVerbs.LIMIT),
                     Set.copyOf(RecordWire.decodeList(field(body, LanesVerbs.PROCESSES),
+                            String.class)),
+                    Set.copyOf(RecordWire.decodeList(field(body, LanesVerbs.TYPES),
                             String.class))));
             case SENT -> respond(exchange, lanes.sent(peer(body), batch(body)));
             case APPLY -> respond(exchange, lanes.apply(peer(body), batch(body)));

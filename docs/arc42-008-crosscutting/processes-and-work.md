@@ -272,6 +272,14 @@ carries them.
 - **Records travel because work needs them, and leave when it no longer does** —
   not by following references outward, which is how an appliance ends up holding
   a copy of the entire collection.
+- **The lane has a second bound, deliberately different: declarations travel by
+  type.** A tenant's own definitions — terminology, canonicals, none of it about
+  anybody — are asked for by type and arrive as every version since the peer's
+  position on the content feed, filed under their source, read-only there,
+  shadowed by a local override and never revoked by work. What a run produced
+  travels with the run the same way, as a copy that outlives it. A type the
+  lane does not admit is refused by name, and a tenant admits every declared
+  type except the ones about a person, which travel by work or not at all.
 - **The side that started a run is the side that advances it.** The other holds a
   read-only account. Across a link, "the deadline passed" and "the report is in
   flight" can both be true at once, and a peer acting on the first has the work

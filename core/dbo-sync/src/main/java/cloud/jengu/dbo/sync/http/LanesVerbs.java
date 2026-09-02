@@ -29,6 +29,7 @@ public enum LanesVerbs {
     public static final String PEER = "peer";
     public static final String LIMIT = "limit";
     public static final String PROCESSES = "processes";
+    public static final String TYPES = "types";
     public static final String MARKER = "marker";
     public static final String BATCH = "batch";
     /** Every answer's one field, so an empty answer is still a shape. */

@@ -130,6 +130,7 @@ public enum DboFeatures implements Feature {
             + "work that named it and withdrawn when that work closes.",
             List.of(DboPromises.PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE,
                     DboPromises.PROC_LANE_EPOCH,
+                    DboPromises.PROC_THE_LANE_HAS_TWO_BOUNDS,
                     DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY,
                     DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE)),
 
