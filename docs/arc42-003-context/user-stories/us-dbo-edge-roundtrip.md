@@ -152,13 +152,20 @@ operates and can read.
 Every leg above that is `PROVEN` is proven for work in the clear. The story
 is written whole so the gap is visible as a gap.
 
-## Open decisions
+## Decided in review
 
-- Whether the payload seal is per tenant or per enrolled participant. Per
-  participant is what makes a shared carrier structurally unable to read;
-  per tenant is simpler and leaves the carrier out of the key set anyway.
-- Who computes the chain links. If the participant does, it can rewrite a
-  chain it has not yet sent, which is why streaming them home matters more
-  than the hashing does. Whether links additionally need signing is a real
-  choice, and the cheaper answer may be sufficient once they are already
-  home.
+- **Sealed per payload, wrapped per participant.** Per tenant would hand the
+  shared service the key — it is enrolled in every tenant it serves, and it
+  is exactly the carrier being excluded. The archive format already has the
+  shape: a random data key, wrapped once per recipient.
+- **What is sealed is the carrier form** — the record as the store's existing
+  encrypted disclosure mode would hand it out, identifying elements already
+  under the person's key. So a sealed copy still in flight after an erasure
+  is in the same state as the store's own records after a shred, and no
+  special case is needed.
+- **The participant computes and signs its links**, with the key it was
+  enrolled with. That buys non-forgery and non-repudiation. It does not stop
+  an intended recipient from opening a payload and never saying so, and the
+  story does not pretend otherwise: the data was legitimately theirs, and
+  the gap is an audit entry for an authorised read on a device the tenant
+  answers for.

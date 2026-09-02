@@ -106,17 +106,21 @@ reach by asking about more tenants.
   citation yet — so the leg this story leans on hardest is the one the
   catalogue is quietest about.
 
-## Open decisions
+## Decided in review
 
-- **Where the assembly happens.** A partner-facing view that reads N tenant
-  stores is a consumer's job; a store operation that did it would be the
-  cross-tenant surface the tenancy design exists to remove. The first is
-  almost certainly right and should be written down as such.
-- **Whether the audience mechanism carries this.** A managed tenant could
-  declare its partner as an audience — which already fixes what a named
-  recipient sees — or the partner relation could be its own thing. Reusing
-  the audience keeps one mechanism; a separate relation says more clearly
-  that this is about management rather than disclosure.
-- **Whether a partner sees purposes.** An audit entry carries what a reader
-  said the access was for. That is exactly what makes a tracking page useful
-  and exactly what a practice might not expect its reseller to hold.
+- **The view is assembled outside the store.** A store instance is one
+  tenant's store, and there is deliberately nowhere to name a tenant; a
+  store operation that spanned them would be the cross-tenant surface the
+  tenancy design exists to remove. The store's part is to make the relation
+  declarable and each trail queryable by task.
+- **The relation and the audience compose.** The relation, declared when a
+  managed tenant is created, says *which tenants* Kaskad may read at all.
+  Within each of them, Kaskad is a declared audience saying *what of each*.
+  Making one mechanism do both would overload whichever was picked.
+- **Purposes are the audience's to reveal, and are omitted by default.** A
+  stated purpose is useful on a tracking page and is also a disclosure about
+  a practice's clinical activity to its reseller, so the practice opts in.
+- **Kaskad sees the journey and whether the run closed — never chain
+  detail.** A run that did not close shows as undelivered. *Why* is the
+  practice's and the operator's business: a broken chain discloses a fault
+  in somebody else's participant.

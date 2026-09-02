@@ -100,17 +100,24 @@ something the store already knows it issued.
 - **A result carries no chain head**, so there is nothing to verify it
   against at the moment it would be cheapest to check.
 
-## Open decisions
+## Decided in review
 
-- **Does a completion with a broken chain refuse, or land and flag?**
-  Refusing keeps the store's account true and makes suppression cost the
-  participant its own work. Landing-and-flagging is kinder to a fleet with a
-  flaky return channel and puts the burden on somebody noticing. The first is
-  more in this store's character; the second is what an operator will ask for
-  the first week it misfires.
-- **How long is the chain kept?** The trail outlives the run by design, and a
-  chain that is pruned on a different schedule from the entries it links
-  would leave verifiable history that can no longer be verified.
-- **Does a partner see the verification, or only the journey?** Telling a
-  reseller that a chain is intact is reassuring; telling them it is broken
-  discloses something about another party's participant.
+- **A completion whose chain has a hole is refused, and told which link.**
+  That is what makes the refusal actionable: a link lost in transit is one
+  the participant still holds and resends, and the run closes; a link that
+  cannot be resent never existed, and the run stays owed with a named
+  participant and a named link. Landing it and flagging it instead would
+  leave a run marked done that may not be.
+- **The link lives on the entry**, so there is no separate chain to keep or
+  prune. A predecessor that has been pruned reads as *unchained* rather than
+  *broken* — the distinction the version chain already draws for rows older
+  than itself, and an honest one, since nothing was ever attested.
+- **A travel link names who it handed to.** That is what makes a skipped
+  hop detectable: the next author is always predictable, so a hop that
+  omits its own link leaves a mismatch the following participant exposes.
+- **Ines's answer has a known limit, and it is stated.** The analyser is the
+  intended recipient, so it could open the payload and not say so. "Opened
+  once" is therefore what the analyser attested, signed and unrepudiable —
+  not something the store watched happen. The alternative, unwrapping on the
+  store's side, would break offline benches and turn a structural exclusion
+  into a filter, and was declined knowing the cost.
