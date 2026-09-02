@@ -11,9 +11,11 @@
 >
 > Most of what it carries, it cannot read. A worklist arrives as an
 > envelope it routes on and a payload it never opens. When the analyser
-> genuinely needs the specimen document, it asks, the store hands it back
-> in the clear, and that asking is the thing the practice sees in its
-> audit trail — not the twenty hops that carried it there unopened.
+> genuinely needs the specimen document, the store's own callback opens it
+> *there*, on the analyser, and says so back down the channel. That saying
+> is what the practice sees in its audit trail as a reading. The twenty
+> hops that carried it unopened are in the trail too — as travel, which is
+> a different thing and is what makes the reading legible.
 
 ## The scene
 
@@ -50,19 +52,52 @@ Ines's service reads the envelope, decides which analyser the work belongs
 to, and forwards it. **It never holds a key.** The one thing it must not be
 able to do is the one thing it structurally cannot.
 
+## Everything the worker touches comes through the substrate
+
+Ines's step code holds no handle to any tenant's store, and there is nothing
+for it to hold: work arrives on the stream and results leave on it. That is
+not a restriction she has to remember — it is the only door there is.
+
 ## The analyser opens what it needs
 
-The analyser's step wants the specimen document, so it asks the store's
-callback for the decrypted payload. Two things happen at once and neither is
-optional:
+The analyser's step wants the specimen document, so it asks the callback the
+store put on its side of the wire. The plaintext never crosses the network:
+**the payload is opened where it was going anyway**, and what travels back is
+the fact that it happened.
 
-1. the payload comes back readable;
-2. the store records that this participant, at this moment, for this run,
-   opened this document.
+Two things happen together and neither is optional:
+
+1. the payload comes back readable, on the analyser;
+2. an access event goes home on the return channel, and is recorded against
+   this participant, this run and this document.
 
 **Most steps never ask**, and for those there is no data-access entry at all
-— because none happened. The audit trail is a record of reading rather than a
-record of carrying, which is what makes it worth reading.
+— because none happened. The trail records reading rather than carrying,
+which is what makes it worth reading.
+
+## Every hop says it happened, and that is not a reading
+
+Each carry leaves a travel entry. That is deliberately a different kind of
+record from an access: it says a thing moved, not that anybody looked at it.
+Collapsing the two would fill the trail with accesses nobody made, and bury
+the handful that matter.
+
+It also means the trail can say **nobody looked** — the gap between two travel
+entries is positive evidence rather than missing information.
+
+## The events come home on the same channel, chained
+
+The stream is full duplex, so the access and travel events flow back as they
+happen rather than being reconciled afterwards. Each links to the one before,
+and the chain is rooted in the task itself — which the store minted, so a
+participant cannot present a journey that never started.
+
+The result message is the last link and the one that closes the run, which it
+already was. So the check has a natural home: when the result arrives, its
+chain is verified as part of closing the work. A link that never came home is
+visible because the next one commits to it, and a chain that simply stops
+leaves the run unclosed and the work owed — which is a state this store
+already surfaces.
 
 ## And back
 
@@ -76,12 +111,14 @@ operates and can read.
 | Leg | Promised by |
 |---|---|
 | One service, many tenants, no state carried between them | `REQ-DBO-PROC-STEP-SERVICE-EMBEDDABLE`, `REQ-DBO-TEN-STRUCTURAL-SCOPING` |
-| The same lane whether the participant is in the container or across a wire | `REQ-DBO-PROC-A-HOST-HOLDS-A-LANE-WHEREVER-IT-IS` |
+| The same lane across a wire as in the container, and a worker that never holds a store handle | `REQ-DBO-PROC-A-HOST-HOLDS-A-LANE-WHEREVER-IT-IS` |
 | The work names its inputs, and the run says what it produced | `REQ-DBO-PROC-TASK-CARRIES-THE-INPUTS`, `REQ-DBO-PROC-A-RUN-NAMES-WHAT-IT-PRODUCED` |
 | A participant may claim only what its credential and the step allow | `REQ-DBO-PROC-CLAIM-IS-THE-INTERSECTION` |
 | Killing the analyser mid-work loses neither half | `REQ-DBO-PROC-FAILURE-IS-RELEASED` |
 | Opening a document is recorded against the purpose it was opened for | `REQ-DBO-POL-AUDIT-AS-RECORDS`, `REQ-DBO-POL-ACTOR-FROM-AUTHORITY` |
 | The envelope discloses state, not the subject | `REQ-DBO-PROC-RUN-ENVELOPE-DISCLOSES-STATE-NOT-SUBJECT` |
+| A participant contributes an event and cannot forge who or when | `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` |
+| A version links to the one before it, so a rewrite is detectable | `REQ-DBO-CORE-VERSIONED-HISTORY` |
 
 ## What the store cannot do yet
 
@@ -92,7 +129,16 @@ operates and can read.
   framework key shared by every tenant — so there is nothing per-tenant to
   seal with.
 - **There is no decryption callback**, and therefore no access event
-  distinct from a transport event.
+  distinct from a travel event. The recording half exists — a participant can
+  already contribute an event whose actor and time the machinery stamps from
+  the validated token rather than trusting the caller, and a re-delivered one
+  lands exactly once — but nothing distinguishes *opened* from *carried*, and
+  nothing welds the recording to the decryption.
+- **There is no work-event chain.** Object versions are chained and the
+  reasoning is written down; nothing chains the events of a run across the
+  participants that handled it, and no result carries the head it commits to.
+- **The stream is not a lane transport.** In-process and HTTP exist; carrying
+  work out and events home on one duplex channel does not.
 
 Every leg above that is `PROVEN` is proven for work in the clear. The story
 is written whole so the gap is visible as a gap.
@@ -102,6 +148,13 @@ is written whole so the gap is visible as a gap.
 - Whether the payload seal is per tenant or per enrolled participant. Per
   participant is what makes a shared carrier structurally unable to read;
   per tenant is simpler and leaves the carrier out of the key set anyway.
-- Whether an unopened payload leaves any trace at all. Silence is the honest
-  answer and makes the trail meaningful; a carrier that logged every hop
-  would drown the entries that matter.
+- Whether travel and access entries share one trail. One place keeps the
+  journey together and risks burying the rare entry among the routine ones;
+  two keeps a reading scarce and legible at the cost of a second thing to
+  query. Distinct codes make them separable either way — the question is
+  whether separable is enough.
+- Who computes the chain links. If the participant does, it can rewrite a
+  chain it has not yet sent, which is why streaming them home matters more
+  than the hashing does. Whether links additionally need signing is a real
+  choice, and the cheaper answer may be sufficient once they are already
+  home.

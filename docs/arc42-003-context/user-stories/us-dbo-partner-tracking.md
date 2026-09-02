@@ -24,16 +24,30 @@ neither can see the other's.
 
 ## What tracking is made of
 
-Nothing new is recorded for this. Every hop already leaves something:
+Nothing is recorded for the tracking page's sake. It is assembled from what
+the work already leaves behind:
 
-- a run says who holds it, until when, and what it produced;
-- a release says the claim lapsed rather than that the work was done;
-- a milestone says where a failed attempt got to, for whoever takes it next;
-- and the tenant's own audit trail records the reads and writes along the way.
+- a **travel entry per hop** — the thing moved, and who moved it. This is the
+  page, and it is deliberately not a data-access record;
+- a run that says who holds it, until when, and what it produced;
+- a release that says the claim lapsed rather than that the work was done;
+- a milestone that says where a failed attempt got to, for whoever takes it
+  next.
 
 So tracking is a **projection of what happened**, not a second record of it.
-That matters the first time the two disagree: there is no second record to
-disagree with.
+That matters the first time the two would disagree: there is no second record
+to disagree with.
+
+## Why the page can be trusted
+
+The entries are chained, each committing to the one before, rooted in the task
+the store itself minted. So the page is not merely a list somebody assembled —
+**a hop that is missing from it is missing detectably**, because the next hop
+commits to it, and a journey that stops leaves the run unclosed rather than
+looking finished.
+
+That is what makes it worth showing a customer. A tracking page that could
+quietly omit a leg would be worse than no page, because it would be believed.
 
 ## What a partner may see
 
@@ -42,7 +56,9 @@ work are different questions**. A partner sees:
 
 - that a run exists, its step, its state, and its timestamps;
 - which participant held it at each hop, and what each attempt did;
-- that a document was opened, by whom, and for what stated purpose.
+- that a document was opened, by whom, and for what stated purpose — and,
+  just as usefully, that across twenty hops **nobody opened it at all**, which
+  the travel entries can say positively rather than by silence.
 
 A partner does not see the document. The audit entry names the act, not the
 content — and a partner reading its managed tenants' trails is reading the
@@ -65,6 +81,7 @@ reach by asking about more tenants.
 | Every read and write is recorded in the tenant's own trail | `REQ-DBO-POL-AUDIT-AS-RECORDS`, `REQ-DBO-POL-ACTOR-FROM-AUTHORITY` |
 | The run envelope discloses state rather than the subject | `REQ-DBO-PROC-RUN-ENVELOPE-DISCLOSES-STATE-NOT-SUBJECT` |
 | What a particular recipient sees is declared, not negotiated | `REQ-DBO-IDN-WHAT-A-RECIPIENT-SEES-IS-DECLARED` |
+| A contributed event carries an actor the machinery stamped, not one the caller claimed | `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` |
 | A tenant's records are reachable only through that tenant's own store | `REQ-DBO-TEN-STRUCTURAL-SCOPING` |
 
 ## What the store cannot do yet
@@ -77,8 +94,13 @@ reach by asking about more tenants.
   Whatever serves a partner reads each managed tenant's store separately and
   assembles the answer outside — the store will not grow a query that spans
   them.
-- **Hops are reconstructed, not indexed.** The facts exist across runs and
-  audit entries; nothing today answers "show me this run's hops" in one ask.
+- **There are no travel entries.** A hop leaves nothing of its own today, so
+  the page's central column does not exist; what can be reconstructed is the
+  run's own state changes, not its journey.
+- **Nothing is chained across participants**, so a page assembled today would
+  be a list that could quietly omit a leg.
+- **Hops are not indexed.** Even once they exist, nothing answers "show me
+  this run's hops" in one ask.
 - **`REQ-DBO-PROC-RUN-HAS-A-RECORD` reads PLANNED.** The run record exists and
   is exercised throughout, but the promise that a run *is* a record carries no
   citation yet — so the leg this story leans on hardest is the one the
