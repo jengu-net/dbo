@@ -81,8 +81,11 @@ that could ask would be reading about benches beside it.
   state map, not a measurement series. Anything that wants trends needs a
   collector beside the store rather than inside it.
 
-## Open decisions
+## Decided in review
 
-- Whether a router's report about a routee that has *gone* is an absence or a
-  statement. Today a routee simply stops being reported, which reads the same
-  as a router that lost its own connection.
+- **A routee that has gone is a statement.** A router reports the full set
+  behind it, so a routee missing from that report is something the router
+  said, distinguishable from a quiet router because the cursor moved. The
+  one change: a departed routee is kept with its last attestation and marked
+  no longer reported, rather than deleted — so "gone" reads as *last seen by
+  X at T, absent from X's report at T+1*, which is a fact with a timestamp.
