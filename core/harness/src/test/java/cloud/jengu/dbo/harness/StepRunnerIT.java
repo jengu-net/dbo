@@ -84,7 +84,7 @@ class StepRunnerIT {
     @Test
     @DisplayName("a registered service consumes: claimed, performed, closed with the tally — "
             + "and the vitals ride the declaration")
-    @Proving({DboPromises.PROC_STEP_SERVICE_EMBEDDABLE, DboPromises.PROC_RUNNER_SIGNS_ITS_VITALS})
+    @Proving({DboPromises.PROC_STEP_SERVICE_EMBEDDABLE, DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS})
     void registeredServiceConsumes() {
         Run work = runs.pipeline(PROCESS, "validate", PROCESS + "/validate/one",
                 List.of(WorkModel.DOMAIN));

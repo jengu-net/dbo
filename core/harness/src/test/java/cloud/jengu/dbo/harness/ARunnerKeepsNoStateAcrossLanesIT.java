@@ -97,7 +97,7 @@ class ARunnerKeepsNoStateAcrossLanesIT {
     @Test
     @DisplayName("work performed for one tenant is counted only for that tenant, and a "
             + "failure's text never reaches the other's store")
-    @Proving(DboPromises.PROC_RUNNER_SIGNS_ITS_VITALS)
+    @Proving(DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS)
     void oneTenantsWorkIsNotAnothersAccounting() {
         // Both runs exist, and only the busy tenant's is ever taken: the quiet
         // tenant is a tenant with a lane and nothing to do, which is the
@@ -142,7 +142,7 @@ class ARunnerKeepsNoStateAcrossLanesIT {
     @Test
     @DisplayName("a lane going away takes its accounting with it, so a tenant re-attached "
             + "later does not inherit counts from before")
-    @Proving(DboPromises.PROC_RUNNER_SIGNS_ITS_VITALS)
+    @Proving(DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS)
     void detachingDropsThatLanesAccounting() {
         busy.runs().pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/second",
                 List.of(WorkModel.DOMAIN));
