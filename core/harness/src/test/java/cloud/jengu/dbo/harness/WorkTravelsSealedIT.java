@@ -80,6 +80,7 @@ class WorkTravelsSealedIT {
     static cloud.jengu.dbo.core.api.ObjectStore engine;
     static Runs runs;
     static KeyPair analyser;
+    static KeyPair analyserSigning;
     static String analyserSecret = "analyser-secret";
 
     @BeforeAll
@@ -105,8 +106,10 @@ class WorkTravelsSealedIT {
         // The analyser generated its keypair before it was enrolled, and
         // offered the public half; the courier enrolled with none.
         analyser = KeyWrap.newParticipantKeyPair();
+        analyserSigning = cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
         manager.authority(TENANT).ensureClient("analyser", analyserSecret,
-                List.of("work/" + STEP), ParticipantKey.of(analyser.getPublic()));
+                List.of("work/" + STEP), ParticipantKey.of(analyser.getPublic()),
+                cloud.jengu.dbo.core.api.seal.SigningKey.of(analyserSigning.getPublic()));
         manager.authority(TENANT).ensureClient("courier", "courier-secret",
                 List.of("work/" + STEP));
         HttpLane.to(laneUri, () -> token("courier", "courier-secret"), TENANT, "courier",
@@ -136,7 +139,8 @@ class WorkTravelsSealedIT {
                 Map.of("specimen", "Basic/" + specimen));
 
         HttpLane lane = HttpLane.holding(laneUri, () -> token("analyser", analyserSecret),
-                TENANT, "analyser", executor("analyser"), analyser.getPrivate());
+                TENANT, "analyser", executor("analyser"), analyser.getPrivate(),
+                analyserSigning.getPrivate());
         Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
 
         // The carrier's view: the bytes the lane answers with, as anything

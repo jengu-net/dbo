@@ -185,7 +185,12 @@ public final class LaneHandler implements HttpHandler {
                 respond(exchange, null);
             }
             case CLOSED -> {
-                lane.closed(run(body));
+                String head = string(body, LaneVerbs.HEAD);
+                if (head == null) {
+                    lane.closed(run(body));
+                } else {
+                    lane.closed(run(body), head);
+                }
                 respond(exchange, null);
             }
             case RELEASE_LAPSED -> respond(exchange, (long) lane.releaseLapsed());
@@ -216,8 +221,10 @@ public final class LaneHandler implements HttpHandler {
                 if (reference == null) {
                     throw new IllegalArgumentException("an opening names the document opened");
                 }
-                lane.opened(run(body), reference);
-                respond(exchange, null);
+                respond(exchange, lane.opened(run(body), reference,
+                        new cloud.jengu.dbo.work.RunChain.Link("access",
+                                string(body, LaneVerbs.PREVIOUS), string(body, LaneVerbs.LINK),
+                                null, reference, string(body, LaneVerbs.SIGNATURE))));
             }
         }
     }

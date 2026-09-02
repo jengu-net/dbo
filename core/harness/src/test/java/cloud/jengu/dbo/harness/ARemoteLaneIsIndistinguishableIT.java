@@ -243,9 +243,14 @@ class ARemoteLaneIsIndistinguishableIT {
         }
 
         @Override
-        public void opened(Run run, String reference) {
-            across("opened", () -> {
-                farSide.opened(run, reference);
+        public String opened(Run run, String reference, cloud.jengu.dbo.work.RunChain.Link link) {
+            return across("opened", () -> farSide.opened(run, reference, link));
+        }
+
+        @Override
+        public void closed(Run run, String head) {
+            across("closed", () -> {
+                farSide.closed(run, head);
                 return null;
             });
         }

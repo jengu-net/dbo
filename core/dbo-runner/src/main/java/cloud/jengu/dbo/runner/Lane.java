@@ -159,6 +159,16 @@ public interface Lane {
     /** Done. */
     void closed(Run run);
 
+    /**
+     * Done, committing to the head of the run's chain. The result is the
+     * chain's last link and always was: the store walks the chain when the
+     * result lands and refuses a completion with a hole, naming the missing
+     * link, so the run stays owed rather than closed on its own word. A
+     * participant that signs its links closes this way; one that holds no
+     * key closes with none and the store checks what it has.
+     */
+    void closed(Run run, String head);
+
     /** The tenant's housekeeping: lapsed claims handed back. Anybody may. */
     int releaseLapsed();
 
@@ -237,7 +247,7 @@ public interface Lane {
      * place the opening is a fact; lands on the document as its access
      * entry, with the run as the occasion.
      */
-    void opened(Run run, String reference);
+    String opened(Run run, String reference, cloud.jengu.dbo.work.RunChain.Link link);
 
     /**
      * The in-process implementation, built and held by the HOST — the party
@@ -302,14 +312,20 @@ public interface Lane {
      * the entry lands is the host's business, because the host holds the trail.
      */
     interface Trail {
-        void handedTo(Run run, String participant);
+        /** A hop, with its link: the store hands the run to a participant. */
+        void handedTo(Run run, String participant, cloud.jengu.dbo.work.RunChain.Link link);
 
         /**
          * A participant opened one sealed document of a run, where its key
          * is. The access entry: on the DOCUMENT, naming the run as its
-         * occasion — the place every other reading of that document lands.
+         * occasion — the place every other reading of that document lands —
+         * carrying the link the participant computed and signed.
          */
-        void opened(Run run, String participant, String typeName, String id);
+        void opened(Run run, String participant, String typeName, String id,
+                cloud.jengu.dbo.work.RunChain.Link link);
+
+        /** The run's chain as the trail holds it, in any order; the links say their order. */
+        List<cloud.jengu.dbo.work.RunChain.Link> links(Run run);
     }
 
     /**
@@ -318,9 +334,12 @@ public interface Lane {
      * to; a participant that offered none is sealed to by nobody, and a host
      * that wires none seals nothing.
      */
-    @FunctionalInterface
     interface Keys {
+        /** The key a participant is sealed to. */
         Optional<cloud.jengu.dbo.core.api.seal.ParticipantKey> of(String participant);
+
+        /** The key a participant signs its links with. */
+        Optional<cloud.jengu.dbo.core.api.seal.SigningKey> signing(String participant);
     }
 
     /**
@@ -409,7 +428,15 @@ public interface Lane {
                 // recorded as travel, never as a reading, because nothing has
                 // been looked at yet.
                 if (claimed.isPresent() && trail != null) {
-                    trail.handedTo(claimed.get(), identity.name());
+                    // The link: the store knows who claimed, so the store
+                    // makes this one, committing to what the trail holds.
+                    Run taken = claimed.get();
+                    String previous = head(taken);
+                    trail.handedTo(taken, identity.name(), new cloud.jengu.dbo.work.RunChain.Link(
+                            "travel", previous,
+                            cloud.jengu.dbo.work.RunChain.travelLink(previous, taken.key(),
+                                    identity.name()),
+                            identity.name(), identity.name(), null));
                 }
                 return claimed;
             }
@@ -433,6 +460,34 @@ public interface Lane {
 
             @Override
             public void closed(Run run) {
+                closed(run, null);
+            }
+
+            @Override
+            public void closed(Run run, String head) {
+                Run current = runs.byKey(run.key()).orElse(run);
+                if (trail != null) {
+                    cloud.jengu.dbo.work.RunChain.Verdict verdict =
+                            cloud.jengu.dbo.work.RunChain.verify(current, trail.links(current));
+                    if (!verdict.complete()) {
+                        // Told which link, so what gets investigated is a
+                        // named run and a named hole rather than a suspicion.
+                        throw new IllegalStateException(tenant + ": run '" + current.key()
+                                + "' cannot close — its chain commits to link '"
+                                + verdict.missingBefore() + "' the store never received");
+                    }
+                    boolean signs = keys != null && keys.signing(identity.name()).isPresent();
+                    if (head == null && signs) {
+                        throw new IllegalStateException(tenant + ": '" + identity.name()
+                                + "' signs its links and closes with the head it commits to, "
+                                + "and this result carries none");
+                    }
+                    if (head != null && !head.equals(verdict.head())) {
+                        throw new IllegalStateException(tenant + ": run '" + current.key()
+                                + "' cannot close — the result commits to head '" + head
+                                + "' and the trail's head is '" + verdict.head() + "'");
+                    }
+                }
                 runs.closed(run);
             }
 
@@ -570,12 +625,14 @@ public interface Lane {
                         // because that is the name a fleet routes on.
                         new cloud.jengu.dbo.work.Manifest(tenant,
                                 current.process() + "." + current.step(), current.key(),
-                                current.inputs(), List.copyOf(recipients.keySet())),
+                                current.inputs(), List.copyOf(recipients.keySet()),
+                                head(current)),
                         payload);
             }
 
             @Override
-            public void opened(Run run, String reference) {
+            public String opened(Run run, String reference,
+                    cloud.jengu.dbo.work.RunChain.Link link) {
                 Run current = claimedByThisIdentity(run);
                 if (!current.inputs().containsValue(reference)) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
@@ -588,9 +645,53 @@ public interface Lane {
                     throw new IllegalStateException(tenant + ": this host keeps no trail "
                             + "to record an opening in");
                 }
+                // The link the participant computed, checked against what
+                // the store holds: it must commit to the trail's head — a
+                // link that commits to something else was made after one
+                // that never came home — and it must be the link the store
+                // computes from the same facts, under the participant's own
+                // signature.
+                String previous = head(current);
+                if (link == null || !previous.equals(link.previous())) {
+                    throw new IllegalStateException(tenant + ": run '" + current.key()
+                            + "' — this opening commits to '"
+                            + (link == null ? "nothing" : link.previous())
+                            + "' and the trail's head is '" + previous
+                            + "'; a link is missing before it");
+                }
+                String expected = cloud.jengu.dbo.work.RunChain.accessLink(previous,
+                        current.key(), reference, identity.name());
+                if (!expected.equals(link.link())) {
+                    throw new IllegalStateException(tenant + ": run '" + current.key()
+                            + "' — the opening's link is not the link of what it says");
+                }
+                cloud.jengu.dbo.core.api.seal.SigningKey signer = keys == null
+                        ? null : keys.signing(identity.name()).orElse(null);
+                if (signer == null) {
+                    throw new IllegalStateException(tenant + ": '" + identity.name()
+                            + "' offered no signing key at enrolment; an opening is signed");
+                }
+                if (!signer.verifies(link.link().getBytes(
+                        java.nio.charset.StandardCharsets.UTF_8), link.signature())) {
+                    throw new IllegalStateException(tenant + ": run '" + current.key()
+                            + "' — the opening is not signed by '" + identity.name() + "'");
+                }
                 int slash = reference.indexOf('/');
                 trail.opened(current, identity.name(), reference.substring(0, slash),
-                        reference.substring(slash + 1));
+                        reference.substring(slash + 1),
+                        new cloud.jengu.dbo.work.RunChain.Link("access", previous, link.link(),
+                                identity.name(), reference, link.signature()));
+                return link.link();
+            }
+
+            /** The chain's head as the trail holds it; the root when the trail holds nothing. */
+            private String head(Run run) {
+                if (trail == null) {
+                    return cloud.jengu.dbo.work.RunChain.root(run);
+                }
+                return cloud.jengu.dbo.work.RunChain.head(run, trail.links(run))
+                        .orElseThrow(() -> new IllegalStateException(tenant + ": run '"
+                                + run.key() + "' — the trail's chain already has a hole"));
             }
 
             /** The guard inputs() promises, shared by every verb answered against a claim. */

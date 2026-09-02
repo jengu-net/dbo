@@ -201,9 +201,10 @@ never opened itself to that kind of participant. There is no implicit
 unrestricted — reach is stated when a participant is provisioned, so nobody's
 access depends on a parameter somebody forgot.
 
-**A participant is sealed to, and a carrier is not.** A participant offers a
-public key when it enrols; the private half never crosses, so a copy of the
-enrolment records opens nothing. From then on each payload sent to it is sealed
+**A participant is sealed to, and a carrier is not.** A participant offers two
+public keys when it enrols — one it is sealed to, one it signs with, because
+the curve that agrees cannot sign; the private halves never cross, so a copy
+of the enrolment records opens nothing and signs nothing. From then on each payload sent to it is sealed
 under a data key of its own, wrapped to that participant — and to nobody who
 merely carries it. That is the store's usual answer applied to transport: a
 carrier that holds no key cannot read what it moves, whatever it is told it may
@@ -298,8 +299,18 @@ A participant that opens a sealed document says so from where its key is,
 and that lands on the document as its access entry naming the run; for a
 participant served in the clear, the read that resolves its inputs is the
 opening and is recorded the same way, whatever the audit level. The store's
-own read to seal is recorded as nothing. The chain is
-[sealed work](../tasks/sealed-work.md) still.
+own read to seal is recorded as nothing.
+
+Those entries are chained. Each carries the link it commits to and its own,
+the first commits to the task the store minted, and the participant signs
+the links it makes with the signing key it offered at enrolment — so a router
+cannot manufacture an edge's opening and an edge cannot deny one. The result
+that closes the run carries the head it commits to; the store walks the chain
+when the result lands, and a completion whose chain has a hole is refused and
+told which link, so the run stays owed under a named participant. A
+predecessor retention pruned reads as unchained rather than broken. What the
+chain cannot do is compel a link never made: an intended recipient can open a
+payload and never say so, and that limit is accepted rather than hidden.
 
 **The store's own housekeeping runs on this model rather than beside it.**
 Notification delivery, retention, configuration application, tenant serving,

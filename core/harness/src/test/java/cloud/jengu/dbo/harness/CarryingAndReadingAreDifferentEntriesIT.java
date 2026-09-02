@@ -110,14 +110,21 @@ class CarryingAndReadingAreDifferentEntriesIT {
                 Lane.Entitlement.everything(), null,
                 new Lane.Trail() {
                     @Override
-                    public void handedTo(Run run, String to) {
+                    public void handedTo(Run run, String to,
+                            cloud.jengu.dbo.work.RunChain.Link link) {
                         store.recordCustom("travel", WorkModel.TYPE, run.id(),
                                 Map.of("to", to, "key", run.key()));
                     }
 
                     @Override
-                    public void opened(Run run, String by, String typeName, String id) {
+                    public void opened(Run run, String by, String typeName, String id,
+                            cloud.jengu.dbo.work.RunChain.Link link) {
                         throw new AssertionError("nothing is sealed here, so nothing is opened");
+                    }
+
+                    @Override
+                    public List<cloud.jengu.dbo.work.RunChain.Link> links(Run run) {
+                        return List.of();
                     }
                 });
     }

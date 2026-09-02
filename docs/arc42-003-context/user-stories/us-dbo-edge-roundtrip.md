@@ -131,7 +131,7 @@ operates and can read.
 | Work travels as a readable manifest and a sealed payload, in the carrier form, wrapped per participant | `REQ-DBO-PROC-WORK-TRAVELS-SEALED` |
 | The analyser offers its public key when it enrols | `REQ-DBO-PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` |
 | Carrying and reading are different entries, on the task and on the document | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`, `REQ-DBO-WF-HOPS-AUDITED` |
-| The events come home chained from the task, and the result is the last link — *planned* | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
+| The events come home chained from the task, and the result is the last link | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 | One duplex channel carries work out and events home — *planned* | `REQ-DBO-PROC-A-LANE-OVER-THE-STREAM` |
 | The service holds the claim and waits for the analyser — *planned* | `REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM`, `REQ-DBO-PROC-DONE-MEANS-DONE` |
 | The shared plane holds the sealed copy and nothing readable — *stated, proofs pending* | `REQ-DBO-WF-TWO-PLANES`, `REQ-DBO-WF-CONTENT-FREE-PLATFORM-PLANE` |
@@ -145,9 +145,6 @@ operates and can read.
 - **The plane proofs are not written.** That the shared plane holds nothing
   readable is stated and the sealing is proven on the wire; the ratchet that
   no plaintext lands in the substrate is its own issue.
-- **There is no work-event chain.** Object versions are chained and the
-  reasoning is written down; nothing chains the events of a run across the
-  participants that handled it, and no result carries the head it commits to.
 - **The stream is not a lane transport.** In-process and HTTP exist; carrying
   work out and events home on one duplex channel does not.
 

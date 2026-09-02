@@ -360,16 +360,22 @@ public final class AuthorityHandler implements HttpHandler {
         // to; the private half is the one thing this call must never see,
         // and a JWK carrying it is refused rather than stripped.
         Object offered = ((java.util.Map<?, ?>) body).get("public_key");
+        Object offeredSigning = ((java.util.Map<?, ?>) body).get("signing_key");
         cloud.jengu.dbo.core.api.seal.ParticipantKey participantKey = null;
-        if (offered != null) {
-            try {
+        cloud.jengu.dbo.core.api.seal.SigningKey signingKey = null;
+        try {
+            if (offered != null) {
                 participantKey = cloud.jengu.dbo.core.api.seal.ParticipantKey.parse(
                         offered instanceof String s ? s : Json.render(offered));
-            } catch (IllegalArgumentException refused) {
-                respond(exchange, 400, "{\"error\":\"invalid_request\",\"error_description\":\""
-                        + String.valueOf(refused.getMessage()).replace("\"", "'") + "\"}");
-                return;
             }
+            if (offeredSigning != null) {
+                signingKey = cloud.jengu.dbo.core.api.seal.SigningKey.parse(
+                        offeredSigning instanceof String s ? s : Json.render(offeredSigning));
+            }
+        } catch (IllegalArgumentException refused) {
+            respond(exchange, 400, "{\"error\":\"invalid_request\",\"error_description\":\""
+                    + String.valueOf(refused.getMessage()).replace("\"", "'") + "\"}");
+            return;
         }
         try {
             if (clientType == null && redirectUris.isEmpty()) {
@@ -382,8 +388,8 @@ public final class AuthorityHandler implements HttpHandler {
                             + "credential — this store does not mint one\"}");
                     return;
                 }
-                authority.ensureClient(clientId, secret, scopes, participantKey);
-            } else if (participantKey != null) {
+                authority.ensureClient(clientId, secret, scopes, participantKey, signingKey);
+            } else if (participantKey != null || signingKey != null) {
                 // A relying party is a place people log in, not a thing work
                 // is sealed to; a key on it would be recorded and wrapped to
                 // by nothing.
@@ -406,6 +412,7 @@ public final class AuthorityHandler implements HttpHandler {
         // from one made to a key it has since replaced.
         respond(exchange, 200, "{\"client_id\":\"" + clientId + "\""
                 + (participantKey != null ? ",\"kid\":\"" + participantKey.kid() + "\"" : "")
+                + (signingKey != null ? ",\"signing_kid\":\"" + signingKey.kid() + "\"" : "")
                 + "}");
     }
 

@@ -1,8 +1,9 @@
 # Sealed work
 
-**Status** — designed and decided; three slices built — travel and access
-are different entries, a participant offers its key at enrolment, and work
-leaves as a readable manifest and a payload sealed to the claimant. Ten issues carry it,
+**Status** — designed and decided; four slices built — travel and access
+are different entries, a participant offers its keys at enrolment, work
+leaves as a readable manifest and a payload sealed to the claimant, and the
+run's entries are chained from the task with the result as the last link. Ten issues carry it,
 three of them re-scoped from questions to builds.
 
 **Issues** — roots: [#166](https://github.com/jengu-net/dbo/issues/166)
@@ -116,8 +117,9 @@ run stays owed with a name on it.
 **A travel link names who it handed to**, which is what makes a skipped hop
 detectable: the next author is always predictable.
 
-**The participant computes and signs its links** with its enrolment key. That
-buys non-forgery and non-repudiation. It does not stop an intended recipient
+**The participant computes and signs its links** with the signing half of its
+enrolment keys — Ed25519 beside the X25519 it is sealed to, because the curve
+that agrees cannot sign. That buys non-forgery and non-repudiation. It does not stop an intended recipient
 from opening a payload and never saying so — the alternative, unwrapping on
 the store's side, breaks offline edges and turns a structural exclusion into
 a filter, and was declined knowing the cost. The data was legitimately theirs;
@@ -145,14 +147,16 @@ closed, never chain detail.
 | Enrolment key exchange — #166  | `PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` | **DONE** 2026-09-02; the constraints now state the one asymmetric exception (R5) |
 | Stories cited by promises — #180  | `PRM-A-STORY-IS-CITED-NOT-CLAIMED` | **READY**, small; do early |
 | Manifest/payload split and sealing in the carrier form — #174  | `PROC-WORK-TRAVELS-SEALED` | **DONE** 2026-09-02, wrapped to the claimant; routee recipients move to #172 |
-| The chain: link on entry, travel names recipient, participant signs, result carries head, refuse-and-name — #176  | `POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | **READY** — the enrolment key that signs a link exists |
+| The chain: link on entry, travel names recipient, participant signs, result carries head, refuse-and-name — #176  | `POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | **DONE** 2026-09-02; a forward's travel link waits for a router that forwards (#172) |
 | Partner relation composed with audience — #179  | `TEN-A-PARTNER-MANAGES-TENANTS` | **READY**, needs the partner relation declared in the registration path; owner: the store |
 | `perform` waits, one hop further for a router; a router names its routee as the recipient — #172  | `PROC-DONE-MEANS-DONE` · `PROC-THE-ROUTER-HOLDS-THE-CLAIM` | **READY** — now also the recipients a manifest names, since a router opens nothing |
 | Plane promise reworded, plaintext ratchet, erasure-reaches-the-copy proof — #173  | `WF-TWO-PLANES` · `WF-CONTENT-FREE-PLATFORM-PLANE` | **READY** — the seal is on the wire; the substrate ratchet and the erasure proof's plane half remain |
 | Departed routee kept with last attestation — #178  | `PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` | **READY**, small |
 
-Critical path: **#176**. #177 and #172 are independent of it. Everything
-else can land whenever somebody is nearby.
+Critical path: none left; **#172** (router forwards, names its routee,
+leaves the forward's travel link) and **#177** (the lane over the stream) are
+the two that remain with shape. Everything else can land whenever somebody
+is nearby.
 
 ## Not doing
 
