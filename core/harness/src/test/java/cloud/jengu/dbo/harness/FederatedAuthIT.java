@@ -10,7 +10,10 @@ import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import com.sun.net.httpserver.HttpServer;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -39,6 +42,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -105,17 +110,26 @@ class FederatedAuthIT {
                      "identifier":[{"system":"%s","value":"%s"}]}"""
                     .formatted(SUBJECT_SYSTEM, ISIKUKOOD)));
             // the human the hub will assert, with the clinician as a relation
-            assertEquals(201, fhirPost(code, "/Person", service, """
+            HttpResponse<String> personCreated = fhirPost(code, "/Person", service, """
                     {"resourceType":"Person",
                      "identifier":[{"system":"%s","value":"%s"}],
                      "link":[{"target":{"reference":"Practitioner/%s"},"assurance":"level3"}]}"""
-                    .formatted(SUBJECT_SYSTEM, ISIKUKOOD, practitioner)).statusCode());
+                    .formatted(SUBJECT_SYSTEM, ISIKUKOOD, practitioner));
+            assertEquals(201, personCreated.statusCode());
+            String person = idOf(personCreated);
             assertEquals(201, fhirPost(code, "/PractitionerRole", service, """
                     {"resourceType":"PractitionerRole",
                      "practitioner":{"reference":"Practitioner/%s"},
                      "code":[{"coding":[{"system":"urn:example:role","code":"doctor"}]}]}"""
                     .formatted(practitioner)).statusCode());
             sideAuthority(code).ensureRoleGrant("doctor", List.of("user/*.read"));
+            // A password and a bench PIN, set BEFORE anybody federates —
+            // which is the situation the rule has to survive: an organisation
+            // adopting an eID has people already holding credentials, and
+            // refusing the federation until somebody tidies them up would fail
+            // at exactly the wrong moment.
+            sideAuthority(code).ensureLocalCredential("arst@" + code, "vanaparool", person);
+            sideAuthority(code).setFactor("arst@" + code, "pin", "4711");
             sideAuthority(code).ensureClient("webapp", null,
                     List.of("user/*.read", "user/*.write"), "public-pkce", List.of(REDIRECT));
         }
@@ -297,6 +311,83 @@ class FederatedAuthIT {
     }
 
     /** Clinic C: same valid identity, no grant — authorization is never shared. */
+    @Test
+    @Order(4)
+    @DisplayName("signing in through the hub records that the hub identifies this person, "
+            + "which is what the password rule reads")
+    @Proving(DboPromises.AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP)
+    void federatingRecordsTheBinding() throws Exception {
+        // The two sign-ins above already happened. What is asserted here is
+        // that they left the trace the rule depends on — federation used to
+        // resolve a person and record nothing at all, so "does this subject
+        // federate?" had no signal and a refusal reading it could never fire.
+        String person = manager.runtime("kliinika").orElseThrow().engine()
+                .getByIdentifier("Person", List.of(new cloud.jengu.dbo.core.api.Identifier(
+                        SUBJECT_SYSTEM, ISIKUKOOD)))
+                .stream().findFirst().orElseThrow().id();
+
+        assertFalse(sideAuthority("kliinika").externalIdentityProvidersOf(person).isEmpty(),
+                "the hub signed this person in and nothing recorded that it identifies them, "
+                        + "so the store cannot tell a federated subject from one it is the "
+                        + "identity provider for");
+    }
+
+    @Test
+    @Order(5)
+    @DisplayName("and a password for them is then refused at both doors, naming where they "
+            + "sign in — while a bench PIN still works")
+    @Proving(DboPromises.AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP)
+    void aFederatedSubjectHoldsNoPassword() throws Exception {
+        String person = manager.runtime("kliinika").orElseThrow().engine()
+                .getByIdentifier("Person", List.of(new cloud.jengu.dbo.core.api.Identifier(
+                        SUBJECT_SYSTEM, ISIKUKOOD)))
+                .stream().findFirst().orElseThrow().id();
+
+        // The password they held before is gone, and the PIN they held beside
+        // it is not. That asymmetry is the rule: a password beside a federated
+        // identity is a second way in that never reaches the identity
+        // provider, while a bench PIN is the factor for the case federation
+        // cannot serve — a bench with no network — and taking it away would
+        // remove the fallback for the situation the rule was written around.
+        assertFalse(sideAuthority("kliinika").holdsPassword("arst@kliinika"),
+                "the password survived federation, so there is still a way in that never "
+                        + "reaches the identity provider");
+        assertTrue(sideAuthority("kliinika").verifyFactor("arst@kliinika", "pin", "4711"),
+                "the bench PIN was retired along with the password, which takes away the "
+                        + "fallback for the case federation cannot serve");
+
+        IllegalArgumentException atTheFirstDoor = assertThrows(IllegalArgumentException.class,
+                () -> sideAuthority("kliinika").ensureLocalCredential(
+                        "arst", "parool", person));
+        // Asked of the store rather than spelt here: the refusal has to name
+        // the provider this person is actually bound to, and a hardcoded
+        // string would pass while naming the wrong one.
+        String provider = sideAuthority("kliinika").externalIdentityProvidersOf(person)
+                .iterator().next();
+        assertTrue(atTheFirstDoor.getMessage().contains(provider),
+                "the refusal must say where they sign in instead, or somebody goes looking "
+                        + "for a fault in the store: " + atTheFirstDoor.getMessage());
+
+        // The other door. Production only ever calls setFactor with `pin`,
+        // which is exactly the kind of thing that stops being true — and a
+        // rule enforced at one door and open at the other is not enforced.
+        IllegalArgumentException atTheOtherDoor = assertThrows(IllegalArgumentException.class,
+                () -> sideAuthority("kliinika").setFactor("arst@kliinika", "pwd", "parool"));
+        assertTrue(atTheOtherDoor.getMessage().contains(provider), atTheOtherDoor.getMessage());
+
+        // And a PIN through that same door is still allowed for them, which is
+        // what makes the refusal above about the password rather than about
+        // the login.
+        sideAuthority("kliinika").setFactor("arst@kliinika", "pin", "1234");
+        assertTrue(sideAuthority("kliinika").verifyFactor("arst@kliinika", "pin", "1234"));
+
+        // Somebody this tenant IS the identity provider for is untouched.
+        sideAuthority("kliinika").ensureLocalCredential("kohalik", "parool", "keegi-teine");
+        assertTrue(sideAuthority("kliinika").holdsPassword("kohalik"),
+                "the rule refused a password for somebody who federates nowhere, so it is "
+                        + "not reading the binding — it is refusing everybody");
+    }
+
     @Test
     @Order(3)
     @Proving({DboPromises.AUTH_FEDERATED_HUMANS, DboPromises.AUTH_ONE_CEREMONY_MANY_TENANTS})

@@ -115,9 +115,11 @@ cloud.jengu.dbo.auth.TenantAuthority                                   evaluateG
 cloud.jengu.dbo.auth.TenantAuthority                                   exchangeCode(String,String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   exchangeDelegation(String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   exchangeToken(String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
+cloud.jengu.dbo.auth.TenantAuthority                                   externalIdentityProvidersOf(String):Set
 cloud.jengu.dbo.auth.TenantAuthority                                   factorsFor(String):List
 cloud.jengu.dbo.auth.TenantAuthority                                   federation():cloud.jengu.dbo.auth.TenantAuthority.Federation
 cloud.jengu.dbo.auth.TenantAuthority                                   federation(cloud.jengu.dbo.auth.TenantAuthority.Federation):void
+cloud.jengu.dbo.auth.TenantAuthority                                   holdsPassword(String):boolean
 cloud.jengu.dbo.auth.TenantAuthority                                   humanAuthenticator(cloud.jengu.dbo.auth.HumanAuthenticator):void
 cloud.jengu.dbo.auth.TenantAuthority                                   issuer():String
 cloud.jengu.dbo.auth.TenantAuthority                                   jwksJson():String

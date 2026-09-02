@@ -1,7 +1,10 @@
 package cloud.jengu.dbo.auth;
 
 import cloud.jengu.dbo.core.UuidV7;
+import cloud.jengu.dbo.core.api.Criteria;
+import cloud.jengu.dbo.core.api.EnvelopeValue;
 import cloud.jengu.dbo.core.api.Identifier;
+import cloud.jengu.dbo.core.api.identity.BindingEvent;
 import cloud.jengu.dbo.core.api.IdentityRef;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PutRequest;
@@ -148,6 +151,18 @@ public final class TenantAuthority {
             // §16.2 promise: authentication shared, authorization never
             return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
         }
+        // The identification, recorded. Until now federation resolved a person
+        // and left no trace that it had: the binding model described exactly
+        // this act and nothing in production ever wrote one, so "does this
+        // subject federate?" had no signal to read and the rule that a
+        // password belongs only where we are the identity provider could not
+        // be enforced.
+        //
+        // The identity recorded is the HUB, not the national number. It is
+        // what the refusal has to name — a person told "no" needs to know
+        // where to sign in instead — and the number is already on the person,
+        // vaulted where this tenant isolates personal data.
+        federated(person.get());
         String code = UuidV7.newId() + UuidV7.newId().substring(0, 8);
         pendingCodes.put(code, new PendingAuthorization(parked.clientId(), parked.redirectUri(),
                 parked.codeChallenge(), person.get(),
@@ -281,6 +296,26 @@ public final class TenantAuthority {
 
     private static String field(StoredObject object, String name) {
         return Json.str(Json.parse(new String(object.payload(), StandardCharsets.UTF_8)), name);
+    }
+
+    /** The stored password hash, or null for a credential that holds none. */
+    private static String passwordHashOf(StoredObject credential) {
+        return Json.strOpt(Json.parse(
+                new String(credential.payload(), StandardCharsets.UTF_8)), "secretHash");
+    }
+
+    /**
+     * Whether this login still has a password.
+     *
+     * <p>False for one that never had a password and for one whose password
+     * was retired when its subject started federating. The two are the same
+     * answer to the question a caller is asking — can they sign in with one —
+     * and telling them apart is the retirement stamp's job, not this.
+     */
+    public boolean holdsPassword(String login) {
+        return store.getByIdentifier("LocalCredential",
+                        List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login))).stream()
+                .findFirst().map(TenantAuthority::passwordHashOf).isPresent();
     }
 
     // ------------------------------------------------------------ clients
@@ -419,8 +454,139 @@ public final class TenantAuthority {
         }
     }
 
+    /**
+     * A password is held only where this tenant is the identity provider.
+     *
+     * <p>The refusal names where to sign in instead. Answering "no" to
+     * somebody trying to give a colleague a password would send them looking
+     * for a fault in the store, when what has happened is that this person
+     * already has an identity provider and a second way in would bypass it.
+     *
+     * <p>Silent about a subject nobody has bound, which is nearly everybody:
+     * the rule only bites where a federation actually happened.
+     */
+    private void refusePasswordWhereSomebodyElseIdentifies(String personId, String login) {
+        java.util.Set<String> providers = externalIdentityProvidersOf(personId);
+        if (providers.isEmpty()) {
+            return;
+        }
+        throw new IllegalArgumentException(login + " signs in through "
+                + String.join(", ", new java.util.TreeSet<>(providers))
+                + ", so this store holds no password for them — a password beside a "
+                + "federated identity is a second way in that never reaches the identity "
+                + "provider. A bench PIN is still available, and is the factor for the case "
+                + "federation cannot serve.");
+    }
+
+    /**
+     * This person signed in through the hub, so the hub identifies them here.
+     *
+     * <p>Written once rather than per sign-in: the event type is append-only,
+     * and a record per login would bury the fact that matters under thousands
+     * of copies of itself.
+     *
+     * <p><b>SUBSTANTIAL, not HIGH.</b> What this store knows is that the hub
+     * verified the assertion against an authority — which is exactly what
+     * SUBSTANTIAL says. Whether the broker behind it meets a national scheme's
+     * highest standard is the zone's judgement about that broker, and a store
+     * that assumed the stronger answer would be claiming an assurance nobody
+     * gave it.
+     *
+     * <p>And the password goes with it, because the binding is what decides:
+     * a password surviving federation is a second way in that bypasses the
+     * identity provider, which is the whole of what the rule prevents.
+     */
+    private void federated(String personId) {
+        String hub = federation.hubIssuer();
+        if (Bindings.current(store, personId).contains(hub)) {
+            return;
+        }
+        Bindings.record(store, new BindingEvent(BindingEvent.Kind.BOUND, hub, personId,
+                cloud.jengu.dbo.core.api.identity.Assurance.SUBSTANTIAL,
+                hub, java.time.Instant.now(), "federated sign-in",
+                "the hub asserted this identity and this tenant resolved it to this person"));
+        retirePasswordsOf(personId, hub);
+    }
+
+    /**
+     * Who identifies this person from outside, if anybody.
+     *
+     * <p>The signal the password rule reads. Empty means this tenant is the
+     * identity provider for them, which is the only case a password is held
+     * in.
+     */
+    public java.util.Set<String> externalIdentityProvidersOf(String personId) {
+        return personId == null ? java.util.Set.of() : Bindings.current(store, personId);
+    }
+
+    /**
+     * Retires the password on every credential this person holds, keeping
+     * every other factor.
+     *
+     * <p>A bench PIN survives deliberately. It exists for the case federation
+     * cannot serve — a bench with no network — and taking it away at the
+     * moment an organisation adopts an eID would remove the fallback for
+     * exactly the situation the rule was written around.
+     *
+     * <p>The retirement is stamped rather than silent: a login that stopped
+     * accepting a password with nothing saying why is indistinguishable from
+     * one that broke.
+     */
+    private void retirePasswordsOf(String personId, String because) {
+        for (StoredObject credential : store.select(Criteria.of("LocalCredential")
+                .eq("personId", EnvelopeValue.of(personId)))) {
+            String json = new String(credential.payload(), StandardCharsets.UTF_8);
+            Object node = Json.parse(json);
+            boolean hadPassword = Json.strOpt(node, "secretHash") != null
+                    || factorNames(node).contains("pwd");
+            if (!hadPassword) {
+                continue;
+            }
+            String rebuilt = withoutPassword(json, because);
+            store.put(PutRequest.update("LocalCredential", credential.id(),
+                    credential.versionId(), rebuilt.getBytes(StandardCharsets.UTF_8)));
+        }
+    }
+
+    private static java.util.Set<String> factorNames(Object node) {
+        Object factors = node instanceof java.util.Map<?, ?> m ? m.get("factors") : null;
+        java.util.Set<String> names = new java.util.HashSet<>();
+        if (factors instanceof java.util.Map<?, ?> map) {
+            map.keySet().forEach(k -> names.add(String.valueOf(k)));
+        }
+        return names;
+    }
+
+    /** The same credential without its password, and saying when it lost it and why. */
+    private static String withoutPassword(String json, String because) {
+        Object node = Json.parse(json);
+        StringBuilder factors = new StringBuilder("{");
+        Object held = node instanceof java.util.Map<?, ?> m ? m.get("factors") : null;
+        if (held instanceof java.util.Map<?, ?> map) {
+            map.forEach((k, v) -> {
+                if (!"pwd".equals(String.valueOf(k))) {
+                    factors.append(factors.length() > 1 ? "," : "")
+                            .append('"').append(k).append("\":\"").append(v).append('"');
+                }
+            });
+        }
+        factors.append('}');
+        String stripped = removeFactors(json);
+        stripped = stripped.replaceAll(",?\\\"secretHash\\\":\\\"[^\\\"]*\\\"", "");
+        stripped = stripped.substring(0, stripped.lastIndexOf('}'));
+        if (stripped.endsWith("{")) {
+            stripped = stripped + "\"passwordRetired\":true";
+        } else {
+            stripped = stripped + ",\"passwordRetired\":true";
+        }
+        return stripped + ",\"passwordRetiredAt\":\"" + java.time.Instant.now() + "\""
+                + ",\"passwordRetiredBecause\":\"" + because + "\""
+                + ",\"factors\":" + factors + "}";
+    }
+
     /** Dev/embedded fallback credential (§16.2) — production humans federate. */
     public void ensureLocalCredential(String login, String secret, String personId) {
+        refusePasswordWhereSomebodyElseIdentifies(personId, login);
         Optional<StoredObject> existing = store.getByIdentifier("LocalCredential",
                 List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login))).stream().findFirst();
         // A login's other factors survive its password being set. Rewriting the
@@ -474,6 +640,17 @@ public final class TenantAuthority {
                                 + "login, and must not be a way to create one"));
         if (!amr.matches("[a-z]{2,10}")) {
             throw new IllegalArgumentException("not an amr value: " + amr);
+        }
+        // The same rule, at the other door. A password set here rather than
+        // through ensureLocalCredential is the same parallel way in, and a
+        // rule enforced at one door and open at the other is not enforced —
+        // production only ever calls this with `pin`, which is exactly the
+        // kind of thing that stops being true.
+        if ("pwd".equals(amr)) {
+            refusePasswordWhereSomebodyElseIdentifies(
+                    Json.strOpt(Json.parse(new String(existing.payload(), StandardCharsets.UTF_8)),
+                            "personId"),
+                    login);
         }
         String json = new String(existing.payload(), StandardCharsets.UTF_8);
         Object node = Json.parse(json);
@@ -1539,7 +1716,14 @@ public final class TenantAuthority {
             return store.getByIdentifier("LocalCredential",
                             List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login))).stream()
                     .filter(c -> "active".equals(field(c, "status")))
-                    .filter(c -> SecretHash.verify(secret, field(c, "secretHash")))
+                    // A credential holding no password is a real state now:
+                    // one is retired when its subject starts federating, and
+                    // the login goes on serving its other factors. Reading the
+                    // field unconditionally threw "missing field: secretHash"
+                    // out of a sign-in attempt, which is an exception where a
+                    // refusal belongs.
+                    .filter(c -> passwordHashOf(c) != null)
+                    .filter(c -> SecretHash.verify(secret, passwordHashOf(c)))
                     .map(c -> field(c, "personId"))
                     .findFirst();
         }
