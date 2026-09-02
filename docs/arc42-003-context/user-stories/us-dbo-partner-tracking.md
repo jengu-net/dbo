@@ -92,28 +92,23 @@ citations say it is.
 | `REQ-DBO-POL-AUDIT-AS-RECORDS` | Audit entries are regular, pseudonymous records in the tenant's own store — feed-visible, exported and restored with the tenant, re-identifiable only through the vault. | PROVEN |
 | `REQ-DBO-POL-ACTOR-FROM-AUTHORITY` | Every audit entry names its actor from the tenant authority's token (client and subject) — no anonymous mutations under any audited policy. | PROVEN |
 | `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` | Applications contribute business-level audit events; the machinery stamps actor and time from the validated token and its own clock, overriding caller claims — the trail can be enriched, never impersonated or backdated. | PROVEN |
-| `REQ-DBO-TEN-A-PARTNER-MANAGES-TENANTS` | A partner is a tenant that manages other tenants, declared when the managed tenant is created. The relation says which tenants the partner may read at all; within each, the partner is a declared audience saying what of each — runs and their journey, never documents, purposes only if the managed tenant opts in. What the partner is shown is assembled outside the store: a store instance is one tenant's store, and no cross-tenant query is grown to serve a support desk. | PLANNED |
+| `REQ-DBO-TEN-A-PARTNER-MANAGES-TENANTS` | A partner is a tenant that manages other tenants, declared when the managed tenant is created. The relation says which tenants the partner may read at all; within each, the partner is a declared audience saying what of each — runs and their journey, never documents, purposes only if the managed tenant opts in. What the partner is shown is assembled outside the store: a store instance is one tenant's store, and no cross-tenant query is grown to serve a support desk. | PROVEN |
 | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES` | One trail; the target says what an entry is about. A hop that carried work leaves a travel entry about the task. A participant that opened a payload leaves an access entry about the document, landing where every other reading of it lands and naming the task execution as its occasion. The machinery's own read to seal a payload records nothing: a read that yields only ciphertext is not a disclosure. So who read this is answered from the document by somebody who need not know work exists, and where did this go from the task, and the trail can say that nobody looked. | PROVEN |
 | `REQ-DBO-WF-HOPS-AUDITED` | Every hop leaves a travel entry about the task — who handed to whom — and a travel entry is not a reading: audit of the journey is structural, not per-integration, and it never says anybody looked at the content. | PROVEN |
 | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` | A run's travel and access entries each carry a link to the one before, rooted in the task the store minted, so a participant cannot present a journey that never started. The result that closes the run is the last link and carries the head it commits to; the store checks the chain when the result lands, and a completion with a gap is refused and told which link. A travel entry names who it handed to, so a skipped hop is exposed by the next author. Links are signed by the participant, which buys non-forgery and non-repudiation and not omission-proofing: an intended recipient can open a payload and never say so, and that limit is accepted. The link lives on the entry, so the chain outlives nothing the trail does not, and a pruned predecessor reads unchained rather than broken. | PROVEN |
 | `REQ-DBO-TEN-STRUCTURAL-SCOPING` | No code path can read or write data without an explicit tenant context. (R3) | PROVEN |
 
-Coverage: {PROVEN=14, PLANNED=2} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=15, PLANNED=1} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet
 
-- **There is no partner relation.** A tenant is not managed by another
-  tenant in any declared way; the concept does not exist in the spec or the
-  registration path.
 - **There is no cross-tenant read, by construction.** A store instance *is*
   one tenant's store, and there is deliberately nowhere to name a tenant.
   Whatever serves a partner reads each managed tenant's store separately and
   assembles the answer outside — the store will not grow a query that spans
-  them.
-- **Hops are not indexed.** A travel entry per hop now exists on the task's
-  trail, so the page's central column has its material; nothing answers
-  "show me this run's hops" in one ask.
+  them. This is a position, not a gap, and it stays here so nobody mistakes
+  its absence for an oversight.
 - **`REQ-DBO-PROC-RUN-HAS-A-RECORD` reads PLANNED.** The run record exists and
   is exercised throughout, but the promise that a run *is* a record carries no
   citation yet — so the leg this story leans on hardest is the one the

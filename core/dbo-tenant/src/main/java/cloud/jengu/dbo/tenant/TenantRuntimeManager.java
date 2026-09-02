@@ -358,6 +358,28 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return authorities.get(code);
     }
 
+    /**
+     * The tenant's policies, with its partner declared as an audience when
+     * the tenant did not declare one itself: runs and the trail, revealed in
+     * the omitting mode — the journey, never a document, purposes only if
+     * the tenant says so. The relation says which tenants a partner may read
+     * at all; this says what of each.
+     */
+    static cloud.jengu.dbo.policy.TenantPolicies policiesOf(TenantSpec spec) {
+        if (spec.managedBy() == null) {
+            return spec.policies();
+        }
+        return spec.policies().withAudienceUnlessDeclared(spec.managedBy(),
+                new cloud.jengu.dbo.policy.TenantPolicies.Audience(
+                        Set.of(cloud.jengu.dbo.work.WorkModel.TYPE, "AuditEntry"),
+                        cloud.jengu.dbo.core.api.Disclosure.Mode.OMIT));
+    }
+
+    /** A partner's issuer, derived from this tenant's own: the same authority base, the partner's code. */
+    private static String partnerIssuer(String ownIssuer, String code, String partner) {
+        return ownIssuer.replace("/t/" + code + "/", "/t/" + partner + "/");
+    }
+
     public synchronized Set<String> scanOnce() {
         Set<String> declared = new HashSet<>();
         try (Stream<Path> files = Files.list(directory)) {
@@ -971,6 +993,31 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 doors.put(spec.code(), new cloud.jengu.dbo.stream.StreamDoor(substrate,
                         spec.code(), grants, laneFactory));
             }
+            if (spec.managedBy() != null) {
+                // The relation, made true at the door: the partner's own
+                // authority is trusted here because this tenant declared it,
+                // and its tokens arrive as the partner audience. The keys
+                // come from the partner's runtime when it is served beside
+                // this one, and from its published JWKS when it is not.
+                String partner = spec.managedBy();
+                String partnerIssuer = partnerIssuer(authority.issuer(), spec.code(), partner);
+                authority.trust(partnerIssuer, () -> {
+                    cloud.jengu.dbo.auth.TenantAuthority local = authorities.get(partner);
+                    if (local != null) {
+                        return local.jwksJson();
+                    }
+                    try {
+                        return java.net.http.HttpClient.newHttpClient().send(
+                                java.net.http.HttpRequest.newBuilder(java.net.URI.create(
+                                        partnerIssuer + "/.well-known/jwks.json")).build(),
+                                java.net.http.HttpResponse.BodyHandlers.ofString()).body();
+                    } catch (java.io.IOException | InterruptedException unreachable) {
+                        throw new IllegalStateException(spec.code() + ": the partner '"
+                                + partner + "' published no keys at " + partnerIssuer,
+                                unreachable);
+                    }
+                }, partner);
+            }
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
                     workPath, new WorkGrants(authority), laneFactory));
             workContexts.put(spec.code(), workPath);
@@ -1304,7 +1351,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // everything that records them for this tenant uses the same one.
         runStores.put(spec.code(), engine);
         cloud.jengu.dbo.policy.PolicyObjectStore policyStore =
-                new cloud.jengu.dbo.policy.PolicyObjectStore(engine, spec.policies());
+                new cloud.jengu.dbo.policy.PolicyObjectStore(engine, policiesOf(spec));
         if (!spec.policies().retention().isEmpty()) {
             cloud.jengu.dbo.policy.RetentionSweep sweep = new cloud.jengu.dbo.policy.RetentionSweep(
                     db.dataSource(), domain, spec.policies(), policyStore,

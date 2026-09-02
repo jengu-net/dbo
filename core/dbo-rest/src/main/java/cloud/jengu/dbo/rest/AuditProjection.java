@@ -126,6 +126,9 @@ public final class AuditProjection implements AuditSurface {
         if (query.get("entity") != null) {
             criteria.eq("targetId", EnvelopeValue.of(query.get("entity")));
         }
+        if (query.get("run") != null) {
+            criteria.eq("run", EnvelopeValue.of(query.get("run")));
+        }
         if (query.get("action") != null) {
             criteria.eq("interaction", EnvelopeValue.of(switch (query.get("action")) {
                 case "C" -> "create";
@@ -249,9 +252,21 @@ public final class AuditProjection implements AuditSurface {
      * the refusal names.
      */
     private String rendered(StoredObject entry) {
+        byte[] payload = entry.payload();
+        if (cloud.jengu.dbo.core.api.Audience.named() != null
+                && cloud.jengu.dbo.core.api.Disclosure.mode()
+                        != cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE) {
+            // A stated purpose is useful on a tracking page and is also a
+            // disclosure about a practice's clinical activity to whoever is
+            // looking, so it is the audience's to reveal and omitted unless
+            // the tenant's declaration for that audience includes it.
+            payload = new String(payload, StandardCharsets.UTF_8)
+                    .replaceAll(",\"purpose\":\"[^\"]*\"", "")
+                    .getBytes(StandardCharsets.UTF_8);
+        }
         return face.require(RecordProjection.class)
                 .project(new RecordProjection.Record(ENTRY, entry.id(), entry.versionId(),
-                        entry.payload(), List.of()))
+                        payload, List.of()))
                 .orElseThrow(() -> new IllegalStateException(
                         "face '" + face.name() + "' renders no " + ENTRY));
     }

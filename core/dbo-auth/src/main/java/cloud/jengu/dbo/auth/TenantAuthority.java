@@ -42,6 +42,33 @@ public final class TenantAuthority {
     private final String issuer;
     private final KeyProtector protector;
     private final Map<String, RSAPublicKey> keyCache = new ConcurrentHashMap<>();
+    /** Issuers trusted because of a declared relation, by issuer: the partner tenants that manage this one. */
+    private final Map<String, Trusted> trusted = new ConcurrentHashMap<>();
+
+    /**
+     * A partner tenant's authority, trusted for what the relation grants and
+     * nothing else: its tokens reach this tenant as the audience named, with
+     * a fixed read reach over runs and the trail.
+     */
+    private record Trusted(java.util.function.Supplier<String> jwks, String audience,
+            Map<String, RSAPublicKey> keys) {}
+
+    /** What a partner may ask of a managed tenant: the journey, never the documents. */
+    public static final List<String> PARTNER_SCOPES =
+            List.of("system/Task.read", "system/AuditEvent.read");
+
+    /**
+     * Trusts another tenant's authority because this tenant declared it as
+     * its partner. Cross-tenant confusion stays unrepresentable: a token
+     * from anybody else still fails at signature verification, and a
+     * partner's token fails everywhere it was not declared. What the
+     * relation grants is only the audience — the managed tenant's own
+     * declaration of what a partner sees — and a read reach fixed here.
+     */
+    public void trust(String partnerIssuer, java.util.function.Supplier<String> partnerJwks,
+            String audience) {
+        trusted.put(partnerIssuer, new Trusted(partnerJwks, audience, new ConcurrentHashMap<>()));
+    }
     /** §16: the tenant's main store — subjects and grants are ITS records. */
     private volatile ObjectStore subjectStore;
     private volatile HumanAuthenticator humanAuthenticator;
@@ -1443,7 +1470,13 @@ public final class TenantAuthority {
      *        nothing.
      */
     public record AuthContext(String clientId, String fhirUser, String actClient,
-            List<String> scopes, String purposeOfUse, List<String> organisations) {
+            List<String> scopes, String purposeOfUse, List<String> organisations,
+            String audience) {
+
+        public AuthContext(String clientId, String fhirUser, String actClient,
+                List<String> scopes, String purposeOfUse, List<String> organisations) {
+            this(clientId, fhirUser, actClient, scopes, purposeOfUse, organisations, null);
+        }
 
         public AuthContext(String clientId, String fhirUser, String actClient,
                 List<String> scopes, String purposeOfUse) {
@@ -1460,11 +1493,11 @@ public final class TenantAuthority {
                 refreshKeyCache();
                 key = keyCache.get(parts.kid());
             }
-            if (key == null || !Jws.verify(parts, key)) {
-                return Optional.empty();
-            }
             Object claims = Json.parse(parts.claimsJson());
             if (!issuer.equals(Json.str(claims, "iss"))) {
+                return asPartner(parts, claims);
+            }
+            if (key == null || !Jws.verify(parts, key)) {
                 return Optional.empty();
             }
             if (Json.num(claims, "exp") < System.currentTimeMillis() / 1000) {
@@ -1485,6 +1518,38 @@ public final class TenantAuthority {
         } catch (RuntimeException invalid) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * A token from a trusted partner's authority: verified against that
+     * authority's keys, then admitted as the declared audience with the
+     * partner reach. The subject is qualified by the audience so the actor on
+     * every entry it leaves says whose credential it was.
+     */
+    private Optional<AuthContext> asPartner(Jws.Parts parts, Object claims) {
+        Trusted partner = trusted.get(Json.str(claims, "iss"));
+        if (partner == null) {
+            return Optional.empty();
+        }
+        RSAPublicKey key = partner.keys().get(parts.kid());
+        if (key == null) {
+            Object jwks = Json.parse(partner.jwks().get());
+            for (Object jwk : Json.array(jwks, "keys")) {
+                partner.keys().put(Json.str(jwk, "kid"), Jwk.parse(Json.render(jwk)));
+            }
+            key = partner.keys().get(parts.kid());
+        }
+        if (key == null || !Jws.verify(parts, key)) {
+            return Optional.empty();
+        }
+        if (Json.num(claims, "exp") < System.currentTimeMillis() / 1000) {
+            return Optional.empty();
+        }
+        if ("refresh".equals(Json.strOpt(claims, "typ"))) {
+            return Optional.empty();
+        }
+        return Optional.of(new AuthContext(partner.audience() + ":" + Json.str(claims, "sub"),
+                null, null, PARTNER_SCOPES, null, null, partner.audience()));
     }
 
     /**

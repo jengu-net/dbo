@@ -67,6 +67,11 @@ public final class LaneVerbService {
             return new Answer.Denied(403, null, "'" + grant.clientId() + "' may work as itself, "
                     + "and this asked to work as '" + identity.name() + "'");
         }
+        // The actor on everything a verb records — a hop, an opening — is
+        // the credential the authority validated, never the participant
+        // named in the body and never the machinery's own name. Set for the
+        // verb and cleared after it, because a door's thread is reused.
+        cloud.jengu.dbo.core.api.Caller.set(grant.clientId());
         try {
             return new Answer.Ok(answer(verb, lanes.laneFor(participant, identity,
                     narrowed(grant.entitlement(), body)), body));
@@ -76,6 +81,8 @@ public final class LaneVerbService {
             return new Answer.Refused(String.valueOf(refused.getMessage()));
         } catch (IllegalArgumentException malformed) {
             return new Answer.Denied(400, null, String.valueOf(malformed.getMessage()));
+        } finally {
+            cloud.jengu.dbo.core.api.Caller.clear();
         }
     }
 

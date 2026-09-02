@@ -24,7 +24,9 @@ public interface AuditSurface {
      * asked for, which is worse than refusing.
      */
     default java.util.Set<String> searchParameters() {
-        return java.util.Set.of("agent", "entity", "action", "date");
+        // run: the trail by task, so a journey is one ask — every entry an
+        // execution occasioned, travel and access alike.
+        return java.util.Set.of("agent", "entity", "action", "date", "run");
     }
 
     /** A searchset Bundle of rendered AuditEvents. */

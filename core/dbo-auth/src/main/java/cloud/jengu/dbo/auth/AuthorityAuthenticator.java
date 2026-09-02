@@ -43,6 +43,12 @@ public final class AuthorityAuthenticator implements RequestAuthenticator {
                     cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE,
                     context.get().purposeOfUse());
         }
+        if (context.get().audience() != null) {
+            // A partner's credential is answered as the audience the managed
+            // tenant declared for it: what it may see of each type is the
+            // tenant's word, fixed rather than capped.
+            cloud.jengu.dbo.core.api.Audience.serving(context.get().audience());
+        }
         if (context.get().organisations() != null) {
             // The token's reach becomes the request's: the policy layer
             // constrains what comes back to the organisations the grants were

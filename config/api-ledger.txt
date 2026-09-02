@@ -94,6 +94,7 @@ cloud.jengu.dbo.auth.SecretHash                                        hash(Stri
 cloud.jengu.dbo.auth.SecretHash                                        verify(String,String):boolean
 cloud.jengu.dbo.auth.SecretHashProbe                                   class
 cloud.jengu.dbo.auth.SecretHashProbe                                   verifies(String,String):boolean
+cloud.jengu.dbo.auth.TenantAuthority                                   PARTNER_SCOPES:List
 cloud.jengu.dbo.auth.TenantAuthority                                   TOKEN_TTL_SECONDS:long
 cloud.jengu.dbo.auth.TenantAuthority                                   activeRoleCodes():List
 cloud.jengu.dbo.auth.TenantAuthority                                   attachSubjects(cloud.jengu.dbo.core.api.ObjectStore):void
@@ -142,15 +143,18 @@ cloud.jengu.dbo.auth.TenantAuthority                                   setFactor
 cloud.jengu.dbo.auth.TenantAuthority                                   signingKey(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   token(String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   token(String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
+cloud.jengu.dbo.auth.TenantAuthority                                   trust(String,Supplier,String):void
 cloud.jengu.dbo.auth.TenantAuthority                                   validate(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   verifyFactor(String,String,String):boolean
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       actClient():String
+cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       audience():String
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       clientId():String
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       equals(Object):boolean
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       fhirUser():String
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       hashCode():int
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(String,String,String,List,String)
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(String,String,String,List,String,List)
+cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(String,String,String,List,String,List,String)
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       organisations():List
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       purposeOfUse():String
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       record
@@ -1843,6 +1847,7 @@ cloud.jengu.dbo.policy.TenantPolicies                                  perTypeDi
 cloud.jengu.dbo.policy.TenantPolicies                                  record
 cloud.jengu.dbo.policy.TenantPolicies                                  retention():Map
 cloud.jengu.dbo.policy.TenantPolicies                                  toString():String
+cloud.jengu.dbo.policy.TenantPolicies                                  withAudienceUnlessDeclared(String,cloud.jengu.dbo.policy.TenantPolicies.Audience):cloud.jengu.dbo.policy.TenantPolicies
 cloud.jengu.dbo.policy.TenantPolicies                                  writeDiscipline():cloud.jengu.dbo.policy.TenantPolicies.Discipline
 cloud.jengu.dbo.policy.TenantPolicies.Audience                         equals(Object):boolean
 cloud.jengu.dbo.policy.TenantPolicies.Audience                         hashCode():int
@@ -2935,6 +2940,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      dependenc
 cloud.jengu.dbo.tenant.TenantSpec                                      equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      face():String
 cloud.jengu.dbo.tenant.TenantSpec                                      hashCode():int
+cloud.jengu.dbo.tenant.TenantSpec                                      managedBy():String
 cloud.jengu.dbo.tenant.TenantSpec                                      mandatorySteps():List
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean)
@@ -2943,6 +2949,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String)
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      pdi():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      policies():cloud.jengu.dbo.policy.TenantPolicies
