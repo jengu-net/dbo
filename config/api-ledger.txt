@@ -79,6 +79,7 @@ cloud.jengu.dbo.auth.KeyProtector                                      new(byte[
 cloud.jengu.dbo.auth.KeyProtector                                      unwrap(byte[]):byte[]
 cloud.jengu.dbo.auth.KeyProtector                                      wrap(byte[]):byte[]
 cloud.jengu.dbo.auth.Scopes                                            ERASURE:String
+cloud.jengu.dbo.auth.Scopes                                            FLEET:String
 cloud.jengu.dbo.auth.Scopes                                            IDENTITY:String
 cloud.jengu.dbo.auth.Scopes                                            SCIM:String
 cloud.jengu.dbo.auth.Scopes                                            WORK:String
@@ -2674,6 +2675,10 @@ cloud.jengu.dbo.tenant.ErasureHandler                                  handle(Ht
 cloud.jengu.dbo.tenant.ErasureHandler                                  new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.tenant.PersonErasure,Function)
 cloud.jengu.dbo.tenant.FaceRequirements                                class
 cloud.jengu.dbo.tenant.FaceRequirements                                refuseUnservable(cloud.jengu.dbo.tenant.TenantSpec,cloud.jengu.dbo.core.face.DomainFace):void
+cloud.jengu.dbo.tenant.FleetHandler                                    SCOPE:String
+cloud.jengu.dbo.tenant.FleetHandler                                    class
+cloud.jengu.dbo.tenant.FleetHandler                                    handle(HttpExchange):void
+cloud.jengu.dbo.tenant.FleetHandler                                    new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.work.Trackables,String)
 cloud.jengu.dbo.tenant.IdentityHandler                                 SCOPE:String
 cloud.jengu.dbo.tenant.IdentityHandler                                 class
 cloud.jengu.dbo.tenant.IdentityHandler                                 handle(HttpExchange):void

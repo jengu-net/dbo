@@ -131,6 +131,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final StepIncidents stepIncidents = new StepIncidents();
     private final Map<String, String> authorityContexts = new ConcurrentHashMap<>();
     private final Map<String, String> identityContexts = new ConcurrentHashMap<>();
+    private final Map<String, String> fleetContexts = new ConcurrentHashMap<>();
     private final Map<String, String> erasureContexts = new ConcurrentHashMap<>();
     private final Map<String, String> scimContexts = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.pdi.PersonVault> vaults = new ConcurrentHashMap<>();
@@ -652,7 +653,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                 // consequence of it. They are opposite acts on
                                 // one person: this attaches an identity, that
                                 // destroys the key that made one legible.
-                                cloud.jengu.dbo.auth.Scopes.IDENTITY));
+                                cloud.jengu.dbo.auth.Scopes.IDENTITY,
+                                // And the fleet: a deployment that operates
+                                // the participants may ask what is behind
+                                // them. Named here like the rest rather than
+                                // implied by the participation scope, which
+                                // covers what a bench does and not what
+                                // anybody may ask about every bench.
+                                cloud.jengu.dbo.auth.Scopes.FLEET));
             }
             if (db.rpClientSecret() != null) {
                 // The relying party's record is ensured FROM custody — id,
@@ -862,6 +870,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     runtime.engine(), laneIntroductions, entitlement,
                                     laneTrackables)));
             workContexts.put(spec.code(), workPath);
+            // What this tenant knows about the things behind its
+            // participants. Beside replication rather than as a verb on the
+            // lane: a lane is what one participant may do, and an operator
+            // asking what state a fleet is in is not a participant act.
+            String fleetPath = "/t/" + spec.code() + "/fleet";
+            sharedServer.createContext(fleetPath,
+                    new FleetHandler(authority, laneTrackables, fleetPath));
+            fleetContexts.put(spec.code(), fleetPath);
             // The replication surface: the same asymmetry one layer up.
             // Declarations flow cloud → appliance, so the cloud is the side
             // that must PRODUCE outbound batches, and it is the side that
@@ -1328,6 +1344,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String erasurePath = erasureContexts.remove(code);
         if (erasurePath != null) {
             sharedServer.removeContext(erasurePath);
+        }
+        String fleetPath = fleetContexts.remove(code);
+        if (fleetPath != null) {
+            sharedServer.removeContext(fleetPath);
         }
         vaults.remove(code);
         String oidcPath = authorityContexts.remove(code);
