@@ -15,10 +15,11 @@ description: Changing anything that has to survive being loaded in the OSGi cont
 - MUST prove a change by exercising it — validate a resource, convert one,
   ingest a CodeSystem, boot the container — and MUST NOT report a change as
   working on the strength of compilation, resolution or a green unit test.
-- MUST assume a fat bundle's `Import-Package` is hand-written: a newly
-  referenced sibling package resolves at build time and throws
-  `NoClassDefFoundError` on first use. Add the package when adding the
-  reference.
+- MUST let bnd compute a bundle's `Import-Package` and write only policy by
+  hand — which JDK surfaces may be absent, and the `!*` that drops a private
+  stack's reach — and MUST NOT write a package inventory: `dbo-fhir-stack` is
+  the one closed list, because it has no source, and it is checked by a test
+  that walks what it embeds.
 - MUST keep both in-JVM containers installing what the distribution installs.
   When one of them fails after a change, it is reporting the truth about the
   distribution; MUST NOT adjust the container test to make it pass.

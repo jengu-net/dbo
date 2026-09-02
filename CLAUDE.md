@@ -45,11 +45,18 @@ production sources is the whole signal — and **where does its own state live**
 which is cheaper to check and easier to miss, since a surface can be mounted
 and correct while the type it writes is registered for no tenant.
 
-**The fat bundles hand-write `Import-Package`.** A newly referenced sibling
-package resolves at build and throws `NoClassDefFoundError` at runtime.
-`EmbeddedContainerIT` is the ratchet; when it fails after your change it is
-telling the truth. Two in-JVM containers exist (`EmbeddedContainerIT`,
-`TenantOsgiIT`) and both must install what the distribution installs.
+**Imports are computed, and what is hand-written is policy.** Every bundle
+with source lets bnd compute `Import-Package` from bytecode; the hand-written
+part is a filter — which JDK surfaces may be absent, and a trailing `!*` that
+drops what a private stack reaches for and the container does not provide —
+so a new reference to a sibling package is picked up on its own. The one
+exception is `dbo-fhir-stack`, which has no source: it keeps a closed list, and
+`TheStackImportsWhatItReachesForTest` walks every class it embeds so an
+omission fails the build. What still bites is the OSGi side of it: a package
+resolves and dies on first use, so `EmbeddedContainerIT`, `TenantOsgiIT` and
+`ServerDistIT` are the ratchets, and when one fails after your change it is
+telling the truth. Both in-JVM containers must install what the distribution
+installs.
 
 **The R5 validator needs heap.** It loads the FHIR core package eagerly and on
 a default heap dies as `HAPI-2330` with a null message, three frames above an

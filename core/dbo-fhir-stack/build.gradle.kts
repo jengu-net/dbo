@@ -166,6 +166,17 @@ tasks.jar {
                 "Bundle-Version" to project.version.toString().replace("-", "."),
                 "Bundle-ClassPath" to ".,$libs",
                 "Export-Package" to exports.joinToString(","),
+                // Hand-written, by decision rather than by default, and the
+                // only closed import list left in this repository. bnd was
+                // measured on this bundle and declined: it runs out of the
+                // default Gradle heap analysing the embedded jars, it stores
+                // the whole stack twice (88M to 151M) because it copies
+                // packages into the bundle root beside lib/, and the drift
+                // computed imports exist to prevent cannot occur here — there
+                // is no source to reference a package the list lacks. What
+                // can go wrong is an embedded class reaching for a
+                // framework-wired package the list omits, and a test walks
+                // every class in lib/ to refuse exactly that.
                 "Import-Package" to listOf(
                     // The whole slf4j API, not just `org.slf4j`: the engine
                     // reaches the fluent builder in org.slf4j.spi the first
