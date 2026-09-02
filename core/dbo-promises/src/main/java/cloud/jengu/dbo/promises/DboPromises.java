@@ -789,7 +789,6 @@ public enum DboPromises implements Promise {
             + "actor and time from the validated token and its own clock, overriding "
             + "caller claims — the trail can be enriched, never impersonated or "
             + "backdated."),
-    /** TODO: prove it in a test — a run carried by N hops and opened by none has N travel entries on the task and no access entry on the document. */
     POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES(
             "One trail; the target says what an entry is about. A hop that carried work "
             + "leaves a travel entry about the task. A participant that opened a payload "
@@ -1052,7 +1051,6 @@ public enum DboPromises implements Promise {
     WF_PLATFORM_COORDINATED_HOPS(
             "Every cross-plane or cross-tenant hop is coordinated by the platform; no "
             + "direct tenant-to-tenant connection exists."),
-    /** TODO: prove it in a test. */
     WF_HOPS_AUDITED(
             "Every hop leaves a travel entry about the task — who handed to whom — and a "
             + "travel entry is not a reading: audit of the journey is structural, not "

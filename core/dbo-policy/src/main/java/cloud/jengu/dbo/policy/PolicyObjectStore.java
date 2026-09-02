@@ -342,7 +342,16 @@ public final class PolicyObjectStore implements ObjectStore,
         // that some audit facts are not the tenant's to choose — the trail is
         // append-only against everyone including us, and the actor comes from
         // the authority rather than from the caller.
-        if (policies.auditsReads() || cloud.jengu.dbo.core.api.Disclosure.purpose() != null) {
+        //
+        // A read occasioned by a run is the same kind of requirement. It is a
+        // participant being handed a document to do a piece of work with, and
+        // the entry lands on that document with the run as its occasion — so
+        // "who has read this" is answerable from the document by somebody who
+        // need not know work exists, and "what did this task open" from the
+        // run. Carrying the work is not this: a hop leaves a travel entry on
+        // the task, never a reading on the document.
+        if (policies.auditsReads() || cloud.jengu.dbo.core.api.Disclosure.purpose() != null
+                || Caller.run() != null) {
             record(interaction, typeName, targetId, null);
         }
     }

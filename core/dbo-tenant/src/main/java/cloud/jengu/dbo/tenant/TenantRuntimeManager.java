@@ -868,7 +868,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             cloud.jengu.dbo.runner.Lane.inProcess(spec.code(), laneRuns,
                                     laneFeed, laneDeclarations, participant, identity,
                                     runtime.engine(), laneIntroductions, entitlement,
-                                    laneTrackables)));
+                                    laneTrackables,
+                                    // A hop is a travel entry about the TASK,
+                                    // through the same contributed-event path
+                                    // an application uses — actor and time
+                                    // stamped by the machinery, never by the
+                                    // lane.
+                                    (run, to) -> engine.recordCustom("travel",
+                                            cloud.jengu.dbo.work.WorkModel.TYPE, run.id(),
+                                            java.util.Map.of("to", to, "key", run.key())))));
             workContexts.put(spec.code(), workPath);
             // What this tenant knows about the things behind its
             // participants. Beside replication rather than as a verb on the

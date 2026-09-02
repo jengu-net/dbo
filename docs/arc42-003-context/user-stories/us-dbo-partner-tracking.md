@@ -83,7 +83,7 @@ reach by asking about more tenants.
 | What a particular recipient sees is declared, not negotiated | `REQ-DBO-IDN-WHAT-A-RECIPIENT-SEES-IS-DECLARED` |
 | A contributed event carries an actor the machinery stamped, not one the caller claimed | `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS` |
 | A partner manages tenants: the relation says which, the audience says what of each — *planned* | `REQ-DBO-TEN-A-PARTNER-MANAGES-TENANTS` |
-| The page is made of travel entries about the task — *planned* | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`, `REQ-DBO-WF-HOPS-AUDITED` |
+| The page is made of travel entries about the task | `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`, `REQ-DBO-WF-HOPS-AUDITED` |
 | A missing hop is missing detectably — *planned* | `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK` |
 | A tenant's records are reachable only through that tenant's own store | `REQ-DBO-TEN-STRUCTURAL-SCOPING` |
 
@@ -97,13 +97,11 @@ reach by asking about more tenants.
   Whatever serves a partner reads each managed tenant's store separately and
   assembles the answer outside — the store will not grow a query that spans
   them.
-- **There are no travel entries.** A hop leaves nothing of its own today, so
-  the page's central column does not exist; what can be reconstructed is the
-  run's own state changes, not its journey.
 - **Nothing is chained across participants**, so a page assembled today would
   be a list that could quietly omit a leg.
-- **Hops are not indexed.** Even once they exist, nothing answers "show me
-  this run's hops" in one ask.
+- **Hops are not indexed.** A travel entry per hop now exists on the task's
+  trail, so the page's central column has its material; nothing answers
+  "show me this run's hops" in one ask.
 - **`REQ-DBO-PROC-RUN-HAS-A-RECORD` reads PLANNED.** The run record exists and
   is exercised throughout, but the promise that a run *is* a record carries no
   citation yet — so the leg this story leans on hardest is the one the

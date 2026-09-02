@@ -276,6 +276,19 @@ public interface Lane {
     }
 
     /**
+     * Where a hop is written down.
+     *
+     * <p>A hop is a travel entry about the <em>task</em> — who handed the work
+     * to whom — and it is deliberately not a reading: it says the work moved,
+     * not that anybody looked at it. The lane knows the hop happened; where
+     * the entry lands is the host's business, because the host holds the trail.
+     */
+    @FunctionalInterface
+    interface Trail {
+        void handedTo(Run run, String participant);
+    }
+
+    /**
      * The same, able to record what a participant routes.
      *
      * <p>Wired where the tenant's own records are, for the same reason
@@ -287,6 +300,21 @@ public interface Lane {
             cloud.jengu.dbo.core.api.ObjectStore objects,
             cloud.jengu.dbo.work.Introductions introductions,
             Entitlement entitlement, Trackables trackables) {
+        return inProcess(tenant, runs, feed, declarations, participant, identity, objects,
+                introductions, entitlement, trackables, null);
+    }
+
+    /**
+     * The same, with a trail to write hops into. A host that wires none
+     * records no travel, which is honest for a host with no trail — an
+     * embedded runner over a bare store — and wrong for a tenant, which is why
+     * the tenant wires one.
+     */
+    static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
+            Declarations declarations, String participant, Executor identity,
+            cloud.jengu.dbo.core.api.ObjectStore objects,
+            cloud.jengu.dbo.work.Introductions introductions,
+            Entitlement entitlement, Trackables trackables, Trail trail) {
         return new Lane() {
 
             @Override
@@ -324,7 +352,16 @@ public interface Lane {
                             + "' is not entitled to claim '" + step + "' — it holds "
                             + entitlement);
                 }
-                return runs.claim(run, identity, java.time.Instant.now().plus(holdFor));
+                Optional<Run> claimed =
+                        runs.claim(run, identity, java.time.Instant.now().plus(holdFor));
+                // The hop. Taking the work is the store handing it to this
+                // participant, and that is a fact about the task's journey —
+                // recorded as travel, never as a reading, because nothing has
+                // been looked at yet.
+                if (claimed.isPresent() && trail != null) {
+                    trail.handedTo(claimed.get(), identity.name());
+                }
+                return claimed;
             }
 
             @Override
@@ -410,14 +447,30 @@ public interface Lane {
                 // answer for what is not in this store.
                 Map<String, StoredObject> resolved = new java.util.LinkedHashMap<>();
                 if (objects != null) {
-                    current.inputs().forEach((slot, reference) -> {
-                        int slash = reference.indexOf('/');
-                        if (slash > 0 && reference.indexOf('/', slash + 1) < 0) {
-                            objects.get(reference.substring(0, slash),
-                                            reference.substring(slash + 1))
-                                    .ifPresent(object -> resolved.put(slot, object));
+                    // This read IS the opening, today: the objects arrive in
+                    // the clear, so resolving them is the moment the participant
+                    // sees them, and the entry for it lands on each DOCUMENT
+                    // with this run as its occasion. When payloads travel
+                    // sealed, this read yields ciphertext and records nothing,
+                    // and the opening moves to wherever the key is used.
+                    String outer = cloud.jengu.dbo.core.api.Caller.run();
+                    cloud.jengu.dbo.core.api.Caller.setRun(current.key());
+                    try {
+                        current.inputs().forEach((slot, reference) -> {
+                            int slash = reference.indexOf('/');
+                            if (slash > 0 && reference.indexOf('/', slash + 1) < 0) {
+                                objects.get(reference.substring(0, slash),
+                                                reference.substring(slash + 1))
+                                        .ifPresent(object -> resolved.put(slot, object));
+                            }
+                        });
+                    } finally {
+                        if (outer == null) {
+                            cloud.jengu.dbo.core.api.Caller.clearRun();
+                        } else {
+                            cloud.jengu.dbo.core.api.Caller.setRun(outer);
                         }
-                    });
+                    }
                 }
                 return java.util.Collections.unmodifiableMap(resolved);
             }
