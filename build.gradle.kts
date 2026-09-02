@@ -29,6 +29,7 @@ val moduleBlurbs = mapOf(
     "dbo-promises" to "The store's own promise catalogue: SHAPE and PDI as the pilot.",
     "dbo-runner" to "The embeddable step runner: register step services, work arrives, outcomes and vitals go back.",
     "dbo-stream" to "The lane over the store's own stream: the same verbs, carried on the durable substrate.",
+    "dbo-telemetry-otlp" to "The telemetry exporter: the seam's numbers to a collector as OTLP over HTTP, no protocol library.",
 )
 
 // The runtime bundle set, in install order. ONE list: the serving
@@ -52,6 +53,10 @@ val dboRuntimeModules = listOf(
     // installed even where nothing exports, because the emitting code path
     // runs everywhere and only its destination differs.
     ":core:dbo-telemetry",
+    // the exporter beside the seam: installed everywhere, idle without an
+    // endpoint, because a code path first run in production is the last
+    // place to first run it
+    ":core:dbo-telemetry-otlp",
     ":core:dbo-fhir-r4", ":core:dbo-fhir-r5", ":core:dbo-rest", ":core:dbo-auth", ":core:dbo-pdi",
     // the provisioning door: imports auth and pdi, imported by dbo-tenant
     ":core:dbo-scim",

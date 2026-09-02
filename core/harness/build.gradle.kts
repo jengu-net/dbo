@@ -39,6 +39,7 @@ dependencies {
     testImplementation("dev.dbos:transact:1.0.0")
     testImplementation(project(":core:dbo-runner"))
     testImplementation(project(":core:dbo-stream"))
+    testImplementation(project(":core:dbo-telemetry-otlp"))
     // the promise framework's processor indexes @Proving citations at THIS
     // module's test-compile time; without this configuration the index is
     // silently absent
@@ -205,6 +206,7 @@ tasks.withType<Test>().configureEach {
         ":core:dbo-tenant-k8s:jar", ":core:dbo-auth:jar", ":core:dbo-pdi:jar", ":core:dbo-scim:jar", ":core:dbo-policy:jar",
         ":promise:jar", ":core:dbo-promises:jar", ":core:dbo-telemetry:jar",
         ":core:dbo-work:jar", ":core:dbo-runner:jar", ":core:dbo-stream:jar",
+        ":core:dbo-telemetry-otlp:jar",
         ":core:dbo-server:installDist")
     systemProperty(
         "dbo.promise.jar",
@@ -227,6 +229,7 @@ tasks.withType<Test>().configureEach {
         "dbo.pdi.jar" to "dbo-pdi",
         "dbo.promises.jar" to "dbo-promises",
         "dbo.telemetry.jar" to "dbo-telemetry",
+        "dbo.telemetry.otlp.jar" to "dbo-telemetry-otlp",
         "dbo.scim.jar" to "dbo-scim",
         "dbo.policy.jar" to "dbo-policy",
         "dbo.work.jar" to "dbo-work",

@@ -302,6 +302,19 @@ nothing decides anything on it; it is for trends and alerting, not for state. Wh
 may be said there is a closed set, and a failure's own words are not in it: they
 stay on the run, in the store of the tenant whose work it was.
 
+Where the numbers go is the deployment's to say, never the code's. The seam has
+one exporter, installed everywhere and idle without an endpoint: given
+`dbo.telemetry.otlp.endpoint` (or the protocol's own environment variables) it
+carries counts as sums, levels as gauges and durations as histograms to an
+OpenTelemetry collector as OTLP over HTTP, rendered and sent with the JDK's own
+client so no protocol library rides in the container. Reporting is not a
+dependency of serving: every verb updates an aggregate and returns, a flusher
+posts on an interval, and a collector that is absent, slow or refusing is said
+once and costs the caller nothing. The seam finds the exporter through the
+framework, the way the logging binding is found, and a container proof asks
+the seam what it found — because an exporter that resolved and was discarded
+in silence is this repository's characteristic failure in its quietest form.
+
 **"What happened to this run, and who read what?"** — the trail, and it is one
 trail with two kinds of subject. A hop that carried the work leaves a **travel**
 entry about the *task*: the journey belongs to the work. A participant that

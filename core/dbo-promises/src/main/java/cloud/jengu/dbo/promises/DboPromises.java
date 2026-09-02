@@ -1167,6 +1167,13 @@ public enum DboPromises implements Promise {
             "Binary content lives in per-tenant blob storage provisioned "
             + "credential-blind; erasure-by-drop extends to it; small deployments fall "
             + "back to Postgres behind the same interface."),
+    OPS_NUMBERS_LEAVE_THE_NODE(
+            "A deployment points the telemetry seam at its collector by configuration, "
+            + "never by code, and the node's numbers arrive there in the published protocol "
+            + "— counts as sums, levels as gauges, durations as histograms, labelled from "
+            + "the seam's own closed vocabulary. Reporting is not a dependency of serving: a "
+            + "collector that is absent, slow or refusing costs the caller nothing and is "
+            + "said once, and a node with no endpoint counts and sends nowhere."),
     OPS_RUNTIME_SAYS_WHAT_IT_SERVES(
             "A runtime can be asked which tenants it is serving, and what it is doing "
             + "about the ones it is not: serving, coming up, failed to come up — one "

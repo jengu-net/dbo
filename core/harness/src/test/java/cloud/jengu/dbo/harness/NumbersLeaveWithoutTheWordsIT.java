@@ -160,9 +160,16 @@ class NumbersLeaveWithoutTheWordsIT {
                             .map(r -> r.assignment() != null).orElse(false));
         }
 
-        assertTrue(Telemetry.installed() instanceof Telemetry.Discarding,
-                "a runtime with no exporter installed resolves to the discarding one rather "
-                        + "than to null or an error");
+        // What this runtime resolves to with no collector configured: the
+        // discarding default, or the one exporter installed and idle —
+        // either sends nowhere, and neither is null or an error.
+        System.clearProperty("dbo.telemetry.otlp.endpoint");
+        Telemetry installed = Telemetry.installed();
+        assertTrue(installed instanceof Telemetry.Discarding
+                        || (installed instanceof cloud.jengu.dbo.telemetry.otlp.OtlpTelemetry otlp
+                                && !otlp.exporting()),
+                "a runtime with nothing collecting resolves to something that sends nowhere "
+                        + "rather than to null or an error: " + installed);
     }
 
     private static StepService service(java.util.function.Supplier<Outcome> body) {
