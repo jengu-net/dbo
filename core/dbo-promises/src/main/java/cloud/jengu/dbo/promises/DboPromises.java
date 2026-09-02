@@ -211,7 +211,7 @@ public enum DboPromises implements Promise {
     PROC_FAILURE_IS_RELEASED("A failing or throwing step service releases the run with the "
             + "reason — never closed, never lost — and a later cycle may take it again."),
 
-    PROC_RUNNER_SIGNS_ITS_VITALS("The runner re-declares each service with an extensible "
+    PROC_RUNNER_DECLARES_ITS_VITALS("The runner re-declares each service with an extensible "
             + "metadata block, replaced never accumulated; presence stays derived from the "
             + "cursor, and vitals annotate it."),
 
@@ -385,6 +385,51 @@ public enum DboPromises implements Promise {
             + "cursors for the same peer or re-entering over loopback with a credential. "
             + "It stands there for every tenant: a lane needs no authority, because the "
             + "registry never asks who is calling."),
+
+    // ── sealed work — decided in review, nothing built; see docs/tasks ──
+
+    /** TODO: prove it in a test — a carrier holding no key reads the envelope and cannot read the payload. */
+    PROC_WORK_TRAVELS_SEALED(
+            "Work travels in two parts. The envelope — tenant, step, the task, and "
+            + "references to the documents named — is readable, because routing on it "
+            + "is its job. The payload — the documents themselves — is sealed in the "
+            + "carrier form under a data key of its own, wrapped once per participant "
+            + "meant to open it and to nobody who merely carries it. A sealed payload is "
+            + "a copy in flight and not the record: the store keeps the original, and the "
+            + "copy is bounded by the work that caused it."),
+    /** TODO: prove it in a test — a copy of the enrolment records opens nothing. */
+    PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT(
+            "A participant generates its keypair before it is enrolled and offers the "
+            + "public half as part of enrolling; the private half never crosses. Payload "
+            + "data keys are wrapped to that key, so what a participant may open is "
+            + "decided by what it holds rather than by what it is told."),
+    /** TODO: prove it in a test — a wedged edge lapses the router's claim and the run reads released. */
+    PROC_THE_ROUTER_HOLDS_THE_CLAIM(
+            "The thing that can reach the store is the participant, and it holds the "
+            + "claim. An instrument behind a router is routed because it cannot reach the "
+            + "lane, so the router claims, forwards, waits and reports — holding a claim on "
+            + "work it cannot read — while the instrument holds the key and does the work. "
+            + "Participant versus routee is a fact about the attachment, not the device."),
+    /** TODO: prove it in a test — a service that returns before its workflow finishes must not close the run. */
+    PROC_DONE_MEANS_DONE(
+            "A participant does not report done before the work is done. A run closes on "
+            + "what is reported and the store has no view below that seam, so an early "
+            + "report is a true-looking record of something that has not happened. A "
+            + "participant with durable execution underneath waits for it; a router waits "
+            + "for its edge; a wedged one lets the claim lapse and the run reads released."),
+    /** TODO: prove it in a test — the same runner, the same work, the same outcome over all three transports. */
+    PROC_A_LANE_OVER_THE_STREAM(
+            "A lane runs over the store's own stream, full duplex, beside in-process and "
+            + "HTTP: work goes out and travel, access and result events come home as they "
+            + "happen on the same channel. It serves exactly the verbs the other two do, "
+            + "and a runner cannot tell which it holds."),
+    /** TODO: prove it in a test — a router reports two routees, then one; the missing one is still readable and says it is no longer reported. */
+    PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT(
+            "A routee missing from a router's report is something the router said, not a "
+            + "gap — distinguishable from a quiet router because the cursor moved. A "
+            + "departed routee is kept with its last attestation and marked no longer "
+            + "reported, so gone reads as last seen by X at T, absent from X's report at "
+            + "T+1. No freshness rule comes with it."),
 
     PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY("A record travels to an appliance because a "
             + "piece of work names it, and is removed when no open run there still "
@@ -580,6 +625,15 @@ public enum DboPromises implements Promise {
             + "credentials exist only as platform secrets and are never readable by "
             + "tenant-manager code. (R5, §4)"),
     /** TODO: prove it in a test. */
+    /** TODO: prove it in a test — a partner credential reads a managed tenant's journey, is answered empty by one it does not manage, and never receives a document from either. */
+    TEN_A_PARTNER_MANAGES_TENANTS(
+            "A partner is a tenant that manages other tenants, declared when the managed "
+            + "tenant is created. The relation says which tenants the partner may read at "
+            + "all; within each, the partner is a declared audience saying what of each — "
+            + "runs and their journey, never documents, purposes only if the managed tenant "
+            + "opts in. What the partner is shown is assembled outside the store: a store "
+            + "instance is one tenant's store, and no cross-tenant query is grown to serve "
+            + "a support desk."),
     TEN_REGISTRY_SCOPED_ACCESS(
             "Application code obtains a tenant's data services from the service "
             + "registry and can use them without ever seeing credentials. (R5, §4)"),
@@ -735,6 +789,29 @@ public enum DboPromises implements Promise {
             + "actor and time from the validated token and its own clock, overriding "
             + "caller claims — the trail can be enriched, never impersonated or "
             + "backdated."),
+    /** TODO: prove it in a test — a run carried by N hops and opened by none has N travel entries on the task and no access entry on the document. */
+    POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES(
+            "One trail; the target says what an entry is about. A hop that carried work "
+            + "leaves a travel entry about the task. A participant that opened a payload "
+            + "leaves an access entry about the document, landing where every other "
+            + "reading of it lands and naming the task execution as its occasion. The "
+            + "machinery's own read to seal a payload records nothing: a read that yields "
+            + "only ciphertext is not a disclosure. So who read this is answered from the "
+            + "document by somebody who need not know work exists, and where did this go "
+            + "from the task, and the trail can say that nobody looked."),
+    /** TODO: prove it in a test — a suppressed middle link is exposed by the next; a result whose head does not match is refused by name. */
+    POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK(
+            "A run's travel and access entries each carry a link to the one before, "
+            + "rooted in the task the store minted, so a participant cannot present a "
+            + "journey that never started. The result that closes the run is the last "
+            + "link and carries the head it commits to; the store checks the chain when "
+            + "the result lands, and a completion with a gap is refused and told which "
+            + "link. A travel entry names who it handed to, so a skipped hop is exposed by "
+            + "the next author. Links are signed by the participant, which buys "
+            + "non-forgery and non-repudiation and not omission-proofing: an intended "
+            + "recipient can open a payload and never say so, and that limit is accepted. "
+            + "The link lives on the entry, so the chain outlives nothing the trail does "
+            + "not, and a pruned predecessor reads unchained rather than broken."),
     POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY(
             "Audit entries are exempt from the tenant's write discipline: no update, no "
             + "tombstone under any policy; retention's sweep is the only removal."),
@@ -961,27 +1038,25 @@ public enum DboPromises implements Promise {
             + "DBOS/Postgres substrate; no external broker. (R4)"),
     /** TODO: prove it in a test. */
     WF_TWO_PLANES(
-            "Workflow state lives where its content belongs: platform plane for "
-            + "coordination, tenant plane for anything carrying resource content."),
-    /** TODO: prove it in a test. */
+            "Records live in the tenant plane, structurally isolated. The shared platform "
+            + "plane carries coordination and the copies work needs in flight — envelopes "
+            + "readable, because routing is what they are for, and payloads sealed to the "
+            + "participant meant to open them. Isolation of a record is structural; of a "
+            + "copy in flight, cryptographic."),
+    /** TODO: prove it in a test — a known identifying value written into a run and searched for in the shared plane's tables. */
     WF_CONTENT_FREE_PLATFORM_PLANE(
-            "Platform-plane workflow parameters and checkpoints never contain tenant "
-            + "credentials or resource content."),
-    /** TODO: prove it in a test. */
-    WF_DECLARED_STEP_PLANE(
-            "Every workflow step declares its plane at definition time."),
+            "The platform plane never holds tenant credentials, and never holds resource "
+            + "content in a form readable in that plane. A sealed payload satisfies this; "
+            + "the plaintext form would not, however briefly."),
     /** TODO: prove it in a test. */
     WF_PLATFORM_COORDINATED_HOPS(
             "Every cross-plane or cross-tenant hop is coordinated by the platform; no "
             + "direct tenant-to-tenant connection exists."),
     /** TODO: prove it in a test. */
     WF_HOPS_AUDITED(
-            "Every hop produces sender egress, receiver ingress and platform "
-            + "coordination records — audit is structural, not per-integration."),
-    /** TODO: prove it in a test. */
-    WF_GRANTS_FROM_CATALOGUE(
-            "A hop grant can only be issued for a hop the declared process shape "
-            + "contains."),
+            "Every hop leaves a travel entry about the task — who handed to whom — and a "
+            + "travel entry is not a reading: audit of the journey is structural, not "
+            + "per-integration, and it never says anybody looked at the content."),
 
     // ── SCAL — migrated from hand-written prose (2026-08-27) ──
 

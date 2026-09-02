@@ -78,7 +78,7 @@ public enum DboFeatures implements Feature {
             + "surface a step needs to be run by something.",
             List.of(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE,
                     DboPromises.PROC_FAILURE_IS_RELEASED,
-                    DboPromises.PROC_RUNNER_SIGNS_ITS_VITALS)),
+                    DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS)),
 
     THE_CATALOGUE_IS_THE_STORES_OWN("Process and step definitions are DBO's own "
             + "vocabulary, declared once and referenced everywhere: shape validation, "
@@ -179,7 +179,24 @@ public enum DboFeatures implements Feature {
             List.of(DboPromises.EVT_TRANSACTIONAL_OUTBOX, DboPromises.EVT_FHIR_SUBSCRIPTIONS, DboPromises.EVT_DURABLE_DELIVERY, DboPromises.EVT_IN_PROCESS_SURFACE)),
 
     WF_MIGRATED("durable work & planes — migrated whole from hand-written prose; each promise below carries its own proof status.",
-            List.of(DboPromises.WF_POSTGRES_SUBSTRATE, DboPromises.WF_TWO_PLANES, DboPromises.WF_CONTENT_FREE_PLATFORM_PLANE, DboPromises.WF_DECLARED_STEP_PLANE, DboPromises.WF_PLATFORM_COORDINATED_HOPS, DboPromises.WF_HOPS_AUDITED, DboPromises.WF_GRANTS_FROM_CATALOGUE)),
+            List.of(DboPromises.WF_POSTGRES_SUBSTRATE, DboPromises.WF_TWO_PLANES, DboPromises.WF_CONTENT_FREE_PLATFORM_PLANE, DboPromises.WF_PLATFORM_COORDINATED_HOPS, DboPromises.WF_HOPS_AUDITED)),
+
+    SEALED_WORK("One runner fleet carries every tenant's work and cannot read most of it: "
+            + "the payload is sealed to the participant meant to open it, opening and "
+            + "carrying are different records, and the run's trail is chained from the task "
+            + "so its completeness can be checked. Decided in review; nothing built.",
+            List.of(DboPromises.PROC_WORK_TRAVELS_SEALED,
+                    DboPromises.PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT,
+                    DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM,
+                    DboPromises.PROC_DONE_MEANS_DONE,
+                    DboPromises.PROC_A_LANE_OVER_THE_STREAM,
+                    DboPromises.PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT,
+                    DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES,
+                    DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
+                    DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
+                    DboPromises.WF_TWO_PLANES,
+                    DboPromises.WF_CONTENT_FREE_PLATFORM_PLANE,
+                    DboPromises.WF_HOPS_AUDITED)),
 
     SCAL_MIGRATED("scaling & routing — migrated whole from hand-written prose; each promise below carries its own proof status.",
             List.of(DboPromises.SCAL_DURABLE_ASSIGNMENT, DboPromises.SCAL_SINGLE_WRITER_TENANT, DboPromises.SCAL_TRANSPARENT_ROUTING, DboPromises.SCAL_TWO_HOP_LOCALITY, DboPromises.SCAL_NO_SHARED_STATE_BROKER)),

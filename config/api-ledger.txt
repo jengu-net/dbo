@@ -1923,6 +1923,7 @@ cloud.jengu.dbo.promises.DboFeatures                                   PRM_MIGRA
 cloud.jengu.dbo.promises.DboFeatures                                   RESOLUTION_IS_DETERMINISTIC_AND_DECLARED:cloud.jengu.dbo.promises.DboFeatures
 cloud.jengu.dbo.promises.DboFeatures                                   SCAL_MIGRATED:cloud.jengu.dbo.promises.DboFeatures
 cloud.jengu.dbo.promises.DboFeatures                                   SCIM_MIGRATED:cloud.jengu.dbo.promises.DboFeatures
+cloud.jengu.dbo.promises.DboFeatures                                   SEALED_WORK:cloud.jengu.dbo.promises.DboFeatures
 cloud.jengu.dbo.promises.DboFeatures                                   SHAPE_VERSIONING:cloud.jengu.dbo.promises.DboFeatures
 cloud.jengu.dbo.promises.DboFeatures                                   SRCH_MIGRATED:cloud.jengu.dbo.promises.DboFeatures
 cloud.jengu.dbo.promises.DboFeatures                                   SYNC_MIGRATED:cloud.jengu.dbo.promises.DboFeatures
@@ -2030,6 +2031,7 @@ cloud.jengu.dbo.promises.DboPromises                                   POL_ACTOR
 cloud.jengu.dbo.promises.DboPromises                                   POL_APPEND_ONLY_DISCIPLINE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_AUDIT_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_CUSTOM_AUDIT_EVENTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_DECLARATIVE_RETENTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_DECLARED_AT_CONFIGURATION:cloud.jengu.dbo.promises.DboPromises
@@ -2037,6 +2039,7 @@ cloud.jengu.dbo.promises.DboPromises                                   POL_ERASU
 cloud.jengu.dbo.promises.DboPromises                                   POL_FHIR_AUDIT_PROJECTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_POLICY_REPLAY_ON_RESTORE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_RETENTION_SWEEP:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_AREAS_MERGE_BY_CODE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_CATALOGUE_READ_WHOLE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_CITATION_IS_TYPED:cloud.jengu.dbo.promises.DboPromises
@@ -2051,8 +2054,11 @@ cloud.jengu.dbo.promises.DboPromises                                   PRM_REGIS
 cloud.jengu.dbo.promises.DboPromises                                   PRM_STATUS_IS_DERIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUDIT_REPLICATES_AS_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_DECLARED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_LANE_OVER_THE_STREAM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_NODE_ANSWERS_ITS_CATALOGUE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_NAMES_WHAT_IT_PRODUCED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE:cloud.jengu.dbo.promises.DboPromises
@@ -2064,6 +2070,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_CLOS
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CONTENT_CHANGES_INSIDE_WORK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CORRELATION_TRAVELS_OPAQUE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_DOMAIN_CODE_FILTER:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_DONE_MEANS_DONE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_ESCALATION_BY_FAILURE_CLASS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_EXECUTOR_DECLARES_ITSELF:cloud.jengu.dbo.promises.DboPromises
@@ -2087,7 +2094,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_PROG
 cloud.jengu.dbo.promises.DboPromises                                   PROC_REFUSED_IS_NOT_UNANSWERED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_REPORTING_RUNS_WHERE_NOTHING_COLLECTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_REPORT_THROUGH_DECLARED_ACTIONS:cloud.jengu.dbo.promises.DboPromises
-cloud.jengu.dbo.promises.DboPromises                                   PROC_RUNNER_SIGNS_ITS_VITALS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_RUNNER_DECLARES_ITS_VITALS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_RUN_HAS_A_RECORD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_RUN_INPUTS_FILL_THE_SLOTS:cloud.jengu.dbo.promises.DboPromises
@@ -2103,9 +2110,11 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_STEP
 cloud.jengu.dbo.promises.DboPromises                                   PROC_STEP_SHAPE_VALIDATION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TASK_CARRIES_THE_INPUTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TASK_SAYS_WHERE_THE_WORK_IS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_ROUTER_HOLDS_THE_CLAIM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TRACE_JOIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TRACE_RIDES_THE_LANE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_TRAVELS_SEALED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SCAL_DURABLE_ASSIGNMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SCAL_NO_SHARED_STATE_BROKER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SCAL_SINGLE_WRITER_TENANT:cloud.jengu.dbo.promises.DboPromises
@@ -2148,6 +2157,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_LOCA
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_PROVENANCE_COPIES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_SPEC_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_TERMINOLOGY_GRAIN_SURVIVES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_CREDENTIAL_BLIND_PROVISIONING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_DEDICATED_DATABASE_TIER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_ERASURE_BY_DROP:cloud.jengu.dbo.promises.DboPromises
@@ -2173,8 +2183,6 @@ cloud.jengu.dbo.promises.DboPromises                                   VER_TRANS
 cloud.jengu.dbo.promises.DboPromises                                   VER_VALIDATION_WITHOUT_WRITING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_VERSION_AGNOSTIC_CORE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_CONTENT_FREE_PLATFORM_PLANE:cloud.jengu.dbo.promises.DboPromises
-cloud.jengu.dbo.promises.DboPromises                                   WF_DECLARED_STEP_PLANE:cloud.jengu.dbo.promises.DboPromises
-cloud.jengu.dbo.promises.DboPromises                                   WF_GRANTS_FROM_CATALOGUE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_HOPS_AUDITED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_PLATFORM_COORDINATED_HOPS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_POSTGRES_SUBSTRATE:cloud.jengu.dbo.promises.DboPromises

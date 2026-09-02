@@ -198,7 +198,7 @@ class ExecutorsDeclareThemselvesIT {
     @Test
     @DisplayName("a participant calling itself healthy while its cursor stands still is "
             + "absent anyway — vitals annotate presence and never supply it")
-    @Proving({DboPromises.PROC_PRESENCE_IS_DERIVED, DboPromises.PROC_RUNNER_SIGNS_ITS_VITALS})
+    @Proving({DboPromises.PROC_PRESENCE_IS_DERIVED, DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS})
     void vitalsNeverSupplyPresence() throws Exception {
         String step = stepFor("boasting");
         String consumer = "participant.boasting";
