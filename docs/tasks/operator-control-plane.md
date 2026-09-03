@@ -1,9 +1,9 @@
 # An operator's control plane
 
-**Status** — the groundwork is done and the plane itself is not started. The
-state it wants is already records in tenant stores, the console already queries
-all of it for one JVM, and per-tenant answers are now uncontaminated. What is
-missing is fleet-level reach and a bounded way to *act*.
+**Status** — the read half reaches the fleet: a reader outside every container
+fans out over the nodes' and tenants' own doors and labels every answer with
+its node. It is a command that reads once, not yet a service that keeps
+reading, and nothing acts yet.
 
 **Issues** — none open. Closed and load-bearing here:
 [#160](https://github.com/jengu-net/dbo/issues/160) (a runner keeps no state
@@ -44,8 +44,18 @@ back door around the rules every other actor obeys.
 - **The act half exists as verbs, not as a surface.** `Runs.reopen` makes a
   closed run claimable with its reason recorded; `released`, `releaseLapsed`
   and `claim` are the rest. They are reached through a lane today.
-- **Nothing is fleet-level**, and that is a service question rather than a
-  data question: the stores already hold the answers.
+- **The fleet-level read exists as a command.** `core/dbo-fleet` is a plain
+  jar in the operator's shape: given the nodes, the deployment's token and a
+  secret per tenant, it asks each node what it serves and what it has
+  installed, asks each tenant for its runs as envelopes, unions the
+  inventories into the network map, and prints the reading. Two runtimes in
+  one JVM stand in for two nodes in `TheFleetIsReadFromOutsideEveryNodeIT`,
+  and a third node nobody started is in the reading as unreachable.
+- **Not yet a service, and not yet imaged.** One read and exit is the honest
+  first shape; a pod that keeps reading, and the image the build loop pushes
+  for it, are the next step of 4 — and a reading that is kept anywhere is the
+  "second store" decision below, so what a service holds between reads is
+  decided before one is written.
 
 ## Sequence
 
@@ -56,7 +66,7 @@ back door around the rules every other actor obeys.
 | 2a | **An exporter** ([#163](https://github.com/jengu-net/dbo/issues/163)) — a provider bundle a deployment installs, so the numbers reach a collector. | **DONE** 2026-09-03 — `dbo-telemetry-otlp`: OTLP over HTTP in the JSON encoding, rendered and sent with the JDK's own client so no protocol library rides in the container; configured by the deployment and idle without an endpoint (`NumbersLeaveTheNodeIT`, against a collector stood up in the test). Building it found the quiet failure: under OSGi the seam's ServiceLoader lookup found nothing, so the seam now declares the consumer capability and a container proof asks the seam what it found (`NumbersLeaveTheContainerIT`) |
 | 2b | **Trace context on the lane** ([#164](https://github.com/jengu-net/dbo/issues/164)) — one run as one chain across two processes. | **DONE** 2026-09-01 — a run carries the trace context it was given, never one it invented, across the lane and down to the runs it causes (`OneRunIsOneChainAcrossTwoProcessesIT`) |
 | 3 | **Split `PROC_NETWORK_MAP`** ([#162](https://github.com/jengu-net/dbo/issues/162)) — the catalogue half names the node-inventory gap this plane would surface. | **DONE** 2026-08-31 — a node answering its own catalogue is its own promise and proven; what remains under the old code is the per-node inventory, which the console's tests now cite because that module was never wired into the promise index |
-| 4 | **Fleet-level read** — one process holding per-tenant credentials, fanning out over the surfaces that already exist, labelling every answer with the node it came from. | **LATER** |
+| 4 | **Fleet-level read** — one process holding per-tenant credentials, fanning out over the surfaces that already exist, labelling every answer with the node it came from. | **IN PROGRESS** — first slice 2026-09-03: a node serves its installed catalogue at `/runtime/catalogue` beside `/runtime/tenants`, under the same token; a tenant's fleet door answers `runs` as envelopes; `core/dbo-fleet` reads, unions and labels (`TheFleetIsReadFromOutsideEveryNodeIT`, which also proves `PROC_NETWORK_MAP`). Left: the service form and its image |
 | 5 | **Bounded act** — the same verbs a participant has, through a lane, with an identity and an entitlement. | **LATER** |
 
 **The critical path is step 4**, and it is the first step that is a service
@@ -93,6 +103,34 @@ for "is the fleet healthy", wrong for "is this run claimable now". A control
 plane that read its state from a metrics pipeline would act on a stale view of
 somebody's durable work.
 
+**Runs are answered on the tenant's fleet door, not on the FHIR surface.** The
+`fleet` scope was minted for what a deployment may ask about its fleet, as
+distinct from what a bench may do, and "what is held by a person here" is that
+question. A Task search on the store surface would have needed a store-read
+credential, which reads documents; the fleet door answers envelopes and nothing
+below them, so the reader's credential cannot read anything a run was over.
+
+**The node's inventory is a node question under the deployment's token.** It
+names steps the node carries whether or not any tenant is up, and it is
+descriptive: nothing is declared to make the map, because a step declared by
+two doors is a collision by design and two nodes carrying the same modules
+would collide at once. The reader unions inventories; it introduces nothing.
+
+**The reader holds one secret per tenant, from a directory.** A file per tenant
+code is what a mounted Secret looks like from inside a pod, and the default
+client is the deployment's own `tenant-bootstrap`, which already carries the
+fleet scope. A tenant the reader was given no file for is in the reading as
+"no credential" and is not asked — reach is exactly what somebody handed it.
+
+**Node names are the deployment's.** A node that could name itself could name
+itself as another, and every answer is trusted exactly as far as its label. The
+reader is told `name=uri` and labels with the name it was told.
+
+**Sequential fan-out, bounded per ask.** Every ask has a timeout and every
+outcome is recorded, so one dead node costs one timeout and one line. Parallel
+fan-out buys latency and pays with a second failure mode; it is the service
+form's question, not the command's.
+
 **It never becomes a second store.** It queries; it does not copy. A cached
 mirror of many tenants' runs would be a second answer to a question the tenant
 store already answers authoritatively, and the two would disagree exactly when
@@ -120,9 +158,17 @@ answers would mean reopening that.
 
 ```bash
 ./gradlew :core:harness:test --tests '*ARunnerKeepsNoStateAcrossLanesIT*' \
-    --tests '*TheConsoleSaysWhoWouldRunAStepIT*' -PdboTestHeap=2g
+    --tests '*TheConsoleSaysWhoWouldRunAStepIT*' \
+    --tests '*TheFleetIsReadFromOutsideEveryNodeIT*' -PdboTestHeap=2g
 ./gradlew :karaf:commands:test
+./gradlew :core:dbo-fleet:installDist && \
+    DBO_FLEET_NODES=a=http://127.0.0.1:1 DBO_OPS_TOKEN=t \
+    DBO_FLEET_CREDENTIAL_DIR=/nonexistent core/dbo-fleet/build/install/dbo-fleet/bin/dbo-fleet
 ```
+
+The last one is the reader as a process rather than a class: it must print a
+reading with the node unreachable and exit zero, because the read exists to
+say which nodes did not answer.
 
 One runner against two lanes, work failing on one, the other's declaration
 untouched — checked against the old behaviour as well as the new, because a

@@ -509,14 +509,15 @@ public enum DboPromises implements Promise {
             + "serving is exactly when somebody asks."),
 
     /**
-     * TODO: prove it in a test. Narrowed from the promise that also covered one node
-     * (now {@link #PROC_A_NODE_ANSWERS_ITS_CATALOGUE}, proven): what is missing is the
-     * union, and the missing piece is an inventory rather than a transport. Declared
-     * candidates and introduced steps already accumulate without one, because every
-     * participant writes into the tenant's store whatever node it runs on. What never
-     * leaves a node is its INSTALLED catalogue — and it cannot travel through the
-     * introduction door, since a step declared by both doors is refused as a collision,
-     * which two nodes carrying the same modules would hit immediately.
+     * Narrowed from the promise that also covered one node (now {@link
+     * #PROC_A_NODE_ANSWERS_ITS_CATALOGUE}): the union, and the piece it needed was an
+     * inventory rather than a transport. Declared candidates and introduced steps
+     * accumulate without one, because every participant writes into the tenant's
+     * store whatever node it runs on. What never left a node was its INSTALLED
+     * catalogue — it cannot travel through the introduction door, since a step
+     * declared by both doors is refused as a collision, which two nodes carrying the
+     * same modules would hit immediately — so each node now serves it as an inventory
+     * under the deployment's token, and the reader outside unions the inventories.
      */
     PROC_NETWORK_MAP("A deployment answers what its nodes have installed between them, "
             + "and in which versions — one answer rather than a walk. What each node has "
@@ -1190,6 +1191,16 @@ public enum DboPromises implements Promise {
             + "state, never from re-reading the declarations, so a caller comparing the "
             + "two can find a disagreement rather than confirming its own writes. "
             + "Cross-tenant, so no tenant credential buys it."),
+    OPS_FLEET_IS_READ_FROM_OUTSIDE(
+            "A deployment is read from one process outside every container, over the "
+            + "doors its nodes and tenants already serve: a node is asked what it serves "
+            + "and what it has installed under the deployment's own token, and a tenant "
+            + "is asked about its work under a credential its own authority minted, so "
+            + "the reader holds one credential per tenant and is never handed a surface "
+            + "that crosses them. Every answer is labelled with the node it came from, "
+            + "nothing is copied, and a node that does not answer or a tenant the reader "
+            + "holds no credential for is in the reading as such rather than missing "
+            + "from it."),
     /** TODO: prove it in a test. */
     OPS_MIGRATION_AS_DEPLOYMENT(
             "Schema and engine upgrades ride rolling deployment: the highest-version "

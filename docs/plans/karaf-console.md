@@ -119,8 +119,9 @@ Mutating commands are therefore capped until they carry an identity — which is
 the token-exchange route below, not a shell flag.
 
 **One node looks like the deployment.** Karaf sees one JVM. Network-wide answers
-depend on the dOSGi accumulation (§5) that the process map is specified to use.
-Until that exists, every answer must be labelled with its node, or the command
+come from the fleet reader, a process outside every container that fans out
+over the nodes' own doors and labels every answer with its node — not from the
+console. So every console answer must be labelled with its node, or the command
 must not exist — a `dbo:process list` that silently means "here" invites exactly
 the wrong reading.
 

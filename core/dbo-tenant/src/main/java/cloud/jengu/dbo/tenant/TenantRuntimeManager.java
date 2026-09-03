@@ -532,7 +532,54 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return;
         }
         byte[] expected = opsToken.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        sharedServer.createContext("/runtime/tenants", exchange -> {
+        sharedServer.createContext("/runtime/tenants", opsGuarded(expected, () -> {
+            StringBuilder json = new StringBuilder("{\"tenants\":[");
+            boolean first = true;
+            for (TenantState state : tenantStates()) {
+                if (!first) {
+                    json.append(',');
+                }
+                first = false;
+                json.append("{\"code\":\"").append(state.code())
+                        .append("\",\"state\":\"").append(state.state().wire()).append("\"}");
+            }
+            return json.append("]}").toString();
+        }));
+        // The node's inventory, beside its tenants and under the same token.
+        // What is INSTALLED here never leaves the node any other way: a
+        // participant's declarations are records in a tenant's store whatever
+        // node it runs on, but the modules a node carries are the node's
+        // alone, and they cannot travel through the introduction door — a
+        // step declared by both doors is a collision by design, which two
+        // nodes carrying the same modules would hit at once. So this is
+        // descriptive, an inventory a deployment unions across its nodes,
+        // and never a second declaration of anything.
+        sharedServer.createContext("/runtime/catalogue", opsGuarded(expected, () -> {
+            List<Map<String, Object>> installed = new java.util.ArrayList<>();
+            for (String id : steps.ids()) {
+                steps.byId(id).ifPresent(step -> {
+                    Map<String, Object> row = new java.util.LinkedHashMap<>();
+                    row.put("id", step.id().toString());
+                    row.put("version", step.version());
+                    row.put("reads", new java.util.TreeSet<>(step.reads()));
+                    row.put("writes", new java.util.TreeSet<>(step.writes()));
+                    step.overridable().ifPresent(by -> row.put("overridable", by));
+                    installed.add(row);
+                });
+            }
+            return cloud.jengu.dbo.core.wire.RecordWire.write(Map.of("steps", installed));
+        }));
+        LOG.info("runtime state: serving /runtime/tenants and /runtime/catalogue");
+    }
+
+    /**
+     * A deployment-level answer behind the deployment's token: GET only, the
+     * token compared in constant time, and a refusal that says nothing about
+     * what it is refusing to show.
+     */
+    private com.sun.net.httpserver.HttpHandler opsGuarded(byte[] expected,
+            java.util.function.Supplier<String> answer) {
+        return exchange -> {
             try {
                 String presented = exchange.getRequestHeaders().getFirst("Authorization");
                 byte[] offered = presented == null || !presented.startsWith("Bearer ")
@@ -546,22 +593,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     respond(exchange, 405, "{\"error\":\"invalid_request\"}");
                     return;
                 }
-                StringBuilder json = new StringBuilder("{\"tenants\":[");
-                boolean first = true;
-                for (TenantState state : tenantStates()) {
-                    if (!first) {
-                        json.append(',');
-                    }
-                    first = false;
-                    json.append("{\"code\":\"").append(state.code())
-                            .append("\",\"state\":\"").append(state.state().wire()).append("\"}");
-                }
-                respond(exchange, 200, json.append("]}").toString());
+                respond(exchange, 200, answer.get());
             } finally {
                 exchange.close();
             }
-        });
-        LOG.info("runtime state: serving /runtime/tenants");
+        };
     }
 
     private static void respond(com.sun.net.httpserver.HttpExchange exchange, int status,
@@ -1046,7 +1082,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // asking what state a fleet is in is not a participant act.
             String fleetPath = "/t/" + spec.code() + "/fleet";
             sharedServer.createContext(fleetPath,
-                    new FleetHandler(authority, laneTrackables, fleetPath));
+                    new FleetHandler(authority, laneTrackables,
+                            new cloud.jengu.dbo.work.Runs(runtime.engine()), fleetPath));
             fleetContexts.put(spec.code(), fleetPath);
             // The replication surface: the same asymmetry one layer up.
             // Declarations flow cloud → appliance, so the cloud is the side

@@ -295,7 +295,19 @@ Three different questions, deliberately answered by three different things.
 
 **"What is true right now?"** — the store. Runs are records, so what is claimable,
 what is stuck and who holds it are ordinary queries against the tenant's own
-data. Anything that acts on work reads this and nothing else.
+data. Anything that acts on work reads this and nothing else. Across a
+deployment the same question is asked by one process outside every container,
+over the doors each node and tenant already serves: a node is asked what it is
+serving and what it has installed under the deployment's own token, because
+both answers name other tenants' existence; a tenant is asked about its work
+under a credential its own authority minted, as envelopes and never payloads,
+so the reader holds one credential per tenant and is never handed a surface
+that crosses them. Every answer is labelled with the node it came from, nothing
+is copied, and a node that did not answer is in the reading as unreachable
+rather than absent from it — the missing node being the one an operator opened
+the reading for. The union of the nodes' inventories is the network map, by
+step and version: descriptive, and never a second declaration of a step, which
+is why an inventory travels this way and not through the introduction door.
 
 **"What does this node know how to do, and who would take it?"** — the console.
 It lists the steps installed here and the steps a participant introduced, names
