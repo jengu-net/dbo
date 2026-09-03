@@ -88,7 +88,50 @@ public enum DboStories implements Story {
                     DboPromises.PROC_RUN_NAMES_WHAT_RAN_IT,
                     DboPromises.POL_POLICY_REPLAY_ON_RESTORE,
                     DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES,
-                    DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK));
+                    DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)),
+
+    TENANT_OPENING("A tenant is stood up inside somebody else's JVM, with a database and an "
+            + "authority of its own, and the people who will work in it get in.",
+            List.of(
+                    // The store arrives as a library in a JVM the builder owns,
+                    // and the tenant's services appear when its spec does.
+                    DboPromises.CONT_EMBEDDED_IN_JVM,
+                    DboPromises.CONT_FRAMEWORK_FREE_CORE,
+                    DboPromises.CONT_PRIVATE_DEPENDENCIES,
+                    DboPromises.CONT_IMPORTS_ARE_COMPUTED_OR_CHECKED,
+                    DboPromises.CONT_DYNAMIC_TENANT_SERVICES,
+                    DboPromises.CONT_FAST_COLD_START,
+                    // What a tenant is: a database, provisioned without this
+                    // code ever holding the credential, reachable only as itself.
+                    DboPromises.TEN_DEDICATED_DATABASE_TIER,
+                    DboPromises.TEN_CREDENTIAL_BLIND_PROVISIONING,
+                    DboPromises.TEN_STRUCTURAL_SCOPING,
+                    DboPromises.TEN_REGISTRY_SCOPED_ACCESS,
+                    DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
+                    // Its own authority, and nothing reachable without it.
+                    DboPromises.AUTH_TENANT_SCOPED_ISSUER,
+                    DboPromises.AUTH_PORTABLE_AUTHORITY,
+                    DboPromises.AUTH_IDENTITY_AS_RECORDS,
+                    DboPromises.AUTH_DENY_BY_DEFAULT,
+                    DboPromises.AUTH_BEARER_LOCAL_VALIDATION,
+                    DboPromises.AUTH_SMART_SHAPED_SCOPES,
+                    DboPromises.AUTH_ONE_CEREMONY_MANY_TENANTS,
+                    // The staff directory drives who exists.
+                    DboPromises.SCIM_DECLARED_PER_TENANT,
+                    DboPromises.SCIM_DIRECTORY_CREDENTIAL,
+                    DboPromises.SCIM_USER_IS_THE_PERSON,
+                    DboPromises.SCIM_ENUMERATION_STAYS_INSIDE,
+                    DboPromises.SCIM_EVERY_OP_IS_A_DISCLOSURE,
+                    DboPromises.SCIM_GROUPS_READ_ONLY,
+                    // And what each of them may do, as records rather than code.
+                    DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL,
+                    DboPromises.AUTH_ROLE_GRANTS_AS_RECORDS,
+                    DboPromises.AUTH_CREDENTIAL_FACTORS_BY_KIND,
+                    DboPromises.AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP,
+                    DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
+                    DboPromises.AUTH_SELF_SERVICE_CHANGE,
+                    DboPromises.AUTH_RECOVERY_IS_AN_OPERATOR_ACT,
+                    DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS));
 
     private final String title;
     private final List<Promise> promises;
