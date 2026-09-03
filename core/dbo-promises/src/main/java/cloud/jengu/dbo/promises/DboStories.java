@@ -313,7 +313,38 @@ public enum DboStories implements Story {
                     DboPromises.PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE,
                     DboPromises.PROC_LANE_EPOCH,
                     DboPromises.FEED_PUSH_ACK_RESUME,
-                    DboPromises.FEED_IDEMPOTENT_DELIVERY));
+                    DboPromises.FEED_IDEMPOTENT_DELIVERY)),
+
+    STANDARD_MOVES("Data outlives the shapes it was written under: what an object was "
+            + "validated under is a fact of the accept event, and everything a migration "
+            + "needs follows from recording it.",
+            List.of(
+                    // The one decision the rest follows from.
+                    DboPromises.SHAPE_WRITTEN_UNDER_STAMPED,
+                    DboPromises.SHAPE_STAMP_IS_DERIVED,
+                    DboPromises.SHAPE_SERVED_BESIDE_THE_CLAIM,
+                    DboPromises.SHAPE_MIRRORED_KEEPS_ITS_STAMP,
+                    DboPromises.SHAPE_UNPARSEABLE_VERSION_REFUSED,
+                    DboPromises.SHAPE_STAMP_OUTLIVES_ITS_PACK,
+                    // What it makes possible: counting, finding, converting.
+                    DboPromises.SHAPE_STOCK_COUNTED,
+                    DboPromises.SHAPE_QUERYABLE_BY_VERSION,
+                    DboPromises.SHAPE_RESHAPED_IN_PLACE,
+                    DboPromises.SHAPE_RESHAPE_RESUMABLE,
+                    DboPromises.SHAPE_REFUSED_OBJECT_LEFT_BEHIND,
+                    DboPromises.SHAPE_HANDBACK_CLAIMS_WITHOUT_LOCKING,
+                    DboPromises.SHAPE_HANDBACK_KEEPS_THE_DISCIPLINE,
+                    // And what it refuses rather than half-reads.
+                    DboPromises.SHAPE_NEWER_DATA_REFUSED,
+                    DboPromises.SHAPE_TOO_NEW_IS_ITS_OWN_ANSWER,
+                    // The version underneath the shapes, moving too.
+                    DboPromises.VER_CONCURRENT_VERSIONS,
+                    DboPromises.VER_TRANSITION_BY_CONVERTERS,
+                    DboPromises.VER_DEFINITIONS_TRAVEL_WITH_THE_FACE,
+                    DboPromises.VER_BALLOT_RECORDED_PER_VERSION,
+                    DboPromises.VER_BALLOT_SERVED_AS_AUTHORED,
+                    DboPromises.CORE_UPGRADE_ON_READ,
+                    DboPromises.CORE_IDENTITY_SURVIVES_CONVERSION));
 
     private final String title;
     private final List<Promise> promises;
