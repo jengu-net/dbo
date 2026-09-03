@@ -219,9 +219,19 @@ protocol library; the seam finds its exporter inside the container. User
 stories are constants beside the promises, their joins projected rather than
 written.
 
+A deployment is read from outside every container: one process holds the
+deployment's token for the node questions and one credential per tenant for
+the tenant questions, fans out over the doors each already serves, and labels
+every answer with the node it came from. A node serves its installed catalogue
+as an inventory beside its tenant states, and the reader's union of those
+inventories is the network map — by step and version, descriptive, never a
+declaration. A tenant's fleet door answers its runs as envelopes. A node that
+does not answer and a tenant the reader holds no credential for are in the
+reading as such rather than missing from it.
+
 *Built and proven, the whole of the sealed-work design included. What remains
 PLANNED in this area: the process catalogue held in the store, the domain-code
-filter, one-parent-never-across-a-boundary, and the per-node network map.*
+filter, and one-parent-never-across-a-boundary.*
 
 ### Packaging
 
@@ -279,15 +289,15 @@ never superuser, and its deletion policies distinguish "stop serving" from
 
 ## Specified, not built
 
-Sixteen promises read `PLANNED`, and they fall into four groups. **SCAL**
+Fifteen promises read `PLANNED`, and they fall into four groups. **SCAL**
 (routing: durable assignment, single-writer tenants, transparent routing,
 two-hop locality, no shared-state broker) has no implementation at all. **WF**
 is down to one — platform-coordinated hops — because no tenant-to-tenant hop
 exists to prove anything about; the two plane promises are proven by the
 sealed-work proofs. **OPS** keeps blob storage and migration-as-deployment;
-the telemetry exporter is built. **TEN** keeps the shared tier and quotas,
-**AUTH** the private surface, **FEED** the lean wire option, and **PROC** the
-four named above. What a process, a step and a run are, and how work reaches
+the telemetry exporter and the fleet read are built. **TEN** keeps the shared
+tier and quotas, **AUTH** the private surface, **FEED** the lean wire option,
+and **PROC** the three named above. What a process, a step and a run are, and how work reaches
 whoever performs it, is in
 [`processes-and-work.md`](../arc42-008-crosscutting/processes-and-work.md); how
 those concepts are rendered for a reader of a standard is in

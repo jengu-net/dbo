@@ -2,6 +2,9 @@ package cloud.jengu.dbo.tenant;
 
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.core.wire.RecordWire;
+import cloud.jengu.dbo.work.Holder;
+import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Trackable;
 import cloud.jengu.dbo.work.Trackables;
 import com.sun.net.httpserver.HttpExchange;
@@ -37,6 +40,16 @@ import java.util.Optional;
  * about what the tenant knows, which is why it stands beside replication
  * rather than inside maintenance, with a scope of its own.
  *
+ * <p><b>Runs are answered here too, as envelopes.</b> What is held by a person,
+ * what automation is running and what is waiting on a retry is the state of
+ * the tenant's work, and a deployment reading its fleet asks that question
+ * as often as it asks what is behind a connector. The answer is the run's
+ * envelope — key, process, step, kind, holder, tally, the step's version —
+ * and never its payload: the envelope was designed to disclose state and not
+ * subject, and this door is the reason that mattered. A caller who wants the
+ * run itself reads it on the tenant's surface under the tenant's authority,
+ * which the fleet scope does not carry.
+ *
  * <p><b>No freshness rule, deliberately.</b> Nothing here filters stale rows
  * or thresholds on how long ago something was seen. {@code attested} says who
  * last saw a thing and when, and what that means depends on the hop's cadence,
@@ -49,13 +62,19 @@ public final class FleetHandler implements HttpHandler {
     /** What a credential must carry to reach this door and nothing else. */
     public static final String SCOPE = cloud.jengu.dbo.auth.Scopes.FLEET;
 
+    /** Rows per answer when the caller does not say: a list of everything answers nothing. */
+    static final int DEFAULT_RUN_LIMIT = 200;
+
     private final TenantAuthority authority;
     private final Trackables trackables;
+    private final Runs runs;
     private final String base;
 
-    public FleetHandler(TenantAuthority authority, Trackables trackables, String base) {
+    public FleetHandler(TenantAuthority authority, Trackables trackables, Runs runs,
+            String base) {
         this.authority = authority;
         this.trackables = trackables;
+        this.runs = runs;
         this.base = base;
     }
 
@@ -101,9 +120,10 @@ public final class FleetHandler implements HttpHandler {
                     respond(exchange, one.get());
                 }
                 case "all" -> respond(exchange, trackables.all());
+                case "runs" -> respond(exchange, Map.of("runs", envelopes(body)));
                 default -> fail(exchange, 404, "invalid_request",
-                        "this door answers subtree, behind, observedBy, trackable and all; "
-                                + "it was asked for '" + verb + "'");
+                        "this door answers subtree, behind, observedBy, trackable, all and "
+                                + "runs; it was asked for '" + verb + "'");
             }
         } catch (IllegalArgumentException refused) {
             fail(exchange, 400, "invalid_request", String.valueOf(refused.getMessage()));
@@ -138,6 +158,40 @@ public final class FleetHandler implements HttpHandler {
             return (Map<String, Object>) fields;
         }
         throw new IllegalArgumentException("the body must be an object");
+    }
+
+    /**
+     * The runs matching the filter, as envelopes. Every filter is an envelope
+     * value, so this is the same query the console runs; absent means any,
+     * and a holder is spelt as it is on the wire.
+     */
+    private List<Map<String, Object>> envelopes(Map<String, Object> body) {
+        String holderWord = optional(body, "holder");
+        Holder holder = holderWord == null || "any".equalsIgnoreCase(holderWord) ? null
+                : Holder.valueOf(holderWord.toUpperCase(java.util.Locale.ROOT));
+        String limitWord = optional(body, "limit");
+        int limit = limitWord == null ? DEFAULT_RUN_LIMIT : Integer.parseInt(limitWord);
+        List<Map<String, Object>> out = new java.util.ArrayList<>();
+        for (Run run : runs.matching(optional(body, "process"), optional(body, "step"),
+                holder, limit)) {
+            Map<String, Object> envelope = new java.util.LinkedHashMap<>();
+            envelope.put("key", run.key());
+            envelope.put("process", run.process());
+            envelope.put("step", run.step());
+            envelope.put("kind", run.kind().wire());
+            envelope.put("holder", run.holder().wire());
+            envelope.put("tally", run.tally());
+            if (run.stepVersion() != null) {
+                envelope.put("stepVersion", run.stepVersion());
+            }
+            out.add(envelope);
+        }
+        return out;
+    }
+
+    private static String optional(Map<String, Object> body, String field) {
+        Object value = body.get(field);
+        return value == null || String.valueOf(value).isBlank() ? null : String.valueOf(value);
     }
 
     private static String required(Map<String, Object> body, String field) {

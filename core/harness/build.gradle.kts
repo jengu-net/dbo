@@ -40,6 +40,8 @@ dependencies {
     testImplementation(project(":core:dbo-runner"))
     testImplementation(project(":core:dbo-stream"))
     testImplementation(project(":core:dbo-telemetry-otlp"))
+    // the fleet reader: proven against two runtimes in this JVM, over HTTP
+    testImplementation(project(":core:dbo-fleet"))
     // the promise framework's processor indexes @Proving citations at THIS
     // module's test-compile time; without this configuration the index is
     // silently absent
