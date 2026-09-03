@@ -219,6 +219,12 @@ protocol library; the seam finds its exporter inside the container. User
 stories are constants beside the promises, their joins projected rather than
 written.
 
+Overturning a closure is reached through the lane and by its own half of an
+entitlement: a credential that performs a step does not thereby overturn its
+closures, one that speaks for the whole tenant supervises nothing unless
+somebody wrote it down, and a supervisor takes no work. The step's declared
+actions are enforced on the lane as well as at authoring, which they were not.
+
 A deployment is read from outside every container: one process holds the
 deployment's token for the node questions and one credential per tenant for
 the tenant questions, fans out over the doors each already serves, and labels

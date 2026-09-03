@@ -111,6 +111,10 @@ public final class LaneVerbService {
                 }
                 yield null;
             }
+            case REOPEN -> {
+                lane.reopen(run(body), string(body, LaneVerbs.REASON));
+                yield null;
+            }
             case RELEASE_LAPSED -> (long) lane.releaseLapsed();
             case DECLARE -> {
                 lane.declare(declared(body));
@@ -170,9 +174,7 @@ public final class LaneVerbService {
         if (asked == null) {
             return credential;
         }
-        List<String> steps = RecordWire.decodeList(asked, String.class).stream()
-                .filter(credential::covers).toList();
-        return Lane.Entitlement.ofSteps(steps.toArray(String[]::new));
+        return credential.narrowedTo(RecordWire.decodeList(asked, String.class));
     }
 
     private static Run run(Object body) {

@@ -127,7 +127,22 @@ back the same thing.
 and the distinction is deliberate: where the only ending is "done", failures
 quietly become successes and the next person cannot tell a job that finished from
 one that gave up. Whether a participant may close a step at all — as opposed to
-only advancing it — is something the step declared.
+only advancing it — is something the step declared, and the rule lives at the
+primitive every door passes through rather than at any one of them, so the lane,
+the authoring surface and whatever comes next meet one copy of it.
+
+**Overturning a closure is a different authority from performing the step.** A
+close can be wrong, and discovering that must not require inventing a second run
+to disagree with the first: the run itself becomes claimable again, with the
+reason on the record. That reopening is reached through the lane like every
+other act, and by its own half of an entitlement — the supervisory half, which
+nothing implies. A bench that validates results does not thereby overturn the
+ones somebody judged done; a credential speaking for the whole tenant supervises
+nothing until the word is written down, exactly as one that may write every type
+still may not erase a person; and a credential that supervises takes no work.
+Both halves must admit the act — the entitlement names the step and the step
+declares the action — and a supervisor asked for a step it does not name, or one
+whose declaration omits reopening, is refused by name.
 
 **Work is authored on the tenant's own surface, never on the lane.** A
 participant holds a lane and takes work; whoever authors work holds the

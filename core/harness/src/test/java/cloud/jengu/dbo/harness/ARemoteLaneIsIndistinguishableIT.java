@@ -194,6 +194,14 @@ class ARemoteLaneIsIndistinguishableIT {
         }
 
         @Override
+        public void reopen(Run run, String because) {
+            across("reopen", () -> {
+                farSide.reopen(run, because);
+                return null;
+            });
+        }
+
+        @Override
         public int releaseLapsed() {
             return across("releaseLapsed", farSide::releaseLapsed);
         }

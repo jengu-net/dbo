@@ -250,6 +250,15 @@ public enum DboPromises implements Promise {
             + "claimable again with the reason on the record, instead of a second run "
             + "invented to disagree with the first."),
 
+    PROC_SUPERVISION_IS_ITS_OWN_ENTITLEMENT("Undoing a judgment already made about "
+            + "work is reached through the lane like every other act, and by its own half "
+            + "of an entitlement. A credential that performs a step does not thereby "
+            + "overturn its closures — not even one that speaks for the whole tenant — and "
+            + "a credential that supervises takes no work. Both halves must admit the act: "
+            + "the entitlement names the step and the step declares the action, and a "
+            + "supervisor asked for a step it does not name, or for one whose declaration "
+            + "omits reopening, is refused by name rather than quietly doing nothing."),
+
     PROC_STEP_SHAPE_VALIDATION("A payload is validated against the shape a step declares "
             + "through the face's existing payload capability, and a shape the face "
             + "cannot resolve is an issue rather than a pass."),

@@ -78,13 +78,36 @@ public final class Scopes {
      */
     public static final String FLEET = "fleet";
 
+    /**
+     * The supervisory scope: admits undoing a judgment already made about
+     * work — reopening a run somebody closed — and nothing else. Outside the
+     * SMART grammar like the others.
+     *
+     * <p><b>Separate from {@link #WORK}, and the split is the point.</b> What
+     * a bench may <em>do</em> is take work and report on it; this is what a
+     * supervisor may <em>undo</em>, and neither implies the other. A runner
+     * that validates lab results has no business reopening runs somebody
+     * judged finished, and whoever decides a close was wrong performs no work.
+     * Named explicitly like {@link #ERASURE}, never implied by a broad grant:
+     * a credential that speaks for the whole tenant still may not overturn a
+     * closure unless somebody wrote the word down.
+     *
+     * <p>Bare, it supervises every step. Suffixed —
+     * {@code supervise/<module>.<process>.<step>} — it bounds the holder to
+     * the steps its credential names, which is the same shape {@link #WORK}
+     * uses and meets the step's declared actions as the other half of reach.
+     */
+    public static final String SUPERVISE = "supervise";
+
     private static final String WORK_STEP = WORK + "/";
+    private static final String SUPERVISE_STEP = SUPERVISE + "/";
 
     /** Validates a declared scope string (as stored on a ClientApplication). */
     public static boolean isValid(String scope) {
         return SCIM.equals(scope) || WORK.equals(scope) || ERASURE.equals(scope)
                 || IDENTITY.equals(scope) || FLEET.equals(scope)
-                || isWorkStep(scope)
+                || SUPERVISE.equals(scope)
+                || isWorkStep(scope) || isSupervisedStep(scope)
                 || SCOPE.matcher(scope).matches();
     }
 
@@ -111,6 +134,29 @@ public final class Scopes {
 
     private static boolean isWorkStep(String scope) {
         return scope.startsWith(WORK_STEP) && scope.length() > WORK_STEP.length();
+    }
+
+    /** Whether these grants may undo a judgment — reach the supervisory verbs. */
+    public static boolean admitsSupervision(List<String> granted) {
+        return granted.contains(SUPERVISE) || granted.stream().anyMatch(Scopes::isSupervisedStep);
+    }
+
+    /**
+     * Whether this credential supervises every step — the bare scope. A
+     * credential naming steps supervises exactly those.
+     */
+    public static boolean supervisesEverything(List<String> granted) {
+        return granted.contains(SUPERVISE);
+    }
+
+    /** The steps a bounded supervisory credential covers, in the order granted. */
+    public static List<String> supervisedSteps(List<String> granted) {
+        return granted.stream().filter(Scopes::isSupervisedStep)
+                .map(scope -> scope.substring(SUPERVISE_STEP.length())).toList();
+    }
+
+    private static boolean isSupervisedStep(String scope) {
+        return scope.startsWith(SUPERVISE_STEP) && scope.length() > SUPERVISE_STEP.length();
     }
 
     public static boolean allows(List<String> granted, String resourceType, boolean mutation) {
