@@ -5,9 +5,10 @@ built. The specification itself lives in the arc42 tree ([index](../README.md));
 the requirement codes below are defined in the
 [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
 
-**267 behaviour-named tests across 53 classes, 50 of them integration tests
-against a real Postgres, a real Felix container, and — for the provisioning
-operator — a real Kubernetes API server. CI is green on every commit; nothing
+**940 behaviour-named tests across 185 classes, 143 of them integration tests
+against a real Postgres, a real Felix container, the shipped distribution
+booted as a separate JVM, and — for the provisioning operator — a real
+Kubernetes API server. CI is green on every commit; nothing
 publishes and no image ships unless the whole suite passes on exactly that
 commit.**
 
@@ -184,6 +185,44 @@ quietly.
 
 *Complete. The blob element waits on blob storage.*
 
+### PROC — distributed work, and work that leaves sealed
+
+Runs are records, a step declares itself and its input slots, and a
+participant holds a *lane* — in-process, over HTTP, or over the store's own
+durable substrate, the same verbs on all three so a runner cannot tell which
+it holds. Work is authored on the tenant's surface: a `Task` posted there
+that names a declared step becomes a run, refused by name where its rules
+are not met, and reads back as the same `Task` as it advances. A router holds
+the claim for the edge behind it, names that edge as the recipient, and waits.
+
+One runner fleet can carry every tenant's work and read almost none of it.
+A participant offers two public keys at enrolment (X25519 to be sealed to,
+Ed25519 to sign with); its inputs leave as a readable manifest plus payloads
+sealed under a per-payload key wrapped to it, in the carrier form, so a shred
+reaches a copy in flight with no special case; the shared plane is checked by
+reading every row of the substrate and holds the manifest, no content and no
+token. The trail tells carrying from reading — a travel entry on the task per
+hop, an access entry on the document per opening, the store's own read to
+seal recorded as nothing — and the entries are chained from the task with the
+result as the last link: a participant signs its openings, a suppressed link
+is exposed by the next, a mismatched head is refused by name, and a pruned
+predecessor reads unchained. A departed routee is kept with its last
+attestation. A partner is a tenant that manages others, declared at creation;
+it follows their journeys as an audience and reads no document.
+
+The replication lane between two appliances of one tenant has both of its
+bounds: patient data by work, arriving with a task and leaving with it, and
+declarations by type, filed under their source and never revoked. What a run
+produced travels with it. A deployment points the telemetry seam at its
+collector by configuration and the node's numbers arrive as OTLP, with no
+protocol library; the seam finds its exporter inside the container. User
+stories are constants beside the promises, their joins projected rather than
+written.
+
+*Built and proven, the whole of the sealed-work design included. What remains
+PLANNED in this area: the process catalogue held in the store, the domain-code
+filter, one-parent-never-across-a-boundary, and the per-node network map.*
+
 ### Packaging
 
 The spec-authoring transitives are gone from the personalities. The HL7 core
@@ -240,20 +279,19 @@ never superuser, and its deletion policies distinguish "stop serving" from
 
 ## Specified, not built
 
-**WF** (durable work and planes), **SCAL** (routing) and **OPS** (operations)
-are written down in the spec and have no implementation. **PROC** (the process
-catalogue and distributed work) is built and proven — runs as records, the step
-declaration, the participation lane and the participant, replication, and the
-console that answers who would run a step here. What a process, a step and a
-run are, and how work reaches whoever performs it, is in
+Sixteen promises read `PLANNED`, and they fall into four groups. **SCAL**
+(routing: durable assignment, single-writer tenants, transparent routing,
+two-hop locality, no shared-state broker) has no implementation at all. **WF**
+is down to one — platform-coordinated hops — because no tenant-to-tenant hop
+exists to prove anything about; the two plane promises are proven by the
+sealed-work proofs. **OPS** keeps blob storage and migration-as-deployment;
+the telemetry exporter is built. **TEN** keeps the shared tier and quotas,
+**AUTH** the private surface, **FEED** the lean wire option, and **PROC** the
+four named above. What a process, a step and a run are, and how work reaches
+whoever performs it, is in
 [`processes-and-work.md`](../arc42-008-crosscutting/processes-and-work.md); how
 those concepts are rendered for a reader of a standard is in
 [`the-fhir-face.md`](../arc42-008-crosscutting/the-fhir-face.md).
-`PROC_NETWORK_MAP` is the one promise still `PLANNED`, and it is narrower than
-it was: a node answering its own catalogue is proven, and what is missing is a
-per-node inventory so a deployment can answer for its nodes at once. That
-cannot ride the introduction door, because a step declared by two doors is a
-collision by design.
 
 ## Known next fronts
 
@@ -277,11 +315,8 @@ Unordered, and each needs its own design pass before it starts.
 - **Placement.** When zones multiply databases past one server's comfort, a
   `TenantRegistration` grows a placement target. The custom resource is
   already the seam for it.
-- **Computed bundle imports.** The fat bundles hand-write their
-  `Import-Package` lists, which is why a ratchet test exists; moving them to
-  bnd-computed imports retires the ratchet. The engine half of those lists is
-  already computed — a personality reads the shared stack's export list rather
-  than naming packages — and the DBO half is what the ratchet still guards.
 
-Later horizons: the routing layer, the process catalogue, an R6 personality
-when there is a ballot, a shared-schema tenancy tier, and blob storage.
+Later horizons: the routing layer, an R6 personality when there is a ballot,
+a shared-schema tenancy tier, blob storage, and the three parked questions
+that carry their own triggers — the storage grain a face declares, the rest
+of cold start, and tier-2 search.
