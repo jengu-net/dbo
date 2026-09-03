@@ -4,10 +4,14 @@
 bundle, and constructed only by tests. Four EVT promises read `PROVEN`. No
 tenant has ever delivered a notification.
 
-**Issues** — built and closed: [#8](https://github.com/jengu-net/dbo/issues/8)
-(durable rest-hook delivery), [#15](https://github.com/jengu-net/dbo/issues/15)
-(topic subscriptions, R5-native and R4-backported). None open yet; the
-sequence below is the groomable list.
+**Issues** — open: [#184](https://github.com/jengu-net/dbo/issues/184) (say
+what is true while it is untrue — step 1). Built and closed:
+[#8](https://github.com/jengu-net/dbo/issues/8) (durable rest-hook delivery),
+[#15](https://github.com/jengu-net/dbo/issues/15) (topic subscriptions,
+R5-native and R4-backported). Related:
+[#183](https://github.com/jengu-net/dbo/issues/183), the ratchet that would
+have caught this. Steps 2 onward are the groomable list below and are
+deliberately unfiled until step 1 lands.
 
 **Concepts** —
 [change, and who is listening](../arc42-008-crosscutting/change-and-who-is-listening.md) ·
@@ -49,7 +53,7 @@ meantime.
 
 | # | step | status |
 |---|---|---|
-| 1 | **Say what is true while it is untrue** — the four EVT promises carry a `TODO: prove it in a test` and the status page stops describing eventing as complete. Cheap, and everything below is decided while believing the status page. | NEXT |
+| 1 | **Say what is true while it is untrue** ([#184](https://github.com/jengu-net/dbo/issues/184)) — the unreachable EVT promises carry a `TODO: prove it in a test` and the status page stops describing eventing as complete. Cheap, and everything below is decided while believing the status page. | NEXT |
 | 2 | **Mount dispatch as a step service** — the runner tracks `StepService` through an OSGi whiteboard, so a bundle contributes one the way it contributes anything else. No new wiring in the composition root, which is where the gap is. | READY, needs 1 |
 | 3 | **Model dispatch as a sweep** — one run per pass over the feed, checkpointing its position, with per-event durability kept inside the step. A reconciler modelled as a pipeline never ends. | READY, needs 2 |
 | 4 | **Make id-only the default notification** — transport becomes routing, and the disclosing read goes back through the door that authorises, audits and decrypts. | READY, needs 0 |
@@ -99,8 +103,9 @@ the packaging, not the wiring, and there is a container proof that loads the
 class and stops there.
 
 **A ratchet would have caught this and does not exist.** The same sweep found
-four more instances elsewhere in the tree. That belongs in its own issue, not
-here.
+four more instances elsewhere in the tree, so this is a class of failure
+rather than one mistake. It is [#183](https://github.com/jengu-net/dbo/issues/183),
+and it is the reason to fix the mechanism rather than only this instance.
 
 ## Not doing
 
