@@ -24,30 +24,73 @@ import java.util.List;
 @Catalogue(namespace = "US-DBO")
 public enum DboStories implements Story {
 
-    EDGE_ROUNDTRIP("One synchronisation service serves every tenant's devices, and reads a "
-            + "payload only when it has to.",
-            List.of(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE,
-                    DboPromises.TEN_STRUCTURAL_SCOPING,
-                    DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS,
+    EDGE_ROUNDTRIP("Work leaves the tenant that authored it and comes back: a step declared "
+            + "by whoever performs it, a task authored on the surface, claimed over a lane by "
+            + "one shared service that reads a payload only when it has to.",
+            List.of(
+                    // A step is declared by whoever performs it, and arrives
+                    // in a tenant nobody installed it in.
+                    DboPromises.PROC_STEP_DECLARES_ITSELF,
+                    DboPromises.PROC_STEP_DECLARES_ITS_SLOTS,
+                    DboPromises.PROC_MILESTONES_ARE_DECLARED,
+                    DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
+                    DboPromises.PROC_ONE_ID_ONE_DEFINITION,
+                    DboPromises.PROC_INTRODUCTION_GRANTS_NOTHING,
+                    // Work is authored on the tenant's own surface, never on
+                    // the lane, and becomes a record.
+                    DboPromises.PROC_WORK_IS_AUTHORED_ON_THE_SURFACE,
                     DboPromises.PROC_TASK_CARRIES_THE_INPUTS,
-                    DboPromises.PROC_A_RUN_NAMES_WHAT_IT_PRODUCED,
+                    DboPromises.PROC_TASK_SAYS_WHERE_THE_WORK_IS,
+                    DboPromises.PROC_RUN_INPUTS_FILL_THE_SLOTS,
+                    DboPromises.PROC_RUN_HAS_A_RECORD,
+                    DboPromises.PROC_RUN_KINDS,
+                    DboPromises.PROC_STEP_SHAPE_VALIDATION,
+                    DboPromises.PROC_CONTENT_CHANGES_INSIDE_WORK,
+                    // One service holds a lane per tenant and cannot tell
+                    // where the store is.
+                    DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS,
+                    DboPromises.PROC_LANE_IS_A_TENANT_SERVICE,
+                    DboPromises.PROC_STEP_SERVICE_EMBEDDABLE,
+                    DboPromises.PROC_A_LANE_OVER_THE_STREAM,
+                    DboPromises.WF_POSTGRES_SUBSTRATE,
+                    DboPromises.WF_TWO_PLANES,
+                    DboPromises.WF_CONTENT_FREE_PLATFORM_PLANE,
+                    // What it may take is the intersection of its credential
+                    // and what the step admits.
                     DboPromises.PROC_CLAIM_IS_THE_INTERSECTION,
+                    DboPromises.PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED,
+                    DboPromises.PROC_EXECUTOR_DECLARES_ITSELF,
+                    DboPromises.PROC_EXECUTOR_RESOLUTION_IS_DETERMINISTIC,
+                    DboPromises.PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE,
+                    DboPromises.PROC_AUTOMATION_IS_DECLARED,
+                    DboPromises.PROC_FALL_THROUGH_IS_COUNTABLE,
+                    DboPromises.PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS,
+                    // Performing it, and saying so honestly.
+                    DboPromises.PROC_INPUTS_ARRIVE_WITH_THE_WORK,
+                    DboPromises.PROC_PROGRESS_NAMES_THE_MILESTONE,
+                    DboPromises.PROC_RUN_SAYS_WHO_HOLDS_IT,
+                    DboPromises.PROC_RUN_NAMES_WHAT_RAN_IT,
+                    DboPromises.PROC_RUN_NAMES_THE_STEP_VERSION,
+                    DboPromises.PROC_RUN_TALLY_AND_ITEM_OUTCOMES,
+                    DboPromises.PROC_REPORT_THROUGH_DECLARED_ACTIONS,
                     DboPromises.PROC_FAILURE_IS_RELEASED,
-                    DboPromises.POL_AUDIT_AS_RECORDS,
-                    DboPromises.POL_ACTOR_FROM_AUTHORITY,
-                    DboPromises.PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT,
-                    DboPromises.POL_CUSTOM_AUDIT_EVENTS,
-                    DboPromises.CORE_VERSIONED_HISTORY,
+                    DboPromises.PROC_DONE_MEANS_DONE,
+                    DboPromises.PROC_REFUSED_IS_NOT_UNANSWERED,
+                    DboPromises.PROC_ESCALATION_BY_FAILURE_CLASS,
+                    DboPromises.PROC_CLOSE_BY_RE_EVALUATION,
+                    DboPromises.PROC_A_RUN_NAMES_WHAT_IT_PRODUCED,
+                    // Carried without being read, and the trail telling the
+                    // two apart afterwards.
                     DboPromises.PROC_WORK_TRAVELS_SEALED,
                     DboPromises.PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT,
-                    DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES,
-                    DboPromises.WF_HOPS_AUDITED,
-                    DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
-                    DboPromises.PROC_A_LANE_OVER_THE_STREAM,
                     DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM,
-                    DboPromises.PROC_DONE_MEANS_DONE,
-                    DboPromises.WF_TWO_PLANES,
-                    DboPromises.WF_CONTENT_FREE_PLATFORM_PLANE)),
+                    DboPromises.PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT,
+                    DboPromises.PROC_CORRELATION_TRAVELS_OPAQUE,
+                    DboPromises.PROC_TRACE_RIDES_THE_LANE,
+                    DboPromises.PROC_TRACE_JOIN,
+                    DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES,
+                    DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
+                    DboPromises.WF_HOPS_AUDITED)),
 
     FLEET_HEALTH("A tree of participants reporting one hop each, presence derived rather "
             + "than declared, read from outside the container.",
