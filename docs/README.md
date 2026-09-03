@@ -13,7 +13,9 @@ Structured per [arc42](https://arc42.org/).
 - [arc42-004-solution-strategy](arc42-004-solution-strategy/README.md) — the bets,
   and the [design rationale](arc42-004-solution-strategy/design-rationale.md) (§9)
   behind them
-- [arc42-005-building-blocks](arc42-005-building-blocks/README.md) — layering (§1)
+- [arc42-005-building-blocks](arc42-005-building-blocks/README.md) — layering (§1):
+  the module map, what the build enforces about it, and the store chain a
+  tenant's bring-up assembles
 - [arc42-006-runtime](arc42-006-runtime/README.md) — [REQ catalogue](arc42-006-runtime/req-catalogue.md)
 - [arc42-007-deployment](arc42-007-deployment/README.md) — scaling/routing (§5),
   [tenant provisioning](arc42-007-deployment/tenant-provisioning.md) (§4)
