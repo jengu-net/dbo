@@ -7,15 +7,12 @@ import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.runner.http.HttpLane;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
 import cloud.jengu.dbo.work.WorkModel;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -24,7 +21,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -32,8 +28,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -87,60 +81,36 @@ class WorkLeavesTheClinicAndComesBackIT {
     private static final StepDeclaration REVIEW_STEP =
             StepDeclaration.of(REVIEW, "1.0", WorkModel.DOMAIN).containing("open");
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
+    static SharedTenants.Tenant clinic;
     static ObjectStore engine;
     static Runs runs;
     static HttpLane bench;
+    static String authoring;
     static String specimenId;
     static String runKey;
 
     @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-work-out");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("WorkLeavesTheClinicAndComesBackIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CLINIC + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"full"},"types":[
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(CLINIC));
-        UntilServed.scan(manager, CLINIC);
-        engine = manager.runtime(CLINIC).orElseThrow().engine();
+    void up() {
+        // Shared: this story needs a tenant to author work in, not a tenant of
+        // its own. Its runs are keyed by a scope it chooses, and every
+        // assertion names the run the previous leg made.
+        clinic = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
+        engine = clinic.engine();
         runs = new Runs(engine);
+        authoring = clinic.token("meristem-author", "system/*.read", "system/*.write");
 
-        // The bench's credential is bounded to the one step it performs.
-        manager.authority(CLINIC).ensureClient("meristem", "bench-secret",
-                List.of("work/" + ASSAY));
-        bench = HttpLane.to(
-                URI.create("http://127.0.0.1:" + manager.port() + "/t/" + CLINIC + "/work"),
-                // The executor names itself with the credential's own client id.
-                // A credential bounded to steps may work only as itself, so a
-                // bench free to spell any name could read the inputs of runs it
-                // was never entitled to — the store refuses the mismatch by name.
-                () -> token("meristem", "bench-secret"), CLINIC, "meristem",
+        // The bench's credential is bounded to the one step it performs, and
+        // its executor names itself with that client id: a credential bounded
+        // to steps may work only as itself, so a bench free to spell any name
+        // could read the inputs of runs it was never entitled to.
+        clinic.token("meristem", "work/" + ASSAY);
+        bench = HttpLane.to(URI.create(clinic.base() + "/work"),
+                () -> clinic.token("meristem", "work/" + ASSAY), clinic.code(), "meristem",
                 new Executor("meristem", "2.1", "example.meristem", Scope.BASELINE));
 
         specimenId = engine.put(PutRequest.create("Basic",
                 "{\"resourceType\":\"Basic\"}".getBytes(StandardCharsets.UTF_8))).id();
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            provisioner.close();
-        }
     }
 
     // ── the bench says what it can do ──
@@ -168,7 +138,7 @@ class WorkLeavesTheClinicAndComesBackIT {
             DboPromises.PROC_WORK_IS_AUTHORED_ON_THE_SURFACE})
     void introducingAStepGrantsNothing() throws Exception {
         HttpResponse<String> authored = postTask(task("by-the-bench", specimenId),
-                token("meristem", "bench-secret"));
+                clinic.token("meristem", "work/" + ASSAY));
 
         assertTrue(authored.statusCode() == 401 || authored.statusCode() == 403,
                 "a participation credential authored work on the surface, so the thing that "
@@ -187,7 +157,7 @@ class WorkLeavesTheClinicAndComesBackIT {
         // The run's key is the step it is of and the scope the author gave it:
         // an order number is only unique within the work it is an order for.
         runKey = ASSAY + "/order-4711";
-        HttpResponse<String> posted = postTask(task("order-4711", specimenId), bootstrap());
+        HttpResponse<String> posted = postTask(task("order-4711", specimenId), authoring);
         assertEquals(201, posted.statusCode(), posted.body());
 
         Run run = runs.byKey(runKey).orElseThrow(
@@ -205,7 +175,7 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving({DboPromises.PROC_RUN_INPUTS_FILL_THE_SLOTS, DboPromises.PROC_STEP_DECLARES_ITS_SLOTS})
     void anUndeclaredSlotIsRefusedByName() throws Exception {
         HttpResponse<String> undeclared = postTask(
-                task(PROCESS, "assay", "reagent-order", "reagent", specimenId), bootstrap());
+                task(PROCESS, "assay", "reagent-order", "reagent", specimenId), authoring);
 
         assertTrue(undeclared.statusCode() >= 400 && undeclared.statusCode() < 500,
                 "an undeclared slot was accepted: " + undeclared.body());
@@ -229,7 +199,7 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "the assay it is entitled to was not offered: " + offered);
 
         // A run of the step it did NOT get a credential for.
-        postTask(task(PROCESS, "review", "signing-1", null, null), bootstrap());
+        postTask(task(PROCESS, "review", "signing-1", null, null), authoring);
         Run review = runs.byKey(REVIEW + "/signing-1").orElseThrow();
 
         IllegalStateException refused = assertThrows(IllegalStateException.class,
@@ -355,8 +325,8 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving({DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES, DboPromises.WF_HOPS_AUDITED})
     void theTrailTellsCarryingFromReading() throws Exception {
         HttpResponse<String> trail = http.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(CLINIC) + "/AuditEvent?_count=50"))
-                .header("Authorization", "Bearer " + bootstrap()).GET().build(),
+                        URI.create(clinic.fhir() + "/AuditEvent?_count=50"))
+                .header("Authorization", "Bearer " + authoring).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
         assertEquals(200, trail.statusCode(), trail.body());
 
@@ -385,31 +355,11 @@ class WorkLeavesTheClinicAndComesBackIT {
     }
 
     private static HttpResponse<String> postTask(String body, String bearer) throws Exception {
-        return http.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CLINIC) + "/Task"))
+        return http.send(HttpRequest.newBuilder(URI.create(clinic.fhir() + "/Task"))
                         .header("Authorization", "Bearer " + bearer)
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
-    private static String bootstrap() throws Exception {
-        return token("tenant-bootstrap", provisioner.bootstrapClientSecret(CLINIC));
-    }
-
-    private static String token(String clientId, String secret) {
-        try {
-            String form = "grant_type=client_credentials&client_id="
-                    + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
-                    + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
-            String body = http.send(HttpRequest.newBuilder(
-                                    URI.create("http://127.0.0.1:" + manager.port()
-                                            + "/t/" + CLINIC + "/oidc/token"))
-                            .header("Content-Type", "application/x-www-form-urlencoded")
-                            .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
-                    HttpResponse.BodyHandlers.ofString()).body();
-            return body.replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
-        } catch (Exception e) {
-            throw new IllegalStateException("no token for " + clientId, e);
-        }
-    }
 }

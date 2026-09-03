@@ -2,9 +2,6 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -13,7 +10,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -21,9 +17,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,55 +43,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TheClinicRecordsCareAndAccountsForItIT {
 
-    private static final String CLINIC = "kevadravi";
-    /** The national identifier the clinic knows its patients by. */
-    private static final String EID = "https://ee.ee/eid";
     /** A code system this clinic holds itself, rather than one it imported. */
     private static final String LOCAL = "https://kevadkliinik.ee/fs/severity";
+    private static final String EID = SharedTenants.EID;
 
-    private static final String TYPES = """
-            [{"name":"Patient","identity":"identifier","systems":["%s"],"handling":"operational"},
-             {"name":"Encounter","identity":"internal","handling":"operational"},
-             {"name":"Observation","identity":"internal","handling":"operational"},
-             {"name":"CodeSystem","identity":"canonical","handling":"operational"},
-             {"name":"ValueSet","identity":"canonical","handling":"operational"}]""".formatted(EID);
-
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
+    static SharedTenants.Tenant clinic;
     static String token;
     static String patientId;
 
     @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-clinical-record");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("TheClinicRecordsCareAndAccountsForItIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CLINIC + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"full"},"types":%s}"""
-                .formatted(CLINIC, TYPES));
-        UntilServed.scan(manager, CLINIC);
-        manager.authority(CLINIC).ensureClient("kevad-emr", "emr-secret",
-                List.of("system/*.read", "system/*.write"));
-        token = token("kevad-emr", "emr-secret");
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            provisioner.close();
-        }
+    void up() {
+        // Shared: this story needs somewhere to record care, not a tenant of
+        // its own. Every assertion below is about the patient, bundle or code
+        // the previous leg just made, which is what lets it share one.
+        clinic = SharedTenants.of(SharedTenants.Shape.R4_IDENTIFIER);
+        token = clinic.token("kevad-emr", "system/*.read", "system/*.write");
     }
 
     // ── one patient, however many times she arrives ──
@@ -441,7 +401,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
     @Proving({DboPromises.FEED_ONE_PRIMITIVE, DboPromises.FEED_NAMED_CONSUMERS,
             DboPromises.FEED_KEYSET_CURSORS, DboPromises.EVT_TRANSACTIONAL_OUTBOX})
     void oneFeedCarriesItAll() {
-        var feed = manager.runtime(CLINIC).orElseThrow().feed();
+        var feed = clinic.feed();
 
         var first = feed.readFor("kevad-report", 3);
         assertFalse(first.items().isEmpty(),
@@ -459,7 +419,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
     // ── helpers ───────────────────────────────────────────────────────────
 
     private static String fhir(String path) {
-        return "http://127.0.0.1:" + manager.port() + "/t/" + CLINIC + "/fhir" + path;
+        return clinic.fhir() + path;
     }
 
     private static HttpResponse<String> get(String path) throws Exception {
@@ -495,16 +455,4 @@ class TheClinicRecordsCareAndAccountsForItIT {
                 HttpResponse.BodyHandlers.ofString());
     }
 
-    private static String token(String clientId, String secret) throws Exception {
-        String form = "grant_type=client_credentials&client_id="
-                + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
-                + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
-        String body = http.send(HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + manager.port()
-                                        + "/t/" + CLINIC + "/oidc/token"))
-                        .header("Content-Type", "application/x-www-form-urlencoded")
-                        .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
-                HttpResponse.BodyHandlers.ofString()).body();
-        return body.replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
-    }
 }
