@@ -131,7 +131,68 @@ public enum DboStories implements Story {
                     DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
                     DboPromises.AUTH_SELF_SERVICE_CHANGE,
                     DboPromises.AUTH_RECOVERY_IS_AN_OPERATOR_ACT,
-                    DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS));
+                    DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS)),
+
+    CLINICAL_RECORD("Care is recorded in the tenant opened before it, and can be found again "
+            + "and accounted for: one patient however many times they arrive, meaning checked "
+            + "against the clinic's own terminology, and a trail nobody can edit.",
+            List.of(
+                    // What a record is, and what makes two writes one patient.
+                    DboPromises.CORE_PAYLOAD_IS_TRUTH,
+                    DboPromises.CORE_DECLARED_TRUTH_FORM,
+                    DboPromises.CORE_DECLARED_IDENTITY,
+                    DboPromises.CORE_EXTERNAL_IDENTIFIERS,
+                    DboPromises.CORE_NO_IMPLICIT_MERGE,
+                    DboPromises.CORE_CONDITIONAL_UPSERT,
+                    DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS,
+                    DboPromises.CORE_READ_YOUR_WRITES,
+                    DboPromises.CORE_VERSIONED_HISTORY,
+                    DboPromises.CORE_PARAMETERIZED_SQL,
+                    DboPromises.CORE_SIBLING_MODELS,
+                    // A visit arrives as one document and lands whole, or not at all.
+                    DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE,
+                    DboPromises.CORE_CONDITIONAL_REFERENCES,
+                    DboPromises.CORE_REFERENCE_EDGES,
+                    DboPromises.CORE_BATCH_ANSWERS_PER_ENTRY,
+                    // The face decides what the bytes mean; the engine does not.
+                    DboPromises.VER_VERSION_AGNOSTIC_CORE,
+                    DboPromises.VER_PERSONALITY_OWNS_MEANING,
+                    DboPromises.VER_SPECIFIED_VALIDATION,
+                    DboPromises.VER_VALIDATION_WITHOUT_WRITING,
+                    DboPromises.VER_ONE_READ_PER_REQUEST,
+                    // A coded value is checked against this clinic's terminology.
+                    DboPromises.TERM_NATIVE_FORM,
+                    DboPromises.TERM_BULK_LOAD,
+                    DboPromises.TERM_EVERY_TENANT_ANSWERS,
+                    DboPromises.TERM_OPERATIONS_FROM_NATIVE_FORM,
+                    DboPromises.TERM_VALIDATION_USES_TENANT_TERMINOLOGY,
+                    DboPromises.VAL_BINDING_STRENGTH_IS_THE_ANSWER,
+                    DboPromises.VAL_UNRESOLVABLE_IS_NOT_INVALID,
+                    // Finding it again, with the store saying what it can do.
+                    DboPromises.SRCH_TIER1_PARITY,
+                    DboPromises.SRCH_STRICT_BY_DEFAULT,
+                    DboPromises.SRCH_HONEST_CAPABILITY,
+                    DboPromises.SRCH_TYPED_ORDERING,
+                    DboPromises.SRCH_DECLARED_INDEXES,
+                    DboPromises.SRCH_CUSTOM_PARAMETERS,
+                    // And accounting for all of it afterwards.
+                    DboPromises.POL_DECLARED_AT_CONFIGURATION,
+                    DboPromises.POL_AUDIT_AS_RECORDS,
+                    DboPromises.POL_ACTOR_FROM_AUTHORITY,
+                    DboPromises.POL_APPEND_ONLY_DISCIPLINE,
+                    DboPromises.POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY,
+                    DboPromises.POL_CUSTOM_AUDIT_EVENTS,
+                    DboPromises.POL_FHIR_AUDIT_PROJECTION,
+                    DboPromises.POL_DECLARATIVE_RETENTION,
+                    DboPromises.POL_RETENTION_SWEEP,
+                    // One change feed under everything that watches.
+                    DboPromises.FEED_ONE_PRIMITIVE,
+                    DboPromises.FEED_KEYSET_CURSORS,
+                    DboPromises.FEED_NAMED_CONSUMERS,
+                    DboPromises.EVT_TRANSACTIONAL_OUTBOX,
+                    DboPromises.EVT_FHIR_SUBSCRIPTIONS,
+                    DboPromises.EVT_DURABLE_DELIVERY,
+                    DboPromises.EVT_IN_PROCESS_SURFACE));
 
     private final String title;
     private final List<Promise> promises;
