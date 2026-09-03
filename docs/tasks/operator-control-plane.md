@@ -2,8 +2,8 @@
 
 **Status** — the read half reaches the fleet: a reader outside every container
 fans out over the nodes' and tenants' own doors and labels every answer with
-its node. It is a command that reads once, not yet a service that keeps
-reading, and nothing acts yet.
+its node, as a command that reads once or a service that reads when asked,
+imaged beside the operator. Nothing acts yet.
 
 **Issues** — none open. Closed and load-bearing here:
 [#160](https://github.com/jengu-net/dbo/issues/160) (a runner keeps no state
@@ -51,11 +51,12 @@ back door around the rules every other actor obeys.
   inventories into the network map, and prints the reading. Two runtimes in
   one JVM stand in for two nodes in `TheFleetIsReadFromOutsideEveryNodeIT`,
   and a third node nobody started is in the reading as unreachable.
-- **Not yet a service, and not yet imaged.** One read and exit is the honest
-  first shape; a pod that keeps reading, and the image the build loop pushes
-  for it, are the next step of 4 — and a reading that is kept anywhere is the
-  "second store" decision below, so what a service holds between reads is
-  decided before one is written.
+- **The same jar is the service.** Given an address and a token it serves
+  `GET /fleet` and reads the fleet afresh on every ask, holding nothing between
+  asks — the second-store decision applied to the service form. The build loop
+  pushes `dbo-fleet` beside `dbo-operator` and `dbo-server`.
+- **Step 5 has not started.** Acting goes through a lane with an identity and
+  an entitlement, and nothing here holds either.
 
 ## Sequence
 
@@ -66,12 +67,11 @@ back door around the rules every other actor obeys.
 | 2a | **An exporter** ([#163](https://github.com/jengu-net/dbo/issues/163)) — a provider bundle a deployment installs, so the numbers reach a collector. | **DONE** 2026-09-03 — `dbo-telemetry-otlp`: OTLP over HTTP in the JSON encoding, rendered and sent with the JDK's own client so no protocol library rides in the container; configured by the deployment and idle without an endpoint (`NumbersLeaveTheNodeIT`, against a collector stood up in the test). Building it found the quiet failure: under OSGi the seam's ServiceLoader lookup found nothing, so the seam now declares the consumer capability and a container proof asks the seam what it found (`NumbersLeaveTheContainerIT`) |
 | 2b | **Trace context on the lane** ([#164](https://github.com/jengu-net/dbo/issues/164)) — one run as one chain across two processes. | **DONE** 2026-09-01 — a run carries the trace context it was given, never one it invented, across the lane and down to the runs it causes (`OneRunIsOneChainAcrossTwoProcessesIT`) |
 | 3 | **Split `PROC_NETWORK_MAP`** ([#162](https://github.com/jengu-net/dbo/issues/162)) — the catalogue half names the node-inventory gap this plane would surface. | **DONE** 2026-08-31 — a node answering its own catalogue is its own promise and proven; what remains under the old code is the per-node inventory, which the console's tests now cite because that module was never wired into the promise index |
-| 4 | **Fleet-level read** — one process holding per-tenant credentials, fanning out over the surfaces that already exist, labelling every answer with the node it came from. | **IN PROGRESS** — first slice 2026-09-03: a node serves its installed catalogue at `/runtime/catalogue` beside `/runtime/tenants`, under the same token; a tenant's fleet door answers `runs` as envelopes; `core/dbo-fleet` reads, unions and labels (`TheFleetIsReadFromOutsideEveryNodeIT`, which also proves `PROC_NETWORK_MAP`). Left: the service form and its image |
+| 4 | **Fleet-level read** — one process holding per-tenant credentials, fanning out over the surfaces that already exist, labelling every answer with the node it came from. | **DONE** 2026-09-03 — a node serves its installed catalogue at `/runtime/catalogue` beside `/runtime/tenants`, under the same token; a tenant's fleet door answers `runs` as envelopes; `core/dbo-fleet` reads, unions and labels, as a command or as a service that reads on every ask and keeps nothing (`TheFleetIsReadFromOutsideEveryNodeIT`, which also proves `PROC_NETWORK_MAP`); imaged in the build loop |
 | 5 | **Bounded act** — the same verbs a participant has, through a lane, with an identity and an entitlement. | **LATER** |
 
-**The critical path is step 4**, and it is the first step that is a service
-rather than a rule: everything before it makes the per-tenant answers true, and
-nothing yet reaches more than one node to ask.
+**What is left is step 5**, and it is the one that touches somebody's work:
+everything before it is reading, and reading needed no identity.
 
 ## Decisions
 
@@ -128,8 +128,15 @@ reader is told `name=uri` and labels with the name it was told.
 
 **Sequential fan-out, bounded per ask.** Every ask has a timeout and every
 outcome is recorded, so one dead node costs one timeout and one line. Parallel
-fan-out buys latency and pays with a second failure mode; it is the service
-form's question, not the command's.
+fan-out buys latency and pays with a second failure mode; it becomes worth
+having when a deployment has enough nodes that a serial read is slow, and not
+before.
+
+**The service holds nothing between asks.** A reading kept for even a moment
+is a second answer to a question the tenant stores answer authoritatively, and
+the two disagree exactly when an operator is deciding on it. So every ask is a
+fresh fan-out, and an ask takes as long as the slowest node's timeout. The
+alternative was being wrong quickly.
 
 **It never becomes a second store.** It queries; it does not copy. A cached
 mirror of many tenants' runs would be a second answer to a question the tenant
@@ -168,7 +175,9 @@ answers would mean reopening that.
 
 The last one is the reader as a process rather than a class: it must print a
 reading with the node unreachable and exit zero, because the read exists to
-say which nodes did not answer.
+say which nodes did not answer. With `DBO_FLEET_LISTEN=127.0.0.1:18091` and
+`DBO_FLEET_TOKEN` set it serves instead, and `GET /fleet` answers the same
+reading behind the token.
 
 One runner against two lanes, work failing on one, the other's declaration
 untouched — checked against the old behaviour as well as the new, because a
