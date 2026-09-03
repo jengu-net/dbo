@@ -132,7 +132,7 @@ class AStoryIsCitedNotClaimedTest {
         assertTrue(block.contains("**Unproven.**"), block);
         assertTrue(block.contains(model.codeOf(planned)) && block.contains("PLANNED"), block);
 
-        String real = PromiseProjection.storyBlock(model, DboStories.TRAIL_ANSWERS);
+        String real = PromiseProjection.storyBlock(model, DboStories.VENDOR_CHANGE);
         assertFalse(real.contains("**Unproven.**"), real);
         assertTrue(real.contains("Coverage:"), real);
     }
