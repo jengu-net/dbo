@@ -1,16 +1,17 @@
 # The face contract
 
-**Status** — active but dormant; three slices delivered, four open, and the
-open ones are the load-bearing ones.
+**Status** — the epic is closed and the load-bearing slice landed: a second
+face exists, so the engine's ignorance of FHIR is a build failure rather than
+a claim. One slice remains open, and this document closes with it.
 
-**Issues** — [#38](https://github.com/jengu-net/dbo/issues/38) (epic) ·
+**Issues** — [#38](https://github.com/jengu-net/dbo/issues/38) (epic, closed) ·
 delivered: [#106](https://github.com/jengu-net/dbo/issues/106),
 [#107](https://github.com/jengu-net/dbo/issues/107),
-[#109](https://github.com/jengu-net/dbo/issues/109) · open:
 [#108](https://github.com/jengu-net/dbo/issues/108),
+[#109](https://github.com/jengu-net/dbo/issues/109),
 [#110](https://github.com/jengu-net/dbo/issues/110),
-[#112](https://github.com/jengu-net/dbo/issues/112),
-[#113](https://github.com/jengu-net/dbo/issues/113)
+[#113](https://github.com/jengu-net/dbo/issues/113) · open:
+[#112](https://github.com/jengu-net/dbo/issues/112)
 
 **Concepts** — [engine and faces](../arc42-008-crosscutting/engine-and-faces.md)
 
@@ -22,10 +23,11 @@ extractor on `TypeRegistration`, the codec in the personality, the query
 compiler elsewhere. Unnamed, it drifts, and every new obligation lands wherever
 the author happened to be standing.
 
-The deeper claim underneath it is the one the epic exists to make true: **the
-engine holds no FHIR knowledge.** Today that is an assertion: `EngineKnowsNoFaceIT` guards it as far as one face
-allows, but the only production face is FHIR, so nothing would notice a leak
-that FHIR happens to satisfy.
+The deeper claim underneath it is the one the epic existed to make true: **the
+engine holds no FHIR knowledge.** It was an assertion while FHIR was the only
+face — `EngineKnowsNoFaceIT` guarded it as far as one face allows, and nothing
+would have noticed a leak that FHIR happens to satisfy. A second, non-FHIR
+face now serves through the same engine, so a leak fails a build.
 
 ## Where it stands
 
@@ -34,14 +36,19 @@ three-tier question (version-scoped capability / tenant-scoped facade /
 per-request fact) is decided and written down. A tenant whose face lacks a
 capability its spec requires is refused at bring-up rather than mid-request.
 
-The open three are where the assertion gets tested:
+**#108 is done.** A second face costs three capabilities and eight methods —
+read a payload, say what type it is, the envelope, the codec — and serving one
+still means a FHIR-shaped facade, which is accepted rather than overlooked;
+[engine and faces](../arc42-008-crosscutting/engine-and-faces.md) says what
+the count means and why it is not lower.
 
-- **#108** — a second, non-FHIR face, which is what turns "the engine holds no
-  FHIR knowledge" from a claim into something a build can fail on.
-- **#112** — what counts as *one object* is a face decision the contract has no
-  place for.
-- **#113** — what may leave the store is not the same question as what *this
-  recipient* may see.
+**#113 is done.** What may leave the store and what *this recipient* may see
+are two questions, and a tenant can now say the second per recipient;
+[who may act](../arc42-008-crosscutting/who-may-act.md) holds it.
+
+**#112 is open**, and it is the last one: what counts as *one object* is a
+face decision the contract has no place for. It is not blocked on anything
+here — the second face is what made it testable rather than theoretical.
 
 **#110 is done.** The spec field is called `face`, its old name is refused
 rather than honoured, and the operator's schema no longer enumerates three
@@ -83,9 +90,10 @@ contract reads annotations off constants.
 
 ## Not doing
 
-Nothing deliberately excluded — this topic is paused rather than scoped down.
-Its open slices are ordered by #108, which the other three lean on: a second
-face is what makes the rest testable rather than theoretical.
+Nothing deliberately excluded. What is left is one slice, and when it closes
+this document is deleted: the decisions above already live in
+[engine and faces](../arc42-008-crosscutting/engine-and-faces.md), and the
+trap belongs in the promise catalogue's own notes.
 
 ## Verifying
 
