@@ -45,6 +45,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -91,6 +93,7 @@ class AnOperatorReadsAndSteersTheFleetIT {
     static LocalDatabasePerTenantProvisioner northProv;
     static LocalDatabasePerTenantProvisioner southProv;
     static String closedRunKey;
+    static Path northDir;
 
     @BeforeAll
     void up() throws Exception {
@@ -109,6 +112,9 @@ class AnOperatorReadsAndSteersTheFleetIT {
     private static TenantRuntimeManager nodeServing(String name, Steps installed, String tenant)
             throws Exception {
         Path dir = Files.createTempDirectory("dbo-fleet-" + name);
+        if ("north".equals(name)) {
+            northDir = dir;
+        }
         LocalDatabasePerTenantProvisioner prov = new LocalDatabasePerTenantProvisioner(
                 SharedPostgres.urlFor("AnOperatorReadsAndSteersTheFleetIT" + name),
                 postgres.getUsername(), postgres.getPassword());
@@ -163,6 +169,28 @@ class AnOperatorReadsAndSteersTheFleetIT {
         assertEquals(401, ask(north, "/runtime/tenants", "some-other-token").statusCode(),
                 "the codes this answers with are other tenants' existence, so no tenant "
                         + "credential and no wrong one buys it");
+
+        // The tenant Kaarel actually opened this for: declared, and not
+        // serving. A list of the ones that worked answers "which tenants are
+        // fine" while looking like it answered "which tenants exist", and the
+        // missing one is always the one somebody is asking about.
+        Files.writeString(northDir.resolve("kukkunud.json"), """
+                {"code":"kukkunud","face":"seitsmes","types":[
+                  {"name":"Basic","identity":"internal","handling":"operational"}]}""");
+        northRuntime.scanOnce();
+
+        HttpResponse<String> withAFailure = ask(north, "/runtime/tenants", OPS);
+        assertTrue(withAFailure.body().contains("{\"code\":\"kukkunud\",\"state\":\"failed\"}"),
+                "a tenant that was declared and did not come up has to say so rather than be "
+                        + "missing: " + withAFailure.body());
+
+        // And a tenant nobody declares any more stops being a state at all,
+        // because a retraction reported as a failure makes every removal look
+        // like a fault.
+        Files.delete(northDir.resolve("kukkunud.json"));
+        northRuntime.scanOnce();
+        assertFalse(ask(north, "/runtime/tenants", OPS).body().contains("kukkunud"),
+                "a retracted tenant is still being reported on");
     }
 
     @Test
@@ -269,16 +297,42 @@ class AnOperatorReadsAndSteersTheFleetIT {
                 northRuntime.runtime(NORTH).orElseThrow().engine());
         assertEquals(2, trackables.behind("connector-1").size(),
                 "both benches are behind the connector that reported them");
+        java.time.Instant lastSeen = trackables.byId("bench-8").orElseThrow().attested().at();
 
         // The connector stops reporting one of them. That is something it
         // said, not a gap in what it sent.
         connector.routes(List.of(
                 Trackable.routed("bench-7", "appliance", "connector-1", Map.of("status", "serving"))));
 
-        assertEquals(2, trackables.behind("connector-1").size(),
-                "the departed routee was deleted rather than kept, so gone is "
-                        + "indistinguishable from never mentioned: "
-                        + trackables.behind("connector-1"));
+        // Kept, and distinguishable — which is the whole of the promise. Gone
+        // has to read as "last seen by X at T, absent from X's report at T+1",
+        // because a routee that was simply deleted is indistinguishable from a
+        // connector that went quiet, and those want opposite reactions.
+        var departed = trackables.byId("bench-8").orElseThrow(
+                () -> new AssertionError("the departed routee was discarded, so gone reads "
+                        + "exactly like a connector that stopped talking"));
+        assertFalse(departed.reported(), "the report left it out, and the record says so");
+        assertNotNull(departed.unreported(), "with the moment the silence began");
+        assertEquals("connector-1", departed.attested().observedBy(), "and who last saw it");
+        assertEquals(lastSeen, departed.attested().at(),
+                "the last attestation is kept rather than refreshed: the point is when it "
+                        + "was last seen, not when somebody noticed it was not");
+        assertEquals("serving", departed.state().get("status"), "and its last known state");
+
+        // The tree answers with it, distinguishably rather than by omission.
+        assertTrue(trackables.behind("connector-1").stream()
+                        .anyMatch(t -> "bench-8".equals(t.id()) && !t.reported()),
+                "behind: " + trackables.behind("connector-1"));
+        assertTrue(trackables.subtree("connector-1").stream()
+                        .anyMatch(t -> "bench-8".equals(t.id()) && !t.reported()));
+
+        // And it comes back clean rather than carrying its absence forward.
+        connector.routes(List.of(
+                Trackable.routed("bench-7", "appliance", "connector-1", Map.of("status", "serving")),
+                Trackable.routed("bench-8", "appliance", "connector-1", Map.of("status", "serving"))));
+        var returned = trackables.byId("bench-8").orElseThrow();
+        assertTrue(returned.reported(), "a routee that came back is reported again");
+        assertNull(returned.unreported(), "and carries no trace of having been away");
     }
 
     // ── trends, which are a different question ──
