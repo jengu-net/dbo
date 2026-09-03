@@ -273,10 +273,68 @@ class TheClinicRecordsCareAndAccountsForItIT {
                 "and the one that could not says so in its own entry: " + batch.body());
     }
 
-    // ── what a code means here ──
+    @Test
+    @Order(5)
+    @DisplayName("two people editing Liis at once do not silently overwrite each other: the "
+            + "second write is refused because it was made against a version that has moved")
+    @Proving(DboPromises.CORE_VERSIONED_HISTORY)
+    void aWriteAgainstAStaleVersionIsRefused() throws Exception {
+        String current = get("/Patient/" + patientId).body();
+        String stale = "W/\"1\"";
+
+        HttpResponse<String> late = http.send(HttpRequest.newBuilder(
+                        URI.create(fhir("/Patient/" + patientId)))
+                .header("Authorization", "Bearer " + token)
+                .header("Content-Type", "application/fhir+json")
+                .header("If-Match", stale)
+                .PUT(HttpRequest.BodyPublishers.ofString(current)).build(),
+                HttpResponse.BodyHandlers.ofString());
+
+        // 409 or 412 — the store says which, and either is a refusal. What
+        // matters is that it is one: a write accepted against a version that
+        // has moved silently discards the edit it was based on.
+        assertTrue(late.statusCode() == 409 || late.statusCode() == 412,
+                "a write made against a version that has since moved was accepted, so the "
+                        + "edit it was based on is gone and nobody was told: "
+                        + late.statusCode() + " " + late.body());
+        assertTrue(late.body().contains("conflict"),
+                "and the refusal says what kind it is, so a client knows to re-read rather "
+                        + "than to retry: " + late.body());
+    }
 
     @Test
     @Order(6)
+    @DisplayName("deleting a patient frees the identifier they were claiming, so somebody "
+            + "registered by mistake can be registered again properly")
+    @Proving({DboPromises.CORE_EXTERNAL_IDENTIFIERS, DboPromises.CORE_NO_IMPLICIT_MERGE})
+    void deletingFreesTheIdentityClaim() throws Exception {
+        String mistaken = "49001019999";
+        String created = post("/Patient", """
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"%s","value":"%s"}],
+                 "name":[{"family":"Vale","given":["Sisestus"]}]}"""
+                .formatted(EID, mistaken), null).body();
+        String wrongId = created.replaceAll("(?s).*\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+
+        assertTrue(delete("/Patient/" + wrongId).statusCode() < 300, "the mistake is removed");
+
+        // The claim went with them. Without that, a mis-registration would
+        // burn an identifier for good and the correction would have to invent
+        // a different one.
+        HttpResponse<String> again = post("/Patient", """
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"%s","value":"%s"}],
+                 "name":[{"family":"Oige","given":["Sisestus"]}]}"""
+                .formatted(EID, mistaken), null);
+        assertEquals(201, again.statusCode(),
+                "the identifier is still claimed by a deleted record, so a mis-registration "
+                        + "burns it permanently: " + again.body());
+    }
+
+    // ── what a code means here ──
+
+    @Test
+    @Order(8)
     @DisplayName("a code means what this clinic's own terminology says, and a system the "
             + "clinic does not hold is unresolvable rather than invalid")
     @Proving({DboPromises.TERM_NATIVE_FORM, DboPromises.TERM_EVERY_TENANT_ANSWERS,
@@ -312,7 +370,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
     // ── finding it again ──
 
     @Test
-    @Order(7)
+    @Order(9)
     @DisplayName("the store says what it can search and refuses the rest, rather than "
             + "answering a narrower question than it was asked")
     @Proving({DboPromises.SRCH_HONEST_CAPABILITY, DboPromises.SRCH_STRICT_BY_DEFAULT})
@@ -331,7 +389,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
     }
 
     @Test
-    @Order(8)
+    @Order(10)
     @DisplayName("Liis is found again by the identifier she was written under, and what "
             + "belongs to her visit comes back with her")
     @Proving({DboPromises.SRCH_TIER1_PARITY, DboPromises.CORE_REFERENCE_EDGES})
@@ -351,7 +409,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
     // ── and accounting for all of it ──
 
     @Test
-    @Order(9)
+    @Order(11)
     @DisplayName("every one of those acts is in the trail, attributed to the credential that "
             + "did it, and the trail cannot be edited by anybody including its author")
     @Proving({DboPromises.POL_AUDIT_AS_RECORDS, DboPromises.POL_ACTOR_FROM_AUTHORITY,
@@ -377,7 +435,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
     }
 
     @Test
-    @Order(10)
+    @Order(12)
     @DisplayName("one feed carries every one of those changes, and a named consumer resumes "
             + "from where it stopped rather than from the beginning")
     @Proving({DboPromises.FEED_ONE_PRIMITIVE, DboPromises.FEED_NAMED_CONSUMERS,
@@ -408,6 +466,17 @@ class TheClinicRecordsCareAndAccountsForItIT {
         return http.send(HttpRequest.newBuilder(URI.create(fhir(path)))
                         .header("Authorization", "Bearer " + token).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static HttpResponse<String> delete(String path) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(fhir(path)))
+                        .header("Authorization", "Bearer " + token).DELETE().build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static HttpResponse<String> post(String path, String body, String unused)
+            throws Exception {
+        return post(path, body);
     }
 
     private static HttpResponse<String> post(String path, String body) throws Exception {
