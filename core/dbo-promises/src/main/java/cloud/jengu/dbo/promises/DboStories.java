@@ -344,7 +344,27 @@ public enum DboStories implements Story {
                     DboPromises.VER_BALLOT_RECORDED_PER_VERSION,
                     DboPromises.VER_BALLOT_SERVED_AS_AUTHORED,
                     DboPromises.CORE_UPGRADE_ON_READ,
-                    DboPromises.CORE_IDENTITY_SURVIVES_CONVERSION));
+                    DboPromises.CORE_IDENTITY_SURVIVES_CONVERSION)),
+
+    VENDOR_CHANGE("A provider leaves and takes everything with them, in a sealed archive the "
+            + "party operating the store cannot read and somebody else can verify without "
+            + "asking anybody.",
+            List.of(
+                    // One mechanism, so the escape route runs nightly.
+                    DboPromises.MNT_BACKUP_IS_EXPORT,
+                    DboPromises.MNT_SNAPSHOT_CONSISTENT,
+                    DboPromises.MNT_OWNER_KEY_ENCRYPTION,
+                    DboPromises.MNT_PORTABLE_STATE_EXPORT,
+                    DboPromises.MNT_HISTORY_BY_SCHEMA,
+                    // Signed by both parties, and checkable by neither's tools.
+                    DboPromises.MNT_ARCHIVE_ROOT_OVER_CONTENTS,
+                    DboPromises.MNT_BOTH_PARTIES_ATTEST,
+                    DboPromises.MNT_IMPORT_REFUSES_UNATTESTED,
+                    DboPromises.MNT_ATTESTATION_READS_AS_FHIR,
+                    DboPromises.MNT_ACCEPTED_ROOT_RECORDED,
+                    // And what the receiving store rebuilds on the way in.
+                    DboPromises.CORE_REINDEX_IS_AN_OPERATION,
+                    DboPromises.POL_POLICY_REPLAY_ON_RESTORE));
 
     private final String title;
     private final List<Promise> promises;
