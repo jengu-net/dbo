@@ -235,7 +235,10 @@ as an inventory beside its tenant states, and the reader's union of those
 inventories is the network map — by step and version, descriptive, never a
 declaration. A tenant's fleet door answers its runs as envelopes. A node that
 does not answer and a tenant the reader holds no credential for are in the
-reading as such rather than missing from it.
+reading as such rather than missing from it. The same process acts: it
+overturns a closure through the tenant's own lane, with a supervisory
+credential granted separately from the one it reads with and a service surface
+that is not mounted unless a deployment named a second token for it.
 
 *Built and proven, the whole of the sealed-work design included. What remains
 PLANNED in this area: the process catalogue held in the store, the domain-code

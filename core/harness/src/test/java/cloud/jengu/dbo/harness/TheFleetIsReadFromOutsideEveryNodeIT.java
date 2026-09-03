@@ -57,6 +57,7 @@ class TheFleetIsReadFromOutsideEveryNodeIT {
 
     private static final String OPS_TOKEN = "ops-token-for-this-deployment";
     private static final String CLIENT = "operaator";
+    private static final String SUPERVISOR = "valvur";
 
     private static final StepDeclaration VALIDATE_V1 =
             StepDeclaration.of("lab.result.validate", "1.0", "r4");
@@ -93,7 +94,10 @@ class TheFleetIsReadFromOutsideEveryNodeIT {
     @BeforeAll
     void up() throws Exception {
         postgres = SharedPostgres.get();
-        left = node("vasak", Steps.of(VALIDATE_V1), "esimene");
+        // "tegu" is the acting tenant, and it is separate on purpose: a run
+        // reopened is a run whose holder changed, and sharing a tenant with
+        // the reading tests would make their counts depend on test order.
+        left = node("vasak", Steps.of(VALIDATE_V1), "esimene", "tegu");
         right = node("parem", Steps.of(VALIDATE_V2, FILE), "teine", "ilma");
         // a port that was free a moment ago and has nothing behind it
         try (ServerSocket free = new ServerSocket(0)) {
@@ -105,6 +109,11 @@ class TheFleetIsReadFromOutsideEveryNodeIT {
             left.manager().authority(code).ensureClient(CLIENT, code + "-secret", List.of("fleet"));
         }
         right.manager().authority("teine").ensureClient(CLIENT, "teine-secret", List.of("fleet"));
+        // The act half, granted separately and to a different client: looking
+        // and overturning are different authorities all the way out to here.
+        left.manager().authority("tegu")
+                .ensureClient(SUPERVISOR, "valvur-secret", List.of("supervise"));
+        left.manager().authority("tegu").ensureClient(CLIENT, "tegu-secret", List.of("fleet"));
 
         // work on the left node, held by a person: the row the read exists for
         Runs runs = new Runs(left.manager().runtime("esimene").orElseThrow().engine());
@@ -143,6 +152,28 @@ class TheFleetIsReadFromOutsideEveryNodeIT {
         if (right != null) {
             right.close();
         }
+    }
+
+    /** A reader holding the supervisory credential for the left node's tenant. */
+    private static FleetReader readerThatCanAct() {
+        return new FleetReader(List.of(left.asNode(), right.asNode()),
+                Credentials.of(Map.of("tegu",
+                        new Credentials.Credential(CLIENT, "tegu-secret"))),
+                // "puudub" is held for too, so that asking about a tenant no
+                // node serves reaches the serving check rather than stopping
+                // at the credential one.
+                Credentials.of(Map.of(
+                        "tegu", new Credentials.Credential(SUPERVISOR, "valvur-secret"),
+                        "puudub", new Credentials.Credential(SUPERVISOR, "valvur-secret"))),
+                Duration.ofSeconds(5));
+    }
+
+    /** The same reader, given nothing to act with. */
+    private static FleetReader readerThatOnlyLooks() {
+        return new FleetReader(List.of(left.asNode(), right.asNode()),
+                Credentials.of(Map.of("tegu",
+                        new Credentials.Credential(CLIENT, "tegu-secret"))),
+                Credentials.none(), Duration.ofSeconds(5));
     }
 
     private static Reading read(FleetReader.RunFilter filter) {
@@ -336,6 +367,92 @@ class TheFleetIsReadFromOutsideEveryNodeIT {
             }
         }
         throw new AssertionError(nodeName + "/" + tenantCode + " is missing from " + json);
+    }
+
+    @Test
+    @DisplayName("the reader reopens a closed run through the tenant's own lane, and says "
+            + "which node carried it")
+    @Proving({DboPromises.OPS_FLEET_IS_ACTED_ON_THROUGH_THE_LANE,
+            DboPromises.PROC_SUPERVISION_IS_ITS_OWN_ENTITLEMENT})
+    void theReaderActsThroughTheLane() {
+        Runs onTheLeft = new Runs(left.manager().runtime("tegu").orElseThrow().engine());
+        Run closed = onTheLeft.pipeline("lab.result", "lab.result.dispatch");
+        onTheLeft.closed(onTheLeft.byKey(closed.key()).orElseThrow());
+        assertFalse(onTheLeft.byKey(closed.key()).orElseThrow().open(), "closed to begin with");
+
+        FleetReader.Acted acted = readerThatCanAct()
+                .reopen("tegu", closed.key(), "the control sample was expired");
+
+        assertEquals(Reading.Outcome.ANSWERED, acted.outcome(), acted.detail());
+        assertEquals("vasak", acted.node(),
+                "the act says which node carried it, like every answer here does");
+        Run reopened = onTheLeft.byKey(closed.key()).orElseThrow();
+        assertTrue(reopened.open(), "the reader read the fleet and could not change it");
+        assertEquals("the control sample was expired", reopened.assignment().note());
+    }
+
+    @Test
+    @DisplayName("a reader given no supervisory credential says so and does not ask")
+    @Proving(DboPromises.OPS_FLEET_IS_ACTED_ON_THROUGH_THE_LANE)
+    void aReaderWithoutASupervisoryCredentialLooksAndDoesNotTouch() {
+        Runs onTheLeft = new Runs(left.manager().runtime("tegu").orElseThrow().engine());
+        Run closed = onTheLeft.pipeline("lab.result", "lab.result.dispatch");
+        onTheLeft.closed(onTheLeft.byKey(closed.key()).orElseThrow());
+
+        FleetReader.Acted acted = readerThatOnlyLooks()
+                .reopen("tegu", closed.key(), "I should not be able to");
+
+        assertEquals(Reading.Outcome.NO_CREDENTIAL, acted.outcome());
+        assertTrue(acted.detail().contains("separately granted"), acted.detail());
+        assertFalse(onTheLeft.byKey(closed.key()).orElseThrow().open(),
+                "a reader deployed to look reopened somebody's work");
+    }
+
+    @Test
+    @DisplayName("a tenant no node serves is named rather than silently not acted on")
+    @Proving(DboPromises.OPS_FLEET_IS_ACTED_ON_THROUGH_THE_LANE)
+    void aTenantNobodyServesIsSaid() {
+        FleetReader.Acted acted = readerThatCanAct()
+                .reopen("puudub", "some-run", "nothing to act on");
+
+        assertEquals(Reading.Outcome.NOT_SERVING, acted.outcome());
+        assertTrue(acted.detail().contains("puudub"), acted.detail());
+    }
+
+    @Test
+    @DisplayName("the service mounts no act surface unless the deployment named a second "
+            + "token, and the reading token does not open it")
+    @Proving(DboPromises.OPS_FLEET_IS_ACTED_ON_THROUGH_THE_LANE)
+    void theActSurfaceIsSeparatelyGated() throws Exception {
+        try (FleetService readOnly = new FleetService(readerThatOnlyLooks(),
+                "127.0.0.1", 0, "read-token")) {
+            readOnly.start();
+            assertFalse(readOnly.acts(), "a service with no act token reports that it acts");
+            HttpResponse<String> absent = http.send(HttpRequest.newBuilder(
+                            URI.create("http://127.0.0.1:" + readOnly.port() + "/fleet/reopen"))
+                    .header("Authorization", "Bearer read-token")
+                    .POST(HttpRequest.BodyPublishers.ofString("{}")).build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(404, absent.statusCode(),
+                    "the act surface answered on a reader nobody gave an act token: "
+                            + absent.body());
+        }
+
+        try (FleetService acting = new FleetService(readerThatCanAct(),
+                "127.0.0.1", 0, "read-token", "act-token")) {
+            acting.start();
+            assertTrue(acting.acts());
+            URI door = URI.create("http://127.0.0.1:" + acting.port() + "/fleet/reopen");
+
+            HttpResponse<String> withTheReadToken = http.send(HttpRequest.newBuilder(door)
+                    .header("Authorization", "Bearer read-token")
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            "{\"tenant\":\"tegu\",\"run\":\"x\",\"reason\":\"y\"}")).build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(401, withTheReadToken.statusCode(),
+                    "the token that reads also acted, so the two authorities are one: "
+                            + withTheReadToken.body());
+        }
     }
 
     /** The wire's own reader, so the test decodes with what the store encodes. */

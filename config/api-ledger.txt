@@ -2081,6 +2081,7 @@ cloud.jengu.dbo.promises.DboPromises                                   MNT_IMPOR
 cloud.jengu.dbo.promises.DboPromises                                   MNT_OWNER_KEY_ENCRYPTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_PORTABLE_STATE_EXPORT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_SNAPSHOT_CONSISTENT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   OPS_FLEET_IS_ACTED_ON_THROUGH_THE_LANE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   OPS_FLEET_IS_READ_FROM_OUTSIDE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   OPS_MIGRATION_AS_DEPLOYMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   OPS_NUMBERS_LEAVE_THE_NODE:cloud.jengu.dbo.promises.DboPromises
@@ -3256,6 +3257,7 @@ cloud.jengu.dbo.work.Run                                               item():cl
 cloud.jengu.dbo.work.Run                                               key():String
 cloud.jengu.dbo.work.Run                                               kind():cloud.jengu.dbo.work.RunKind
 cloud.jengu.dbo.work.Run                                               milestone():cloud.jengu.dbo.work.Run.Milestone
+cloud.jengu.dbo.work.Run                                               named(String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Run                                               needsAPerson():boolean
 cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,cloud.jengu.dbo.work.Holder,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone)
 cloud.jengu.dbo.work.Run                                               open():boolean

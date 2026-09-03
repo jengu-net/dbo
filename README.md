@@ -112,7 +112,7 @@ The specification is an [arc42](https://arc42.org/) tree:
 | `dbo-maintenance` | Sealed archives: backup, restore, export, import |
 | `dbo-tenant`, `dbo-tenant-k8s` | Tenant runtime wiring and the in-cluster provisioning seam |
 | `dbo-operator` | The Kubernetes provisioning operator |
-| `dbo-fleet` | The fleet reader — reads every node and tenant from outside, labels each answer with its node |
+| `dbo-fleet` | The fleet reader — reads every node and tenant from outside, labels each answer with its node, and acts through the tenant's own lane |
 | `dbo-server` | The serving distribution |
 
 ## Depending on it

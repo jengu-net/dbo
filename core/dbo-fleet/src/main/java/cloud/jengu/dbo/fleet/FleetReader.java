@@ -1,6 +1,11 @@
 package cloud.jengu.dbo.fleet;
 
 import cloud.jengu.dbo.core.wire.RecordWire;
+import cloud.jengu.dbo.runner.Lane;
+import cloud.jengu.dbo.runner.http.HttpLane;
+import cloud.jengu.dbo.work.Executor;
+import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.Scope;
 
 import java.io.IOException;
 import java.net.URI;
@@ -70,23 +75,44 @@ public final class FleetReader {
         }
     }
 
+    /** What one act came to — where it was tried, how it ended, and why not. */
+    public record Acted(String node, Reading.Outcome outcome, String detail) {}
+
     private final List<Node> nodes;
     private final Credentials credentials;
+    private final Credentials supervisory;
     private final HttpClient http;
     private final Duration timeout;
 
+    /** A reader that looks and does not touch: it holds no supervisory credential. */
     public FleetReader(List<Node> nodes, Credentials credentials) {
-        this(nodes, credentials, Duration.ofSeconds(10));
+        this(nodes, credentials, Credentials.none(), Duration.ofSeconds(10));
+    }
+
+    public FleetReader(List<Node> nodes, Credentials credentials, Duration timeout) {
+        this(nodes, credentials, Credentials.none(), timeout);
     }
 
     /**
-     * @param timeout the bound on every single ask. A fleet read that could
-     *                hang on one node would make the slowest node the
-     *                reader's availability.
+     * @param credentials what the reader asks a tenant about its work with —
+     *                    the fleet scope, which reads envelopes and nothing
+     *                    below them
+     * @param supervisory what it acts with, held separately and usually not
+     *                    held at all. Looking is far more common than acting
+     *                    and must not require the authority to overturn
+     *                    somebody's work, so the two are different
+     *                    credentials rather than two uses of one — and a
+     *                    reader given no supervisory secret is a read-only
+     *                    tool by construction rather than by discipline.
+     * @param timeout     the bound on every single ask. A fleet read that
+     *                    could hang on one node would make the slowest node
+     *                    the reader's availability.
      */
-    public FleetReader(List<Node> nodes, Credentials credentials, Duration timeout) {
+    public FleetReader(List<Node> nodes, Credentials credentials, Credentials supervisory,
+            Duration timeout) {
         this.nodes = List.copyOf(nodes);
         this.credentials = credentials;
+        this.supervisory = supervisory;
         this.timeout = timeout;
         this.http = HttpClient.newBuilder().connectTimeout(timeout).build();
     }
@@ -98,6 +124,66 @@ public final class FleetReader {
             readings.add(readNode(node, filter));
         }
         return new Reading(readings, networkMap(readings));
+    }
+
+    /**
+     * Makes one closed run claimable again, through the tenant's lane.
+     *
+     * <p><b>Through the lane, never around it.</b> The reader holds an
+     * identity and an entitlement and posts the same verb a participant
+     * posts; every rule about the act — that the credential covers the step,
+     * that the step declares the action, that the run belongs to this
+     * appliance — is the store's and is met on the way in. What comes back is
+     * the tenant's own refusal or its assent.
+     *
+     * <p>Only the run's key travels. The reader holds envelopes, not runs,
+     * and the lane reads the store's own copy of what it is acting on.
+     *
+     * <p>The first node serving the tenant is asked. A tenant's work lives in
+     * the tenant's database, so every node serving it reaches the same runs,
+     * and which one carries the ask is not a decision worth making.
+     */
+    public Acted reopen(String tenant, String runKey, String because) {
+        Optional<Credentials.Credential> credential = supervisory.forTenant(tenant);
+        if (credential.isEmpty()) {
+            return new Acted(null, Reading.Outcome.NO_CREDENTIAL,
+                    "this reader holds no supervisory credential for '" + tenant + "', so it "
+                            + "did not ask. Looking and acting are separately granted");
+        }
+        for (Node node : nodes) {
+            Answer tenants = get(node.base().resolve("/runtime/tenants"), node.opsToken());
+            if (tenants.outcome() != Reading.Outcome.ANSWERED) {
+                continue;
+            }
+            boolean serving = rows(tenants.body(), "tenants").stream()
+                    .anyMatch(state -> tenant.equals(state.get("code"))
+                            && "serving".equals(state.get("state")));
+            if (!serving) {
+                continue;
+            }
+            Answer token = mint(node, tenant, credential.get());
+            if (token.outcome() != Reading.Outcome.ANSWERED) {
+                return new Acted(node.name(), token.outcome(), token.detail());
+            }
+            String bearer = token.body();
+            Lane lane = HttpLane.to(node.base().resolve("/t/" + tenant + "/work"),
+                    () -> bearer, tenant, credential.get().clientId(),
+                    new Executor(credential.get().clientId(), "1.0",
+                            "cloud.jengu.dbo.fleet", Scope.BASELINE));
+            try {
+                lane.reopen(Run.named(runKey), because);
+                return new Acted(node.name(), Reading.Outcome.ANSWERED, null);
+            } catch (RuntimeException refused) {
+                // The tenant's own words. A refusal here is settled — the
+                // credential does not cover the step, the step declares no
+                // reopening, the run is another appliance's — and telling an
+                // operator which is the whole value of asking.
+                return new Acted(node.name(), Reading.Outcome.REFUSED,
+                        String.valueOf(refused.getMessage()));
+            }
+        }
+        return new Acted(null, Reading.Outcome.NOT_SERVING,
+                "no node in this fleet reports serving '" + tenant + "'");
     }
 
     private Reading.NodeReading readNode(Node node, RunFilter filter) {

@@ -1193,6 +1193,17 @@ public enum DboPromises implements Promise {
             + "the seam's own closed vocabulary. Reporting is not a dependency of serving: a "
             + "collector that is absent, slow or refusing costs the caller nothing and is "
             + "said once, and a node with no endpoint counts and sends nowhere."),
+    OPS_FLEET_IS_ACTED_ON_THROUGH_THE_LANE("The process that reads a deployment can "
+            + "also act on it, and only through the doors a participant uses: it holds a "
+            + "supervisory credential per tenant, granted separately from the one it reads "
+            + "with and usually not granted at all, and posts the tenant's own lane verb — "
+            + "so every rule about the act is the tenant's and is met on the way in. Looking "
+            + "must not carry the authority to overturn work, so a reader given no "
+            + "supervisory credential is read-only by construction, and where the reader is "
+            + "a service its act surface is not mounted at all unless the deployment named a "
+            + "second token for it. An act says which node carried it, and one that did not "
+            + "happen says why rather than passing quietly."),
+
     OPS_RUNTIME_SAYS_WHAT_IT_SERVES(
             "A runtime can be asked which tenants it is serving, and what it is doing "
             + "about the ones it is not: serving, coming up, failed to come up — one "
