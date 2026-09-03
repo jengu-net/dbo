@@ -34,6 +34,27 @@ import java.util.Optional;
  *       {@code retry}, {@code nobody} or {@code any}; any unless said</li>
  * </ul>
  *
+ * <p>Acting is configured separately, and usually not at all:
+ *
+ * <ul>
+ *   <li>{@code DBO_FLEET_SUPERVISE_CREDENTIAL_DIR} — per-tenant secrets for a
+ *       credential carrying {@code supervise}, in the same shape as the
+ *       reading ones. Without it this reader looks and does not touch, which
+ *       is what most deployments want.</li>
+ *   <li>{@code DBO_FLEET_SUPERVISE_CLIENT_ID} — the client those secrets
+ *       belong to. It has no default: the reading default is the
+ *       deployment's own per-tenant credential, and that one deliberately
+ *       supervises nothing, so guessing a name here would guess wrong.</li>
+ *   <li>{@code DBO_FLEET_ACT_TOKEN} — what a caller presents to ask the
+ *       service to act, separate from {@code DBO_FLEET_TOKEN}. Unset, the
+ *       act surface is not mounted.</li>
+ * </ul>
+ *
+ * <p>As a command, {@code reopen <tenant> <run> <reason...>} makes one closed
+ * run claimable again and exits non-zero if it did not happen — a read says
+ * which nodes were silent and is still a read, but an act either landed or
+ * did not, and a script has to be able to tell.</p>
+ *
  * <p>Exit is zero whenever a reading was produced. An unreachable node is a
  * line in the reading, not a failure of the read: the read exists to say
  * which nodes did not answer.
@@ -53,7 +74,21 @@ public final class Main {
         List<Node> nodes = nodes(require("DBO_FLEET_NODES"), require("DBO_OPS_TOKEN"));
         Credentials credentials = fromDirectory(Path.of(require("DBO_FLEET_CREDENTIAL_DIR")),
                 env("DBO_FLEET_CLIENT_ID", "tenant-bootstrap"));
-        FleetReader reader = new FleetReader(nodes, credentials);
+        FleetReader reader = new FleetReader(nodes, credentials, supervisory(),
+                java.time.Duration.ofSeconds(10));
+        if (args.length > 0 && "reopen".equals(args[0])) {
+            if (args.length < 4) {
+                throw new IllegalStateException(
+                        "usage: reopen <tenant> <run-key> <reason...>");
+            }
+            FleetReader.Acted acted = reader.reopen(args[1], args[2],
+                    String.join(" ", java.util.Arrays.copyOfRange(args, 3, args.length)));
+            System.out.println(RecordWire.write(acted));
+            if (acted.outcome() != Reading.Outcome.ANSWERED) {
+                System.exit(1);
+            }
+            return;
+        }
         String listen = System.getenv("DBO_FLEET_LISTEN");
         if (listen == null || listen.isBlank()) {
             String holder = env("DBO_FLEET_HOLDER", "any");
@@ -66,13 +101,18 @@ public final class Main {
             throw new IllegalStateException("DBO_FLEET_LISTEN is host:port; got '" + listen + "'");
         }
         try (FleetService service = new FleetService(reader, listen.substring(0, colon),
-                Integer.parseInt(listen.substring(colon + 1)), require("DBO_FLEET_TOKEN"))) {
+                Integer.parseInt(listen.substring(colon + 1)), require("DBO_FLEET_TOKEN"),
+                System.getenv("DBO_FLEET_ACT_TOKEN"))) {
             service.start();
             // Startup says WHAT it is and WHERE it reads, and names no tenant:
             // the node names are the deployment's own words and carry nothing.
-            LOG.info("started: component=dbo-fleet version={} jdk={} listen={} nodes={}",
+            // Whether this one can act is part of its resolved posture, and
+            // the first thing somebody reading the log wants to know about a
+            // process that could overturn work.
+            LOG.info("started: component=dbo-fleet version={} jdk={} listen={} nodes={} "
+                            + "acts={}",
                     version(), Runtime.version(), listen,
-                    nodes.stream().map(Node::name).toList());
+                    nodes.stream().map(Node::name).toList(), service.acts());
             Runtime.getRuntime().addShutdownHook(new Thread(
                     () -> LOG.info("shutdown requested: component=dbo-fleet"), "dbo-shutdown"));
             Thread.currentThread().join();
@@ -119,6 +159,26 @@ public final class Main {
             }
         }
         return Credentials.of(byTenant);
+    }
+
+    /**
+     * The supervisory credentials, or none. No default client id: the reading
+     * default is the deployment's own per-tenant credential, which supervises
+     * nothing by design, so falling back to it would build a reader that
+     * looks able to act and is refused by every tenant it asks.
+     */
+    static Credentials supervisory() throws IOException {
+        String directory = System.getenv("DBO_FLEET_SUPERVISE_CREDENTIAL_DIR");
+        String clientId = System.getenv("DBO_FLEET_SUPERVISE_CLIENT_ID");
+        if (directory == null || directory.isBlank()) {
+            return Credentials.none();
+        }
+        if (clientId == null || clientId.isBlank()) {
+            throw new IllegalStateException("DBO_FLEET_SUPERVISE_CREDENTIAL_DIR is set and "
+                    + "DBO_FLEET_SUPERVISE_CLIENT_ID is not; a supervisory secret belongs to "
+                    + "a client, and this one has no sensible default");
+        }
+        return fromDirectory(Path.of(directory), clientId);
     }
 
     private static String env(String name, String fallback) {

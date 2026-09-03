@@ -27,4 +27,9 @@ public interface Credentials {
         Map<String, Credential> fixed = Map.copyOf(byTenant);
         return code -> Optional.ofNullable(fixed.get(code));
     }
+
+    /** Holding nothing: what a reader deployed to look and not touch has. */
+    static Credentials none() {
+        return code -> Optional.empty();
+    }
 }

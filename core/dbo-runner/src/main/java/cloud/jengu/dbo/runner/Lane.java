@@ -502,17 +502,28 @@ public interface Lane {
 
             @Override
             public Optional<Run> claim(Run run, Duration holdFor) {
+                // Against the run as the STORE has it, never as the asker
+                // described it. A body crosses this lane, so the process and
+                // step in it are the caller's words, and a credential bounded
+                // to one step could otherwise reach another's work simply by
+                // naming it wrongly — the primitive re-reads before it writes,
+                // so the lie would pass the check and the claim would land on
+                // the real run.
+                Run stored = runs.byKey(run.key()).orElse(null);
+                if (stored == null) {
+                    return Optional.empty();
+                }
                 // Refused rather than narrowed: taking one run is a decision,
                 // and a decision outside the entitlement is an error somebody
                 // has to see.
-                String step = run.process() + "." + run.step();
+                String step = stored.process() + "." + stored.step();
                 if (!entitlement.covers(step)) {
                     throw new IllegalStateException(tenant + ": '" + identity.name()
                             + "' is not entitled to claim '" + step + "' — it holds "
                             + entitlement);
                 }
                 Optional<Run> claimed =
-                        runs.claim(run, identity, java.time.Instant.now().plus(holdFor));
+                        runs.claim(stored, identity, java.time.Instant.now().plus(holdFor));
                 // The hop. Taking the work is the store handing it to this
                 // participant, and that is a fact about the task's journey —
                 // recorded as travel, never as a reading, because nothing has
@@ -583,10 +594,19 @@ public interface Lane {
 
             @Override
             public void reopen(Run run, String because) {
+                // The run as the STORE has it, for both halves of what
+                // follows: the asker says which run, and nothing else about
+                // it. Believing the body's process and step would let a
+                // credential bounded to one step reopen another's work by
+                // naming it wrongly, and writing from the body would let a
+                // reopening rewrite the envelope it reopens.
+                Run stored = runs.byKey(run.key()).orElseThrow(
+                        () -> new IllegalStateException(tenant + ": no run '" + run.key()
+                                + "' to reopen"));
                 // Refused rather than narrowed, for the reason a claim is:
                 // overturning one closure is a decision, and a decision
                 // outside the entitlement is an error somebody has to see.
-                String step = run.process() + "." + run.step();
+                String step = stored.process() + "." + stored.step();
                 if (!entitlement.supervises(step)) {
                     throw new IllegalStateException(tenant + ": '" + identity.name()
                             + "' is not entitled to reopen '" + step + "' — it holds "
@@ -594,7 +614,7 @@ public interface Lane {
                 }
                 // The step's half. A declaration omitting reopen refuses here,
                 // by name, whatever the credential says.
-                runs.reopen(run, because);
+                runs.reopen(stored, because);
             }
 
             @Override

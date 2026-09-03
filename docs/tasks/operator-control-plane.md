@@ -1,11 +1,11 @@
 # An operator's control plane
 
-**Status** — the read half reaches the fleet: a reader outside every container
-fans out over the nodes' and tenants' own doors and labels every answer with
-its node, as a command that reads once or a service that reads when asked,
-imaged beside the operator. The act half has its door: reopening a closed run
-is a lane verb reached by a supervisory entitlement of its own. What is left is
-giving the reader that verb.
+**Status** — built. A reader outside every container fans out over the nodes'
+and tenants' own doors, labels every answer with its node, and can overturn a
+closure through the tenant's own lane with a credential granted separately from
+the one it reads with. Both halves ship as one command or one service, imaged
+beside the operator. What is left is not this plane: it is the routing layer,
+and it has its own horizon.
 
 **Issues** — none open. Closed and load-bearing here:
 [#160](https://github.com/jengu-net/dbo/issues/160) (a runner keeps no state
@@ -61,8 +61,12 @@ back door around the rules every other actor obeys.
   `GET /fleet` and reads the fleet afresh on every ask, holding nothing between
   asks — the second-store decision applied to the service form. The build loop
   pushes `dbo-fleet` beside `dbo-operator` and `dbo-server`.
-- **Step 5 has not started.** Acting goes through a lane with an identity and
-  an entitlement, and nothing here holds either.
+- **And the same jar acts.** `reopen <tenant> <run> <reason>` as a command,
+  `POST /fleet/reopen` as a service, both going out through the tenant's own
+  lane with the `HttpLane` a runner holds. The reader holds one supervisory
+  credential per tenant, given separately and usually not given, and the
+  service's act surface is not mounted unless a deployment named a second
+  token for it.
 
 ## Sequence
 
@@ -74,10 +78,13 @@ back door around the rules every other actor obeys.
 | 2b | **Trace context on the lane** ([#164](https://github.com/jengu-net/dbo/issues/164)) — one run as one chain across two processes. | **DONE** 2026-09-01 — a run carries the trace context it was given, never one it invented, across the lane and down to the runs it causes (`OneRunIsOneChainAcrossTwoProcessesIT`) |
 | 3 | **Split `PROC_NETWORK_MAP`** ([#162](https://github.com/jengu-net/dbo/issues/162)) — the catalogue half names the node-inventory gap this plane would surface. | **DONE** 2026-08-31 — a node answering its own catalogue is its own promise and proven; what remains under the old code is the per-node inventory, which the console's tests now cite because that module was never wired into the promise index |
 | 4 | **Fleet-level read** — one process holding per-tenant credentials, fanning out over the surfaces that already exist, labelling every answer with the node it came from. | **DONE** 2026-09-03 — a node serves its installed catalogue at `/runtime/catalogue` beside `/runtime/tenants`, under the same token; a tenant's fleet door answers `runs` as envelopes; `core/dbo-fleet` reads, unions and labels, as a command or as a service that reads on every ask and keeps nothing (`TheFleetIsReadFromOutsideEveryNodeIT`, which also proves `PROC_NETWORK_MAP`); imaged in the build loop |
-| 5 | **Bounded act** — the same verbs a participant has, through a lane, with an identity and an entitlement. | **IN PROGRESS** — first slice 2026-09-03: `supervise` as its own scope, `reopen` as a lane verb over both carriers, and the step's declared actions now enforced on the lane at all (they were not). Left: the reader holding a supervisory credential, so an operator acts with the tool it reads with |
+| 5 | **Bounded act** — the same verbs a participant has, through a lane, with an identity and an entitlement. | **DONE** 2026-09-03 — `supervise` as its own scope, `reopen` as a lane verb over both carriers, the step's declared actions enforced on the lane at all (they were not), the lane reading the store's own copy of what it acts on, and the reader acting through `HttpLane` with a separately granted credential behind a separately granted token (`SupervisionIsItsOwnEntitlementIT`, `TheFleetIsReadFromOutsideEveryNodeIT`) |
 
-**What is left is the rest of step 5.** The door exists and `curl` reaches it;
-what an operator does not yet have is the act in the tool it reads with.
+**The sequence is complete.** What an operator can now do, they do with one
+process holding two separately granted credentials: see every node and tenant,
+and overturn a closure through the same door a participant would. What this
+plane still cannot do is anything the routing layer would give it, and that is
+a different topic with a different design pass in front of it.
 
 ## Decisions
 
@@ -157,6 +164,29 @@ acting is. Everything the store's rules check about a report — the declared
 actions, the run's ownership, the trail — is checked at the primitive the lane
 passes through, so a supervisory surface beside the lane would be a second path
 to those rules and eventually a second copy of them.
+
+**The reader holds two credentials, and usually only one.** Looking happens far
+more often than acting and must not carry the authority to overturn work, so
+the supervisory secret is its own directory, its own client id with no default,
+and its own token on the service door. A reader deployed without it is
+read-only by construction rather than by discipline, and the act surface is not
+mounted at all rather than mounted and refusing — the posture the runtime-state
+door already takes, because a deployment that has not said who may act has not
+asked for a door to be asked through.
+
+**The reader uses the lane's own client.** Reading is this module's own HTTP
+against doors that answer JSON; acting goes through `HttpLane`, the same client
+a runner holds. A second implementation of those verbs, spelled slightly
+differently, is how a surface comes to answer one thing to a runner and another
+to an operator.
+
+**A lane believes the store about the run, not the asker.** A body crosses the
+wire, so the process and step in it are the caller's words. The primitive
+re-reads before it writes, so a lane that checked an entitlement against those
+words would check against a step the run does not have and then act on the run
+that it does — the credential's bound holding only for callers who describe
+their work honestly. Both `reopen` and `claim` now read the store's copy and
+check against that, and a supervisor sends only the run's key.
 
 **Narrowing an entitlement narrows both halves.** A lane bounded to some steps
 is bounded for every purpose. Keeping the supervisory half whole while

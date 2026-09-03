@@ -92,7 +92,7 @@ can tell a wait from a stall. Close the table with the critical path, so
 | [Medplum → dbo](medplum-to-dbo.md) | active | [platform#851](https://github.com/jengu-net/jengu-platform/issues/851) |
 | [Data versioning](data-versioning.md) | store side delivered; consumer side pending | [platform#778](https://github.com/jengu-net/jengu-platform/issues/778) |
 | [The face contract](face-contract.md) | one slice open, and the document closes with it | [#112](https://github.com/jengu-net/dbo/issues/112) |
-| [An operator's control plane](operator-control-plane.md) | reads the whole fleet; the act half has its door, not yet its tool | none open |
+| [An operator's control plane](operator-control-plane.md) | built: reads the whole fleet and overturns a closure through the lane | none open |
 | [IHE profiles the store should serve](ihe-profiles.md) | analysis only; SVCM next | none filed |
 
 Everything else open in this repository is backlog: it has an issue, and it

@@ -21,6 +21,22 @@ public record Run(String id, long versionId, String key, String process, String 
         Map<String, String> inputs, Milestone milestone) {
 
     /**
+     * A run named only by its key, for a verb whose lane reads the store's
+     * own copy of it — what a supervisor sends when it says which run to act
+     * on.
+     *
+     * <p>Every other field is left to the store deliberately. A body that
+     * carried them would be the asker describing a record it does not hold,
+     * and a lane that believed the description would let a credential bounded
+     * to one step reach another's work by naming it wrongly.
+     */
+    public static Run named(String key) {
+        return new Run(null, 0, key, null, null, null, null, null, null, null,
+                Map.of(), null, java.util.List.of(), null, Produced.NOTHING, null,
+                Map.of(), null);
+    }
+
+    /**
      * Where a long run is, in the step's own words — replaced on each
      * report, never accumulated, and kept across release and retake so the
      * next taker resumes from a fact.

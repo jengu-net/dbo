@@ -274,6 +274,69 @@ class SupervisionIsItsOwnEntitlementIT {
                         + "participant reporting done");
     }
 
+    @Test
+    @DisplayName("a bounded credential cannot reach another step's run by describing it as "
+            + "one it is entitled to — the lane reads the store's own copy")
+    @Proving({DboPromises.PROC_SUPERVISION_IS_ITS_OWN_ENTITLEMENT,
+            DboPromises.PROC_CLAIM_IS_THE_INTERSECTION})
+    void aMisdescribedRunDoesNotWidenAnEntitlement() throws Exception {
+        // The body crosses the wire, so the process and step in it are the
+        // asker's words. The primitive re-reads the run before it writes, so
+        // a lane that believed those words would check the entitlement
+        // against a step the run does not have and then act on the run that
+        // it does — the credential's bound holding only for callers who
+        // describe their work honestly.
+        Run dispatch = closedRun(DISPATCH, "supervised-dispatch-3");
+        Run lying = new Run(dispatch.id(), dispatch.versionId(), dispatch.key(),
+                PROCESS, "validate", dispatch.kind(), dispatch.holder(), dispatch.parent(),
+                dispatch.correlation(), dispatch.trace(), dispatch.tally(), dispatch.item(),
+                dispatch.domains(), dispatch.assignment(), dispatch.produced(),
+                dispatch.stepVersion(), dispatch.inputs(), dispatch.milestone());
+
+        Lane bounded = lane("valvur-valetaja", "supervise/" + PROCESS + ".validate");
+        IllegalStateException refused = assertThrows(IllegalStateException.class,
+                () -> bounded.reopen(lying, "described as something I may reopen"));
+
+        assertTrue(refused.getMessage().contains("dispatch"),
+                "the refusal names the step the RUN has, not the one the body claimed: "
+                        + refused.getMessage());
+        assertFalse(runs.byKey(dispatch.key()).orElseThrow().open(),
+                "a bounded supervisor reopened another step's run by misnaming it");
+
+        // and the same shape on a claim, which had it too
+        Run waiting = runs.of(DISPATCH, RunKind.PIPELINE, "supervised-dispatch-4");
+        Run lyingOpen = new Run(waiting.id(), waiting.versionId(), waiting.key(),
+                PROCESS, "validate", waiting.kind(), waiting.holder(), waiting.parent(),
+                waiting.correlation(), waiting.trace(), waiting.tally(), waiting.item(),
+                waiting.domains(), waiting.assignment(), waiting.produced(),
+                waiting.stepVersion(), waiting.inputs(), waiting.milestone());
+        Lane bench = lane("pink-valetaja", "work/" + PROCESS + ".validate");
+
+        IllegalStateException claimRefused = assertThrows(IllegalStateException.class,
+                () -> bench.claim(lyingOpen, Duration.ofMinutes(1)));
+        assertTrue(claimRefused.getMessage().contains("dispatch"), claimRefused.getMessage());
+    }
+
+    @Test
+    @DisplayName("a supervisor says which run and nothing else about it")
+    @Proving(DboPromises.PROC_SUPERVISION_IS_ITS_OWN_ENTITLEMENT)
+    void aSupervisorNamesTheRunAndTheStoreSuppliesTheRest() throws Exception {
+        Run closed = closedRun(VALIDATE, "supervised-validate-6");
+        Lane supervisor = lane("valvur-nimeline", "supervise/" + PROCESS + ".validate");
+
+        // Only the key travels. Everything the run is remains the store's,
+        // which is what lets a reader that holds envelopes act at all.
+        supervisor.reopen(Run.named(closed.key()), "the control sample was expired");
+
+        Run reopened = runs.byKey(closed.key()).orElseThrow();
+        assertTrue(reopened.open(), "a run named only by its key was not reopened");
+        assertEquals("the control sample was expired", reopened.assignment().note());
+        assertEquals(VALIDATE.id().toString(),
+                reopened.process() + "." + reopened.step(),
+                "the envelope was rewritten from the body rather than kept: "
+                        + reopened.process() + "." + reopened.step());
+    }
+
     private static Lane lane(String participant, String... scopes) throws Exception {
         String secret = participant + "-secret";
         manager.authority(TENANT).ensureClient(participant, secret, List.of(scopes));
