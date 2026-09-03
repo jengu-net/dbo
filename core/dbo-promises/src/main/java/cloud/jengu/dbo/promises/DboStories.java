@@ -92,14 +92,32 @@ public enum DboStories implements Story {
                     DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
                     DboPromises.WF_HOPS_AUDITED)),
 
-    FLEET_HEALTH("A tree of participants reporting one hop each, presence derived rather "
-            + "than declared, read from outside the container.",
-            List.of(DboPromises.PROC_STEP_DECLARES_ITSELF,
+    FLEET_HEALTH("An operator reads a whole deployment from outside every container — what "
+            + "each node serves and knows how to do, who is present, what sits behind them — "
+            + "and steers it through the same door a participant would use.",
+            List.of(
+                    // What a node will say about itself, under the
+                    // deployment's own token rather than a tenant's.
+                    DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES,
+                    DboPromises.PROC_A_NODE_ANSWERS_ITS_CATALOGUE,
+                    DboPromises.PROC_NETWORK_MAP,
+                    // One process outside every container, reading and acting.
+                    DboPromises.OPS_FLEET_IS_READ_FROM_OUTSIDE,
+                    DboPromises.OPS_FLEET_IS_ACTED_ON_THROUGH_THE_LANE,
+                    // Who is out there, derived rather than declared.
                     DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS,
+                    DboPromises.PROC_PRESENCE_IS_DERIVED,
                     DboPromises.PROC_A_TRACKABLE_MAY_ROUTE_OTHERS,
                     DboPromises.PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB,
-                    DboPromises.PROC_PRESENCE_IS_DERIVED,
-                    DboPromises.PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT)),
+                    DboPromises.PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT,
+                    // Trends, which are a different question from state.
+                    DboPromises.PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT,
+                    DboPromises.PROC_REPORTING_RUNS_WHERE_NOTHING_COLLECTS,
+                    DboPromises.OPS_NUMBERS_LEAVE_THE_NODE,
+                    // And undoing a judgement, which is its own authority.
+                    DboPromises.PROC_SUPERVISION_IS_ITS_OWN_ENTITLEMENT,
+                    DboPromises.PROC_CLOSED_CAN_BE_REOPENED,
+                    DboPromises.TEN_A_PARTNER_MANAGES_TENANTS)),
 
     PARTNER_TRACKING("A partner follows work through the tenants it manages, without being "
             + "able to read it.",
