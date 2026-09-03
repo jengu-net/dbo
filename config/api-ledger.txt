@@ -2077,6 +2077,7 @@ cloud.jengu.dbo.promises.DboPromises                                   MNT_IMPOR
 cloud.jengu.dbo.promises.DboPromises                                   MNT_OWNER_KEY_ENCRYPTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_PORTABLE_STATE_EXPORT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_SNAPSHOT_CONSISTENT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   OPS_FLEET_IS_READ_FROM_OUTSIDE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   OPS_MIGRATION_AS_DEPLOYMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   OPS_NUMBERS_LEAVE_THE_NODE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   OPS_RUNTIME_SAYS_WHAT_IT_SERVES:cloud.jengu.dbo.promises.DboPromises
@@ -2865,7 +2866,7 @@ cloud.jengu.dbo.tenant.FaceRequirements                                refuseUns
 cloud.jengu.dbo.tenant.FleetHandler                                    SCOPE:String
 cloud.jengu.dbo.tenant.FleetHandler                                    class
 cloud.jengu.dbo.tenant.FleetHandler                                    handle(HttpExchange):void
-cloud.jengu.dbo.tenant.FleetHandler                                    new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.work.Trackables,String)
+cloud.jengu.dbo.tenant.FleetHandler                                    new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.work.Trackables,cloud.jengu.dbo.work.Runs,String)
 cloud.jengu.dbo.tenant.IdentityHandler                                 SCOPE:String
 cloud.jengu.dbo.tenant.IdentityHandler                                 class
 cloud.jengu.dbo.tenant.IdentityHandler                                 handle(HttpExchange):void
