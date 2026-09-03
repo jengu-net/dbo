@@ -210,6 +210,15 @@ class ServerDistIT {
 
         startServer();
         awaitStatus(base() + "/metadata", 200, 180_000);
+        // The startup line is what INFO exists for, and the shipped
+        // distribution is the only place the binding's idea of "ours" meets
+        // the runtime's actual logger names — so it is read here, as a
+        // process's stdout, and nowhere cheaper.
+        String bootLog = Files.readString(serverLog);
+        assertTrue(bootLog.contains("starting: component=dbo-server"),
+                "the distribution serves and never said it started; a box that says nothing "
+                        + "while it works cannot be told from a box that is stuck. Log:\n"
+                        + bootLog.substring(Math.max(0, bootLog.length() - 4000)));
 
         // §13 in the dist: the k8s Secret's bootstrap client mints the token
         clientSecret = new String(java.util.Base64.getDecoder().decode(
