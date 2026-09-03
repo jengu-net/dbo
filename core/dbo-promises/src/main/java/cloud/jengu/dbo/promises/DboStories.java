@@ -119,38 +119,6 @@ public enum DboStories implements Story {
                     DboPromises.PROC_CLOSED_CAN_BE_REOPENED,
                     DboPromises.TEN_A_PARTNER_MANAGES_TENANTS)),
 
-    PARTNER_TRACKING("A partner follows work through the tenants it manages, without being "
-            + "able to read it.",
-            List.of(DboPromises.PROC_RUN_HAS_A_RECORD,
-                    DboPromises.PROC_RUN_SAYS_WHO_HOLDS_IT,
-                    DboPromises.PROC_RUN_NAMES_WHAT_RAN_IT,
-                    DboPromises.PROC_PROGRESS_NAMES_THE_MILESTONE,
-                    DboPromises.PROC_A_RUN_NAMES_WHAT_IT_PRODUCED,
-                    DboPromises.PROC_FAILURE_IS_RELEASED,
-                    DboPromises.PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT,
-                    DboPromises.IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED,
-                    DboPromises.POL_AUDIT_AS_RECORDS,
-                    DboPromises.POL_ACTOR_FROM_AUTHORITY,
-                    DboPromises.POL_CUSTOM_AUDIT_EVENTS,
-                    DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
-                    DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES,
-                    DboPromises.WF_HOPS_AUDITED,
-                    DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
-                    DboPromises.TEN_STRUCTURAL_SCOPING)),
-
-    TRAIL_ANSWERS("Answering did anybody read this with nobody rather than no record: travel "
-            + "and access as different kinds, and a chain that makes absence mean something.",
-            List.of(DboPromises.POL_AUDIT_AS_RECORDS,
-                    DboPromises.POL_ACTOR_FROM_AUTHORITY,
-                    DboPromises.POL_CUSTOM_AUDIT_EVENTS,
-                    DboPromises.POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY,
-                    DboPromises.CORE_VERSIONED_HISTORY,
-                    DboPromises.PROC_FAILURE_IS_RELEASED,
-                    DboPromises.PROC_RUN_NAMES_WHAT_RAN_IT,
-                    DboPromises.POL_POLICY_REPLAY_ON_RESTORE,
-                    DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES,
-                    DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)),
-
     TENANT_OPENING("A tenant is stood up inside somebody else's JVM, with a database and an "
             + "authority of its own, and the people who will work in it get in.",
             List.of(
