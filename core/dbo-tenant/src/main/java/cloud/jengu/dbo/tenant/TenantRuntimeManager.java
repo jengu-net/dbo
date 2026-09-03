@@ -837,8 +837,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // exactly like a lane with no work, for ever.
         cloud.jengu.dbo.core.api.feed.ChangeFeed laneFeed =
                 new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.work.WorkModel.DOMAIN);
-        cloud.jengu.dbo.work.Runs laneRuns =
-                new cloud.jengu.dbo.work.Runs(runStores.get(spec.code()));
+        // WITH the step catalogue, and that is load-bearing rather than
+        // tidy. Reports land through the actions a step declares
+        // (REQ-DBO-PROC-REPORT-THROUGH-DECLARED-ACTIONS), the rule lives at
+        // the primitive so every door meets one copy of it — and a Runs built
+        // without a catalogue resolves no declaration and therefore narrows
+        // nothing. Built without one, this lane accepted a close from a step
+        // whose declaration says its closure is a person's act, and the rule
+        // was enforced only where a caller happened to pass a catalogue: a
+        // test, which builds whatever it needs. Composed rather than
+        // installed-only, so a participant's introduced step is held to the
+        // declaration it introduced, exactly as the authoring surface is.
+        cloud.jengu.dbo.work.Runs laneRuns = new cloud.jengu.dbo.work.Runs(
+                runStores.get(spec.code()),
+                new cloud.jengu.dbo.work.Introductions(runStores.get(spec.code()), steps)
+                        .composedWith());
         // Built here rather than beside the door it used to be built beside.
         // A lane needs no authority — an authority answers "who is asking",
         // which is a question the framework's own registry never poses — so

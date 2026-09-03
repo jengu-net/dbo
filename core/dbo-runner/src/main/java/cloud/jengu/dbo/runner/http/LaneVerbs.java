@@ -24,6 +24,8 @@ public enum LaneVerbs {
     RELEASED("released"),
     CLOSED("closed"),
     RELEASE_LAPSED("release-lapsed"),
+    /** The supervisory verb: a closed run made claimable again, with its reason. */
+    REOPEN("reopen"),
     DECLARE("declare"),
     INTRODUCE("introduce"),
     WITHDRAW("withdraw"),

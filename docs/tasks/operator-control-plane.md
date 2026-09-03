@@ -3,7 +3,9 @@
 **Status** — the read half reaches the fleet: a reader outside every container
 fans out over the nodes' and tenants' own doors and labels every answer with
 its node, as a command that reads once or a service that reads when asked,
-imaged beside the operator. Nothing acts yet.
+imaged beside the operator. The act half has its door: reopening a closed run
+is a lane verb reached by a supervisory entitlement of its own. What is left is
+giving the reader that verb.
 
 **Issues** — none open. Closed and load-bearing here:
 [#160](https://github.com/jengu-net/dbo/issues/160) (a runner keeps no state
@@ -41,9 +43,13 @@ back door around the rules every other actor obeys.
   cursors; trackables carry what sits behind a router. `dbo-run:list`,
   `dbo-run:describe`, `dbo-process:list` and `dbo-process:describe` query all
   of it — for the JVM the console is attached to.
-- **The act half exists as verbs, not as a surface.** `Runs.reopen` makes a
-  closed run claimable with its reason recorded; `released`, `releaseLapsed`
-  and `claim` are the rest. They are reached through a lane today.
+- **The act half is on the lane, with an authority of its own.** `released`,
+  `closed`, `release-lapsed` and `claim` were already lane verbs; `reopen` was
+  not, so the one act an operator opens a console for — making a wrongly
+  closed run claimable again — was a primitive nothing outside a test called.
+  It is a verb now, reached by the supervisory half of an entitlement:
+  `supervise`, or `supervise/<step>`. Proven over real HTTP in
+  `SupervisionIsItsOwnEntitlementIT`.
 - **The fleet-level read exists as a command.** `core/dbo-fleet` is a plain
   jar in the operator's shape: given the nodes, the deployment's token and a
   secret per tenant, it asks each node what it serves and what it has
@@ -68,10 +74,10 @@ back door around the rules every other actor obeys.
 | 2b | **Trace context on the lane** ([#164](https://github.com/jengu-net/dbo/issues/164)) — one run as one chain across two processes. | **DONE** 2026-09-01 — a run carries the trace context it was given, never one it invented, across the lane and down to the runs it causes (`OneRunIsOneChainAcrossTwoProcessesIT`) |
 | 3 | **Split `PROC_NETWORK_MAP`** ([#162](https://github.com/jengu-net/dbo/issues/162)) — the catalogue half names the node-inventory gap this plane would surface. | **DONE** 2026-08-31 — a node answering its own catalogue is its own promise and proven; what remains under the old code is the per-node inventory, which the console's tests now cite because that module was never wired into the promise index |
 | 4 | **Fleet-level read** — one process holding per-tenant credentials, fanning out over the surfaces that already exist, labelling every answer with the node it came from. | **DONE** 2026-09-03 — a node serves its installed catalogue at `/runtime/catalogue` beside `/runtime/tenants`, under the same token; a tenant's fleet door answers `runs` as envelopes; `core/dbo-fleet` reads, unions and labels, as a command or as a service that reads on every ask and keeps nothing (`TheFleetIsReadFromOutsideEveryNodeIT`, which also proves `PROC_NETWORK_MAP`); imaged in the build loop |
-| 5 | **Bounded act** — the same verbs a participant has, through a lane, with an identity and an entitlement. | **LATER** |
+| 5 | **Bounded act** — the same verbs a participant has, through a lane, with an identity and an entitlement. | **IN PROGRESS** — first slice 2026-09-03: `supervise` as its own scope, `reopen` as a lane verb over both carriers, and the step's declared actions now enforced on the lane at all (they were not). Left: the reader holding a supervisory credential, so an operator acts with the tool it reads with |
 
-**What is left is step 5**, and it is the one that touches somebody's work:
-everything before it is reading, and reading needed no identity.
+**What is left is the rest of step 5.** The door exists and `curl` reaches it;
+what an operator does not yet have is the act in the tool it reads with.
 
 ## Decisions
 
@@ -132,6 +138,31 @@ fan-out buys latency and pays with a second failure mode; it becomes worth
 having when a deployment has enough nodes that a serial read is slow, and not
 before.
 
+**Supervision is its own scope, not a corner of participation.** `fleet` was
+split from `work` because what a bench may *do* and what a deployment may *ask*
+are different questions; the same argument splits what a supervisor may *undo*.
+A runner that validates lab results has no business overturning the results
+somebody judged done, and whoever overturns them performs no work — so neither
+scope implies the other, and the bare `work` scope, which says the holder *is*
+the tenant, supervises nothing either. That last part is the `erasure` rule
+applied again: a credential that may write every type still may not destroy a
+person unless somebody wrote the word down, and the same holds for undoing a
+judgment. Bounded as `supervise/<step>`, it meets the step's declared `reopen`
+action as the other half of reach, which is the intersection rule a claim
+already obeys.
+
+**The verb goes on the lane, not on a second surface.** The reading half got
+its own door because asking what state a fleet is in is not a participant act;
+acting is. Everything the store's rules check about a report — the declared
+actions, the run's ownership, the trail — is checked at the primitive the lane
+passes through, so a supervisory surface beside the lane would be a second path
+to those rules and eventually a second copy of them.
+
+**Narrowing an entitlement narrows both halves.** A lane bounded to some steps
+is bounded for every purpose. Keeping the supervisory half whole while
+narrowing the working one would leave a reach nobody asked to keep; dropping it
+entirely would take away a grant on a field that says it narrows work.
+
 **The service holds nothing between asks.** A reading kept for even a moment
 is a second answer to a question the tenant stores answer authoritatively, and
 the two disagree exactly when an operator is deciding on it. So every ask is a
@@ -142,6 +173,24 @@ alternative was being wrong quickly.
 mirror of many tenants' runs would be a second answer to a question the tenant
 store already answers authoritatively, and the two would disagree exactly when
 it mattered.
+
+## Traps
+
+**A rule at the primitive is only as good as what every caller hands it.**
+Reports land through the step's declared actions, and the check lives on
+`Runs` precisely so the lane, the authoring surface and the console meet one
+copy of it. `Runs` resolves the declaration through a step catalogue, and the
+container built the lane's `Runs` without one — so it resolved nothing,
+narrowed nothing, and the lane accepted every verb of every step. A step whose
+declaration says its closure is a person's act was closed by a participant
+reporting done, and nothing anywhere failed.
+
+It survived because the promise's test builds `Runs` with a catalogue by hand,
+which is the harness trap in its second form: not "who constructs this outside
+a test" but *what does the container hand it that a test hands itself*. The
+catalogue is now composed — installed steps plus introduced ones — where the
+lane's `Runs` is built, and a lane-level test holds a participant to a
+declaration.
 
 ## Not doing
 
@@ -166,7 +215,8 @@ answers would mean reopening that.
 ```bash
 ./gradlew :core:harness:test --tests '*ARunnerKeepsNoStateAcrossLanesIT*' \
     --tests '*TheConsoleSaysWhoWouldRunAStepIT*' \
-    --tests '*TheFleetIsReadFromOutsideEveryNodeIT*' -PdboTestHeap=2g
+    --tests '*TheFleetIsReadFromOutsideEveryNodeIT*' \
+    --tests '*SupervisionIsItsOwnEntitlementIT*' -PdboTestHeap=2g
 ./gradlew :karaf:commands:test
 ./gradlew :core:dbo-fleet:installDist && \
     DBO_FLEET_NODES=a=http://127.0.0.1:1 DBO_OPS_TOKEN=t \

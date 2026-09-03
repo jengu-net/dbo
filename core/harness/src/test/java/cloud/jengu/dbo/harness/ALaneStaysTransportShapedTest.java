@@ -128,7 +128,10 @@ class ALaneStaysTransportShapedTest {
         // Guards against passing vacuously: if the verbs ever move to a
         // superinterface, getDeclaredMethods returns nothing and both rules
         // above become true of an empty list.
-        assertEquals(18, verbs.size(),
+        // 19 since the supervisory verb: reopening a closed run is an act on
+        // the tenant's work like the rest, and it is expressible as a message
+        // — a run and a reason — so it belongs behind both rules above.
+        assertEquals(19, verbs.size(),
                 "the verb count changed; a new verb is exactly what these rules are for");
         return verbs;
     }

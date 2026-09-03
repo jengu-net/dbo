@@ -71,19 +71,54 @@ public interface Lane {
     final class Entitlement {
 
         private final Set<String> steps;
+        private final Set<String> supervised;
 
-        private Entitlement(Set<String> steps) {
+        private Entitlement(Set<String> steps, Set<String> supervised) {
             this.steps = steps;
+            this.supervised = supervised;
         }
 
-        /** The host is the tenant: nothing is narrowed here. */
+        /**
+         * The host is the tenant: nothing is narrowed here.
+         *
+         * <p><b>It supervises nothing.</b> Undoing a judgment somebody made
+         * about work is never a consequence of being entitled to perform it —
+         * the same rule that keeps a broad write grant from erasing a person.
+         * A host that may also overturn a closure says so with
+         * {@link #supervising} or {@link #supervisingEverything}.
+         */
         public static Entitlement everything() {
-            return new Entitlement(null);
+            return new Entitlement(null, Set.of());
         }
 
         /** Bounded to what this credential covers, and nothing else. */
         public static Entitlement ofSteps(String... steps) {
-            return new Entitlement(Set.of(steps));
+            return new Entitlement(Set.of(steps), Set.of());
+        }
+
+        /** The same reach, also supervising the steps named. */
+        public Entitlement supervising(String... steps) {
+            return new Entitlement(this.steps, Set.of(steps));
+        }
+
+        /** The same reach, supervising every step — a bare supervisory scope. */
+        public Entitlement supervisingEverything() {
+            return new Entitlement(this.steps, null);
+        }
+
+        /**
+         * Whether this entitlement may undo a judgment about a step, named
+         * either way — the credential's half of a supervisory act, meeting
+         * the step's declared {@code reopen} action as the other half.
+         */
+        public boolean supervises(String step) {
+            if (supervised == null) {
+                return true;
+            }
+            if (supervised.contains(step)) {
+                return true;
+            }
+            return supervised.stream().anyMatch(entitled -> bare(entitled).equals(step));
         }
 
         /**
@@ -108,6 +143,26 @@ public interface Lane {
             return steps.stream().anyMatch(entitled -> bare(entitled).equals(step));
         }
 
+        /**
+         * This entitlement bounded to the steps asked for — <b>both halves</b>,
+         * each filtered by what the credential already covers, so an ask can
+         * only ever narrow.
+         *
+         * <p>Both, because a lane bounded to some steps is bounded for every
+         * purpose: keeping the supervisory half whole while narrowing the
+         * working one would let an ask that reads as "this lane is for these
+         * steps" leave a reach nobody asked to keep, and dropping it entirely
+         * would take away a credential's grant on a field that says it
+         * narrows work.
+         */
+        public Entitlement narrowedTo(java.util.Collection<String> asked) {
+            return new Entitlement(
+                    asked.stream().filter(this::covers)
+                            .collect(java.util.stream.Collectors.toUnmodifiableSet()),
+                    asked.stream().filter(this::supervises)
+                            .collect(java.util.stream.Collectors.toUnmodifiableSet()));
+        }
+
         /** What this lane will offer, of what was asked for. */
         Set<String> narrow(Set<String> asked) {
             if (steps == null) {
@@ -125,7 +180,8 @@ public interface Lane {
 
         @Override
         public String toString() {
-            return steps == null ? "everything" : steps.toString();
+            return "work=" + (steps == null ? "everything" : steps.toString())
+                    + " supervise=" + (supervised == null ? "everything" : supervised.toString());
         }
     }
 
@@ -168,6 +224,29 @@ public interface Lane {
      * key closes with none and the store checks what it has.
      */
     void closed(Run run, String head);
+
+    /**
+     * A closed run, deliberately open again, with the reason recorded
+     * (REQ-DBO-PROC-CLOSED-CAN-BE-REOPENED).
+     *
+     * <p><b>The supervisory verb, and the only one.</b> Every other verb here
+     * is a participant acting on work it holds; this one overturns a judgment
+     * somebody else already made, so it is the one act reached by the
+     * supervisory half of an entitlement rather than the working half. A
+     * credential that performs a step does not thereby overturn its closures,
+     * and a supervisor performs no work.
+     *
+     * <p>Both halves must admit it: the entitlement names the step, and the
+     * step declares the {@code reopen} action. A step whose declaration omits
+     * it has said its closures are final, and says so by name rather than
+     * quietly doing nothing.
+     *
+     * <p>Abstract, not defaulted, like the other verbs whose silent loss
+     * would be invisible: a lane that dropped a reopen would leave an
+     * operator looking at a run they were told is claimable and nobody can
+     * claim.
+     */
+    void reopen(Run run, String because);
 
     /** The tenant's housekeeping: lapsed claims handed back. Anybody may. */
     int releaseLapsed();
@@ -500,6 +579,22 @@ public interface Lane {
                     }
                 }
                 runs.closed(run);
+            }
+
+            @Override
+            public void reopen(Run run, String because) {
+                // Refused rather than narrowed, for the reason a claim is:
+                // overturning one closure is a decision, and a decision
+                // outside the entitlement is an error somebody has to see.
+                String step = run.process() + "." + run.step();
+                if (!entitlement.supervises(step)) {
+                    throw new IllegalStateException(tenant + ": '" + identity.name()
+                            + "' is not entitled to reopen '" + step + "' — it holds "
+                            + entitlement);
+                }
+                // The step's half. A declaration omitting reopen refuses here,
+                // by name, whatever the credential says.
+                runs.reopen(run, because);
             }
 
             @Override

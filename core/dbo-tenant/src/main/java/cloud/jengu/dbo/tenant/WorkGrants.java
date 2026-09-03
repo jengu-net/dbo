@@ -41,13 +41,13 @@ final class WorkGrants implements LaneHandler.Grants, LaneHandler.SignedGrants {
             return new LaneHandler.Denied(401, "Bearer error=\"invalid_token\"", "invalid token");
         }
         List<String> granted = context.get().scopes();
-        if (!Scopes.admitsWork(granted)) {
+        if (!reachesTheLane(granted)) {
             // No implicit unrestricted, and no implicit anything else: a
             // credential minted for the resource surface reaches no lane, and
             // is told so rather than being handed an empty one — an empty
             // lane and an unentitled one look identical from the far side.
             return new LaneHandler.Denied(403, null,
-                    "this credential carries no participation scope");
+                    "this credential carries no participation scope and no supervisory scope");
         }
         return new LaneHandler.Grant(context.get().clientId(), entitlementOf(granted),
                 Scopes.worksAsTheTenant(granted));
@@ -73,18 +73,36 @@ final class WorkGrants implements LaneHandler.Grants, LaneHandler.SignedGrants {
                     "an ask on the stream is signed by the participant's enrolment key");
         }
         List<String> granted = authority.clientScopes(participant).orElse(List.of());
-        if (!Scopes.admitsWork(granted)) {
+        if (!reachesTheLane(granted)) {
             return new LaneHandler.Denied(403, null,
-                    "this credential carries no participation scope");
+                    "this credential carries no participation scope and no supervisory scope");
         }
         return new LaneHandler.Grant(participant, entitlementOf(granted),
                 Scopes.worksAsTheTenant(granted));
     }
 
+    /**
+     * Whether this credential reaches the lane at all — to work, to supervise,
+     * or both. A supervisor is admitted with no participation scope on
+     * purpose: overturning a closure is not performing a step, and requiring
+     * the working scope to reach the supervisory verb would hand every
+     * supervisor the right to take work as the price of correcting it.
+     */
+    private static boolean reachesTheLane(List<String> granted) {
+        return Scopes.admitsWork(granted) || Scopes.admitsSupervision(granted);
+    }
+
     private static Lane.Entitlement entitlementOf(List<String> granted) {
-        if (Scopes.worksAsTheTenant(granted)) {
-            return Lane.Entitlement.everything();
+        Lane.Entitlement working = Scopes.worksAsTheTenant(granted)
+                ? Lane.Entitlement.everything()
+                : Lane.Entitlement.ofSteps(Scopes.workSteps(granted).toArray(String[]::new));
+        // Supervision is added, never implied: a credential that speaks for
+        // the whole tenant supervises nothing until the word is written down.
+        if (Scopes.supervisesEverything(granted)) {
+            return working.supervisingEverything();
         }
-        return Lane.Entitlement.ofSteps(Scopes.workSteps(granted).toArray(String[]::new));
+        List<String> supervised = Scopes.supervisedSteps(granted);
+        return supervised.isEmpty() ? working
+                : working.supervising(supervised.toArray(String[]::new));
     }
 }

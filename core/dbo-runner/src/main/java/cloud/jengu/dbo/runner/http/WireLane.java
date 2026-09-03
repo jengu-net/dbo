@@ -146,6 +146,14 @@ public class WireLane implements Lane {
     }
 
     @Override
+    public void reopen(Run run, String because) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        body.put(LaneVerbs.REASON, because);
+        post(LaneVerbs.REOPEN, body);
+    }
+
+    @Override
     public int releaseLapsed() {
         Object released = post(LaneVerbs.RELEASE_LAPSED, verb());
         return released instanceof Number n ? n.intValue() : 0;
