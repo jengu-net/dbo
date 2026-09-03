@@ -285,7 +285,35 @@ public enum DboStories implements Story {
                     DboPromises.PDI_SHRED_LEDGER,
                     DboPromises.POL_ERASURE_COMPATIBLE,
                     DboPromises.SCIM_DEPROVISION_IS_A_STATE,
-                    DboPromises.TEN_ERASURE_BY_DROP));
+                    DboPromises.TEN_ERASURE_BY_DROP)),
+
+    TWO_PLACES("One tenant in two places, and content that belongs somewhere else: canonical "
+            + "definitions travelling by type because none of them is about anybody, and "
+            + "patient data travelling by work because all of it is.",
+            List.of(
+                    // Declared content from an upstream this tenant does not run.
+                    DboPromises.SYNC_SPEC_DECLARED,
+                    DboPromises.SYNC_DECLARED_ONLY,
+                    DboPromises.SYNC_DIRECT_UPSTREAM_ONLY,
+                    DboPromises.SYNC_ANY_TYPE,
+                    DboPromises.SYNC_FULL_HISTORY_CATCH_UP,
+                    DboPromises.SYNC_PROVENANCE_COPIES,
+                    DboPromises.SYNC_LOCAL_SHADOWING,
+                    DboPromises.SYNC_CONVERT_ON_APPLY,
+                    DboPromises.SYNC_TERMINOLOGY_GRAIN_SURVIVES,
+                    DboPromises.ZONE_DECLARATIONS_AS_RECORDS,
+                    DboPromises.ZONE_SUBJECT_DOMAINS,
+                    DboPromises.ZONE_BROKER_CHOICE,
+                    DboPromises.ZONE_SESSIONS_ACCUMULATE,
+                    // And the appliance: the other bound, deliberately different.
+                    DboPromises.PROC_THE_LANE_HAS_TWO_BOUNDS,
+                    DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY,
+                    DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE,
+                    DboPromises.PROC_AUDIT_REPLICATES_AS_RECORDED,
+                    DboPromises.PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE,
+                    DboPromises.PROC_LANE_EPOCH,
+                    DboPromises.FEED_PUSH_ACK_RESUME,
+                    DboPromises.FEED_IDEMPOTENT_DELIVERY));
 
     private final String title;
     private final List<Promise> promises;
