@@ -2268,10 +2268,14 @@ cloud.jengu.dbo.promises.DboPromises                                   enum
 cloud.jengu.dbo.promises.DboPromises                                   text():String
 cloud.jengu.dbo.promises.DboPromises                                   valueOf(String):cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   values():cloud.jengu.dbo.promises.DboPromises[]
+cloud.jengu.dbo.promises.DboStories                                    CLINICAL_RECORD:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    EDGE_ROUNDTRIP:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    FLEET_HEALTH:cloud.jengu.dbo.promises.DboStories
-cloud.jengu.dbo.promises.DboStories                                    PARTNER_TRACKING:cloud.jengu.dbo.promises.DboStories
-cloud.jengu.dbo.promises.DboStories                                    TRAIL_ANSWERS:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    PERSON_RIGHTS:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    STANDARD_MOVES:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    TENANT_OPENING:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    TWO_PLACES:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    VENDOR_CHANGE:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    enum
 cloud.jengu.dbo.promises.DboStories                                    promises():List
 cloud.jengu.dbo.promises.DboStories                                    title():String
