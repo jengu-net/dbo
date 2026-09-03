@@ -253,7 +253,39 @@ public enum DboStories implements Story {
                     DboPromises.EVT_TRANSACTIONAL_OUTBOX,
                     DboPromises.EVT_FHIR_SUBSCRIPTIONS,
                     DboPromises.EVT_DURABLE_DELIVERY,
-                    DboPromises.EVT_IN_PROCESS_SURFACE));
+                    DboPromises.EVT_IN_PROCESS_SURFACE)),
+
+    PERSON_RIGHTS("What a person can ask for about the care recorded in the story before "
+            + "this one, and what erasure means when identifying data was encrypted under a "
+            + "key of their own before it ever reached the engine.",
+            List.of(
+                    // The membrane the record was written through.
+                    DboPromises.PDI_STRUCTURAL_VAULT,
+                    DboPromises.PDI_BLIND_OPERATIONS,
+                    DboPromises.PDI_EXACT_RESOLUTION,
+                    // Who they are, decided rather than guessed.
+                    DboPromises.IDN_IDENTIFICATION_IS_REACHABLE,
+                    DboPromises.IDN_A_DECISION_IS_EVIDENCE,
+                    DboPromises.IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION,
+                    DboPromises.IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO,
+                    DboPromises.IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED,
+                    DboPromises.IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE,
+                    DboPromises.IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED,
+                    // How a human gets in, and what their token says about them.
+                    DboPromises.AUTH_FEDERATED_HUMANS,
+                    DboPromises.AUTH_PSEUDONYMOUS_TOKENS,
+                    DboPromises.AUTH_ON_BEHALF_OF,
+                    DboPromises.AUTH_NO_SUBJECT_ENUMERATION,
+                    // And what being forgotten actually does.
+                    DboPromises.PDI_RIGHTS_AS_OPERATIONS,
+                    DboPromises.PDI_ERASURE_IS_A_RUN,
+                    DboPromises.PDI_ERASURE_SAYS_HOW_FAR_IT_GOT,
+                    DboPromises.PDI_CRYPTO_SHREDDING,
+                    DboPromises.PDI_UNFINDABLE_AFTER_ERASURE,
+                    DboPromises.PDI_SHRED_LEDGER,
+                    DboPromises.POL_ERASURE_COMPATIBLE,
+                    DboPromises.SCIM_DEPROVISION_IS_A_STATE,
+                    DboPromises.TEN_ERASURE_BY_DROP));
 
     private final String title;
     private final List<Promise> promises;
