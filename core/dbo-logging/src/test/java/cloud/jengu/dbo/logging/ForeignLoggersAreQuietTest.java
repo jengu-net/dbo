@@ -42,5 +42,21 @@ class ForeignLoggersAreQuietTest {
     @DisplayName("a name that merely resembles ours is not ours")
     void aSimilarNameIsNotOurs() {
         assertEquals(DboLogging.Level.WARN, DboLogging.levelFor("cloud.jenguish.other"));
+        assertEquals(DboLogging.Level.WARN, DboLogging.levelFor("dbox.other"));
+    }
+
+    @Test
+    @DisplayName("the short names the runtime logs under are ours, because those are the "
+            + "lines INFO exists for")
+    void theRuntimesShortNamesAreOurs() {
+        // The startup posture, the tenant lifecycle and the shutdown line are
+        // all logged under these, so a binding that treats them as foreign
+        // silences exactly what the level was set to say.
+        for (String ours : new String[] {"dbo.server", "dbo.tenant", "dbo.operator",
+                "dbo.telemetry", "dbo.container"}) {
+            assertEquals(DboLogging.Level.INFO, DboLogging.levelFor(ours), ours);
+            assertTrue(DboLogging.enabled(ours, DboLogging.Level.INFO),
+                    ours + " is silent at INFO, so the runtime's own lines never appear");
+        }
     }
 }

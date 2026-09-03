@@ -40,8 +40,15 @@ public final class DboLogging {
         ERROR, WARN, INFO, DEBUG, TRACE
     }
 
-    /** The prefix this product's own loggers share. */
-    private static final String OURS = "cloud.jengu.dbo";
+    /**
+     * The prefixes this product's own loggers share: the package, and the
+     * short names the runtime logs under ({@code dbo.server}, {@code
+     * dbo.tenant}, {@code dbo.operator}). Both are ours, because the startup,
+     * lifecycle and shutdown lines — the ones INFO exists for — are logged
+     * under the short form, and a rule that knew only the package served
+     * exactly those lines as foreign.
+     */
+    private static final String[] OURS = {"cloud.jengu.dbo", "dbo."};
 
     /** What a logger that is nobody's business here says when nothing is wrong. */
     private static final Level FOREIGN = Level.WARN;
@@ -78,7 +85,12 @@ public final class DboLogging {
         if (chosen != null) {
             return chosen;
         }
-        return name.startsWith(OURS) ? LEVEL : FOREIGN;
+        for (String ours : OURS) {
+            if (name.startsWith(ours)) {
+                return LEVEL;
+            }
+        }
+        return FOREIGN;
     }
 
     private static java.util.Map<String, Level> readPrefixLevels() {
