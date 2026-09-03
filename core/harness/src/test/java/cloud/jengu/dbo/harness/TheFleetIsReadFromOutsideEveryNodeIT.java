@@ -5,6 +5,7 @@ import cloud.jengu.dbo.core.process.Steps;
 import cloud.jengu.dbo.fhir.common.FhirVersions;
 import cloud.jengu.dbo.fleet.Credentials;
 import cloud.jengu.dbo.fleet.FleetReader;
+import cloud.jengu.dbo.fleet.FleetService;
 import cloud.jengu.dbo.fleet.Node;
 import cloud.jengu.dbo.fleet.Reading;
 import cloud.jengu.dbo.promises.DboPromises;
@@ -272,6 +273,69 @@ class TheFleetIsReadFromOutsideEveryNodeIT {
         assertTrue(named.body().contains("\"version\":\"1.0\""), named.body());
         assertNull(RecordWireAccess.field(named.body(), "tenants"),
                 "the inventory answered with tenants, so the two questions are one door");
+    }
+
+    @Test
+    @DisplayName("as a service, it reads the fleet when asked and holds nothing between asks")
+    @Proving(DboPromises.OPS_FLEET_IS_READ_FROM_OUTSIDE)
+    void theServiceReadsAfreshOnEveryAsk() throws Exception {
+        FleetReader reader = new FleetReader(List.of(left.asNode(), right.asNode()),
+                Credentials.of(Map.of(
+                        "esimene", new Credentials.Credential(CLIENT, "esimene-secret"),
+                        "teine", new Credentials.Credential(CLIENT, "teine-secret"))),
+                Duration.ofSeconds(5));
+        try (FleetService service = new FleetService(reader, "127.0.0.1", 0, "fleet-token")) {
+            service.start();
+            URI door = URI.create("http://127.0.0.1:" + service.port() + "/fleet?process=lab.fresh");
+
+            HttpResponse<String> unnamed = http.send(HttpRequest.newBuilder(door).GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(401, unnamed.statusCode());
+            assertFalse(unnamed.body().contains("esimene") || unnamed.body().contains("teine"),
+                    "a refusal that named a tenant is the disclosure the token prevents: "
+                            + unnamed.body());
+
+            String before = ask(door).body();
+            assertTrue(runsOf(before, "parem", "teine").isEmpty(),
+                    "nothing under lab.fresh existed yet: " + before);
+
+            // work appears on a node between two asks, and the second ask
+            // sees it — because the service asked again rather than
+            // answering from anything it kept
+            Runs runs = new Runs(right.manager().runtime("teine").orElseThrow().engine());
+            String key = runs.pipeline("lab.fresh", "lab.result.file").key();
+
+            String after = ask(door).body();
+            List<?> fresh = runsOf(after, "parem", "teine");
+            assertEquals(1, fresh.size(), "the service answered from a reading it kept: " + after);
+            assertEquals(key, ((Map<?, ?>) fresh.get(0)).get("key"));
+        }
+    }
+
+    private static HttpResponse<String> ask(URI door) throws Exception {
+        HttpResponse<String> answer = http.send(HttpRequest.newBuilder(door)
+                .header("Authorization", "Bearer fleet-token").GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, answer.statusCode(), answer.body());
+        return answer;
+    }
+
+    /** The runs under one tenant of one node, walked out of the service's JSON. */
+    private static List<?> runsOf(String json, String nodeName, String tenantCode) {
+        Object nodes = RecordWireAccess.field(json, "nodes");
+        for (Object node : (List<?>) nodes) {
+            Map<?, ?> n = (Map<?, ?>) node;
+            if (!nodeName.equals(n.get("node"))) {
+                continue;
+            }
+            for (Object tenant : (List<?>) n.get("tenants")) {
+                Map<?, ?> t = (Map<?, ?>) tenant;
+                if (tenantCode.equals(t.get("tenant"))) {
+                    return (List<?>) t.get("runs");
+                }
+            }
+        }
+        throw new AssertionError(nodeName + "/" + tenantCode + " is missing from " + json);
     }
 
     /** The wire's own reader, so the test decodes with what the store encodes. */

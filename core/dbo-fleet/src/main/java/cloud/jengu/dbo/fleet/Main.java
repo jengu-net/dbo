@@ -37,20 +37,54 @@ import java.util.Optional;
  * <p>Exit is zero whenever a reading was produced. An unreachable node is a
  * line in the reading, not a failure of the read: the read exists to say
  * which nodes did not answer.
+ *
+ * <p><b>Or a service.</b> Given {@code DBO_FLEET_LISTEN} ({@code host:port})
+ * and {@code DBO_FLEET_TOKEN}, it serves {@code GET /fleet} instead, reading
+ * the fleet afresh on every request and holding nothing between them — the
+ * shape a pod takes. The same filter travels as query parameters:
+ * {@code holder}, {@code process}, {@code step}, {@code limit}.
  */
 public final class Main {
 
     private Main() {
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         List<Node> nodes = nodes(require("DBO_FLEET_NODES"), require("DBO_OPS_TOKEN"));
         Credentials credentials = fromDirectory(Path.of(require("DBO_FLEET_CREDENTIAL_DIR")),
                 env("DBO_FLEET_CLIENT_ID", "tenant-bootstrap"));
-        String holder = env("DBO_FLEET_HOLDER", "any");
-        Reading reading = new FleetReader(nodes, credentials)
-                .read(new FleetReader.RunFilter(null, null, holder, null));
-        System.out.println(RecordWire.write(reading));
+        FleetReader reader = new FleetReader(nodes, credentials);
+        String listen = System.getenv("DBO_FLEET_LISTEN");
+        if (listen == null || listen.isBlank()) {
+            String holder = env("DBO_FLEET_HOLDER", "any");
+            System.out.println(RecordWire.write(
+                    reader.read(new FleetReader.RunFilter(null, null, holder, null))));
+            return;
+        }
+        int colon = listen.lastIndexOf(':');
+        if (colon <= 0) {
+            throw new IllegalStateException("DBO_FLEET_LISTEN is host:port; got '" + listen + "'");
+        }
+        try (FleetService service = new FleetService(reader, listen.substring(0, colon),
+                Integer.parseInt(listen.substring(colon + 1)), require("DBO_FLEET_TOKEN"))) {
+            service.start();
+            // Startup says WHAT it is and WHERE it reads, and names no tenant:
+            // the node names are the deployment's own words and carry nothing.
+            LOG.info("started: component=dbo-fleet version={} jdk={} listen={} nodes={}",
+                    version(), Runtime.version(), listen,
+                    nodes.stream().map(Node::name).toList());
+            Runtime.getRuntime().addShutdownHook(new Thread(
+                    () -> LOG.info("shutdown requested: component=dbo-fleet"), "dbo-shutdown"));
+            Thread.currentThread().join();
+        }
+    }
+
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(Main.class);
+
+    /** The build's version, or a marker when running from a plain classpath. */
+    private static String version() {
+        String v = Main.class.getPackage().getImplementationVersion();
+        return v == null ? "dev" : v;
     }
 
     /** {@code name=uri,name=uri}: the deployment's names, the deployment's addresses. */

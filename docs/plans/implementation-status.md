@@ -222,7 +222,9 @@ written.
 A deployment is read from outside every container: one process holds the
 deployment's token for the node questions and one credential per tenant for
 the tenant questions, fans out over the doors each already serves, and labels
-every answer with the node it came from. A node serves its installed catalogue
+every answer with the node it came from — as a command that reads once, or a
+service that reads afresh on every ask and holds nothing between them, imaged
+beside the operator. A node serves its installed catalogue
 as an inventory beside its tenant states, and the reader's union of those
 inventories is the network map — by step and version, descriptive, never a
 declaration. A tenant's fleet door answers its runs as envelopes. A node that

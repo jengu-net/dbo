@@ -252,11 +252,11 @@ jobs:
         run: chmod +x gradlew
       - name: Stop leftover Gradle daemons
         run: ./gradlew --stop || true
-      - name: Build both distributions
+      - name: Build the distributions
         # One invocation: the dependency graph is configured and resolved
-        # once for the pair rather than once each.
+        # once for the set rather than once each.
         run: >-
-          ./gradlew :core:dbo-operator:installDist :core:dbo-server:installDist
+          ./gradlew :core:dbo-operator:installDist :core:dbo-server:installDist :core:dbo-fleet:installDist
           --no-daemon ${{ needs.build.outputs.gradle_args }}
       - name: Authenticate to the LAN registry
         env:
@@ -305,7 +305,7 @@ jobs:
       - name: Build and push to the fleet registry (multi-arch amd64 + arm64)
         run: |
           set -euo pipefail
-          for image in dbo-operator dbo-server; do
+          for image in dbo-operator dbo-server dbo-fleet; do
             docker buildx build \
               --platform linux/amd64,linux/arm64 \
               --file "core/$image/Dockerfile" \
@@ -327,7 +327,7 @@ jobs:
         continue-on-error: true
         run: |
           set -euo pipefail
-          for image in dbo-operator dbo-server; do
+          for image in dbo-operator dbo-server dbo-fleet; do
             tags=(--tag "${GHCR_OWNER}/${image}:${IMAGE_TAG}")
             if [ "$IS_RELEASE" = "true" ]; then
               tags+=(--tag "${GHCR_OWNER}/${image}:latest")

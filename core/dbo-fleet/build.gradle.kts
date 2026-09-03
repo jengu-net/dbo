@@ -17,7 +17,11 @@ application {
 }
 
 dependencies {
-    // the wire's JSON only — dbo-core carries no other dependency, and this
-    // module adds none: the HTTP client is the JDK's
+    // the wire's JSON only — dbo-core carries no other dependency, and the
+    // HTTP client and server are the JDK's
     implementation(project(":core:dbo-core"))
+    // a plain jar, not a bundle: it needs the binding on its own classpath,
+    // for the startup and shutdown lines and nothing per request
+    implementation("org.slf4j:slf4j-api:2.0.18")
+    runtimeOnly(project(":core:dbo-logging"))
 }
