@@ -1914,6 +1914,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         cloud.jengu.dbo.sync.ConfigApplication.Applier applier = one ->
                 publishOne(engine, store, terminology, holdsConceptsNatively, one);
+        // The face is a source like any other: it declares a set, and the set
+        // is its own version. What this tenant last agreed with is on its run,
+        // so a tenant coming up against a face that has not moved reads one
+        // record instead of asking after every definition it already holds.
+        cloud.jengu.dbo.sync.ConfigSource source = () ->
+                new cloud.jengu.dbo.sync.ConfigSource.Fetch(declared,
+                        cloud.jengu.dbo.sync.ConfigSource.markerOf(declared));
         ObjectStore runStore = runStores.get(code);
         if (runStore == null) {
             // Nowhere to write the record. The definitions still land: a
@@ -1923,7 +1930,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             try {
                 new cloud.jengu.dbo.sync.ConfigApplication(engine,
                         new cloud.jengu.dbo.work.Runs(runStore), version.domain())
-                        .apply(code, null, declared, applier);
+                        .applyFrom(code, source, applier);
             } catch (RuntimeException unrecorded) {
                 // Same rule as the serving sweep: the deployment keeps serving
                 // tenants when its own bookkeeping cannot be written. Applying

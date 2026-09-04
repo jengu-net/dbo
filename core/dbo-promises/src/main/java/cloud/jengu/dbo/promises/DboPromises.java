@@ -303,6 +303,14 @@ public enum DboPromises implements Promise {
             + "conditions nothing can re-check. Closing by click is how a card reads "
             + "resolved while the fault is live."),
 
+    PROC_CONFIG_READ_FROM_A_SOURCE("Configuration is read from a declared source — a "
+            + "repository, a mounted directory, a lane — and what a scope last agreed "
+            + "with is recorded on its own run, so an unchanged source is a read rather "
+            + "than a re-application, and a scope with a card open is re-applied until "
+            + "the card closes. A source that cannot be read says so: it never answers "
+            + "with an empty set, because empty and unreachable are the same sentence "
+            + "to whoever then has to decide what is missing."),
+
     PROC_CONFIG_APPLIES_AS_A_SWEEP("Applying a declared set is a sweep: it closes when "
             + "what is here agrees with what was declared, one declaration nobody can "
             + "apply is a card naming it and the rest still apply, and the pass tallies "

@@ -2138,6 +2138,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_CLAI
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CLOSED_CAN_BE_REOPENED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CLOSE_BY_RE_EVALUATION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CONFIG_APPLIES_AS_A_SWEEP:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_CONFIG_READ_FROM_A_SOURCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CONTENT_CHANGES_INSIDE_WORK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CORRELATION_TRAVELS_OPAQUE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_DOMAIN_CODE_FILTER:cloud.jengu.dbo.promises.DboPromises
@@ -2643,6 +2644,8 @@ cloud.jengu.dbo.sync.ConfigApplication                                 PROCESS:S
 cloud.jengu.dbo.sync.ConfigApplication                                 STEP:String
 cloud.jengu.dbo.sync.ConfigApplication                                 apply(String,String,List):cloud.jengu.dbo.sync.ConfigApplication.Outcome
 cloud.jengu.dbo.sync.ConfigApplication                                 apply(String,String,List,cloud.jengu.dbo.sync.ConfigApplication.Applier):cloud.jengu.dbo.sync.ConfigApplication.Outcome
+cloud.jengu.dbo.sync.ConfigApplication                                 applyFrom(String,cloud.jengu.dbo.sync.ConfigSource):cloud.jengu.dbo.sync.ConfigApplication.Outcome
+cloud.jengu.dbo.sync.ConfigApplication                                 applyFrom(String,cloud.jengu.dbo.sync.ConfigSource,cloud.jengu.dbo.sync.ConfigApplication.Applier):cloud.jengu.dbo.sync.ConfigApplication.Outcome
 cloud.jengu.dbo.sync.ConfigApplication                                 class
 cloud.jengu.dbo.sync.ConfigApplication                                 new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Runs,String)
 cloud.jengu.dbo.sync.ConfigApplication.Applier                         apply(cloud.jengu.dbo.sync.ConfigApplication.Declared):void
@@ -2663,6 +2666,16 @@ cloud.jengu.dbo.sync.ConfigApplication.Outcome                         read():lo
 cloud.jengu.dbo.sync.ConfigApplication.Outcome                         record
 cloud.jengu.dbo.sync.ConfigApplication.Outcome                         skipped():long
 cloud.jengu.dbo.sync.ConfigApplication.Outcome                         toString():String
+cloud.jengu.dbo.sync.ConfigSource                                      fetch():cloud.jengu.dbo.sync.ConfigSource.Fetch
+cloud.jengu.dbo.sync.ConfigSource                                      interface
+cloud.jengu.dbo.sync.ConfigSource                                      markerOf(List):String
+cloud.jengu.dbo.sync.ConfigSource.Fetch                                declarations():List
+cloud.jengu.dbo.sync.ConfigSource.Fetch                                equals(Object):boolean
+cloud.jengu.dbo.sync.ConfigSource.Fetch                                hashCode():int
+cloud.jengu.dbo.sync.ConfigSource.Fetch                                marker():String
+cloud.jengu.dbo.sync.ConfigSource.Fetch                                new(List,String)
+cloud.jengu.dbo.sync.ConfigSource.Fetch                                record
+cloud.jengu.dbo.sync.ConfigSource.Fetch                                toString():String
 cloud.jengu.dbo.sync.ContentDependency                                 declaredTypes():Set
 cloud.jengu.dbo.sync.ContentDependency                                 equals(Object):boolean
 cloud.jengu.dbo.sync.ContentDependency                                 hashCode():int

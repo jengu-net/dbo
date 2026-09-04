@@ -94,6 +94,48 @@ public final class ConfigApplication {
     }
 
     /**
+     * Reads a source and applies what it declares — or reads it and stops,
+     * when this scope already agrees with exactly that read.
+     *
+     * <p>The skip has no correctness cost, because the two reasons to run a
+     * pass over an unchanged source are the two it checks. A declaration
+     * somebody has to fix leaves a card, and a card closes by re-evaluation
+     * rather than by a click — so while one is open every pass runs, and the
+     * pass that finds the world agreeing is the one that closes it. A pass
+     * that left nothing open has nothing to re-evaluate, and re-applying an
+     * unchanged set is then a rewrite nobody reads, every couple of seconds,
+     * in a store whose feed everything downstream is watching.
+     *
+     * @return what the pass did, or a read of nothing when there was nothing
+     *         to do
+     */
+    public Outcome applyFrom(String scope, ConfigSource source, Applier applier) {
+        ConfigSource.Fetch fetch = source.fetch();
+        if (settledAt(scope, fetch.marker())) {
+            return new Outcome(0, 0, 0);
+        }
+        return apply(scope, fetch.marker(), fetch.declarations(), applier);
+    }
+
+    /** As above, applying each declaration into the store. */
+    public Outcome applyFrom(String scope, ConfigSource source) {
+        return applyFrom(scope, source, this::intoTheStore);
+    }
+
+    /**
+     * Whether this scope already agrees with exactly this read, and the pass
+     * that got it there left nothing for anybody. A scope nothing has applied
+     * yet has not settled: it has not been asked at all.
+     */
+    private boolean settledAt(String scope, String marker) {
+        return runs.byKey(PROCESS + "/" + STEP + "/" + scope)
+                .filter(previous -> !previous.needsAPerson())
+                .flatMap(Run::correlated)
+                .filter(agreed -> agreed.equals(marker))
+                .isPresent();
+    }
+
+    /**
      * The same pass, applying each declaration the caller's own way.
      *
      * @param applier what a declared thing means where it is going
@@ -101,7 +143,11 @@ public final class ConfigApplication {
     public Outcome apply(String scope, String correlation, List<Declared> declarations,
             Applier applier) {
         Run sweep = runs.sweep(PROCESS, STEP, scope, List.of(domain));
-        if (correlation != null && sweep.correlated().isEmpty()) {
+        // Which read this scope last agreed with. Replaced rather than kept
+        // from the first pass ever: somebody comparing the two is asking
+        // whether what is here came from what is declared NOW, and an answer
+        // naming the commit this tenant was born under cannot tell them.
+        if (correlation != null && !correlation.equals(sweep.correlated().orElse(null))) {
             sweep = runs.correlated(sweep, correlation);
         }
         Runs.Pass pass = runs.pass(sweep);
