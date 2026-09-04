@@ -143,7 +143,7 @@ with its upstream.
 |---|---|---|
 | 1 | The secret wait comes off the sweep thread, a runtime becomes visible only once wired, and a bring-up that fails leaves nothing mounted | **DONE** 2026-09-04 — `ATenantThatIsNotUpSaysWhyIT` |
 | 2 | `ConfigApplication` gets a production caller: the face's own vocabulary, applied into each tenant at bring-up as a recorded pass | **DONE** 2026-09-04 — `TenantRuntimeIT#theFacesOwnVocabularyArrivesAsARecordedApplication` |
-| 3 | A source seam: read, compute the delta, produce a declared set — directory and ConfigMap first, git and the cloud lane behind the same seam | **READY, needs 2** |
+| 3 | A source seam: read, and say what the read is called, so an unchanged source is a read rather than a re-application. The face's own vocabulary is its first source | **DONE** 2026-09-04 — `ConfigAppliesAsASweepIT`. Directory, ConfigMap, git and lane implementations wait for step 6, where their caller is |
 | 4 | Withdrawal becomes part of what a source produces, and what an application applies | **READY, needs 3** |
 | 5 | The tenant spec becomes a declared type, applied into the management tenant like any other configuration | **READY, needs 4** |
 | 6 | The manager reacts to applied declarations instead of listing a directory: mount per tenant, `scanOnce`'s snapshot diff deleted | **READY, needs 5** |
@@ -166,6 +166,18 @@ something I care about changes" is useless if changing what you care about
 means being retracted. **13** is the payoff.
 
 ## Decisions
+
+**A source implementation lands with its caller, never before it.** Step 3
+built the seam and gave it one source — the face's own vocabulary, which has a
+caller today. A directory or ConfigMap reader would have had none until step 6,
+and writing it early is precisely the thing this document is about: a toolset
+built, proven and reachable by nobody. In cluster the ConfigMap *is* a
+directory, so those two are one implementation when their turn comes.
+
+**What a scope last agreed with lives on its run.** Not in a field on the
+source: a marker held in memory makes the first pass after every restart a full
+re-application, and answers nobody who asks what this tenant is configured
+from. On the run it survives the restart and is the answer to that question.
 
 **One applier, not two.** The queue is not fixed by making `scanOnce`
 concurrent; it is fixed by `scanOnce` ceasing to exist. A second reconciler

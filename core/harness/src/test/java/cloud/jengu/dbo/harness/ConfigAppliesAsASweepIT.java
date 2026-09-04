@@ -7,6 +7,7 @@ import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.sync.ConfigApplication;
+import cloud.jengu.dbo.sync.ConfigSource;
 import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
@@ -128,5 +129,52 @@ class ConfigAppliesAsASweepIT {
                 "the world agrees now, so the sweep does — a card closed by click reads "
                         + "resolved while the fault is live");
         assertTrue(runs.items(after).stream().noneMatch(item -> item.holder() == Holder.PERSON));
+    }
+
+    /** A source that reads the same twice is read twice and applied once. */
+    @Test
+    @Proving(DboPromises.PROC_CONFIG_READ_FROM_A_SOURCE)
+    @DisplayName("an unchanged source is a read, not a re-application")
+    void anUnchangedSourceIsNotReapplied() {
+        List<ConfigApplication.Declared> set = List.of(valueSet(100), valueSet(101));
+        ConfigSource source = () -> new ConfigSource.Fetch(set, ConfigSource.markerOf(set));
+
+        ConfigApplication.Outcome first = configuration.applyFrom("zone/unchanged", source);
+        assertEquals(2, first.applied());
+
+        ConfigApplication.Outcome again = configuration.applyFrom("zone/unchanged", source);
+        assertEquals(0, again.read(), "the second pass had nothing to do and did it");
+
+        Run sweep = runs.byKey(ConfigApplication.PROCESS + "/" + ConfigApplication.STEP
+                + "/zone/unchanged").orElseThrow();
+        assertEquals(2L, sweep.tally().get("applied"),
+                "and the run still says what the pass that mattered did");
+        assertEquals(ConfigSource.markerOf(set), sweep.correlated().orElseThrow(),
+                "what this scope agreed with, on the record rather than in a field");
+    }
+
+    /**
+     * The skip must never swallow a card. While one is open the world does not
+     * agree yet, so an unchanged source is exactly what has to be re-read — it
+     * is how fixing the store, rather than the declaration, closes the card.
+     */
+    @Test
+    @Proving({DboPromises.PROC_CONFIG_READ_FROM_A_SOURCE,
+            DboPromises.PROC_CLOSE_BY_RE_EVALUATION})
+    @DisplayName("an unchanged source is re-applied while a card is open")
+    void anOpenCardKeepsThePassRunning() {
+        List<ConfigApplication.Declared> broken = List.of(
+                new ConfigApplication.Declared("ValueSet", "value-sets/held.json",
+                        "not json at all".getBytes(StandardCharsets.UTF_8)));
+        ConfigSource source = () ->
+                new ConfigSource.Fetch(broken, ConfigSource.markerOf(broken));
+
+        assertEquals(1, configuration.applyFrom("zone/held", source).skipped());
+        assertTrue(runs.byKey(ConfigApplication.PROCESS + "/" + ConfigApplication.STEP
+                + "/zone/held").orElseThrow().needsAPerson());
+
+        ConfigApplication.Outcome again = configuration.applyFrom("zone/held", source);
+        assertEquals(1, again.read(),
+                "the same read was skipped while somebody still owed an answer");
     }
 }
