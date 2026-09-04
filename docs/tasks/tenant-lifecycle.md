@@ -1,10 +1,13 @@
 # The tenant lifecycle, and applying to a tenant that is already up
 
-**Status** — designed, nothing built. Two findings shape it: the applier this
-store ships has no production caller (`new ConfigApplication(` matches only the
-harness), and **a changed spec is never applied to a running tenant at all** —
-not applied, not refused, not reported. The bring-up queue that consumers are
-blocked on is one symptom of the first; the second is the larger hole.
+**Status** — steps 1 to 12 built and proven; 13 is the payoff and is not
+started. The lifecycle has a change transition now: declarations are records,
+what is served comes from what was applied, tenants come up together, a
+redeclaration is noticed and classified, and a change a tenant can take is
+applied to it — including what it streams from another tenant. What is left is
+the rest of the configuration kinds riding the same path, and two things step
+10 deliberately did not build: the automation switch, and a preview that
+classifies without applying.
 
 **Issues** — [#188](https://github.com/jengu-net/dbo/issues/188) (the tenant
 queue, which is the symptom this document reframes). Consumer half:
@@ -93,6 +96,10 @@ documentation: a bring-up, a configuration application, a stream catching up
 with its upstream.
 
 ## Where it stands
+
+Everything below is what is true after the twelve slices, oldest finding first.
+The bring-up queue that opened this document is gone; most of what follows was
+found on the way to it.
 
 - **Applying could not update anything** (found and fixed in step 5). It wrote
   every declaration as a create, so the second application of a changed
