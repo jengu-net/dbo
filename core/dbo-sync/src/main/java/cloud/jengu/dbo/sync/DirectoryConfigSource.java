@@ -56,6 +56,9 @@ public final class DirectoryConfigSource implements ConfigSource {
             throw new UncheckedIOException("the declaration directory could not be read: "
                     + directory, unreadable);
         }
-        return new Fetch(declarations, ConfigSource.markerOf(declarations));
+        // Complete: the listing is the whole of what this directory declares,
+        // and a listing that could not be taken threw above rather than
+        // arriving here as an empty one.
+        return new Fetch(declarations, ConfigSource.markerOf(declarations), true);
     }
 }

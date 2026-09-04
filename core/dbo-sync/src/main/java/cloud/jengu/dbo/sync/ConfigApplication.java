@@ -57,7 +57,12 @@ public final class ConfigApplication {
     public record Declared(String typeName, String name, byte[] payload) {}
 
     /** What a pass did, for the caller that has to answer for it. */
-    public record Outcome(long read, long applied, long skipped) {}
+    public record Outcome(long read, long applied, long skipped, long withdrawn) {
+
+        public Outcome(long read, long applied, long skipped) {
+            this(read, applied, skipped, 0);
+        }
+    }
 
     /**
      * How one declared thing is applied where it lands.
@@ -78,7 +83,37 @@ public final class ConfigApplication {
      */
     @FunctionalInterface
     public interface Applier {
+
         void apply(Declared declared);
+
+        /**
+         * What this applier holds from this scope, by identity — the other
+         * half of a withdrawal, and the half only the applier can answer.
+         *
+         * <p>Empty means "I cannot say", and nothing is withdrawn. That is the
+         * default because the ordinary answer for a store is dangerous: every
+         * record of these types that this read does not declare would include
+         * the ones the tenant authored itself, sitting beside the projected
+         * ones. An applier withdraws only where it can say honestly that
+         * everything it names came from this source.
+         */
+        default List<cloud.jengu.dbo.core.api.Identifier> held(String scope) {
+            return List.of();
+        }
+
+        /**
+         * Undoing one application: this identity is no longer declared.
+         *
+         * <p>Refusing is the default, and a refusal is a card rather than a
+         * silence — so a source that stops declaring something reaches
+         * somebody, and nothing is removed by machinery that was never told
+         * how to remove it.
+         */
+        default void withdraw(String scope, cloud.jengu.dbo.core.api.Identifier identity) {
+            throw new UnsupportedOperationException(
+                    "no longer declared, and this applier was never told how to undo an "
+                            + "application: " + identity.system() + "|" + identity.value());
+        }
     }
 
     /**
@@ -114,7 +149,7 @@ public final class ConfigApplication {
         if (settledAt(scope, fetch.marker())) {
             return new Outcome(0, 0, 0);
         }
-        return apply(scope, fetch.marker(), fetch.declarations(), applier);
+        return apply(scope, fetch.marker(), fetch.declarations(), applier, fetch.complete());
     }
 
     /** As above, applying each declaration into the store. */
@@ -142,6 +177,14 @@ public final class ConfigApplication {
      */
     public Outcome apply(String scope, String correlation, List<Declared> declarations,
             Applier applier) {
+        // A caller handing over a list says nothing about whether it is all of
+        // them, so nothing is withdrawn: only a source can claim completeness,
+        // and only a claim can be trusted with a removal.
+        return apply(scope, correlation, declarations, applier, false);
+    }
+
+    private Outcome apply(String scope, String correlation, List<Declared> declarations,
+            Applier applier, boolean complete) {
         Run sweep = runs.sweep(PROCESS, STEP, scope, List.of(domain));
         // Which read this scope last agreed with. Replaced rather than kept
         // from the first pass ever: somebody comparing the two is asking
@@ -165,11 +208,42 @@ public final class ConfigApplication {
                 pass.item(declared.name(), Failure.of(refused), String.valueOf(refused.getMessage()));
             }
         }
+        long withdrawn = 0;
+        // A read with a declaration nobody could apply is not a read anything
+        // may be subtracted from. The one that failed is usually the one that
+        // cannot be identified either, so its own record would be the record
+        // taken away — a typo deleting the thing the typo was in. Cards close
+        // by re-evaluation, so the pass after the fix withdraws properly.
+        if (complete && skipped == 0) {
+            // What this scope holds and this read does not name. Keyed on
+            // identity because it is the one key both sides can compute: a
+            // card names the file somebody has to open, and a record is
+            // keyed by what it declares.
+            java.util.Set<cloud.jengu.dbo.core.api.Identifier> stillDeclared =
+                    new java.util.LinkedHashSet<>();
+            for (Declared declared : declarations) {
+                stillDeclared.addAll(identityOf(declared));
+            }
+            for (cloud.jengu.dbo.core.api.Identifier gone : applier.held(scope)) {
+                if (stillDeclared.contains(gone)) {
+                    continue;
+                }
+                try {
+                    applier.withdraw(scope, gone);
+                    withdrawn++;
+                } catch (RuntimeException refused) {
+                    skipped++;
+                    pass.item(gone.value(), Failure.of(refused), String.valueOf(
+                            refused.getMessage()));
+                }
+            }
+        }
         pass.counted("read", declarations.size())
                 .counted("applied", applied)
                 .counted("skipped", skipped)
+                .counted("withdrawn", withdrawn)
                 .done();
-        return new Outcome(declarations.size(), applied, skipped);
+        return new Outcome(declarations.size(), applied, skipped, withdrawn);
     }
 
     /**
@@ -192,7 +266,7 @@ public final class ConfigApplication {
      * things really are anonymous, and refusing them here would refuse the
      * only shape that ever worked.
      */
-    private void intoTheStore(Declared declared) {
+    public void intoTheStore(Declared declared) {
         java.util.List<cloud.jengu.dbo.core.api.Identifier> named =
                 identityOf(declared);
         if (named.isEmpty()) {
@@ -209,7 +283,12 @@ public final class ConfigApplication {
                 PutRequest.create(declared.typeName(), declared.payload()));
     }
 
-    /** What this declaration calls itself, read the way the store reads it. */
+    /**
+     * What this declaration calls itself, read the way the store reads it —
+     * or nothing, when it cannot be read at all. Being unidentifiable is
+     * already a card from the pass above; it is not this method's to report
+     * a second time.
+     */
     private java.util.List<cloud.jengu.dbo.core.api.Identifier> identityOf(Declared declared) {
         cloud.jengu.dbo.core.api.TypeRegistration registration =
                 store.registrationOf(declared.typeName());
@@ -219,7 +298,11 @@ public final class ConfigApplication {
             // the reason belongs.
             return java.util.List.of();
         }
-        return registration.extractor().extract(declared.typeName(), declared.payload())
-                .identifiers();
+        try {
+            return registration.extractor().extract(declared.typeName(), declared.payload())
+                    .identifiers();
+        } catch (RuntimeException unreadable) {
+            return java.util.List.of();
+        }
     }
 }

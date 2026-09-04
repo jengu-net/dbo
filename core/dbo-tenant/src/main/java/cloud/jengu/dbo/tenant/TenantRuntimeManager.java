@@ -401,78 +401,80 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     public synchronized Set<String> scanOnce() {
+        // The declarations first, then what this deployment does about them.
+        // Applying is what turns a source into the records the sweep below
+        // reads; a deployment with no managing tenant has no records and reads
+        // its source directly, which is the floor every deployment starts on
+        // and the one the managing tenant itself comes up over.
+        recordDeclarations();
         Set<String> declared = new HashSet<>();
-        try (Stream<Path> files = Files.list(directory)) {
-            files.filter(f -> f.getFileName().toString().endsWith(".json"))
-                    .forEach(f -> {
-                        try {
-                            TenantSpec spec = TenantSpec.parse(Files.readString(f));
-                            declared.add(spec.code());
-                            states.putIfAbsent(spec.code(), TenantState.State.COMING_UP);
-                            trouble.remove(spec.code());
-                            trouble.remove("spec:" + f.getFileName());
-                            if (!runtimes.containsKey(spec.code())) {
-                                long began = System.nanoTime();
-                                bringUp(spec);
-                                states.put(spec.code(), TenantState.State.SERVING);
-                                reportedFailures.removeIf(k -> k.startsWith(f.getFileName() + ":"));
-                                LOG.info("tenant up: code={} fhir={} pdi={} in {}ms",
-                                        spec.code(), spec.face(), spec.pdi(),
-                                        (System.nanoTime() - began) / 1_000_000);
-                                rollup();
-                            }
-                        } catch (Throwable e) {
-                            // Throwable, not Exception: a missing OSGi wire
-                            // arrives as NoClassDefFoundError, and catching
-                            // only Exception let it kill the scanner thread
-                            // with no output at all — absence of a tenant and
-                            // absence of a reason.
-                            // Reported once per distinct failure. The scan
-                            // retries every couple of seconds, and a spec
-                            // that will never parse would otherwise write the
-                            // same stack until the disk filled — burying the
-                            // one line that mattered.
-                            // Two ways of not being up yet, and neither is a
-                            // fault: an upstream this tenant declares is not
-                            // serving, or storage somebody else provisions has
-                            // not arrived. Both are answered by the next scan.
-                            boolean stillComing = e instanceof UpstreamNotReady
-                                    || e instanceof TenantDatabaseProvisioner.NotProvisionedYet;
-                            // The code is known when the spec parsed, which is
-                            // the case an operator asks about: a tenant that was
-                            // declared and did not come up. A file that never
-                            // parsed has no tenant to be a state of.
-                            codeOf(f).ifPresent(code -> states.put(code,
-                                    stillComing
-                                            ? TenantState.State.COMING_UP
-                                            : TenantState.State.FAILED));
-                            // What an operator has to be told, kept where the
-                            // sweep can find it: a spec that will never parse
-                            // has no tenant to be a state of, so it is named by
-                            // the file it is — which is what somebody has to
-                            // open to fix it.
-                            trouble.put(codeOf(f).orElse("spec:" + f.getFileName()),
-                                    new Trouble(stillComing
-                                            ? cloud.jengu.dbo.work.Failure.TRANSIENT
-                                            : cloud.jengu.dbo.work.Failure.of(e),
-                                            String.valueOf(e)));
-                            if (stillComing) {
-                                // Expected on the way up, so it is not an error
-                                // and does not enter the suppression set: the
-                                // next scan is where it resolves.
-                                LOG.debug("{}", e.getMessage());
-                                return;
-                            }
-                            String signature = f.getFileName() + ":" + e;
-                            if (reportedFailures.add(signature)) {
-                                LOG.error("tenant bring-up failed: spec={} (further identical "
-                                        + "failures suppressed until it changes)",
-                                        f.getFileName(), e);
-                            }
-                        }
-                    });
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        for (cloud.jengu.dbo.sync.ConfigApplication.Declared declaration : declaredNow()) {
+            String named = declaration.name();
+            try {
+                TenantSpec spec = TenantSpec.parse(new String(declaration.payload(),
+                        java.nio.charset.StandardCharsets.UTF_8));
+                declared.add(spec.code());
+                states.putIfAbsent(spec.code(), TenantState.State.COMING_UP);
+                trouble.remove(spec.code());
+                trouble.remove("spec:" + named);
+                if (!runtimes.containsKey(spec.code())) {
+                    long began = System.nanoTime();
+                    bringUp(spec);
+                    states.put(spec.code(), TenantState.State.SERVING);
+                    reportedFailures.removeIf(k -> k.startsWith(named + ":"));
+                    LOG.info("tenant up: code={} fhir={} pdi={} in {}ms",
+                            spec.code(), spec.face(), spec.pdi(),
+                            (System.nanoTime() - began) / 1_000_000);
+                    rollup();
+                }
+            } catch (Throwable e) {
+                // Throwable, not Exception: a missing OSGi wire
+                // arrives as NoClassDefFoundError, and catching
+                // only Exception let it kill the scanner thread
+                // with no output at all — absence of a tenant and
+                // absence of a reason.
+                // Reported once per distinct failure. The scan
+                // retries every couple of seconds, and a spec
+                // that will never parse would otherwise write the
+                // same stack until the disk filled — burying the
+                // one line that mattered.
+                // Two ways of not being up yet, and neither is a
+                // fault: an upstream this tenant declares is not
+                // serving, or storage somebody else provisions has
+                // not arrived. Both are answered by the next scan.
+                boolean stillComing = e instanceof UpstreamNotReady
+                        || e instanceof TenantDatabaseProvisioner.NotProvisionedYet;
+                // The code is known when the spec parsed, which is
+                // the case an operator asks about: a tenant that was
+                // declared and did not come up. A declaration that never
+                // parsed has no tenant to be a state of.
+                codeOf(declaration).ifPresent(code -> states.put(code,
+                        stillComing
+                                ? TenantState.State.COMING_UP
+                                : TenantState.State.FAILED));
+                // What an operator has to be told, kept where the
+                // sweep can find it: a declaration that will never parse
+                // has no tenant to be a state of, so it is named by
+                // what it is called where it was written — which is what
+                // somebody has to open to fix it.
+                trouble.put(codeOf(declaration).orElse("spec:" + named),
+                        new Trouble(stillComing
+                                ? cloud.jengu.dbo.work.Failure.TRANSIENT
+                                : cloud.jengu.dbo.work.Failure.of(e),
+                                String.valueOf(e)));
+                if (stillComing) {
+                    // Expected on the way up, so it is not an error
+                    // and does not enter the suppression set: the
+                    // next scan is where it resolves.
+                    LOG.debug("{}", e.getMessage());
+                    continue;
+                }
+                String signature = named + ":" + e;
+                if (reportedFailures.add(signature)) {
+                    LOG.error("tenant bring-up failed: declaration={} (further identical "
+                            + "failures suppressed until it changes)", named, e);
+                }
+            }
         }
         for (String code : Set.copyOf(runtimes.keySet())) {
             // The management tenant is declared by configuration and is not in
@@ -489,7 +491,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             declared.add(managementCode);
         }
         states.keySet().retainAll(declared);
-        trouble.keySet().removeIf(key -> !declared.contains(key) && !key.startsWith("spec:"));
+        trouble.keySet().removeIf(key -> !declared.contains(key) && !key.startsWith("spec:")
+                && !key.equals(SOURCE_TROUBLE));
         // Mandatory steps classify, they do not gate: a serving tenant
         // with a mandatory step nothing contributes keeps serving — its runs
         // queue — and the absence is an incident here, re-evaluated every
@@ -514,7 +517,6 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         stepIncidents.retain(runtimes.keySet());
         rollup();
-        recordDeclarations();
         recordServing();
         return codes();
     }
@@ -623,12 +625,53 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /** The tenant a spec file declares, when it parses — for a state to belong to. */
-    private Optional<String> codeOf(Path spec) {
+    private static Optional<String> codeOf(
+            cloud.jengu.dbo.sync.ConfigApplication.Declared declaration) {
         try {
-            return Optional.of(TenantSpec.parse(Files.readString(spec)).code());
+            return Optional.of(TenantSpec.parse(new String(declaration.payload(),
+                    java.nio.charset.StandardCharsets.UTF_8)).code());
         } catch (Exception e) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * What this deployment is declared to serve, right now.
+     *
+     * <p>The records, once there is a managing tenant to hold them: the sweep
+     * then reconciles against what was <b>applied</b> rather than against a
+     * listing it takes itself, so absence has a cause somebody produced. A
+     * mount that vanished, a half-written file, a ConfigMap between two
+     * generations — none of them reach this list, because applying refuses an
+     * incomplete read and the records keep saying what they last said.
+     *
+     * <p>Without a managing tenant there are no records, and reading the
+     * source directly is the floor: a deployment cannot bootstrap out of a
+     * store it has not built yet, and the managing tenant itself is declared
+     * by configuration for the same reason.
+     */
+    private java.util.List<cloud.jengu.dbo.sync.ConfigApplication.Declared> declaredNow() {
+        ObjectStore management = managementCode == null ? null : runStores.get(managementCode);
+        if (management == null) {
+            return new cloud.jengu.dbo.sync.DirectoryConfigSource(
+                    directory, TenantDeclarationModel.TYPE, ".json").fetch().declarations();
+        }
+        java.util.List<cloud.jengu.dbo.sync.ConfigApplication.Declared> onRecord =
+                new java.util.ArrayList<>();
+        for (cloud.jengu.dbo.core.api.StoredObject record : management.select(
+                cloud.jengu.dbo.core.api.Criteria.of(TenantDeclarationModel.TYPE))) {
+            cloud.jengu.dbo.sync.ConfigApplication.Declared declared =
+                    new cloud.jengu.dbo.sync.ConfigApplication.Declared(
+                            TenantDeclarationModel.TYPE, record.id(), record.payload());
+            // Named by the tenant it declares, which is what somebody looking
+            // for it would search — and by the record's own id when it cannot
+            // be read at all, so it can still be named in a card.
+            onRecord.add(codeOf(declared)
+                    .map(code -> new cloud.jengu.dbo.sync.ConfigApplication.Declared(
+                            TenantDeclarationModel.TYPE, code, record.payload()))
+                    .orElse(declared));
+        }
+        return onRecord;
     }
 
     /**
@@ -1527,7 +1570,30 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * secrets from custody by broker code.
      */
     private cloud.jengu.dbo.auth.IdentityHub zoneHub(TenantSpec spec) {
-        return zoneHubs.computeIfAbsent(spec.zone(), zone -> {
+        // Not computeIfAbsent: building a hub reads a store, fetches secrets
+        // and mounts a context, and doing that inside a mapping function holds
+        // the map's bin for its whole duration. Sequentially that is invisible.
+        // With several tenants coming up at once it serialises every tenant of
+        // one zone behind the first — which is exactly the deployment shape
+        // that has two dozen of them — and a mapping function that reaches
+        // back into the same map would deadlock outright.
+        cloud.jengu.dbo.auth.IdentityHub known = zoneHubs.get(spec.zone());
+        if (known != null) {
+            return known;
+        }
+        synchronized (zoneHubs) {
+            cloud.jengu.dbo.auth.IdentityHub sinceWeWaited = zoneHubs.get(spec.zone());
+            if (sinceWeWaited != null) {
+                return sinceWeWaited;
+            }
+            cloud.jengu.dbo.auth.IdentityHub built = buildZoneHub(spec);
+            zoneHubs.put(spec.zone(), built);
+            return built;
+        }
+    }
+
+    private cloud.jengu.dbo.auth.IdentityHub buildZoneHub(TenantSpec spec) {
+        return ((java.util.function.Function<String, cloud.jengu.dbo.auth.IdentityHub>) zone -> {
             javax.sql.DataSource zoneDs = tenantDataSources.get(zone);
             if (zoneDs == null) {
                 throw new IllegalStateException(spec.code() + ": zone '" + zone
@@ -1564,7 +1630,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     upstreams, defaultBroker, subjectSystem, hubBase, path, 28_800);
             sharedServer.createContext(path, hub);
             return hub;
-        });
+        }).apply(spec.zone());
     }
 
     /** §17.1: the subject-resolution system comes from the zone's declared domains. */
@@ -1718,17 +1784,79 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return;
         }
         try {
-            new cloud.jengu.dbo.sync.ConfigApplication(management,
-                    new cloud.jengu.dbo.work.Runs(management),
-                    cloud.jengu.dbo.work.WorkModel.DOMAIN)
-                    .applyFrom("deployment", new cloud.jengu.dbo.sync.DirectoryConfigSource(
-                            directory, TenantDeclarationModel.TYPE, ".json"));
+            cloud.jengu.dbo.sync.ConfigApplication applied =
+                    new cloud.jengu.dbo.sync.ConfigApplication(management,
+                            new cloud.jengu.dbo.work.Runs(management),
+                            cloud.jengu.dbo.work.WorkModel.DOMAIN);
+            applied.applyFrom("deployment", new cloud.jengu.dbo.sync.DirectoryConfigSource(
+                    directory, TenantDeclarationModel.TYPE, ".json"),
+                    declarationsOf(applied, management));
+            trouble.remove(SOURCE_TROUBLE);
         } catch (RuntimeException e) {
             // Same rule as the sweep below: the deployment keeps serving
-            // tenants when its own bookkeeping cannot be written.
-            LOG.warn("the deployment's declarations could not be recorded; "
-                    + "the tenants they declare are unaffected", e);
+            // tenants when its own bookkeeping cannot be written. What it must
+            // not do is pass quietly — a source nobody can read is the state
+            // in which the records stop moving, and an operator reading a
+            // ledger that says nothing would conclude they are current.
+            trouble.put(SOURCE_TROUBLE, new Trouble(
+                    cloud.jengu.dbo.work.Failure.TRANSIENT, String.valueOf(e)));
+            LOG.warn("the declarations could not be read; the tenants already declared are "
+                    + "unaffected and the records stand as they were", e);
         }
+    }
+
+    /**
+     * The ledger's name for "the declarations themselves could not be read".
+     * Not a tenant's trouble: every tenant is fine, and what is stale is the
+     * question of whether there should be more of them.
+     */
+    static final String SOURCE_TROUBLE = "source:declarations";
+
+    /**
+     * Applying a tenant declaration, and undoing one.
+     *
+     * <p>This is the one applier that can answer honestly what it holds: every
+     * declaration record in the managing tenant's store arrived from the
+     * declarations this deployment reads, so one the source has stopped naming
+     * really has been withdrawn. A store applier answering the same question
+     * about value sets would be counting records the tenant authored itself.
+     *
+     * <p>Undoing removes the record, and nothing else. Whether the tenant it
+     * declared keeps serving is the sweep's decision, made from the
+     * declarations themselves — because a record vanishing has one cause here
+     * and would have several once anything else can write one.
+     */
+    private cloud.jengu.dbo.sync.ConfigApplication.Applier declarationsOf(
+            cloud.jengu.dbo.sync.ConfigApplication application, ObjectStore management) {
+        return new cloud.jengu.dbo.sync.ConfigApplication.Applier() {
+
+            @Override
+            public void apply(cloud.jengu.dbo.sync.ConfigApplication.Declared declared) {
+                application.intoTheStore(declared);
+            }
+
+            @Override
+            public java.util.List<cloud.jengu.dbo.core.api.Identifier> held(String scope) {
+                java.util.List<cloud.jengu.dbo.core.api.Identifier> names =
+                        new java.util.ArrayList<>();
+                for (cloud.jengu.dbo.core.api.StoredObject record : management.select(
+                        cloud.jengu.dbo.core.api.Criteria.of(TenantDeclarationModel.TYPE))) {
+                    names.add(TenantDeclarationModel.of(TenantSpec.parse(new String(
+                            record.payload(), java.nio.charset.StandardCharsets.UTF_8)).code()));
+                }
+                return names;
+            }
+
+            @Override
+            public void withdraw(String scope, cloud.jengu.dbo.core.api.Identifier identity) {
+                for (cloud.jengu.dbo.core.api.StoredObject record : management.getByIdentifier(
+                        TenantDeclarationModel.TYPE, java.util.List.of(identity))) {
+                    management.delete(TenantDeclarationModel.TYPE, record.id(),
+                            record.versionId(), cloud.jengu.dbo.core.api.Handling.Authority
+                                    .CONFIG_LANE);
+                }
+            }
+        };
     }
 
     /**
@@ -1964,9 +2092,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // is its own version. What this tenant last agreed with is on its run,
         // so a tenant coming up against a face that has not moved reads one
         // record instead of asking after every definition it already holds.
+        // Not complete, deliberately. The face declares what it publishes; it
+        // says nothing about what else this tenant holds, and treating a
+        // release that dropped a definition as a withdrawal would delete a
+        // tenant's vocabulary because somebody rolled a face back.
         cloud.jengu.dbo.sync.ConfigSource source = () ->
                 new cloud.jengu.dbo.sync.ConfigSource.Fetch(declared,
-                        cloud.jengu.dbo.sync.ConfigSource.markerOf(declared));
+                        cloud.jengu.dbo.sync.ConfigSource.markerOf(declared), false);
         ObjectStore runStore = runStores.get(code);
         if (runStore == null) {
             // Nowhere to write the record. The definitions still land: a

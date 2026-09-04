@@ -35,8 +35,14 @@ public interface ConfigSource {
      * @param marker       what the source calls this read: a commit, a digest,
      *                     a generation. Recorded on the run, compared with the
      *                     one before it, and never interpreted
+     * @param complete     whether this is everything the source declares, so
+     *                     that what it does not name can be taken as withdrawn.
+     *                     A read that is a difference, or a set the source is
+     *                     only part of, is not complete — and absence in it
+     *                     means nothing at all
      */
-    record Fetch(List<ConfigApplication.Declared> declarations, String marker) {
+    record Fetch(List<ConfigApplication.Declared> declarations, String marker,
+            boolean complete) {
 
         public Fetch {
             declarations = List.copyOf(declarations);

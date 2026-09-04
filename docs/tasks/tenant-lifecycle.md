@@ -114,9 +114,14 @@ with its upstream.
   own, and the pass, tally, cards and closure are identical either way.
 - **Fetching: does not exist.** `apply` takes a `List<Declared>` from its
   caller. Nothing produces one outside a test.
-- **Withdrawal: does not exist.** `ConfigApplication` applies; nothing in it
-  retracts. Tenant declarations need retraction, and today the scan infers it
-  from absence.
+- **Withdrawal: declared, never inferred** (step 4). A read says whether it is
+  complete; a partial or unreadable one takes nothing away. What is held is the
+  applier's to answer and undoing is the applier's to do — one that cannot say
+  withdraws nothing, one that cannot undo makes a card. And a read carrying a
+  declaration nobody could apply subtracts nothing at all, because the
+  unreadable declaration is usually the one that cannot be identified either:
+  its own record would be the record taken away, a typo deleting the thing the
+  typo was in.
 - **Dependency streams share the loop, and drain to empty.** `syncRound()`
   walks every stream of every tenant on the scan thread and drains each one
   `while (events > 0)` before moving on. They already write runs — `withRuns`
@@ -134,8 +139,11 @@ with its upstream.
 - **What a deployment was told to serve is records** (step 5), in the managing
   tenant, applied from the spec directory by the ordinary source and the
   ordinary applier — so `DirectoryConfigSource` arrived with its caller, as
-  step 3 said it would. The directory is still what the manager serves from;
-  step 6 is where that flips.
+  step 3 said it would.
+- **And what it serves comes from those records** (step 6). A tenant stops
+  being served because somebody withdrew it, never because a read went wrong;
+  a source that cannot be read leaves the records standing, the tenants
+  serving, and says so in the ledger under `source:declarations`.
 - **Change does not exist.** A live tenant's spec is never re-read. There is
   no re-mount path, no refusal for a change that cannot be applied hot, and no
   record that a change was seen.
@@ -157,8 +165,8 @@ with its upstream.
 | 2 | `ConfigApplication` gets a production caller: the face's own vocabulary, applied into each tenant at bring-up as a recorded pass | **DONE** 2026-09-04 — `TenantRuntimeIT#theFacesOwnVocabularyArrivesAsARecordedApplication` |
 | 3 | A source seam: read, and say what the read is called, so an unchanged source is a read rather than a re-application. The face's own vocabulary is its first source | **DONE** 2026-09-04 — `ConfigAppliesAsASweepIT`. Directory, ConfigMap, git and lane implementations wait for step 6, where their caller is |
 | 5 | The tenant spec becomes a declared type, applied into the management tenant like any other configuration | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT` |
-| 4 | Withdrawal becomes part of what a source produces, and what an application applies | **NEXT** — swapped after 5, because withdrawal had no complete source to come from until declarations were records |
-| 6 | The manager reacts to applied declarations instead of listing a directory: mount per tenant, `scanOnce`'s snapshot diff deleted | **READY, needs 5** |
+| 4 | Withdrawal: only a read a source calls complete may take anything away, and only an applier that can say what it holds | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT`, `ConfigAppliesAsASweepIT`. Withdrawing a spec leaves the record; retracting the tenant is still the sweep's, until step 6 |
+| 6 | The sweep reconciles against what was applied rather than a listing it takes itself; the source is read directly only where there is no managing tenant to hold records | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT#anUnreadableSourceRetractsNothing` |
 | 7 | Provisioning claimed by consumers in parallel — the queue is gone because there is no queue | **READY, needs 6** |
 | 8 | A changed spec is *noticed*: the re-read declaration compared with the one the runtime holds, and the difference classified onto the run before anything is applied | **READY, needs 6** |
 | 9 | Hot changes applied in place; re-wire changes re-mounted without a retraction; cold changes refused by name with what they need | **READY, needs 8** |
@@ -178,6 +186,12 @@ something I care about changes" is useless if changing what you care about
 means being retracted. **13** is the payoff.
 
 ## Decisions
+
+**The face's own vocabulary declares itself incomplete.** It is a real,
+knowable set, so calling it complete would be defensible and wrong: a release
+that dropped a definition, or a face rolled back, would then withdraw a
+tenant's vocabulary. A source claims completeness to license a removal, and
+this one has no business licensing that.
 
 **Withdrawal comes after declarations, not before them.** The plan had it
 first. It cannot be: deriving a withdrawal needs a source that is honestly
@@ -329,11 +343,14 @@ this is what turns a busy queue into a stalled one. It appears only in cluster
 — the dev provisioner creates the database itself and never waits — so numbers
 measured on one topology do not describe the other.
 
-**Absence means retraction.** `scanOnce` takes down every runtime missing from
-`Files.list`. A ConfigMap that momentarily reads empty, a mount mid-swap, a
-partial sync — and live tenants are retracted as "the declaration was
-withdrawn". Nothing in the current path distinguishes that from a real
-withdrawal.
+**Absence meant retraction** (fixed in step 6). `scanOnce` took down every
+runtime missing from `Files.list`, so a ConfigMap that momentarily read empty,
+a mount mid-swap or a partial sync retracted live tenants as "the declaration
+was withdrawn". The sweep now reconciles against what was *applied*: a read
+that cannot be taken never reaches the records, so absence has a cause
+somebody produced. What survives of the old path is the floor — a deployment
+with no managing tenant reads its source directly, because nothing can
+bootstrap out of a store it has not built yet.
 
 **The runtime was visible before it was wired** (fixed in step 1).
 `runtimes.put` preceded `wireDependencies`. Harmless while bring-up is sequential; concurrently a
