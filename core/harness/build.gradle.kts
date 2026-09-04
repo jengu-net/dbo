@@ -24,6 +24,15 @@ val dboFhirElementTestOutput = project(":core:dbo-fhir-element")
 // without a store, because it needs none. Same trap as the two above — the
 // index lives in that module's test output, and without it on this classpath
 // the projector reads PLANNED over passing proofs.
+// And the tenant module's own: what a deployment declared about how many
+// tenants a node brings up at once is decided without a store, so it is proven
+// there. Same trap as the three above — the index lives in that module's test
+// output, and a testImplementation on the main jar never pulls it in.
+evaluationDependsOn(":core:dbo-tenant")
+val dboTenantTestOutput = project(":core:dbo-tenant")
+        .extensions.getByType(SourceSetContainer::class.java)
+        .getByName("test").output
+
 evaluationDependsOn(":karaf:commands")
 val karafCommandsTestOutput = project(":karaf:commands")
         .extensions.getByType(SourceSetContainer::class.java)
@@ -68,6 +77,7 @@ dependencies {
     testImplementation(project(":core:dbo-work"))
     testImplementation(dboWorkTestOutput)
     testImplementation(dboFhirElementTestOutput)
+    testImplementation(dboTenantTestOutput)
     // The console's executor half, which is the one part of it that cannot be
     // tested without a store: it reads a tenant's declarations and asks the
     // same resolution the store would. Test-only and one-directional -- no
