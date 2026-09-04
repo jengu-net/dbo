@@ -214,13 +214,18 @@ means being retracted. **13** is the payoff.
 
 ## What is left
 
-Two things, both named where they were decided rather than discovered here.
-**Automation has no home** — nothing persists an `Automation`, so switching
-automatic application off per scope waits on giving that type a place to live.
-And **a preview is not a run**: for a tenant declaration the classification
-happens inside the sweep, so an authored apply says what it did rather than
-what it would do; a real preview needs the classification without the applying,
-and nobody has asked for one.
+Two things, both named where they were decided rather than discovered here,
+and both now filed.
+
+**Automation has no home** ([#189](https://github.com/jengu-net/dbo/issues/189))
+— nothing persists an `Automation`, so switching automatic application off per
+scope waits on giving that type a place to live.
+
+**A preview is not a run** ([#190](https://github.com/jengu-net/dbo/issues/190))
+— for a tenant declaration the classification happens inside the sweep, so an
+authored apply says what it did rather than what it would do. A real preview
+needs the classification without the applying, which is reach rather than
+logic: `SpecChange.between` is already a pure function of two declarations.
 
 Everything else this document set out to do is built, proven, and cited.
 
