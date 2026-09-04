@@ -1,3 +1,14 @@
 build/
 .gradle/
 karaf/dev/local.properties
+
+# Eclipse and Buildship, which regenerate on import. bin/main and bin/test are
+# named rather than a bare bin/, because the server distribution's own bin/ is
+# source — it holds the launch script — and a rule broad enough to catch the
+# IDE's output would swallow it.
+.project
+.classpath
+.settings/
+bin/main/
+bin/test/
+bin/.gitignore
