@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
@@ -62,6 +64,24 @@ class AReplicatedProfileCanBeValidatedAgainstIT {
              "subject":{"display":"somebody"},
              "meta":{"profile":["%s"]}}""".formatted(CANONICAL);
 
+    private static final String BEHIND = "https://replicated.example/StructureDefinition/arrived-quietly";
+
+    private static final String BEHIND_THE_FACADE = """
+            {"resourceType":"StructureDefinition",
+             "url":"%s","version":"1.0.0",
+             "name":"ArrivedQuietly","status":"active","kind":"resource",
+             "abstract":false,"type":"Observation",
+             "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Observation",
+             "derivation":"constraint",
+             "differential":{"element":[
+               {"id":"Observation.subject","path":"Observation.subject","min":1}]}}"""
+            .formatted(BEHIND);
+
+    private static final String CLAIMING_BEHIND = """
+            {"resourceType":"Observation","status":"final","code":{"text":"pulse"},
+             "subject":{"display":"somebody"},
+             "meta":{"profile":["%s"]}}""".formatted(BEHIND);
+
     static PostgreSQLContainer<?> postgres;
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
@@ -107,6 +127,7 @@ class AReplicatedProfileCanBeValidatedAgainstIT {
     }
 
     @Test
+    @Proving(DboPromises.SHAPE_HELD_IS_ANSWERED_HOWEVER_IT_ARRIVED)
     void aProfileThatArrivedByReplicationCanBeValidatedAgainst() throws Exception {
         // The row arrives — this is the half that already works, and the half
         // a consumer sees when it polls for its declared shapes.
@@ -143,5 +164,28 @@ class AReplicatedProfileCanBeValidatedAgainstIT {
     private static HttpResponse<String> get(String tenant, String path) throws Exception {
         return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(tenant) + path))
                 .GET().build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    /**
+     * The symptom itself, without depending on how a shape got there: a
+     * profile written straight into the tenant's store, so the validation
+     * view was built without it and no watch ever saw it arrive. A tenant
+     * that holds a profile and refuses what claims it is telling its author
+     * something untrue about its own contents.
+     */
+    @Test
+    @Proving(DboPromises.SHAPE_HELD_IS_ANSWERED_HOWEVER_IT_ARRIVED)
+    void aProfileTheTenantHoldsIsValidatedAgainstHoweverItArrived() throws Exception {
+        // Behind the facade, so nothing rebuilds and nothing is notified —
+        // which is the situation every path that is not the facade produces.
+        manager.runtime("shape-reader").orElseThrow().engine().put(
+                new cloud.jengu.dbo.core.api.PutRequest("StructureDefinition", null, null,
+                        BEHIND_THE_FACADE.getBytes(StandardCharsets.UTF_8)),
+                cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
+
+        HttpResponse<String> claimed = post("shape-reader", "/Observation", CLAIMING_BEHIND);
+
+        assertEquals(201, claimed.statusCode(),
+                "the tenant holds this profile and refused what claims it: " + claimed.body());
     }
 }

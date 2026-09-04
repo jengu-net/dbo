@@ -17,7 +17,7 @@ public enum DboFeatures implements Feature {
                     DboPromises.SHAPE_SERVED_BESIDE_THE_CLAIM,
                     DboPromises.SHAPE_MIRRORED_KEEPS_ITS_STAMP,
                     DboPromises.SHAPE_QUERYABLE_BY_VERSION,
-                    DboPromises.SHAPE_STOCK_COUNTED,
+                    DboPromises.SHAPE_HELD_IS_ANSWERED_HOWEVER_IT_ARRIVED, DboPromises.SHAPE_STOCK_COUNTED,
                     DboPromises.SHAPE_UNPARSEABLE_VERSION_REFUSED,
                     DboPromises.SHAPE_RESHAPED_IN_PLACE,
                     DboPromises.SHAPE_RESHAPE_RESUMABLE,

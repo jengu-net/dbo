@@ -53,6 +53,17 @@ public final class ElementStore implements FhirStoreFacade {
     /** Null when this store validates against carried definitions alone. */
     private final Terms terms;
     /**
+     * The canonical urls the validation view was built from.
+     *
+     * <p>Held because the store can carry a profile the view does not: a shape
+     * arrives by replication, by restore, or by a lane, and the view is built
+     * from what was there when it was built. Knowing which is which is what
+     * lets a claim on a held-but-unloaded shape be answered by loading it,
+     * rather than by telling its author the tenant does not have a profile it
+     * is holding.
+     */
+    private volatile java.util.Set<String> shapesInView = java.util.Set.of();
+    /**
      * What this TENANT has authored, by type — empty for almost every tenant.
      *
      * <p>Not final, for the same reason {@link #payloads} is not: a tenant that
@@ -106,6 +117,7 @@ public final class ElementStore implements FhirStoreFacade {
         this.types = List.copyOf(types);
         this.baseUrl = baseUrl;
         this.terms = terms;
+        this.shapesInView = canonicalsOf(terms == null ? List.of() : storedProfiles(store));
         this.payloads = terms == null
                 ? (Payloads<Object>) version.face().require(Payloads.class)
                 : (Payloads<Object>) (Payloads<?>) version.payloadsFor(terms, storedProfiles(store), storedMaps(store));
@@ -181,6 +193,7 @@ public final class ElementStore implements FhirStoreFacade {
         if (moved) {
             payload = payloads.write(document);
         }
+        loadClaimedShapesThisTenantHolds(document);
         List<String> issues = payloads.validate(type, document);
         // The ordering rule's own door (REQ-DBO-SHAPE-UNPARSEABLE-VERSION-
         // REFUSED): dbo's pack is data, so "refused at pack load" means
@@ -699,8 +712,10 @@ public final class ElementStore implements FhirStoreFacade {
             return;
         }
         try {
+            List<String> profiles = storedProfiles(store);
             payloads = (Payloads<Object>) (Payloads<?>)
-                    version.payloadsFor(terms, storedProfiles(store), storedMaps(store));
+                    version.payloadsFor(terms, profiles, storedMaps(store));
+            shapesInView = canonicalsOf(profiles);
         } catch (RuntimeException e) {
             throw new cloud.jengu.dbo.fhir.common.ValidationFailedException("StructureDefinition",
                     List.of("the profile was stored, and this tenant's validation still uses "
@@ -740,6 +755,71 @@ public final class ElementStore implements FhirStoreFacade {
             // which is a shape of tenant, not a broken one.
             return List.of();
         }
+    }
+
+    /**
+     * A document claiming a profile this tenant holds but has not loaded gets
+     * the profile loaded, once, before it is judged.
+     *
+     * <p>The validation view is built from what the store held when it was
+     * built, and a shape can arrive afterwards by a path the facade never
+     * served — replicated from a zone, restored from an archive, applied by a
+     * lane. The runtime watches for that and rebuilds, which is the right
+     * place for it and is not the only place it can be needed: a watch reads a
+     * feed, and whether every arrival reaches that feed is a property of every
+     * writer rather than of this store. So the claim itself is also an
+     * occasion — the one moment where being wrong about it is visible to
+     * somebody, as a refusal naming a profile they can see in the store.
+     *
+     * <p>It costs one indexed lookup, and only for a claim the view cannot
+     * already answer: a claim on a shape nobody here has is a lookup and the
+     * refusal it always got.
+     */
+    private void loadClaimedShapesThisTenantHolds(Object document) {
+        if (terms == null
+                || !(document instanceof org.hl7.fhir.r5.elementmodel.Element element)) {
+            return;
+        }
+        for (org.hl7.fhir.r5.elementmodel.Element meta : element.getChildrenByName("meta")) {
+            for (org.hl7.fhir.r5.elementmodel.Element claimed
+                    : meta.getChildrenByName("profile")) {
+                String url = claimed.primitiveValue();
+                if (url == null || url.isBlank() || shapesInView.contains(url)) {
+                    continue;
+                }
+                boolean held = !store.getByIdentifier("StructureDefinition",
+                        List.of(new cloud.jengu.dbo.core.api.Identifier(
+                                cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url)))
+                        .isEmpty();
+                if (held) {
+                    // One rebuild answers every claim in this document, and a
+                    // second claim on the same pass would find it loaded.
+                    rebuiltIfShapesMoved("StructureDefinition");
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * The canonical url of each stored profile, read from the payload the way
+     * the rest of this store reads a declared field — enough to know which
+     * shapes the view was built from, without parsing them a second time.
+     */
+    private static java.util.Set<String> canonicalsOf(List<String> profiles) {
+        java.util.Set<String> urls = new java.util.HashSet<>();
+        for (String profile : profiles) {
+            int at = profile.indexOf("\"url\"");
+            if (at < 0) {
+                continue;
+            }
+            int from = profile.indexOf('"', profile.indexOf(':', at)) + 1;
+            int to = from <= 0 ? -1 : profile.indexOf('"', from);
+            if (from > 0 && to > from) {
+                urls.add(profile.substring(from, to));
+            }
+        }
+        return java.util.Set.copyOf(urls);
     }
 
     private static List<String> storedProfiles(ObjectStore engine) {
