@@ -20,6 +20,10 @@ description: Finishing any new toolset, service, surface, lane, registered type 
   correct and proven while the type behind it is registered for nobody.
 - MUST NOT report a toolset as delivered on the strength of its own tests
   passing; the test proves the thing works, never that anything can reach it.
+- MUST ask what the CONTAINER hands a collaborator that a test hands itself:
+  a rule enforced at a primitive is only as good as the catalogue, registry or
+  credential every caller passes it, and a test that supplies one by hand
+  proves the rule and not the wiring.
 - MUST ask both questions deliberately at the end of the work, because
   nothing in the build asks them and nothing fails when the answer is wrong.
 
