@@ -186,6 +186,16 @@ public final class ContentSyncEngine {
         return consumer != null ? consumer : "sync." + dependency.name();
     }
 
+    /**
+     * What this stream is called where somebody is reading about it: the
+     * consumer name, which already says which dependency into which tenant.
+     * Here so a round can say which stream spent the time rather than that
+     * some stream did.
+     */
+    public String name() {
+        return consumer();
+    }
+
     // -------------------------------------------------------------- syncing
 
     /** One sync round: read the upstream feed, apply declared changes, ack. Returns events seen. */

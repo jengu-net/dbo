@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * How many tenants a node brings up at once is the deployment's to say, and
@@ -43,5 +44,28 @@ class ATuningKnobDoesNotStopADeploymentTest {
         assertEquals(2, Activator.broughtUpTogether("-4", 2));
         assertEquals(2, Activator.broughtUpTogether("lots", 2));
         assertEquals(2, Activator.broughtUpTogether("8 tenants", 2));
+    }
+
+    /**
+     * The two bounds are read the same way and mean different things: a
+     * bring-up holds a validator, a stream holds a database connection, and
+     * tuning one for the other's constraint is how streams came to be capped
+     * at the number heap allows for bring-ups.
+     */
+    @Test
+    @Proving(DboPromises.TEN_DECLARED_TOGETHER_COME_UP_TOGETHER)
+    @DisplayName("a deployment tunes streams and bring-ups separately")
+    void eachBoundIsItsOwn() {
+        assertEquals(16, Activator.atOnce("16", Activator.DEFAULT_STREAMS_TOGETHER,
+                Activator.STREAMS_TOGETHER));
+        assertEquals(Activator.DEFAULT_STREAMS_TOGETHER,
+                Activator.atOnce(null, Activator.DEFAULT_STREAMS_TOGETHER,
+                        Activator.STREAMS_TOGETHER));
+        assertEquals(Activator.DEFAULT_STREAMS_TOGETHER,
+                Activator.atOnce("none", Activator.DEFAULT_STREAMS_TOGETHER,
+                        Activator.STREAMS_TOGETHER));
+        assertTrue(Activator.DEFAULT_STREAMS_TOGETHER > Activator.DEFAULT_BROUGHT_UP_TOGETHER,
+                "streams are bounded by the database and bring-ups by heap: tying them "
+                        + "together is what this separates");
     }
 }
