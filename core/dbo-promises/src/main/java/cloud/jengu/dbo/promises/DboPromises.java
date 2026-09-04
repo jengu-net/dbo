@@ -674,6 +674,15 @@ public enum DboPromises implements Promise {
             + "managing tenant to hold records reads its source directly, because nothing "
             + "can bootstrap out of a store it has not built yet."),
 
+    TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS("Configuration a declarer holds — value "
+            + "sets, profiles, search parameters, whatever a loader keeps — is handed over "
+            + "and applied to a tenant as one recorded pass rather than posted a resource "
+            + "at a time: read, applied, and a card per declaration nobody could apply, "
+            + "naming it as the declarer names it. The declarer's own name for the set is "
+            + "echoed and never parsed, and nothing reaches back afterwards — whoever "
+            + "declared it re-evaluates against what the pass says, so the two sides never "
+            + "have to be up together."),
+
     TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE("What a tenant streams from another tenant "
             + "can be added to and taken away while it serves. A dependency declared today "
             + "catches up from the upstream's whole history; one no longer declared stops "

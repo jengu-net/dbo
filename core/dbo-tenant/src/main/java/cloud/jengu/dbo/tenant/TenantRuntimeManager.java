@@ -189,9 +189,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, Trouble> trouble = new ConcurrentHashMap<>();
     /** The tenant this deployment's own history lives in. */
     private volatile String managementCode;
-    /** Where the ask-to-apply door is already mounted, so managing twice is not two doors. */
-    private final Set<String> configurationContexts =
-            java.util.concurrent.ConcurrentHashMap.newKeySet();
+    /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
+    private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
 
     /** A tenant that is not serving, and why — the reason a card has to carry. */
     private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
@@ -345,17 +344,6 @@ public final class TenantRuntimeManager implements AutoCloseable {
             LOG.info("management tenant up: code={}", spec.code());
         }
         managementCode = spec.code();
-        // The door for asking that what is declared be applied now, mounted on
-        // the tenant that holds the declarations and behind its authority. A
-        // deployment without an authority has nobody to ask on whose behalf,
-        // so it has no door either — the same rule the other private surfaces
-        // follow.
-        cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(spec.code());
-        if (authority != null && !configurationContexts.contains(spec.code())) {
-            sharedServer.createContext("/t/" + spec.code() + "/configuration",
-                    new ConfigurationHandler(authority, this::applyDeclarations));
-            configurationContexts.add(spec.code());
-        }
         return spec.code();
     }
 
@@ -1218,6 +1206,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // nobody's upstream — a dependent that resolved one mid-wire would
         // call feed() on a tenant whose own streams do not exist yet.
         mounting.put(spec.code(), runtime);
+        // Applying what somebody declares for this tenant, and — where this is
+        // the tenant that holds them — asking the deployment to apply the
+        // declarations it reads itself. Behind the authority like every other
+        // private surface: a tenant with none has no way to say who is asking.
+        if (authority != null) {
+            String configurationPath = "/t/" + spec.code() + "/configuration";
+            sharedServer.createContext(configurationPath, new ConfigurationHandler(authority,
+                    () -> spec.code().equals(managementCode) ? applyDeclarations() : null,
+                    (correlation, declarations) -> new cloud.jengu.dbo.sync.ConfigApplication(
+                            runStores.get(spec.code()),
+                            new cloud.jengu.dbo.work.Runs(runStores.get(spec.code())),
+                            version.domain())
+                            .apply(spec.code(), correlation, declarations)));
+            configurationContexts.put(spec.code(), configurationPath);
+        }
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no
         // way to say who is asking.
@@ -1951,6 +1954,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String adminPath = maintenanceContexts.remove(code);
         if (adminPath != null) {
             sharedServer.removeContext(adminPath);
+        }
+        String configurationPath = configurationContexts.remove(code);
+        if (configurationPath != null) {
+            sharedServer.removeContext(configurationPath);
         }
         String workPath = workContexts.remove(code);
         if (workPath != null) {
