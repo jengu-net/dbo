@@ -111,6 +111,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final HttpServer sharedServer;
     private final String host;
     private final Map<String, TenantRuntime> runtimes = new ConcurrentHashMap<>();
+    /**
+     * Runtimes that are mounted and not yet wired. They are nobody's upstream
+     * and answer no lookup; the map exists so that a bring-up which fails
+     * half-way has one teardown path rather than an inline list of removals
+     * that drifts from the real one.
+     */
+    private final Map<String, TenantRuntime> mounting = new ConcurrentHashMap<>();
     private final AuthorityConfig authorityConfig;
 
     /**
@@ -425,12 +432,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             // that will never parse would otherwise write the
                             // same stack until the disk filled — burying the
                             // one line that mattered.
+                            // Two ways of not being up yet, and neither is a
+                            // fault: an upstream this tenant declares is not
+                            // serving, or storage somebody else provisions has
+                            // not arrived. Both are answered by the next scan.
+                            boolean stillComing = e instanceof UpstreamNotReady
+                                    || e instanceof TenantDatabaseProvisioner.NotProvisionedYet;
                             // The code is known when the spec parsed, which is
                             // the case an operator asks about: a tenant that was
                             // declared and did not come up. A file that never
                             // parsed has no tenant to be a state of.
                             codeOf(f).ifPresent(code -> states.put(code,
-                                    e instanceof UpstreamNotReady
+                                    stillComing
                                             ? TenantState.State.COMING_UP
                                             : TenantState.State.FAILED));
                             // What an operator has to be told, kept where the
@@ -439,15 +452,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             // the file it is — which is what somebody has to
                             // open to fix it.
                             trouble.put(codeOf(f).orElse("spec:" + f.getFileName()),
-                                    new Trouble(e instanceof UpstreamNotReady
+                                    new Trouble(stillComing
                                             ? cloud.jengu.dbo.work.Failure.TRANSIENT
                                             : cloud.jengu.dbo.work.Failure.of(e),
                                             String.valueOf(e)));
-                            if (e instanceof UpstreamNotReady notReady) {
+                            if (stillComing) {
                                 // Expected on the way up, so it is not an error
                                 // and does not enter the suppression set: the
                                 // next scan is where it resolves.
-                                LOG.debug("{}", notReady.getMessage());
+                                LOG.debug("{}", e.getMessage());
                                 return;
                             }
                             String signature = f.getFileName() + ":" + e;
@@ -672,14 +685,48 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 runtimes.values().stream().filter(r -> r.spec().pdi()).count());
     }
 
+    /**
+     * Brings a tenant up, or leaves nothing behind.
+     *
+     * <p>A bring-up mounts surfaces as it goes, and it can fail after some of
+     * them are up — a spec that declares SCIM it cannot serve, a vocabulary
+     * that will not publish. What was mounted used to stay mounted, so the
+     * retry two seconds later did not meet the original problem: it met its
+     * own OIDC context and died as {@code cannot add context to list}. The
+     * ledger an operator reads then said that, forever, instead of saying
+     * which spec was wrong.
+     */
     private void bringUp(TenantSpec spec) {
+        try {
+            mountTenant(spec);
+        } catch (RuntimeException | Error incomplete) {
+            rollBack(spec.code());
+            throw incomplete;
+        }
+    }
+
+    /**
+     * Everything a bring-up mounted, taken back down — with or without a
+     * runtime, because a bring-up can fail on either side of the moment one
+     * exists. Not a retraction: nothing served, nobody was told, and there is
+     * nothing to record.
+     */
+    private void rollBack(String code) {
+        TenantRuntime staged = mounting.remove(code);
+        authorities.remove(code);
+        unmount(code, staged);
+    }
+
+    private void mountTenant(TenantSpec spec) {
         // Dependencies wire against the upstream's LIVE runtime —
-        // like the zone hub, an upstream that isn't up yet fails bring-up
-        // loudly and the scan loop retries once it is.
+        // like the zone hub, an upstream that isn't up yet stops bring-up
+        // here, before anything is created, and the scan retries once it is.
+        // The same exception the wiring itself throws: a dependent met before
+        // its upstream is COMING_UP rather than FAILED, which is the
+        // difference between a wait and a fault on the operator's card.
         for (TenantSpec.Dependency dependency : spec.dependencies()) {
             if (!runtimes.containsKey(dependency.name())) {
-                throw new IllegalStateException(spec.code() + ": upstream '" + dependency.name()
-                        + "' is not up yet — retrying on the next scan");
+                throw new UpstreamNotReady(spec.code(), dependency.name());
             }
         }
         // Resolved before anything is created. A tenant declaring a version
@@ -875,6 +922,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         terminology, "/t/" + spec.code() + "/fhir", guard), spec),
                         version.face(), engine),
                 terminology, replication);
+        // Staged, not published: what is mounted has to be reachable so a
+        // bring-up that throws can be taken back down, and a runtime here is
+        // nobody's upstream — a dependent that resolved one mid-wire would
+        // call feed() on a tenant whose own streams do not exist yet.
+        mounting.put(spec.code(), runtime);
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no
         // way to say who is asking.
@@ -1115,8 +1167,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     runtime::replication));
             replicationContexts.put(spec.code(), replicationPath);
         }
-        runtimes.put(spec.code(), runtime);
         wireDependencies(spec, runtime, db);
+        // Published only now: wired, mounted, and safe to be somebody's
+        // upstream.
+        runtimes.put(spec.code(), runtime);
+        mounting.remove(spec.code());
         listener.tenantUp(runtime);
     }
 
@@ -1542,7 +1597,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
             recordRetraction(code, because);
         }
         listener.tenantDown(code);
-        runtime.endpoint().close();
+        unmount(code, runtime);
+    }
+
+    /**
+     * Everything a bring-up mounted, removed — the surfaces, the door, the
+     * pool. Shared by retraction and by a bring-up that threw half-way, which
+     * is the point: an inline second list of removals is how erasure came to
+     * be left mounted after its tenant was gone.
+     *
+     * <p>It says nothing and records nothing. Whether this is a retraction
+     * somebody has to know about or a failure being cleaned up after is the
+     * caller's to say.
+     */
+    private void unmount(String code, TenantRuntime runtime) {
+        if (runtime != null) {
+            runtime.endpoint().close();
+        }
         sweeps.remove(code);
         syncEngines.remove(code);
         String adminPath = maintenanceContexts.remove(code);
