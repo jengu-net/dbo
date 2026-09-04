@@ -78,6 +78,7 @@ cloud.jengu.dbo.auth.KeyProtector                                      class
 cloud.jengu.dbo.auth.KeyProtector                                      new(byte[])
 cloud.jengu.dbo.auth.KeyProtector                                      unwrap(byte[]):byte[]
 cloud.jengu.dbo.auth.KeyProtector                                      wrap(byte[]):byte[]
+cloud.jengu.dbo.auth.Scopes                                            CONFIGURATION:String
 cloud.jengu.dbo.auth.Scopes                                            ERASURE:String
 cloud.jengu.dbo.auth.Scopes                                            FLEET:String
 cloud.jengu.dbo.auth.Scopes                                            IDENTITY:String
@@ -2233,6 +2234,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_LOCA
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_PROVENANCE_COPIES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_SPEC_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_TERMINOLOGY_GRAIN_SURVIVES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_CHANGE_IS_NOT_A_RETRACTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARATION_IS_A_RECORD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
@@ -2653,6 +2655,7 @@ cloud.jengu.dbo.sync.ConfigApplication                                 apply(Str
 cloud.jengu.dbo.sync.ConfigApplication                                 applyFrom(String,cloud.jengu.dbo.sync.ConfigSource):cloud.jengu.dbo.sync.ConfigApplication.Outcome
 cloud.jengu.dbo.sync.ConfigApplication                                 applyFrom(String,cloud.jengu.dbo.sync.ConfigSource,cloud.jengu.dbo.sync.ConfigApplication.Applier):cloud.jengu.dbo.sync.ConfigApplication.Outcome
 cloud.jengu.dbo.sync.ConfigApplication                                 class
+cloud.jengu.dbo.sync.ConfigApplication                                 declaration():cloud.jengu.dbo.core.process.StepDeclaration
 cloud.jengu.dbo.sync.ConfigApplication                                 intoTheStore(cloud.jengu.dbo.sync.ConfigApplication.Declared):void
 cloud.jengu.dbo.sync.ConfigApplication                                 new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Runs,String)
 cloud.jengu.dbo.sync.ConfigApplication.Applier                         apply(cloud.jengu.dbo.sync.ConfigApplication.Declared):void
@@ -2906,6 +2909,10 @@ cloud.jengu.dbo.tenant.AuditedImportLedger                             CODE:Stri
 cloud.jengu.dbo.tenant.AuditedImportLedger                             accepted(cloud.jengu.dbo.maintenance.ImportLedger.Accepted):void
 cloud.jengu.dbo.tenant.AuditedImportLedger                             class
 cloud.jengu.dbo.tenant.AuditedImportLedger                             new(cloud.jengu.dbo.policy.PolicyObjectStore)
+cloud.jengu.dbo.tenant.ConfigurationHandler                            SCOPE:String
+cloud.jengu.dbo.tenant.ConfigurationHandler                            class
+cloud.jengu.dbo.tenant.ConfigurationHandler                            handle(HttpExchange):void
+cloud.jengu.dbo.tenant.ConfigurationHandler                            new(cloud.jengu.dbo.auth.TenantAuthority,Supplier)
 cloud.jengu.dbo.tenant.ErasureHandler                                  SCOPE:String
 cloud.jengu.dbo.tenant.ErasureHandler                                  class
 cloud.jengu.dbo.tenant.ErasureHandler                                  handle(HttpExchange):void
@@ -2994,6 +3001,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            ERASE_STE
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            RETRACT_STEP:String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            SERVE_STEP:String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            TENANT_PROCESS:String
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            applyDeclarations():cloud.jengu.dbo.sync.ConfigApplication.Outcome
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            authority(String):cloud.jengu.dbo.auth.TenantAuthority
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            baseUrl(String):String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            broughtUpTogether(int):void

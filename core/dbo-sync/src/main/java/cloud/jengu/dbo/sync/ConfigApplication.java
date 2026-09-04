@@ -38,6 +38,26 @@ public final class ConfigApplication {
     /** Its one step: the application itself. */
     public static final String STEP = "apply";
 
+    /**
+     * The step as the catalogue carries it, so a run can name the version it
+     * ran under and an operator asking what applied this configuration gets
+     * an answer with a version in it.
+     *
+     * <p>Closing is this store's act. Whoever asked for an application cannot
+     * declare it done: they cannot see what the engine refused.
+     */
+    public static cloud.jengu.dbo.core.process.StepDeclaration declaration() {
+        return new cloud.jengu.dbo.core.process.StepDeclaration(
+                cloud.jengu.dbo.core.process.StepId.of(PROCESS + "." + STEP), "1",
+                java.util.Set.of(), java.util.Set.of(),
+                java.util.Optional.empty(), java.util.Optional.empty(),
+                java.util.Optional.empty(),
+                java.util.Set.of("open", "close"),
+                java.util.Map.of("scope", "what the declaration is about — the zone, the "
+                        + "tenant, the set's own name"),
+                java.util.List.of());
+    }
+
     private final ObjectStore store;
     private final Runs runs;
     private final String domain;

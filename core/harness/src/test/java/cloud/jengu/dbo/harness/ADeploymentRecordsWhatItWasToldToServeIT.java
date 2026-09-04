@@ -53,7 +53,10 @@ class ADeploymentRecordsWhatItWasToldToServeIT {
         provisioner = new LocalDatabasePerTenantProvisioner(
                 SharedPostgres.urlFor("ADeploymentRecordsWhatItWasToldToServeIT"),
                 postgres.getUsername(), postgres.getPassword());
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
+        byte[] kek = new byte[32];
+        new java.security.SecureRandom().nextBytes(kek);
+        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
+                new TenantRuntimeManager.AuthorityConfig(kek, null));
         // Declared by configuration and not by a file in the watched directory
         // — so it is not one of the declarations it records.
         managementSpec = Files.createTempDirectory("dbo-management").resolve("registry.json");
@@ -212,5 +215,77 @@ class ADeploymentRecordsWhatItWasToldToServeIT {
         assertThrows(RuntimeException.class,
                 () -> new DirectoryConfigSource(dir.resolve("nowhere"),
                         TenantDeclarationModel.TYPE, ".json").fetch());
+    }
+
+    /**
+     * Asking for it, rather than waiting for the beat. The ask is the whole
+     * interface: it runs the pass the deployment runs on its own and answers
+     * with what that pass did.
+     */
+    @Test
+    @Order(7)
+    @Proving(DboPromises.TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED)
+    void applyingCanBeAskedForByWhoeverWasGrantedIt() throws Exception {
+        Files.writeString(dir.resolve("asked-for.json"), spec("asked-for", "Observation"));
+
+        java.net.http.HttpResponse<String> refused = ask(null);
+        assertEquals(401, refused.statusCode(), refused.body());
+        assertFalse(manager.codes().contains("asked-for"),
+                "an unauthenticated ask applied a declaration anyway");
+
+        manager.authority(management).ensureClient("an-operator", "operator-secret",
+                List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
+        java.net.http.HttpResponse<String> applied = ask(token("an-operator",
+                "operator-secret", cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
+
+        assertEquals(200, applied.statusCode(), applied.body());
+        assertTrue(applied.body().contains("\"applied\""), applied.body());
+        assertTrue(manager.codes().contains("asked-for"),
+                "the ask answered and the tenant it declared is not being served");
+    }
+
+    /** And a credential without that grant is refused, however much else it holds. */
+    @Test
+    @Order(8)
+    @Proving(DboPromises.TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED)
+    void aCredentialWithoutTheGrantIsRefused() throws Exception {
+        manager.authority(management).ensureClient("a-writer", "writer-secret",
+                List.of("system/*.write"));
+
+        java.net.http.HttpResponse<String> refused =
+                ask(token("a-writer", "writer-secret", "system/*.write"));
+
+        assertEquals(403, refused.statusCode(), refused.body());
+        assertTrue(refused.body().contains(cloud.jengu.dbo.auth.Scopes.CONFIGURATION),
+                refused.body());
+    }
+
+    private java.net.http.HttpResponse<String> ask(String bearer) throws Exception {
+        java.net.http.HttpRequest.Builder request = java.net.http.HttpRequest.newBuilder(
+                        java.net.URI.create(manager.baseUrl(management)
+                                .replace("/fhir", "/configuration")))
+                .POST(java.net.http.HttpRequest.BodyPublishers.noBody());
+        if (bearer != null) {
+            request.header("Authorization", "Bearer " + bearer);
+        }
+        return java.net.http.HttpClient.newHttpClient().send(request.build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+    }
+
+    private String token(String client, String secret, String scope) throws Exception {
+        String form = "grant_type=client_credentials&client_id=" + client
+                + "&client_secret=" + secret + "&scope="
+                + java.net.URLEncoder.encode(scope, java.nio.charset.StandardCharsets.UTF_8);
+        java.net.http.HttpResponse<String> answered = java.net.http.HttpClient.newHttpClient()
+                .send(java.net.http.HttpRequest.newBuilder(
+                                java.net.URI.create(manager.baseUrl(management)
+                                        .replace("/fhir", "/oidc/token")))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(form)).build(),
+                        java.net.http.HttpResponse.BodyHandlers.ofString());
+        String body = answered.body();
+        int at = body.indexOf("\"access_token\"");
+        int start = body.indexOf('"', body.indexOf(':', at)) + 1;
+        return body.substring(start, body.indexOf('"', start));
     }
 }

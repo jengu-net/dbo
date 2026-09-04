@@ -79,6 +79,17 @@ public final class Scopes {
     public static final String FLEET = "fleet";
 
     /**
+     * The configuration scope: admits asking that what is declared be applied
+     * now, and nothing else. Outside the SMART grammar like the others, and
+     * for the reason the erasure scope is: changing what a tenant <b>is</b> —
+     * the types it serves, what it streams, who manages it — is not the same
+     * right as writing records into it, and a credential that may write every
+     * resource type has said nothing about whether its holder may redraw the
+     * tenant those resources live in.
+     */
+    public static final String CONFIGURATION = "configuration";
+
+    /**
      * The supervisory scope: admits undoing a judgment already made about
      * work — reopening a run somebody closed — and nothing else. Outside the
      * SMART grammar like the others.
@@ -106,7 +117,7 @@ public final class Scopes {
     public static boolean isValid(String scope) {
         return SCIM.equals(scope) || WORK.equals(scope) || ERASURE.equals(scope)
                 || IDENTITY.equals(scope) || FLEET.equals(scope)
-                || SUPERVISE.equals(scope)
+                || SUPERVISE.equals(scope) || CONFIGURATION.equals(scope)
                 || isWorkStep(scope) || isSupervisedStep(scope)
                 || SCOPE.matcher(scope).matches();
     }
