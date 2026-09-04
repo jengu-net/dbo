@@ -45,7 +45,23 @@ dependencies {
     // the PG driver comes from the DRIVER BUNDLE at runtime — compile-only
     compileOnly("org.postgresql:postgresql:42.7.11")
     compileOnly("org.slf4j:slf4j-api:2.0.18")
+
+    // A test source set for what can be decided without a database: the
+    // activator's reading of what a deployment declared. Everything about a
+    // live tenant belongs in the harness, against a real store.
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    // The activator names the framework's interface, so reading a class that
+    // sits beside it needs the framework's api on the test classpath — which
+    // is compileOnly for the bundle itself, because the container provides it.
+    testImplementation("org.osgi:osgi.core:8.0.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // @Proving citations only.
+    testImplementation(project(":core:dbo-promises"))
+    testAnnotationProcessor(project(":promise"))
 }
+
+tasks.test { useJUnitPlatform() }
+
 
 // bnd COMPUTES Import-Package from the bytecode of this bundle AND of what
 // rides in lib/. What stays written by hand is POLICY rather than inventory:

@@ -38,6 +38,44 @@ public final class Activator implements BundleActivator {
     private TenantRuntimeManager manager;
     private final Map<String, List<ServiceRegistration<?>>> tenantRegistrations = new ConcurrentHashMap<>();
 
+    /** How many tenants a node brings up at once, when a deployment says. */
+    static final String BRING_UP_TOGETHER = "dbo.tenant.bringup.together";
+
+    /**
+     * Two, and the reason is heap rather than throughput: four met a real
+     * {@code OutOfMemoryError} bringing eight tenants up on a JVM with more
+     * heap than a serving node is given.
+     */
+    static final int DEFAULT_BROUGHT_UP_TOGETHER = 2;
+
+    /**
+     * The declared bound, or the default when a deployment said nothing — or
+     * said something that is not a number of tenants.
+     *
+     * <p>A mistyped tuning knob does not stop a deployment serving. It says
+     * what it ignored and carries on, because refusing to boot over a number
+     * somebody fat-fingered would take every tenant down for a setting whose
+     * whole job is to make them come up faster.
+     */
+    static int broughtUpTogether(String declared, int fallback) {
+        if (declared == null || declared.isBlank()) {
+            return fallback;
+        }
+        try {
+            int together = Integer.parseInt(declared.trim());
+            if (together < 1) {
+                LOG.warn("{}={} is not a number of tenants; bringing up {} at a time",
+                        BRING_UP_TOGETHER, declared, fallback);
+                return fallback;
+            }
+            return together;
+        } catch (NumberFormatException notANumber) {
+            LOG.warn("{}={} is not a number; bringing up {} at a time",
+                    BRING_UP_TOGETHER, declared, fallback);
+            return fallback;
+        }
+    }
+
     @Override
     public void start(BundleContext ctx) {
         // The posture, not just the fact of starting. Every field here is
@@ -327,6 +365,15 @@ public final class Activator implements BundleActivator {
             substrate.setPoolName("dbo-substrate");
             manager.substrate(new com.zaxxer.hikari.HikariDataSource(substrate));
         }
+        // How many tenants this node brings up at once. Small by default
+        // because each bring-up holds a validator, and what limits a node is
+        // how many of those it can hold rather than how many tenants it can
+        // start — so raising it is a deployment saying it has the heap, which
+        // is not something this store can find out for itself.
+        int together = broughtUpTogether(ctx.getProperty(BRING_UP_TOGETHER),
+                DEFAULT_BROUGHT_UP_TOGETHER);
+        manager.broughtUpTogether(together);
+        LOG.info("tenant bring-up: together={} poll={}ms", together, 2_000);
         manager.start(2_000);
     }
 
