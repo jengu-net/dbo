@@ -41,6 +41,15 @@ public enum DboPromises implements Promise {
             + "at and above, a stated major for a stated profile — pageable like any "
             + "search, on every serving surface."),
 
+    SHAPE_HELD_IS_ANSWERED_HOWEVER_IT_ARRIVED("A shape the tenant holds is validated "
+            + "against, whatever path it arrived by. A validation view is built from what "
+            + "the store held when it was built, and shapes arrive afterwards by paths no "
+            + "facade served — replicated from a zone, restored from an archive, applied by "
+            + "a lane — so a claim on a shape that is in the store and not in the view loads "
+            + "it rather than refusing it. Telling an author that this tenant does not have "
+            + "a profile they can see in it is the store being wrong about its own "
+            + "contents."),
+
     SHAPE_STOCK_COUNTED("The tenant inventory counts shape stock per type, profile and "
             + "stamped version — including objects that declare a profile and carry no "
             + "stamp at all — so the same report runs before and after a migration and "

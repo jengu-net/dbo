@@ -2206,6 +2206,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SCIM_GROU
 cloud.jengu.dbo.promises.DboPromises                                   SCIM_USER_IS_THE_PERSON:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_HANDBACK_CLAIMS_WITHOUT_LOCKING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_HANDBACK_KEEPS_THE_DISCIPLINE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SHAPE_HELD_IS_ANSWERED_HOWEVER_IT_ARRIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_MIRRORED_KEEPS_ITS_STAMP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_NEWER_DATA_REFUSED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_QUERYABLE_BY_VERSION:cloud.jengu.dbo.promises.DboPromises
