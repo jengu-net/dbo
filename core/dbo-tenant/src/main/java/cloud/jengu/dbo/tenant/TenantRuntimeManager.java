@@ -766,6 +766,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String code = declared.code();
         FhirVersion version = versions.require(declared.face());
         FaceRequirements.refuseUnservable(declared, version.face());
+        // A tenant that now streams from somebody who is not up yet is a wait,
+        // not a rebuild. Checking here rather than inside the mount is the
+        // difference between waiting and being taken down: past the teardown
+        // the same refusal leaves the tenant unmounted until its upstream
+        // appears, and it was serving perfectly well before anybody edited it.
+        for (TenantSpec.Dependency dependency : declared.dependencies()) {
+            if (!runtimes.containsKey(dependency.name())) {
+                throw new UpstreamNotReady(code, dependency.name());
+            }
+        }
         LOG.info("tenant {} is being rebuilt where it stands: {}", code, change.says());
         runtimes.remove(code);
         listener.tenantDown(code);
@@ -1486,6 +1496,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private void wireDependencies(TenantSpec spec, TenantRuntime runtime,
             javax.sql.DataSource on) {
         if (spec.dependencies().isEmpty()) {
+            // Nothing to wire, and nothing to clear: a tenant whose streams
+            // have to go is one being taken down or rebuilt, and both go
+            // through the teardown that removes them. A second place that
+            // cleared them would be a second place to keep in agreement.
             return;
         }
         FhirVersion version = versions.require(spec.face());

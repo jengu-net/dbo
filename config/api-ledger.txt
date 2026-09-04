@@ -2249,6 +2249,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_REGIS
 cloud.jengu.dbo.promises.DboPromises                                   TEN_SERVED_FROM_WHAT_WAS_APPLIED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_SHARED_TIER_ISOLATION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_STRUCTURAL_SCOPING:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TERM_BULK_LOAD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TERM_EVERY_TENANT_ANSWERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TERM_NATIVE_FORM:cloud.jengu.dbo.promises.DboPromises

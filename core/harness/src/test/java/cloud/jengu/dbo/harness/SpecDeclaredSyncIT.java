@@ -223,6 +223,77 @@ class SpecDeclaredSyncIT {
                 "the dependent stopped hearing from an upstream that was rebuilt under it");
     }
 
+    /**
+     * A tenant comes to care about something it did not care about before.
+     * "Tell me when something I care about changes" is worth little if
+     * changing what you care about means being withdrawn and declared again.
+     */
+    @Test
+    @Order(51)
+    @Proving(DboPromises.TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE)
+    void aTenantComesToCareAboutSomethingAndCatchesUp() throws Exception {
+        // Declared with no dependency at all, and serving.
+        Files.writeString(dir.resolve("sync-latecomer.json"),
+                """
+                {"code":"sync-latecomer","face":"r4","types":%s}"""
+                        .formatted(REPLICATED_TYPES));
+        UntilServed.scan(manager, "sync-latecomer");
+        assertTrue(manager.streamsOf("sync-latecomer").isEmpty(),
+                "it declared nothing to stream and has a stream anyway");
+
+        // And now it does care, while it is up.
+        Files.writeString(dir.resolve("sync-latecomer.json"), dependentSpec("sync-latecomer"));
+        UntilServed.scan(manager, "sync-latecomer");
+
+        assertEquals(1, manager.streamsOf("sync-latecomer").size(),
+                "the dependency it declared was never wired: " + manager.troubles());
+        assertTrue(awaitCopy("sync-latecomer", "green").contains("$lookup → 200"),
+                "it caught up with nothing, though the upstream has held that since "
+                        + "before this tenant existed");
+    }
+
+    /**
+     * And stops caring. The stream goes; the copies it already brought stay,
+     * because they are what this tenant answers from.
+     */
+    @Test
+    @Order(52)
+    @Proving(DboPromises.TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE)
+    void aTenantStopsCaringAndKeepsWhatItAlreadyHas() throws Exception {
+        Files.writeString(dir.resolve("sync-latecomer.json"),
+                """
+                {"code":"sync-latecomer","face":"r4","types":%s}"""
+                        .formatted(REPLICATED_TYPES));
+        UntilServed.scan(manager, "sync-latecomer");
+
+        assertTrue(manager.streamsOf("sync-latecomer").isEmpty(),
+                "a dependency nobody declares any more is still delivering");
+        assertEquals(200, get(manager.baseUrl("sync-latecomer") + "/CodeSystem/" + codeSystemId)
+                .statusCode(), "what it already streamed was taken away with the dependency");
+    }
+
+    /**
+     * Naming an upstream that is not up is a wait, never a teardown: a tenant
+     * that was serving does not stop serving because somebody named a tenant
+     * that has not arrived.
+     */
+    @Test
+    @Order(53)
+    @Proving(DboPromises.TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE)
+    void namingAnUpstreamThatIsNotUpLeavesItServing() throws Exception {
+        Files.writeString(dir.resolve("sync-latecomer.json"),
+                """
+                {"code":"sync-latecomer","face":"r4","types":%s,
+                 "dependencies":[{"name":"sync-nobody","types":["CodeSystem"]}]}"""
+                        .formatted(REPLICATED_TYPES));
+        manager.scanOnce();
+
+        assertTrue(manager.codes().contains("sync-latecomer"),
+                "it stopped serving because an upstream nobody declared has not arrived");
+        assertEquals(200, get(manager.baseUrl("sync-latecomer") + "/CodeSystem/" + codeSystemId)
+                .statusCode());
+    }
+
     @Test
     @Order(6)
     @Proving(DboPromises.SYNC_SPEC_DECLARED)
