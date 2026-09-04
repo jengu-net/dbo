@@ -872,7 +872,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // $expand from its own concepts or it is a second-class reader.
         FhirTerminology terminology = declared.terminology(engine, db.dataSource());
         long vocabularyAt = System.currentTimeMillis();
-        publishVocabularies(engine, store, terminology, version.face());
+        publishVocabularies(spec.code(), engine, store, terminology, version);
         LOG.info("tenant bring-up cost: code={} facade={}ms vocabulary={}ms",
                 spec.code(), facadeMillis, System.currentTimeMillis() - vocabularyAt);
         // The lane's own objects, built once for this tenant and shared by
@@ -1878,71 +1878,59 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * canonical identity — a definition written twice is one record, so a
      * restart costs a conditional write and nothing else.
      */
-    private static void publishVocabularies(cloud.jengu.dbo.core.api.ObjectStore engine,
-            FhirStoreFacade store, FhirTerminology terminology,
-            cloud.jengu.dbo.core.face.DomainFace face) {
+    /**
+     * The face's own vocabulary, applied into the tenant as a recorded pass.
+     *
+     * <p>This is the empty-state case of applying configuration: a declared
+     * set arrives from somewhere that declared it — here, the face itself —
+     * and applying it closes when what is here agrees with what was declared.
+     * It went through a loop whose whole outcome was a log line, so
+     * <i>six declared, four applied, two refused and why</i> could be read
+     * only by whoever was tailing the boot, and only then.
+     *
+     * <p>The writing stays this tenant's own: a CodeSystem has to arrive at
+     * the grain concepts are kept in, or the store cannot answer
+     * {@code $lookup} for its own definitions even though the document is
+     * fetchable.
+     */
+    private void publishVocabularies(String code, cloud.jengu.dbo.core.api.ObjectStore engine,
+            FhirStoreFacade store, FhirTerminology terminology, FhirVersion version) {
+        cloud.jengu.dbo.core.face.DomainFace face = version.face();
         // A face with no terminology surface offers no operations — the
         // existing signal for "this face cannot hold concepts natively",
         // rather than a new flag or a caught exception.
         boolean holdsConceptsNatively = !terminology.operations().isEmpty();
+        java.util.List<cloud.jengu.dbo.sync.ConfigApplication.Declared> declared =
+                new java.util.ArrayList<>();
         for (String definition : face.capability(
                 cloud.jengu.dbo.core.face.RecordProjection.class)
                 .map(cloud.jengu.dbo.core.face.RecordProjection::vocabularies)
                 .orElse(java.util.List.of())) {
+            // Named by its canonical url: what somebody looking at the card
+            // would search for, and what the definition is identified by.
+            declared.add(new cloud.jengu.dbo.sync.ConfigApplication.Declared(
+                    resourceTypeOf(definition), canonicalUrlOf(definition),
+                    definition.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        }
+        cloud.jengu.dbo.sync.ConfigApplication.Applier applier = one ->
+                publishOne(engine, store, terminology, holdsConceptsNatively, one);
+        ObjectStore runStore = runStores.get(code);
+        if (runStore == null) {
+            // Nowhere to write the record. The definitions still land: a
+            // tenant's vocabulary is not conditional on its bookkeeping.
+            declared.forEach(applier::apply);
+        } else {
             try {
-                String url = canonicalUrlOf(definition);
-                // A CodeSystem goes through INGEST where the face can hold
-                // concepts, exactly as a client's would: written the ordinary
-                // way it is stored whole and answers nothing, so $lookup and
-                // $validate-code cannot resolve dbo's own vocabulary even
-                // though the document is fetchable. Ingest is
-                // replace-all and cheap for these — six systems of a few
-                // codes — so it runs every bring-up rather than being skipped,
-                // which also repairs a tenant that stored one whole before.
-                if (holdsConceptsNatively && "CodeSystem".equals(resourceTypeOf(definition))) {
-                    // Ingest is replace-all: the shell through the engine and
-                    // the concepts into the native form. Cheap for one and
-                    // ~500ms for the set, which is not a price to pay on every
-                    // boot for definitions that have not moved — so the stored
-                    // version decides, and it is derived from the vocabulary
-                    // rather than from dbo's release number.
-                    if (!publishedVersionOf(engine, definition).equals(fieldOf(definition,
-                            "\"version\""))) {
-                        terminology.ingestCodeSystem(definition);
-                    }
-                    continue;
-                }
-                // Asked before written. A conditional create is a full
-                // validate and a write every time, and a definition that has
-                // not changed since the last boot needs neither — measured at
-                // ~300ms per bring-up for work already done. The lookup
-                // is on canonical identity, which is indexed, so a warm tenant
-                // pays one read per definition and nothing else.
-                if (!engine.getByIdentifier(resourceTypeOf(definition),
-                        java.util.List.of(new cloud.jengu.dbo.core.api.Identifier(
-                                cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url)))
-                        .isEmpty()) {
-                    continue;
-                }
-                // Identity-keyed on the canonical url, so a race between two
-                // bring-ups rewrites the same record rather than a second one
-                // (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS).
-                store.conditionalCreate(definition, java.util.Map.of("url", url));
-            } catch (cloud.jengu.dbo.core.api.HandlingRefusedException refused) {
-                // Anticipated, not wrong: on a tenant whose CodeSystem
-                // is somebody else's publication, the engine's own vocabulary
-                // arrives through the replication lane instead — the source
-                // published the same six at ITS bring-up, and the stream
-                // delivers them. A WARN here cried wolf on every zone
-                // dependent's boot.
-                LOG.info("the face's vocabulary is not this tenant's to write ({}); "
-                        + "it arrives from the source tenant through the replication lane",
-                        refused.getMessage());
-            } catch (RuntimeException e) {
-                // A face that publishes a definition this store cannot hold is
-                // a misconfiguration worth naming, not a tenant that fails to
-                // come up: the trail and the runs still serve without it.
-                LOG.warn("could not publish the face's vocabulary: {}", e.toString());
+                new cloud.jengu.dbo.sync.ConfigApplication(engine,
+                        new cloud.jengu.dbo.work.Runs(runStore), version.domain())
+                        .apply(code, null, declared, applier);
+            } catch (RuntimeException unrecorded) {
+                // Same rule as the serving sweep: the deployment keeps serving
+                // tenants when its own bookkeeping cannot be written. Applying
+                // is idempotent — a version already published is a read and
+                // nothing else — so the second attempt costs a lookup each.
+                LOG.warn("the face's vocabulary is being applied without a record", unrecorded);
+                declared.forEach(applier::apply);
             }
         }
         if (!holdsConceptsNatively) {
@@ -1952,6 +1940,67 @@ public final class TenantRuntimeManager implements AutoCloseable {
             LOG.warn("face {} holds no terminology natively: its vocabularies are published "
                     + "as documents, so $lookup and $validate-code answer nothing for them",
                     face.name());
+        }
+    }
+
+    /**
+     * One definition, into the tenant. A throw is the pass's card; the one
+     * refusal that is not a card is caught here.
+     */
+    private static void publishOne(cloud.jengu.dbo.core.api.ObjectStore engine,
+            FhirStoreFacade store, FhirTerminology terminology, boolean holdsConceptsNatively,
+            cloud.jengu.dbo.sync.ConfigApplication.Declared declaration) {
+        String definition = new String(declaration.payload(),
+                java.nio.charset.StandardCharsets.UTF_8);
+        try {
+            // A CodeSystem goes through INGEST where the face can hold
+            // concepts, exactly as a client's would: written the ordinary
+            // way it is stored whole and answers nothing, so $lookup and
+            // $validate-code cannot resolve dbo's own vocabulary even
+            // though the document is fetchable. Ingest is
+            // replace-all and cheap for these — six systems of a few
+            // codes — so it runs every bring-up rather than being skipped,
+            // which also repairs a tenant that stored one whole before.
+            if (holdsConceptsNatively && "CodeSystem".equals(declaration.typeName())) {
+                // Ingest is replace-all: the shell through the engine and
+                // the concepts into the native form. Cheap for one and
+                // ~500ms for the set, which is not a price to pay on every
+                // boot for definitions that have not moved — so the stored
+                // version decides, and it is derived from the vocabulary
+                // rather than from dbo's release number.
+                if (!publishedVersionOf(engine, definition).equals(fieldOf(definition,
+                        "\"version\""))) {
+                    terminology.ingestCodeSystem(definition);
+                }
+                return;
+            }
+            // Asked before written. A conditional create is a full
+            // validate and a write every time, and a definition that has
+            // not changed since the last boot needs neither — measured at
+            // ~300ms per bring-up for work already done. The lookup
+            // is on canonical identity, which is indexed, so a warm tenant
+            // pays one read per definition and nothing else.
+            if (!engine.getByIdentifier(declaration.typeName(),
+                    java.util.List.of(new cloud.jengu.dbo.core.api.Identifier(
+                            cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM,
+                            declaration.name())))
+                    .isEmpty()) {
+                return;
+            }
+            // Identity-keyed on the canonical url, so a race between two
+            // bring-ups rewrites the same record rather than a second one
+            // (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS).
+            store.conditionalCreate(definition, java.util.Map.of("url", declaration.name()));
+        } catch (cloud.jengu.dbo.core.api.HandlingRefusedException refused) {
+            // Anticipated, not wrong, and deliberately not a card: on a tenant
+            // whose CodeSystem is somebody else's publication, the engine's
+            // own vocabulary arrives through the replication lane instead —
+            // the source published the same six at ITS bring-up, and the
+            // stream delivers them. A card here would open one on every zone
+            // dependent's boot, for nobody to act on.
+            LOG.info("the face's vocabulary is not this tenant's to write ({}); "
+                    + "it arrives from the source tenant through the replication lane",
+                    refused.getMessage());
         }
     }
 

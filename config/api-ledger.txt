@@ -2137,6 +2137,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_CATA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CLAIM_IS_THE_INTERSECTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CLOSED_CAN_BE_REOPENED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CLOSE_BY_RE_EVALUATION:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_CONFIG_APPLIES_AS_A_SWEEP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CONTENT_CHANGES_INSIDE_WORK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CORRELATION_TRAVELS_OPAQUE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_DOMAIN_CODE_FILTER:cloud.jengu.dbo.promises.DboPromises
@@ -2641,8 +2642,11 @@ cloud.jengu.dbo.subscriptions.TopicSubscriptionSource                  topics():
 cloud.jengu.dbo.sync.ConfigApplication                                 PROCESS:String
 cloud.jengu.dbo.sync.ConfigApplication                                 STEP:String
 cloud.jengu.dbo.sync.ConfigApplication                                 apply(String,String,List):cloud.jengu.dbo.sync.ConfigApplication.Outcome
+cloud.jengu.dbo.sync.ConfigApplication                                 apply(String,String,List,cloud.jengu.dbo.sync.ConfigApplication.Applier):cloud.jengu.dbo.sync.ConfigApplication.Outcome
 cloud.jengu.dbo.sync.ConfigApplication                                 class
 cloud.jengu.dbo.sync.ConfigApplication                                 new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Runs,String)
+cloud.jengu.dbo.sync.ConfigApplication.Applier                         apply(cloud.jengu.dbo.sync.ConfigApplication.Declared):void
+cloud.jengu.dbo.sync.ConfigApplication.Applier                         interface
 cloud.jengu.dbo.sync.ConfigApplication.Declared                        equals(Object):boolean
 cloud.jengu.dbo.sync.ConfigApplication.Declared                        hashCode():int
 cloud.jengu.dbo.sync.ConfigApplication.Declared                        name():String
@@ -2920,6 +2924,8 @@ cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       deprovisi
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       interface
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       provision(cloud.jengu.dbo.tenant.TenantSpec):cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       release(String):void
+cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.NotProvisionedYet     class
+cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.NotProvisionedYet     new(String)
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase        DEFAULT_RP_CLIENT_ID:String
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase        bootstrapClientSecret():String
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase        dataSource():DataSource

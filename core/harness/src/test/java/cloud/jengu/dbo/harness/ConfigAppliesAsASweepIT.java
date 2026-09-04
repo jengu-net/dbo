@@ -1,6 +1,8 @@
 package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.core.api.Criteria;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.fhir.r4.R4Personality;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.postgres.PgObjectStore;
@@ -62,6 +64,7 @@ class ConfigAppliesAsASweepIT {
     }
 
     @Test
+    @Proving(DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP)
     @DisplayName("forty-six declared, forty-four applied, two cards — and a tally that says so")
     void aPartialApplicationSaysWhatItDid() {
         List<ConfigApplication.Declared> declarations = new ArrayList<>();
@@ -102,6 +105,8 @@ class ConfigAppliesAsASweepIT {
     }
 
     @Test
+    @Proving({DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP,
+            DboPromises.PROC_CLOSE_BY_RE_EVALUATION})
     @DisplayName("fixing a declaration closes its card on the next pass, with nobody clicking "
             + "resolved")
     void aFixedDeclarationClosesItself() {
