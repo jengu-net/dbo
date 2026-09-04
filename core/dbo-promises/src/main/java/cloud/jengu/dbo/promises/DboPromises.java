@@ -674,6 +674,14 @@ public enum DboPromises implements Promise {
             + "managing tenant to hold records reads its source directly, because nothing "
             + "can bootstrap out of a store it has not built yet."),
 
+    TEN_A_CHANGE_IS_NOT_A_RETRACTION("A change a serving tenant can take is applied to "
+            + "it: what it only says about itself it takes where it stands, and what it is "
+            + "made of is rebuilt in place — its database, its lanes and their cursors kept, "
+            + "nothing recorded as withdrawn, and whoever streams from it wired again rather "
+            + "than left reading a pool that has closed. A declaration naming a face nothing "
+            + "serves is refused while the tenant is still running, because a change that "
+            + "cannot work should cost nothing."),
+
     TEN_A_REDECLARATION_IS_NOTICED("A serving tenant declared differently from what it "
             + "was built from is noticed and classified, rather than read once at mount and "
             + "never again: what can be absorbed while it serves, what has to be rebuilt in "

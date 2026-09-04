@@ -36,6 +36,8 @@ class ATenantDeclaredDifferentlyIsNoticedIT {
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
+    static String observationId;
+    static final java.net.http.HttpClient HTTP = java.net.http.HttpClient.newHttpClient();
 
     @BeforeAll
     void up() throws Exception {
@@ -82,23 +84,48 @@ class ATenantDeclaredDifferentlyIsNoticedIT {
         assertTrue(manager.redeclarations().isEmpty(),
                 "nothing was redeclared and the deployment says otherwise: "
                         + manager.redeclarations());
+
+        // Something to still be here after the rebuild below.
+        java.net.http.HttpResponse<String> written = HTTP.send(
+                java.net.http.HttpRequest.newBuilder(
+                        java.net.URI.create(manager.baseUrl(CLINIC) + "/Observation"))
+                        .header("Content-Type", "application/fhir+json")
+                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(
+                                "{\"resourceType\":\"Observation\",\"status\":\"final\","
+                                        + "\"code\":{\"text\":\"before the rebuild\"}}"))
+                        .build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertEquals(201, written.statusCode(), written.body());
+        String location = written.headers().firstValue("Location").orElseThrow();
+        observationId = location.substring(location.lastIndexOf('/') + 1);
+    }
+
+    private static java.net.http.HttpResponse<String> get(String path) throws Exception {
+        return HTTP.send(java.net.http.HttpRequest.newBuilder(
+                        java.net.URI.create(manager.baseUrl(CLINIC) + path)).GET().build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
     }
 
     /** A type it does not have yet: rebuilt in place, never a retraction. */
     @Test
     @Order(2)
-    @Proving(DboPromises.TEN_A_REDECLARATION_IS_NOTICED)
+    @Proving(DboPromises.TEN_A_CHANGE_IS_NOT_A_RETRACTION)
     void aTypeItDoesNotHaveYetIsARebuild() throws Exception {
         declare(spec("r4", "Observation", "Condition"));
         manager.scanOnce();
 
-        assertEquals(1, manager.redeclarations().size());
-        assertTrue(manager.redeclarations().get(CLINIC).startsWith("rebuilt in place"),
-                manager.redeclarations().get(CLINIC));
-        assertTrue(manager.redeclarations().get(CLINIC).contains("types"),
-                manager.redeclarations().get(CLINIC));
         assertTrue(manager.codes().contains(CLINIC),
-                "noticing a change is not a reason to stop serving");
+                "a change is not a reason to stop serving: " + manager.troubles());
+        assertTrue(manager.redeclarations().isEmpty(),
+                "the change was applied, so nothing is outstanding: "
+                        + manager.redeclarations());
+
+        // The type it did not have is the one it answers about now, and what
+        // it held before the rebuild is still there.
+        assertEquals(200, get("/Condition?_summary=count").statusCode(),
+                "the type it was redeclared with is not served");
+        assertTrue(get("/Observation/" + observationId).statusCode() == 200,
+                "a rebuild is not a retraction: what it held before is gone");
     }
 
     /**

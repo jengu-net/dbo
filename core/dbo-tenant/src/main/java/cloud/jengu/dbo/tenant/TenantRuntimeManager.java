@@ -693,12 +693,84 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // every pass until somebody decides.
             trouble.put(declared.code(), new Trouble(cloud.jengu.dbo.work.Failure.RECORD,
                     "declared differently from what it serves — " + change.says()));
+            if (!change.equals(before)) {
+                // Once per distinct difference. The scan comes round every
+                // couple of seconds, and a line per pass would bury the one
+                // that mattered.
+                LOG.info("tenant {} is declared differently from what it serves: {}",
+                        declared.code(), change.says());
+            }
+            return;
         }
-        if (!change.equals(before)) {
-            // Once per distinct difference. The scan comes round every couple
-            // of seconds, and a line per pass would bury the one that mattered.
-            LOG.info("tenant {} is declared differently from what it serves: {}",
+        if (change.kind() == SpecChange.Kind.HOT) {
+            // Nothing this tenant is made of changes, so nothing is rebuilt:
+            // the runtime carries the declaration it answers about, and it
+            // answers about the new one from here.
+            runtimes.put(declared.code(), new TenantRuntime(declared, serving.engine(),
+                    serving.store(), serving.feed(), serving.endpoint(), serving.grain(),
+                    serving.replication()));
+            redeclared.remove(declared.code());
+            LOG.info("tenant {} took a change where it stands: {}",
                     declared.code(), change.says());
+            return;
+        }
+        rebuild(serving, declared, change);
+    }
+
+    /**
+     * A serving tenant, rebuilt from the declaration it now has.
+     *
+     * <p>Not a retraction, and the difference is the point: nothing is
+     * recorded as withdrawn, the database, the lanes and their cursors stay
+     * exactly where they are, and the dependents streaming from this tenant
+     * are wired again rather than left holding a feed on a pool that has
+     * closed. What does stop, for as long as this takes, is the tenant's HTTP
+     * surface — a rebuild is a remount, and saying otherwise would be
+     * describing something this does not do.
+     *
+     * <p>It has to go down first. The container registers a tenant's services
+     * when it comes up and unregisters them when it goes, so mounting over a
+     * tenant that is still up would register a second set and leak the first:
+     * a registry with two of everything, which resolves, publishes and then
+     * answers from whichever one a caller happened to get.
+     *
+     * <p>What can be checked before anything is torn down, is: a declaration
+     * naming a face nothing serves, or asking a face for what it does not
+     * offer, is refused with the tenant still running. Past that point a
+     * rebuild that fails leaves the tenant down with its reason in the ledger,
+     * and the declaration is what has to be fixed — the same as for a tenant
+     * that never came up.
+     */
+    private void rebuild(TenantRuntime serving, TenantSpec declared, SpecChange change) {
+        String code = declared.code();
+        FhirVersion version = versions.require(declared.face());
+        FaceRequirements.refuseUnservable(declared, version.face());
+        LOG.info("tenant {} is being rebuilt where it stands: {}", code, change.says());
+        runtimes.remove(code);
+        listener.tenantDown(code);
+        authorities.remove(code);
+        unmount(code, serving);
+        mountTenant(declared);
+        redeclared.remove(code);
+        // Whoever streams from this tenant was handed its feed when they were
+        // wired, and that feed belonged to the runtime that has just been
+        // replaced. Re-wiring them is not a courtesy: a dependent left holding
+        // the old one reads from a pool nobody owns any more, and says nothing
+        // about it because a stream that delivers no events looks exactly like
+        // an upstream with nothing to say.
+        for (TenantRuntime dependent : runtimes.values()) {
+            boolean streamsFromIt = dependent.spec().dependencies().stream()
+                    .anyMatch(dependency -> dependency.name().equals(code));
+            if (!streamsFromIt) {
+                continue;
+            }
+            javax.sql.DataSource on = tenantDataSources.get(dependent.spec().code());
+            if (on == null) {
+                continue;
+            }
+            wireDependencies(dependent.spec(), dependent, on);
+            LOG.info("tenant {} was wired again: the tenant it streams from was rebuilt",
+                    dependent.spec().code());
         }
     }
 
@@ -1356,7 +1428,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     runtime::replication));
             replicationContexts.put(spec.code(), replicationPath);
         }
-        wireDependencies(spec, runtime, db);
+        wireDependencies(spec, runtime, db.dataSource());
         // Published only now: wired, mounted, and safe to be somebody's
         // upstream.
         runtimes.put(spec.code(), runtime);
@@ -1392,7 +1464,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * (REQ-DBO-SYNC-FULL-HISTORY-CATCH-UP).
      */
     private void wireDependencies(TenantSpec spec, TenantRuntime runtime,
-            TenantDatabaseProvisioner.TenantDatabase db) {
+            javax.sql.DataSource on) {
         if (spec.dependencies().isEmpty()) {
             return;
         }
@@ -1413,7 +1485,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
                     new cloud.jengu.dbo.sync.ContentDependency(
                             dependency.name(), dependency.types()),
-                    upstream.feed(), runtime.engine(), db.dataSource(),
+                    upstream.feed(), runtime.engine(), on,
                     domain, payloadVersion,
                     java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter()),
                     "sync." + dependency.name() + "." + spec.code(),

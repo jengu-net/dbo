@@ -185,8 +185,46 @@ class SpecDeclaredSyncIT {
         throw new AssertionError(tenant + " cannot answer for '" + expected + "': " + body);
     }
 
+    /**
+     * The upstream is redeclared and rebuilt where it stands. Whoever streams
+     * from it was handed its feed when they were wired, and that feed belonged
+     * to the runtime that has just been replaced — so a dependent nobody wired
+     * again reads from a pool that has closed, and says nothing about it,
+     * because a stream delivering no events looks exactly like an upstream
+     * with nothing to say.
+     */
     @Test
     @Order(5)
+    @Proving({DboPromises.TEN_A_CHANGE_IS_NOT_A_RETRACTION,
+            DboPromises.SYNC_SPEC_DECLARED})
+    void aDependentKeepsStreamingWhenItsUpstreamIsRebuilt() throws Exception {
+        // A type the upstream did not declare before: a rebuild, not a
+        // retraction, and not something it can take where it stands.
+        Files.writeString(dir.resolve("sync-ee.json"),
+                """
+                {"code":"sync-ee","face":"r4","types":[
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                  {"name":"Observation","identity":"internal","handling":"operational"}]}""");
+        UntilServed.scan(manager, "sync-ee", "sync-hogwarts");
+
+        HttpResponse<String> updated = http.send(HttpRequest.newBuilder(
+                        URI.create(manager.baseUrl("sync-ee") + "/CodeSystem/" + codeSystemId))
+                        .header("Content-Type", "application/fhir+json")
+                        .PUT(HttpRequest.BodyPublishers.ofString("""
+                                {"resourceType":"CodeSystem","url":"https://ee.ee/cs/colors",
+                                 "status":"active","content":"complete",
+                                 "concept":[{"code":"green"},{"code":"crimson"},
+                                            {"code":"amber"}]}""")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertTrue(updated.statusCode() < 300, updated.body());
+
+        assertTrue(awaitCopy("sync-hogwarts", "amber").contains("$lookup → 200"),
+                "the dependent stopped hearing from an upstream that was rebuilt under it");
+    }
+
+    @Test
+    @Order(6)
     @Proving(DboPromises.SYNC_SPEC_DECLARED)
     void retractingTheSpecRemovesTheStream() throws Exception {
         Files.delete(dir.resolve("sync-hogwarts.json"));
