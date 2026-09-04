@@ -15,6 +15,22 @@ import javax.sql.DataSource;
  */
 public interface TenantDatabaseProvisioner {
 
+    /**
+     * The tenant's storage is not ready yet, and this is not a failure.
+     *
+     * <p>An implementation whose storage is prepared elsewhere — an operator
+     * creating the role, the database and the Secret — says this instead of
+     * waiting for it. Waiting here would be waiting on the thread that brings
+     * every other tenant up, so one tenant whose storage is a minute behind
+     * would be a minute nobody else's tenant moves. The scan comes round
+     * again, and the tenant is COMING_UP with a reason until it does.
+     */
+    class NotProvisionedYet extends IllegalStateException {
+        public NotProvisionedYet(String message) {
+            super(message);
+        }
+    }
+
     /** Provision (or attach to) the tenant's storage. Idempotent. */
     TenantDatabase provision(TenantSpec spec);
 

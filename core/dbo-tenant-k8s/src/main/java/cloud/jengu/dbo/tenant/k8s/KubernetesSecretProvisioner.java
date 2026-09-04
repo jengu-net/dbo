@@ -29,6 +29,14 @@ public final class KubernetesSecretProvisioner implements TenantDatabaseProvisio
     private final String namespace;
     private final long secretWaitMillis;
     private final Map<String, HikariDataSource> pools = new ConcurrentHashMap<>();
+    /**
+     * When each tenant was first asked for and had no Secret. Patience is
+     * counted from here rather than spent blocking, so the deadline still
+     * means what it meant — past it, somebody has to be told the operator is
+     * not answering — while the thread that would have spent it keeps
+     * bringing other tenants up.
+     */
+    private final Map<String, Long> awaited = new ConcurrentHashMap<>();
 
     public KubernetesSecretProvisioner(KubernetesClient k8s, String namespace) {
         this(k8s, namespace, 60_000);
@@ -42,7 +50,7 @@ public final class KubernetesSecretProvisioner implements TenantDatabaseProvisio
 
     @Override
     public TenantDatabase provision(TenantSpec spec) {
-        Secret secret = awaitSecret(TenantK8sContract.secretName(spec.code()));
+        Secret secret = secretOrNotYet(spec.code());
         HikariDataSource pool = pools.computeIfAbsent(spec.code(), code -> {
             HikariConfig config = new HikariConfig();
             // OSGi landmine: DriverManager cannot see the driver
@@ -76,6 +84,7 @@ public final class KubernetesSecretProvisioner implements TenantDatabaseProvisio
 
     @Override
     public void release(String tenantCode) {
+        awaited.remove(tenantCode);
         HikariDataSource pool = pools.remove(tenantCode);
         if (pool != null) {
             pool.close();
@@ -89,25 +98,37 @@ public final class KubernetesSecretProvisioner implements TenantDatabaseProvisio
                 .inNamespace(namespace).withName(tenantCode).delete();
     }
 
-    private Secret awaitSecret(String name) {
-        long deadline = System.currentTimeMillis() + secretWaitMillis;
-        while (true) {
-            Secret secret = k8s.secrets().inNamespace(namespace).withName(name).get();
-            if (secret != null && secret.getData() != null
-                    && secret.getData().keySet().containsAll(java.util.Set.of("url", "user", "password"))) {
-                return secret;
-            }
-            if (System.currentTimeMillis() >= deadline) {
-                throw new IllegalStateException("tenant secret " + name + " not present within "
-                        + secretWaitMillis + "ms — is the operator running?");
-            }
-            try {
-                Thread.sleep(250);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("interrupted awaiting secret " + name, e);
-            }
+    /**
+     * The tenant's Secret, or the reason there isn't one — looked at once.
+     *
+     * <p>This used to poll for a minute. It is called from the bring-up of one
+     * tenant on the thread that brings up all of them, so that minute was
+     * every other tenant's minute too: a consumer declaring a dozen at once
+     * met a queue that moved one tenant per operator round. Not finding the
+     * Secret is now an answer, and the caller comes back.
+     *
+     * <p>The patience did not go away, it stopped being spent here. Past it,
+     * this is no longer a tenant waiting for its storage but a deployment
+     * whose operator is not answering, and that has to be said as a failure
+     * with a name on it.
+     */
+    private Secret secretOrNotYet(String code) {
+        String name = TenantK8sContract.secretName(code);
+        Secret secret = k8s.secrets().inNamespace(namespace).withName(name).get();
+        if (secret != null && secret.getData() != null
+                && secret.getData().keySet().containsAll(
+                        java.util.Set.of("url", "user", "password"))) {
+            awaited.remove(code);
+            return secret;
         }
+        long since = awaited.computeIfAbsent(code, first -> System.currentTimeMillis());
+        long waiting = System.currentTimeMillis() - since;
+        if (waiting >= secretWaitMillis) {
+            throw new IllegalStateException("tenant secret " + name + " not present within "
+                    + secretWaitMillis + "ms — is the operator running?");
+        }
+        throw new TenantDatabaseProvisioner.NotProvisionedYet("tenant " + code
+                + " is waiting for its secret " + name + " (" + waiting + "ms so far)");
     }
 
     private static String decode(Secret secret, String key) {
