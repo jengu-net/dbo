@@ -794,6 +794,40 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
+     * How many dependency streams this node keeps in step at once.
+     *
+     * <p>Separate from how many tenants come up together, and higher, because
+     * the two are bounded by different things. A bring-up holds a validator,
+     * which is heap; a stream reads a feed, converts payloads and writes
+     * copies, which is a database and a core. Bounding streams by the
+     * bring-up number meant tuning them for somebody else's constraint — and
+     * the bring-up number came down to two for a heap reason that says
+     * nothing at all about replication.
+     *
+     * <p>Bounded rather than unbounded because a node's streams share more
+     * than its database. Every one in flight is reading a feed, rebuilding a
+     * CodeSystem from its source's concepts, converting it and taking it apart
+     * again — and a payload being converted is held whole. Eight was the first
+     * answer here and the suite met {@code OutOfMemoryError} under it, which
+     * is the same evidence that brought the bring-up bound down: the memory is
+     * the bound, and a number chosen for the database alone was choosing on
+     * the wrong axis.
+     *
+     * <p>Four, then, and a deployment that has measured its own streams raises
+     * it deliberately — which is what the property is for.
+     */
+    private volatile int streamsTogether = 4;
+
+    /** How many dependency streams this node may keep in step at once. */
+    public void streamsTogether(int atOnce) {
+        if (atOnce < 1) {
+            throw new IllegalArgumentException("a node that keeps no streams in step at a time "
+                    + "keeps none of them in step: " + atOnce);
+        }
+        this.streamsTogether = atOnce;
+    }
+
+    /**
      * How many tenants this node brings up at once.
      *
      * <p>Bounded rather than unbounded, and the bound is small on purpose:
@@ -841,7 +875,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * a bring-up that throws is that tenant's trouble and nobody else's.
      */
     private <T> void together(java.util.List<T> work, java.util.function.Consumer<T> each) {
-        int atOnce = broughtUpTogether;
+        together(work, broughtUpTogether, each);
+    }
+
+    private <T> void together(java.util.List<T> work, int bound,
+            java.util.function.Consumer<T> each) {
+        int atOnce = bound;
         if (work.size() <= 1 || atOnce <= 1) {
             work.forEach(each);
             return;
@@ -1684,16 +1723,32 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // catching up with a large dependency held every other stream behind
         // it, and, while this shared a thread with the scan, every tenant
         // still coming up as well.
-        together(streams, engine -> {
+        together(streams, streamsTogether, engine -> {
             try {
+                long began = System.currentTimeMillis();
+                int carried = 0;
                 int events;
                 do {
                     events = engine.syncOnce(500);
+                    carried += events;
                     seen.addAndGet(events);
                 } while (events > 0);
                 // one recorded round: re-attempt what is parked and say
                 // what is left, which is the part a person can act on
                 engine.pass(500);
+                if (carried > 0) {
+                    // Only when it carried something, so this is an account of
+                    // work rather than a heartbeat: a line every couple of
+                    // seconds saying nothing moved is what people filter out,
+                    // including on the round that mattered. What it answers is
+                    // the question nobody could answer before — which stream,
+                    // how much, how long — because a CodeSystem is rebuilt
+                    // from its source's concepts, converted, and taken apart
+                    // again into the destination's, and none of that was
+                    // visible from outside.
+                    LOG.info("stream {} carried events={} in {}ms", engine.name(), carried,
+                            System.currentTimeMillis() - began);
+                }
             } catch (RuntimeException e) {
                 // one stream's failure never blocks the others; the
                 // next round retries from the acked cursor

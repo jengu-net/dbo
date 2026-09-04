@@ -41,6 +41,17 @@ public final class Activator implements BundleActivator {
     /** How many tenants a node brings up at once, when a deployment says. */
     static final String BRING_UP_TOGETHER = "dbo.tenant.bringup.together";
 
+    /** How many dependency streams a node keeps in step at once. */
+    static final String STREAMS_TOGETHER = "dbo.tenant.streams.together";
+
+    /**
+     * Four: more than bring-ups, because a stream holds no validator, and less
+     * than the eight this was first written as, because a payload being
+     * converted is held whole and eight of them met {@code OutOfMemoryError}.
+     * Higher than the bring-up bound and bounded by the same thing in the end.
+     */
+    static final int DEFAULT_STREAMS_TOGETHER = 4;
+
     /**
      * Two, and the reason is heap rather than throughput: four met a real
      * {@code OutOfMemoryError} bringing eight tenants up on a JVM with more
@@ -58,20 +69,22 @@ public final class Activator implements BundleActivator {
      * whole job is to make them come up faster.
      */
     static int broughtUpTogether(String declared, int fallback) {
+        return atOnce(declared, fallback, BRING_UP_TOGETHER);
+    }
+
+    static int atOnce(String declared, int fallback, String named) {
         if (declared == null || declared.isBlank()) {
             return fallback;
         }
         try {
             int together = Integer.parseInt(declared.trim());
             if (together < 1) {
-                LOG.warn("{}={} is not a number of tenants; bringing up {} at a time",
-                        BRING_UP_TOGETHER, declared, fallback);
+                LOG.warn("{}={} is not a count; using {} at a time", named, declared, fallback);
                 return fallback;
             }
             return together;
         } catch (NumberFormatException notANumber) {
-            LOG.warn("{}={} is not a number; bringing up {} at a time",
-                    BRING_UP_TOGETHER, declared, fallback);
+            LOG.warn("{}={} is not a number; using {} at a time", named, declared, fallback);
             return fallback;
         }
     }
@@ -373,7 +386,10 @@ public final class Activator implements BundleActivator {
         int together = broughtUpTogether(ctx.getProperty(BRING_UP_TOGETHER),
                 DEFAULT_BROUGHT_UP_TOGETHER);
         manager.broughtUpTogether(together);
-        LOG.info("tenant bring-up: together={} poll={}ms", together, 2_000);
+        int streams = broughtUpTogether(ctx.getProperty(STREAMS_TOGETHER),
+                DEFAULT_STREAMS_TOGETHER);
+        manager.streamsTogether(streams);
+        LOG.info("tenant bring-up: together={} streams={} poll={}ms", together, streams, 2_000);
         manager.start(2_000);
     }
 

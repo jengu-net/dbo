@@ -2708,6 +2708,7 @@ cloud.jengu.dbo.sync.ContentSyncEngine                                 class
 cloud.jengu.dbo.sync.ContentSyncEngine                                 deadLetters():List
 cloud.jengu.dbo.sync.ContentSyncEngine                                 degraded():boolean
 cloud.jengu.dbo.sync.ContentSyncEngine                                 isStreamedOrigin(String):boolean
+cloud.jengu.dbo.sync.ContentSyncEngine                                 name():String
 cloud.jengu.dbo.sync.ContentSyncEngine                                 new(cloud.jengu.dbo.sync.ContentDependency,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.ObjectStore,DataSource,String,String,List)
 cloud.jengu.dbo.sync.ContentSyncEngine                                 new(cloud.jengu.dbo.sync.ContentDependency,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.ObjectStore,DataSource,String,String,List,String)
 cloud.jengu.dbo.sync.ContentSyncEngine                                 new(cloud.jengu.dbo.sync.ContentDependency,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.ObjectStore,DataSource,String,String,List,String,cloud.jengu.dbo.core.face.GrainCodec,cloud.jengu.dbo.core.face.GrainCodec)
@@ -3028,6 +3029,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            shapesRou
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            start(long):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            stepIncidents():Map
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            streamsOf(String):List
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            streamsTogether(int):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            substrate(DataSource):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            syncRound():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            tenantStates():List
