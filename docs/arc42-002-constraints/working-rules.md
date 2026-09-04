@@ -118,6 +118,18 @@ A harness *is* the container: it constructs whatever it needs, so it proves a
 type works without proving anything can get to it. Every occurrence of this
 has passed its own tests.
 
+**The second form is what the container hands it that a test hands itself.**
+Reports land through the step's declared actions, and the check lives on
+`Runs` so the lane, the authoring surface and the console meet one copy of it.
+`Runs` resolves declarations through a step catalogue — and the container built
+the lane's `Runs` without one, so it resolved nothing, narrowed nothing, and
+the lane accepted every verb of every step. A step whose declaration says its
+closure is a person's act was closed by a participant reporting done, and
+nothing anywhere failed. It survived because the promise's own test builds
+`Runs` with a catalogue by hand. A dependency a test supplies and the container
+does not is the same absence as an unreachable type, arriving through the one
+door that looks wired.
+
 <!-- skill: dbo-reachability -->
 ```yaml
 name: dbo-reachability
@@ -137,6 +149,10 @@ reference: docs/arc42-002-constraints/working-rules.md#reachability-which-tests-
   correct and proven while the type behind it is registered for nobody.
 - MUST NOT report a toolset as delivered on the strength of its own tests
   passing; the test proves the thing works, never that anything can reach it.
+- MUST ask what the CONTAINER hands a collaborator that a test hands itself:
+  a rule enforced at a primitive is only as good as the catalogue, registry or
+  credential every caller passes it, and a test that supplies one by hand
+  proves the rule and not the wiring.
 - MUST ask both questions deliberately at the end of the work, because
   nothing in the build asks them and nothing fails when the answer is wrong.
 <!-- /skill -->
