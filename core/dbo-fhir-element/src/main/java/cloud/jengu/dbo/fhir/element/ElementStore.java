@@ -374,8 +374,23 @@ public final class ElementStore implements FhirStoreFacade {
     @Override
     public PutResult conditionalCreate(String resourceJson, Map<String, String> condition) {
         Accepted accepted = accepted(resourceJson);
-        return store.putIfAbsent(identityOf(condition),
+        PutResult result = store.putIfAbsent(identityOf(condition),
                 PutRequest.create(accepted.type(), accepted.payload()).stamped(accepted.shape()));
+        // Like its three neighbours, and for the same reason: a shape that
+        // lands here is a shape the view has to know about. This door is the
+        // one that publishes a definition BY CANONICAL URL — the face's own
+        // vocabulary and anything identity-keyed arrive through it — so it was
+        // the likeliest of the four to carry a StructureDefinition and the
+        // only one that said nothing.
+        //
+        // Conditioned on `created` where the others are unconditional, because
+        // this is the only door that can decline to write: a condition that
+        // matched changed nothing, and rebuilding a view over what it already
+        // holds is work with no reader.
+        if (result.created()) {
+            rebuiltIfShapesMoved(accepted.type());
+        }
+        return result;
     }
 
     /**
