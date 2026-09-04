@@ -674,6 +674,14 @@ public enum DboPromises implements Promise {
             + "managing tenant to hold records reads its source directly, because nothing "
             + "can bootstrap out of a store it has not built yet."),
 
+    TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE("What a tenant streams from another tenant "
+            + "can be added to and taken away while it serves. A dependency declared today "
+            + "catches up from the upstream's whole history; one no longer declared stops "
+            + "delivering, and the copies it already brought stay, because they are what "
+            + "this tenant answers from. A dependency on a tenant that is not up yet is a "
+            + "wait rather than a teardown: nothing that was serving stops serving because "
+            + "somebody named an upstream before it arrived."),
+
     TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE("Bringing tenants up and keeping their "
             + "streams in step do not wait on each other. A tenant catching up with a large "
             + "dependency does not delay another tenant coming up, and a bring-up waiting on "

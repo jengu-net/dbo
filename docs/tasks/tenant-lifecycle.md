@@ -131,8 +131,10 @@ with its upstream.
   gives each engine the dependent tenant's own `Runs`, so a parked shadow is a
   card — but nothing claims them, and one upstream with a backlog holds up
   every other stream and every bring-up behind it.
-- **A dependency cannot be added to a live tenant.** Same cause as the spec
-  change below: `wireDependencies` runs once, at mount.
+- **A dependency can be added to and taken from a live tenant** (step 12).
+  Declaring one catches up from the upstream's whole history; withdrawing one
+  stops delivery and leaves the copies, which are what the tenant answers
+  from. Naming an upstream that is not up yet is a wait, never a teardown.
 - **Storage that has not arrived is a wait, not a fault** (step 1). The
   provisioning seam has a word for it, the scan reads it as COMING_UP with a
   reason, and the tenants behind it come up in the same pass.
@@ -190,7 +192,7 @@ with its upstream.
 | 9 | A change a tenant can take is applied to it: taken where it stands, or rebuilt in place with its dependents wired again | **DONE** 2026-09-04 — `ATenantDeclaredDifferentlyIsNoticedIT`, `SpecDeclaredSyncIT#aDependentKeepsStreamingWhenItsUpstreamIsRebuilt` |
 | 10 | Applying can be asked for: a door on the managing tenant, behind a scope of its own, running the same pass and answering with what it did | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT`. The automation switch is not built: see below |
 | 11 | Coming up and keeping up stop being one queue: two loops, and streams run several at a time | **DONE** 2026-09-04 — `AStreamKeepsMovingWhileATenantComesUpIT` |
-| 12 | A dependency added to or removed from a live tenant is a re-wire change, not a retraction — "what I care about" becomes editable | **READY, needs 9 and 11** |
+| 12 | What a tenant cares about is editable while it serves: a dependency declared today catches up from the whole history, one withdrawn stops delivering and leaves its copies | **DONE** 2026-09-04 — `SpecDeclaredSyncIT` |
 | 13 | Terminology, shapes, policy and automation ride the same path | **LATER** — the payoff, not the proof |
 | 14 | Promises claimed and stories written, with each slice | **with 1–13, never after** |
 
@@ -425,6 +427,14 @@ object; rebuild the upstream and a dependent nobody re-wires reads from a pool
 that has closed. It does not fail — a stream delivering no events looks exactly
 like an upstream with nothing to say, and the test proving it takes four
 minutes to go red because all it can do is wait.
+
+**A rebuild can take a tenant down for something that was only a wait.** The
+teardown happens before the mount, so every refusal the mount would raise
+becomes, on a rebuild, a serving tenant stopped. Adding a dependency on an
+upstream that has not come up yet is the case that bites: it is ordinary, it
+resolves by itself on the next pass, and before the pre-check it would have
+unmounted a tenant that was serving perfectly well. Whatever a rebuild can
+check before it tears anything down, it must.
 
 **A test of a concurrency fix can pass for reasons that have nothing to do
 with it.** The one for step 11 passed twice while proving nothing: first
