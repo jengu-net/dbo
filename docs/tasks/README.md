@@ -94,7 +94,7 @@ can tell a wait from a stall. Close the table with the critical path, so
 | [The face contract](face-contract.md) | one slice open, and the document closes with it | [#112](https://github.com/jengu-net/dbo/issues/112) |
 | [An operator's control plane](operator-control-plane.md) | built: reads the whole fleet and overturns a closure through the lane | none open |
 | [IHE profiles the store should serve](ihe-profiles.md) | analysis only; SVCM next | none filed |
-| [The tenant lifecycle](tenant-lifecycle.md) | designed; change is missing entirely and the applier has no caller | [#188](https://github.com/jengu-net/dbo/issues/188) |
+| [The tenant lifecycle](tenant-lifecycle.md) | twelve slices in; the queue is gone and change is a transition, not a retraction | [#188](https://github.com/jengu-net/dbo/issues/188) |
 | [Eventing is unreachable](eventing-is-unreachable.md) | built and closed as done; nothing constructs it | [#184](https://github.com/jengu-net/dbo/issues/184) |
 
 Everything else open in this repository is backlog: it has an issue, and it
