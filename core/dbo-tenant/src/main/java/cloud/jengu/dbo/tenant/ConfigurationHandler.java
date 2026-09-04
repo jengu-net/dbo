@@ -31,6 +31,19 @@ import java.util.function.Supplier;
  *
  * <p>Behind its own scope, for the reason the erasure door is: changing what a
  * tenant is, is not the same right as writing records into it.
+ *
+ * <p><b>Two things can be applied here, and the body says which.</b> A body
+ * carrying declarations applies them to this tenant — value sets, profiles,
+ * search parameters, whatever a declarer holds — as one recorded pass, which is
+ * what a loader posting them one at a time never gets: forty-six read,
+ * forty-four applied, two cards naming the files somebody has to open. An empty
+ * body asks the deployment to apply the declarations it reads itself, and is
+ * only meaningful where those live.
+ *
+ * <p>Nothing reaches back afterwards. The correlation the declarer sent is
+ * echoed on the run and never parsed, and whoever declared it closes their own
+ * run by re-evaluating against what this one says — the moment this store
+ * called them instead, both systems would have to be up together.
  */
 public final class ConfigurationHandler implements HttpHandler {
 
@@ -39,11 +52,17 @@ public final class ConfigurationHandler implements HttpHandler {
 
     private final TenantAuthority authority;
     private final Supplier<ConfigApplication.Outcome> apply;
+    private final java.util.function.BiFunction<String,
+            java.util.List<ConfigApplication.Declared>, ConfigApplication.Outcome> applyHere;
 
     public ConfigurationHandler(TenantAuthority authority,
-            Supplier<ConfigApplication.Outcome> apply) {
+            Supplier<ConfigApplication.Outcome> apply,
+            java.util.function.BiFunction<String,
+                    java.util.List<ConfigApplication.Declared>,
+                    ConfigApplication.Outcome> applyHere) {
         this.authority = authority;
         this.apply = apply;
+        this.applyHere = applyHere;
     }
 
     @Override
@@ -57,7 +76,14 @@ public final class ConfigurationHandler implements HttpHandler {
             if (!permitted(exchange)) {
                 return;
             }
-            ConfigApplication.Outcome outcome = apply.get();
+            String body = new String(exchange.getRequestBody().readAllBytes(),
+                    StandardCharsets.UTF_8);
+            ConfigApplication.Outcome outcome = body.isBlank()
+                    ? applyWhatIsRead(exchange)
+                    : applyWhatWasSent(exchange, body);
+            if (outcome == null) {
+                return;
+            }
             // What the pass did, in the numbers the run carries. A caller that
             // declared something and wants to know whether it took reads
             // applied; one that wants to know whether anybody has to fix
@@ -77,6 +103,53 @@ public final class ConfigurationHandler implements HttpHandler {
         } finally {
             exchange.close();
         }
+    }
+
+    /** What the deployment reads for itself. */
+    private ConfigApplication.Outcome applyWhatIsRead(HttpExchange exchange) throws IOException {
+        if (apply == null) {
+            fail(exchange, 400, "invalid_request",
+                    "this tenant reads no declarations of its own: send the ones to apply");
+            return null;
+        }
+        return apply.get();
+    }
+
+    /**
+     * What a declarer sent. Its own name for the set is echoed onto the run and
+     * never read: what a commit is called is the declarer's business, and this
+     * store having an opinion about it would be this store deciding when
+     * somebody else's configuration is the same configuration.
+     */
+    private ConfigApplication.Outcome applyWhatWasSent(HttpExchange exchange, String body)
+            throws IOException {
+        Object read = RecordWire.read(body);
+        if (!(read instanceof Map<?, ?> fields)) {
+            fail(exchange, 400, "invalid_request", "send an object");
+            return null;
+        }
+        Object declared = fields.get("declarations");
+        if (!(declared instanceof java.util.List<?> items) || items.isEmpty()) {
+            fail(exchange, 400, "invalid_request",
+                    "name the declarations to apply, or send nothing at all to apply what "
+                            + "this deployment reads for itself");
+            return null;
+        }
+        java.util.List<ConfigApplication.Declared> declarations = new java.util.ArrayList<>();
+        for (Object item : items) {
+            if (!(item instanceof Map<?, ?> one) || one.get("type") == null
+                    || one.get("name") == null || one.get("payload") == null) {
+                fail(exchange, 400, "invalid_request",
+                        "every declaration carries a type, a name and a payload");
+                return null;
+            }
+            declarations.add(new ConfigApplication.Declared(
+                    String.valueOf(one.get("type")), String.valueOf(one.get("name")),
+                    RecordWire.write(one.get("payload")).getBytes(StandardCharsets.UTF_8)));
+        }
+        String correlation = fields.get("correlation") == null
+                ? null : String.valueOf(fields.get("correlation"));
+        return applyHere.apply(correlation, declarations);
     }
 
     private boolean permitted(HttpExchange exchange) throws IOException {

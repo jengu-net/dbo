@@ -2237,6 +2237,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_TERM
 cloud.jengu.dbo.promises.DboPromises                                   TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_CHANGE_IS_NOT_A_RETRACTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARATION_IS_A_RECORD:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REDECLARATION_IS_NOTICED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE:cloud.jengu.dbo.promises.DboPromises
@@ -2914,7 +2915,7 @@ cloud.jengu.dbo.tenant.AuditedImportLedger                             new(cloud
 cloud.jengu.dbo.tenant.ConfigurationHandler                            SCOPE:String
 cloud.jengu.dbo.tenant.ConfigurationHandler                            class
 cloud.jengu.dbo.tenant.ConfigurationHandler                            handle(HttpExchange):void
-cloud.jengu.dbo.tenant.ConfigurationHandler                            new(cloud.jengu.dbo.auth.TenantAuthority,Supplier)
+cloud.jengu.dbo.tenant.ConfigurationHandler                            new(cloud.jengu.dbo.auth.TenantAuthority,Supplier,BiFunction)
 cloud.jengu.dbo.tenant.ErasureHandler                                  SCOPE:String
 cloud.jengu.dbo.tenant.ErasureHandler                                  class
 cloud.jengu.dbo.tenant.ErasureHandler                                  handle(HttpExchange):void

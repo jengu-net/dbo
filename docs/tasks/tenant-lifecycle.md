@@ -200,10 +200,10 @@ found on the way to it.
 | 10 | Applying can be asked for: a door on the managing tenant, behind a scope of its own, running the same pass and answering with what it did | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT`. The automation switch is not built: see below |
 | 11 | Coming up and keeping up stop being one queue: two loops, and streams run several at a time | **DONE** 2026-09-04 — `AStreamKeepsMovingWhileATenantComesUpIT` |
 | 12 | What a tenant cares about is editable while it serves: a dependency declared today catches up from the whole history, one withdrawn stops delivering and leaves its copies | **DONE** 2026-09-04 — `SpecDeclaredSyncIT` |
-| 13 | Terminology, shapes, policy and automation ride the same path | **LATER** — the payoff, not the proof |
+| 13 | A declarer hands a set over and it is applied to a tenant as one recorded pass — value sets, profiles, search parameters, whatever it holds | **DONE** 2026-09-04 — `AZoneHandsOverItsContentIT`. Automation still has no home; see the decision above |
 | 14 | Promises claimed and stories written, with each slice | **with 1–13, never after** |
 
-Critical path: **1** unblocks the consumer. **2 → 6** is the mechanism, and
+Critical path (as it was set out; all of it is now built): **1** unblocks the consumer. **2 → 6** is the mechanism, and
 step 6 is where the second applier dies. **7** is the parallelism, and it costs
 almost nothing once 6 has landed. **8 → 10** is the transition the lifecycle
 never had, and it is the half that makes the rest worth building — without it
@@ -211,6 +211,18 @@ every change is still a retraction. **11** empties the shared loop of its last
 job, and **12** is the one a consumer will ask for first, because "tell me when
 something I care about changes" is useless if changing what you care about
 means being retracted. **13** is the payoff.
+
+## What is left
+
+Two things, both named where they were decided rather than discovered here.
+**Automation has no home** — nothing persists an `Automation`, so switching
+automatic application off per scope waits on giving that type a place to live.
+And **a preview is not a run**: for a tenant declaration the classification
+happens inside the sweep, so an authored apply says what it did rather than
+what it would do; a real preview needs the classification without the applying,
+and nobody has asked for one.
+
+Everything else this document set out to do is built, proven, and cited.
 
 ## Decisions
 
