@@ -106,6 +106,7 @@ public enum DboFeatures implements Feature {
                     DboPromises.PROC_RUN_TALLY_AND_ITEM_OUTCOMES,
                     DboPromises.PROC_ESCALATION_BY_FAILURE_CLASS,
                     DboPromises.PROC_CLOSE_BY_RE_EVALUATION,
+                    DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP,
                     DboPromises.PROC_RUN_KINDS,
                     DboPromises.PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY,
                     DboPromises.PROC_CORRELATION_TRAVELS_OPAQUE,

@@ -60,6 +60,28 @@ public final class ConfigApplication {
     public record Outcome(long read, long applied, long skipped) {}
 
     /**
+     * How one declared thing is applied where it lands.
+     *
+     * <p>Writing it into the store is the ordinary answer and the default one.
+     * It is not the only one: the face's own vocabulary is a declared set too,
+     * and a CodeSystem written the ordinary way is stored whole and answers
+     * nothing — it has to arrive at the grain the tenant keeps concepts in or
+     * {@code $lookup} cannot resolve the store's own definitions. What differs
+     * between those is the writing. The pass, the tally, the cards and the
+     * closure are the same either way, which is the whole reason this seam is
+     * here rather than a second applier being written beside this one.
+     *
+     * <p>A throw is the card. Anything the applier considers expected — a
+     * definition this tenant may not write because it arrives from its source
+     * instead — it swallows, because a card nobody has to act on is how a
+     * queue stops being read.
+     */
+    @FunctionalInterface
+    public interface Applier {
+        void apply(Declared declared);
+    }
+
+    /**
      * Applies a declared set and records the pass.
      *
      * @param scope       what the declaration is about — the zone, the tenant,
@@ -68,6 +90,16 @@ public final class ConfigApplication {
      *                    interpreted; null when it gave none
      */
     public Outcome apply(String scope, String correlation, List<Declared> declarations) {
+        return apply(scope, correlation, declarations, this::intoTheStore);
+    }
+
+    /**
+     * The same pass, applying each declaration the caller's own way.
+     *
+     * @param applier what a declared thing means where it is going
+     */
+    public Outcome apply(String scope, String correlation, List<Declared> declarations,
+            Applier applier) {
         Run sweep = runs.sweep(PROCESS, STEP, scope, List.of(domain));
         if (correlation != null && sweep.correlated().isEmpty()) {
             sweep = runs.correlated(sweep, correlation);
@@ -77,12 +109,7 @@ public final class ConfigApplication {
         long skipped = 0;
         for (Declared declared : declarations) {
             try {
-                // As the configuration lane, which is what this is: a type
-                // projected from a declaration refuses every other caller, and
-                // the lane that may write it has to say so rather than have it
-                // inferred from whichever credential was in play.
-                store.put(PutRequest.create(declared.typeName(), declared.payload()),
-                        Handling.Authority.CONFIG_LANE);
+                applier.apply(declared);
                 applied++;
             } catch (RuntimeException refused) {
                 skipped++;
@@ -97,5 +124,16 @@ public final class ConfigApplication {
                 .counted("skipped", skipped)
                 .done();
         return new Outcome(declarations.size(), applied, skipped);
+    }
+
+    /**
+     * As the configuration lane, which is what this is: a type projected from a
+     * declaration refuses every other caller, and the lane that may write it
+     * has to say so rather than have it inferred from whichever credential was
+     * in play.
+     */
+    private void intoTheStore(Declared declared) {
+        store.put(PutRequest.create(declared.typeName(), declared.payload()),
+                Handling.Authority.CONFIG_LANE);
     }
 }

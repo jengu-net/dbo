@@ -301,4 +301,39 @@ class TenantRuntimeIT {
         manager.scanOnce();
         provisioner.deprovision("olemas");
     }
+
+    /**
+     * The store's own bring-up configuration goes through the applier every
+     * other declaration goes through — so what a tenant booted with is a pass
+     * an operator can read, rather than a log line from a boot two weeks ago.
+     */
+    @Test
+    @Order(20)
+    @Proving(DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP)
+    void theFacesOwnVocabularyArrivesAsARecordedApplication() throws Exception {
+        // Its own tenant: the ones above are retracted and dropped by the
+        // time this runs, and a vocabulary is applied at bring-up.
+        Files.writeString(dir.resolve("vocabulary-clinic.json"), """
+                {"code":"vocabulary-clinic","face":"r4","types":[
+                  {"name":"Observation","identity":"internal","handling":"operational"}]}""");
+        UntilServed.scan(manager, "vocabulary-clinic");
+        cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(
+                manager.runtime("vocabulary-clinic").orElseThrow().engine());
+        cloud.jengu.dbo.work.Run applied = runs.byKey(
+                        cloud.jengu.dbo.sync.ConfigApplication.PROCESS + "/"
+                                + cloud.jengu.dbo.sync.ConfigApplication.STEP
+                                + "/vocabulary-clinic")
+                .orElseThrow(() -> new AssertionError(
+                        "the tenant's own vocabulary was applied without a record"));
+
+        assertEquals(cloud.jengu.dbo.work.RunKind.SWEEP, applied.kind(),
+                "it closes when the tenant agrees with the face, not when a list was walked");
+        long read = applied.tally().get("read");
+        assertTrue(read > 0, "the face declares vocabulary and the pass counted none: " + read);
+        assertEquals(read, applied.tally().get("applied"),
+                "a definition this tenant could not take would be a card, and there is none: "
+                        + runs.items(applied));
+        assertFalse(applied.needsAPerson(),
+                "nothing here is anybody's to fix: " + runs.items(applied));
+    }
 }

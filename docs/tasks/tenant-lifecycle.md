@@ -94,8 +94,17 @@ with its upstream.
 
 ## Where it stands
 
-- **Applying: built, proven, unreachable.** `ConfigApplication` in `dbo-sync`,
-  proven by `ConfigAppliesAsASweepIT`, constructed nowhere but that test.
+- **Applying: reached** (step 2). `ConfigApplication` had no production caller
+  and no citation in the catalogue; bring-up's own vocabulary publication —
+  the second hand-rolled applier, whose whole account was a log line — now
+  goes through it, and `REQ-DBO-PROC-CONFIG-APPLIES-AS-A-SWEEP` is the promise
+  it answers. What a tenant booted with is a pass an operator can read, and a
+  definition the face declares that this store cannot hold is a card rather
+  than a warning nobody sees.
+- **The applier now has a seam for how a thing is applied.** The default is
+  still the store write the zone loader needs; a caller with its own meaning —
+  a CodeSystem has to arrive at the grain concepts are kept in — passes its
+  own, and the pass, tally, cards and closure are identical either way.
 - **Fetching: does not exist.** `apply` takes a `List<Declared>` from its
   caller. Nothing produces one outside a test.
 - **Withdrawal: does not exist.** `ConfigApplication` applies; nothing in it
@@ -133,7 +142,7 @@ with its upstream.
 | # | step | status |
 |---|---|---|
 | 1 | The secret wait comes off the sweep thread, a runtime becomes visible only once wired, and a bring-up that fails leaves nothing mounted | **DONE** 2026-09-04 — `ATenantThatIsNotUpSaysWhyIT` |
-| 2 | `ConfigApplication` gets a production caller and a container that can reach it | **READY** — its own defect, and the precondition for the rest |
+| 2 | `ConfigApplication` gets a production caller: the face's own vocabulary, applied into each tenant at bring-up as a recorded pass | **DONE** 2026-09-04 — `TenantRuntimeIT#theFacesOwnVocabularyArrivesAsARecordedApplication` |
 | 3 | A source seam: read, compute the delta, produce a declared set — directory and ConfigMap first, git and the cloud lane behind the same seam | **READY, needs 2** |
 | 4 | Withdrawal becomes part of what a source produces, and what an application applies | **READY, needs 3** |
 | 5 | The tenant spec becomes a declared type, applied into the management tenant like any other configuration | **READY, needs 4** |
@@ -263,10 +272,12 @@ consumer picking a timeout constant.
 
 ## Traps
 
-**A toolset built, proven and unreachable — this is the fifth.**
-`ConfigApplication` passes its own test because a harness *is* the container and
+**A toolset built, proven and unreachable — this was the fifth.**
+`ConfigApplication` passed its own test because a harness *is* the container and
 constructs whatever it needs. `new ConfigApplication(` matching nothing in
-production sources is the whole signal. Every piece added here answers the two
+production sources was the whole signal; it was also uncited, so the catalogue
+counted it as nothing at all. Both are closed as of step 2, and the question
+stays live for everything added after it. Every piece added here answers the two
 questions before it is called done: **who constructs this outside a test**, and
 **where does its own state live** — a source can be mounted and correct while
 the type it writes is registered for no tenant.

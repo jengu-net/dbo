@@ -303,6 +303,14 @@ public enum DboPromises implements Promise {
             + "conditions nothing can re-check. Closing by click is how a card reads "
             + "resolved while the fault is live."),
 
+    PROC_CONFIG_APPLIES_AS_A_SWEEP("Applying a declared set is a sweep: it closes when "
+            + "what is here agrees with what was declared, one declaration nobody can "
+            + "apply is a card naming it and the rest still apply, and the pass tallies "
+            + "what it read, applied and skipped. The store's own bring-up configuration "
+            + "goes through it too — a partial application whose only account is a log "
+            + "line is what presents to whoever declared it as 'my configuration had no "
+            + "effect'."),
+
     PROC_RUN_KINDS("A pipeline closes when every item is terminal; a sweep closes when "
             + "the world agrees. A reconciler modelled as a pipeline never ends, and its "
             + "needs-a-person queue fills with work that is merely still converging."),
