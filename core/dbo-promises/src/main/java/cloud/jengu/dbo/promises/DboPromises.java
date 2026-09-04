@@ -674,6 +674,14 @@ public enum DboPromises implements Promise {
             + "managing tenant to hold records reads its source directly, because nothing "
             + "can bootstrap out of a store it has not built yet."),
 
+    TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED("Applying what is declared can be asked for, "
+            + "and the ask is the whole of the interface: it opens the same pass the "
+            + "deployment runs on its own and answers with what that pass did, so there is "
+            + "no second entry point that applies without leaving a record. It is reached "
+            + "behind a scope of its own, granted separately and usually not granted at "
+            + "all, because changing what a tenant is, is not the same right as writing "
+            + "records into it."),
+
     TEN_A_CHANGE_IS_NOT_A_RETRACTION("A change a serving tenant can take is applied to "
             + "it: what it only says about itself it takes where it stands, and what it is "
             + "made of is rebuilt in place — its database, its lanes and their cursors kept, "

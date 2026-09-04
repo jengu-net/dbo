@@ -189,6 +189,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, Trouble> trouble = new ConcurrentHashMap<>();
     /** The tenant this deployment's own history lives in. */
     private volatile String managementCode;
+    /** Where the ask-to-apply door is already mounted, so managing twice is not two doors. */
+    private final Set<String> configurationContexts =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /** A tenant that is not serving, and why — the reason a card has to carry. */
     private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
@@ -341,6 +344,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
             LOG.info("management tenant up: code={}", spec.code());
         }
         managementCode = spec.code();
+        // The door for asking that what is declared be applied now, mounted on
+        // the tenant that holds the declarations and behind its authority. A
+        // deployment without an authority has nobody to ask on whose behalf,
+        // so it has no door either — the same rule the other private surfaces
+        // follow.
+        cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(spec.code());
+        if (authority != null && !configurationContexts.contains(spec.code())) {
+            sharedServer.createContext("/t/" + spec.code() + "/configuration",
+                    new ConfigurationHandler(authority, this::applyDeclarations));
+            configurationContexts.add(spec.code());
+        }
         return spec.code();
     }
 
@@ -406,7 +420,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // reads; a deployment with no managing tenant has no records and reads
         // its source directly, which is the floor every deployment starts on
         // and the one the managing tenant itself comes up over.
-        recordDeclarations();
+        try {
+            lastApplication = recordDeclarations();
+        } catch (RuntimeException unreadable) {
+            // Said already, in the ledger and the log. The tenants already
+            // declared are unaffected, and the records stand as they were.
+            lastApplication = new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0);
+        }
         Set<String> declared = java.util.concurrent.ConcurrentHashMap.newKeySet();
         // Together, not one after another. Bring-up is minutes of somebody
         // else's waiting — a database, a schema, a secret that has not landed
@@ -1993,23 +2013,25 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * records nothing and serves exactly as before. Recording what is declared
      * is not a condition of honouring it.
      */
-    private void recordDeclarations() {
+    private cloud.jengu.dbo.sync.ConfigApplication.Outcome recordDeclarations() {
         if (managementCode == null) {
-            return;
+            return new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0);
         }
         ObjectStore management = runStores.get(managementCode);
         if (management == null) {
-            return;
+            return new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0);
         }
         try {
             cloud.jengu.dbo.sync.ConfigApplication applied =
                     new cloud.jengu.dbo.sync.ConfigApplication(management,
                             new cloud.jengu.dbo.work.Runs(management),
                             cloud.jengu.dbo.work.WorkModel.DOMAIN);
-            applied.applyFrom("deployment", new cloud.jengu.dbo.sync.DirectoryConfigSource(
-                    directory, TenantDeclarationModel.TYPE, ".json"),
+            cloud.jengu.dbo.sync.ConfigApplication.Outcome outcome = applied.applyFrom(
+                    "deployment", new cloud.jengu.dbo.sync.DirectoryConfigSource(
+                            directory, TenantDeclarationModel.TYPE, ".json"),
                     declarationsOf(applied, management));
             trouble.remove(SOURCE_TROUBLE);
+            return outcome;
         } catch (RuntimeException e) {
             // Same rule as the sweep below: the deployment keeps serving
             // tenants when its own bookkeeping cannot be written. What it must
@@ -2020,8 +2042,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     cloud.jengu.dbo.work.Failure.TRANSIENT, String.valueOf(e)));
             LOG.warn("the declarations could not be read; the tenants already declared are "
                     + "unaffected and the records stand as they were", e);
+            throw e;
         }
     }
+
+    /**
+     * Applies what is declared, now, and reconciles what this node serves
+     * against it — the whole of one pass, on the asker's thread rather than on
+     * the next beat of the scan.
+     *
+     * <p>The same pass the deployment runs on its own. Somebody who has just
+     * changed a declaration should not have to guess how long the beat is, and
+     * somebody who has just fixed one wants to know whether the fix took.
+     */
+    public cloud.jengu.dbo.sync.ConfigApplication.Outcome applyDeclarations() {
+        scanOnce();
+        return lastApplication;
+    }
+
+    /** What the last application of the declarations did. */
+    private volatile cloud.jengu.dbo.sync.ConfigApplication.Outcome lastApplication =
+            new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0);
 
     /**
      * The ledger's name for "the declarations themselves could not be read".

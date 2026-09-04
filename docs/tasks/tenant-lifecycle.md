@@ -150,6 +150,10 @@ with its upstream.
   — the face it speaks, whether its data is encrypted, the zone it identifies
   in — reaches the ledger by name instead of being ignored. A deployment can
   be asked which of its tenants serve something other than what was declared.
+- **And applying can be asked for** (step 10): a door on the managing tenant,
+  behind a scope granted separately and usually not granted at all, running the
+  same pass the deployment runs on its own and answering with what it did.
+  There is no second entry point that applies without leaving a record.
 - **And a change it can take is applied to it** (step 9). What a tenant only
   says about itself it takes where it stands; what it is made of is rebuilt in
   place, keeping its database, its lanes and their cursors, recording no
@@ -181,7 +185,7 @@ with its upstream.
 | 7 | Tenants declared together come up together, bounded by what a node can carry — the queue is gone because there is no queue | **DONE** 2026-09-04 — `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` |
 | 8 | A changed spec is *noticed*: the re-read declaration compared with the one the runtime holds, and every field classified hot, rebuild or cold | **DONE** 2026-09-04 — `ATenantDeclaredDifferentlyIsNoticedIT`, `EveryDeclaredFieldIsClassifiedTest` |
 | 9 | A change a tenant can take is applied to it: taken where it stands, or rebuilt in place with its dependents wired again | **DONE** 2026-09-04 — `ATenantDeclaredDifferentlyIsNoticedIT`, `SpecDeclaredSyncIT#aDependentKeepsStreamingWhenItsUpstreamIsRebuilt` |
-| 10 | Apply authored as an administrative act — a task on the surface, through the lane, under its own grant — and automatic application switchable off per scope | **READY, needs 9** |
+| 10 | Applying can be asked for: a door on the managing tenant, behind a scope of its own, running the same pass and answering with what it did | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT`. The automation switch is not built: see below |
 | 11 | Dependency streams leave the shared loop: one sweep per (tenant, dependency), claimed like any other work, closing when it agrees with its upstream | **READY, needs 7** |
 | 12 | A dependency added to or removed from a live tenant is a re-wire change, not a retraction — "what I care about" becomes editable | **READY, needs 9 and 11** |
 | 13 | Terminology, shapes, policy and automation ride the same path | **LATER** — the payoff, not the proof |
@@ -239,6 +243,23 @@ than about the pass. Made claimable, they are read, paced and scaled the same
 way, by consumers an operator already knows how to add. A dependency catching
 up stops competing with a tenant coming up because neither is a turn in one
 loop any more.
+
+**The switch is deferred, and `Automation` is why.** The plan says automatic
+application should be switchable off per scope, and dbo has the type for it —
+`Automation(process, step, scope, on)`, "declared configuration on the same
+chain, not a code path". Nothing persists it and nothing outside
+`ExecutorResolution` and its own unit test reads one, so switching applying off
+would have meant building storage for a type with no production caller in order
+to reach a promise nobody has claimed. That is the shape of work this document
+exists to stop. The switch belongs with giving `Automation` a home, which is
+its own slice.
+
+**The preview is not the run, yet.** "The classification is computed and
+recorded before anything is applied" was written for a dry run. For tenant
+declarations the classification happens in the sweep — noticed, classified,
+then applied in the same pass — so an authored apply does the thing and answers
+with what it did. A real preview needs the classification without the applying,
+and nothing asks for one yet.
 
 **Apply is authored, not triggered.** Work is authored on the surface: a task
 posted there, claimed by a consumer, recorded as a run that names what ran it.
