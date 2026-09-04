@@ -5,6 +5,7 @@ import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.sync.ConfigApplication;
+import cloud.jengu.dbo.sync.DirectoryConfigSource;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantDeclarationModel;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
@@ -23,9 +24,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -145,5 +148,69 @@ class ADeploymentRecordsWhatItWasToldToServeIT {
                         .items(pass()).stream()
                         .anyMatch(card -> card.item().reference().equals("declared-broken.json")),
                 "and the card names the file they have to open");
+    }
+
+    /** A declaration nobody makes any more stops being on record. */
+    @Test
+    @Order(4)
+    @Proving(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED)
+    void aWithdrawnDeclarationLeavesTheRecord() throws Exception {
+        Files.delete(dir.resolve("declared-broken.json"));
+        Files.delete(dir.resolve("declared-two.json"));
+        manager.scanOnce();
+
+        assertEquals(1, declarations().size(),
+                "the declaration nobody makes any more is still on record");
+        assertEquals(1L, pass().tally().get("withdrawn"));
+        assertFalse(manager.codes().contains("declared-two"),
+                "the tenant is served from what was applied, and nothing declares it now");
+        assertTrue(new String(declarations().get(0).payload(), StandardCharsets.UTF_8)
+                        .contains("declared-one"),
+                "and it took the right one away");
+    }
+
+    /**
+     * The rule the whole delta rests on, and the one that used to be the other
+     * way round: a source that cannot be read is not a deployment declaring
+     * nothing. Absence in a listing was retraction, so a vanished mount took
+     * every tenant on this node down with it. Now the records stand, the
+     * tenants keep serving, and what is stale is said out loud.
+     */
+    @Test
+    @Order(5)
+    @Proving({DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED,
+            DboPromises.TEN_SERVED_FROM_WHAT_WAS_APPLIED})
+    void anUnreadableSourceRetractsNothing() throws Exception {
+        Path moved = dir.resolveSibling(dir.getFileName() + "-moved");
+        Files.move(dir, moved);
+        try {
+            Set<String> serving = manager.scanOnce();
+
+            assertTrue(serving.contains("declared-one"),
+                    "a mount that vanished took a live tenant down with it");
+            assertEquals(1, declarations().size(),
+                    "an unreadable source took a live declaration off the record");
+            assertTrue(manager.troubles().containsKey("source:declarations"),
+                    "and nothing said the declarations had stopped moving: "
+                            + manager.troubles());
+        } finally {
+            Files.move(moved, dir);
+        }
+        manager.scanOnce();
+        assertFalse(manager.troubles().containsKey("source:declarations"),
+                "the mount came back and the ledger still says it is gone");
+    }
+
+    /**
+     * And the source itself refuses rather than reading empty, which is what
+     * the rule above rests on wherever the reader is called from.
+     */
+    @Test
+    @Order(6)
+    @Proving(DboPromises.PROC_CONFIG_READ_FROM_A_SOURCE)
+    void aDirectoryThatCannotBeReadIsNotADirectoryDeclaringNothing() {
+        assertThrows(RuntimeException.class,
+                () -> new DirectoryConfigSource(dir.resolve("nowhere"),
+                        TenantDeclarationModel.TYPE, ".json").fetch());
     }
 }

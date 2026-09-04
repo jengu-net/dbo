@@ -137,7 +137,8 @@ class ConfigAppliesAsASweepIT {
     @DisplayName("an unchanged source is a read, not a re-application")
     void anUnchangedSourceIsNotReapplied() {
         List<ConfigApplication.Declared> set = List.of(valueSet(100), valueSet(101));
-        ConfigSource source = () -> new ConfigSource.Fetch(set, ConfigSource.markerOf(set));
+        ConfigSource source = () ->
+                new ConfigSource.Fetch(set, ConfigSource.markerOf(set), false);
 
         ConfigApplication.Outcome first = configuration.applyFrom("zone/unchanged", source);
         assertEquals(2, first.applied());
@@ -167,7 +168,7 @@ class ConfigAppliesAsASweepIT {
                 new ConfigApplication.Declared("ValueSet", "value-sets/held.json",
                         "not json at all".getBytes(StandardCharsets.UTF_8)));
         ConfigSource source = () ->
-                new ConfigSource.Fetch(broken, ConfigSource.markerOf(broken));
+                new ConfigSource.Fetch(broken, ConfigSource.markerOf(broken), false);
 
         assertEquals(1, configuration.applyFrom("zone/held", source).skipped());
         assertTrue(runs.byKey(ConfigApplication.PROCESS + "/" + ConfigApplication.STEP
@@ -211,5 +212,31 @@ class ConfigAppliesAsASweepIT {
                 "and it replaced the record rather than adding a second one");
         assertFalse(runs.byKey(ConfigApplication.PROCESS + "/" + ConfigApplication.STEP
                 + "/zone/moving").orElseThrow().needsAPerson());
+    }
+
+    /**
+     * Nothing is removed by machinery that was never told how to remove it:
+     * a complete read that stops naming something reaches somebody as a card,
+     * and the record stays until they decide.
+     */
+    @Test
+    @Proving(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED)
+    @DisplayName("an applier that cannot undo an application says so, and removes nothing")
+    void withdrawalWithoutAnUndoIsACardRatherThanADeletion() {
+        ConfigApplication.Declared leaving = valueSet(200);
+        ConfigSource declaring = () -> new ConfigSource.Fetch(List.of(leaving),
+                ConfigSource.markerOf(List.of(leaving)), true);
+        assertEquals(1, configuration.applyFrom("zone/leaving", declaring).applied());
+        long held = store.count(Criteria.of("ValueSet"));
+
+        // The same scope, read complete, no longer naming it — but the store
+        // applier cannot say what is its to withdraw, so nothing happens.
+        ConfigSource silent = () -> new ConfigSource.Fetch(List.of(), "empty-read", true);
+        ConfigApplication.Outcome outcome = configuration.applyFrom("zone/leaving", silent);
+
+        assertEquals(0, outcome.withdrawn(),
+                "an applier that cannot say what it holds withdraws nothing");
+        assertEquals(held, store.count(Criteria.of("ValueSet")),
+                "and the record is still here");
     }
 }

@@ -303,6 +303,13 @@ public enum DboPromises implements Promise {
             + "conditions nothing can re-check. Closing by click is how a card reads "
             + "resolved while the fault is live."),
 
+    PROC_CONFIG_WITHDRAWAL_IS_DECLARED("Only a read a source says is complete may "
+            + "withdraw what it no longer names, so a partial read and an unreadable one "
+            + "take nothing away. What is held is the applier's to answer and undoing is "
+            + "the applier's to do: one that cannot say withdraws nothing, and one that "
+            + "cannot undo makes a card rather than a silence — nothing is removed by "
+            + "machinery that was never told how to remove it."),
+
     PROC_CONFIG_READ_FROM_A_SOURCE("Configuration is read from a declared source — a "
             + "repository, a mounted directory, a lane — and what a scope last agreed "
             + "with is recorded on its own run, so an unchanged source is a read rather "
@@ -659,6 +666,14 @@ public enum DboPromises implements Promise {
     // ── TEN — migrated from hand-written prose (2026-08-27) ──
 
     /** TODO: prove it in a test. */
+    TEN_SERVED_FROM_WHAT_WAS_APPLIED("A deployment serves the declarations that were "
+            + "applied, not a listing it takes itself — so a tenant stops being served "
+            + "because somebody withdrew it, never because a read went wrong. A source "
+            + "that cannot be read leaves the records standing, the tenants serving, and "
+            + "says in the ledger that it has stopped moving. A deployment with no "
+            + "managing tenant to hold records reads its source directly, because nothing "
+            + "can bootstrap out of a store it has not built yet."),
+
     TEN_A_DECLARATION_IS_A_RECORD("What a deployment has been told to serve is records "
             + "in the managing tenant, applied from whatever source declares them like any "
             + "other configuration — so what is declared can be asked of the store rather "
