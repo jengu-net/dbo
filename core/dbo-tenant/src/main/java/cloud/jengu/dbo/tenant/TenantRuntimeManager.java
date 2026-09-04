@@ -197,6 +197,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
     private volatile long lastSweepMillis;
     private volatile Thread scanner;
+    private volatile Thread reconciler;
     private volatile boolean running;
 
     /**
@@ -841,8 +842,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * <p>Each one carries its own failure, as it did when they were in a loop:
      * a bring-up that throws is that tenant's trouble and nobody else's.
      */
-    private void together(java.util.List<cloud.jengu.dbo.sync.ConfigApplication.Declared> work,
-            java.util.function.Consumer<cloud.jengu.dbo.sync.ConfigApplication.Declared> each) {
+    private <T> void together(java.util.List<T> work, java.util.function.Consumer<T> each) {
         int atOnce = broughtUpTogether;
         if (work.size() <= 1 || atOnce <= 1) {
             work.forEach(each);
@@ -850,8 +850,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         java.util.concurrent.Semaphore room = new java.util.concurrent.Semaphore(atOnce);
         java.util.List<Thread> running = new java.util.ArrayList<>(work.size());
-        for (cloud.jengu.dbo.sync.ConfigApplication.Declared one : work) {
-            running.add(Thread.ofVirtual().name("dbo-bring-up-" + one.name()).start(() -> {
+        for (T one : work) {
+            running.add(Thread.ofVirtual().start(() -> {
                 room.acquireUninterruptibly();
                 try {
                     each.accept(one);
@@ -1656,27 +1656,35 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * seen.
      */
     public int syncRound() {
-        int seen = 0;
-        for (java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> engines : syncEngines.values()) {
-            for (cloud.jengu.dbo.sync.ContentSyncEngine engine : engines) {
-                try {
-                    int events;
-                    do {
-                        events = engine.syncOnce(500);
-                        seen += events;
-                    } while (events > 0);
-                    // one recorded round: re-attempt what is parked and say
-                    // what is left, which is the part a person can act on
-                    engine.pass(500);
-                } catch (RuntimeException e) {
-                    // one stream's failure never blocks the others; the
-                    // next round retries from the acked cursor
-                    LOG.warn("sync round failed for one stream; retrying from the "
-                            + "acked cursor next round", e);
-                }
+        java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> streams =
+                new java.util.ArrayList<>();
+        syncEngines.values().forEach(streams::addAll);
+        java.util.concurrent.atomic.AtomicInteger seen =
+                new java.util.concurrent.atomic.AtomicInteger();
+        // Several at once, and each drained before it gives way. Drained is
+        // the right unit — the interesting item is not necessarily in the
+        // first chunk — but drained ONE STREAM AT A TIME meant a tenant
+        // catching up with a large dependency held every other stream behind
+        // it, and, while this shared a thread with the scan, every tenant
+        // still coming up as well.
+        together(streams, engine -> {
+            try {
+                int events;
+                do {
+                    events = engine.syncOnce(500);
+                    seen.addAndGet(events);
+                } while (events > 0);
+                // one recorded round: re-attempt what is parked and say
+                // what is left, which is the part a person can act on
+                engine.pass(500);
+            } catch (RuntimeException e) {
+                // one stream's failure never blocks the others; the
+                // next round retries from the acked cursor
+                LOG.warn("sync round failed for one stream; retrying from the "
+                        + "acked cursor next round", e);
             }
-        }
-        return seen;
+        });
+        return seen.get();
     }
 
     /**
@@ -2239,10 +2247,31 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return;
         }
         running = true;
+        // Two loops, because they wait on different things and neither is the
+        // other's business. Bringing a tenant up is somebody else's storage,
+        // somebody else's secret, a schema; keeping a stream in step is a
+        // backlog that can be an afternoon long. Sharing one thread made each
+        // the other's queue: a tenant catching up delayed every bring-up in
+        // the deployment, and a bring-up waiting on a secret stopped every
+        // stream — both invisibly, because neither is anybody's failure.
         scanner = Thread.ofVirtual().name("dbo-tenant-scanner").start(() -> {
             while (running) {
                 try {
                     scanOnce();
+                    Thread.sleep(pollMillis);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                } catch (Throwable e) {
+                    // the scan must outlive any single pass's failure —
+                    // including Errors (see bring-up above)
+                    LOG.warn("a scan failed; the deployment keeps scanning", e);
+                }
+            }
+        });
+        reconciler = Thread.ofVirtual().name("dbo-tenant-reconciler").start(() -> {
+            while (running) {
+                try {
                     syncRound();
                     // AFTER the sync round: a replicated profile arrives in
                     // that round, and watching before it would leave the
@@ -2274,6 +2303,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         running = false;
         if (scanner != null) {
             scanner.interrupt();
+        }
+        if (reconciler != null) {
+            reconciler.interrupt();
         }
         for (String code : Set.copyOf(runtimes.keySet())) {
             takeDown(code, null);

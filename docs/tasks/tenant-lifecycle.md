@@ -122,7 +122,10 @@ with its upstream.
   unreadable declaration is usually the one that cannot be identified either:
   its own record would be the record taken away, a typo deleting the thing the
   typo was in.
-- **Dependency streams share the loop, and drain to empty.** `syncRound()`
+- **Dependency streams have their own loop** (step 11), and run several at a
+  time within it, each still drained before it gives way. They already wrote
+  runs; what they were missing was not being behind the scan.
+- **Before step 11: dependency streams shared the loop, and drained to empty.** `syncRound()`
   walks every stream of every tenant on the scan thread and drains each one
   `while (events > 0)` before moving on. They already write runs — `withRuns`
   gives each engine the dependent tenant's own `Runs`, so a parked shadow is a
@@ -186,7 +189,7 @@ with its upstream.
 | 8 | A changed spec is *noticed*: the re-read declaration compared with the one the runtime holds, and every field classified hot, rebuild or cold | **DONE** 2026-09-04 — `ATenantDeclaredDifferentlyIsNoticedIT`, `EveryDeclaredFieldIsClassifiedTest` |
 | 9 | A change a tenant can take is applied to it: taken where it stands, or rebuilt in place with its dependents wired again | **DONE** 2026-09-04 — `ATenantDeclaredDifferentlyIsNoticedIT`, `SpecDeclaredSyncIT#aDependentKeepsStreamingWhenItsUpstreamIsRebuilt` |
 | 10 | Applying can be asked for: a door on the managing tenant, behind a scope of its own, running the same pass and answering with what it did | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT`. The automation switch is not built: see below |
-| 11 | Dependency streams leave the shared loop: one sweep per (tenant, dependency), claimed like any other work, closing when it agrees with its upstream | **READY, needs 7** |
+| 11 | Coming up and keeping up stop being one queue: two loops, and streams run several at a time | **DONE** 2026-09-04 — `AStreamKeepsMovingWhileATenantComesUpIT` |
 | 12 | A dependency added to or removed from a live tenant is a re-wire change, not a retraction — "what I care about" becomes editable | **READY, needs 9 and 11** |
 | 13 | Terminology, shapes, policy and automation ride the same path | **LATER** — the payoff, not the proof |
 | 14 | Promises claimed and stories written, with each slice | **with 1–13, never after** |
@@ -372,12 +375,13 @@ questions before it is called done: **who constructs this outside a test**, and
 **where does its own state live** — a source can be mounted and correct while
 the type it writes is registered for no tenant.
 
-**A catching-up dependency starves bring-up.** `syncRound()` drains each
-stream `while (events > 0)` before moving to the next, on the thread that also
-brings tenants up. One tenant restoring a large terminology dependency
-therefore delays every other tenant's bring-up, and the delay is invisible
-because it is nobody's failure. This is the second reason the queue in #188
-drains more slowly exactly as the deployment grows.
+**A catching-up dependency starved bring-up** (fixed in step 11).
+`syncRound()` drained each stream `while (events > 0)` before moving to the
+next, on the thread that also brought tenants up — so one tenant restoring a
+large terminology dependency delayed every other tenant's bring-up, and a
+bring-up waiting on somebody else's storage stopped every stream. Both
+invisibly, because neither is anybody's failure. Two loops now, and streams
+run several at a time.
 
 **The 60s secret await was inside the monitor** (fixed in step 1). `KubernetesSecretProvisioner`
 polls for the Secret every 250ms for a minute, from `provision`, from
@@ -421,6 +425,15 @@ object; rebuild the upstream and a dependent nobody re-wires reads from a pool
 that has closed. It does not fail — a stream delivering no events looks exactly
 like an upstream with nothing to say, and the test proving it takes four
 minutes to go red because all it can do is wait.
+
+**A test of a concurrency fix can pass for reasons that have nothing to do
+with it.** The one for step 11 passed twice while proving nothing: first
+because its wait (the suite's 240-second patience) outlived the block it was
+supposed to be racing, so the held bring-up gave up and the stream moved
+anyway; then because it asked whether the answer body mentioned a url, and a
+FHIR search echoes its own query in the bundle's self link — true with zero
+results. Both times the fix was real and the test was not. Run the negative:
+break the thing deliberately and watch the test go red, or it is decoration.
 
 **Green proves nothing.** `EmbeddedContainerIT`, `TenantOsgiIT` and
 `ServerDistIT` are the ratchets, and both in-JVM containers must install what

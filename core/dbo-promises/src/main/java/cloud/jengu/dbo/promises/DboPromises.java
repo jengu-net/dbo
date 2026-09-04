@@ -674,6 +674,14 @@ public enum DboPromises implements Promise {
             + "managing tenant to hold records reads its source directly, because nothing "
             + "can bootstrap out of a store it has not built yet."),
 
+    TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE("Bringing tenants up and keeping their "
+            + "streams in step do not wait on each other. A tenant catching up with a large "
+            + "dependency does not delay another tenant coming up, and a bring-up waiting on "
+            + "storage somebody else provisions does not stop the deployment's streams — "
+            + "neither of which announced itself when they shared a thread, because a wait "
+            + "that is nobody's failure is reported by nobody. Streams run several at a "
+            + "time, each drained before it gives way."),
+
     TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED("Applying what is declared can be asked for, "
             + "and the ask is the whole of the interface: it opens the same pass the "
             + "deployment runs on its own and answers with what that pass did, so there is "
