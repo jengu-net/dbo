@@ -144,9 +144,15 @@ with its upstream.
   being served because somebody withdrew it, never because a read went wrong;
   a source that cannot be read leaves the records standing, the tenants
   serving, and says so in the ledger under `source:declarations`.
-- **Change does not exist.** A live tenant's spec is never re-read. There is
-  no re-mount path, no refusal for a change that cannot be applied hot, and no
-  record that a change was seen.
+- **Change is noticed and classified** (step 8), and refused where it cannot
+  be had: a serving tenant declared differently is compared with what it was
+  built from, every field of the declaration is classified, and a cold change
+  — the face it speaks, whether its data is encrypted, the zone it identifies
+  in — reaches the ledger by name instead of being ignored. A deployment can
+  be asked which of its tenants serve something other than what was declared.
+- **Applying a noticed change is still missing** (step 9). A hot or rebuild
+  change is reported and not yet applied, so the answer to a changed type is
+  still withdraw-and-redeclare until that lands.
 - **The tenant path is the hand-rolled twin.** `scanOnce` lists a directory,
   brings up what is new inline and one at a time, and takes down whatever the
   listing did not contain. In cluster, `KubernetesSecretProvisioner.provision`
@@ -168,7 +174,7 @@ with its upstream.
 | 4 | Withdrawal: only a read a source calls complete may take anything away, and only an applier that can say what it holds | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT`, `ConfigAppliesAsASweepIT`. Withdrawing a spec leaves the record; retracting the tenant is still the sweep's, until step 6 |
 | 6 | The sweep reconciles against what was applied rather than a listing it takes itself; the source is read directly only where there is no managing tenant to hold records | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT#anUnreadableSourceRetractsNothing` |
 | 7 | Tenants declared together come up together, bounded by what a node can carry — the queue is gone because there is no queue | **DONE** 2026-09-04 — `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` |
-| 8 | A changed spec is *noticed*: the re-read declaration compared with the one the runtime holds, and the difference classified onto the run before anything is applied | **READY, needs 6** |
+| 8 | A changed spec is *noticed*: the re-read declaration compared with the one the runtime holds, and every field classified hot, rebuild or cold | **DONE** 2026-09-04 — `ATenantDeclaredDifferentlyIsNoticedIT`, `EveryDeclaredFieldIsClassifiedTest` |
 | 9 | Hot changes applied in place; re-wire changes re-mounted without a retraction; cold changes refused by name with what they need | **READY, needs 8** |
 | 10 | Apply authored as an administrative act — a task on the surface, through the lane, under its own grant — and automatic application switchable off per scope | **READY, needs 9** |
 | 11 | Dependency streams leave the shared loop: one sweep per (tenant, dependency), claimed like any other work, closing when it agrees with its upstream | **READY, needs 7** |
@@ -375,8 +381,11 @@ mapping function — invisible sequentially, and with tenants coming up together
 it would have serialised every tenant of one zone behind the first, which is
 precisely the deployment shape that has two dozen tenants in one zone.
 
-**The R5 validator loads the core package eagerly** — which is why the bound
-in step 7 is four rather than none. Concurrent applications multiply it. On a default heap it arrives as `HAPI-2330` with a null message,
+**The R5 validator loads the core package eagerly** — which is why step 7 has
+a bound at all, and why the bound is two. Four was the first answer, and the
+test proving the step met `OutOfMemoryError` on one tenant of eight, on a JVM
+with more heap than a serving node gets. What limits a node is not how many
+tenants it can start but how many validators it can hold at once. Concurrent applications multiply it. On a default heap it arrives as `HAPI-2330` with a null message,
 three frames above an `OutOfMemoryError` nobody sees — and it will read as
 "concurrency broke bring-up".
 

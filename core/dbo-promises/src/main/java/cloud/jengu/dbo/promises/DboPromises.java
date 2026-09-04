@@ -674,6 +674,15 @@ public enum DboPromises implements Promise {
             + "managing tenant to hold records reads its source directly, because nothing "
             + "can bootstrap out of a store it has not built yet."),
 
+    TEN_A_REDECLARATION_IS_NOTICED("A serving tenant declared differently from what it "
+            + "was built from is noticed and classified, rather than read once at mount and "
+            + "never again: what can be absorbed while it serves, what has to be rebuilt in "
+            + "place, and what cannot be had at all while it serves — the last refused by "
+            + "name and never half-applied. Every field of a declaration is classified, so "
+            + "a change nobody thought about cannot pass as no change, and a deployment can "
+            + "be asked which of its tenants are serving something other than what somebody "
+            + "declared."),
+
     TEN_DECLARED_TOGETHER_COME_UP_TOGETHER("A consumer that declares several tenants at "
             + "once gets several tenants. A node brings them up together, bounded by what "
             + "it can carry at a time, so the wait is the slowest tenant's rather than the "
