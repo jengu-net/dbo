@@ -1,13 +1,13 @@
 # The tenant lifecycle, and applying to a tenant that is already up
 
-**Status** — steps 1 to 12 built and proven; 13 is the payoff and is not
-started. The lifecycle has a change transition now: declarations are records,
-what is served comes from what was applied, tenants come up together, a
-redeclaration is noticed and classified, and a change a tenant can take is
-applied to it — including what it streams from another tenant. What is left is
-the rest of the configuration kinds riding the same path, and two things step
-10 deliberately did not build: the automation switch, and a preview that
-classifies without applying.
+**Status** — all thirteen slices built and proven, and the queue this opened
+with is gone. The lifecycle has a change transition now: declarations are
+records, what is served comes from what was applied, tenants come up together,
+a redeclaration is noticed and classified, a change a tenant can take is
+applied to it — including what it streams from another tenant — and a declarer
+hands its own content over as one recorded pass. What is left is two things
+step 10 deliberately did not build: the automation switch, and a preview that
+classifies without applying. The topic stays open on the consumer half.
 
 **Issues** — [#188](https://github.com/jengu-net/dbo/issues/188) (the tenant
 queue, which is the symptom this document reframes). Consumer half:

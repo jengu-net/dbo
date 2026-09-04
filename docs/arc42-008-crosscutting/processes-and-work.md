@@ -331,11 +331,37 @@ and why that one. It answers while serving no tenant at all, because the
 catalogue is what is installed rather than what is running — and a node that has
 stopped serving is exactly when somebody asks.
 
+The reading is **sequential and bounded**: every ask has a timeout and every
+outcome is recorded, so one dead node costs one timeout and one line rather
+than a hung reading. Asking in parallel buys latency and pays with a second
+failure mode; it is worth having when a deployment has enough nodes that a
+serial read is slow, and not before.
+
+**Looking and acting are separate, and so is the authority for them.** The
+process that reads a deployment can also act on it, but only through the doors
+a participant uses, and it holds the supervisory credential separately — often
+not at all. An operator needs to look far more often than to act, and looking
+must not require the authority to destroy somebody's work. This is why control
+planes that bundle both into one channel read as mostly mutations: cancel,
+delete, fork, restart. Acting here goes through the lane like every other act,
+so the rule the lane enforces is met once rather than bypassed by the tool
+built to supervise it.
+
 **"How is the fleet doing?"** — telemetry. Counts, durations and outcomes leave
 as labelled measurements for whatever collects them. This is lossy by design and
 nothing decides anything on it; it is for trends and alerting, not for state. What
 may be said there is a closed set, and a failure's own words are not in it: they
 stay on the run, in the store of the tenant whose work it was.
+
+Speaking somebody else's control protocol is deliberately not how any of this
+is offered. Those protocols' verbs are overwhelmingly mutations, so an endpoint
+speaking one holds cancel, delete, fork and retention rights over every
+executor that connects — a large authority surface acquired in order to read
+counters — and their metric payloads carry no labels, so nothing said here
+could ride them. Nor is anything synthesised so an external engine can emit on
+this store's behalf: those metrics are computed from durable rows, so
+fabricated telemetry is fabricated state, with real ids, to which recovery and
+replay then apply.
 
 Where the numbers go is the deployment's to say, never the code's. The seam has
 one exporter, installed everywhere and idle without an endpoint: given
