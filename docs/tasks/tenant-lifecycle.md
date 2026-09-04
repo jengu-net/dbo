@@ -150,9 +150,14 @@ with its upstream.
   — the face it speaks, whether its data is encrypted, the zone it identifies
   in — reaches the ledger by name instead of being ignored. A deployment can
   be asked which of its tenants serve something other than what was declared.
-- **Applying a noticed change is still missing** (step 9). A hot or rebuild
-  change is reported and not yet applied, so the answer to a changed type is
-  still withdraw-and-redeclare until that lands.
+- **And a change it can take is applied to it** (step 9). What a tenant only
+  says about itself it takes where it stands; what it is made of is rebuilt in
+  place, keeping its database, its lanes and their cursors, recording no
+  retraction, and wiring its dependents again. What stops for the length of a
+  rebuild is the tenant's HTTP surface — a rebuild is a remount, and it has to
+  go down first because the container registers a tenant's services when it
+  comes up: mounting over a tenant still up would register a second set and
+  leak the first.
 - **The tenant path is the hand-rolled twin.** `scanOnce` lists a directory,
   brings up what is new inline and one at a time, and takes down whatever the
   listing did not contain. In cluster, `KubernetesSecretProvisioner.provision`
@@ -175,7 +180,7 @@ with its upstream.
 | 6 | The sweep reconciles against what was applied rather than a listing it takes itself; the source is read directly only where there is no managing tenant to hold records | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT#anUnreadableSourceRetractsNothing` |
 | 7 | Tenants declared together come up together, bounded by what a node can carry — the queue is gone because there is no queue | **DONE** 2026-09-04 — `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` |
 | 8 | A changed spec is *noticed*: the re-read declaration compared with the one the runtime holds, and every field classified hot, rebuild or cold | **DONE** 2026-09-04 — `ATenantDeclaredDifferentlyIsNoticedIT`, `EveryDeclaredFieldIsClassifiedTest` |
-| 9 | Hot changes applied in place; re-wire changes re-mounted without a retraction; cold changes refused by name with what they need | **READY, needs 8** |
+| 9 | A change a tenant can take is applied to it: taken where it stands, or rebuilt in place with its dependents wired again | **DONE** 2026-09-04 — `ATenantDeclaredDifferentlyIsNoticedIT`, `SpecDeclaredSyncIT#aDependentKeepsStreamingWhenItsUpstreamIsRebuilt` |
 | 10 | Apply authored as an administrative act — a task on the surface, through the lane, under its own grant — and automatic application switchable off per scope | **READY, needs 9** |
 | 11 | Dependency streams leave the shared loop: one sweep per (tenant, dependency), claimed like any other work, closing when it agrees with its upstream | **READY, needs 7** |
 | 12 | A dependency added to or removed from a live tenant is a re-wire change, not a retraction — "what I care about" becomes editable | **READY, needs 9 and 11** |
@@ -388,6 +393,13 @@ with more heap than a serving node gets. What limits a node is not how many
 tenants it can start but how many validators it can hold at once. Concurrent applications multiply it. On a default heap it arrives as `HAPI-2330` with a null message,
 three frames above an `OutOfMemoryError` nobody sees — and it will read as
 "concurrency broke bring-up".
+
+**A dependent left holding a rebuilt upstream's feed says nothing at all.**
+The engines are wired with `upstream.feed()`, which belongs to the runtime
+object; rebuild the upstream and a dependent nobody re-wires reads from a pool
+that has closed. It does not fail — a stream delivering no events looks exactly
+like an upstream with nothing to say, and the test proving it takes four
+minutes to go red because all it can do is wait.
 
 **Green proves nothing.** `EmbeddedContainerIT`, `TenantOsgiIT` and
 `ServerDistIT` are the ratchets, and both in-JVM containers must install what
