@@ -177,4 +177,39 @@ class ConfigAppliesAsASweepIT {
         assertEquals(1, again.read(),
                 "the same read was skipped while somebody still owed an answer");
     }
+
+    /**
+     * Declaring the same thing again is what a source moving forward looks
+     * like, and it was the one case nothing exercised: a plain create refuses
+     * an identity already claimed, so every changed declaration used to be a
+     * card saying so, with the store left holding the version before it.
+     */
+    @Test
+    @Proving(DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP)
+    @DisplayName("a changed declaration replaces the one on record, and is nobody's card")
+    void aChangedDeclarationReplacesWhatItDeclared() {
+        ConfigApplication.Declared before = new ConfigApplication.Declared("ValueSet",
+                "value-sets/moving.json",
+                ("{\"resourceType\":\"ValueSet\",\"status\":\"draft\",\"url\":"
+                        + "\"https://zone.test/vs/moving\",\"name\":\"Moving\"}")
+                        .getBytes(StandardCharsets.UTF_8));
+        ConfigApplication.Declared after = new ConfigApplication.Declared("ValueSet",
+                "value-sets/moving.json",
+                ("{\"resourceType\":\"ValueSet\",\"status\":\"active\",\"url\":"
+                        + "\"https://zone.test/vs/moving\",\"name\":\"Moving\"}")
+                        .getBytes(StandardCharsets.UTF_8));
+
+        assertEquals(1, configuration.apply("zone/moving", null, List.of(before)).applied());
+        long held = store.count(Criteria.of("ValueSet"));
+
+        ConfigApplication.Outcome second =
+                configuration.apply("zone/moving", null, List.of(after));
+
+        assertEquals(1, second.applied(), "declaring it again is an application, not a refusal");
+        assertEquals(0, second.skipped());
+        assertEquals(held, store.count(Criteria.of("ValueSet")),
+                "and it replaced the record rather than adding a second one");
+        assertFalse(runs.byKey(ConfigApplication.PROCESS + "/" + ConfigApplication.STEP
+                + "/zone/moving").orElseThrow().needsAPerson());
+    }
 }

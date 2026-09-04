@@ -177,9 +177,49 @@ public final class ConfigApplication {
      * declaration refuses every other caller, and the lane that may write it
      * has to say so rather than have it inferred from whichever credential was
      * in play.
+     *
+     * <p><b>Keyed on what the declaration says it is</b>, so applying it twice
+     * lands on the same record. A plain create refuses the second pass — the
+     * identity is already claimed — which made every changed declaration a
+     * card saying so, and left the store holding the version before the
+     * change. Declaring the same thing again is the ordinary case for
+     * configuration; it is what a source moving forward looks like.
+     *
+     * <p>The identity comes from the type's own registration rather than from
+     * the caller: the store already knows how each type names itself, and
+     * being told a second time is a second thing to disagree with. A type
+     * whose declarations name nothing is written as it was before — some
+     * things really are anonymous, and refusing them here would refuse the
+     * only shape that ever worked.
      */
     private void intoTheStore(Declared declared) {
-        store.put(PutRequest.create(declared.typeName(), declared.payload()),
-                Handling.Authority.CONFIG_LANE);
+        java.util.List<cloud.jengu.dbo.core.api.Identifier> named =
+                identityOf(declared);
+        if (named.isEmpty()) {
+            store.put(PutRequest.create(declared.typeName(), declared.payload()),
+                    Handling.Authority.CONFIG_LANE);
+            return;
+        }
+        cloud.jengu.dbo.core.api.Identifier claim = named.get(0);
+        store.putConditional(
+                cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM.equals(claim.system())
+                        ? cloud.jengu.dbo.core.api.IdentityRef.canonical(claim.value())
+                        : cloud.jengu.dbo.core.api.IdentityRef.identifier(
+                                claim.system(), claim.value()),
+                PutRequest.create(declared.typeName(), declared.payload()));
+    }
+
+    /** What this declaration calls itself, read the way the store reads it. */
+    private java.util.List<cloud.jengu.dbo.core.api.Identifier> identityOf(Declared declared) {
+        cloud.jengu.dbo.core.api.TypeRegistration registration =
+                store.registrationOf(declared.typeName());
+        if (registration == null) {
+            // An unknown type is not this method's refusal to make: the write
+            // below meets it and the pass turns it into a card, which is where
+            // the reason belongs.
+            return java.util.List.of();
+        }
+        return registration.extractor().extract(declared.typeName(), declared.payload())
+                .identifiers();
     }
 }

@@ -94,6 +94,13 @@ with its upstream.
 
 ## Where it stands
 
+- **Applying could not update anything** (found and fixed in step 5). It wrote
+  every declaration as a create, so the second application of a changed
+  declaration was refused — the identity was already claimed — and became a
+  card saying so, with the store left holding the version from before the
+  change. Nothing had noticed because its only test applied distinct new
+  declarations. Applying is keyed on what the declaration says it is now, read
+  from the type's own registration rather than from the caller.
 - **Applying: reached** (step 2). `ConfigApplication` had no production caller
   and no citation in the catalogue; bring-up's own vocabulary publication —
   the second hand-rolled applier, whose whole account was a log line — now
@@ -124,6 +131,11 @@ with its upstream.
 - **A failed bring-up leaves nothing mounted** (step 1). It used to leave its
   surfaces up, so every later pass died on its own OIDC context and the ledger
   said `cannot add context to list` instead of naming the spec that was wrong.
+- **What a deployment was told to serve is records** (step 5), in the managing
+  tenant, applied from the spec directory by the ordinary source and the
+  ordinary applier — so `DirectoryConfigSource` arrived with its caller, as
+  step 3 said it would. The directory is still what the manager serves from;
+  step 6 is where that flips.
 - **Change does not exist.** A live tenant's spec is never re-read. There is
   no re-mount path, no refusal for a change that cannot be applied hot, and no
   record that a change was seen.
@@ -144,8 +156,8 @@ with its upstream.
 | 1 | The secret wait comes off the sweep thread, a runtime becomes visible only once wired, and a bring-up that fails leaves nothing mounted | **DONE** 2026-09-04 — `ATenantThatIsNotUpSaysWhyIT` |
 | 2 | `ConfigApplication` gets a production caller: the face's own vocabulary, applied into each tenant at bring-up as a recorded pass | **DONE** 2026-09-04 — `TenantRuntimeIT#theFacesOwnVocabularyArrivesAsARecordedApplication` |
 | 3 | A source seam: read, and say what the read is called, so an unchanged source is a read rather than a re-application. The face's own vocabulary is its first source | **DONE** 2026-09-04 — `ConfigAppliesAsASweepIT`. Directory, ConfigMap, git and lane implementations wait for step 6, where their caller is |
-| 4 | Withdrawal becomes part of what a source produces, and what an application applies | **READY, needs 3** |
-| 5 | The tenant spec becomes a declared type, applied into the management tenant like any other configuration | **READY, needs 4** |
+| 5 | The tenant spec becomes a declared type, applied into the management tenant like any other configuration | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT` |
+| 4 | Withdrawal becomes part of what a source produces, and what an application applies | **NEXT** — swapped after 5, because withdrawal had no complete source to come from until declarations were records |
 | 6 | The manager reacts to applied declarations instead of listing a directory: mount per tenant, `scanOnce`'s snapshot diff deleted | **READY, needs 5** |
 | 7 | Provisioning claimed by consumers in parallel — the queue is gone because there is no queue | **READY, needs 6** |
 | 8 | A changed spec is *noticed*: the re-read declaration compared with the one the runtime holds, and the difference classified onto the run before anything is applied | **READY, needs 6** |
@@ -166,6 +178,15 @@ something I care about changes" is useless if changing what you care about
 means being retracted. **13** is the payoff.
 
 ## Decisions
+
+**Withdrawal comes after declarations, not before them.** The plan had it
+first. It cannot be: deriving a withdrawal needs a source that is honestly
+complete, and until the tenant declarations were records the only source was
+the face's own vocabulary — which should never be treated as complete, because
+a bad read would then retire a tenant's vocabulary. Built first, the withdrawal
+path would have shipped with nothing exercising it. Declarations first gives it
+a complete source and a meaning that already exists: a withdrawn declaration is
+a retraction.
 
 **A source implementation lands with its caller, never before it.** Step 3
 built the seam and gave it one source — the face's own vocabulary, which has a

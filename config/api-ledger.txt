@@ -2232,6 +2232,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_LOCA
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_PROVENANCE_COPIES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_SPEC_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_TERMINOLOGY_GRAIN_SURVIVES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARATION_IS_A_RECORD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_CREDENTIAL_BLIND_PROVISIONING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_DEDICATED_DATABASE_TIER:cloud.jengu.dbo.promises.DboPromises
@@ -2728,6 +2729,9 @@ cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   record
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   sourceVersionId():long
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   toString():String
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   typeName():String
+cloud.jengu.dbo.sync.DirectoryConfigSource                             class
+cloud.jengu.dbo.sync.DirectoryConfigSource                             fetch():cloud.jengu.dbo.sync.ConfigSource.Fetch
+cloud.jengu.dbo.sync.DirectoryConfigSource                             new(Path,String,String)
 cloud.jengu.dbo.sync.LaneModel                                         KEY_SYSTEM:String
 cloud.jengu.dbo.sync.LaneModel                                         TYPE:String
 cloud.jengu.dbo.sync.LaneModel                                         class
@@ -2953,6 +2957,11 @@ cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase        rpClientI
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase        rpClientSecret():String
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase        rpRedirectUris():List
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase        toString():String
+cloud.jengu.dbo.tenant.TenantDeclarationModel                          CODE_SYSTEM:String
+cloud.jengu.dbo.tenant.TenantDeclarationModel                          TYPE:String
+cloud.jengu.dbo.tenant.TenantDeclarationModel                          class
+cloud.jengu.dbo.tenant.TenantDeclarationModel                          of(String):cloud.jengu.dbo.core.api.Identifier
+cloud.jengu.dbo.tenant.TenantDeclarationModel                          registrations():List
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            ERASE_STEP:String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            RETRACT_STEP:String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            SERVE_STEP:String
