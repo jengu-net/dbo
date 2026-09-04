@@ -659,6 +659,14 @@ public enum DboPromises implements Promise {
     // ── TEN — migrated from hand-written prose (2026-08-27) ──
 
     /** TODO: prove it in a test. */
+    TEN_A_DECLARATION_IS_A_RECORD("What a deployment has been told to serve is records "
+            + "in the managing tenant, applied from whatever source declares them like any "
+            + "other configuration — so what is declared can be asked of the store rather "
+            + "than read off a node's disk, and a declaration that will not parse is a card "
+            + "naming the file rather than a line in a boot log. A deployment with no "
+            + "managing tenant records nothing and serves exactly as before: recording what "
+            + "is declared is not a condition of honouring it."),
+
     TEN_STRUCTURAL_SCOPING(
             "No code path can read or write data without an explicit tenant context. "
             + "(R3)"),

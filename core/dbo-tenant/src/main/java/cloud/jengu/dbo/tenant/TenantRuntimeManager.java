@@ -514,6 +514,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         stepIncidents.retain(runtimes.keySet());
         rollup();
+        recordDeclarations();
         recordServing();
         return codes();
     }
@@ -1451,6 +1452,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // deployment did about a tenant belongs in that tenant's own store,
         // queryable and versioned and dropped with it.
         all.addAll(cloud.jengu.dbo.work.WorkModel.registrations());
+        // What this deployment was told to serve. Registered for every
+        // tenant because which one manages the others is decided after
+        // they are built, and a type registered for the wrong tenant is a
+        // surface that answers nothing.
+        all.addAll(TenantDeclarationModel.registrations());
         // And the replication lane's own bookkeeping: where each peer
         // has reached, and what arrived for which work. Same argument again —
         // a lane's state is this tenant's, dropped when the tenant is. Without
@@ -1683,6 +1689,46 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private Optional<cloud.jengu.dbo.work.Runs> managementRuns() {
         ObjectStore store = managementCode == null ? null : runStores.get(managementCode);
         return Optional.ofNullable(store).map(cloud.jengu.dbo.work.Runs::new);
+    }
+
+    /**
+     * What this deployment has been told to serve, applied into the managing
+     * tenant as records.
+     *
+     * <p>A declaration was a file on a node's disk and nothing else, so the
+     * question "what is this deployment declared to serve" could only be
+     * answered by somebody with a shell on the node — and never "what did it
+     * say yesterday". The answer belongs where every other answer about this
+     * deployment lives.
+     *
+     * <p>It is the ordinary applier over the ordinary source: an unchanged
+     * directory is a read, and a spec that will not parse is a card naming the
+     * file rather than a line in a boot log that scrolled past.
+     *
+     * <p>The serving sweep's rule, kept: a deployment with no managing tenant
+     * records nothing and serves exactly as before. Recording what is declared
+     * is not a condition of honouring it.
+     */
+    private void recordDeclarations() {
+        if (managementCode == null) {
+            return;
+        }
+        ObjectStore management = runStores.get(managementCode);
+        if (management == null) {
+            return;
+        }
+        try {
+            new cloud.jengu.dbo.sync.ConfigApplication(management,
+                    new cloud.jengu.dbo.work.Runs(management),
+                    cloud.jengu.dbo.work.WorkModel.DOMAIN)
+                    .applyFrom("deployment", new cloud.jengu.dbo.sync.DirectoryConfigSource(
+                            directory, TenantDeclarationModel.TYPE, ".json"));
+        } catch (RuntimeException e) {
+            // Same rule as the sweep below: the deployment keeps serving
+            // tenants when its own bookkeeping cannot be written.
+            LOG.warn("the deployment's declarations could not be recorded; "
+                    + "the tenants they declare are unaffected", e);
+        }
     }
 
     /**
