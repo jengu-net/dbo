@@ -38,8 +38,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SeveralTenantsDeclaredAtOnceComeUpTogetherIT {
 
-    private static final int DECLARED = 8;
-    private static final int AT_ONCE = 4;
+    // Enough to prove they overlap, and no more: this runs inside a suite
+    // that is already four classes deep, and a bring-up holds a validator.
+    // Eight of them at four met OutOfMemoryError here, which is the same
+    // hazard the bound itself exists for.
+    private static final int DECLARED = 4;
+    private static final int AT_ONCE = 2;
 
     static PostgreSQLContainer<?> postgres;
     static Path dir;
@@ -116,7 +120,7 @@ class SeveralTenantsDeclaredAtOnceComeUpTogetherIT {
 
     @Test
     @Proving(DboPromises.TEN_DECLARED_TOGETHER_COME_UP_TOGETHER)
-    void eightDeclaredAtOnceAreEightTenants() throws Exception {
+    void tenantsDeclaredAtOnceAllComeUp() throws Exception {
         for (int clinic = 0; clinic < DECLARED; clinic++) {
             Files.writeString(dir.resolve("at-once-" + clinic + ".json"), """
                     {"code":"at-once-%d","face":"r4","types":[

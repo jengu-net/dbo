@@ -423,7 +423,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 states.putIfAbsent(spec.code(), TenantState.State.COMING_UP);
                 trouble.remove(spec.code());
                 trouble.remove("spec:" + named);
-                if (!runtimes.containsKey(spec.code())) {
+                TenantRuntime serving = runtimes.get(spec.code());
+                if (serving != null) {
+                    noticeRedeclaration(serving, spec);
+                }
+                if (serving == null) {
                     long began = System.nanoTime();
                     bringUp(spec);
                     states.put(spec.code(), TenantState.State.SERVING);
@@ -644,6 +648,61 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
+     * What each serving tenant is declared as, where that differs from what it
+     * was built from. A tenant absent here is serving exactly what somebody
+     * declared.
+     */
+    private final Map<String, SpecChange> redeclared = new ConcurrentHashMap<>();
+
+    /**
+     * Per serving tenant, how its declaration now differs from what it is
+     * serving — in the words somebody deciding what to do about it needs.
+     *
+     * <p>Empty is the ordinary answer and the reassuring one: it means every
+     * serving tenant is serving what was declared, which nobody could ask
+     * before. A declaration used to be read once, at mount, so a changed spec
+     * was neither applied nor refused nor reported, and the only way to change
+     * a live tenant was to withdraw it — dropping its surfaces, its lanes and
+     * its dependents' streams to alter one field.
+     */
+    public Map<String, String> redeclarations() {
+        Map<String, String> saying = new java.util.TreeMap<>();
+        redeclared.forEach((code, change) -> saying.put(code, change.says()));
+        return Map.copyOf(saying);
+    }
+
+    /**
+     * Notices that a serving tenant is declared differently, and says what
+     * kind of difference it is.
+     *
+     * <p>Noticing is all this does. What can be absorbed while serving and
+     * what has to be rebuilt are applied where the tenant is built; what
+     * cannot be had at all is refused here, by name, because a cold change
+     * that is silently ignored is a deployment believing something about
+     * itself that is not true.
+     */
+    private void noticeRedeclaration(TenantRuntime serving, TenantSpec declared) {
+        SpecChange change = SpecChange.between(serving.spec(), declared);
+        if (!change.any()) {
+            redeclared.remove(declared.code());
+            return;
+        }
+        SpecChange before = redeclared.put(declared.code(), change);
+        if (change.kind() == SpecChange.Kind.COLD) {
+            // A person's, and not a retry's: it will read the same way on
+            // every pass until somebody decides.
+            trouble.put(declared.code(), new Trouble(cloud.jengu.dbo.work.Failure.RECORD,
+                    "declared differently from what it serves — " + change.says()));
+        }
+        if (!change.equals(before)) {
+            // Once per distinct difference. The scan comes round every couple
+            // of seconds, and a line per pass would bury the one that mattered.
+            LOG.info("tenant {} is declared differently from what it serves: {}",
+                    declared.code(), change.says());
+        }
+    }
+
+    /**
      * How many tenants this node brings up at once.
      *
      * <p>Bounded rather than unbounded, and the bound is small on purpose:
@@ -652,8 +711,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * once is not two dozen times faster; it is a node that dies as an
      * out-of-memory error three frames under a message that mentions none of
      * this.
+     *
+     * <p><b>Two, not four.</b> Four is what this was written as, and the
+     * suite proving it met {@code OutOfMemoryError} on one tenant of eight —
+     * on a JVM with rather more heap than a serving node is given. The number
+     * that matters is not how many a node can start, it is how many
+     * validators it can hold at once, and that is a property of the deployment
+     * rather than of this class. So the default is the smallest one that is
+     * still not a queue, and a deployment with heap to spare raises it
+     * knowing what it is spending.
      */
-    private volatile int broughtUpTogether = 4;
+    private volatile int broughtUpTogether = 2;
 
     /**
      * How many tenants may come up at once here. A deployment whose tenants
@@ -1746,6 +1814,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             recordRetraction(code, because);
         }
         listener.tenantDown(code);
+        redeclared.remove(code);
         unmount(code, runtime);
     }
 
