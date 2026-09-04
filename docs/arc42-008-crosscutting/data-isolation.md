@@ -188,6 +188,22 @@ serves its trail by run so a journey is one ask; a tenant that declared no
 partner refuses the same credential at signature verification, as it refuses
 every other tenant's.
 
+## A store-visible feature is a decision, not an accident
+
+Most of what this store does is invisible to the customer of whoever runs it:
+which store holds the data is the operator's business, and the contract the
+customer sees belongs to the application in front. A surface that a customer's
+own administrator reaches — a directory provisioning staff into the tenant is
+the first of them — breaks that, and makes "which store" a customer-visible
+answer for the first time.
+
+That is accepted deliberately where the capability is worth it, and it is
+mitigated rather than waved away: the address the customer is given stays the
+operator's, so the visible contract is still theirs and the store behind it can
+be changed again. What must not happen is acquiring such a surface without
+noticing — a feature that quietly makes the store nameable to a customer has
+taken away the operator's freedom to move it.
+
 ## What stays outside
 
 Consent semantics and co-ownership — who must agree before a person's key may be

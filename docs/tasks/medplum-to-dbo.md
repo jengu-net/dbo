@@ -56,29 +56,20 @@ than through it.
 
 ## Decisions
 
-**Move the surface, not the primitive.** Twice now the consumer asked for a
-capability to be *widened* (scoped enumeration, then general listing) and the
-better answer was to move the whole surface inside the membrane, where the
-capability is internal and only the protocol's own verbs are public. A widened
-primitive is available to every caller with the scope, forever; a surface is
-available to the one server that needs it.
+Four of these outlived the migration that produced them, so they have moved to
+where a permanent explanation belongs rather than waiting to be deleted with
+this file:
 
-**A SCIM User is the Person, not the Practitioner.** §14 makes Person the human
-and the place identifying data is authored; Practitioner is a capacity they act
-in. The consumer's Medplum implementation wrote Practitioner first and let the
-linkage follow — the store corrects that rather than porting it, and the
-Practitioner capacity is ensured and linked on create so token-time grants work
-with nothing further.
+- a surface moves inside the membrane rather than a primitive widening —
+  [engine and faces](../arc42-008-crosscutting/engine-and-faces.md);
+- the store's REST surface stays private, and a provisioned user is the person
+  rather than the capacity they act in —
+  [who may act](../arc42-008-crosscutting/who-may-act.md);
+- a store-visible feature is a decision rather than an accident —
+  [data isolation](../arc42-008-crosscutting/data-isolation.md).
 
-**dbo's REST surface stays private.** The consumer terminates TLS, applies its
-integration gates and forwards bytes. This was their proposal and it is the
-right one: it keeps authorisation at the public edge where it belongs while
-everything touching identifying data moves inside the store.
-
-**Store-visible features are accepted deliberately.** SCIM makes "which store"
-a customer-visible answer for the first time. Mitigated by the proxy URL
-staying the consumer's, so the customer-visible contract is theirs and the
-store behind it can change again.
+What remains in this document — where the cutover stands, and the traps it has
+found — is this migration's own, and goes when it closes.
 
 ## Traps
 
