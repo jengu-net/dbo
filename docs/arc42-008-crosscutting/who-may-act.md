@@ -170,6 +170,22 @@ what is public is a process surface, deliberately.
 
 ## What stays outside
 
+**The store's own REST surface is private.** The application in front
+terminates TLS, applies whatever integration gates it has, and forwards bytes;
+authorisation for the public edge belongs at that edge, while everything
+touching identifying data sits inside the store. A directory provisioning users
+into the store does not change that — it reaches a surface mounted on the
+tenant, behind the tenant's own authority, and never the public internet.
+
+**A provisioned user is the person, not the capacity they act in.** A directory
+that creates staff is creating the human: identifying data is authored on the
+person, and the practitioner is a capacity linked to them. Implementations
+routinely have this the other way round, writing the capacity first and letting
+the linkage follow, which leaves the human derived from their job. The store
+corrects that on the way in rather than carrying it: the capacity is ensured
+and linked when the person is created, so grants resolve at token time with
+nothing further to do.
+
 Login screens, session handling and human-user administration belong to the
 application in front of the store. That application is an ordinary relying party
 of the tenant authorities: it keeps the client machinery its framework gives it

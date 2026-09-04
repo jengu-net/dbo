@@ -267,6 +267,22 @@ own way, by canonical url, and the two keys would have drifted apart with nothin
 failing. So `GrainCodec.receive` writes only the part the engine has no place for and
 hands the rest straight back.
 
+## A surface moves inside; a primitive does not widen
+
+A consumer asking for a capability it cannot reach is asking one of two
+questions, and the answer to the second one is not the answer to the first.
+Twice a consumer asked for an existing capability to be **widened** — scoped
+enumeration, then general listing — and both times the better answer was to
+move the whole surface that needed it inside the membrane instead. A widened
+primitive is available to every caller holding the scope, for ever, and its
+new reach is a permanent property of the store; a surface moved inside has the
+capability internally, publishes only its own protocol's verbs, and is
+available to the one server that needed it.
+
+The test is not whether the request is reasonable. It is whether the thing
+asking has to stay outside: if it does not, the capability it wants can stop
+being public rather than becoming more so.
+
 ## Where a new obligation belongs
 
 The question that kept coming back was whether an obligation is scoped to a version
