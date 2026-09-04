@@ -674,6 +674,13 @@ public enum DboPromises implements Promise {
             + "managing tenant to hold records reads its source directly, because nothing "
             + "can bootstrap out of a store it has not built yet."),
 
+    TEN_DECLARED_TOGETHER_COME_UP_TOGETHER("A consumer that declares several tenants at "
+            + "once gets several tenants. A node brings them up together, bounded by what "
+            + "it can carry at a time, so the wait is the slowest tenant's rather than the "
+            + "sum of all of them — and a tenant that cannot come up yet is its own "
+            + "trouble rather than a queue everybody behind it is stuck in, which is what "
+            + "made a busy deployment indistinguishable from a broken one."),
+
     TEN_A_DECLARATION_IS_A_RECORD("What a deployment has been told to serve is records "
             + "in the managing tenant, applied from whatever source declares them like any "
             + "other configuration — so what is declared can be asked of the store rather "

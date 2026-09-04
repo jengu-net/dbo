@@ -167,7 +167,7 @@ with its upstream.
 | 5 | The tenant spec becomes a declared type, applied into the management tenant like any other configuration | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT` |
 | 4 | Withdrawal: only a read a source calls complete may take anything away, and only an applier that can say what it holds | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT`, `ConfigAppliesAsASweepIT`. Withdrawing a spec leaves the record; retracting the tenant is still the sweep's, until step 6 |
 | 6 | The sweep reconciles against what was applied rather than a listing it takes itself; the source is read directly only where there is no managing tenant to hold records | **DONE** 2026-09-04 — `ADeploymentRecordsWhatItWasToldToServeIT#anUnreadableSourceRetractsNothing` |
-| 7 | Provisioning claimed by consumers in parallel — the queue is gone because there is no queue | **READY, needs 6** |
+| 7 | Tenants declared together come up together, bounded by what a node can carry — the queue is gone because there is no queue | **DONE** 2026-09-04 — `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` |
 | 8 | A changed spec is *noticed*: the re-read declaration compared with the one the runtime holds, and the difference classified onto the run before anything is applied | **READY, needs 6** |
 | 9 | Hot changes applied in place; re-wire changes re-mounted without a retraction; cold changes refused by name with what they need | **READY, needs 8** |
 | 10 | Apply authored as an administrative act — a task on the surface, through the lane, under its own grant — and automatic application switchable off per scope | **READY, needs 9** |
@@ -301,15 +301,26 @@ Provisioning is idempotent, I/O-bound and node-independent, so it is the half
 that can be claimed and eventually moved to a pod. Splitting anywhere else
 produces a provisioned tenant nobody mounted.
 
-**Parallelism is consumers, and the manager never grows a pool.** Not at the
-end and not as an interim: several consumers claiming apply-and-provision work
-is the concurrency. A pool inside the manager would be a second scaling
-mechanism with its own knob, invisible to the operator, deleted by step 7
-anyway. The bound becomes the one an operator already scales — replicas —
-rather than a number compiled into the store, and claims bring lease and lapse,
-so a consumer dying mid-apply releases and another takes it. The mount stays
-serial per node, which is the correct half to leave serial: milliseconds of
-in-process wiring, and single-writer by nature.
+**Parallelism is consumers — and inside one node, the consumers are the
+node.** This decision was written imagining a fleet of runner processes
+claiming provisioning work, and step 7 found the half of it that was wrong: a
+claim has to live in a store, and a run about bringing up a tenant cannot live
+in that tenant's store because the tenant does not exist yet. It would live in
+the managing tenant, which is optional — so making the fix conditional on it
+would have left the deployments that hit the defect without one.
+
+What survives is the substance. A node brings up several tenants at once,
+bounded by what it can carry and configurable, and the bound is on the node
+because that is what the limit is about: a pool, a schema, a validator's heap.
+What was rejected — a second scaling mechanism invisible to the operator —
+stays rejected: every bring-up is still a recorded pass in the deployment's own
+history, and a tenant that cannot come up is still its own trouble by name.
+
+A consumer fleet outside the JVM stays possible and is still the better answer
+for the provisioning half; it needs the provision/mount split and a placement
+story, and neither is built. The mount stays serial per node regardless, which
+is the correct half to leave serial: milliseconds of in-process wiring, and
+single-writer by nature.
 
 **Milestones, not a queue position.** #188 asks for "queued behind N". A
 position stops being true the moment claims run in parallel. The declared
@@ -358,14 +369,14 @@ dependent resolves the upstream mid-wire and calls `feed()` on it. Fix by
 ordering, not by a comment claiming it is safe — `UpstreamNotReady` and the
 retry exist for exactly the gap the reorder opens.
 
-**Heavy work inside `computeIfAbsent`.** `zoneHub` does store reads, secret
-lookups and `createContext` inside a `ConcurrentHashMap` mapping function.
-Invisible sequentially; concurrently it serialises every tenant sharing a zone
-inside one map bin, which is precisely the deployment shape that has two dozen
-tenants in one zone.
+**Heavy work inside `computeIfAbsent`** (fixed with step 7). `zoneHub` did
+store reads, secret lookups and `createContext` inside a `ConcurrentHashMap`
+mapping function — invisible sequentially, and with tenants coming up together
+it would have serialised every tenant of one zone behind the first, which is
+precisely the deployment shape that has two dozen tenants in one zone.
 
-**The R5 validator loads the core package eagerly.** Concurrent applications
-multiply it. On a default heap it arrives as `HAPI-2330` with a null message,
+**The R5 validator loads the core package eagerly** — which is why the bound
+in step 7 is four rather than none. Concurrent applications multiply it. On a default heap it arrives as `HAPI-2330` with a null message,
 three frames above an `OutOfMemoryError` nobody sees — and it will read as
 "concurrency broke bring-up".
 

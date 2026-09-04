@@ -407,8 +407,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // its source directly, which is the floor every deployment starts on
         // and the one the managing tenant itself comes up over.
         recordDeclarations();
-        Set<String> declared = new HashSet<>();
-        for (cloud.jengu.dbo.sync.ConfigApplication.Declared declaration : declaredNow()) {
+        Set<String> declared = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        // Together, not one after another. Bring-up is minutes of somebody
+        // else's waiting — a database, a schema, a secret that has not landed
+        // — and doing them in turn made a queue whose length was the
+        // deployment's size: a consumer declaring two dozen tenants at once
+        // got the first few and a refusal for everyone behind them, which
+        // reads as a broken tenant rather than a busy one.
+        together(declaredNow(), declaration -> {
             String named = declaration.name();
             try {
                 TenantSpec spec = TenantSpec.parse(new String(declaration.payload(),
@@ -425,7 +431,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     LOG.info("tenant up: code={} fhir={} pdi={} in {}ms",
                             spec.code(), spec.face(), spec.pdi(),
                             (System.nanoTime() - began) / 1_000_000);
-                    rollup();
+                    // The shape is rolled up once the pass is done rather than
+                    // per tenant: with several coming up at once, a rollup per
+                    // bring-up prints a count that was true for nobody.
                 }
             } catch (Throwable e) {
                 // Throwable, not Exception: a missing OSGi wire
@@ -467,7 +475,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // and does not enter the suppression set: the
                     // next scan is where it resolves.
                     LOG.debug("{}", e.getMessage());
-                    continue;
+                    return;
                 }
                 String signature = named + ":" + e;
                 if (reportedFailures.add(signature)) {
@@ -475,7 +483,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             + "failures suppressed until it changes)", named, e);
                 }
             }
-        }
+        });
         for (String code : Set.copyOf(runtimes.keySet())) {
             // The management tenant is declared by configuration and is not in
             // this directory, so the loop that retracts undeclared tenants
@@ -632,6 +640,75 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     java.nio.charset.StandardCharsets.UTF_8)).code());
         } catch (Exception e) {
             return Optional.empty();
+        }
+    }
+
+    /**
+     * How many tenants this node brings up at once.
+     *
+     * <p>Bounded rather than unbounded, and the bound is small on purpose:
+     * each bring-up opens a pool, sets up a schema and — where the face
+     * validates — loads a core package that wants heap. Two dozen of those at
+     * once is not two dozen times faster; it is a node that dies as an
+     * out-of-memory error three frames under a message that mentions none of
+     * this.
+     */
+    private volatile int broughtUpTogether = 4;
+
+    /**
+     * How many tenants may come up at once here. A deployment whose tenants
+     * are slow to provision and whose node has room can raise it; one is the
+     * old behaviour, in order, for anybody who wants it back.
+     */
+    public void broughtUpTogether(int atOnce) {
+        if (atOnce < 1) {
+            throw new IllegalArgumentException("a node that brings up no tenants at a time "
+                    + "serves nothing: " + atOnce);
+        }
+        this.broughtUpTogether = atOnce;
+    }
+
+    /**
+     * Runs the work for each declaration, several at a time, and returns when
+     * every one of them is finished.
+     *
+     * <p>Waiting is the point. A scan says what it serves, and a scan that
+     * returned before its bring-ups finished would be answering about a
+     * moment that had not happened yet — the caller's whole question is
+     * whether the tenants are there. What it stops being is <b>sequential</b>:
+     * nobody waits for the tenant in front of them any more.
+     *
+     * <p>Each one carries its own failure, as it did when they were in a loop:
+     * a bring-up that throws is that tenant's trouble and nobody else's.
+     */
+    private void together(java.util.List<cloud.jengu.dbo.sync.ConfigApplication.Declared> work,
+            java.util.function.Consumer<cloud.jengu.dbo.sync.ConfigApplication.Declared> each) {
+        int atOnce = broughtUpTogether;
+        if (work.size() <= 1 || atOnce <= 1) {
+            work.forEach(each);
+            return;
+        }
+        java.util.concurrent.Semaphore room = new java.util.concurrent.Semaphore(atOnce);
+        java.util.List<Thread> running = new java.util.ArrayList<>(work.size());
+        for (cloud.jengu.dbo.sync.ConfigApplication.Declared one : work) {
+            running.add(Thread.ofVirtual().name("dbo-bring-up-" + one.name()).start(() -> {
+                room.acquireUninterruptibly();
+                try {
+                    each.accept(one);
+                } finally {
+                    room.release();
+                }
+            }));
+        }
+        for (Thread thread : running) {
+            try {
+                thread.join();
+            } catch (InterruptedException stopping) {
+                Thread.currentThread().interrupt();
+                // The scan is being torn down. Nothing is left half-mounted by
+                // this: each bring-up rolls itself back or completes.
+                return;
+            }
         }
     }
 
