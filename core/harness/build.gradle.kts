@@ -156,6 +156,40 @@ val ledgerBundles = mapOf(
     "dbo.fhir.r5" to "dbo-fhir-r5",
 )
 
+// Every module whose jar IS production. The reach ledger asks whether one of
+// this store's classes is named by any of them, so a module missing here reads
+// as a class nothing mounts — the false alarm that gets a ratchet switched off.
+// Test-only modules are absent on purpose and are the whole mechanism: a
+// harness is not in anybody's jar, so a toolset only a test builds has nothing
+// naming it here.
+val reachModules = listOf(
+    "core:dbo-core", "core:dbo-postgres", "core:dbo-auth", "core:dbo-pdi", "core:dbo-policy",
+    "core:dbo-work", "core:dbo-runner", "core:dbo-stream", "core:dbo-sync",
+    "core:dbo-maintenance", "core:dbo-terminology", "core:dbo-subscriptions", "core:dbo-rest",
+    "core:dbo-scim", "core:dbo-telemetry", "core:dbo-telemetry-otlp", "core:dbo-promises",
+    "core:dbo-tenant", "core:dbo-tenant-k8s", "core:dbo-fhir-common", "core:dbo-fhir-element",
+    "core:dbo-fhir-r4", "core:dbo-fhir-r5", "core:dbo-logging", "core:dbo-verify",
+    "core:dbo-operator", "core:dbo-fleet", "karaf:commands",
+)
+
+fun reachProperty(module: String) = module.replace(':', '.').replace('-', '.') + ".reach.jar"
+
+val reachLedger by tasks.registering(JavaExec::class) {
+    group = "documentation"
+    description = "Re-records config/reach-ledger.txt from the built production jars."
+    dependsOn(tasks.named("testClasses"))
+    reachModules.forEach { dependsOn(":$it:jar") }
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("cloud.jengu.dbo.harness.ReachLedger")
+    reachModules.forEach {
+        systemProperty(
+            reachProperty(it),
+            project(":$it").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
+        )
+    }
+    args(rootProject.file("config/reach-ledger.txt").absolutePath)
+}
+
 val apiLedger by tasks.registering(JavaExec::class) {
     group = "documentation"
     description = "Re-records config/api-ledger.txt from the exported packages of every bundle."
@@ -188,6 +222,16 @@ tasks.withType<Test>().configureEach {
     // one check that would have spoken never runs.
     systemProperty("dbo.api.ledger", rootProject.file("config/api-ledger.txt").absolutePath)
     inputs.file(rootProject.file("config/api-ledger.txt"))
+    // The same, for the ledger that records what production names.
+    systemProperty("dbo.reach.ledger", rootProject.file("config/reach-ledger.txt").absolutePath)
+    inputs.file(rootProject.file("config/reach-ledger.txt"))
+    for (module in reachModules) {
+        dependsOn(":$module:jar")
+        systemProperty(
+            reachProperty(module),
+            project(":$module").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
+        )
+    }
     // Declared as an input for the same reason: a guard over a file Gradle
     // does not know about is a guard that stops running when the file changes.
     systemProperty("dbo.build.workflow",

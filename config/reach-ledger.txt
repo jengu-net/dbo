@@ -1,0 +1,36 @@
+# Production classes that no other production class names.
+#
+# GENERATED — do not edit the class list. Re-record with:
+#     ./gradlew :core:harness:reachLedger
+#
+# The REASON is yours and regeneration keeps it. A new entry arrives
+# as REASON MISSING and the build fails until somebody says which of
+# these it is:
+#
+#   an external consumer   — name them; this store's API is used
+#                            outside this repository
+#   reached by a mechanism the ledger cannot see — say which, and
+#                            prefer teaching the ledger over writing
+#                            this down
+#   NOT REACHED            — the defect this file exists to surface:
+#                            built, proven, and mounted by nothing
+#
+# Activators, SPI providers, karaf commands and main classes are
+# reachable and are not listed: they are found from the manifest,
+# from META-INF/services, from their annotations and from their own
+# signature.
+cloud.jengu.dbo.auth.SecretHashProbe                                     a test's way into a package-private verifier — SecretHash itself is reached, and widening it to test it is the worse trade
+cloud.jengu.dbo.fhir.common.ArchiveProvenance                            NOT REACHED — the FHIR rendering of an archive's attestation, and no export path builds one
+cloud.jengu.dbo.fhir.r4.R4Subscriptions                                  NOT REACHED — the R4 half of eventing; no composition root knows subscriptions exist
+cloud.jengu.dbo.fhir.r5.R5Subscriptions                                  NOT REACHED — the R5 half of eventing; no composition root knows subscriptions exist
+cloud.jengu.dbo.maintenance.ReferenceClosure                             NOT REACHED — not on a maintenance route, not a console command, not in the verifier
+cloud.jengu.dbo.promises.DboAreas                                        reached by the catalogue projection, which is build tooling rather than anything a tenant runs
+cloud.jengu.dbo.promises.DboStories                                      reached by the catalogue projection, which is build tooling rather than anything a tenant runs
+cloud.jengu.dbo.promises.Proving                                         the annotation a test cites a promise with — read by the projection, never by the runtime
+cloud.jengu.dbo.stream.StreamLane                                        NOT REACHED — the third lane carrier; nothing constructs it, so a fleet on the substrate has no door
+cloud.jengu.dbo.subscriptions.RestHookTransport                          NOT REACHED — delivery for an engine nothing mounts
+cloud.jengu.dbo.subscriptions.SubscriptionEngine                         NOT REACHED — four eventing promises read PROVEN and no tenant has ever delivered a notification
+cloud.jengu.dbo.sync.http.HttpLanes                                      an external consumer: a host that drives a tenant's replication over HTTP from its own process, which is why it is not built in this one
+cloud.jengu.dbo.tenant.k8s.SpecDirSync                                   NOT REACHED — the spec mount for a process with no ConfigMap volume, and the operator builds none
+cloud.jengu.dbo.work.Runner                                              an external consumer: the embeddable participant, built by whatever process does the work — a hospital's integration, an edge with no orchestrator
+cloud.jengu.dbo.work.WorkScopedStore                                     NOT REACHED — and the replication lane reads the manifest it would write, so a travelling run carries none of what it made
