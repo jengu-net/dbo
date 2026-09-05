@@ -94,9 +94,11 @@ public final class AuthorityHandler implements HttpHandler {
             case "urn:ietf:params:oauth:grant-type:token-exchange" ->
                     form.get("delegation_id") != null
                             ? authority.exchangeDelegation(form.get("delegation_id"),
-                                    clientId, clientSecret, form.get("scope"))
+                                    clientId, clientSecret, form.get("scope"),
+                                    form.get("purpose_of_use"))
                             : authority.exchangeToken(form.get("subject_token"),
-                                    clientId, clientSecret, form.get("scope"));
+                                    clientId, clientSecret, form.get("scope"),
+                                    form.get("purpose_of_use"));
             default -> new TenantAuthority.TokenResult.Rejected("unsupported_grant_type",
                     "unknown grant type");
         };

@@ -124,7 +124,9 @@ cloud.jengu.dbo.auth.TenantAuthority                                   ensureSig
 cloud.jengu.dbo.auth.TenantAuthority                                   evaluateGrants(String):cloud.jengu.dbo.auth.TenantAuthority.Grants
 cloud.jengu.dbo.auth.TenantAuthority                                   exchangeCode(String,String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   exchangeDelegation(String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
+cloud.jengu.dbo.auth.TenantAuthority                                   exchangeDelegation(String,String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   exchangeToken(String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
+cloud.jengu.dbo.auth.TenantAuthority                                   exchangeToken(String,String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   externalIdentityProvidersOf(String):Set
 cloud.jengu.dbo.auth.TenantAuthority                                   factorsFor(String):List
 cloud.jengu.dbo.auth.TenantAuthority                                   federation():cloud.jengu.dbo.auth.TenantAuthority.Federation
@@ -472,6 +474,7 @@ cloud.jengu.dbo.core.api.Disclosure                                    purpose()
 cloud.jengu.dbo.core.api.Disclosure                                    sealing():boolean
 cloud.jengu.dbo.core.api.Disclosure                                    set(cloud.jengu.dbo.core.api.Disclosure.Mode):void
 cloud.jengu.dbo.core.api.Disclosure                                    set(cloud.jengu.dbo.core.api.Disclosure.Mode,String):void
+cloud.jengu.dbo.core.api.Disclosure                                    statable(String):boolean
 cloud.jengu.dbo.core.api.Disclosure                                    takeMatched():String
 cloud.jengu.dbo.core.api.Disclosure                                    toSeal():void
 cloud.jengu.dbo.core.api.Disclosure.Mode                               ENCRYPTED:cloud.jengu.dbo.core.api.Disclosure.Mode
@@ -2026,6 +2029,7 @@ cloud.jengu.dbo.promises.DboPromises                                   AUTH_PASS
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_PORTABLE_AUTHORITY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_PRIVATE_SURFACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_PSEUDONYMOUS_TOKENS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   AUTH_PURPOSE_IS_STATED_PER_REQUEST:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_RECOVERY_IS_AN_OPERATOR_ACT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_ROLE_GRANTS_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_SELF_SERVICE_CHANGE:cloud.jengu.dbo.promises.DboPromises

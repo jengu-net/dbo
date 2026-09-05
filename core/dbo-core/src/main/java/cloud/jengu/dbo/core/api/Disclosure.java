@@ -124,6 +124,26 @@ public final class Disclosure {
         return mode == null ? Mode.OMIT : mode;
     }
 
+    /**
+     * Whether a purpose is one this store will carry.
+     *
+     * <p>A PurposeOfUse is a code, and this accepts the shape of one rather
+     * than a list of them: which purposes a caller may claim is the
+     * authority's judgement, and a store that shipped HL7's list would refuse
+     * the jurisdiction-local code the next deployment needs.
+     *
+     * <p>What it does refuse is anything that is not a code. The purpose is
+     * written verbatim into a signed token's claims and into an audit entry,
+     * both of which are assembled as JSON text — so a quote or a brace in it
+     * is not a strange purpose, it is a corrupted token and a trail entry that
+     * says whatever the caller wanted it to say. The one field whose whole job
+     * is to still be true a year later is the last one that may be attacker-shaped.
+     */
+    public static boolean statable(String purpose) {
+        return purpose != null && !purpose.isBlank()
+                && purpose.trim().matches("[A-Za-z0-9][A-Za-z0-9._-]{0,63}");
+    }
+
     /** What the caller said they needed it for, or null. */
     public static String purpose() {
         return PURPOSE.get();

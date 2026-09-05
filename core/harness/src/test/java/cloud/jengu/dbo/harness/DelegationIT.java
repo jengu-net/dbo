@@ -320,9 +320,82 @@ class DelegationIT {
                 "the recorded delegation caps the scope even after the grant widened");
     }
 
-    /** Revocation both ways: ending the delegation, and ending the human's role. */
+    /**
+     * A person acting through a delegation can say why they are looking.
+     *
+     * <p>The disclosure purpose rode the service grant and no other, so the
+     * caller with the most reason to state one — somebody acting as
+     * themselves — was the one that could not. Both exchange grants take it
+     * now, and the delegation record still does not: the reason belongs to
+     * the occasion, not to the standing grant.
+     */
     @Test
     @Order(4)
+    @Proving({DboPromises.AUTH_PURPOSE_IS_STATED_PER_REQUEST, DboPromises.AUTH_ON_BEHALF_OF})
+    void aDelegatedTokenCarriesTheStatedPurpose() throws Exception {
+        String live = tokenField(post(base() + "/oidc/token",
+                "grant_type=" + URLEncoder.encode("urn:ietf:params:oauth:grant-type:token-exchange",
+                        StandardCharsets.UTF_8)
+                        + "&client_id=engine&client_secret=" + ENGINE_SECRET
+                        + "&subject_token=" + humanToken
+                        + "&purpose_of_use=TREAT"), "access_token");
+        assertTrue(claimsOf(live).contains("\"purpose_of_use\":[\"TREAT\"]"),
+                "the live exchange dropped the purpose the caller sent, so a clinician "
+                        + "acting as themselves discloses under no stated reason: "
+                        + claimsOf(live));
+
+        String durable = http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/delegation"))
+                        .header("Authorization", "Bearer " + humanToken)
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "client_id=engine&scope=" + URLEncoder.encode("user/Encounter.write",
+                                        StandardCharsets.UTF_8)
+                                        + "&valid_until=" + (System.currentTimeMillis() / 1000 + 3600))).build(),
+                HttpResponse.BodyHandlers.ofString()).body()
+                .replaceAll(".*\"delegation_id\":\"([^\"]+)\".*", "$1");
+        String delegated = tokenField(post(base() + "/oidc/token",
+                "grant_type=" + URLEncoder.encode("urn:ietf:params:oauth:grant-type:token-exchange",
+                        StandardCharsets.UTF_8)
+                        + "&client_id=engine&client_secret=" + ENGINE_SECRET
+                        + "&delegation_id=" + durable
+                        + "&purpose_of_use=TREAT"), "access_token");
+        assertTrue(claimsOf(delegated).contains("\"purpose_of_use\":[\"TREAT\"]"),
+                "the durable exchange dropped it too: " + claimsOf(delegated));
+
+        // The delegation itself records no purpose: exchanging against the same
+        // record without stating one must not resurrect the last caller's reason.
+        String silent = tokenField(post(base() + "/oidc/token",
+                "grant_type=" + URLEncoder.encode("urn:ietf:params:oauth:grant-type:token-exchange",
+                        StandardCharsets.UTF_8)
+                        + "&client_id=engine&client_secret=" + ENGINE_SECRET
+                        + "&delegation_id=" + durable), "access_token");
+        assertFalse(claimsOf(silent).contains("purpose_of_use"),
+                "a delegation that remembered a purpose would assert it long after the "
+                        + "occasion passed: " + claimsOf(silent));
+    }
+
+    /**
+     * A purpose that is not a code is refused, not minted.
+     *
+     * <p>It is written verbatim into the claims JSON, so a quote in it is not
+     * an odd purpose — it is a token whose claims say whatever the caller
+     * wrote. The trail assembles the same way.
+     */
+    @Test
+    @Order(4)
+    @Proving(DboPromises.AUTH_PURPOSE_IS_STATED_PER_REQUEST)
+    void aPurposeThatIsNotACodeIsRefused() throws Exception {
+        HttpResponse<String> refused = post(base() + "/oidc/token",
+                "grant_type=client_credentials&client_id=engine&client_secret=" + ENGINE_SECRET
+                        + "&purpose_of_use=" + URLEncoder.encode(
+                                "TREAT\",\"scope\":\"system/*.write", StandardCharsets.UTF_8));
+        assertEquals(400, refused.statusCode(), refused.body());
+        assertTrue(refused.body().contains("invalid_request"), refused.body());
+    }
+
+    /** Revocation both ways: ending the delegation, and ending the human's role. */
+    @Test
+    @Order(5)
     @Proving(DboPromises.AUTH_ON_BEHALF_OF)
     void revocationIsHonouredAfterTheFact() throws Exception {
         assertEquals(200, http.send(HttpRequest.newBuilder(

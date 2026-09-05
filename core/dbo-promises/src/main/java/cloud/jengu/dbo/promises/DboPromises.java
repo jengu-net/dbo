@@ -883,6 +883,18 @@ public enum DboPromises implements Promise {
             + "attenuate; durable workflows delegate through Delegation records that "
             + "outlive tokens and are revocable by ending their period. Every delegated "
             + "mutation is attributable to both the process and the person."),
+    AUTH_PURPOSE_IS_STATED_PER_REQUEST(
+            "Why an identifying read is happening is stated on the request that makes it "
+            + "— a PurposeOfUse code in the Purpose-Of-Use header — and the request's word "
+            + "replaces any the token carries. Every grant that mints a token may also "
+            + "state one, so a person acting through a delegation states a purpose exactly "
+            + "as a service does; a delegation record carries none, because a standing "
+            + "grant naming a reason would keep asserting it after the reason lapsed. A "
+            + "purpose is an assertion and never an authorisation: it widens nothing, it "
+            + "selects the disclosing mode for the one request it rides rather than for a "
+            + "credential's lifetime, and it is what the trail records. A purpose that is "
+            + "not a code is refused rather than dropped, at the token endpoint and at the "
+            + "door alike."),
 
     // ── POL — migrated from hand-written prose (2026-08-27) ──
 

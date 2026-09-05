@@ -154,6 +154,42 @@ class APersonExercisesTheirRightsIT {
     }
 
     @Test
+    @Order(2)
+    @DisplayName("the reason rides the request rather than the credential, so the caller who "
+            + "holds no purposed token can still say what they are looking for")
+    @Proving({DboPromises.AUTH_PURPOSE_IS_STATED_PER_REQUEST, DboPromises.PDI_EXACT_RESOLUTION})
+    void theReasonCanBeStatedOnTheRequestItself() throws Exception {
+        String token = clinical();
+        String lookup = "/Patient?identifier="
+                + URLEncoder.encode(EID + "|49001010000", StandardCharsets.UTF_8);
+
+        HttpResponse<String> stated = get(lookup, token, "TREAT");
+        assertEquals(200, stated.statusCode(), stated.body());
+        assertTrue(stated.body().contains("Tamm"),
+                "the lookup was answered under a stated purpose and still came back "
+                        + "without her: " + stated.body());
+
+        // The same credential, the same second, saying nothing: still refused.
+        // A purpose that stuck to the token would have made every later read
+        // identifying too, which is the cost of carrying it on a credential.
+        assertFalse(get(lookup, token).statusCode() == 200,
+                "the purpose outlived the request that stated it, so this caller now "
+                        + "discloses identity by default for as long as the token lives");
+
+        // Not a code: refused rather than dropped. Dropping it would have
+        // answered without identity, which reads like nobody being there —
+        // the silence this store exists to refuse.
+        HttpResponse<String> malformed = get(lookup, token, "TREAT\",\"open");
+        assertEquals(400, malformed.statusCode(), malformed.body());
+
+        // Unfiltered: an identifying lookup lands as a search rather than a
+        // read, and the entry that carries the reason is the one that matched.
+        String trail = get("/AuditEvent", clinical()).body();
+        assertTrue(trail.contains("TREAT"),
+                "the read happened and the trail cannot say why it did: " + trail);
+    }
+
+    @Test
     @Order(3)
     @DisplayName("erasing somebody is its own authority: a credential that may write every "
             + "type in the clinic still may not destroy a person's key")
@@ -286,6 +322,14 @@ class APersonExercisesTheirRightsIT {
     private static HttpResponse<String> get(String path, String bearer) throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create(fhir(path)))
                         .header("Authorization", "Bearer " + bearer).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static HttpResponse<String> get(String path, String bearer, String purpose)
+            throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(fhir(path)))
+                        .header("Authorization", "Bearer " + bearer)
+                        .header("Purpose-Of-Use", purpose).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 

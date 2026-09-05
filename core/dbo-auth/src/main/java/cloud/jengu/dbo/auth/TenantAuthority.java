@@ -1191,6 +1191,15 @@ public final class TenantAuthority {
      */
     public TokenResult exchangeToken(String subjectToken, String clientId, String clientSecret,
             String requestedScope) {
+        return exchangeToken(subjectToken, clientId, clientSecret, requestedScope, null);
+    }
+
+    public TokenResult exchangeToken(String subjectToken, String clientId, String clientSecret,
+            String requestedScope, String purposeOfUse) {
+        TokenResult refused = purposeRefused(purposeOfUse);
+        if (refused != null) {
+            return refused;
+        }
         if (!clientAuthenticated(clientId, clientSecret)) {
             return new TokenResult.Rejected("invalid_client", "client authentication failed");
         }
@@ -1203,7 +1212,7 @@ public final class TenantAuthority {
             return new TokenResult.Rejected("access_denied", "no delegable scope remains");
         }
         List<String> roles = Json.strings(Json.parse(Jws.parse(subjectToken).claimsJson()), "roles");
-        return actToken(subject.get().clientId(), clientId, scopes, roles);
+        return actToken(subject.get().clientId(), clientId, scopes, roles, purposeOfUse);
     }
 
     /**
@@ -1248,6 +1257,24 @@ public final class TenantAuthority {
 
     public TokenResult exchangeDelegation(String delegationId, String clientId,
             String clientSecret, String requestedScope) {
+        return exchangeDelegation(delegationId, clientId, clientSecret, requestedScope, null);
+    }
+
+    /**
+     * @param purposeOfUse what THIS exchange says the access is for. It is the
+     *                     request's word rather than the delegation's, and the
+     *                     delegation records none: a standing grant that named
+     *                     a reason would keep asserting it long after the
+     *                     reason lapsed, and a purpose that outlives its
+     *                     occasion is the one thing an audit trail cannot
+     *                     afford to hold.
+     */
+    public TokenResult exchangeDelegation(String delegationId, String clientId,
+            String clientSecret, String requestedScope, String purposeOfUse) {
+        TokenResult refused = purposeRefused(purposeOfUse);
+        if (refused != null) {
+            return refused;
+        }
         if (!clientAuthenticated(clientId, clientSecret)) {
             return new TokenResult.Rejected("invalid_client", "client authentication failed");
         }
@@ -1270,7 +1297,24 @@ public final class TenantAuthority {
         if (scopes.isEmpty()) {
             return new TokenResult.Rejected("access_denied", "no delegable scope remains");
         }
-        return actToken(practitionerId, clientId, scopes, current.roles());
+        return actToken(practitionerId, clientId, scopes, current.roles(), purposeOfUse);
+    }
+
+    /**
+     * @return the rejection when a stated purpose is not a code, or null
+     *
+     * <p>Refused rather than dropped, which is the whole of what went wrong
+     * before: a token endpoint that quietly ignores a field the caller sent
+     * hands back a credential that looks like the one they asked for and
+     * discloses under no stated reason.
+     */
+    private static TokenResult purposeRefused(String purposeOfUse) {
+        if (purposeOfUse == null || purposeOfUse.isBlank()
+                || cloud.jengu.dbo.core.api.Disclosure.statable(purposeOfUse)) {
+            return null;
+        }
+        return new TokenResult.Rejected("invalid_request",
+                "purpose_of_use must be a PurposeOfUse code such as TREAT or PATRQT");
     }
 
     private boolean clientAuthenticated(String clientId, String clientSecret) {
@@ -1304,7 +1348,7 @@ public final class TenantAuthority {
      * would have believed it.
      */
     private TokenResult actToken(String personId, String actingClientId,
-            List<String> scopes, List<String> roles) {
+            List<String> scopes, List<String> roles, String purposeOfUse) {
         StoredObject key = activeKey().orElseThrow(() -> new IllegalStateException("no active signing key"));
         long now = System.currentTimeMillis() / 1000;
         String rolesJson = roles.isEmpty() ? "[]"
@@ -1318,6 +1362,8 @@ public final class TenantAuthority {
                 + ",\"roles\":" + rolesJson
                 + ",\"act\":{\"sub\":\"" + actingClientId + "\"}"
                 + ",\"scope\":\"" + String.join(" ", scopes) + "\""
+                + (purposeOfUse == null || purposeOfUse.isBlank() ? ""
+                        : ",\"purpose_of_use\":[\"" + purposeOfUse.trim() + "\"]")
                 + ",\"jti\":\"" + UuidV7.newId() + "\""
                 + ",\"iat\":" + now + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + "}";
         return new TokenResult.Issued(
@@ -1415,6 +1461,10 @@ public final class TenantAuthority {
      */
     public TokenResult token(String clientId, String clientSecret, String requestedScope,
             String purposeOfUse) {
+        TokenResult refused = purposeRefused(purposeOfUse);
+        if (refused != null) {
+            return refused;
+        }
         Optional<StoredObject> client = findClient(clientId);
         if (client.isEmpty()
                 || !"active".equals(field(client.get(), "status"))
