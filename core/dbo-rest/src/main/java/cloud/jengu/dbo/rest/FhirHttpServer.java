@@ -143,7 +143,13 @@ public final class FhirHttpServer implements AutoCloseable {
         String security = "\"security\":{\"service\":[{\"coding\":[{"
                 + "\"system\":\"http://terminology.hl7.org/CodeSystem/restful-security-service\","
                 + "\"code\":\"OAuth\"}]}],"
-                + "\"description\":\"Bearer JWT from this tenant's own authority (/oidc)"
+                // The header is named here because a capability a client cannot
+                // find is one it does not have — and this one is the only way a
+                // caller reads identity without a purposed token.
+                + "\"description\":\"Bearer JWT from this tenant's own authority (/oidc). "
+                + "An identifying read states its reason as a PurposeOfUse code, on the "
+                + "token as purpose_of_use or per request in the Purpose-Of-Use header, "
+                + "which wins"
                 + (policyNote != null ? "; " + policyNote : "") + "\"},";
         return capabilityJson.substring(0, at + marker.length()) + security
                 + capabilityJson.substring(at + marker.length());
@@ -267,6 +273,36 @@ public final class FhirHttpServer implements AutoCloseable {
                 respond(exchange, denial.status(),
                         store.operationOutcome("security", denial.diagnostics()));
                 return;
+            }
+            // A purpose is per-request; a token is a credential a caller holds
+            // for minutes and reuses. Carrying it only on the token made two
+            // things follow that nobody wanted: every consumer had to key its
+            // token cache by purpose, where forgetting mislabels the trail and
+            // nothing notices, and a purposed token disclosed identity on
+            // every read it made rather than on the read that needed it.
+            //
+            // So the request may say it, and its word replaces the token's:
+            // the token states a standing reason and the request states this
+            // one. Nothing is widened by saying it — the scopes above already
+            // decided what may be read, and the purpose only decides what is
+            // revealed and what the trail records.
+            //
+            // Honoured only where a guard is wired. An unauthenticated
+            // deployment still has OMIT holding, and a header that could open
+            // identity there would take away the last thing standing.
+            String stated = exchange.getRequestHeaders().getFirst("Purpose-Of-Use");
+            if (stated != null && !stated.isBlank()) {
+                if (!cloud.jengu.dbo.core.api.Disclosure.statable(stated)) {
+                    // Refused rather than ignored. Serving the request with the
+                    // purpose dropped would answer without identity, which reads
+                    // exactly like a person who is not there.
+                    respond(exchange, 400, store.operationOutcome("invalid",
+                            "Purpose-Of-Use must be a PurposeOfUse code such as TREAT "
+                                    + "or PATRQT"));
+                    return;
+                }
+                cloud.jengu.dbo.core.api.Disclosure.set(
+                        cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE, stated.trim());
             }
         }
         // The run's face: a posted Task becomes a run, and a run reads back
