@@ -53,6 +53,21 @@ import java.util.jar.JarFile;
  * and is not closed by making the ledger finer: a per-method record would list
  * most of the store and be read by nobody. It is written down here so the
  * ledger is not mistaken for a guarantee it does not make.
+ *
+ * <p><b>It asks whether something names a type, not whether a mount reaches
+ * it.</b> One level, and that is a second blind spot with a sharper edge than
+ * the first: two classes nothing else names, which name each other, each
+ * satisfy this check on the strength of the other. A whole unmounted cluster
+ * can hold itself up that way and show nothing at all, where a single
+ * unmounted class shows immediately.
+ *
+ * <p>Closing it means reachability <i>from</i> the mount points — the
+ * activators, the service providers, the main methods — rather than a
+ * reference count, which is a different and larger computation. Until then
+ * the honest reading of a clean ledger is <i>nothing is unnamed</i>, and not
+ * <i>everything is mounted</i>. Both known entries were checked by hand when
+ * this was written and neither is self-supporting: the HTTP lane is named
+ * from the fleet reader, and the stream door from the tenant runtime.
  */
 final class ReachLedger {
 
