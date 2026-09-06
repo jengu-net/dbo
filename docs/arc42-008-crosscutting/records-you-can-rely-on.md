@@ -101,6 +101,26 @@ What follows from having it as a fact:
   the stock stamped with it findable, countable and convertible. A fact about a
   past event does not become untrue when a catalogue is edited.
 
+**Beside the payload, never inside it.** The stamp is a column of state and of
+history, like the storage-format version and the chain hash, and not a value
+written into the bytes. Stored bytes stay the author's own claims, and there
+is a mechanical reason as well as a principled one: replication's dedup
+compares transport bytes verbatim, so a store-authored mark inside them would
+make identical upstream content compare unequal at every hop.
+
+**Two axes, never conflated.** The storage-format version says which format
+the bytes are held in; the stamp says which profile version the object was
+validated under. An R4-to-R5 conversion changes the bytes and no shape, and a
+profile revision changes the shape and no bytes, so a store that keeps one
+number for both breaks at the first move along either axis.
+
+**Ordering is by major, and a version with no major is refused at accept.**
+Only a major is breaking-with-converter, and converters are keyed per major
+hop, so "everything below N" and the converter registry share one rule. A
+version without a leading integer would stamp objects no bound could ever
+match — discovered mid-reshape — so it is refused when the shape arrives
+instead.
+
 ## It cannot be quietly changed
 
 **Every version is kept.** History is append-only, so the previous state of a
@@ -132,6 +152,24 @@ refusal is **its own answer**, distinguishable from a fault, a permission
 problem and a malformed request, so a consumer can gate on it. The alternative
 is worse than an error: silently serving a record under a shape the reader
 believes it understands.
+
+The check sits at the serving seam rather than at the door, and that is the
+whole design. An authored write cannot carry a newer stamp, because accept
+strips and re-stamps. The paths that can — replication apply, restore —
+bypass the face entirely and must not grow package knowledge to compensate.
+Every arrival path converges at serving, so one rule covers all of them,
+including lanes not yet invented. The honest consequence: **too-new data can
+be stored; it cannot be read.** And the refusal covers the whole answer, never
+part of one: a page is checked before its first byte, because a refusal that
+arrives mid-document is a success status with a truncated body — the exact
+half-answer the rule exists to prevent.
+
+**A converter moves a shape and never an identity.** It is keyed by a hop
+between two versions of one canonical, because a breaking shape keeps its
+canonical and bumps its version. A converted record therefore still claims
+the profile it always claimed, under a newer stamp. Converters resolved from
+a package are the tenant's content, like the package itself; a converter held
+in shared machinery would answer "none" about maps the tenant is holding.
 
 **Reshape converts stock in place**, and it is an ordinary operation rather than
 a migration event:
@@ -170,6 +208,13 @@ payload.
 **Conformance is a fact about the past, so the store accumulates stamped
 stock.** Somebody has to run reshape, and stock stamped with a withdrawn version
 stays visible until they do — which is the honest state rather than a tidy one.
+
+**A major bump is a reshape, not a two-release cadence.** Writing stock ahead
+at the next shape while still serving the current one, and converting down on
+read, would let a flip gate on nothing. The registry keeps room for the
+round-trip property that needs and implements none of it: it becomes work when
+a consumer's release cadence actually calls for it, and deferring it has been
+right every time so far.
 
 **Identity has to be declared per type before the type is useful.** There is no
 "work it out from the data" mode, and that is deliberate: the mode that guesses

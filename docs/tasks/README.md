@@ -91,7 +91,6 @@ can tell a wait from a stall. Close the table with the critical path, so
 |---|---|---|
 | [Going public](going-public.md) | not started; CI has no runner and nowhere to publish | [#199](https://github.com/jengu-net/dbo/issues/199) |
 | [Medplum → dbo](medplum-to-dbo.md) | the store's answers are delivered; the migration is the consumer's and is tracked there | none open here |
-| [Data versioning](data-versioning.md) | store side delivered and closed; closes by promotion into the concept docs | none open here |
 | [The face contract](face-contract.md) | one slice open, and the document closes with it | [#112](https://github.com/jengu-net/dbo/issues/112) |
 | [IHE profiles the store should serve](ihe-profiles.md) | analysis only; SVCM next | none filed |
 | [The tenant lifecycle](tenant-lifecycle.md) | built; the queue is gone and change is a transition, not a retraction — open on the consumer half | [#188](https://github.com/jengu-net/dbo/issues/188) |
