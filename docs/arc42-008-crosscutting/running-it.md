@@ -170,6 +170,10 @@ and the accounting live in one place for every model — where a consumer runnin
 the same loop over the API would rebuild all of it per runner, outside the store
 that owns history and identity.
 
+Whether a model can express its converters *as data* is a fact about the
+model. FHIR can, so the FHIR face runs package-shipped maps in process; a model
+that cannot uses the hand-back lane, and the same loop accounts for both.
+
 Verification is the inventory it already reports: shape counts before and after,
 diffed. A verification that read every record would be a second full copy of the
 data, performed to check the first one.
