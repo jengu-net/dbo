@@ -32,6 +32,37 @@ schema is already current instead of replaying a changelog to find out. A store
 that took thirty seconds to start would be a store consumers mocked, and a
 mocked store is one whose real behaviour is discovered late.
 
+### Inside somebody else's OSGi framework, the host owns logging
+
+The distribution installs one logging arrangement: slf4j-api as a shared
+bundle, `dbo-logging` as the binding behind it, SPI-Fly mediating the
+ServiceLoader lookup. That is the arrangement for a framework this store
+stands up itself, where nothing else provides slf4j.
+
+**A host that already provides slf4j keeps its own, and installs neither of
+ours.** Two providers of `org.slf4j` in one framework is not a posture, it is a
+race decided by version comparison, and the loser is not the one that fails —
+it is the one whose binding is not behind the winner. The bundles then resolve,
+components activate, work proceeds, and every line written inside the framework
+goes to a facade with nothing behind it. That state is not quiet, it is
+inaudible, and from outside the two are identical.
+
+**What such a host has to export is the whole slf4j API**, which is four
+packages and not one: `org.slf4j`, `org.slf4j.event`, `org.slf4j.spi` and
+`org.slf4j.helpers`. Withholding the last two to keep a binding private does
+not do that and cannot — the binding is a *service*, found through
+`ServiceLoader`, so hiding the package hides nothing. What it does instead is
+break the class space: `Logger` itself references three classes in
+`org.slf4j.spi`, because `atInfo()` and its siblings return a builder that
+lives there, and `LoggerFactory` references six in `org.slf4j.helpers`. An
+API-only export is not a smaller slf4j. It is one that throws at the first
+fluent call.
+
+So the store's bundles import all four, by range, and resolve against any host
+that exports a coherent slf4j 2.x. The ranges are the part that makes a
+mismatch legible: an unversioned import wires to whatever is there, which is
+how a second slf4j goes unnoticed for as long as nobody misses the logs.
+
 ## How a deployment is shaped
 
 **Requests enter at the closest public node and are then routed to the pod
