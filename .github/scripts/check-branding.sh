@@ -26,11 +26,15 @@ allow+='|id\.set\("jengu"\)'       # the POM developer id
 allow+='|`jengu` organisation'     # the Docker Hub org, in prose
 allow+='|JenguRepo'                # the publishing repository's Gradle name
 allow+='|jengu\.repo\.'             # its credential properties
-allow+='|check-branding'           # this file
+allow+='|check-branding'           # prose that names this check
 
+# The allowlist is matched against the LINE, after the path and line number,
+# never against the path. Every Java source sits under cloud/jengu/dbo, so a
+# path match would allow anything a Java file says — and did, for a test
+# fixture that named a sibling repository.
 if hits=$(grep -rniE 'jengu' \
-        --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
-        . 2>/dev/null | grep -vE "$allow"); then
+        --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle --exclude-dir=.claude --exclude=check-branding.sh \
+        . 2>/dev/null | grep -vE "^[^:]+:[0-9]+:.*($allow)"); then
     echo "Unexpected jengu references — neutralise them or add them to the allowlist:" >&2
     echo "$hits" >&2
     exit 1

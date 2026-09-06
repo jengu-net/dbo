@@ -28,7 +28,7 @@ class ContributedAuditEventTest {
              "action":"E",
              "recorded":"2001-01-01T00:00:00Z",
              "agent":[{"who":{"display":"Albus Dumbledore"},"requestor":true}],
-             "source":{"site":"hogwarts","observer":{"display":"jengu-platform"}},
+             "source":{"site":"hogwarts","observer":{"display":"owl-post"}},
              "entity":[{"what":{"reference":"Organization/abc"}}],
              "extension":[{"url":"https://jengu.cloud/ext/audit-received-at",
                            "valueInstant":"2026-08-21T10:00:00Z"}]}""";
@@ -63,7 +63,7 @@ class ContributedAuditEventTest {
         assertTrue(rendered.contains("tenant.secret.rotated"), rendered);
         assertTrue(rendered.contains("\"site\":\"hogwarts\""),
                 "source.site is the poster's and comes back: " + rendered);
-        assertTrue(rendered.contains("jengu-platform"),
+        assertTrue(rendered.contains("owl-post"),
                 "the poster's observer is not replaced by dbo: " + rendered);
         assertTrue(rendered.contains("https://jengu.cloud/ext/audit-received-at"),
                 "extensions survive: " + rendered);

@@ -10,8 +10,8 @@ step 10 deliberately did not build: the automation switch, and a preview that
 classifies without applying. The topic stays open on the consumer half.
 
 **Issues** — [#188](https://github.com/jengu-net/dbo/issues/188) (the tenant
-queue, which is the symptom this document reframes). Consumer half:
-[platform#965](https://github.com/jengu-net/jengu-platform/issues/965).
+queue, which is the symptom this document reframes). The consumer half has
+its own issue in the consuming platform's tracker.
 
 **Concepts** —
 [processes and work](../arc42-008-crosscutting/processes-and-work.md) ·

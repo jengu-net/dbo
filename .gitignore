@@ -12,3 +12,6 @@ karaf/dev/local.properties
 bin/main/
 bin/test/
 bin/.gitignore
+
+# Per-machine assistant settings; they name paths outside this repository.
+.claude/settings.local.json

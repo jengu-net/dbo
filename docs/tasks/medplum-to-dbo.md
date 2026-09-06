@@ -1,16 +1,14 @@
 # Medplum → dbo
 
-**Status** — active, and the largest thing in flight. The store side keeps
-delivering the pieces the cutover needs; the consumer side is mid-migration.
+**Status** — active on the consumer's side; this side answers. Everything the
+cutover has asked of the store so far is delivered, and what remains open here
+is the trail of traps it left.
 
-**Issues** — [platform#851](https://github.com/jengu-net/jengu-platform/issues/851)
-(epic) · open pre-actions:
-[#852](https://github.com/jengu-net/jengu-platform/issues/852) (the store seam) ·
-recently served from this side:
-[#910](https://github.com/jengu-net/jengu-platform/issues/910) (SCIM),
+**Issues** — none open on this side. Served:
 [#136](https://github.com/jengu-net/dbo/issues/136) (exact identifier
 resolution), [#143](https://github.com/jengu-net/dbo/issues/143) (SCIM served
-per tenant)
+per tenant). The migration itself is tracked by the consuming platform, in its
+own task document.
 
 **Concepts** — [data isolation](../arc42-008-crosscutting/data-isolation.md) ·
 [who may act](../arc42-008-crosscutting/who-may-act.md) ·
@@ -33,26 +31,23 @@ times now: they describe the operation that stalled, we find the answer is
 either already present and unexposed, or belongs inside the membrane rather
 than through it.
 
-- **Staff provisioning** — SCIM 2.0 is now served per tenant from the store
+- **Staff provisioning** — SCIM 2.0 is served per tenant from the store
   (#143), so the enumeration a provisioning API needs never crosses the
-  membrane. The consumer's ~380-line mapping controller becomes a
-  gate-and-forward proxy.
+  membrane. Their mapping controller becomes a gate-and-forward proxy.
 - **Identifier resolution** — exact resolution through the vault is exposed as
   the standard FHIR search spelling (#136), not a new primitive.
-- **Data versioning** — see [its own topic](data-versioning.md).
-- **The store seam is built and the cloud lane is done** on the consumer's
-  `main`: zero Medplum store sources in their production wiring (from
-  fifteen), and their `integrationTest` runs against dbo. What remains on
-  their side are identity offshoots (platform#912/#914) rebuilt on the
-  membrane rather than ported.
-- **The edge appliance is its own consumer-side task now**:
-  [platform#917](https://github.com/jengu-net/jengu-platform/issues/917),
-  `docs/tasks/edge-appliance-on-dbo.md` over there. Per the participation
-  doctrine in
-  [processes and work](../arc42-008-crosscutting/processes-and-work.md), the edge
-  runs dbo in-JVM as a second appliance of the same tenant. Everything it needs
-  from this side is delivered — the batch/apply toolset and the credential half
-  of reach among it — so a stall here is now a question about their half.
+- **Data versioning** — the store's half is delivered and is described in
+  [records you can rely on](../arc42-008-crosscutting/records-you-can-rely-on.md).
+- **The edge appliance** — per the participation doctrine in
+  [processes and work](../arc42-008-crosscutting/processes-and-work.md), the
+  edge runs dbo in-JVM as a second appliance of the same tenant. Everything it
+  needs from this side is delivered — the batch/apply toolset and the
+  credential half of reach among it — so a stall there is a question about the
+  consumer's half.
+
+Where the consumer's own cutover stands — which lanes are on the seam, which
+are rebuilt rather than ported — is theirs to say, and they say it in their
+own task document rather than here.
 
 ## Decisions
 
@@ -68,7 +63,7 @@ this file:
 - a store-visible feature is a decision rather than an accident —
   [data isolation](../arc42-008-crosscutting/data-isolation.md).
 
-What remains in this document — where the cutover stands, and the traps it has
+What remains in this document — what the store has answered, and the traps it
 found — is this migration's own, and goes when it closes.
 
 ## Traps
