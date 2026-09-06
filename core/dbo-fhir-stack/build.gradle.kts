@@ -182,11 +182,24 @@ tasks.jar {
                     // reaches the fluent builder in org.slf4j.spi the first
                     // time HAPI logs, and importing one package of a library
                     // whose classes reference the others fails at that call
-                    // rather than at resolution.
-                    "org.slf4j",
-                    "org.slf4j.spi",
-                    "org.slf4j.event",
-                    "org.slf4j.helpers",
+                    // rather than at resolution. It is not a choice about
+                    // depth — `Logger` itself references three classes in
+                    // org.slf4j.spi and `LoggerFactory` six in
+                    // org.slf4j.helpers, so a host exporting `org.slf4j` alone
+                    // is not offering less of slf4j, it is offering a class
+                    // space that breaks at the first `atInfo()`.
+                    //
+                    // RANGED, because every other import here is a JDK package
+                    // that carries no version and this one is a library. An
+                    // unversioned import wires to whatever the framework
+                    // happens to hold, which is how a second slf4j — a host's,
+                    // at a different version, with a different binding behind
+                    // it — gets wired in without anything saying so. The
+                    // symptom is silence, and silence is what nobody reports.
+                    "org.slf4j;version=\"[2.0,3)\"",
+                    "org.slf4j.spi;version=\"[2.0,3)\"",
+                    "org.slf4j.event;version=\"[2.0,3)\"",
+                    "org.slf4j.helpers;version=\"[2.0,3)\"",
                     "javax.naming;resolution:=optional",
                     "javax.naming.spi;resolution:=optional",
                     "javax.management;resolution:=optional",
