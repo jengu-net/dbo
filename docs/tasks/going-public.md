@@ -1,6 +1,6 @@
 # Going public
 
-**Status** · not started; CI has no runner since 2026-09-06
+**Status** · building on GitHub-hosted runners since 2026-09-07; nowhere to publish jars until the host is rebuilt
 **Issues** · [#199](https://github.com/jengu-net/dbo/issues/199)
 **Concepts** · [RELEASING.md](../../RELEASING.md), [the branding ratchet](../../.github/scripts/check-branding.sh), [working rules](../arc42-002-constraints/working-rules.md)
 
@@ -28,10 +28,9 @@ depend on each other, and this document carries them together.
 
 ## Where it stands
 
-- **Done:** nothing. The last green run was
-  2026-09-06 05:57 UTC, on a runner that has since gone offline.
-- **Next:** move the workflow to GitHub-hosted runners (step 1). Nothing else is
-  possible while `main` cannot build.
+- **Done:** step 1. `main` builds on GitHub-hosted runners as of 2026-09-07,
+  and images reach GHCR.
+- **Next:** steps 5 and 6, in parallel with the infrastructure work.
 - **Blocked on:** `repo.jengu.cloud` existing again, owned by the infrastructure repository.
   Until then `publish` and `images` fail for every push, and Hetzner
   production cannot receive a new image.
@@ -40,9 +39,9 @@ depend on each other, and this document carries them together.
 
 | # | Step | Status |
 |---|---|---|
-| 1 | **GitHub-hosted runners.** Every `runs-on: self-hosted` becomes `ubuntu-latest`: GitHub's own machines, unmetered for a public repository. The suite needs Docker for Testcontainers and a privileged container for k3s; hosted Ubuntu has both. The `dependencies` job exists only because hosted runners were not in use, so it goes and the organisation's automatic dependency submission is switched back on. Proven by one green run of the whole workflow, images job included, before anything else moves. | NEXT |
+| 1 | **GitHub-hosted runners.** Every `runs-on: self-hosted` became `ubuntu-latest`: GitHub's own machines, unmetered for a public repository. The suite needs Docker for Testcontainers and a privileged container for k3s; hosted Ubuntu has both. The `dependencies` job existed only because hosted runners were not in use, so it went; the organisation's automatic dependency submission has to be switched back on in the repository's code-security settings, by hand. Proven by one green run of the whole workflow, images job included. | **DONE** 2026-09-07 — the first hosted run was green: suite in eighteen minutes, both architectures of all three images on GHCR in four, publish skipped for want of a host |
 | 2 | **`repo.jengu.cloud` on Hetzner production.** Zot and the nginx Maven tree from the infrastructure repository's bootstrap tree, in the cluster behind the Traefik route that already terminates the name. The Maven halves and the platform's OBR index tree are re-publishable from CI, and the OBR index is valid wherever the tree is served because its URLs are relative to the root. The `models` tree is not: the PII model is fetched by the platform at runtime, in production, and has to come from a backup or from the Synology's disk. | BLOCKED by the Synology's disk being reachable for `models`, owner: the infrastructure repository |
-| 3 | **The workflow talks to the rebuilt repository over TLS.** `REGISTRY` becomes `repo.jengu.cloud`, the plain-HTTP buildx block goes, and the reachability probe stays. New credentials for both halves, so the two systems stop sharing one secret. | READY, needs 2 |
+| 3 | **The workflow talks to the rebuilt repository.** Set `ARTIFACT_HOST` to the host; the workflow already speaks TLS to it and probes it before building. New credentials for both halves, so the two systems stop sharing one secret. | READY, needs 2 |
 | 4 | **Hetzner production pins an image that exists.** The overlays pin `main-<sha>`; the rebuilt registry is empty. Either re-run `images` for the pinned commit or bump the pin to the first push that lands. | READY, needs 3 |
 | 5 | **Neutralise what the ratchet cannot see.** RFC 1918 addresses in `bench/` and `docs/plans/load-comparison.md`, the `mini` hostname, the LAN registry in the workflow. Then the check refuses private addresses, so they cannot regrow. The sibling-repository sweep is done (2026-09-06): the tree outside `docs/tasks/` is clean, and the one fixture the ratchet missed is renamed. The platform halves of two task documents moved to the platform on 2026-09-06, so `docs/tasks/` points only at this tracker. What is left is the addresses. | READY |
 | 6 | **History review.** A secrets scanner over all 588 commits, and a read of the first day's `initial import` for anything that came from elsewhere. The quick pattern scan found nothing, which is a reason to run the real one rather than a result. | READY |
@@ -65,6 +64,16 @@ have URLs baked into production runtime configuration and into a workflow that
 proves a stranger can build against the driver SPI. And Hetzner already
 terminates `repo.jengu.cloud`, so consumers change nothing: the cut-over is a
 route pointing at an in-cluster service instead of across a VPN.
+
+**The fleet's own artifact host is one optional variable.** `ARTIFACT_HOST`
+names the host that serves the Maven tree and the container registry; unset,
+the jar publish is skipped and images go to the public registries only.
+Skipped rather than failed, because a destination that does not exist yet is
+a known state, and a red X on every push for a known state teaches people to
+ignore red Xs. GHCR is the primary image destination and always exists, so
+the fleet registry is the third tag of the same build rather than a separate
+push that goes first. When the host comes back, setting the variable is the
+whole cut-over on this side.
 
 **GitHub-hosted runners, not new self-hosted ones.** The self-hosted runner existed
 for a minute budget that public repositories do not have. It also carried the
@@ -95,6 +104,8 @@ unproven at the same time.
 
 **The runner is gone, and nothing says so.** A push to `main` queues and sits.
 No red X, no failed job. The organisation's runner list is where the truth is.
+And a run that queued for the missing runner holds the concurrency group, so
+the first hosted run sat pending behind it until it was cancelled by hand.
 
 **`gradle.properties` is dialled for a machine that no longer exists.** Its
 comment sizes the test heap against a 2500m runner container. Hosted runners
@@ -110,10 +121,6 @@ content.
 against the whole grep line, path included, and every Java source sits under
 `cloud/jengu/dbo`. A test fixture naming a sibling repository passed for
 months. The allowlist now matches the line after its path and number.
-
-**The registry probe assumes plain HTTP.** It curls `http://` and treats any
-answer as reachable. After step 3 it has to speak TLS or it fails on a
-registry that is up.
 
 **A shared secret opens two systems.** `NEXUS_USERNAME` and `NEXUS_PASSWORD`
 authenticate to both the Maven tree and the container registry. RELEASING.md
