@@ -456,5 +456,5 @@ participant without anybody installing a substrate there.
   above in its precise form and name the test for it.
 - **Why neutrality is the point**, and where a store shaped like this is worth
   building for an industry that is not this one —
-  [a neutral repository for a competing industry](../plans/ifc-repository.md) and
-  [where a neutral store earns its keep](../plans/neutral-exchange-domains.md).
+  [a neutral repository for a competing industry](https://github.com/jengu-net/dbo/blob/main/docs/plans/ifc-repository.md) and
+  [where a neutral store earns its keep](https://github.com/jengu-net/dbo/blob/main/docs/plans/neutral-exchange-domains.md).

@@ -27,7 +27,7 @@ the verifier must run where nothing else of ours does.
 `karaf/commands` reads runs and the step catalogue from inside a running
 node. It binds tenant-plane services from the registry, which a shipped
 console must not do, and it is kept out of the serving distribution for
-exactly that reason. See [the console plan](../plans/karaf-console.md).
+exactly that reason. See [the console plan](https://github.com/jengu-net/dbo/blob/main/docs/plans/karaf-console.md).
 
 ## The layering, as the build enforces it
 

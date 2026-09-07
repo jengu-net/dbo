@@ -162,7 +162,7 @@ Coverage: {PROVEN=49} — a leg marked PLANNED cites a promise that exists and i
   eventing promises. The engine behind them is complete and tested, and
   nothing in a running container constructs it, so no tenant has ever
   delivered a notification. That is a topic of its own
-  ([eventing is unreachable](../../tasks/eventing-is-unreachable.md)), and
+  ([eventing is unreachable](https://github.com/jengu-net/dbo/blob/main/docs/tasks/eventing-is-unreachable.md)), and
   until it lands the joins table below overstates this leg.
 - **Search is tier 1.** Typed per-parameter partitions, and everything that
   needs them, are specified and not built. The store refuses what it cannot

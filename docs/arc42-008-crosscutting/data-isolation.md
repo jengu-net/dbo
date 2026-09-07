@@ -221,5 +221,5 @@ pseudonymous, unlinkable records.
   of [processes and work](processes-and-work.md).
 - **Why an operator that cannot read the data is the point**, commercially as
   well as legally — [where a neutral store earns its
-  keep](../plans/neutral-exchange-domains.md), whose last condition is that the
+  keep](https://github.com/jengu-net/dbo/blob/main/docs/plans/neutral-exchange-domains.md), whose last condition is that the
   operator can be paid without monetising what flows through.
