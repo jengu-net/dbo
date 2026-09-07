@@ -105,7 +105,10 @@
   @media (max-width:640px){
     .hero{padding:52px 0 44px}
     section{padding:48px 0}
-    nav{gap:16px; font-size:14px}
+    /* The tagline goes rather than wrapping under the wordmark and pushing
+       the nav into two crowded lines; the header has one job on a phone. */
+    .mark span{display:none}
+    nav{gap:15px; font-size:13.5px}
   }
 </style>
 </head>
