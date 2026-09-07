@@ -132,6 +132,40 @@ jobs:
       image_tag: ${{ steps.version.outputs.image_tag }}
       is_release: ${{ steps.version.outputs.is_release }}
 
+  dependencies:
+    # The dependency graph, submitted by a job rather than by GitHub's own
+    # "Automatic Dependency Submission".
+    #
+    # Both mechanisms can be on at once and only one of them can work. This
+    # job was removed and the automatic one enabled on 2026-09-07; three of
+    # its runs then succeeded, said "successfully uploaded", and changed
+    # nothing — the graph stayed on the snapshot THIS job last submitted, and
+    # every Dependabot security update failed against packages that were no
+    # longer there. A snapshot is superseded only by another under the same
+    # correlator, which is the workflow and job name, so nothing but this job
+    # can replace what this job wrote.
+    #
+    # Keep exactly one of the two. If the automatic one is ever preferred
+    # again, this job has to run once more first, or its snapshot outlives it.
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Minutes, not hours: it resolves a graph and posts it.
+    timeout-minutes: 20
+    # writing the snapshot to the dependency graph is a write, and the
+    # repository's default token is read-only
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      # After the suite rather than beside it: resolving every configuration
+      # across a composite build is real work.
+      - uses: gradle/actions/dependency-submission@v4
+
   publish:
     needs: build
     # Never on pull_request, and never without a repository to publish to.
