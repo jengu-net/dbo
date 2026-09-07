@@ -34,7 +34,7 @@ dependencies {
     runtimeOnly(project(":core:dbo-logging"))
     // the JDBC driver must be on the runtime classpath — the operator is a
     // standalone process, nothing else supplies it
-    runtimeOnly("org.postgresql:postgresql:42.7.11")
+    runtimeOnly("org.postgresql:postgresql:42.7.12")
     api(project(":core:dbo-tenant"))
     // the k8s naming contract + secret-backed provisioner live in the
     // tenant-k8s bundle module; as a plain jar we use its classes directly

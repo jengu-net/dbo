@@ -92,7 +92,7 @@ dependencies {
     testImplementation("org.osgi:osgi.core:8.0.0")
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
     testImplementation("org.testcontainers:testcontainers-k3s:2.0.5")
-    testImplementation("org.postgresql:postgresql:42.7.11")
+    testImplementation("org.postgresql:postgresql:42.7.12")
     testImplementation("org.slf4j:slf4j-api:2.0.18")
     // slf4j-api declares Require-Capability osgi.extender=osgi.serviceloader.processor.
     // SPI-Fly is that extender: a framework extension that lets a bundle's
