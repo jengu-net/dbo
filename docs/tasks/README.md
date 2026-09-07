@@ -89,7 +89,7 @@ can tell a wait from a stall. Close the table with the critical path, so
 
 | topic | status | issues |
 |---|---|---|
-| [Going public](going-public.md) | building on hosted runners; nowhere to publish jars until the host is rebuilt | [#199](https://github.com/jengu-net/dbo/issues/199) |
+| [Going public](going-public.md) | public; GHCR packages still to be made public by hand; jars wait on the rebuilt host | [#199](https://github.com/jengu-net/dbo/issues/199) |
 | [Medplum → dbo](medplum-to-dbo.md) | the store's answers are delivered; the migration is the consumer's and is tracked there | none open here |
 | [The face contract](face-contract.md) | one slice open, and the document closes with it | [#112](https://github.com/jengu-net/dbo/issues/112) |
 | [IHE profiles the store should serve](ihe-profiles.md) | analysis only; SVCM next | none filed |
