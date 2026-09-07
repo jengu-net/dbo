@@ -29,6 +29,11 @@ dependencies {
     // hapi-fhir-validation drags in the whole engine, structures-r5 included;
     // structures-r4 is the one adapter it does not pull for itself.
     embedded("ca.uhn.hapi.fhir:hapi-fhir-validation:$hapi")
+    // HAPI pulls OpenTelemetry's instrumentation annotations, and with
+    // them an api below its advisory. Raised here, not added.
+    constraints {
+        embedded("io.opentelemetry:opentelemetry-api:1.62.0")
+    }
     embedded("ca.uhn.hapi.fhir:hapi-fhir-structures-r4:$hapi")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-caching-caffeine:$hapi")
     // Needed by the HL7 engine and declared by nobody who reaches this graph:

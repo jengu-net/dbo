@@ -17,6 +17,11 @@ dependencies {
     // an exhausted delivery is a run, not a private table
     api(project(":core:dbo-work"))
     embedded("dev.dbos:transact:1.0.0")
+    // DBOS carries Jackson 3, and 1.0.0 is the current release: its
+    // next version is a milestone, so the version moves here instead.
+    constraints {
+        embedded("tools.jackson.core:jackson-databind:3.2.1")
+    }
     // slf4j-api is SHARED, not embedded: one binding for the whole
     // runtime instead of a private one per bundle. compileOnly because
     // it resolves from the slf4j-api bundle at runtime.

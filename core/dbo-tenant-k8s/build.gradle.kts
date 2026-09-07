@@ -14,7 +14,14 @@ configurations.implementation.get().extendsFrom(embedded)
 dependencies {
     api(project(":core:dbo-tenant"))
     compileOnly("org.osgi:osgi.core:8.0.0")
-    embedded("io.fabric8:kubernetes-client:7.3.1")
+    // fabric8 defaults its transport to Vert.x, which pins the whole netty
+    // family and drags both into this bundle. Nothing here speaks either: the
+    // JDK's own HttpClient is a supported fabric8 transport and depends on
+    // nothing, so the transport is chosen rather than inherited.
+    embedded("io.fabric8:kubernetes-client:7.9.0") {
+        exclude(group = "io.fabric8", module = "kubernetes-httpclient-vertx")
+    }
+    embedded("io.fabric8:kubernetes-httpclient-jdk:7.9.0")
     embedded("com.zaxxer:HikariCP:7.1.0")
     // slf4j-api is SHARED, not embedded: one binding for the whole
     // runtime instead of a private one per bundle. compileOnly because

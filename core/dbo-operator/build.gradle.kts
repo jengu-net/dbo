@@ -39,5 +39,12 @@ dependencies {
     // the k8s naming contract + secret-backed provisioner live in the
     // tenant-k8s bundle module; as a plain jar we use its classes directly
     api(project(":core:dbo-tenant-k8s"))
-    api("io.fabric8:kubernetes-client:7.3.1")
+    // fabric8 defaults its transport to Vert.x, which pins the whole netty
+    // family and drags both into this bundle. Nothing here speaks either: the
+    // JDK's own HttpClient is a supported fabric8 transport and depends on
+    // nothing, so the transport is chosen rather than inherited.
+    api("io.fabric8:kubernetes-client:7.9.0") {
+        exclude(group = "io.fabric8", module = "kubernetes-httpclient-vertx")
+    }
+    runtimeOnly("io.fabric8:kubernetes-httpclient-jdk:7.9.0")
 }

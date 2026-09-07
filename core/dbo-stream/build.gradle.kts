@@ -17,6 +17,11 @@ dependencies {
     // the verbs, encoded once: this bundle is a carrier, not a second lane
     api(project(":core:dbo-runner"))
     embedded("dev.dbos:transact:1.0.0")
+    // DBOS carries Jackson 3, and 1.0.0 is the current release: its
+    // next version is a milestone, so the version moves here instead.
+    constraints {
+        embedded("tools.jackson.core:jackson-databind:3.2.1")
+    }
     compileOnly("org.slf4j:slf4j-api:2.0.18")
 }
 

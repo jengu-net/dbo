@@ -4,5 +4,5 @@
 
 dependencies {
     api(project(":core:dbo-core"))
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.1")
 }

@@ -17,7 +17,7 @@ dependencies {
     testImplementation(project(":core:dbo-fhir-r5"))
     testImplementation(project(":core:dbo-rest"))
     testImplementation(project(":core:dbo-terminology"))
-    testImplementation("org.postgresql:postgresql:42.7.4")
+    testImplementation("org.postgresql:postgresql:42.7.11")
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
