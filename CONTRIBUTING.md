@@ -30,6 +30,10 @@ that break.
 
 A container runtime is required. The suite starts what it needs.
 
+A pull request from a fork runs the same suite on GitHub's runners, with no
+secrets and a read-only token: nothing is published and no image is built
+from it. That is what makes a stranger's pull request safe to run at all.
+
 `./verify` is two Gradle invocations with the daemon stopped between them,
 because a full build and the distribution test cannot share one daemon on a
 developer machine: the dist test boots the shipped distribution as a second
