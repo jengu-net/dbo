@@ -82,4 +82,17 @@ if hits=$(grep -rnE 'ADR [0-9]{3,4}' \
     exit 1
 fi
 
+# A private address is a fact about somebody's network, not about the store.
+# The bench once defaulted to a Pi on a home LAN and the workflow to a
+# registry beside it; both networks are gone and the addresses stayed in the
+# tree for a while after. A machine is named by the environment or a flag, and
+# a document names it by role. Loopback is fine: it means "this machine".
+if hits=$(grep -rnE '(^|[^0-9.])(10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|192\.168\.[0-9]{1,3}\.[0-9]{1,3}|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3})([^0-9.]|$)|koduservu' \
+        --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle --exclude-dir=.claude \
+        --exclude=check-branding.sh . 2>/dev/null); then
+    echo "Private addresses found — name the machine by role, or take it from the environment:" >&2
+    echo "$hits" >&2
+    exit 1
+fi
+
 echo "branding: clean"
