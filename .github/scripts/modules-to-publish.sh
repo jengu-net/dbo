@@ -21,7 +21,7 @@
 # nobody knowing why.
 set -uo pipefail
 
-BASE="${DBO_REPO_BASE:-https://repo.jengu.cloud/repository/maven-snapshots}"
+BASE="${DBO_REPO_BASE:-https://${DBO_REPO_HOST:-repo.jengu.cloud}/repository/maven-snapshots}"
 GROUP_PATH="cloud/jengu/dbo"
 tasks=()
 unchanged=()

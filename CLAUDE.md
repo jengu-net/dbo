@@ -86,9 +86,9 @@ elements inside the payload, and a search URL carries `identifier=system|value`
 
 Artifacts go to the project's own public Maven repository. Maven Central is
 configured and unused, blocked on artifact size — see
-[RELEASING.md](RELEASING.md). Images go to the fleet registry first and on
-their own, because deployments update from it; public registries are a
-best-effort second step.
+[RELEASING.md](RELEASING.md). Images go to GHCR always, and to the fleet's
+own registry when the repository variable `ARTIFACT_HOST` names one; while
+it is unset the jar publish is skipped rather than failed.
 
 `.github/scripts/check-branding.sh` is a ratchet: `jengu` is allowed only as a
 deliberate coordinate, and issue references are forbidden because a reader of

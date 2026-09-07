@@ -54,7 +54,9 @@ GHCR needs nothing — `GITHUB_TOKEN` covers it, and the images land under the
 repository's own namespace.
 
 Docker Hub is a mirror and is **optional**: without its secrets the job skips
-those tags and pushes only to GHCR and the LAN registry.
+those tags. So is the fleet's own registry: it is pushed to only when the
+repository variable `ARTIFACT_HOST` names the host that serves it, and the
+same variable is what turns the jar publish on.
 
 | Secret | Value |
 |---|---|
