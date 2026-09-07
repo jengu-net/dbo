@@ -66,7 +66,7 @@ public final class TenantOperator implements AutoCloseable {
     /**
      * @param tenantJdbcUrlBase the JDBC url prefix pods should use to reach
      *                          the instance, ending before the database name
-     *                          (e.g. {@code jdbc:postgresql://10.0.0.2:5432/})
+     *                          (e.g. {@code jdbc:postgresql://postgres.internal:5432/})
      *                          — the operator's own admin url may differ
      *                          (different network vantage point).
      */

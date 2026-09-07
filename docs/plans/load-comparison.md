@@ -121,7 +121,7 @@ Both settled and inspected, not assumed.
 
 | | Bench Pi | Driver |
 |---|---|---|
-| Address | `192.168.1.128` | `mini`, `192.168.1.12` |
+| Address | `BENCH_PI`, as `matrix.sh` reads it | `BENCH_DRIVER`, likewise |
 | Machine | Raspberry Pi 5 Model B rev 1.0, 8 GB | macOS 26.4 arm64, 8 cores, 8 GB |
 | OS | Alpine 3.22.5, **booted from NVMe** | |
 | Storage | `/dev/nvme0n1p7` on `/data`, 190 GB free | |
@@ -143,7 +143,7 @@ written for and **wrong for this test**: at 50 threads the driver is itself a
 substantial load, and a Pi 5 has four cores it would be taking from the server
 under test.
 
-So: **the driver runs off-box on `mini`**, and the plan pays the cost of that
+So: **the driver runs off-box, on the driver Mac**, and the plan pays the cost of that
 honestly by measuring the floor — a null-endpoint baseline run
 that proves the 1 GbE link and the driver are not the limit at the offered
 rate. If the floor is close to the measured rate, the run is invalid for the
@@ -241,7 +241,7 @@ wall clock**. The 200 k row is four times the work and runs at one repetition.
 
 | Phase | Deliverable | Gate |
 |---|---|---|
-| 0 | JDK on `mini`; `provision-alpine.sh` reconciled with an NVMe-booted Pi already carrying PG 17; three servers up as plain JVMs, each answering `/metadata` in R5 | all three serve R5 |
+| 0 | JDK on the driver Mac; `provision-alpine.sh` reconciled with an NVMe-booted Pi already carrying PG 17; three servers up as plain JVMs, each answering `/metadata` in R5 | all three serve R5 |
 | 1 | Cohort built: banded draw, offline R4→R5 conversion, checksummed, manifest committed | all three accept 100 % |
 | 2 | Comparative driver — target abstraction over the three, batch and record modes, N threads | runs green off-box |
 | 3 | Machine sampling — CPU / memory / disk / thermal time series | a null run produces a full record |
@@ -259,5 +259,5 @@ question from throughput — whether a single transaction of 49,144 entries
 (Dumbledore's record) completes at all on each server, and what it costs in
 memory — and it can be deferred to a second round without weakening the first.
 
-The rest is settled: bench Pi `192.168.1.128`, driver `mini`, empty database
+The rest is settled: the bench Pi serves, the driver Mac drives, empty database
 per cell, and every cell starting from the same temperature.

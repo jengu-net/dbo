@@ -1,0 +1,10 @@
+# Secret scanning over the whole history, run before the repository went
+# public and repeatable since:  gitleaks git .
+title = "dbo"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "The development console's example key: a fixed constant that protects nothing, documented as such in the file itself."
+paths = ['karaf/dev/local\.properties\.example']

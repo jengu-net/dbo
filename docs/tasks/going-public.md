@@ -28,9 +28,10 @@ depend on each other, and this document carries them together.
 
 ## Where it stands
 
-- **Done:** step 1. `main` builds on GitHub-hosted runners as of 2026-09-07,
-  and images reach GHCR.
-- **Next:** steps 5 and 6, in parallel with the infrastructure work.
+- **Done:** steps 1, 5 and 6. `main` builds on GitHub-hosted runners as of
+  2026-09-07, images reach GHCR, the tree names no private network, and the
+  history is scanned clean.
+- **Next:** the flip (step 7). Nothing it needs is outstanding.
 - **Blocked on:** `repo.jengu.cloud` existing again, owned by the infrastructure repository.
   Until then `publish` and `images` fail for every push, and Hetzner
   production cannot receive a new image.
@@ -43,12 +44,12 @@ depend on each other, and this document carries them together.
 | 2 | **`repo.jengu.cloud` on Hetzner production.** Zot and the nginx Maven tree from the infrastructure repository's bootstrap tree, in the cluster behind the Traefik route that already terminates the name. The Maven halves and the platform's OBR index tree are re-publishable from CI, and the OBR index is valid wherever the tree is served because its URLs are relative to the root. The `models` tree is not: the PII model is fetched by the platform at runtime, in production, and has to come from a backup or from the Synology's disk. | BLOCKED by the Synology's disk being reachable for `models`, owner: the infrastructure repository |
 | 3 | **The workflow talks to the rebuilt repository.** Set `ARTIFACT_HOST` to the host; the workflow already speaks TLS to it and probes it before building. New credentials for both halves, so the two systems stop sharing one secret. | READY, needs 2 |
 | 4 | **Hetzner production pins an image that exists.** The overlays pin `main-<sha>`; the rebuilt registry is empty. Either re-run `images` for the pinned commit or bump the pin to the first push that lands. | READY, needs 3 |
-| 5 | **Neutralise what the ratchet cannot see.** RFC 1918 addresses in `bench/` and `docs/plans/load-comparison.md`, the `mini` hostname, the LAN registry in the workflow. Then the check refuses private addresses, so they cannot regrow. The sibling-repository sweep is done (2026-09-06): the tree outside `docs/tasks/` is clean, and the one fixture the ratchet missed is renamed. The platform halves of two task documents moved to the platform on 2026-09-06, so `docs/tasks/` points only at this tracker. What is left is the addresses. | READY |
-| 6 | **History review.** A secrets scanner over all 588 commits, and a read of the first day's `initial import` for anything that came from elsewhere. The quick pattern scan found nothing, which is a reason to run the real one rather than a result. | READY |
-| 7 | **The flip.** Visibility to public; secret scanning and push protection on; Dependabot alerts on; branch protection on `main` requiring the `build` check; fork pull requests require approval before their first run; the two dead runner registrations removed from the organisation. | READY, needs 1, 5, 6 |
+| 5 | **Neutralise what the ratchet cannot see.** The bench scripts took their machines from the environment or a flag rather than from a default in the tree; the plan document names them by role; the one example address in a Javadoc became a hostname. The ratchet refuses RFC 1918 addresses and the LAN's hostnames now, proven with a probe file it catches and one it lets through. The sibling-repository sweep was done the day before. | **DONE** 2026-09-07 |
+| 6 | **History review.** A secrets scanner over every commit, and a read of the first day's `initial import`. The scanner found one thing: the development console's example key, a fixed constant the file itself documents as protecting nothing, appearing nowhere else in history. It is allowlisted by path in a scanner config kept in the tree, so the scan is repeatable and clean. The import was an empty Antora skeleton and a Gradle wrapper; nothing came from elsewhere. | **DONE** 2026-09-07 |
+| 7 | **The flip.** Visibility to public; secret scanning and push protection on; Dependabot alerts on; branch protection on `main` requiring the `build` check; fork pull requests require approval before their first run; the two dead runner registrations removed from the organisation. Six remote branches are fully merged with nothing unique on them, so deleting them first is a tidiness choice rather than a safety one. | **NEXT** — everything it needs is done |
 | 8 | **Prove it from outside.** A pull request from a non-member fork runs the suite with no secrets and skips `images`; a push to `main` publishes jars and images; a bumped pin rolls out on Hetzner. | needs 7 |
 
-**Critical path:** 1, then 2 and 5 and 6 in parallel, then 3, 4, 7, 8. Step 1 is
+**Critical path:** 7, then 8; 2, 3 and 4 run beside them and gate only the jar publish and the fleet's own image pull. Step 1 is
 the only one that unblocks the day: a few hosted runs while still private cost
 minutes from the free budget, and that is cheaper than a `main` nobody can
 prove green.

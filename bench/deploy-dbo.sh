@@ -14,13 +14,16 @@
 # exists, so every deploy stamps the git description AND whether the tree was
 # dirty into $REMOTE_DIR/version, and the runner copies it into the result.
 #
-#   bench/deploy-dbo.sh                     # build, ship to the bench Pi, start
+#   DBO_BENCH_HOST=<pi> bench/deploy-dbo.sh # build, ship to the bench Pi, start
+#   bench/deploy-dbo.sh --target <pi>       # the same, named on the command line
 #   bench/deploy-dbo.sh --target local      # same tree, run on this machine
 #   bench/deploy-dbo.sh --no-build          # ship what is already built
 #   bench/deploy-dbo.sh --stop              # stop it, ship nothing
 set -eu
 
-TARGET=192.168.1.128
+# The bench Pi is a machine on somebody's network, so its address is theirs
+# to supply: the environment or --target, never a default in the tree.
+TARGET=${DBO_BENCH_HOST:-}
 REMOTE_USER=root
 REMOTE_DIR=/opt/dbo
 TENANT=bench
@@ -60,6 +63,10 @@ VERSION="$(git describe --always --dirty=+dirty 2>/dev/null || echo unknown)"
 # ------------------------------------------------------------------- remote
 # One indirection so --target local and a real Pi run the same script body.
 # Two code paths that drift is how "it worked locally" starts.
+if [ -z "$TARGET" ]; then
+    echo "no target: set DBO_BENCH_HOST or pass --target <host|local>" >&2
+    exit 2
+fi
 if [ "$TARGET" = "local" ]; then
     at() { sh -c "$1"; }
     put() { mkdir -p "$REMOTE_DIR"; rsync -a --delete "$DIST"/ "$REMOTE_DIR"/; }

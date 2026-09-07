@@ -10,8 +10,11 @@
 # NVMe fill -- server-major would deposit all of it on whichever server ran
 # last, and the benchmark would have discovered the order it ran in.
 set -u
-PI=root@192.168.1.128
-MINI=mini
+# Two machines on somebody's network, named by the environment rather than
+# by the tree: the Pi that serves and the machine that drives it.
+PI_HOST=${BENCH_PI:?set BENCH_PI to the address of the bench Pi}
+PI=root@$PI_HOST
+MINI=${BENCH_DRIVER:?set BENCH_DRIVER to the ssh name of the driver machine}
 JAVA=/opt/homebrew/opt/openjdk@21/bin/java
 RESULTS=${RESULTS:-$HOME/bench-results}
 REPS=${REPS:-1}
@@ -20,9 +23,9 @@ mkdir -p "$RESULTS"
 
 base_of() {
     case "$1" in
-        dbo)     echo "http://192.168.1.128:8090/t/bench/fhir" ;;
-        hapi)    echo "http://192.168.1.128:8091/fhir" ;;
-        fhirest) echo "http://192.168.1.128:8181/fhir" ;;
+        dbo)     echo "http://$PI_HOST:8090/t/bench/fhir" ;;
+        hapi)    echo "http://$PI_HOST:8091/fhir" ;;
+        fhirest) echo "http://$PI_HOST:8181/fhir" ;;
     esac
 }
 

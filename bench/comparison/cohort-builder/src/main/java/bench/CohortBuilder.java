@@ -29,7 +29,7 @@ import java.util.zip.GZIPInputStream;
 public final class CohortBuilder {
 
     public static void main(String[] args) throws Exception {
-        String url = arg(args, "--url", "jdbc:postgresql://192.168.1.16:5432/rowling");
+        String url = arg(args, "--url", "jdbc:postgresql://localhost:5432/rowling");
         String user = arg(args, "--user", "postgres");
         String password = arg(args, "--password", System.getenv("PGPASSWORD"));
         int count = Integer.parseInt(arg(args, "--count", "50"));
