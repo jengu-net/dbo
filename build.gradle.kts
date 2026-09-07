@@ -93,7 +93,7 @@ tasks.register("listPublishTasks") {
 }
 
 // The JDBC driver is itself an OSGi bundle.
-val dboRuntimeExternalBundles = listOf("org.postgresql:postgresql:42.7.11")
+val dboRuntimeExternalBundles = listOf("org.postgresql:postgresql:42.7.13")
 
 // One logging arrangement for the runtime: the API as a bundle every module
 // imports, dbo-logging as a FRAGMENT of it carrying the binding, and the

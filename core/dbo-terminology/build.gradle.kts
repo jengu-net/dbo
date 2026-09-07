@@ -9,7 +9,7 @@ plugins {
 // org.postgresql.* from the driver bundle, exactly right.
 
 dependencies {
-    implementation("org.postgresql:postgresql:42.7.11")
+    implementation("org.postgresql:postgresql:42.7.13")
 }
 
 tasks.jar {

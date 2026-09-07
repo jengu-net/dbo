@@ -22,6 +22,12 @@ dependencies {
         exclude(group = "io.fabric8", module = "kubernetes-httpclient-vertx")
     }
     embedded("io.fabric8:kubernetes-httpclient-jdk:7.9.0")
+    // fabric8 ships a Jackson bill of materials, and 7.9.0 pins databind at
+    // 2.21.4 — below the advisory against it, while the rest of the tree is
+    // already on 2.22.x. A constraint raises what the bom pinned.
+    constraints {
+        embedded("com.fasterxml.jackson.core:jackson-databind:2.22.1")
+    }
     embedded("com.zaxxer:HikariCP:7.1.0")
     // slf4j-api is SHARED, not embedded: one binding for the whole
     // runtime instead of a private one per bundle. compileOnly because

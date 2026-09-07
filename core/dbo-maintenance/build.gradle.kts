@@ -8,7 +8,7 @@ plugins {
 
 dependencies {
     api(project(":core:dbo-core"))
-    implementation("org.postgresql:postgresql:42.7.11")
+    implementation("org.postgresql:postgresql:42.7.13")
 }
 
 tasks.jar {

@@ -43,7 +43,7 @@ dependencies {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
     // the PG driver comes from the DRIVER BUNDLE at runtime — compile-only
-    compileOnly("org.postgresql:postgresql:42.7.11")
+    compileOnly("org.postgresql:postgresql:42.7.13")
     compileOnly("org.slf4j:slf4j-api:2.0.18")
 
     // A test source set for what can be decided without a database: the

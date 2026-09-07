@@ -34,7 +34,7 @@ dependencies {
     runtimeOnly(project(":core:dbo-logging"))
     // the JDBC driver must be on the runtime classpath — the operator is a
     // standalone process, nothing else supplies it
-    runtimeOnly("org.postgresql:postgresql:42.7.11")
+    runtimeOnly("org.postgresql:postgresql:42.7.13")
     api(project(":core:dbo-tenant"))
     // the k8s naming contract + secret-backed provisioner live in the
     // tenant-k8s bundle module; as a plain jar we use its classes directly
@@ -47,4 +47,10 @@ dependencies {
         exclude(group = "io.fabric8", module = "kubernetes-httpclient-vertx")
     }
     runtimeOnly("io.fabric8:kubernetes-httpclient-jdk:7.9.0")
+    // fabric8 ships a Jackson bill of materials, and 7.9.0 pins databind at
+    // 2.21.4 — below the advisory against it, while the rest of the tree is
+    // already on 2.22.x. A constraint raises what the bom pinned.
+    constraints {
+        api("com.fasterxml.jackson.core:jackson-databind:2.22.1")
+    }
 }
