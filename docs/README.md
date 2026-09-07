@@ -1,3 +1,12 @@
+---
+# This file is the documentation index in the repository and on the site,
+# and the front matter is what keeps it both. index.html is the site's
+# landing page, so the README no longer becomes the index by default —
+# without a permalink here it is copied out as raw markdown instead of
+# being rendered at all.
+permalink: /documentation/
+---
+
 # DBO documentation
 
 Structured per [arc42](https://arc42.org/).
