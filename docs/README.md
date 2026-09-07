@@ -4,7 +4,12 @@
 # landing page, so the README no longer becomes the index by default —
 # without a permalink here it is copied out as raw markdown instead of
 # being rendered at all.
-permalink: /documentation/
+#
+# The permalink keeps this page at the ROOT's depth, and that is the whole
+# reason it ends in .html rather than being a prettier /documentation/. Every
+# link below is relative, so a permalink one level down silently resolves them
+# against that level: the section directories 404 and nothing says why.
+permalink: /documentation.html
 ---
 
 # DBO documentation
