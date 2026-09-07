@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DBO — a store for regulated data</title>
+<meta name="description" content="A multi-tenant object store for regulated data. Several organisations that do not trust each other keep records in it, and the operator running it cannot read them.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111a24'/%3E%3Cpath d='M9 8h6.5c5 0 8.5 3.2 8.5 8s-3.5 8-8.5 8H9z' fill='none' stroke='%23d99a4e' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --ink:#111a24; --body:#2c3a47; --muted:#5d6c7b; --faint:#8695a3;
+    --bg:#fbfaf8; --panel:#ffffff; --line:#e3e0da; --line-soft:#eeebe6;
+    --accent:#a8641b; --accent-soft:#f6efe4; --seal:#14532d; --seal-soft:#e7f0e9;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ink:#f2f0ec; --body:#c6cdd4; --muted:#94a1ad; --faint:#77848f;
+      --bg:#0e1319; --panel:#161d25; --line:#2a343e; --line-soft:#212932;
+      --accent:#e0a45c; --accent-soft:#2a2015; --seal:#7fc79a; --seal-soft:#14251a;
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--body);
+    font:400 17px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1020px; margin:0 auto; padding:0 24px}
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  h1,h2,h3{color:var(--ink); line-height:1.2; letter-spacing:-.015em; margin:0}
+  p{margin:0 0 1em}
+  p:last-child{margin-bottom:0}
+  strong{color:var(--ink); font-weight:600}
+  code{font:500 .88em/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+       background:var(--line-soft); padding:.12em .4em; border-radius:4px; color:var(--ink)}
+
+  /* header */
+  header{border-bottom:1px solid var(--line); background:var(--panel)}
+  .bar{display:flex; align-items:center; justify-content:space-between; gap:20px; padding:16px 0}
+  .mark{display:flex; align-items:baseline; gap:11px; font-weight:700; font-size:20px; color:var(--ink); letter-spacing:-.02em}
+  .mark:hover{text-decoration:none}
+  .mark span{font-weight:400; font-size:14px; color:var(--faint); letter-spacing:0}
+  nav{display:flex; gap:22px; font-size:15px}
+  nav a{color:var(--muted)}
+  nav a:hover{color:var(--ink); text-decoration:none}
+
+  /* hero */
+  .hero{padding:76px 0 64px; border-bottom:1px solid var(--line)}
+  .kicker{font-size:13px; letter-spacing:.09em; text-transform:uppercase; color:var(--accent); font-weight:600; margin-bottom:18px}
+  .hero h1{font-size:clamp(32px,5.2vw,52px); max-width:19ch; margin-bottom:24px}
+  .lede{font-size:clamp(18px,2.1vw,21px); line-height:1.55; color:var(--body); max-width:62ch}
+  .lede + .lede{margin-top:14px}
+  .cta{display:flex; flex-wrap:wrap; gap:12px; margin-top:34px}
+  .btn{display:inline-block; padding:11px 20px; border-radius:7px; font-size:15px; font-weight:600;
+       border:1px solid var(--line); color:var(--ink); background:var(--panel)}
+  .btn:hover{text-decoration:none; border-color:var(--muted)}
+  .btn.primary{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+  .btn.primary:hover{opacity:.88}
+
+  section{padding:64px 0; border-bottom:1px solid var(--line)}
+  .eyebrow{font-size:13px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); font-weight:600; margin-bottom:14px}
+  section h2{font-size:clamp(25px,3.2vw,33px); margin-bottom:20px; max-width:24ch}
+  .prose{max-width:66ch}
+  .prose p{margin-bottom:1.05em}
+
+  /* cards */
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(288px,1fr)); gap:1px;
+        background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-top:36px}
+  .card{background:var(--panel); padding:26px 24px}
+  .card h3{font-size:17px; margin-bottom:9px}
+  .card p{font-size:15.5px; line-height:1.6; color:var(--muted); margin:0}
+
+  /* audiences */
+  .cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(272px,1fr)); gap:34px; margin-top:36px}
+  .col h3{font-size:16px; margin-bottom:12px; padding-bottom:10px; border-bottom:2px solid var(--accent); display:inline-block}
+  .col p{font-size:15.5px; line-height:1.62; color:var(--muted)}
+  .col ul{margin:0; padding-left:18px; font-size:15.5px; line-height:1.6; color:var(--muted)}
+  .col li{margin-bottom:8px}
+
+  /* claim panel */
+  .claim{background:var(--accent-soft); border:1px solid var(--line); border-radius:10px; padding:26px 28px; margin-top:34px}
+  .claim p{font-size:16px; color:var(--body); margin:0}
+
+  /* status */
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px;
+         background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin:32px 0}
+  .stat{background:var(--panel); padding:22px 20px}
+  .stat b{display:block; color:var(--ink); font-size:29px; font-weight:700; letter-spacing:-.02em; line-height:1.1}
+  .stat span{display:block; margin-top:6px; font-size:14px; color:var(--muted); line-height:1.45}
+
+  pre{background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:18px 20px;
+      overflow-x:auto; font:500 14px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:var(--ink); margin:0}
+  pre code{background:none; padding:0; font-size:inherit}
+  .pair{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:22px; margin-top:30px}
+  .pair h3{font-size:15px; margin-bottom:11px; color:var(--muted); font-weight:600}
+
+  footer{padding:44px 0 56px; font-size:14.5px; color:var(--muted)}
+  .flinks{display:flex; flex-wrap:wrap; gap:8px 26px; margin-bottom:22px}
+  footer a{color:var(--muted); text-decoration:underline; text-underline-offset:2px}
+  footer a:hover{color:var(--ink)}
+  .fine{color:var(--faint); font-size:13.5px; max-width:70ch}
+  @media (max-width:640px){
+    .hero{padding:52px 0 44px}
+    section{padding:48px 0}
+    nav{gap:16px; font-size:14px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="mark" href="./">DBO <span>regulated data store</span></a>
+    <nav>
+      <a href="README.html">Documentation</a>
+      <a href="arc42-008-crosscutting/the-fhir-face.html">FHIR face</a>
+      <a href="https://github.com/jengu-net/dbo">Source</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="kicker">Open source &middot; MIT &middot; Pre-1.0</div>
+    <h1>A store for data somebody will one day audit.</h1>
+    <p class="lede">DBO holds regulated records for organisations that do not trust each other,
+    and the operator running it cannot read them.</p>
+    <p class="lede">Every disclosure is recorded and says why it happened. Every version is kept
+    and cannot be quietly changed. Erasing a person is an operation that answers with a receipt.
+    None of that is a policy somebody promises to honour. It is a set of things the operator
+    cannot do.</p>
+    <div class="cta">
+      <a class="btn primary" href="README.html">Read the specification</a>
+      <a class="btn" href="https://github.com/jengu-net/dbo">Source on GitHub</a>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="wrap prose">
+    <div class="eyebrow">Why another one of these</div>
+    <h2>A clinical server stores clinical data. That is the easy half.</h2>
+    <p>The questions that decide whether you may operate are different ones. Who read this record,
+    and for what stated purpose. Can this person be erased, and can you show that it happened.
+    Has this history been altered since it was written. Which organisation does this belong to,
+    and what does its jurisdiction require. How long may it be kept.</p>
+    <p>Platforms answer those by hand, once per application, above a store that cannot help. The
+    answers end up scattered across application code, where each one is somebody's good intention
+    rather than a property of the system.</p>
+    <p><strong>DBO is the store that helps.</strong> Its concepts are regulatory rather than
+    clinical — object, identity, custody, declared handling, history, tenancy, erasure — and not
+    one of them mentions medicine. A <em>face</em> maps a standard onto those concepts.
+    Configure the FHIR face and you have a FHIR server, with the versions and the searches and
+    the operations a client expects. Configure a different face and the same engine serves a
+    domain that has never heard of a patient.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Properties, not policies</div>
+    <h2>The difference between what an operator promises and what it cannot do.</h2>
+    <div class="prose">
+      <p>A policy is a commitment somebody can break, forget, or be compelled to set aside.
+      A property is something the system does not permit. Everything below is the second kind,
+      and each one is proven by a test that runs on every commit.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>A tenant is a database</h3>
+        <p>Not a filter over a shared table that one wrong query defeats. Each organisation gets
+        its own database with its own credentials. Erasing a tenant drops that database, rather
+        than running a delete sweep somebody has to trust was complete.</p>
+      </div>
+      <div class="card">
+        <h3>The operator cannot read what it hosts</h3>
+        <p>Provisioning hands the store a connection and never credentials. Each tenant is its own
+        login authority, so the store accepts nobody else's tokens and a token from one tenant
+        dies at another's signature check. Backups are sealed under the owner's key.</p>
+      </div>
+      <div class="card">
+        <h3>Erasure answers with a receipt</h3>
+        <p>Erasing a person is asked for as work and answered by a run: what was found, how far it
+        got, when. Asking twice is safe. A person the store never held is an answer rather than an
+        error. A partial erasure is visible as exactly that.</p>
+      </div>
+      <div class="card">
+        <h3>Identifying data is encrypted where it lives</h3>
+        <p>Identifying elements are encrypted inside the record itself, under a key held per
+        person. History, backups, feeds and copies therefore carry ciphertext by construction
+        rather than by somebody remembering. Erasure destroys a key instead of chasing copies,
+        and a backup taken beforehand cannot resurrect the person.</p>
+      </div>
+      <div class="card">
+        <h3>Every disclosure says why</h3>
+        <p>Reading identifying data requires a stated purpose. Without one, the record comes back
+        with those fields omitted rather than filled in silently. The trail is append-only against
+        everyone, the vendor included: an application says what happened, and the machinery stamps
+        who and when from the credential and its clock.</p>
+      </div>
+      <div class="card">
+        <h3>Nothing changes quietly</h3>
+        <p>Every version is kept, and each links to the one before it, so a history edited
+        underneath the store fails verification. A record and the notice of its change commit
+        together, so nothing downstream reacts to a state that was rolled back.</p>
+      </div>
+      <div class="card">
+        <h3>A question it cannot answer honestly is refused</h3>
+        <p>An unrecognised search is an error, not a silently broader result set. In a clinical
+        system a wrong set of results is a safety problem rather than a compatibility one, so the
+        store would rather say no than guess. What it does support, it declares.</p>
+      </div>
+      <div class="card">
+        <h3>Records remember which rules checked them</h3>
+        <p>A record written in 2026 must still be readable in 2029, when the rule that shaped it
+        has moved twice. Each one carries the version it was validated against, so the store can
+        find what is still on the old shape, convert it, and refuse to serve what it cannot
+        honestly read.</p>
+      </div>
+      <div class="card">
+        <h3>It holds the work, not only the data</h3>
+        <p>What has to be done, who is entitled to do it, who holds it now, and what happened.
+        Work can also leave the building sealed, so an outside specialist performs a step without
+        being handed anything they were not meant to see, and the trail tells carrying something
+        apart from opening it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Who this is for</div>
+    <h2>A complete system, and three different reasons to care about it.</h2>
+    <div class="cols">
+      <div class="col">
+        <h3>Legal and data protection</h3>
+        <ul>
+          <li>Access, portability, restriction and erasure are ordinary operations over the same
+          machinery, not projects somebody schedules per request.</li>
+          <li>Erasure produces a record of what happened, which a deletion never could.</li>
+          <li>The audit trail is append-only against every party, so it is evidence rather than a
+          log somebody could have tidied.</li>
+          <li>Retention is declared, and the sweep that enforces it is itself recorded without
+          keeping what it removed.</li>
+          <li>Where the law differs by jurisdiction, that difference is a declaration a zone holds
+          as records, not a branch buried in code.</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>Administrators and operators</h3>
+        <ul>
+          <li>Provision a tenant without ever holding its credentials, so hosting somebody's data
+          never means being able to read it.</li>
+          <li>Backup is export and restore is import, through the machinery ordinary data movement
+          already uses, rather than a format-specific tool kept in step by hand.</li>
+          <li>A sealed archive can be verified on a laptop with no network and no account.</li>
+          <li>Upgrades ride the deployment, so there is no window during which the store is down
+          because somebody is running a migration.</li>
+          <li>One PostgreSQL database per tenant and nothing else to operate. No broker, no cache
+          tier, no shared state service.</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>Architects and engineers</h3>
+        <ul>
+          <li>Two FHIR versions coexist in one process over one database, with no difference in the
+          engine between them.</li>
+          <li>Embed it in your own application or run it as a server. The same bundles do both.</li>
+          <li>Identity, grants, audit and process definitions are all ordinary records, so rotating
+          a key or changing who may act is an ordinary write.</li>
+          <li>A change feed, subscriptions, a terminology server and a process engine are part of
+          the store rather than services beside it.</li>
+          <li>Every promised behaviour has a requirement code and a named test that proves it.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Regulation</div>
+    <h2>Built where European rules are the design input, not a later audit.</h2>
+    <div class="prose">
+      <p>The mechanisms above line up with obligations a European controller already carries:
+      erasure and the evidence that it happened, subject access and portability, restriction of
+      processing, storage limitation, and an account of who accessed what and why. Isolation
+      between organisations is structural, so a processor hosting several of them is not relying
+      on its own query discipline to keep them apart.</p>
+      <p>Standards over invention at every external surface. Where a published standard solves a
+      problem, the store uses it rather than a proprietary field: FHIR at the data surface, OpenID
+      Connect and SMART for who may act, SCIM for provisioning people, and standard cryptography
+      from the platform with no invented primitives.</p>
+    </div>
+    <div class="claim">
+      <p><strong>What a component can honestly claim.</strong> Compliance belongs to a deployment
+      and the organisation running it, never to a piece of software, and any vendor telling you
+      otherwise is selling something. What a store can do is make the evidence exist by default
+      and make the unsafe thing impossible rather than discouraged. That is the line this project
+      tries to hold, and the specification says where it stops.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Honesty about status</div>
+    <h2>Pre-1.0, and specific about what that means.</h2>
+    <div class="stats">
+      <div class="stat"><b>249</b><span>behaviours proven by a named test</span></div>
+      <div class="stat"><b>15</b><span>specified and not yet built</span></div>
+      <div class="stat"><b>119</b><span>integration test classes</span></div>
+      <div class="stat"><b>MIT</b><span>licence, no open-core tier</span></div>
+    </div>
+    <div class="prose">
+      <p>Behaviour here is not described, it is claimed and proven. Each promise has a requirement
+      code and the test that demonstrates it, and the tests are sentences about behaviour rather
+      than about methods. Most of them are integration tests: a real PostgreSQL, a real container,
+      the shipped distribution booted as a separate process, and a real Kubernetes API server for
+      the part that provisions tenants. Nothing publishes and no image ships unless the whole suite
+      passes on exactly that commit.</p>
+      <p>What is built and what is only specified is written down and kept honest, including the
+      parts that are missing. The routing layer for very large deployments has no implementation
+      at all. Blob storage, a shared-database tier and quotas are specified and not built. Version
+      numbers stay below 1.0 until the surfaces a 1.0 would freeze stop moving.</p>
+      <p><a href="https://github.com/jengu-net/dbo/blob/main/docs/plans/implementation-status.md">Read
+      the implementation status</a>, which is the document to believe over any impression the rest
+      gives, or the <a href="arc42-006-runtime/req-catalogue.html">requirement catalogue</a> for
+      every promise and its proof.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Getting it</div>
+    <h2>A container image, or a dependency.</h2>
+    <div class="pair">
+      <div>
+        <h3>Run the server</h3>
+        <pre><code>docker run -p 8090:8090 \
+  ghcr.io/jengu-net/dbo-server:latest</code></pre>
+      </div>
+      <div>
+        <h3>Embed the engine</h3>
+        <pre><code>dependencies {
+  implementation("cloud.jengu.dbo:dbo-core")
+}</code></pre>
+      </div>
+    </div>
+    <div class="prose" style="margin-top:26px">
+      <p>The images carry the operator, the server and the fleet reader, for both Intel and ARM.
+      A tenant needs a PostgreSQL database and a declaration of the types it holds. Start with
+      <a href="arc42-008-crosscutting/running-it.html">running it</a> for what operating this
+      actually involves, or <a href="arc42-008-crosscutting/the-fhir-face.html">the FHIR face</a>
+      if you know FHIR and nothing about this store.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="flinks">
+      <a href="README.html">Documentation index</a>
+      <a href="arc42-001-introduction/">Goals</a>
+      <a href="arc42-008-crosscutting/">Concepts</a>
+      <a href="arc42-006-runtime/req-catalogue.html">Requirements</a>
+      <a href="conformance/">Conformance</a>
+      <a href="https://github.com/jengu-net/dbo">Source</a>
+      <a href="https://github.com/jengu-net/dbo/blob/main/SECURITY.md">Security</a>
+      <a href="https://github.com/jengu-net/dbo/blob/main/CONTRIBUTING.md">Contributing</a>
+    </div>
+    <p class="fine">MIT licensed. Copyright &copy; 2024&ndash;2026 Jengu Net.
+    Report a vulnerability privately to the address in the security policy rather than as an
+    issue. This site is the specification tree rendered; the source of truth is the repository.</p>
+  </div>
+</footer>
+
+</body>
+</html>

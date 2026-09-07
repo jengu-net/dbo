@@ -60,7 +60,14 @@ issue_hits=$(grep -rlE '(jengu-platform|jengu-infra|dbo)?#[0-9]{2,4}' \
         FNR == 1 { todo = 0 }
         /TODO|FIXME/ { todo = 6 }
         {
-            if ($0 ~ /(jengu-platform|jengu-infra|dbo)?#[0-9][0-9][0-9]?[0-9]?/ && todo == 0)
+            # A six-digit hex colour is not an issue reference, and every CSS
+            # declaration in the site would otherwise read as one. Stripped
+            # from a copy of the line, so a real reference on the same line as
+            # a colour is still caught. Written out rather than as {6} because
+            # interval expressions are not portable across the awks in use.
+            line = $0
+            gsub(/#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]/, "", line)
+            if (line ~ /(jengu-platform|jengu-infra|dbo)?#[0-9][0-9][0-9]?[0-9]?/ && todo == 0)
                 print FILENAME ":" FNR ":" $0
             if (todo > 0) todo--
         }')
