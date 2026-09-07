@@ -1,6 +1,6 @@
 # Going public
 
-**Status** · building on GitHub-hosted runners since 2026-09-07; nowhere to publish jars until the host is rebuilt
+**Status** · public since 2026-09-07; images private on GHCR until their packages are flipped by hand; nowhere to publish jars until the host is rebuilt
 **Issues** · [#199](https://github.com/jengu-net/dbo/issues/199)
 **Concepts** · [RELEASING.md](../../RELEASING.md), [the branding ratchet](../../.github/scripts/check-branding.sh), [working rules](../arc42-002-constraints/working-rules.md)
 
@@ -28,10 +28,9 @@ depend on each other, and this document carries them together.
 
 ## Where it stands
 
-- **Done:** steps 1, 5 and 6. `main` builds on GitHub-hosted runners as of
-  2026-09-07, images reach GHCR, the tree names no private network, and the
-  history is scanned clean.
-- **Next:** the flip (step 7). Nothing it needs is outstanding.
+- **Done:** steps 1, 5, 6 and 7. The repository is public as of 2026-09-07,
+  builds on GitHub-hosted runners, and the tree and history are clean.
+- **Next:** make the three GHCR packages public, then step 8.
 - **Blocked on:** `repo.jengu.cloud` existing again, owned by the infrastructure repository.
   Until then `publish` and `images` fail for every push, and Hetzner
   production cannot receive a new image.
@@ -46,8 +45,8 @@ depend on each other, and this document carries them together.
 | 4 | **Hetzner production pins an image that exists.** The overlays pin `main-<sha>`; the rebuilt registry is empty. Either re-run `images` for the pinned commit or bump the pin to the first push that lands. | READY, needs 3 |
 | 5 | **Neutralise what the ratchet cannot see.** The bench scripts took their machines from the environment or a flag rather than from a default in the tree; the plan document names them by role; the one example address in a Javadoc became a hostname. The ratchet refuses RFC 1918 addresses and the LAN's hostnames now, proven with a probe file it catches and one it lets through. The sibling-repository sweep was done the day before. | **DONE** 2026-09-07 |
 | 6 | **History review.** A secrets scanner over every commit, and a read of the first day's `initial import`. The scanner found one thing: the development console's example key, a fixed constant the file itself documents as protecting nothing, appearing nowhere else in history. It is allowlisted by path in a scanner config kept in the tree, so the scan is repeatable and clean. The import was an empty Antora skeleton and a Gradle wrapper; nothing came from elsewhere. | **DONE** 2026-09-07 |
-| 7 | **The flip.** Visibility to public; secret scanning and push protection on; Dependabot alerts on; branch protection on `main` requiring the `build` check; fork pull requests require approval before their first run; the two dead runner registrations removed from the organisation. Six remote branches are fully merged with nothing unique on them, so deleting them first is a tidiness choice rather than a safety one. | **NEXT** — everything it needs is done |
-| 8 | **Prove it from outside.** A pull request from a non-member fork runs the suite with no secrets and skips `images`; a push to `main` publishes jars and images; a bumped pin rolls out on Hetzner. | needs 7 |
+| 7 | **The flip.** Visibility public; secret scanning, push protection, Dependabot alerts and security updates on; the workflow token read-only by default; fork pull requests need approval on a first contribution; `main` cannot be force-pushed or deleted; the six merged branches and the two dead runner registrations removed. **Still to do by hand:** the three GHCR packages are private and GitHub has no API for package visibility, so each is made public in its package settings; and automatic dependency submission is switched on in code security. | **DONE** 2026-09-07, except the two settings named |
+| 8 | **Prove it from outside.** An anonymous read of the repository already answers; an anonymous pull of an image answers 401 until the packages are public. Then: a pull request from a non-member fork runs the suite with no secrets and skips `images`; a push to `main` publishes jars once the host exists. | **NEXT** — needs the packages public |
 
 **Critical path:** 7, then 8; 2, 3 and 4 run beside them and gate only the jar publish and the fleet's own image pull. Step 1 is
 the only one that unblocks the day: a few hosted runs while still private cost
@@ -95,6 +94,14 @@ documents on 2026-09-06, and what stays here names the consumer by role
 rather than by repository. The ratchet still exempts `docs/tasks/` from the
 issue rule, because these documents exist to carry a topic between its issues
 and its concepts; the issues they may carry are this repository's.
+
+**`main` is protected against force-push and deletion, and requires no
+check.** The task first said the `build` check would be required. A required
+status check rejects a direct push whose commit has no passing run yet, and
+direct pushes to `main` are how this repository is worked on, so requiring it
+would have rejected every push. What a public `main` needs protecting from is
+a rewrite or a removal, and that is what is set. The check becomes required
+the day the workflow moves to pull requests.
 
 **Order: runners first, flip last.** The workflow change is the only step that
 can be proven while still private, and proving it costs a few hosted runs from
