@@ -288,9 +288,14 @@ subprojects {
                 maven {
                     name = "JenguRepo"
                     val snapshot = version.toString().endsWith("SNAPSHOT")
+                    // The host is the workflow's to name (ARTIFACT_HOST, as
+                    // DBO_REPO_HOST here), because it is the one fact about
+                    // publishing that changes when the fleet moves. The
+                    // default is the public name consumers resolve from.
+                    val repoHost = System.getenv("DBO_REPO_HOST")?.takeIf { it.isNotBlank() } ?: "repo.jengu.cloud"
                     url = uri(
-                        if (snapshot) "https://repo.jengu.cloud/repository/maven-snapshots/"
-                        else "https://repo.jengu.cloud/repository/maven-releases/"
+                        if (snapshot) "https://$repoHost/repository/maven-snapshots/"
+                        else "https://$repoHost/repository/maven-releases/"
                     )
                     credentials {
                         username = System.getenv("NEXUS_USERNAME") ?: findProperty("jengu.repo.user") as String? ?: ""
