@@ -41,7 +41,7 @@ services:
       - /var/lib/postgresql/data
 
   dbo:
-    image: ghcr.io/jengu-net/dbo-server:main-49ce29fc005a00b74f11ca125a9a7bf56971ceac
+    image: ghcr.io/jengu-net/dbo-server:main-e381b19b0900a0a2bf2a7dac76a2f8bd29c277e1
     depends_on:
       db:
         condition: service_healthy
