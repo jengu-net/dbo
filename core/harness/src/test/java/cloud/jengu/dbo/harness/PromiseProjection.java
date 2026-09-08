@@ -121,6 +121,35 @@ public final class PromiseProjection {
      * story whose every leg is planned says so in one line rather than
      * listing legs a reader would take as proven.
      */
+    /**
+     * A promise's text is written for the catalogue's directory, and a story
+     * page lives two levels away from it. Copied verbatim, a relative link in
+     * that text resolves in the catalogue and is broken in every story — which
+     * is how a link the site's strict build refused came to be in a file the
+     * ratchet forbids editing by hand. Every relative link is rebased from where
+     * the text was written to where it is being placed, so the text stays
+     * written once. Absolute links, anchors and root-relative paths are left
+     * alone: only a path that means "from here" has a "here" to move.
+     */
+    static String rebasedForStories(String text) {
+        java.nio.file.Path from = java.nio.file.Path.of("arc42-006-runtime");
+        java.nio.file.Path to = java.nio.file.Path.of("arc42-003-context", "user-stories");
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\]\\(([^)\\s]+)\\)")
+                .matcher(text);
+        StringBuilder out = new StringBuilder();
+        while (m.find()) {
+            String target = m.group(1);
+            boolean relative = !target.startsWith("#") && !target.startsWith("/")
+                    && !target.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*");
+            String replacement = relative
+                    ? to.relativize(from.resolve(target).normalize()).toString().replace('\\', '/')
+                    : target;
+            m.appendReplacement(out, java.util.regex.Matcher.quoteReplacement("](" + replacement + ")"));
+        }
+        m.appendTail(out);
+        return out.toString();
+    }
+
     static String storyBlock(Registry.Model model, cloud.jengu.dbo.promise.Story story) {
         if (story.promises().isEmpty()) {
             throw new IllegalStateException(story.code() + " declares no promise — a story "
@@ -133,7 +162,8 @@ public final class PromiseProjection {
             anyProven |= status == cloud.jengu.dbo.promise.PromiseStatus.PROVEN
                     || status == cloud.jengu.dbo.promise.PromiseStatus.ASSURED;
             out.append("| `").append(model.codeOf(promise)).append("` | ")
-                    .append(promise.text()).append(" | ").append(status).append(" |\n");
+                    .append(rebasedForStories(promise.text())).append(" | ").append(status)
+                    .append(" |\n");
         }
         Map<cloud.jengu.dbo.promise.PromiseStatus, Long> coverage = model.coverage(story);
         out.append("\n");
