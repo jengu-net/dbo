@@ -1,0 +1,70 @@
+<!--
+  Why a trail of entries is not the same as a chain of them.
+
+  Drawn as a line of links because the claim is about the joins, not the
+  entries: each one commits to the one before, rooted in something the store
+  minted rather than something a participant asserted. A row of boxes with no
+  links between them would be a picture of a log, which is the thing being
+  distinguished from.
+
+  The limit is stated inside the drawing rather than under it. A picture of a
+  chain invites the reader to believe it proves more than it does, and the
+  one thing it cannot prove belongs where that belief forms.
+-->
+<svg class="dbo-diagram" viewBox="0 0 760 302" role="img"
+     aria-labelledby="au-title au-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="au-title">A run's trail, chained from the task the store minted</title>
+  <desc id="au-desc">Five entries in a line: the task, two travel entries as
+  work is handed on, an access entry when a payload is opened, and the result
+  that closes the run. Each carries a link to the one before.</desc>
+
+  <text class="d-eyebrow" x="0" y="14">ONE RUN, ONE CHAIN</text>
+
+  <rect class="d-chip-seal" x="0" y="30" width="134" height="66" rx="8"/>
+  <text class="d-chip-text-seal" x="67" y="52">the task</text>
+  <text class="d-note-small" x="12" y="72">minted by the</text>
+  <text class="d-note-small" x="12" y="88">store, not asked for</text>
+
+  <rect class="d-box" x="156" y="30" width="134" height="66" rx="8"/>
+  <text class="d-caption" x="168" y="52">travel</text>
+  <text class="d-note-small" x="168" y="72">handed to the</text>
+  <text class="d-note-small" x="168" y="88">carrier</text>
+
+  <rect class="d-box" x="312" y="30" width="134" height="66" rx="8"/>
+  <text class="d-caption" x="324" y="52">travel</text>
+  <text class="d-note-small" x="324" y="72">handed to the</text>
+  <text class="d-note-small" x="324" y="88">laboratory</text>
+
+  <rect class="d-box" x="468" y="30" width="134" height="66" rx="8"/>
+  <text class="d-caption" x="480" y="52">access</text>
+  <text class="d-note-small" x="480" y="72">the payload was</text>
+  <text class="d-note-small" x="480" y="88">opened</text>
+
+  <rect class="d-chip-live" x="624" y="30" width="136" height="66" rx="8"/>
+  <text class="d-chip-text-live" x="692" y="52">the result</text>
+  <text class="d-note-small" x="636" y="72">closes the run and</text>
+  <text class="d-note-small" x="636" y="88">names the head</text>
+
+  <!-- the links. Drawn as a join rather than an arrow: an arrow says "then",
+       and what these say is "and I commit to that one". -->
+  <line class="d-lag" x1="134" y1="63" x2="156" y2="63"/>
+  <circle class="d-marker" cx="145" cy="63" r="4"/>
+  <line class="d-lag" x1="290" y1="63" x2="312" y2="63"/>
+  <circle class="d-marker" cx="301" cy="63" r="4"/>
+  <line class="d-lag" x1="446" y1="63" x2="468" y2="63"/>
+  <circle class="d-marker" cx="457" cy="63" r="4"/>
+  <line class="d-lag" x1="602" y1="63" x2="624" y2="63"/>
+  <circle class="d-marker" cx="613" cy="63" r="4"/>
+
+  <text class="d-note-small" x="0" y="122">Each link is signed by the participant that made it.</text>
+
+  <line class="d-seam" x1="0" y1="146" x2="760" y2="146"/>
+
+  <text class="d-has" x="0" y="170">A journey that never started cannot be presented: the root is the store's.</text>
+  <text class="d-has" x="0" y="192">A completion with a gap is refused, and told which link is missing.</text>
+  <text class="d-has" x="0" y="214">A skipped hop is exposed by whoever writes the next entry.</text>
+
+  <text class="d-note" x="0" y="248">And the one thing it does not buy, stated here because a chain invites the</text>
+  <text class="d-note" x="0" y="266">belief that it does: an intended recipient can open a payload and never say</text>
+  <text class="d-miss" x="0" y="288">so. This is non-forgery and non-repudiation. It is not omission-proofing.</text>
+</svg>

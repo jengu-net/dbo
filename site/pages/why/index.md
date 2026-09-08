@@ -72,6 +72,11 @@ enforced by the engine rather than by the habits of whatever code writes it.
 vocabulary. The organisation model *is* the authorisation model, so revoking
 access is ending a period on an ordinary record.
 
+**[The trail is a record, not a log](the-audit-trail.md).** Who read this, on
+whose authority, and when — kept in the tenant's own store, append-only against
+everyone including the operator, and still provable after the person in it has
+been erased.
+
 ## And two about the gap between declared and true
 
 Every system has one. Most of them find out about it from a support ticket.
@@ -91,10 +96,10 @@ your own writes.
 <div class="cols" markdown>
 <div class="col" markdown>
 ### If you are responsible for lawfulness
-Start with [personal data](personal-data.md). It describes the mechanism that
-turns access, portability and erasure from procedures somebody performs into
-operations the system runs — and says plainly what the operator can and cannot
-see.
+Start with [personal data](personal-data.md), then
+[the audit trail](the-audit-trail.md). Between them: the mechanism that turns
+access, portability and erasure from procedures somebody performs into
+operations the system runs, and the evidence that survives all three.
 </div>
 <div class="col" markdown>
 ### If you have to run it
