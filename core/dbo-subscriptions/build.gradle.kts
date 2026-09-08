@@ -21,6 +21,11 @@ dependencies {
     // next version is a milestone, so the version moves here instead.
     constraints {
         embedded("tools.jackson.core:jackson-databind:3.2.1")
+        // DBOS also carries its own JDBC driver, privately, and that copy
+        // rides in this bundle's lib/ — the container's shared driver is not
+        // what it uses. So the version the runtime declares elsewhere does
+        // not reach it, and the one thing that does is this constraint.
+        embedded("org.postgresql:postgresql:42.7.13")
     }
     // slf4j-api is SHARED, not embedded: one binding for the whole
     // runtime instead of a private one per bundle. compileOnly because
