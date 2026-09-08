@@ -30,7 +30,11 @@
     {% if page.meta and page.meta.eyebrow %}
       <div class="kicker">{{ page.meta.eyebrow }}</div>
     {% endif %}
-    <h1>{{ page.title }}</h1>
+    {#- The nav entry's name wins over the page's own title in MkDocs, so a
+        menu that says "Quickstart" would also make the page's heading say
+        it. `headline` is the sentence the page opens with; the title stays
+        the short thing that belongs in a menu. -#}
+    <h1>{{ page.meta.headline if page.meta and page.meta.headline else page.title }}</h1>
     {% if page.meta and page.meta.standfirst %}
       <p class="standfirst">{{ page.meta.standfirst }}</p>
     {% endif %}

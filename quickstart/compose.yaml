@@ -1,0 +1,82 @@
+# A running store, from nothing, in two commands.
+#
+#   docker compose up -d
+#   curl -s localhost:8090/t/demo/fhir/metadata | head
+#
+# ─── What this is for, and what it is not ───────────────────────────
+#
+# It exists so that "what is this thing" can be answered by running it rather
+# than by reading about it. Everything here is a development convenience with
+# the reasoning written down beside it, and two of the settings are ones a
+# deployment must not copy — each says so at the point where it is made.
+#
+# The image is pinned to an exact commit rather than to a floating tag. There
+# is deliberately no `latest` on the public registry until a release exists:
+# somebody who types no tag should not receive an arbitrary commit. Pinning
+# here means this file works today and keeps working, and that upgrading it is
+# a change somebody made on purpose.
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      # The admin connection provisions a database per tenant, so it needs
+      # CREATE DATABASE. Superuser is the shortest way to have that on a
+      # throwaway instance; a deployment gives the store a role with exactly
+      # that right and nothing else.
+      POSTGRES_PASSWORD: quickstart
+    healthcheck:
+      # The store's first act is to provision, so it must not start against a
+      # Postgres that is still coming up. Without this the first run fails and
+      # the second works, which is the most confusing possible first
+      # impression.
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    tmpfs:
+      # Nothing here should outlive `docker compose down`. A quickstart that
+      # leaves a volume behind is one that behaves differently the second time
+      # somebody runs it.
+      - /var/lib/postgresql/data
+
+  dbo:
+    image: ghcr.io/jengu-net/dbo-server:main-49ce29fc005a00b74f11ca125a9a7bf56971ceac
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8090:8090"
+    environment:
+      # ── The one line you must not copy into anything real ──────────
+      #
+      # The distribution refuses to serve without a working authority. That
+      # refusal is a promised behaviour, not a safety net that can be quietly
+      # switched off: turning it off is this explicit flag, and the flag is
+      # what makes the curl commands below work without a token.
+      #
+      # With an authority wired instead, every request needs one — which is
+      # the right shape for a deployment and the wrong shape for a first
+      # five minutes.
+      DBO_AUTH_DISABLED: "true"
+
+      # Tenant specs are read from a directory and reconciled continuously: a
+      # *.json dropped in brings a tenant up, and removing one takes it down.
+      # That is worth trying — it is the whole provisioning model, visible.
+      DBO_TENANT_DIR: /etc/dbo/tenants
+
+      # The tenant this deployment's own history lives in, deliberately NOT
+      # inside the directory above: the scan loop that retracts undeclared
+      # tenants must not be able to retract the thing recording retractions.
+      DBO_MANAGEMENT_SPEC: /etc/dbo/management/quickstart.json
+
+      DBO_ADMIN_JDBC_URL: jdbc:postgresql://db:5432/postgres
+      DBO_ADMIN_USER: postgres
+      DBO_ADMIN_PASSWORD: quickstart
+
+      # The distribution defaults to JSON, one line per event, because
+      # something is usually parsing it. Here a person is reading it.
+      DBO_LOG_FORMAT: text
+    volumes:
+      - ./tenants:/etc/dbo/tenants:ro
+      - ./management:/etc/dbo/management:ro

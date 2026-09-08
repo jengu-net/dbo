@@ -1,0 +1,12 @@
+{
+  "code": "quickstart",
+  "face": "r4",
+  "pdi": false,
+  "types": [
+    {
+      "name": "Patient",
+      "identity": "internal",
+      "handling": "operational"
+    }
+  ]
+}

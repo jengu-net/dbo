@@ -219,8 +219,8 @@
     <div class="pair">
       <div>
         <h3>Run the server</h3>
-        <pre><code>docker run -p 8090:8090 \
-  ghcr.io/jengu-net/dbo-server:latest</code></pre>
+        <pre><code>cd quickstart
+docker compose up -d</code></pre>
       </div>
       <div>
         <h3>Embed the engine</h3>
@@ -230,8 +230,9 @@
       </div>
     </div>
     <div class="prose" style="margin-top:26px">
-      <p>The images carry the operator, the server and the fleet reader, for both Intel and ARM.
-      A tenant needs a PostgreSQL database and a declaration of the types it holds. Start with
+      <p>That is the <a href="{{ base_url }}/quickstart/">quickstart</a>: a Postgres, the server and a
+      declared tenant, answering FHIR in about a minute. It is run on every build, so it works.
+      The images carry the operator, the server and the fleet reader, for both Intel and ARM. Start with
       <a href="{{ base_url }}/docs/arc42-008-crosscutting/running-it/">running it</a> for what operating this
       actually involves, or <a href="{{ base_url }}/docs/arc42-008-crosscutting/the-fhir-face/">the FHIR face</a>
       if you know FHIR and nothing about this store.</p>

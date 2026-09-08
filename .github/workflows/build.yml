@@ -170,6 +170,31 @@ jobs:
       # across a composite build is real work.
       - uses: gradle/actions/dependency-submission@v4
 
+  quickstart:
+    # The quickstart, actually run.
+    #
+    # It deliberately does NOT need the build. The compose file pins a
+    # published image at an exact commit, because somebody who types no tag
+    # should not receive an arbitrary one — so what this proves is that the
+    # quickstart works, not that the current tree does. That is the check
+    # that was missing: the instruction for getting a store running used to
+    # be a one-line docker run on the landing page, it could not work for
+    # three separate reasons, and nothing ever ran it.
+    #
+    # It is therefore also the job that fails when the pin needs moving, which
+    # is the moment to move it rather than a year later.
+    runs-on: ubuntu-latest
+    # A cold start provisions two tenants, a database and a terminology
+    # baseline each. Two minutes locally; ten is room for a slow runner
+    # without letting a hang sit.
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the quickstart
+        run: ./quickstart/check.sh
+
   publish:
     needs: build
     # Never on pull_request, and never without a repository to publish to.

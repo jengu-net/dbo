@@ -1,0 +1,18 @@
+{
+  "code": "demo",
+  "face": "r4",
+  "pdi": false,
+  "types": [
+    {
+      "name": "Patient",
+      "identity": "identifier",
+      "systems": ["urn:dbo:demo:mrn"],
+      "handling": "operational"
+    },
+    {
+      "name": "Observation",
+      "identity": "internal",
+      "handling": "operational"
+    }
+  ]
+}

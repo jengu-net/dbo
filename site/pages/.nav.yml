@@ -1,7 +1,13 @@
-# The top-level menu. Three entries, and two of them are directories the
-# plugin expands: the specification tree orders itself by its arc42 numbering
-# and the essays by why/.nav.yml, so neither is a list to maintain here.
+# The top-level menu. Two of the entries are directories the plugin expands:
+# the specification tree orders itself by its arc42 numbering and the essays
+# by why/.nav.yml, so neither is a list to maintain here.
+#
+# Quickstart sits second, before the essays, because the fastest way to find
+# out what something is can be to run it — and because that page is the one
+# whose commands are executed on every build, so it is the least likely thing
+# here to be lying.
 nav:
   - Home: index.md
+  - Quickstart: quickstart.md
   - Why DBO: why
   - Documentation: docs
