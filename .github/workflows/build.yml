@@ -24,13 +24,17 @@ name: build
 # reachable from a fork pull request is arbitrary code execution on the
 # machine that runs it. Nothing here may say `self-hosted` again.
 #
-# THE FLEET'S OWN ARTIFACT HOST IS OPTIONAL, and named by one repository
-# variable: ARTIFACT_HOST, the host that serves the Maven tree at
-# /repository/ and the container registry at /v2/. While it is unset —
-# which it is until that host exists again — the jar publish is skipped and
-# images go to the public registries only. A destination that does not exist
-# is a reason to skip, not a reason to fail every push: a red X nobody can
-# act on teaches people to ignore red Xs, which is the real cost.
+# THE ARTIFACT HOST IS OPTIONAL, and named by one repository variable:
+# ARTIFACT_HOST, the host serving the Maven tree at /repository/. Unset, the
+# jar publish is skipped rather than failed: a destination that does not
+# exist is a known state, and a red X nobody can act on teaches people to
+# ignore red Xs.
+#
+# It gates the JAR PUBLISH and nothing else. Images go to public registries
+# only — the fleet's own registry was retired when this repository went
+# public, because its images are public on GHCR and a public registry is a
+# better home for them than a box somebody has to keep running. Anything
+# that pointed at that registry now names ghcr.io directly.
 
 on:
   push:
@@ -246,13 +250,11 @@ jobs:
       # existing (see the top of this file).
       GHCR_OWNER: ghcr.io/jengu-net
       DOCKERHUB_OWNER: docker.io/jengu
-      FLEET_REGISTRY: ${{ vars.ARTIFACT_HOST }}
       # Booleans, never the secret itself, and computed HERE because the
       # `secrets` context does not exist inside an `if:` — a workflow that
       # reaches for it there does not fail the job, it fails to parse, and
       # every push to the branch reports a run with no jobs at all.
       HAVE_DOCKERHUB: ${{ secrets.DOCKERHUB_TOKEN != '' }}
-      HAVE_FLEET: ${{ vars.ARTIFACT_HOST != '' }}
     permissions:
       contents: read
       packages: write
@@ -280,33 +282,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      # Asked before anything expensive, because this job has spent forty
-      # minutes discovering the answer the hard way: buildx retries every blob
-      # HEAD until the timeout frees the runner, and the error it finally ends
-      # on names a sha256 and an i/o timeout rather than the network.
-      #
-      # Any HTTP answer counts, 401 included: the question is whether the
-      # registry is reachable, not whether this step is allowed in.
-      - name: The fleet registry answers
-        if: ${{ env.HAVE_FLEET == 'true' }}
-        run: |
-          set -uo pipefail
-          if code=$(curl -sS -m 5 -o /dev/null -w '%{http_code}' "https://${FLEET_REGISTRY}/v2/"); then
-            echo "the fleet registry at ${FLEET_REGISTRY} answered ${code}"
-          else
-            echo "::error title=The fleet registry is unreachable::${FLEET_REGISTRY} did not answer from this runner within 5s. Deployments that pull from it are waiting for this image, so the build stops here rather than spending the job's timeout retrying blob uploads."
-            exit 1
-          fi
-      - name: Log in to the fleet registry
-        if: ${{ env.HAVE_FLEET == 'true' }}
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.FLEET_REGISTRY }}
-          # Historical names: they once belonged to a Maven repository that
-          # no longer exists, and renaming them means adding two secrets
-          # before the next push.
-          username: ${{ secrets.NEXUS_USERNAME }}
-          password: ${{ secrets.NEXUS_PASSWORD }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -331,10 +306,6 @@ jobs:
               if [ "$IS_RELEASE" = "true" ]; then
                 tags+=(--tag "${DOCKERHUB_OWNER}/${image}:latest")
               fi
-            fi
-            if [ "$HAVE_FLEET" = "true" ]; then
-              tags+=(--tag "${FLEET_REGISTRY}/${image}:${IMAGE_TAG}")
-              tags+=(--tag "${FLEET_REGISTRY}/${image}:latest")
             fi
             docker buildx build \
               --platform linux/amd64,linux/arm64 \
