@@ -1,0 +1,188 @@
+/* The site's own design, layered over Material.
+ *
+ * Material owns the chrome — header, navigation, search, the reference
+ * pages. This file owns the HAND-WRITTEN pages: the landing page and the
+ * "Why DBO" essays. Those are the pages that have to speak to somebody who
+ * is deciding rather than implementing, and no docs theme is built for that.
+ *
+ * Everything here is scoped under `.dbo`, and that is deliberate. The
+ * landing page began as a standalone document with a global reset; dropped
+ * into Material unscoped it restyles the reference tree as a side effect,
+ * which is exactly the kind of change nobody notices until a page they were
+ * not looking at is wrong. One class is the whole containment.
+ *
+ * The palette is defined twice on purpose: once as `--dbo-*` for these
+ * pages, and once bridged into Material's `--md-*` variables so the header
+ * and the reference pages are the same product rather than two sites with
+ * one link between them.
+ */
+
+:root{
+  --dbo-ink:#111a24; --dbo-body:#2c3a47; --dbo-muted:#5d6c7b; --dbo-faint:#8695a3;
+  --dbo-bg:#fbfaf8; --dbo-panel:#ffffff; --dbo-line:#e3e0da; --dbo-line-soft:#eeebe6;
+  --dbo-accent:#a8641b; --dbo-accent-soft:#f6efe4; --dbo-seal:#14532d; --dbo-seal-soft:#e7f0e9;
+}
+
+/* Material switches theme by a data attribute rather than by the media
+ * query, so the dark palette hangs off its scheme and follows the toggle in
+ * the header instead of only the operating system. */
+[data-md-color-scheme="slate"]{
+  --dbo-ink:#f2f0ec; --dbo-body:#c6cdd4; --dbo-muted:#94a1ad; --dbo-faint:#77848f;
+  --dbo-bg:#0e1319; --dbo-panel:#161d25; --dbo-line:#2a343e; --dbo-line-soft:#212932;
+  --dbo-accent:#e0a45c; --dbo-accent-soft:#2a2015; --dbo-seal:#7fc79a; --dbo-seal-soft:#14251a;
+}
+
+/* The bridge into Material.
+ *
+ * Material picks its header and link colours from `data-md-color-*`
+ * attributes on <html>, and those selectors beat anything set on :root — so
+ * the palette is declared as Material's own "custom" primary and accent
+ * rather than by overriding the variables directly. Setting it any other way
+ * appears to work in a stylesheet and loses to the theme in the browser.
+ *
+ * Typography and spacing are deliberately left alone. Material's are tuned
+ * for long reference pages and a hand-rolled substitute would be worse at
+ * exactly the pages that matter most.
+ */
+[data-md-color-primary="custom"]{
+  --md-primary-fg-color:#111a24;
+  --md-primary-fg-color--light:#2c3a47;
+  --md-primary-fg-color--dark:#0b1119;
+  --md-primary-bg-color:#fbfaf8;
+  --md-primary-bg-color--light:#e3e0da;
+}
+[data-md-color-accent="custom"]{
+  --md-accent-fg-color:#a8641b;
+  --md-accent-fg-color--transparent:#a8641b1a;
+  --md-accent-bg-color:#fbfaf8;
+  --md-accent-bg-color--light:#f6efe4;
+}
+[data-md-color-scheme="default"]{
+  --md-default-bg-color:#fbfaf8;
+  --md-typeset-a-color:#a8641b;
+}
+[data-md-color-scheme="slate"]{
+  --md-default-bg-color:#0e1319;
+  --md-default-fg-color:#c6cdd4;
+  --md-typeset-a-color:#e0a45c;
+  --md-primary-fg-color:#161d25;
+  --md-accent-fg-color:#e0a45c;
+}
+
+/* ── the hand-written pages themselves ───────────────────────────── */
+
+.dbo{
+  background:var(--dbo-bg); color:var(--dbo-body);
+  font:400 17px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.dbo *{box-sizing:border-box}
+.dbo .wrap{max-width:1020px; margin:0 auto; padding:0 24px}
+.dbo a{color:var(--dbo-accent); text-decoration:none}
+.dbo a:hover{text-decoration:underline}
+.dbo h1,.dbo h2,.dbo h3{color:var(--dbo-ink); line-height:1.2; letter-spacing:-.015em; margin:0}
+.dbo p{margin:0 0 1em}
+.dbo p:last-child{margin-bottom:0}
+.dbo strong{color:var(--dbo-ink); font-weight:600}
+.dbo code{font:500 .88em/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+     background:var(--dbo-line-soft); padding:.12em .4em; border-radius:4px; color:var(--dbo-ink)}
+
+/* hero */
+.dbo .hero{padding:76px 0 64px; border-bottom:1px solid var(--dbo-line)}
+.dbo .kicker{font-size:13px; letter-spacing:.09em; text-transform:uppercase; color:var(--dbo-accent); font-weight:600; margin-bottom:18px}
+.dbo .hero h1{font-size:clamp(32px,5.2vw,52px); max-width:19ch; margin-bottom:24px}
+.dbo .lede{font-size:clamp(18px,2.1vw,21px); line-height:1.55; color:var(--dbo-body); max-width:62ch}
+.dbo .lede + .lede{margin-top:14px}
+.dbo .cta{display:flex; flex-wrap:wrap; gap:12px; margin-top:34px}
+.dbo .btn{display:inline-block; padding:11px 20px; border-radius:7px; font-size:15px; font-weight:600;
+     border:1px solid var(--dbo-line); color:var(--dbo-ink); background:var(--dbo-panel)}
+.dbo .btn:hover{text-decoration:none; border-color:var(--dbo-muted)}
+.dbo .btn.primary{background:var(--dbo-ink); color:var(--dbo-bg); border-color:var(--dbo-ink)}
+.dbo .btn.primary:hover{opacity:.88}
+
+.dbo section{padding:64px 0; border-bottom:1px solid var(--dbo-line)}
+.dbo .eyebrow{font-size:13px; letter-spacing:.09em; text-transform:uppercase; color:var(--dbo-faint); font-weight:600; margin-bottom:14px}
+.dbo section h2{font-size:clamp(25px,3.2vw,33px); margin-bottom:20px; max-width:24ch}
+.dbo .prose{max-width:66ch}
+.dbo .prose p{margin-bottom:1.05em}
+
+/* cards */
+.dbo .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(288px,1fr)); gap:1px;
+      background:var(--dbo-line); border:1px solid var(--dbo-line); border-radius:10px; overflow:hidden; margin-top:36px}
+.dbo .card{background:var(--dbo-panel); padding:26px 24px}
+.dbo .card h3{font-size:17px; margin-bottom:9px}
+.dbo .card p{font-size:15.5px; line-height:1.6; color:var(--dbo-muted); margin:0}
+
+/* audiences */
+.dbo .cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(272px,1fr)); gap:34px; margin-top:36px}
+.dbo .col h3{font-size:16px; margin-bottom:12px; padding-bottom:10px; border-bottom:2px solid var(--dbo-accent); display:inline-block}
+.dbo .col p{font-size:15.5px; line-height:1.62; color:var(--dbo-muted)}
+.dbo .col ul{margin:0; padding-left:18px; font-size:15.5px; line-height:1.6; color:var(--dbo-muted)}
+.dbo .col li{margin-bottom:8px}
+
+/* claim panel */
+.dbo .claim{background:var(--dbo-accent-soft); border:1px solid var(--dbo-line); border-radius:10px; padding:26px 28px; margin-top:34px}
+.dbo .claim p{font-size:16px; color:var(--dbo-body); margin:0}
+
+/* status */
+.dbo .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px;
+       background:var(--dbo-line); border:1px solid var(--dbo-line); border-radius:10px; overflow:hidden; margin:32px 0}
+.dbo .stat{background:var(--dbo-panel); padding:22px 20px}
+.dbo .stat b{display:block; color:var(--dbo-ink); font-size:29px; font-weight:700; letter-spacing:-.02em; line-height:1.1}
+.dbo .stat span{display:block; margin-top:6px; font-size:14px; color:var(--dbo-muted); line-height:1.45}
+
+.dbo pre{background:var(--dbo-panel); border:1px solid var(--dbo-line); border-radius:9px; padding:18px 20px;
+    overflow-x:auto; font:500 14px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:var(--dbo-ink); margin:0}
+.dbo pre code{background:none; padding:0; font-size:inherit}
+.dbo .pair{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:22px; margin-top:30px}
+.dbo .pair h3{font-size:15px; margin-bottom:11px; color:var(--dbo-muted); font-weight:600}
+
+/* ── essay pages ─────────────────────────────────────────────────── */
+/* The "Why DBO" pages are markdown, so they arrive as ordinary rendered
+ * prose rather than as hand-placed blocks. They get the landing page's
+ * measure and rhythm and nothing else: a reader moving from the landing to
+ * an essay should not feel a change of product, and a reader moving from an
+ * essay to the reference should. */
+
+.dbo-essay{padding:56px 0 72px}
+.dbo-essay .measure{max-width:none}
+.dbo-essay h1{font-size:clamp(30px,4.4vw,44px); max-width:20ch; margin-bottom:22px}
+.dbo-essay .standfirst{font-size:clamp(18px,2vw,21px); line-height:1.55; color:var(--dbo-body);
+     max-width:62ch; margin-bottom:14px}
+.dbo-essay .md-typeset{font-size:17px; color:var(--dbo-body)}
+.dbo-essay .md-typeset h2{font-size:clamp(23px,2.8vw,29px); color:var(--dbo-ink);
+     margin:2.2em 0 .7em; letter-spacing:-.015em; max-width:26ch}
+.dbo-essay .md-typeset h3{font-size:18px; color:var(--dbo-ink); margin:1.9em 0 .5em}
+.dbo-essay .md-typeset p,
+.dbo-essay .md-typeset li{max-width:66ch; line-height:1.68}
+.dbo-essay .md-typeset blockquote{border-left:3px solid var(--dbo-accent); color:var(--dbo-body);
+     background:var(--dbo-accent-soft); margin:1.6em 0; padding:14px 22px; border-radius:0 8px 8px 0}
+.dbo-essay .md-typeset blockquote p{max-width:60ch}
+.dbo-essay .md-typeset table:not([class]){font-size:15.5px}
+
+/* The one-line summary a reader should leave with. Sparingly: a page with
+ * three of these has not decided what it is about. */
+.dbo-essay .md-typeset .takeaway{background:var(--dbo-panel); border:1px solid var(--dbo-line);
+     border-left:3px solid var(--dbo-seal); border-radius:0 9px 9px 0; padding:20px 24px; margin:2em 0}
+.dbo-essay .md-typeset .takeaway p{margin:0; color:var(--dbo-ink); font-size:16.5px}
+
+/* Where an essay hands off to the reference tree. Every essay ends with one,
+ * because the point of an essay here is to make the specification readable
+ * rather than to replace it. */
+.dbo-essay .md-typeset .further{margin-top:3em; padding-top:1.6em; border-top:1px solid var(--dbo-line)}
+.dbo-essay .md-typeset .further p{font-size:15.5px; color:var(--dbo-muted)}
+
+/* footer */
+.dbo-footer{background:var(--dbo-bg); border-top:1px solid var(--dbo-line);
+     padding:44px 0 56px; font-size:14.5px; color:var(--dbo-muted)}
+.dbo-footer .wrap{max-width:1020px; margin:0 auto; padding:0 24px}
+.dbo-footer .flinks{display:flex; flex-wrap:wrap; gap:8px 26px; margin-bottom:22px}
+.dbo-footer a{color:var(--dbo-muted); text-decoration:underline; text-underline-offset:2px}
+.dbo-footer a:hover{color:var(--dbo-ink)}
+.dbo-footer .fine{color:var(--dbo-faint); font-size:13.5px; max-width:70ch; margin:0}
+
+@media (max-width:640px){
+  .dbo .hero{padding:52px 0 44px}
+  .dbo section{padding:48px 0}
+  .dbo-essay{padding:40px 0 56px}
+}

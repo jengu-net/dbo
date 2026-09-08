@@ -461,3 +461,114 @@ tasks.register<Zip>("centralBundle") {
     // Central rejects a bundle carrying maven-metadata files.
     exclude("**/maven-metadata*")
 }
+
+// ─── The site ──────────────────────────────────────────────────────
+//
+// The published site is a BUILD OUTPUT assembled from three sources: the
+// specification tree in docs/, the hand-written pages in site/, and whatever
+// the build itself generates into docs/ (the conformance reports, today).
+//
+// It is assembled rather than rendered in place, and that is the point. docs/
+// stays plain markdown that reads correctly on GitHub — the same file, the
+// same relative links, no front matter a reader has to look past. The site is
+// a second thing made from it. Rendering in place is what made the previous
+// arrangement surprising: a page could stop being published because of a
+// setting in a file three directories away, and nothing said so.
+//
+//   ./gradlew site        # build/site — what gets published
+//   ./gradlew siteServe   # the same thing at localhost:8000, live-reloading
+//
+// The toolchain is Python, which is a second toolchain in a JVM repository and
+// worth a sentence. It is here because MkDocs resolves relative `.md` links
+// natively: the specification cross-references itself densely and every one of
+// those links has to keep working both on GitHub and on the site. Every
+// alternative either needed a link-rewriting hook to maintain or wanted the
+// tree converted out of markdown. The dependencies are pinned exactly in
+// site/requirements.txt and live in build/, so nothing is installed globally.
+
+val siteDir = layout.projectDirectory.dir("site")
+val siteVenv = layout.buildDirectory.dir("site-venv")
+val siteSrc = layout.buildDirectory.dir("site-src")
+val siteOut = layout.buildDirectory.dir("site")
+
+val siteTools by tasks.registering(Exec::class) {
+    group = "documentation"
+    description = "Creates the pinned Python environment the site is built with."
+    inputs.file(siteDir.file("requirements.txt"))
+    outputs.dir(siteVenv)
+    // --upgrade so that changing a pin actually changes the environment
+    // rather than leaving whatever was installed first.
+    commandLine(
+        "bash", "-c",
+        "python3 -m venv '${siteVenv.get().asFile}' && " +
+            "'${siteVenv.get().asFile}/bin/pip' install --quiet --upgrade " +
+            "-r '${siteDir.file("requirements.txt").asFile}'",
+    )
+}
+
+val siteAssemble by tasks.registering(Sync::class) {
+    group = "documentation"
+    description = "Assembles the site's source tree from docs/ and site/."
+    into(siteSrc)
+
+    // The hand-written pages sit at the root: the landing page, the essays,
+    // and the nav files that order them.
+    from(siteDir.dir("pages"))
+    from(siteDir.dir("assets")) { into("assets") }
+
+    // The specification tree, mounted one level down so the hand-written
+    // pages own the root and the reference owns /docs/.
+    from(layout.projectDirectory.dir("docs")) {
+        into("docs")
+        // tasks/ is the live agenda and plans/ is what is proposed rather
+        // than what is; both stay readable in the repository and neither is
+        // part of the published specification. index.html and _config.yml
+        // belong to the Jekyll site this replaces.
+        exclude("tasks/**", "plans/**", "index.html", "_config.yml")
+    }
+    from(layout.projectDirectory.file("docs/favicon.ico")) { into("assets") }
+
+    // Sync deletes what is no longer produced, so a page renamed in docs/
+    // does not linger in the output as a stale URL.
+    doLast {
+        // docs/README.md carries Jekyll front matter that pins its URL on the
+        // old site. Stripped here rather than deleted there, so the two sites
+        // can both work until the switch is made.
+        val index = siteSrc.get().file("docs/README.md").asFile
+        if (index.exists()) {
+            index.writeText(index.readText().replaceFirst(Regex("(?s)\\A---\\n.*?\\n---\\n"), ""))
+        }
+    }
+}
+
+val site by tasks.registering(Exec::class) {
+    group = "documentation"
+    description = "Builds the site into build/site."
+    dependsOn(siteTools, siteAssemble)
+    inputs.dir(siteSrc)
+    inputs.dir(siteDir.dir("overrides"))
+    inputs.file(siteDir.file("mkdocs.yml"))
+    outputs.dir(siteOut)
+    workingDir = siteDir.asFile
+    // --strict turns a broken cross-reference into a failed build. A
+    // specification whose whole claim is that its § references resolve cannot
+    // publish a link that does not.
+    commandLine("${siteVenv.get().asFile}/bin/mkdocs", "build", "--strict")
+}
+
+tasks.register<Exec>("siteServe") {
+    group = "documentation"
+    description = "Serves the site locally with live reload."
+    dependsOn(siteTools, siteAssemble)
+    workingDir = siteDir.asFile
+    // It serves at http://localhost:8000/dbo/ rather than at the root,
+    // because site_url carries the project path GitHub Pages publishes under.
+    // That is worth keeping: a relative link that only works at the root is
+    // then broken locally too, rather than only after it is published.
+    //
+    // Only the assembled tree is watched. Editing a page under docs/ or site/
+    // needs `./gradlew siteAssemble` to reach it — the alternative is mkdocs
+    // watching two trees it does not own and rebuilding from a half-copied
+    // one.
+    commandLine("${siteVenv.get().asFile}/bin/mkdocs", "serve")
+}

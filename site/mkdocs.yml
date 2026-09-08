@@ -1,0 +1,98 @@
+# The site.
+#
+# `docs_dir` is a BUILD directory, not the repository's docs/ folder, and that
+# is the point of the whole arrangement. docs/ stays plain markdown that reads
+# correctly on GitHub; the site is assembled from it, from the hand-written
+# pages beside this file, and from whatever the build generates. Rendering in
+# place is what made the previous site surprising — a page could stop being
+# published because of a setting three directories away, and nothing said so.
+#
+# Run it through Gradle (`./gradlew site`, `./gradlew siteServe`) rather than
+# calling mkdocs directly, so that the assembly step cannot be skipped.
+
+site_name: DBO
+site_description: >-
+  A multi-tenant object store for regulated data. Several organisations that do
+  not trust each other keep records in it, and the operator running it cannot
+  read them.
+site_url: https://jengu-net.github.io/dbo/
+repo_url: https://github.com/jengu-net/dbo
+repo_name: jengu-net/dbo
+edit_uri: ""
+
+docs_dir: ../build/site-src
+site_dir: ../build/site
+
+theme:
+  name: material
+  custom_dir: overrides
+  favicon: assets/favicon.ico
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    # A top-level tab strip, which is what makes "Why DBO" a menu beside
+    # "Documentation" rather than a folder inside one.
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Dark
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Light
+
+extra_css:
+  - assets/dbo.css
+
+plugins:
+  - search
+  # Lets a nav entry name a directory and have it expanded, so adding a page
+  # to the specification tree is not also an edit to a list here.
+  - awesome-nav
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  # The essays wrap a paragraph in a div to mark it as the takeaway; without
+  # this, markdown inside that div is not rendered.
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.details
+
+# A link into the specification that has gone stale is a broken promise about
+# a document whose whole claim is that its cross-references resolve. Failing
+# the build is the only version of that check anyone acts on.
+validation:
+  links:
+    absolute_links: relative_to_docs
+    # A link to a DIRECTORY — `conformance/`, `arc42-008-crosscutting/` — is
+    # not a mistake here: it resolves to the section's index both when the
+    # tree is browsed on GitHub and on the site. Left as information rather
+    # than promoted to a warning, so that --strict still fails on the thing
+    # that matters, which is a link naming a file that is not there.
+    unrecognized_links: info
+  nav:
+    omitted_files: warn
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/jengu-net/dbo

@@ -1,0 +1,10 @@
+# Reading order, which is not alphabetical order. Work first because it is
+# the thing people are most surprised a store does at all; then the two
+# properties that decide whether a deployment is lawful; then the mechanism
+# that keeps copies of it honest.
+nav:
+  - index.md
+  - work.md
+  - personal-data.md
+  - zones.md
+  - subscriptions.md

@@ -1,0 +1,7 @@
+# The top-level menu. Three entries, and two of them are directories the
+# plugin expands: the specification tree orders itself by its arc42 numbering
+# and the essays by why/.nav.yml, so neither is a list to maintain here.
+nav:
+  - Home: index.md
+  - Why DBO: why
+  - Documentation: docs

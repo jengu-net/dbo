@@ -1,0 +1,29 @@
+{#-
+  The landing page.
+
+  It overrides `container` rather than `content`, which drops Material's
+  sidebars, its content wrapper and its width constraint in one move: this
+  page sets its own full-bleed layout and would otherwise be laid out twice,
+  once by the theme and once by itself.
+
+  The markup lives in _landing-body.html rather than here so that the page's
+  content and the reason it is wired this way stay separable. Material's
+  header, search and navigation are kept, so the landing is part of the site
+  rather than a door standing next to it.
+-#}
+{% extends "main.html" %}
+
+{#-
+  No sidebars. The tab strip in the header is the navigation for these pages,
+  and a sidebar listing five essays beside a page that is one of them is
+  noise. This is done by emptying `site_nav` rather than by the `hide:`
+  front-matter key, because `hide: navigation` also removes the tab strip —
+  which is the one piece of navigation these pages actually want.
+-#}
+{% block site_nav %}{% endblock %}
+
+{% block container %}
+<div class="dbo">
+  {% include "_landing-body.html" %}
+</div>
+{% endblock %}

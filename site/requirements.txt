@@ -1,0 +1,11 @@
+# Pinned, and pinned exactly. The site is a build output, so "it rendered
+# differently on CI" has to be impossible rather than unlikely — the same
+# reason ./verify pins what it pins. Upgrading is a commit that says so.
+#
+# Transitive versions are NOT pinned here. If that starts to matter,
+# `pip freeze` into a lock file rather than growing this one by hand.
+mkdocs==1.6.1
+mkdocs-material==9.7.7
+# Lets the nav name a directory and have it expanded, so adding a page to the
+# specification tree does not also mean editing a list of 32 files here.
+mkdocs-awesome-nav==3.3.0

@@ -1,0 +1,42 @@
+{#-
+  A hand-written page that is not the landing page.
+
+  These are the "Why DBO" essays: one concept each, written for somebody
+  deciding whether this store is the right shape for their problem rather
+  than for somebody implementing against it. They are markdown, because
+  prose that changes is prose that has to be easy to change, and because the
+  specification tree they draw from is markdown too.
+
+  Two things come from front matter instead of from the body: the title and
+  the standfirst. That keeps the H1 and the opening sentence under the
+  template's control, so every essay opens the same way, and it keeps the
+  markdown body starting at H2 — which is what makes the same file readable
+  in the repository without a heading level looking wrong.
+-#}
+{% extends "main.html" %}
+
+{#-
+  No sidebars. The tab strip in the header is the navigation for these pages,
+  and a sidebar listing five essays beside a page that is one of them is
+  noise. This is done by emptying `site_nav` rather than by the `hide:`
+  front-matter key, because `hide: navigation` also removes the tab strip —
+  which is the one piece of navigation these pages actually want.
+-#}
+{% block site_nav %}{% endblock %}
+
+{% block container %}
+<div class="dbo dbo-essay">
+  <div class="wrap">
+    {% if page.meta and page.meta.eyebrow %}
+      <div class="kicker">{{ page.meta.eyebrow }}</div>
+    {% endif %}
+    <h1>{{ page.title }}</h1>
+    {% if page.meta and page.meta.standfirst %}
+      <p class="standfirst">{{ page.meta.standfirst }}</p>
+    {% endif %}
+    <div class="md-typeset">
+      {{ page.content }}
+    </div>
+  </div>
+</div>
+{% endblock %}
