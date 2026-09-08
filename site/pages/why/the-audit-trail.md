@@ -64,6 +64,38 @@ The machinery's own read to seal a payload records nothing, deliberately: a read
 that yields only ciphertext is not a disclosure, and recording it as one would
 make every genuine disclosure harder to find.
 
+## Evidence you cannot find is not evidence
+
+A compliance question starts by narrowing. *When was this tenant suspended, and
+by whom.* If the only way to ask that is to read the whole trail, the answer is
+technically available and practically absent — and the failure has a particular
+shape: a bounded read of a busy trail returns the last few things that happened,
+so a rare entry sitting in the store reads as one that never happened.
+
+So the trail is asked, not scanned. Six ways to narrow: **who** acted, **what**
+record it was about, **what action**, **when**, **which run** it belonged to —
+that last one turns a journey across organisations into a single question — and
+**what kind of event** it was.
+
+<div class="takeaway" markdown>
+The kind is searchable because the code is what the store lifts out of a
+contributed document when the entry is written. Everything else a domain
+contributed rides opaquely inside the document and is not indexed — so it is not
+searchable, and the list of parameters says so by leaving it out.
+</div>
+
+That decides something worth stating, because it is the shape of an answer most
+systems get wrong. A search for `type=urn:example:audit-type|tenant.suspended`
+names a code **and** the system it was coded in. The system was never indexed.
+Matching the code and quietly dropping the system would answer a narrower
+question with a wider result — and on this surface of all surfaces, that is the
+failure that matters, because the caller cannot see it happened: the rows come
+back looking exactly like the ones they asked for.
+
+It is refused instead, with the search that would have worked. A caller told
+only that something is unsupported can do nothing but guess, and this parameter
+is supported — it is the qualifier that is not.
+
 ## A trail, chained
 
 --8<-- "assets/diagrams/a-trail-that-is-chained.svg"
@@ -87,9 +119,9 @@ vault, so this is a smaller step than it sounds.
 ## No second vocabulary
 
 On a FHIR tenant the trail is served as `AuditEvent`, rendered from the native
-records on read. Searching it is searching, the scopes that gate it are the
-tenant's ordinary scopes, and there is no separate audit console with its own
-login to secure.
+records on read. The narrowing above is ordinary FHIR search, the scopes that
+gate it are the tenant's ordinary scopes, and there is no separate audit console
+with its own login to secure.
 
 The audit level itself is declared in the tenant's configuration beside its FHIR
 version, validated when the tenant is registered, and visible in the
