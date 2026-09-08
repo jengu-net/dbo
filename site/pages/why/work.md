@@ -43,6 +43,11 @@ begin with.
 A queue would have given none of that, and would have needed its own separate
 answer to each.
 
+--8<-- "assets/diagrams/work-is-a-record.svg"
+
+<p class="diagram-caption">The right-hand panel added nothing to get those four. It inherited them by being a record in a store that already gives every record all four.</p>
+
+
 <div class="takeaway" markdown>
 Work is not a subsystem beside the store. It is the store, holding a different
 kind of record.

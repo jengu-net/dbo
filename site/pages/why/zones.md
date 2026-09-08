@@ -81,6 +81,11 @@ standing, and the restrictive direction is always available to the party
 underneath. That is what makes a shared deployment safe to join: **nothing an
 inner party declares can grant it more than the outer party allowed.**
 
+--8<-- "assets/diagrams/outer-declares-inner-narrows.svg"
+
+<p class="diagram-caption">Containment is the rule, not an illustration of it: a tenant's accepted set is drawn inside the zone's declared one, and there is nowhere outside it to draw.</p>
+
+
 <div class="further" markdown>
 The declarations, the broker and session rules, and the two structural rules
 underneath the layering are in

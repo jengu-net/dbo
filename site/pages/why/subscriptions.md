@@ -28,6 +28,11 @@ subscriber, a dependent tenant and an appliance that has been off since Friday
 are all observed identically. Progress, lag and replay mean the same thing for
 each of them, and there is one place to look when any of them is behind.
 
+--8<-- "assets/diagrams/one-feed-four-consumers.svg"
+
+<p class="diagram-caption">The appliance is a long way back and nothing is wrong. It is behind by a distance, which is a thing you can read off the same line as everyone else's.</p>
+
+
 ## A change starts as a row committed with the write
 
 Every change event originates as an outbox row written in the same transaction

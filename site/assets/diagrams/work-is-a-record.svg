@@ -1,0 +1,71 @@
+<!--
+  Why a run being a record is the decision everything else follows from.
+  The two panels hold the same store; the difference is whether the work is
+  inside it. Everything the right-hand panel gets for free is a property the
+  left-hand panel would have had to build separately, which is the argument
+  the prose spends four paragraphs on.
+-->
+<svg class="dbo-diagram" viewBox="0 0 760 290" role="img"
+     aria-labelledby="wk-title wk-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="wk-title">Work held beside the store, and work held in it</title>
+  <desc id="wk-desc">On the left, a store containing records and, beside it, a
+  separate queue holding work in flight. On the right, one store containing
+  both the records and the runs.</desc>
+
+  <!-- ── the usual arrangement ─────────────────────────────────── -->
+  <g>
+    <text class="d-eyebrow" x="0" y="12">A QUEUE BESIDE THE STORE</text>
+
+    <rect class="d-box" x="0" y="26" width="196" height="106" rx="9"/>
+    <text class="d-caption" x="12" y="46">the store</text>
+    <rect class="d-chip" x="12" y="58" width="80" height="26" rx="6"/>
+    <text class="d-chip-text" x="52" y="75">Patient</text>
+    <rect class="d-chip" x="100" y="58" width="84" height="26" rx="6"/>
+    <text class="d-chip-text" x="142" y="75">Observation</text>
+    <rect class="d-chip" x="12" y="92" width="80" height="26" rx="6"/>
+    <text class="d-chip-text" x="52" y="109">Encounter</text>
+
+    <line class="d-arrow-faint" x1="200" y1="79" x2="228" y2="79"/>
+
+    <rect class="d-dash" x="232" y="26" width="112" height="106" rx="9"/>
+    <text class="d-caption-faint" x="244" y="46">a queue</text>
+    <rect class="d-chip-ghost" x="244" y="58" width="88" height="26" rx="6"/>
+    <text class="d-chip-text-faint" x="288" y="75">run</text>
+    <rect class="d-chip-ghost" x="244" y="92" width="88" height="26" rx="6"/>
+    <text class="d-chip-text-faint" x="288" y="109">run</text>
+
+    <text class="d-note" x="0" y="158">Its own state, its own failure modes,</text>
+    <text class="d-note" x="0" y="176">and its own answer needed for each of:</text>
+    <text class="d-miss" x="0" y="202">history</text>
+    <text class="d-miss" x="0" y="222">an audit trail</text>
+    <text class="d-miss" x="0" y="242">an owner</text>
+    <text class="d-miss" x="0" y="262">surviving a restart</text>
+  </g>
+
+  <!-- ── this store ────────────────────────────────────────────── -->
+  <g transform="translate(416,0)">
+    <text class="d-eyebrow" x="0" y="12">WORK IN THE STORE</text>
+
+    <rect class="d-box" x="0" y="26" width="344" height="106" rx="9"/>
+    <text class="d-caption" x="12" y="46">the store</text>
+    <rect class="d-chip" x="12" y="58" width="80" height="26" rx="6"/>
+    <text class="d-chip-text" x="52" y="75">Patient</text>
+    <rect class="d-chip" x="100" y="58" width="84" height="26" rx="6"/>
+    <text class="d-chip-text" x="142" y="75">Observation</text>
+    <rect class="d-chip" x="192" y="58" width="80" height="26" rx="6"/>
+    <text class="d-chip-text" x="232" y="75">Encounter</text>
+    <rect class="d-chip-live" x="12" y="92" width="80" height="26" rx="6"/>
+    <text class="d-chip-text-live" x="52" y="109">run</text>
+    <rect class="d-chip-live" x="100" y="92" width="84" height="26" rx="6"/>
+    <text class="d-chip-text-live" x="142" y="109">run</text>
+    <rect class="d-chip-live" x="192" y="92" width="80" height="26" rx="6"/>
+    <text class="d-chip-text-live" x="232" y="109">run</text>
+
+    <text class="d-note" x="0" y="158">A run is an ordinary record, so it</text>
+    <text class="d-note" x="0" y="176">already has, without anything added:</text>
+    <text class="d-has" x="0" y="202">history</text>
+    <text class="d-has" x="0" y="222">an audit trail</text>
+    <text class="d-has" x="0" y="242">an owner</text>
+    <text class="d-has" x="0" y="262">it was never in flight</text>
+  </g>
+</svg>

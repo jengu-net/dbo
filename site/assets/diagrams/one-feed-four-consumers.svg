@@ -1,0 +1,60 @@
+<!--
+  Why the four problems are one.
+  Every consumer is drawn the same way — a name and a dot on the same line —
+  because that IS the claim. Lag is the distance to the head, which is a thing
+  you can see rather than a number four subsystems would each report
+  differently.
+
+  The label column is wide enough for the longest name at the drawing's own
+  font size. Text does not wrap in SVG and there is no layout pass to catch
+  it: a name that does not fit is simply drawn off the edge.
+-->
+<svg class="dbo-diagram" viewBox="0 0 760 276" role="img"
+     aria-labelledby="fd-title fd-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="fd-title">One ordered feed, four consumers at different positions</title>
+  <desc id="fd-desc">A single ordered sequence of committed changes. Four
+  consumers — a paging client, a subscriber, a dependent tenant and an
+  offline appliance — each sit at a position on it, and the distance from a
+  consumer to the head is its lag.</desc>
+
+  <text class="d-eyebrow" x="232" y="14">THE OUTBOX, IN COMMIT ORDER</text>
+
+  <g>
+    <rect class="d-event" x="232" y="26" width="30" height="30" rx="5"/>
+    <rect class="d-event" x="270" y="26" width="30" height="30" rx="5"/>
+    <rect class="d-event" x="308" y="26" width="30" height="30" rx="5"/>
+    <rect class="d-event" x="346" y="26" width="30" height="30" rx="5"/>
+    <rect class="d-event" x="384" y="26" width="30" height="30" rx="5"/>
+    <rect class="d-event" x="422" y="26" width="30" height="30" rx="5"/>
+    <rect class="d-event" x="460" y="26" width="30" height="30" rx="5"/>
+    <rect class="d-event" x="498" y="26" width="30" height="30" rx="5"/>
+    <rect class="d-event" x="536" y="26" width="30" height="30" rx="5"/>
+    <rect class="d-event" x="574" y="26" width="30" height="30" rx="5"/>
+    <rect class="d-event" x="612" y="26" width="30" height="30" rx="5"/>
+    <rect class="d-event" x="650" y="26" width="30" height="30" rx="5"/>
+  </g>
+  <line class="d-head" x1="690" y1="20" x2="690" y2="230"/>
+  <text class="d-caption-accent" x="698" y="40">head</text>
+
+  <!-- each consumer: a name, and a position. Nothing else distinguishes them. -->
+  <g>
+    <text class="d-label-right" x="212" y="94">paging a result set</text>
+    <line class="d-lag" x1="680" y1="88" x2="690" y2="88"/>
+    <circle class="d-marker" cx="680" cy="88" r="5.5"/>
+
+    <text class="d-label-right" x="212" y="134">a subscriber</text>
+    <line class="d-lag" x1="650" y1="128" x2="690" y2="128"/>
+    <circle class="d-marker" cx="650" cy="128" r="5.5"/>
+
+    <text class="d-label-right" x="212" y="174">a tenant holding a copy</text>
+    <line class="d-lag" x1="536" y1="168" x2="690" y2="168"/>
+    <circle class="d-marker" cx="536" cy="168" r="5.5"/>
+
+    <text class="d-label-right" x="212" y="214">an appliance, off since Friday</text>
+    <line class="d-lag" x1="384" y1="208" x2="690" y2="208"/>
+    <circle class="d-marker" cx="384" cy="208" r="5.5"/>
+  </g>
+
+  <text class="d-note-small" x="232" y="252">Four different problems, one kind of consumer:</text>
+  <text class="d-note-small" x="232" y="270">a name and a position, so the gap to the head means the same thing for each.</text>
+</svg>

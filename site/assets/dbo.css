@@ -215,10 +215,46 @@
 .dbo-diagram .d-key-bit-stem{fill:none; stroke:var(--dbo-seal); stroke-width:2.5; stroke-linecap:round}
 .dbo-diagram .d-key-gone{fill:none; stroke:var(--dbo-line); stroke-width:1.5; stroke-dasharray:5 4}
 .dbo-diagram .d-strike{stroke:var(--dbo-faint); stroke-width:2; stroke-linecap:round}
+.dbo-diagram .d-strike-soft{stroke:var(--dbo-faint); stroke-width:1.75; stroke-linecap:round; opacity:.7}
 .dbo-diagram .d-cipher{fill:url(#cs-hatch); stroke:none}
 .dbo-diagram .d-hatch{stroke:var(--dbo-line); stroke-width:2.5}
 .dbo-diagram .d-arrow{stroke:var(--dbo-accent); stroke-width:1.75}
 .dbo-diagram .d-arrowhead{fill:var(--dbo-accent)}
+
+/* Shared vocabulary across diagrams. A shape means the same thing on every
+ * page: a solid box is a thing that exists, a dashed one is a thing that is
+ * absent or refused, a seal-coloured chip is something declared, and a faint
+ * chip is something ghosted. Four drawings is already enough for an
+ * inconsistency to read as meaning. */
+.dbo-diagram .d-caption{font-size:13px; font-weight:600; fill:var(--dbo-ink)}
+.dbo-diagram .d-caption-faint{font-size:13px; font-weight:600; fill:var(--dbo-faint)}
+.dbo-diagram .d-caption-accent{font-size:12px; font-weight:600; fill:var(--dbo-accent)}
+.dbo-diagram .d-note{font-size:13px; fill:var(--dbo-muted)}
+.dbo-diagram .d-note-small{font-size:12.5px; fill:var(--dbo-muted)}
+.dbo-diagram .d-label-right{font-size:13px; fill:var(--dbo-body); text-anchor:end}
+.dbo-diagram .d-has{font-size:13px; font-weight:600; fill:var(--dbo-seal)}
+.dbo-diagram .d-miss{font-size:13px; fill:var(--dbo-faint)}
+
+.dbo-diagram .d-dash{fill:none; stroke:var(--dbo-line); stroke-width:1.5; stroke-dasharray:5 4}
+.dbo-diagram .d-region{fill:var(--dbo-accent-soft); stroke:var(--dbo-line); stroke-width:1.5}
+.dbo-diagram .d-arrow-faint{stroke:var(--dbo-line); stroke-width:1.5}
+
+/* chips: a small named thing. Four weights, meaning declared, ordinary,
+ * live, and absent. */
+.dbo-diagram .d-chip{fill:var(--dbo-bg); stroke:var(--dbo-line); stroke-width:1.25}
+.dbo-diagram .d-chip-live{fill:var(--dbo-accent-soft); stroke:var(--dbo-accent); stroke-width:1.25}
+.dbo-diagram .d-chip-seal{fill:var(--dbo-seal-soft); stroke:var(--dbo-seal); stroke-width:1.25}
+.dbo-diagram .d-chip-ghost{fill:none; stroke:var(--dbo-line); stroke-width:1.25; stroke-dasharray:4 3}
+.dbo-diagram .d-chip-text{font-size:12px; fill:var(--dbo-body); text-anchor:middle}
+.dbo-diagram .d-chip-text-live{font-size:12px; font-weight:600; fill:var(--dbo-accent); text-anchor:middle}
+.dbo-diagram .d-chip-text-seal{font-size:12px; fill:var(--dbo-seal); text-anchor:middle}
+.dbo-diagram .d-chip-text-faint{font-size:12px; fill:var(--dbo-faint); text-anchor:middle}
+
+/* the feed: events, the head, and how far behind a consumer is */
+.dbo-diagram .d-event{fill:var(--dbo-panel); stroke:var(--dbo-line); stroke-width:1.25}
+.dbo-diagram .d-head{stroke:var(--dbo-accent); stroke-width:1.5; stroke-dasharray:3 3}
+.dbo-diagram .d-lag{stroke:var(--dbo-accent); stroke-width:1.5; opacity:.5}
+.dbo-diagram .d-marker{fill:var(--dbo-accent)}
 
 /* A caption belongs to the figure, not to the paragraph after it. */
 .dbo-essay .md-typeset .diagram-caption{font-size:14.5px; color:var(--dbo-muted);
