@@ -1,12 +1,16 @@
 # Reading order, which is not alphabetical order. What the thing IS comes
 # first, because every page after it says "the engine" and means something
 # particular. Then work, which is what people are most surprised a store does
-# at all; then the two properties that decide whether a deployment is lawful;
-# then the mechanism that keeps copies of it honest.
+# at all. Then the three properties a deployment is judged on — who is
+# separated from whom, what a record is held to, and how anybody gets in — and
+# last the two mechanisms that keep copies and jurisdictions honest.
 nav:
   - index.md
   - engine-and-faces.md
   - work.md
+  - a-tenant-is-a-database.md
   - personal-data.md
+  - a-type-declares-what-it-is.md
+  - one-api.md
   - zones.md
   - subscriptions.md

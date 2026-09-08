@@ -1,0 +1,52 @@
+<!--
+  The forgotten filter, on both arrangements.
+
+  The argument is not that one is tidier. It is that on the left a bug
+  produces somebody else's records and on the right the same bug produces
+  nothing, because there is nothing else in there to produce. Both panels
+  therefore show the SAME defect rather than a good query and a bad one —
+  otherwise the picture would be about discipline, which is the thing being
+  argued against.
+-->
+<svg class="dbo-diagram" viewBox="0 0 760 286" role="img"
+     aria-labelledby="tn-title tn-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="tn-title">One shared table, and a database per tenant</title>
+  <desc id="tn-desc">On the left, one table holding rows belonging to three
+  organisations; a query that omits its tenant filter returns all of them. On
+  the right, each organisation has its own database, and the same query
+  returns only that organisation's rows.</desc>
+
+  <text class="d-eyebrow" x="0" y="12">ONE TABLE, A TENANT COLUMN</text>
+  <rect class="d-box" x="0" y="26" width="352" height="132" rx="9"/>
+  <rect class="d-row-alien" x="14" y="40" width="324" height="24" rx="5"/>
+  <text class="d-row-text-alien" x="26" y="57">hospital · Ada Lovelace</text>
+  <rect class="d-row-alien" x="14" y="70" width="324" height="24" rx="5"/>
+  <text class="d-row-text-alien" x="26" y="87">insurer · Grace Hopper</text>
+  <rect class="d-row-alien" x="14" y="100" width="324" height="24" rx="5"/>
+  <text class="d-row-text-alien" x="26" y="117">clinic · Alan Turing</text>
+  <rect class="d-row-alien" x="14" y="130" width="324" height="24" rx="5"/>
+  <text class="d-row-text-alien" x="26" y="147">hospital · Katherine Johnson</text>
+
+  <text class="d-eyebrow" x="408" y="12">A DATABASE EACH</text>
+  <rect class="d-box" x="408" y="26" width="352" height="60" rx="9"/>
+  <text class="d-caption" x="422" y="46">hospital</text>
+  <rect class="d-row" x="422" y="54" width="324" height="24" rx="5"/>
+  <text class="d-row-text" x="434" y="71">Ada Lovelace · Katherine Johnson</text>
+  <rect class="d-box" x="408" y="94" width="352" height="30" rx="9"/>
+  <text class="d-caption-faint" x="422" y="114">clinic — its own database</text>
+  <rect class="d-box" x="408" y="132" width="352" height="30" rx="9"/>
+  <text class="d-caption-faint" x="422" y="152">insurer — its own database</text>
+
+  <!-- Each outcome sits under the arrangement that produces it. Stacking
+       both in one column read as though both described the right-hand
+       panel, which inverts the whole point of the drawing. -->
+  <text class="d-miss" x="0" y="190">returns four rows —</text>
+  <text class="d-miss" x="0" y="210">three of them not yours</text>
+
+  <text class="d-has" x="408" y="190">returns two rows, both yours,</text>
+  <text class="d-has" x="408" y="210">because there is nothing else in there</text>
+
+  <text class="d-note" x="0" y="248">The same query, with the same bug in it, against both:</text>
+  <text class="d-code" x="0" y="272">SELECT * FROM patients</text>
+  <text class="d-code-miss" x="196" y="272">-- the tenant filter that should be here</text>
+</svg>

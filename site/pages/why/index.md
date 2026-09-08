@@ -27,7 +27,7 @@ something the system does not permit. This store is built out of the second
 kind.
 </div>
 
-## The five ideas worth ten minutes
+## Start here
 
 **[What it actually is](engine-and-faces.md).** Not a FHIR store. A store whose
 concepts are regulatory — object, identity, custody, declared handling,
@@ -57,6 +57,20 @@ country is configuration and terminology rather than a release.
 changes, keeping a dependent copy current, and reconciling an appliance that
 was offline all weekend look like four problems. They are one, and solving them
 once means there is one place to look when something is behind.
+
+## And three that decide what it is like to run
+
+**[A tenant is a database](a-tenant-is-a-database.md).** Not a filter over a
+shared one — which changes what a query with a bug in it can return, and what
+"we have removed your data" is worth.
+
+**[A type says what it is](a-type-declares-what-it-is.md).** Append-only,
+versioned, retained for how long, identified by what: declared once per type and
+enforced by the engine rather than by the habits of whatever code writes it.
+
+**[One API, and it is FHIR](one-api.md).** No admin plane and no second
+vocabulary. The organisation model *is* the authorisation model, so revoking
+access is ending a period on an ordinary record.
 
 ## Who each part is for
 

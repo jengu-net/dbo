@@ -1,0 +1,56 @@
+<!--
+  One declaration, and everything the engine then holds it to.
+
+  The fan is the point: a reader should see that these behaviours are not
+  things the writing code opted into one by one, but consequences of a single
+  line. The left side is deliberately shown as the literal declaration a
+  tenant writes, because it is short enough to show in full and that is
+  itself the argument.
+-->
+<svg class="dbo-diagram" viewBox="0 0 760 300" role="img"
+     aria-labelledby="ty-title ty-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="ty-title">A type declaration and the behaviours it obliges</title>
+  <desc id="ty-desc">A short type declaration naming an identity class and a
+  handling class, fanning out into the behaviours the engine enforces from
+  it: identity, version history, an audit trail, retention, export, and a
+  searchable envelope that is derived and can be rebuilt.</desc>
+
+  <text class="d-eyebrow" x="0" y="12">WHAT THE TENANT DECLARES</text>
+  <rect class="d-box" x="0" y="26" width="292" height="120" rx="9"/>
+  <text class="d-code" x="18" y="52">{ "name": "Patient",</text>
+  <text class="d-code" x="18" y="74">  "identity": "identifier",</text>
+  <text class="d-code" x="18" y="96">  "systems": ["urn:…:mrn"],</text>
+  <text class="d-code" x="18" y="118">  "handling": "operational" }</text>
+  <text class="d-note-small" x="0" y="172">Four lines, and none of them is code.</text>
+  <text class="d-note-small" x="0" y="192">Nothing that writes a Patient has to</text>
+  <text class="d-note-small" x="0" y="212">remember any of what follows.</text>
+
+  <line class="d-arrow" x1="300" y1="86" x2="352" y2="86" marker-end="url(#ty-arrow)"/>
+  <defs>
+    <marker id="ty-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="d-arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+
+  <text class="d-eyebrow" x="368" y="12">WHAT THE ENGINE THEN ENFORCES</text>
+  <rect class="d-chip-live" x="368" y="26" width="188" height="30" rx="7"/>
+  <text class="d-chip-text-live" x="462" y="45">the same thing, next time</text>
+  <rect class="d-chip-live" x="568" y="26" width="192" height="30" rx="7"/>
+  <text class="d-chip-text-live" x="664" y="45">every version kept</text>
+  <rect class="d-chip-live" x="368" y="66" width="188" height="30" rx="7"/>
+  <text class="d-chip-text-live" x="462" y="85">an audit trail</text>
+  <rect class="d-chip-live" x="568" y="66" width="192" height="30" rx="7"/>
+  <text class="d-chip-text-live" x="664" y="85">retained for how long</text>
+  <rect class="d-chip-live" x="368" y="106" width="188" height="30" rx="7"/>
+  <text class="d-chip-text-live" x="462" y="125">exportable</text>
+  <rect class="d-chip-live" x="568" y="106" width="192" height="30" rx="7"/>
+  <text class="d-chip-text-live" x="664" y="125">on the change feed</text>
+
+  <!-- the derived layer, drawn apart because it is not authoritative -->
+  <rect class="d-dash" x="368" y="158" width="392" height="64" rx="9"/>
+  <text class="d-caption-faint" x="384" y="180">the searchable envelope</text>
+  <text class="d-note-small" x="384" y="200">derived from the payload, never authoritative,</text>
+  <text class="d-note-small" x="384" y="216">and rebuildable — so changing how things are</text>
+  <text class="d-note-small" x="384" y="232">indexed is a background job, not a migration</text>
+</svg>

@@ -1,0 +1,67 @@
+<!--
+  Why one sign-in does not mean one set of permissions.
+
+  The same verified person reaches three tenants and gets three different
+  answers, and the refusal on the right is the whole point: a valid identity
+  is not access. Drawing the hub as holding no name matters as much — it is
+  what makes the shared half of this safe to share.
+-->
+<svg class="dbo-diagram" viewBox="0 0 760 300" role="img"
+     aria-labelledby="au-title au-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="au-title">Authentication is shared; authorisation never is</title>
+  <desc id="au-desc">A person authenticates once at a national broker. A hub
+  holds a session carrying only a verified identifier and no name. Three
+  tenants each resolve that person in their own records: two grant access
+  through an active role, and the third refuses the same valid identity
+  because no role there is active.</desc>
+
+  <text class="d-eyebrow" x="0" y="12">SHARED ACROSS THE DEPLOYMENT</text>
+  <rect class="d-box" x="0" y="26" width="196" height="52" rx="9"/>
+  <text class="d-caption" x="16" y="48">a national broker</text>
+  <text class="d-note-small" x="16" y="68">the store authenticates nobody</text>
+
+  <line class="d-arrow" x1="98" y1="82" x2="98" y2="104" marker-end="url(#au-arrow)"/>
+  <defs>
+    <marker id="au-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="d-arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+
+  <rect class="d-box" x="0" y="110" width="196" height="66" rx="9"/>
+  <text class="d-caption" x="16" y="132">one session</text>
+  <text class="d-note-small" x="16" y="152">a verified identifier and</text>
+  <text class="d-note-small" x="16" y="168">the time of the ceremony —</text>
+  <text class="d-miss" x="16" y="196">no name, no national code</text>
+
+  <line class="d-arrow" x1="200" y1="143" x2="248" y2="143" marker-end="url(#au-arrow)"/>
+
+  <text class="d-eyebrow" x="264" y="12">NEVER SHARED</text>
+
+  <rect class="d-box" x="264" y="26" width="240" height="76" rx="9"/>
+  <text class="d-caption" x="280" y="48">county hospital</text>
+  <rect class="d-chip-seal" x="280" y="58" width="208" height="30" rx="7"/>
+  <text class="d-chip-text-seal" x="384" y="77">an active role — in</text>
+
+  <rect class="d-box" x="264" y="112" width="240" height="76" rx="9"/>
+  <text class="d-caption" x="280" y="134">private clinic</text>
+  <rect class="d-chip-seal" x="280" y="144" width="208" height="30" rx="7"/>
+  <text class="d-chip-text-seal" x="384" y="163">an active role — in</text>
+
+  <rect class="d-box" x="264" y="198" width="240" height="76" rx="9"/>
+  <text class="d-caption" x="280" y="220">a hospital across the country</text>
+  <rect class="d-chip-ghost" x="280" y="230" width="208" height="30" rx="7"/>
+  <text class="d-chip-text-faint" x="384" y="249">no active role — refused</text>
+
+  <text class="d-note-small" x="524" y="48">The same person, the same</text>
+  <text class="d-note-small" x="524" y="66">ceremony, three answers.</text>
+  <text class="d-note-small" x="524" y="94">Each tenant resolves them in</text>
+  <text class="d-note-small" x="524" y="112">its own records and mints its</text>
+  <text class="d-note-small" x="524" y="130">own token. A token from one</text>
+  <text class="d-note-small" x="524" y="148">fails at another's signature</text>
+  <text class="d-note-small" x="524" y="166">check before a claim is read.</text>
+  <text class="d-note-small" x="524" y="200">Revoking access is ending a</text>
+  <text class="d-note-small" x="524" y="218">period on an ordinary record.</text>
+  <text class="d-note-small" x="524" y="236">There is no second user</text>
+  <text class="d-note-small" x="524" y="254">directory to go stale.</text>
+</svg>

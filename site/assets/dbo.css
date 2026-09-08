@@ -250,6 +250,18 @@
 .dbo-diagram .d-chip-text-seal{font-size:12px; fill:var(--dbo-seal); text-anchor:middle}
 .dbo-diagram .d-chip-text-faint{font-size:12px; fill:var(--dbo-faint); text-anchor:middle}
 
+/* rows in a table. "alien" is a row belonging to somebody else — drawn the
+ * same as any other, because that is exactly the problem: nothing about a
+ * row in a shared table announces whose it is. */
+.dbo-diagram .d-row{fill:var(--dbo-bg); stroke:var(--dbo-line); stroke-width:1.25}
+.dbo-diagram .d-row-alien{fill:var(--dbo-bg); stroke:var(--dbo-line); stroke-width:1.25}
+.dbo-diagram .d-row-text{font-size:12px; fill:var(--dbo-body)}
+.dbo-diagram .d-row-text-alien{font-size:12px; fill:var(--dbo-muted)}
+.dbo-diagram .d-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+     font-size:12.5px; fill:var(--dbo-ink)}
+.dbo-diagram .d-code-miss{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+     font-size:12.5px; fill:var(--dbo-faint)}
+
 /* the feed: events, the head, and how far behind a consumer is */
 .dbo-diagram .d-event{fill:var(--dbo-panel); stroke:var(--dbo-line); stroke-width:1.25}
 /* The seam. Heavier than a divider on purpose: it is the product's central
