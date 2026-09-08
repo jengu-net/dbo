@@ -69,6 +69,15 @@
   --md-accent-fg-color:#e0a45c;
 }
 
+/* The landing page has no sidebar where there is room for one to be a column
+ * — a hero with a navigation rail beside it reads as a documentation page
+ * that lost its content. Below Material's sidebar breakpoint the same markup
+ * IS the drawer, so it stays: hiding it there would empty the hamburger,
+ * which is the bug this replaced. */
+@media screen and (min-width: 76.25em){
+  .md-main__inner:has(> .dbo:not(.dbo-essay)) > .md-sidebar--primary{display:none}
+}
+
 /* ── the hand-written pages themselves ───────────────────────────── */
 
 .dbo{

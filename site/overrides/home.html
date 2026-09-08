@@ -14,14 +14,13 @@
 {% extends "main.html" %}
 
 {#-
-  No sidebars. The tab strip in the header is the navigation for these pages,
-  and a sidebar listing five essays beside a page that is one of them is
-  noise. This is done by emptying `site_nav` rather than by the `hide:`
-  front-matter key, because `hide: navigation` also removes the tab strip —
-  which is the one piece of navigation these pages actually want.
+  The landing page keeps the navigation in the document and hides it with CSS
+  at the widths where it would be a column beside the hero. Removing it from
+  the template instead is what left the header's drawer opening onto nothing
+  on a phone — the sidebar and the drawer are the same markup in Material, so
+  a page with no sidebar is a page with no menu exactly where the menu is the
+  only way to move.
 -#}
-{% block site_nav %}{% endblock %}
-
 {% block container %}
 <div class="dbo">
   {% include "_landing-body.html" %}

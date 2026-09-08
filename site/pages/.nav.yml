@@ -1,6 +1,9 @@
-# The top-level menu. Two of the entries are directories the plugin expands:
-# the specification tree orders itself by its arc42 numbering and the essays
-# by why/.nav.yml, so neither is a list to maintain here.
+# The header menu.
+#
+# Three of these are sections that drill down — Why, Faces, Technical — and
+# the plugin expands each from its directory, so adding a page to one is a
+# file rather than an edit here. Material shows them across the header when
+# there is room and folds them into the drawer when there is not.
 #
 # Quickstart sits second, before the essays, because the fastest way to find
 # out what something is can be to run it — and because that page is the one
@@ -9,5 +12,7 @@
 nav:
   - Home: index.md
   - Quickstart: quickstart.md
-  - Why DBO: why
+  - Why: why
+  - Faces: faces
+  - Technical: technical
   - Documentation: docs

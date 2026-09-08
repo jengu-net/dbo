@@ -1,0 +1,5 @@
+# One entry per face that exists. FHIR is the only one today, and the index
+# says so rather than implying a list that is about to grow.
+nav:
+  - index.md
+  - fhir.md

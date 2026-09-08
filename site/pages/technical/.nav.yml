@@ -1,0 +1,6 @@
+# What somebody has to know before they can plan a deployment: what it needs
+# from an environment, and how any number quoted about it was arrived at.
+nav:
+  - index.md
+  - environment.md
+  - performance.md
