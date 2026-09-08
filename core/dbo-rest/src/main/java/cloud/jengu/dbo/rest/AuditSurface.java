@@ -26,7 +26,14 @@ public interface AuditSurface {
     default java.util.Set<String> searchParameters() {
         // run: the trail by task, so a journey is one ask — every entry an
         // execution occasioned, travel and access alike.
-        return java.util.Set.of("agent", "entity", "action", "date", "run");
+        //
+        // type: WHAT KIND of event, which is the narrowing a compliance
+        // question starts from — when was this suspended, and by whom. It is
+        // searchable because the code is the one thing lifted out of a posted
+        // document at record time; the rest of what a domain contributed rides
+        // opaquely and is not indexed, so it is not searchable and this set
+        // says so by leaving it out.
+        return java.util.Set.of("agent", "entity", "action", "date", "run", "type");
     }
 
     /** A searchset Bundle of rendered AuditEvents. */

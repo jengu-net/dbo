@@ -139,6 +139,9 @@ public final class AuditProjection implements AuditSurface {
                 default -> query.get("action");
             }));
         }
+        if (query.get("type") != null) {
+            criteria.eq("code", EnvelopeValue.of(codeOf(query.get("type"))));
+        }
         if (query.get("date") != null) {
             String date = query.get("date");
             if (date.startsWith("ge")) {
@@ -168,6 +171,35 @@ public final class AuditProjection implements AuditSurface {
             throw new UncheckedIOException("audit page could not be written", e);
         }
         return out.toString(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * The code half of a token, and a refusal when the caller asked for more.
+     *
+     * <p>What is indexed is the code, because the code is what the face lifts
+     * out of a posted document when the entry is written. The system stays
+     * where the rest of the contribution stays — inside the document, opaque
+     * to everything between the poster and the face that renders it — so a
+     * store this side of that seam cannot tell one system's {@code created}
+     * from another's.
+     *
+     * <p>So a system-qualified token is refused rather than half-honoured.
+     * Matching the code and dropping the system would answer a narrower
+     * question with a wider answer, which on this surface of all surfaces is
+     * the failure that matters: a caller cannot see that it happened, and the
+     * rows look exactly like the ones they asked for.
+     */
+    private static String codeOf(String token) {
+        if (token.indexOf('|') < 0) {
+            return token;
+        }
+        throw new UnsupportedOperationException(
+                "the trail indexes an audit entry's code and not the system it was coded in: "
+                        + "the code is lifted out when the entry is written and the system stays "
+                        + "in the contributed document, unindexed. Search type=<code> — for this "
+                        + "ask, type=" + token.substring(token.indexOf('|') + 1) + ". Matching "
+                        + "the code and ignoring the system would answer a narrower question "
+                        + "with a wider result and not say that it had.");
     }
 
     /**

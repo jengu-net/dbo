@@ -395,6 +395,64 @@ class TheClinicRecordsCareAndAccountsForItIT {
     }
 
     @Test
+    @Order(11)
+    @DisplayName("the trail answers what kind of event, so a rare one is not buried under "
+            + "everything that happened since")
+    @Proving({DboPromises.POL_FHIR_AUDIT_PROJECTION, DboPromises.SRCH_HONEST_CAPABILITY})
+    void theTrailIsSearchableByWhatKindOfEventItWas() throws Exception {
+        // One event of the kind an operator asks about, then enough ordinary
+        // traffic to bury it. This is the reported failure exactly: narrowing
+        // after a bounded read returns nothing while the entry sits in the
+        // store, and empty reads as "it never happened".
+        assertEquals(201, post("/AuditEvent", """
+                {"resourceType":"AuditEvent",
+                 "type":{"system":"urn:example:audit-type","code":"tenant.suspended"},
+                 "recorded":"2020-01-01T00:00:00Z",
+                 "agent":[{"requestor":true}],
+                 "source":{"site":"north"}}""").statusCode());
+        for (int i = 0; i < 12; i++) {
+            assertEquals(201, post("/Observation", """
+                    {"resourceType":"Observation","status":"final",
+                     "code":{"text":"noise %d"},
+                     "subject":{"reference":"Patient/%s"}}""".formatted(i, patientId))
+                    .statusCode());
+        }
+
+        HttpResponse<String> recent = get("/AuditEvent?_count=5&_sort=-date");
+        assertFalse(recent.body().contains("tenant.suspended"),
+                "the fixture proves nothing unless the entry really is out of reach of a "
+                        + "bounded read: " + recent.body());
+
+        HttpResponse<String> narrowed = get("/AuditEvent?_count=5&type=tenant.suspended");
+        assertEquals(200, narrowed.statusCode(), narrowed.body());
+        assertTrue(narrowed.body().contains("tenant.suspended"),
+                "the kind of event an operator came to ask about is not findable, so a "
+                        + "compliance question can only be answered by reading the whole "
+                        + "trail: " + narrowed.body());
+        assertFalse(narrowed.body().contains("noise"),
+                "narrowing by type returned entries of other kinds: " + narrowed.body());
+    }
+
+    @Test
+    @Order(11)
+    @DisplayName("a system the trail never indexed is refused with the search that would "
+            + "work, rather than answered wider than it was asked")
+    @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
+    void aSystemQualifiedTypeIsRefusedWithTheAlternative() throws Exception {
+        HttpResponse<String> refused = get("/AuditEvent?type="
+                + URLEncoder.encode("urn:example:audit-type|tenant.suspended",
+                        StandardCharsets.UTF_8));
+        assertEquals(400, refused.statusCode(), refused.body());
+        assertTrue(refused.body().contains("type=tenant.suspended"),
+                "the refusal has to carry the search that would work — a caller who is told "
+                        + "only that this is unsupported can do nothing but guess: "
+                        + refused.body());
+        assertFalse(refused.body().contains("unsupported search parameter"),
+                "type IS supported; refusing it as an unknown parameter tells the caller to "
+                        + "stop asking rather than to ask differently: " + refused.body());
+    }
+
+    @Test
     @Order(12)
     @DisplayName("one feed carries every one of those changes, and a named consumer resumes "
             + "from where it stopped rather than from the beginning")
