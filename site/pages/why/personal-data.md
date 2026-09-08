@@ -64,6 +64,12 @@ History stays byte-immutable. Archives already taken stay valid as files. And
 the person's data is cryptographically gone — from the live store, from
 history, and from every archive that ever carried it.
 
+--8<-- "assets/diagrams/crypto-shredding.svg"
+
+<p class="diagram-caption">Nothing is rewritten. The history is the same bytes
+it was, and the archive that left the building in March is the same file — it
+simply no longer opens.</p>
+
 <div class="takeaway" markdown>
 Erasure is not a promise to delete rows. It is the destruction of the only
 thing that could ever have read them, and it reaches backups nobody has to go

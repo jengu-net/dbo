@@ -75,6 +75,13 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.superfences
+  # Inlines a diagram's SVG into the page. Linked images cannot read the
+  # page's colours, so linking them would mean two files per diagram and a
+  # dark mode that goes stale.
+  - pymdownx.snippets:
+      base_path:
+        - ../build/site-src
+      check_paths: true
   - pymdownx.details
 
 # A link into the specification that has gone stale is a broken promise about

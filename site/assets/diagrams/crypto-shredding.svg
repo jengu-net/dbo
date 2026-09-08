@@ -1,0 +1,107 @@
+<!--
+  Erasure, drawn.
+
+  The claim this picture has to carry is the one people disbelieve when it is
+  written down: that history stays byte-for-byte intact and the person is
+  nonetheless gone from it, including from archives already written to tape
+  and handed to somebody else. Two panels, identical but for the key, is the
+  shortest way to say that — nothing moved, nothing was rewritten, and the
+  only thing that changed was destroyed rather than edited.
+
+  No fixed width and no hard-coded colour: it scales to its column and takes
+  the palette from the page, so it is correct in dark mode and on a phone
+  without a second copy of the file existing.
+-->
+<svg class="dbo-diagram" viewBox="0 0 760 300" role="img"
+     aria-labelledby="cs-title cs-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="cs-title">Erasure destroys the key, not the history</title>
+  <desc id="cs-desc">Before erasure, a person's key opens three stored
+  versions and an archive already taken. After erasure the key is gone and the
+  same three versions and the same archive remain, byte for byte, and are
+  unreadable.</desc>
+
+  <defs>
+    <pattern id="cs-hatch" width="7" height="7" patternUnits="userSpaceOnUse"
+             patternTransform="rotate(45)">
+      <line class="d-hatch" x1="0" y1="0" x2="0" y2="7"/>
+    </pattern>
+    <marker id="cs-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="d-arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+
+  <!-- ── before ────────────────────────────────────────────────── -->
+  <g>
+    <text class="d-eyebrow" x="0" y="14">BEFORE</text>
+
+    <!-- the key -->
+    <g transform="translate(0,34)">
+      <rect class="d-key" x="0" y="0" width="118" height="44" rx="9"/>
+      <circle class="d-key-bit" cx="24" cy="22" r="8"/>
+      <path class="d-key-bit-stem" d="M32,22 H60 M52,22 V30 M60,22 V32"/>
+      <text class="d-label" x="74" y="26">key</text>
+    </g>
+
+    <!-- three stored versions -->
+    <g transform="translate(0,110)">
+      <rect class="d-box" x="0" y="0" width="104" height="58" rx="8"/>
+      <rect class="d-box" x="114" y="0" width="104" height="58" rx="8"/>
+      <rect class="d-box" x="228" y="0" width="104" height="58" rx="8"/>
+      <text class="d-vers" x="12" y="20">v1</text>
+      <text class="d-vers" x="126" y="20">v2</text>
+      <text class="d-vers" x="240" y="20">v3</text>
+      <text class="d-readable" x="12" y="42">Ada Lovelace</text>
+      <text class="d-readable" x="126" y="42">Ada Lovelace</text>
+      <text class="d-readable" x="240" y="42">A. Lovelace</text>
+    </g>
+
+    <!-- an archive already written -->
+    <g transform="translate(0,192)">
+      <path class="d-box" d="M0,10 a52,10 0 0 1 104,0 v38 a52,10 0 0 1 -104,0 z"/>
+      <path class="d-box-lip" d="M0,10 a52,10 0 0 0 104,0"/>
+      <text class="d-label" x="118" y="34">archive taken in March,</text>
+      <text class="d-label" x="118" y="50">already off site</text>
+    </g>
+  </g>
+
+  <!-- ── the act ───────────────────────────────────────────────── -->
+  <g transform="translate(352,0)">
+    <line class="d-arrow" x1="4" y1="150" x2="52" y2="150" marker-end="url(#cs-arrow)"/>
+    <text class="d-act" x="28" y="132">erasure</text>
+  </g>
+
+  <!-- ── after ─────────────────────────────────────────────────── -->
+  <g transform="translate(428,0)">
+    <text class="d-eyebrow" x="0" y="14">AFTER</text>
+
+    <!-- the key, destroyed: the only thing on this side that changed -->
+    <g transform="translate(0,34)">
+      <rect class="d-key-gone" x="0" y="0" width="118" height="44" rx="9"/>
+      <path class="d-strike" d="M16,14 L46,44 M46,14 L16,44"/>
+      <text class="d-label-faint" x="74" y="26">destroyed</text>
+    </g>
+
+    <!-- the same three versions, byte for byte -->
+    <g transform="translate(0,110)">
+      <rect class="d-box" x="0" y="0" width="104" height="58" rx="8"/>
+      <rect class="d-box" x="114" y="0" width="104" height="58" rx="8"/>
+      <rect class="d-box" x="228" y="0" width="104" height="58" rx="8"/>
+      <rect class="d-cipher" x="10" y="30" width="84" height="16" rx="3"/>
+      <rect class="d-cipher" x="124" y="30" width="84" height="16" rx="3"/>
+      <rect class="d-cipher" x="238" y="30" width="84" height="16" rx="3"/>
+      <text class="d-vers" x="12" y="20">v1</text>
+      <text class="d-vers" x="126" y="20">v2</text>
+      <text class="d-vers" x="240" y="20">v3</text>
+    </g>
+
+    <!-- and the same archive, untouched and now opaque -->
+    <g transform="translate(0,192)">
+      <path class="d-box" d="M0,10 a52,10 0 0 1 104,0 v38 a52,10 0 0 1 -104,0 z"/>
+      <path class="d-box-lip" d="M0,10 a52,10 0 0 0 104,0"/>
+      <rect class="d-cipher" x="18" y="28" width="68" height="14" rx="3"/>
+      <text class="d-label" x="118" y="34">the same file, unchanged</text>
+      <text class="d-label" x="118" y="50">and now unreadable</text>
+    </g>
+  </g>
+</svg>

@@ -186,3 +186,40 @@
   .dbo section{padding:48px 0}
   .dbo-essay{padding:40px 0 56px}
 }
+
+/* ── diagrams ────────────────────────────────────────────────────── */
+/* Hand-drawn SVG, inlined into the page rather than linked, for one reason:
+ * a linked image cannot read the page's colours, so a dark-mode site with
+ * linked diagrams needs two of every file and gets them out of step. Inlined,
+ * a diagram is styled from here and there is one of each.
+ *
+ * Everything is a class. A diagram carrying its own fill= is a diagram that
+ * will be wrong the first time the palette moves. */
+
+.dbo-diagram{
+  display:block; width:100%; height:auto; margin:2.4em 0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+}
+.dbo-diagram text{fill:var(--dbo-body)}
+.dbo-diagram .d-eyebrow{font-size:11px; font-weight:700; letter-spacing:.11em; fill:var(--dbo-faint)}
+.dbo-diagram .d-label{font-size:13px; fill:var(--dbo-muted)}
+.dbo-diagram .d-label-faint{font-size:13px; fill:var(--dbo-faint)}
+.dbo-diagram .d-vers{font-size:12px; font-weight:600; fill:var(--dbo-faint)}
+.dbo-diagram .d-readable{font-size:13.5px; fill:var(--dbo-ink)}
+.dbo-diagram .d-act{font-size:12px; font-weight:600; letter-spacing:.04em; fill:var(--dbo-accent); text-anchor:middle}
+
+.dbo-diagram .d-box{fill:var(--dbo-panel); stroke:var(--dbo-line); stroke-width:1.5}
+.dbo-diagram .d-box-lip{fill:none; stroke:var(--dbo-line); stroke-width:1.5}
+.dbo-diagram .d-key{fill:var(--dbo-seal-soft); stroke:var(--dbo-seal); stroke-width:1.5}
+.dbo-diagram .d-key-bit{fill:none; stroke:var(--dbo-seal); stroke-width:2.5}
+.dbo-diagram .d-key-bit-stem{fill:none; stroke:var(--dbo-seal); stroke-width:2.5; stroke-linecap:round}
+.dbo-diagram .d-key-gone{fill:none; stroke:var(--dbo-line); stroke-width:1.5; stroke-dasharray:5 4}
+.dbo-diagram .d-strike{stroke:var(--dbo-faint); stroke-width:2; stroke-linecap:round}
+.dbo-diagram .d-cipher{fill:url(#cs-hatch); stroke:none}
+.dbo-diagram .d-hatch{stroke:var(--dbo-line); stroke-width:2.5}
+.dbo-diagram .d-arrow{stroke:var(--dbo-accent); stroke-width:1.75}
+.dbo-diagram .d-arrowhead{fill:var(--dbo-accent)}
+
+/* A caption belongs to the figure, not to the paragraph after it. */
+.dbo-essay .md-typeset .diagram-caption{font-size:14.5px; color:var(--dbo-muted);
+     max-width:60ch; margin:-1.6em 0 2.6em; padding-left:2px}

@@ -538,6 +538,26 @@ val siteAssemble by tasks.registering(Sync::class) {
         if (index.exists()) {
             index.writeText(index.readText().replaceFirst(Regex("(?s)\\A---\\n.*?\\n---\\n"), ""))
         }
+
+        // Diagrams are inlined into markdown, and markdown decides what is a
+        // raw HTML block by looking at blank lines and indentation. A drawing
+        // laid out to be read by a person is therefore parsed as prose and
+        // several code blocks, which is a spectacular way to fail.
+        //
+        // So the source stays laid out and commented, and what is inlined is
+        // one line with the comments removed. Only whitespace BETWEEN tags is
+        // collapsed, so a label keeps the spaces inside it.
+        val diagrams = siteSrc.get().dir("assets/diagrams").asFile
+        if (diagrams.isDirectory) {
+            diagrams.listFiles { f -> f.extension == "svg" }?.forEach { svg ->
+                svg.writeText(
+                    svg.readText()
+                        .replace(Regex("(?s)<!--.*?-->"), "")
+                        .replace(Regex(">\\s+<"), "><")
+                        .trim(),
+                )
+            }
+        }
     }
 }
 
