@@ -72,6 +72,20 @@ enforced by the engine rather than by the habits of whatever code writes it.
 vocabulary. The organisation model *is* the authorisation model, so revoking
 access is ending a period on an ordinary record.
 
+## And two about the gap between declared and true
+
+Every system has one. Most of them find out about it from a support ticket.
+
+**[Applying configuration](applying-configuration.md).** Applying a declared
+set is a run, not a start-up log line: it tallies what it read, applied and
+skipped, one declaration nobody could apply is a card rather than a silence,
+and an unreadable source never answers with an empty set.
+
+**[What the node is doing](tenant-status.md).** Serving, coming up, or failed —
+one state per tenant, from runtime state rather than from re-reading the
+declarations, so comparing the two finds a disagreement instead of confirming
+your own writes.
+
 ## Who each part is for
 
 <div class="cols" markdown>
@@ -84,10 +98,11 @@ see.
 </div>
 <div class="col" markdown>
 ### If you have to run it
-Start with [work](work.md) and then [staying in step](subscriptions.md).
-Between them they cover what is in flight, what is stuck, what is behind, and
-how each of those is observed — deliberately with no broker and no second
-source of truth to reconcile during an incident.
+Start with [what the node is doing](tenant-status.md) and
+[applying configuration](applying-configuration.md) — between them, everything
+about the gap between what you declared and what is true. Then
+[staying in step](subscriptions.md) for what is behind and by how much.
+Deliberately no broker and no second source of truth to reconcile at 3am.
 </div>
 <div class="col" markdown>
 ### If you are deciding on an architecture

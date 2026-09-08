@@ -2,8 +2,10 @@
 # first, because every page after it says "the engine" and means something
 # particular. Then work, which is what people are most surprised a store does
 # at all. Then the three properties a deployment is judged on — who is
-# separated from whom, what a record is held to, and how anybody gets in — and
-# last the two mechanisms that keep copies and jurisdictions honest.
+# separated from whom, what a record is held to, and how anybody gets in. Then
+# the two pages about the gap between what was declared and what is true,
+# which is where operating it actually lives. Last, the two mechanisms that
+# keep copies and jurisdictions honest.
 nav:
   - index.md
   - engine-and-faces.md
@@ -12,5 +14,7 @@ nav:
   - personal-data.md
   - a-type-declares-what-it-is.md
   - one-api.md
+  - applying-configuration.md
+  - tenant-status.md
   - zones.md
   - subscriptions.md

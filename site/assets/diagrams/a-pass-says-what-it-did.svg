@@ -1,0 +1,67 @@
+<!--
+  Why applying configuration is a run rather than a log line.
+
+  The two panels are two passes over the same source, because the second one
+  is where most of the argument lives: nothing is re-applied that already
+  agrees, the one thing that failed is picked up again, and fixing the cause
+  is what closes it. A single panel would have shown an outcome; two show a
+  loop that converges.
+-->
+<svg class="dbo-diagram" viewBox="0 0 760 340" role="img"
+     aria-labelledby="cf-title cf-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="cf-title">Two passes over a declared configuration source</title>
+  <desc id="cf-desc">A first pass reads five declarations, applies four, and
+  raises a card naming the one it could not apply. A second pass over the
+  unchanged source re-applies nothing that already agrees, retries the scope
+  with the open card, and closes the card once the cause is fixed.</desc>
+
+  <text class="d-eyebrow" x="0" y="12">FIRST PASS</text>
+  <rect class="d-box" x="0" y="26" width="150" height="132" rx="9"/>
+  <text class="d-caption" x="14" y="46">the source</text>
+  <text class="d-note-small" x="14" y="66">a repository, a mounted</text>
+  <text class="d-note-small" x="14" y="82">directory, a lane</text>
+  <rect class="d-chip" x="14" y="94" width="122" height="22" rx="5"/>
+  <text class="d-chip-text" x="75" y="109">5 declarations</text>
+  <text class="d-note-small" x="14" y="136">read as one set,</text>
+  <text class="d-note-small" x="14" y="150">never one at a time</text>
+
+  <line class="d-arrow" x1="156" y1="88" x2="186" y2="88" marker-end="url(#cf-arrow)"/>
+  <defs>
+    <marker id="cf-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="d-arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+
+  <rect class="d-box" x="194" y="26" width="176" height="132" rx="9"/>
+  <text class="d-caption" x="208" y="46">the pass, as a run</text>
+  <rect class="d-chip-live" x="208" y="58" width="148" height="24" rx="5"/>
+  <text class="d-chip-text-live" x="282" y="75">read 5</text>
+  <rect class="d-chip-live" x="208" y="88" width="148" height="24" rx="5"/>
+  <text class="d-chip-text-live" x="282" y="105">applied 4</text>
+  <rect class="d-chip-ghost" x="208" y="118" width="148" height="24" rx="5"/>
+  <text class="d-chip-text-faint" x="282" y="135">skipped 1</text>
+
+  <text class="d-note" x="0" y="188">The one that failed is a card naming it — held work somebody can pick up.</text>
+  <text class="d-note" x="0" y="208">The other four applied. One bad declaration does not take the rest with it.</text>
+
+  <!-- second pass -->
+  <text class="d-eyebrow" x="416" y="12">NEXT PASS, SOURCE UNCHANGED</text>
+  <rect class="d-box" x="416" y="26" width="344" height="132" rx="9"/>
+  <rect class="d-chip" x="430" y="46" width="316" height="26" rx="5"/>
+  <text class="d-row-text" x="442" y="63">the four that agree — a read, not a re-application</text>
+  <rect class="d-chip-live" x="430" y="80" width="316" height="26" rx="5"/>
+  <text class="d-chip-text-live" x="588" y="97">the scope with the open card — tried again</text>
+  <rect class="d-chip-seal" x="430" y="114" width="316" height="26" rx="5"/>
+  <text class="d-chip-text-seal" x="588" y="131">cause fixed at the source — the card closes itself</text>
+
+  <text class="d-note" x="416" y="188">A sweep closes when what is here agrees</text>
+  <text class="d-note" x="416" y="206">with what was declared.</text>
+  <text class="d-miss" x="416" y="228">Closing by click is how a card reads</text>
+  <text class="d-miss" x="416" y="246">resolved while the fault is live.</text>
+
+  <line class="d-seam" x1="0" y1="272" x2="760" y2="272"/>
+  <text class="d-note-small" x="0" y="294">A source that cannot be read says so — it never answers with an empty set, because</text>
+  <text class="d-note-small" x="0" y="312">empty and unreachable are the same sentence to whoever must decide what is missing.</text>
+  <text class="d-note-small" x="0" y="330">Only a read the source calls COMPLETE may withdraw what it no longer names.</text>
+</svg>

@@ -1,0 +1,50 @@
+<!--
+  Why a list of served tenants is the wrong question.
+
+  The drawing has to make one thing obvious: the two columns are allowed to
+  disagree, and the disagreement is the useful part. So the declared column is
+  complete and the runtime column is complete, and the reader can see that a
+  list of what is SERVING would have shown two of four and looked healthy.
+-->
+<svg class="dbo-diagram" viewBox="0 0 760 282" role="img"
+     aria-labelledby="ds-title ds-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="ds-title">What was declared, and what the runtime is doing about it</title>
+  <desc id="ds-desc">Four tenants are declared. The runtime reports two as
+  serving, one as coming up, and one as failed to come up. A list of served
+  tenants alone would show only the two.</desc>
+
+  <text class="d-eyebrow" x="0" y="12">WHAT WAS DECLARED</text>
+  <rect class="d-box" x="0" y="26" width="300" height="164" rx="9"/>
+  <rect class="d-row" x="14" y="42" width="272" height="26" rx="5"/>
+  <text class="d-row-text" x="26" y="59">county-hospital.json</text>
+  <rect class="d-row" x="14" y="76" width="272" height="26" rx="5"/>
+  <text class="d-row-text" x="26" y="93">private-clinic.json</text>
+  <rect class="d-row" x="14" y="110" width="272" height="26" rx="5"/>
+  <text class="d-row-text" x="26" y="127">regional-lab.json</text>
+  <rect class="d-row" x="14" y="144" width="272" height="26" rx="5"/>
+  <text class="d-row-text" x="26" y="161">insurer.json</text>
+
+  <line class="d-arrow" x1="308" y1="106" x2="348" y2="106" marker-end="url(#ds-arrow)"/>
+  <defs>
+    <marker id="ds-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="d-arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+
+  <text class="d-eyebrow" x="364" y="12">WHAT THE RUNTIME SAYS IT IS DOING</text>
+  <rect class="d-box" x="364" y="26" width="396" height="164" rx="9"/>
+  <rect class="d-chip-seal" x="378" y="42" width="368" height="26" rx="5"/>
+  <text class="d-chip-text-seal" x="562" y="59">county-hospital — serving</text>
+  <rect class="d-chip-seal" x="378" y="76" width="368" height="26" rx="5"/>
+  <text class="d-chip-text-seal" x="562" y="93">private-clinic — serving</text>
+  <rect class="d-chip-live" x="378" y="110" width="368" height="26" rx="5"/>
+  <text class="d-chip-text-live" x="562" y="127">regional-lab — coming up; the next round is where that changes</text>
+  <rect class="d-chip-ghost" x="378" y="144" width="368" height="26" rx="5"/>
+  <text class="d-chip-text-faint" x="562" y="161">insurer — failed to come up, and will not change on its own</text>
+
+  <line class="d-seam" x1="0" y1="214" x2="760" y2="214"/>
+  <text class="d-note-small" x="0" y="236">A list of what is being served answers two of these four, and looks healthy. The state an</text>
+  <text class="d-note-small" x="0" y="254">operator most wants is the one such a list silently omits — so the runtime is asked what it</text>
+  <text class="d-note-small" x="0" y="272">is doing, rather than the directory what it contains.</text>
+</svg>
