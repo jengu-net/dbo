@@ -1,6 +1,6 @@
 # Going public
 
-**Status** · public since 2026-09-07 and proven from outside; only the artifact host is left, and it is the infrastructure repository's
+**Status** · closed on this side 2026-09-08. Public, building, publishing and deployed from public registries. What remains is the platform's.
 **Issues** · [#199](https://github.com/jengu-net/dbo/issues/199)
 **Concepts** · [RELEASING.md](../../RELEASING.md), [the branding ratchet](../../.github/scripts/check-branding.sh), [working rules](../arc42-002-constraints/working-rules.md)
 
@@ -28,26 +28,28 @@ depend on each other, and this document carries them together.
 
 ## Where it stands
 
-- **Done:** steps 1 and 5 to 8. The repository is public, builds on
-  GitHub-hosted runners, its images pull anonymously, and a fork's pull
-  request has been run and proven harmless.
-- **Next:** step 2, in the infrastructure repository. Nothing is left on this
-  side but step 3, which is one repository variable.
-- **Blocked on:** nothing. The blocker recorded here until 2026-09-07 was the
-  `models` tree, and it was not real — see the decision below.
+- **Done:** every step. The repository is public, builds on GitHub-hosted
+  runners, publishes jars and images that an anonymous consumer can resolve,
+  and production runs from GHCR.
+- **Next:** nothing here. What is left belongs to the consuming platform —
+  the PII model wants a release asset, and two of its images still name the
+  retired registry.
+- **Open:** the tree serves unsigned snapshots. `SIGNING_KEY` is not set, and
+  RELEASING.md argues signatures matter more on a repository with no
+  gatekeeper than on one with a gatekeeper, not less.
 
 ## Sequence
 
 | # | Step | Status |
 |---|---|---|
 | 1 | **GitHub-hosted runners.** Every `runs-on: self-hosted` became `ubuntu-latest`: GitHub's own machines, unmetered for a public repository. The suite needs Docker for Testcontainers and a privileged container for k3s; hosted Ubuntu has both. The `dependencies` job was removed for GitHub's own automatic submission and then restored, for the reason in the traps below. | **DONE** 2026-09-07 — the first hosted run was green: suite in eighteen minutes, both architectures of all three images on GHCR in four, publish skipped for want of a host |
-| 2 | **`repo.jengu.cloud` on Hetzner production.** Today it times out: the Traefik route still terminates the name, and behind it two Services carry hand-written endpoints pointing over a VPN at a NAS that is gone. What has to exist again is the Maven tree at `/repository/` and, if the fleet still wants its own, a registry at `/v2/`. Both are re-publishable from CI, as is the platform's OBR index tree, whose URLs are relative to the root and so valid wherever it is served. | READY — smaller than it looked, see the decision below about the model |
-| 3 | **The workflow talks to the rebuilt repository.** Set `ARTIFACT_HOST` to the host; the workflow already speaks TLS to it and probes it before building. New credentials for both halves, so the two systems stop sharing one secret. | READY, needs 2 |
-| 4 | **Hetzner production pins an image that exists.** The overlays pin `main-<sha>`; the rebuilt registry is empty. Either re-run `images` for the pinned commit or bump the pin to the first push that lands. | READY, needs 3 |
+| 2 | **The artifact host on Hetzner.** The registry half is retired rather than rebuilt: the images are public on GHCR, and a public registry is a better home for them than a box somebody keeps running. The Maven half runs in-cluster as nginx on a local-path volume — the right cost because everything in the tree is re-publishable by CI. Paths unchanged, so every consumer kept the address it had. | **DONE** 2026-09-08 |
+| 3 | **The workflow talks to it.** `ARTIFACT_HOST` set to the host. It gates the jar publish and nothing else now — it used to drive an image push to the fleet registry too, and setting it would have aimed that at a host serving no registry, with a probe that accepts any HTTP answer and would have called a 404 reachable. | **DONE** 2026-09-08 — 33 modules published, downloadable anonymously |
+| 4 | **Hetzner production pins an image that exists.** Both dbo deployments pull from GHCR with no credential, on a current main build. The stale pull secret went with the address. | **DONE** 2026-09-07 |
 | 5 | **Neutralise what the ratchet cannot see.** The bench scripts took their machines from the environment or a flag rather than from a default in the tree; the plan document names them by role; the one example address in a Javadoc became a hostname. The ratchet refuses RFC 1918 addresses and the LAN's hostnames now, proven with a probe file it catches and one it lets through. The sibling-repository sweep was done the day before. | **DONE** 2026-09-07 |
 | 6 | **History review.** A secrets scanner over every commit, and a read of the first day's `initial import`. The scanner found one thing: the development console's example key, a fixed constant the file itself documents as protecting nothing, appearing nowhere else in history. It is allowlisted by path in a scanner config kept in the tree, so the scan is repeatable and clean. The import was an empty Antora skeleton and a Gradle wrapper; nothing came from elsewhere. | **DONE** 2026-09-07 |
 | 7 | **The flip.** Visibility public; secret scanning, push protection, Dependabot alerts and security updates on; the workflow token read-only by default; fork pull requests need approval on a first contribution; `main` cannot be force-pushed or deleted; the six merged branches and the two dead runner registrations removed; the three GHCR packages public. | **DONE** 2026-09-07 |
-| 8 | **Prove it from outside.** An anonymous reader gets the repository and pulls all three images in both architectures. A pull request from a fork ran the suite green on a hosted runner with no secrets, skipped `images`, and annotated instead of writing a check run. What remains is the jar publish, which needs the host (steps 2–4). | **DONE** 2026-09-07, but for the jar publish |
+| 8 | **Prove it from outside.** An anonymous reader gets the repository, pulls all three images in both architectures, and now resolves the jars. A fork's pull request ran the suite green with no secrets and skipped `images`. | **DONE** 2026-09-08 |
 
 **Critical path:** 2, then 3 and 4. Everything on this side is done, and what
 is left gates only the jar publish and the fleet's own image pull — neither of
