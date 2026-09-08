@@ -121,6 +121,11 @@
 .dbo .card{background:var(--dbo-panel); padding:26px 24px}
 .dbo .card h3{font-size:17px; margin-bottom:9px}
 .dbo .card p{font-size:15.5px; line-height:1.6; color:var(--dbo-muted); margin:0}
+/* Every card is a door to the essay that argues it. The link is the last
+ * thing in the card and reads as a sentence rather than "read more", so the
+ * card says where it leads before the reader has to guess. */
+.dbo .card .more{display:block; margin-top:14px; font-size:14.5px; font-weight:600}
+.dbo .col .start{margin-top:14px; font-size:15px; color:var(--dbo-body)}
 
 /* audiences */
 .dbo .cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(272px,1fr)); gap:34px; margin-top:36px}

@@ -9,7 +9,8 @@
     None of that is a policy somebody promises to honour. It is a set of things the operator
     cannot do.</p>
     <div class="cta">
-      <a class="btn primary" href="{{ base_url }}/docs/">Read the specification</a>
+      <a class="btn primary" href="{{ base_url }}/why/">Why it is shaped this way</a>
+      <a class="btn" href="{{ base_url }}/quickstart/">Run it in a minute</a>
       <a class="btn" href="https://github.com/jengu-net/dbo">Source on GitHub</a>
     </div>
   </div>
@@ -32,6 +33,7 @@
     Configure the FHIR face and you have a FHIR server, with the versions and the searches and
     the operations a client expects. Configure a different face and the same engine serves a
     domain that has never heard of a patient.</p>
+    <p><a href="{{ base_url }}/why/engine-and-faces/">Why it is not a FHIR store, and why that makes it a good one &rarr;</a></p>
   </div>
 </section>
 
@@ -42,7 +44,8 @@
     <div class="prose">
       <p>A policy is a commitment somebody can break, forget, or be compelled to set aside.
       A property is something the system does not permit. Everything below is the second kind,
-      and each one is proven by a test that runs on every commit.</p>
+      each one is proven by a test that runs on every commit, and each has a page that explains
+      it in ten minutes without asking you to read a specification.</p>
     </div>
 
     <div class="grid">
@@ -51,58 +54,64 @@
         <p>Not a filter over a shared table that one wrong query defeats. Each organisation gets
         its own database with its own credentials. Erasing a tenant drops that database, rather
         than running a delete sweep somebody has to trust was complete.</p>
+        <a class="more" href="{{ base_url }}/why/a-tenant-is-a-database/">The same bug, on both arrangements &rarr;</a>
       </div>
       <div class="card">
         <h3>The operator cannot read what it hosts</h3>
-        <p>Provisioning hands the store a connection and never credentials. Each tenant is its own
-        login authority, so the store accepts nobody else's tokens and a token from one tenant
-        dies at another's signature check. Backups are sealed under the owner's key.</p>
+        <p>Identifying elements are encrypted inside the record, under a key held per person, in
+        the same write. History, backups, feeds and copies carry ciphertext by construction. Erasure
+        destroys the key instead of chasing copies, and answers with a receipt of what it found.</p>
+        <a class="more" href="{{ base_url }}/why/personal-data/">Two walls, and what crosses them &rarr;</a>
       </div>
       <div class="card">
-        <h3>Erasure answers with a receipt</h3>
-        <p>Erasing a person is asked for as work and answered by a run: what was found, how far it
-        got, when. Asking twice is safe. A person the store never held is an answer rather than an
-        error. A partial erasure is visible as exactly that.</p>
-      </div>
-      <div class="card">
-        <h3>Identifying data is encrypted where it lives</h3>
-        <p>Identifying elements are encrypted inside the record itself, under a key held per
-        person. History, backups, feeds and copies therefore carry ciphertext by construction
-        rather than by somebody remembering. Erasure destroys a key instead of chasing copies,
-        and a backup taken beforehand cannot resurrect the person.</p>
-      </div>
-      <div class="card">
-        <h3>Every disclosure says why</h3>
-        <p>Reading identifying data requires a stated purpose. Without one, the record comes back
-        with those fields omitted rather than filled in silently. The trail is append-only against
-        everyone, the vendor included: an application says what happened, and the machinery stamps
-        who and when from the credential and its clock.</p>
+        <h3>The trail is a record, not a log</h3>
+        <p>Reading identifying data requires a stated purpose. Who read what, on whose authority
+        and when is kept in the tenant's own store, append-only against everyone, the vendor
+        included: an application says what happened, and the machinery stamps who and when.</p>
+        <a class="more" href="{{ base_url }}/why/the-audit-trail/">Evidence that survives erasure &rarr;</a>
       </div>
       <div class="card">
         <h3>Nothing changes quietly</h3>
-        <p>Every version is kept, and each links to the one before it, so a history edited
-        underneath the store fails verification. A record and the notice of its change commit
-        together, so nothing downstream reacts to a state that was rolled back.</p>
+        <p>Every version is kept. A type declares once whether it is append-only, how long it is
+        retained and how it is identified, and the engine holds every writer to that. A record and
+        the notice of its change commit together, so nothing downstream reacts to a state that was
+        rolled back.</p>
+        <a class="more" href="{{ base_url }}/why/a-type-declares-what-it-is/">Four lines, and what they oblige &rarr;</a>
+      </div>
+      <div class="card">
+        <h3>It holds the work, not only the data</h3>
+        <p>What has to be done, who is entitled to do it, who holds it now, and what happened — as
+        records, not messages on a queue. Work can leave the building sealed, so an outside
+        specialist performs a step without being handed anything they were not meant to see.</p>
+        <a class="more" href="{{ base_url }}/why/work/">A run is a record &rarr;</a>
+      </div>
+      <div class="card">
+        <h3>A jurisdiction is a tenant</h3>
+        <p>Which identity brokers exist and which identifier systems establish a person are facts
+        about a country. Here a zone declares them as records, tenants inside it may narrow the set
+        and never widen it, and entering a new country is configuration rather than a release.</p>
+        <a class="more" href="{{ base_url }}/why/zones/">Outer declares, inner narrows &rarr;</a>
+      </div>
+      <div class="card">
+        <h3>One API, and it is FHIR</h3>
+        <p>No admin plane and no second vocabulary. The organisation model is the authorisation
+        model: access derives from an active role, and revoking it is ending a period on an ordinary
+        record. Authentication is shared across a deployment; authorisation never is.</p>
+        <a class="more" href="{{ base_url }}/why/one-api/">The same person, three answers &rarr;</a>
       </div>
       <div class="card">
         <h3>A question it cannot answer honestly is refused</h3>
         <p>An unrecognised search is an error, not a silently broader result set. In a clinical
         system a wrong set of results is a safety problem rather than a compatibility one, so the
         store would rather say no than guess. What it does support, it declares.</p>
+        <a class="more" href="{{ base_url }}/faces/fhir/">The FHIR face, for people who know FHIR &rarr;</a>
       </div>
       <div class="card">
-        <h3>Records remember which rules checked them</h3>
-        <p>A record written in 2026 must still be readable in 2029, when the rule that shaped it
-        has moved twice. Each one carries the version it was validated against, so the store can
-        find what is still on the old shape, convert it, and refuse to serve what it cannot
-        honestly read.</p>
-      </div>
-      <div class="card">
-        <h3>It holds the work, not only the data</h3>
-        <p>What has to be done, who is entitled to do it, who holds it now, and what happened.
-        Work can also leave the building sealed, so an outside specialist performs a step without
-        being handed anything they were not meant to see, and the trail tells carrying something
-        apart from opening it.</p>
+        <h3>What was declared can be compared with what is true</h3>
+        <p>Applying configuration is a run that tallies what it read, applied and skipped, and a
+        node says of every tenant it was told about whether it is serving, coming up, or failed
+        — from runtime state, so a disagreement with the declarations can be found.</p>
+        <a class="more" href="{{ base_url }}/why/tenant-status/">Two of four, and it looks healthy &rarr;</a>
       </div>
     </div>
   </div>
@@ -126,6 +135,8 @@
           <li>Where the law differs by jurisdiction, that difference is a declaration a zone holds
           as records, not a branch buried in code.</li>
         </ul>
+        <p class="start">Start with <a href="{{ base_url }}/why/personal-data/">personal data</a>,
+        then <a href="{{ base_url }}/why/the-audit-trail/">the audit trail</a>.</p>
       </div>
       <div class="col">
         <h3>Administrators and operators</h3>
@@ -133,13 +144,16 @@
           <li>Provision a tenant without ever holding its credentials, so hosting somebody's data
           never means being able to read it.</li>
           <li>Backup is export and restore is import, through the machinery ordinary data movement
-          already uses, rather than a format-specific tool kept in step by hand.</li>
-          <li>A sealed archive can be verified on a laptop with no network and no account.</li>
+          already uses, so every backup is restore-tested by daily use.</li>
+          <li>An archive carries two detached signatures, the vendor's and the tenant's, so neither
+          party can produce an attestation alone.</li>
           <li>Upgrades ride the deployment, so there is no window during which the store is down
           because somebody is running a migration.</li>
           <li>One PostgreSQL database per tenant and nothing else to operate. No broker, no cache
           tier, no shared state service.</li>
         </ul>
+        <p class="start">Start with <a href="{{ base_url }}/why/tenant-status/">what the node is doing</a>
+        and <a href="{{ base_url }}/technical/environment/">what it needs to run</a>.</p>
       </div>
       <div class="col">
         <h3>Architects and engineers</h3>
@@ -153,6 +167,8 @@
           the store rather than services beside it.</li>
           <li>Every promised behaviour has a requirement code and a named test that proves it.</li>
         </ul>
+        <p class="start">Start with <a href="{{ base_url }}/why/engine-and-faces/">the engine and its faces</a>,
+        then <a href="{{ base_url }}/why/subscriptions/">one feed, four consumers</a>.</p>
       </div>
     </div>
   </div>
@@ -202,12 +218,13 @@
       passes on exactly that commit.</p>
       <p>What is built and what is only specified is written down and kept honest, including the
       parts that are missing. The routing layer for very large deployments has no implementation
-      at all. Blob storage, a shared-database tier and quotas are specified and not built. Version
-      numbers stay below 1.0 until the surfaces a 1.0 would freeze stop moving.</p>
+      at all. Blob storage, a shared-database tier and quotas are specified and not built. A tenant
+      gets one face, where the founding requirement asks for several. Version numbers stay below
+      1.0 until the surfaces a 1.0 would freeze stop moving.</p>
       <p><a href="https://github.com/jengu-net/dbo/blob/main/docs/plans/implementation-status.md">Read
       the implementation status</a>, which is the document to believe over any impression the rest
-      gives, or the <a href="{{ base_url }}/docs/arc42-006-runtime/req-catalogue/">requirement catalogue</a> for
-      every promise and its proof.</p>
+      gives, the <a href="{{ base_url }}/docs/arc42-006-runtime/req-catalogue/">requirement catalogue</a> for
+      every promise and its proof, or <a href="{{ base_url }}/docs/">the specification</a> itself.</p>
     </div>
   </div>
 </section>
@@ -233,8 +250,8 @@ docker compose up -d</code></pre>
       <p>That is the <a href="{{ base_url }}/quickstart/">quickstart</a>: a Postgres, the server and a
       declared tenant, answering FHIR in about a minute. It is run on every build, so it works.
       The images carry the operator, the server and the fleet reader, for both Intel and ARM. Start with
-      <a href="{{ base_url }}/docs/arc42-008-crosscutting/running-it/">running it</a> for what operating this
-      actually involves, or <a href="{{ base_url }}/docs/arc42-008-crosscutting/the-fhir-face/">the FHIR face</a>
+      <a href="{{ base_url }}/technical/environment/">what it needs to run</a> for what operating this
+      actually involves, or <a href="{{ base_url }}/faces/fhir/">the FHIR face</a>
       if you know FHIR and nothing about this store.</p>
     </div>
   </div>
