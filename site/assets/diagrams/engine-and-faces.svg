@@ -1,0 +1,74 @@
+<!--
+  The claim the whole product leads with, drawn as a seam.
+
+  The horizontal line is doing the work. What matters is not that there are
+  boxes above and boxes below, it is that a reader can run their eye along
+  the lower row and find nothing clinical in it — so the sentence "the engine
+  has no FHIR in it" is checkable from the picture rather than asserted by
+  it. That is why every concept is listed rather than summarised.
+
+  The third face is dashed because it does not exist. A drawing that shows
+  what is specified as though it were built is a drawing that lies, and this
+  one is about a founding requirement the code does not yet meet.
+-->
+<svg class="dbo-diagram" viewBox="0 0 760 342" role="img"
+     aria-labelledby="ef-title ef-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="ef-title">Faces above the seam, the engine's concepts below it</title>
+  <desc id="ef-desc">Two FHIR faces, R4 and R5, and a third face for another
+  domain that is specified but not built, sit above a seam. Below it the
+  engine's concepts are listed: object, identity, envelope, declared
+  handling, history, change feed, tenancy and zone, custody, erasure and
+  terminology. None of them is clinical.</desc>
+
+  <text class="d-eyebrow" x="0" y="12">FACES — ONE DOMAIN'S STANDARDS</text>
+
+  <rect class="d-box" x="0" y="26" width="228" height="56" rx="9"/>
+  <text class="d-caption" x="16" y="50">FHIR R4</text>
+  <text class="d-note-small" x="16" y="70">serving tenants today</text>
+
+  <rect class="d-box" x="244" y="26" width="228" height="56" rx="9"/>
+  <text class="d-caption" x="260" y="50">FHIR R5</text>
+  <text class="d-note-small" x="260" y="70">beside R4, same engine</text>
+
+  <rect class="d-dash" x="488" y="26" width="272" height="56" rx="9"/>
+  <text class="d-caption-faint" x="504" y="50">a domain that is not medicine</text>
+  <text class="d-note-small" x="504" y="70">specified, not built</text>
+
+  <line class="d-arrow-faint" x1="114" y1="86" x2="114" y2="112"/>
+  <line class="d-arrow-faint" x1="358" y1="86" x2="358" y2="112"/>
+  <line class="d-arrow-faint" x1="624" y1="86" x2="624" y2="112"/>
+
+  <!-- the seam -->
+  <line class="d-seam" x1="0" y1="118" x2="760" y2="118"/>
+  <text class="d-caption-accent" x="0" y="136">a face maps a standard onto the concepts below — and nothing below knows it did</text>
+
+  <!-- the engine -->
+  <rect class="d-box" x="0" y="150" width="760" height="180" rx="9"/>
+  <text class="d-eyebrow" x="16" y="174">THE ENGINE — NO FHIR IN IT</text>
+
+  <rect class="d-chip" x="16" y="188" width="136" height="30" rx="7"/>
+  <text class="d-chip-text" x="84" y="207">object</text>
+  <rect class="d-chip" x="164" y="188" width="136" height="30" rx="7"/>
+  <text class="d-chip-text" x="232" y="207">identity</text>
+  <rect class="d-chip" x="312" y="188" width="136" height="30" rx="7"/>
+  <text class="d-chip-text" x="380" y="207">envelope</text>
+  <rect class="d-chip" x="460" y="188" width="136" height="30" rx="7"/>
+  <text class="d-chip-text" x="528" y="207">declared handling</text>
+  <rect class="d-chip" x="608" y="188" width="136" height="30" rx="7"/>
+  <text class="d-chip-text" x="676" y="207">history</text>
+
+  <rect class="d-chip" x="16" y="228" width="136" height="30" rx="7"/>
+  <text class="d-chip-text" x="84" y="247">change feed</text>
+  <rect class="d-chip" x="164" y="228" width="136" height="30" rx="7"/>
+  <text class="d-chip-text" x="232" y="247">tenancy and zone</text>
+  <rect class="d-chip" x="312" y="228" width="136" height="30" rx="7"/>
+  <text class="d-chip-text" x="380" y="247">custody</text>
+  <rect class="d-chip" x="460" y="228" width="136" height="30" rx="7"/>
+  <text class="d-chip-text" x="528" y="247">erasure</text>
+  <rect class="d-chip" x="608" y="228" width="136" height="30" rx="7"/>
+  <text class="d-chip-text" x="676" y="247">terminology</text>
+
+  <text class="d-note-small" x="16" y="288">Every one of those is what European regulation asks of any system holding personal data:</text>
+  <text class="d-note-small" x="16" y="308">know what you hold, know who may change it, prove what happened, separate identity,</text>
+  <text class="d-note-small" x="16" y="322">erase on request, let people leave with their data.</text>
+</svg>

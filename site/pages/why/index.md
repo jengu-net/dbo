@@ -27,7 +27,13 @@ something the system does not permit. This store is built out of the second
 kind.
 </div>
 
-## The four ideas worth ten minutes
+## The five ideas worth ten minutes
+
+**[What it actually is](engine-and-faces.md).** Not a FHIR store. A store whose
+concepts are regulatory — object, identity, custody, declared handling,
+history, tenancy, erasure — with FHIR as a *face* mapped onto them. That is why
+R4 and R5 run side by side over one engine, and why a domain that has never
+heard of a patient is a configuration rather than a fork.
 
 **[Work](work.md).** A store that only answers questions is a database. This
 one also holds what has to be done, who may do it, and how far they have got —
@@ -71,7 +77,8 @@ source of truth to reconcile during an incident.
 </div>
 <div class="col" markdown>
 ### If you are deciding on an architecture
-Start with [zones](zones.md) for the layering rule, then go straight to
+Start with [what it actually is](engine-and-faces.md), then
+[zones](zones.md) for the layering rule, then go straight to
 [the specification](../docs/README.md). The reference tree is arc42, it says
 what is built and what is only specified, and it does not flatter itself.
 </div>

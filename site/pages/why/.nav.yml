@@ -1,9 +1,11 @@
-# Reading order, which is not alphabetical order. Work first because it is
-# the thing people are most surprised a store does at all; then the two
-# properties that decide whether a deployment is lawful; then the mechanism
-# that keeps copies of it honest.
+# Reading order, which is not alphabetical order. What the thing IS comes
+# first, because every page after it says "the engine" and means something
+# particular. Then work, which is what people are most surprised a store does
+# at all; then the two properties that decide whether a deployment is lawful;
+# then the mechanism that keeps copies of it honest.
 nav:
   - index.md
+  - engine-and-faces.md
   - work.md
   - personal-data.md
   - zones.md

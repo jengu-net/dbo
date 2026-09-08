@@ -252,6 +252,9 @@
 
 /* the feed: events, the head, and how far behind a consumer is */
 .dbo-diagram .d-event{fill:var(--dbo-panel); stroke:var(--dbo-line); stroke-width:1.25}
+/* The seam. Heavier than a divider on purpose: it is the product's central
+ * claim, and the whole drawing is about which side of it a thing is on. */
+.dbo-diagram .d-seam{stroke:var(--dbo-accent); stroke-width:2}
 .dbo-diagram .d-head{stroke:var(--dbo-accent); stroke-width:1.5; stroke-dasharray:3 3}
 .dbo-diagram .d-lag{stroke:var(--dbo-accent); stroke-width:1.5; opacity:.5}
 .dbo-diagram .d-marker{fill:var(--dbo-accent)}
