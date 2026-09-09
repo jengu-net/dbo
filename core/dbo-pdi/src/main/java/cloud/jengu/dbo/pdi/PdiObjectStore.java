@@ -190,9 +190,7 @@ public final class PdiObjectStore implements ObjectStore {
         // wanted. Going straight from the value to a record of that id was the
         // same step only because a person was a row.
         return identifiers.stream()
-                .map(i -> vault.findByIdentifier(i.system(), i.value()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .flatMap(i -> peopleHolding(i.system(), i.value()).stream())
                 .distinct()
                 .flatMap(person -> vault.recordsOf(person, typeName).stream())
                 .distinct()
@@ -336,8 +334,7 @@ public final class PdiObjectStore implements ObjectStore {
             // the answer for free — a value claimed by a Patient answers
             // nothing to a Practitioner question.
             List<StoredObject> found = new ArrayList<>();
-            for (String person : vault.findByIdentifier(token.system(), token.code())
-                    .map(List::of).orElse(List.of())) {
+            for (String person : peopleHolding(token.system(), token.code())) {
                 for (String record : vault.recordsOf(person, criteria.typeName())) {
                     inner.get(criteria.typeName(), record)
                             .map(o -> reassembled(criteria.typeName(), o))
@@ -662,6 +659,29 @@ public final class PdiObjectStore implements ObjectStore {
      * so envelope identity would claim nothing. Asking the inner store here
      * returns an empty set for every type and quietly claims nothing at all.
      */
+    /**
+     * Everybody this value belongs to: the one who claims it, or everybody
+     * indexed under it.
+     *
+     * <p>Both tables, and that is not the fudge it would once have been. A
+     * claim answers at most one person by construction and is consulted first.
+     * The index answers several, and several is the truth for a value nobody
+     * has exclusive title to — which the tenant said by not declaring the type
+     * identified by it.
+     *
+     * <p>Reading only the claims left a record this store holds unfindable by
+     * the number written on it, answered as an empty bundle rather than a
+     * refusal. Empty reads as nobody here. Consulting the index alongside was
+     * the wrong fix while the subject of both tables was a ROW — "several
+     * rows" meant nothing a caller could interpret. The subject is a person
+     * now, and several people holding one value is a fact with a meaning.
+     */
+    private List<String> peopleHolding(String system, String value) {
+        return vault.findByIdentifier(system, value)
+                .map(List::of)
+                .orElseGet(() -> vault.findAllByIdentifier(system, value));
+    }
+
     private Set<String> identitySystemsOf(String typeName) {
         return identifiedBy.getOrDefault(typeName, Set.of());
     }
