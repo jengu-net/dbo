@@ -151,9 +151,21 @@ public final class PdiObjectStore implements ObjectStore {
         return put(PutRequest.create(request.typeName(), request.payload()));
     }
 
-    private Optional<String> ownerOf(IdentityRef identity) {
+    /**
+     * Whose this identity is, for a conditional write.
+     *
+     * <p>Through the same door a read uses, and that is the whole of it: a
+     * conditional create asks <i>is this already here</i>, and it has to be
+     * asking the question the lookup answers. Resolving only through the
+     * claims while reads also consulted the index meant a record the store
+     * could find was one a conditional write could not — so the write
+     * concluded there was nothing there and made another. Every boot made
+     * another copy, which is idempotence failing in the direction that
+     * accumulates.
+     */
+    private List<String> ownerOf(IdentityRef identity) {
         if (identity instanceof IdentityRef.ByIdentifier byId) {
-            return vault.findByIdentifier(byId.identifier().system(), byId.identifier().value());
+            return peopleHolding(byId.identifier().system(), byId.identifier().value());
         }
         throw new IllegalArgumentException("person identity is identifier-based");
     }

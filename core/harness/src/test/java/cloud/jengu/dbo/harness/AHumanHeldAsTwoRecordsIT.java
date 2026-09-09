@@ -294,6 +294,43 @@ class AHumanHeldAsTwoRecordsIT {
         }
     }
 
+    @Test
+    @DisplayName("a conditional create asks the question a lookup answers, so running it "
+            + "twice leaves one record and not a copy per boot")
+    @Proving({DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS, DboPromises.PDI_EXACT_RESOLUTION})
+    void aConditionalCreateFindsWhatALookupWouldFind() throws Exception {
+        String token = token();
+        String question = "identifier="
+                + URLEncoder.encode(EID + "|39002020202", StandardCharsets.UTF_8);
+        String document = """
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"%s","value":"39002020202"}],
+                 "name":[{"family":"Uks"}]}""".formatted(EID);
+
+        HttpResponse<String> first = conditionalCreate("/Patient", document, question, token);
+        assertEquals(201, first.statusCode(), first.body());
+        String id = first.headers().firstValue("Location").orElseThrow()
+                .replaceAll(".*/([^/]+)$", "$1");
+
+        HttpResponse<String> again = conditionalCreate("/Patient", document, question, token);
+        assertTrue(again.headers().firstValue("Location").orElse("").contains(id),
+                "the second asking made a second record, so the store answers a question a "
+                        + "lookup can answer with 'nothing here' and writes another copy — "
+                        + "once per boot, for as long as it boots: "
+                        + again.statusCode() + " " + again.headers()
+                                .firstValue("Location").orElse("(no location)"));
+    }
+
+    private HttpResponse<String> conditionalCreate(String path, String body, String question,
+            String token) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(base() + "/fhir" + path))
+                        .header("Authorization", "Bearer " + token)
+                        .header("Content-Type", "application/fhir+json")
+                        .header("If-None-Exist", question)
+                        .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
     /** What the erasure door admits: its own scope, not a broad write grant. */
     private String eraser() throws Exception {
         manager.authority(CLINIC).ensureClient("desk", "desk-secret", List.of("erasure"));

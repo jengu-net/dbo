@@ -13,6 +13,7 @@ import org.hl7.fhir.r5.elementmodel.Element;
 import org.hl7.fhir.r5.model.SearchParameter;
 
 import java.util.ArrayList;
+import java.lang.ref.SoftReference;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,12 +31,24 @@ import java.util.concurrent.ConcurrentHashMap;
  * ballot that has no generated model at all
  * (REQ-DBO-VER-CONCURRENT-VERSIONS).
  *
- * <p>Built once per version for the node: the definitions are tens of
- * megabytes parsed into a context, and nothing in them is any tenant's.
+ * <p>Built once per version for the node, and <b>held softly</b>. The
+ * definitions are not tens of megabytes: measured, a context retains ~180 MB
+ * for R4 and a little over 200 MB each for R5 and R6. A node that serves one
+ * version and is asked about another once pays for the second for as long as
+ * it runs, and while these were held hard there was no pressure under which
+ * that memory could come back.
+ *
+ * <p>Softly is the honest strength for it. The context is expensive to build
+ * and cheap to rebuild from nothing but the packages, it belongs to no tenant,
+ * and a version nobody has touched since memory got tight is exactly what
+ * should go first. A version in use stays reachable through the faces built on
+ * it, so this drops what is idle rather than what is working — and the cost of
+ * being wrong is one slow request, not a wrong answer.
  */
 public final class ElementVersion {
 
-    private static final Map<String, ElementVersion> BY_CODE = new ConcurrentHashMap<>();
+    private static final Map<String, SoftReference<ElementVersion>> BY_CODE =
+            new ConcurrentHashMap<>();
 
     private final String code;
     private final SimpleWorkerContext context;
@@ -73,9 +86,35 @@ public final class ElementVersion {
                 .build();
     }
 
-    /** The version served under this code, loaded once for the node. */
+    /**
+     * The version served under this code, built if nothing holds it.
+     *
+     * <p>Double-checked under a lock rather than through
+     * {@code computeIfAbsent}, because two threads arriving together on an
+     * empty reference would otherwise each parse the packages — two hundred
+     * megabytes and several seconds, twice, at the moment memory is already
+     * short enough to have collected the first one.
+     */
     public static ElementVersion of(String code) {
-        return BY_CODE.computeIfAbsent(code, c -> new ElementVersion(c, offline(c)));
+        ElementVersion held = held(code);
+        if (held != null) {
+            return held;
+        }
+        synchronized (BY_CODE) {
+            held = held(code);
+            if (held != null) {
+                return held;
+            }
+            ElementVersion built = new ElementVersion(code, offline(code));
+            BY_CODE.put(code, new SoftReference<>(built));
+            return built;
+        }
+    }
+
+    /** What the cache still holds, or null where the collector has been. */
+    private static ElementVersion held(String code) {
+        SoftReference<ElementVersion> reference = BY_CODE.get(code);
+        return reference == null ? null : reference.get();
     }
 
     /**
