@@ -131,10 +131,9 @@ public final class PdiObjectStore implements ObjectStore {
         if (!spec.isPersonType(request.typeName())) {
             return inner.putIfAbsent(identity, request);
         }
-        Optional<String> existing = ownerOf(identity);
+        Optional<StoredObject> existing = recordOf(identity, request.typeName());
         if (existing.isPresent()) {
-            StoredObject current = inner.get(request.typeName(), existing.get()).orElseThrow();
-            return new PutResult(current.id(), current.versionId(), false);
+            return new PutResult(existing.get().id(), existing.get().versionId(), false);
         }
         return put(PutRequest.create(request.typeName(), request.payload()));
     }
@@ -144,11 +143,10 @@ public final class PdiObjectStore implements ObjectStore {
         if (!spec.isPersonType(request.typeName())) {
             return inner.putConditional(identity, request);
         }
-        Optional<String> existing = ownerOf(identity);
+        Optional<StoredObject> existing = recordOf(identity, request.typeName());
         if (existing.isPresent()) {
-            StoredObject current = inner.get(request.typeName(), existing.get()).orElseThrow();
-            return put(PutRequest.update(request.typeName(), current.id(),
-                    current.versionId(), request.payload()));
+            return put(PutRequest.update(request.typeName(), existing.get().id(),
+                    existing.get().versionId(), request.payload()));
         }
         return put(PutRequest.create(request.typeName(), request.payload()));
     }
@@ -158,6 +156,22 @@ public final class PdiObjectStore implements ObjectStore {
             return vault.findByIdentifier(byId.identifier().system(), byId.identifier().value());
         }
         throw new IllegalArgumentException("person identity is identifier-based");
+    }
+
+    /**
+     * The record OF THIS TYPE that the identified person is spoken about by.
+     *
+     * <p>A conditional write names an identity, and the identity names a
+     * human. Which of that human's records it addresses is what the type says
+     * — so the same national number reaches their Patient from a Patient write
+     * and their Practitioner from a Practitioner one, and neither is the
+     * other's business.
+     */
+    private Optional<StoredObject> recordOf(IdentityRef identity, String typeName) {
+        return ownerOf(identity).stream()
+                .flatMap(person -> vault.recordsOf(person, typeName).stream())
+                .flatMap(record -> inner.get(typeName, record).stream())
+                .findFirst();
     }
 
     // ------------------------------------------------------------- reads
@@ -172,12 +186,17 @@ public final class PdiObjectStore implements ObjectStore {
         if (!spec.isPersonType(typeName)) {
             return inner.getByIdentifier(typeName, identifiers);
         }
+        // A value identifies a HUMAN; the type says which of their records is
+        // wanted. Going straight from the value to a record of that id was the
+        // same step only because a person was a row.
         return identifiers.stream()
                 .map(i -> vault.findByIdentifier(i.system(), i.value()))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .distinct()
-                .map(id -> inner.get(typeName, id))
+                .flatMap(person -> vault.recordsOf(person, typeName).stream())
+                .distinct()
+                .map(record -> inner.get(typeName, record))
                 .filter(Optional::isPresent)
                 .map(o -> reassembled(typeName, o.get()))
                 .toList();
@@ -289,10 +308,12 @@ public final class PdiObjectStore implements ObjectStore {
             // later without the address ever being written down.
             cloud.jengu.dbo.core.api.Disclosure.matched(vault.fingerprintOf(value));
             List<StoredObject> found = new ArrayList<>();
-            for (String personId : vault.findAllByIdentifier(TELECOM_SYSTEM, value)) {
-                inner.get(criteria.typeName(), personId)
-                        .map(o -> reassembled(criteria.typeName(), o))
-                        .ifPresent(found::add);
+            for (String person : vault.findAllByIdentifier(TELECOM_SYSTEM, value)) {
+                for (String record : vault.recordsOf(person, criteria.typeName())) {
+                    inner.get(criteria.typeName(), record)
+                            .map(o -> reassembled(criteria.typeName(), o))
+                            .ifPresent(found::add);
+                }
             }
             return Optional.of(List.copyOf(found));
         }
@@ -313,10 +334,14 @@ public final class PdiObjectStore implements ObjectStore {
             // the answer for free — a value claimed by a Patient answers
             // nothing to a Practitioner question.
             List<StoredObject> found = new ArrayList<>();
-            vault.findByIdentifier(token.system(), token.code())
-                    .flatMap(personId -> inner.get(criteria.typeName(), personId))
-                    .map(o -> reassembled(criteria.typeName(), o))
-                    .ifPresent(found::add);
+            for (String person : vault.findByIdentifier(token.system(), token.code())
+                    .map(List::of).orElse(List.of())) {
+                for (String record : vault.recordsOf(person, criteria.typeName())) {
+                    inner.get(criteria.typeName(), record)
+                            .map(o -> reassembled(criteria.typeName(), o))
+                            .ifPresent(found::add);
+                }
+            }
             return Optional.of(List.copyOf(found));
         }
         return Optional.empty();
@@ -402,7 +427,108 @@ public final class PdiObjectStore implements ObjectStore {
     // ------------------------------------------------------------- split / join
 
     @SuppressWarnings("unchecked")
-    private byte[] isolate(String typeName, String personId, byte[] payload) {
+    /**
+     * Which human this record speaks about.
+     *
+     * <p>Two ways to know, both declared and neither inferred. A value under a
+     * system the tenant declared identifying <b>is</b> that person — that is
+     * what the declaration means, and the owner of the claim is the answer. A
+     * record already bound to somebody stays theirs. Anything else is a human
+     * nobody has identified yet, who gets a person of their own.
+     *
+     * <p>The conflict that remains is the one the promise is about: a record
+     * already speaking about person A, given a value that identifies person B.
+     * That is a request to merge two humans, and it is refused and surfaced
+     * rather than decided here.
+     */
+    private String personFor(String typeName, String recordId, List<String[]> claims) {
+        Optional<String> bound = vault.personOf(typeName, recordId);
+        Optional<String> byValue = Optional.empty();
+        for (String[] sv : claims) {
+            Optional<String> owner = vault.findByIdentifier(sv[0], sv[1]);
+            if (owner.isPresent()) {
+                if (byValue.isPresent() && !byValue.get().equals(owner.get())) {
+                    throw new IdentityConflictException(byValue.get(), owner.get(),
+                            new Identifier(sv[0], sv[1]));
+                }
+                byValue = owner;
+            }
+        }
+        if (byValue.isPresent() && bound.isPresent() && !byValue.get().equals(bound.get())) {
+            throw new IdentityConflictException(byValue.get(), bound.get(),
+                    new Identifier(claims.get(0)[0], claims.get(0)[1]));
+        }
+        String person = byValue.or(() -> bound).orElseGet(cloud.jengu.dbo.core.UuidV7::newId);
+        // One human may be spoken about by a Person and a Patient; they are
+        // different capacities and both are theirs. What they may NOT be is
+        // two Persons — a type the tenant declared identified by that system
+        // has the value AS its identity there, so a second record of that type
+        // holding it is a duplicate of the first rather than another capacity.
+        // That is the conflict the promise is about, and it is surfaced.
+        if (!claims.isEmpty()) {
+            for (String other : vault.recordsOf(person, typeName)) {
+                if (!other.equals(recordId)) {
+                    throw new IdentityConflictException(other, recordId,
+                            new Identifier(claims.get(0)[0], claims.get(0)[1]));
+                }
+            }
+        }
+        return person;
+    }
+
+    /**
+     * Records this one says are the same human.
+     *
+     * <p>The second way a tenant declares who somebody is. An identifier says
+     * it through a system the tenant named; a link says it about records
+     * directly, and it is no more inferred than the other — the tenant wrote
+     * it down. It matters because a record carrying no identifying value of
+     * its own is otherwise a person nobody can reach: its key is its own, and
+     * an erasure asked for the human it belongs to would not touch it.
+     *
+     * <p>A target nobody has identified is absorbed. A target that holds
+     * claims of its own is NOT: that link asserts one human has two identities
+     * — sometimes true, sometimes a mistake, and never something this store
+     * can tell apart. It is refused and surfaced, which is what the promise
+     * about merging asks for.
+     */
+    private void bindWhatItLinksTo(Map<String, Object> parsed, String personId) {
+        if (!(parsed.get("link") instanceof List<?> links)) {
+            return;
+        }
+        for (Object link : links) {
+            if (!(link instanceof Map<?, ?> entry)
+                    || !(entry.get("target") instanceof Map<?, ?> target)
+                    || target.get("reference") == null) {
+                continue;
+            }
+            String reference = String.valueOf(target.get("reference"));
+            int slash = reference.lastIndexOf('/');
+            if (slash < 0 || slash == reference.length() - 1) {
+                continue;
+            }
+            String linkedType = reference.substring(0, slash);
+            String linkedId = reference.substring(slash + 1);
+            if (!spec.isPersonType(linkedType)) {
+                continue;
+            }
+            Optional<String> theirs = vault.personOf(linkedType, linkedId);
+            if (theirs.isEmpty()) {
+                vault.bind(linkedType, linkedId, personId);
+                continue;
+            }
+            String other = vault.survivorOf(theirs.get());
+            if (other.equals(personId)) {
+                continue;
+            }
+            if (vault.claimed(other)) {
+                throw IdentityConflictException.wouldMerge(other, personId);
+            }
+            vault.absorb(other, personId);
+        }
+    }
+
+    private byte[] isolate(String typeName, String recordId, byte[] payload) {
         Map<String, Object> parsed = (Map<String, Object>) Json.parse(
                 new String(payload, StandardCharsets.UTF_8));
         Map<String, Object> identifying = new LinkedHashMap<>();
@@ -427,6 +553,26 @@ public final class PdiObjectStore implements ObjectStore {
         // it is the lookup that breaks first once the plaintext is gone.
         // Two people share a phone and neither is wrong, so indexing and
         // exclusivity part company here — the one place they should.
+        // WHO this record speaks about, decided before anything is claimed,
+        // indexed or encrypted — every one of those is a fact about a person,
+        // and the record is only where it was written down.
+        List<String[]> present = identifying.get("identifier") instanceof List<?> list
+                ? list.stream()
+                        .filter(e -> e instanceof Map<?, ?> m
+                                && m.get("system") != null && m.get("value") != null)
+                        .map(e -> new String[] {
+                                String.valueOf(((Map<?, ?>) e).get("system")),
+                                String.valueOf(((Map<?, ?>) e).get("value"))})
+                        .toList()
+                : List.<String[]>of();
+        Set<String> identifiedBy = identitySystemsOf(typeName);
+        List<String[]> claims = present.stream()
+                .filter(sv -> identifiedBy.contains(sv[0]))
+                .toList();
+        String personId = personFor(typeName, recordId, claims);
+        vault.bind(typeName, recordId, personId);
+        bindWhatItLinksTo(parsed, personId);
+
         Object telecomList = identifying.get("telecom");
         if (telecomList instanceof List<?> contacts) {
             for (Object contact : contacts) {
@@ -435,50 +581,22 @@ public final class PdiObjectStore implements ObjectStore {
                 }
             }
         }
-        // identity claims from the ORIGINAL identifier list, vault-side
-        Object identifierList = identifying.get("identifier");
-        if (identifierList instanceof List<?> list) {
-            List<String[]> present = list.stream()
-                    .filter(e -> e instanceof Map<?, ?> m && m.get("system") != null && m.get("value") != null)
-                    .map(e -> new String[] {
-                            String.valueOf(((Map<?, ?>) e).get("system")),
-                            String.valueOf(((Map<?, ?>) e).get("value"))})
-                    .toList();
-            // WHICH of them this type is identified BY is the tenant's word,
-            // and it already said so: a type declared IDENTIFIER names the
-            // systems that identify it, and one declared INTERNAL carries none
-            // by construction.
-            //
-            // The rest are indexed and not claimed, which is the same parting
-            // telecom makes above and for the same reason. Finding a person by
-            // a value replaces plaintext search once the plaintext is gone and
-            // is inherent to the membrane; refusing a SECOND record the same
-            // value is a uniqueness policy, and whether a number identifies a
-            // Patient or only travels on one is a judgement about that
-            // tenant's model rather than about this store's.
-            //
-            // Claiming for every person type staked exclusivity per OBJECT id,
-            // so a human held as both a Person and a Patient — the ordinary
-            // shape, and one the tenant had declared — collided with itself on
-            // whichever record presented the number second. The refusal named
-            // two ids the caller had never seen, for a conflict it did not
-            // cause.
-            Set<String> identifiedBy = identitySystemsOf(typeName);
-            List<String[]> claims = present.stream()
-                    .filter(sv -> identifiedBy.contains(sv[0]))
-                    .toList();
-            for (String[] sv : present) {
-                if (!identifiedBy.contains(sv[0])) {
-                    vault.index(personId, sv[0], sv[1]);
-                }
+        // The rest are indexed and not claimed, the same parting telecom
+        // makes above and for the same reason: finding a person by a value
+        // replaces plaintext search once the plaintext is gone, and refusing a
+        // SECOND person the same value is a uniqueness policy the tenant
+        // declares. Claiming is a no-op where this person already owns it,
+        // which is what makes a record writable back.
+        for (String[] sv : present) {
+            if (!identifiedBy.contains(sv[0])) {
+                vault.index(personId, sv[0], sv[1]);
             }
-            if (!claims.isEmpty()) {
-                List<String[]> claimed = claims;
-                vault.claim(personId, claims).ifPresent(owner -> {
-                    throw new IdentityConflictException(owner, personId,
-                            new Identifier(claimed.get(0)[0], claimed.get(0)[1]));
-                });
-            }
+        }
+        if (!claims.isEmpty()) {
+            vault.claim(personId, claims).ifPresent(owner -> {
+                throw new IdentityConflictException(owner, personId,
+                        new Identifier(claims.get(0)[0], claims.get(0)[1]));
+            });
         }
         if (!identifying.isEmpty()) {
             byte[] key = vault.keyFor(personId, true).orElseThrow(
@@ -488,6 +606,10 @@ public final class PdiObjectStore implements ObjectStore {
                             + ")"));
             parsed.put("__pdiEnc", Base64.getEncoder().encodeToString(
                     vault.encrypt(key, Json.render(identifying).getBytes(StandardCharsets.UTF_8))));
+            // Stamped beside the ciphertext so a read knows whose key opens it
+            // without asking the vault which person this record is about. It
+            // is the seam the page-at-a-time key resolution needs.
+            parsed.put("__pdiPerson", personId);
         }
         return Json.render(parsed).getBytes(StandardCharsets.UTF_8);
     }
@@ -541,12 +663,23 @@ public final class PdiObjectStore implements ObjectStore {
             return object;
         }
         Object enc = parsed.remove("__pdiEnc");
+        // Whose this is, taken from the record rather than asked of the vault.
+        // A record written before it was stamped, or one that arrived by
+        // replication, still answers — from the map, once.
+        Object stamped = parsed.remove("__pdiPerson");
         if (enc == null) {
             return object;
         }
+        // The stamp names what SEALED these bytes and never changes; who they
+        // are now can, because a merge moves a record without rewriting its
+        // history. So the key comes from the stamp and everything about the
+        // human comes from whoever they turned out to be.
+        String sealedBy = stamped != null ? String.valueOf(stamped)
+                : vault.personOf(typeName, object.id()).orElse(object.id());
+        String personId = vault.survivorOf(sealedBy);
         Optional<byte[]> key = mode == cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE
-                && !vault.restricted(object.id())
-                ? vault.keyFor(object.id(), false)
+                && !vault.restricted(personId)
+                ? vault.keyFor(sealedBy, false)
                 : Optional.empty();
         if (key.isPresent()) {
             Map<String, Object> identifying = (Map<String, Object>) Json.parse(new String(
@@ -554,7 +687,7 @@ public final class PdiObjectStore implements ObjectStore {
                     StandardCharsets.UTF_8));
             parsed.putAll(identifying);
         }
-        if (key.isEmpty() && erased(object.id())) {
+        if (key.isEmpty() && erased(sealedBy)) {
             // Shredded or restricted, which is not the same as merely lacking
             // authority — and not the same as being told to omit. A coarse
             // value is a DISCLOSURE control — what somebody without the right

@@ -59,7 +59,7 @@ final class ScimUsers {
             for (String personId : ids) {
                 position++;
                 if (position >= startIndex && users.size() < count) {
-                    read(personId).ifPresent(users::add);
+                    byPerson(personId).ifPresent(users::add);
                 }
                 after = personId;
             }
@@ -73,20 +73,37 @@ final class ScimUsers {
 
     /** The User claiming {@code externalId}, resolved through the vault. */
     Optional<Map<String, Object>> byExternalId(String externalId) {
-        return vault.findByIdentifier(system, externalId).flatMap(this::read);
+        return vault.findByIdentifier(system, externalId).flatMap(this::byPerson);
     }
 
     /** The Users holding {@code email} — userName resolves via the contact index. */
     List<Map<String, Object>> byUserName(String email) {
         List<Map<String, Object>> users = new ArrayList<>();
         for (String personId : vault.findAllByIdentifier(PersonVault.TELECOM_SYSTEM, email)) {
-            read(personId).ifPresent(users::add);
+            byPerson(personId).ifPresent(users::add);
         }
         return users;
     }
 
-    Optional<Map<String, Object>> read(String personId) {
-        return engine.get("Person", personId)
+    /**
+     * The Person record this human is spoken about by here.
+     *
+     * <p>The vault answers with a PERSON and this surface serves a Person
+     * RECORD. They were the same string only while the vault was keyed by the
+     * record's own id, and the two callers mean different things: a lookup by
+     * externalId or by email has found a human, while a {@code GET /Users/{id}}
+     * already names the record. Collapsing them is how a directory read starts
+     * answering about somebody else.
+     */
+    Optional<Map<String, Object>> byPerson(String personId) {
+        return vault.recordsOf(personId, "Person").stream()
+                .flatMap(record -> read(record).stream())
+                .findFirst();
+    }
+
+    /** The User a Person record renders as — the id this surface hands out. */
+    Optional<Map<String, Object>> read(String recordId) {
+        return engine.get("Person", recordId)
                 .filter(person -> !person.deleted())
                 .map(this::rendered);
     }

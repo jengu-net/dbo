@@ -608,8 +608,13 @@ public enum DboPromises implements Promise {
             + "canonical urls and identity-bearing identifiers are preserved bit-exact "
             + "and verified after every conversion."),
     CORE_NO_IMPLICIT_MERGE(
-            "Two objects claiming the same identity-bearing identifier are a conflict "
-            + "surfaced to the owner, never an implicit merge."),
+            "Two PEOPLE claiming the same identity-bearing identifier are a conflict "
+            + "surfaced to the owner, never an implicit merge. One human is spoken about "
+            + "by several records — a Person and a Patient sharing a national number are "
+            + "that human twice, not two of them — so what is refused is a second record "
+            + "of a type the tenant declared identified by that system, where the value IS "
+            + "the record's identity, and a link that would join two people each holding "
+            + "identity claims of their own."),
     CORE_IDENTITY_KEYED_CONDITIONALS(
             "Conditional writes are accepted only when keyed on the type's primary "
             + "identity; a conditional write on any other criterion is rejected."),

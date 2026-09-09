@@ -81,6 +81,46 @@ public final class PersonVault {
                     """
                     CREATE INDEX IF NOT EXISTS pdi_lookup_value
                         ON pdi.lookup (system, value_hmac)""",
+                    // Which human a record speaks about.
+                    //
+                    // The vault's subject is a person; a record is a statement
+                    // about one. Keying the vault by the record's own id made
+                    // those the same thing, so a human held as a Person and a
+                    // Patient was two people with two keys — and erasing one
+                    // left the other readable, while a promise said every copy
+                    // died at once.
+                    """
+                    CREATE TABLE IF NOT EXISTS pdi.record (
+                        type_name text NOT NULL,
+                        record_id uuid NOT NULL,
+                        person_id uuid NOT NULL,
+                        PRIMARY KEY (type_name, record_id))""",
+                    """
+                    CREATE INDEX IF NOT EXISTS pdi_record_person
+                        ON pdi.record (person_id)""",
+                    // One human who arrived as two.
+                    //
+                    // A record written before it carried the number that
+                    // identifies it gets a person of its own, and its
+                    // identifying data — live AND in history, which is
+                    // byte-immutable — is sealed under that person's key. When
+                    // the number arrives and says who they really are, the
+                    // records move to the survivor and this remembers where
+                    // the earlier person went.
+                    //
+                    // The earlier person's ROW stays, holding its key, because
+                    // history still names it as what sealed those bytes. What
+                    // this buys is the erasure: shredding the survivor
+                    // destroys every key of everyone they absorbed, so "gone
+                    // from live store, history, envelopes and archives at
+                    // once" survives a merge instead of quietly excluding one.
+                    """
+                    CREATE TABLE IF NOT EXISTS pdi.absorbed (
+                        person_id uuid PRIMARY KEY,
+                        survivor_id uuid NOT NULL)""",
+                    """
+                    CREATE INDEX IF NOT EXISTS pdi_absorbed_survivor
+                        ON pdi.absorbed (survivor_id)""",
                     """
                     CREATE TABLE IF NOT EXISTS pdi.shred_ledger (
                         person_id uuid PRIMARY KEY,
@@ -154,6 +194,193 @@ public final class PersonVault {
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new IllegalStateException("vault restrict failed", e);
+        }
+    }
+
+    // ------------------------------------------------------------- records
+
+    /** The person a record speaks about, if this vault has been told. */
+    public Optional<String> personOf(String typeName, String recordId) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT person_id FROM pdi.record"
+                             + " WHERE type_name = ? AND record_id = ?::uuid")) {
+            ps.setString(1, typeName);
+            ps.setString(2, recordId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.of(rs.getString(1)) : Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault record lookup failed", e);
+        }
+    }
+
+    /**
+     * Records this person is spoken about by, of one type.
+     *
+     * <p>The type selects which of a person's records is wanted; the person is
+     * who the value identified. Asking for a Practitioner by somebody's
+     * national number answers with their Practitioner record — the number
+     * identifies the human, and the type says which of their records the
+     * caller means.
+     */
+    public List<String> recordsOf(String personId, String typeName) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT record_id FROM pdi.record"
+                             + " WHERE person_id = ?::uuid AND type_name = ?"
+                             + " ORDER BY record_id")) {
+            ps.setString(1, personId);
+            ps.setString(2, typeName);
+            List<String> records = new java.util.ArrayList<>();
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    records.add(rs.getString(1));
+                }
+            }
+            return List.copyOf(records);
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault record listing failed", e);
+        }
+    }
+
+    /** Every record of this person, whatever its type — what an erasure reaches. */
+    public List<String[]> recordsOf(String personId) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT type_name, record_id FROM pdi.record"
+                             + " WHERE person_id = ?::uuid ORDER BY type_name, record_id")) {
+            ps.setString(1, personId);
+            List<String[]> records = new java.util.ArrayList<>();
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    records.add(new String[] {rs.getString(1), rs.getString(2)});
+                }
+            }
+            return List.copyOf(records);
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault record listing failed", e);
+        }
+    }
+
+    /** Says that this record speaks about this person; idempotent. */
+    public void bind(String typeName, String recordId, String personId) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     INSERT INTO pdi.record (type_name, record_id, person_id)
+                     VALUES (?, ?::uuid, ?::uuid)
+                     ON CONFLICT (type_name, record_id) DO UPDATE SET person_id = excluded.person_id""")) {
+            ps.setString(1, typeName);
+            ps.setString(2, recordId);
+            ps.setString(3, personId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault record binding failed", e);
+        }
+    }
+
+    /**
+     * Who this person turned out to be, following any merge.
+     *
+     * <p>Answers the person themselves when nothing absorbed them. History
+     * names the person whose key sealed it, and that name never changes; this
+     * is how a read gets from there to whoever they are now.
+     */
+    public String survivorOf(String personId) {
+        try (Connection c = ds.getConnection()) {
+            String current = personId;
+            for (int hops = 0; hops < 16; hops++) {
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT survivor_id FROM pdi.absorbed WHERE person_id = ?::uuid")) {
+                    ps.setString(1, current);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            return current;
+                        }
+                        current = rs.getString(1);
+                    }
+                }
+            }
+            throw new IllegalStateException("absorption chain does not settle from " + personId);
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault survivor lookup failed", e);
+        }
+    }
+
+    /** Every person whose keys this one now answers for, itself included. */
+    public List<String> absorbedInto(String survivorId) {
+        List<String> all = new java.util.ArrayList<>();
+        all.add(survivorId);
+        try (Connection c = ds.getConnection()) {
+            for (int at = 0; at < all.size(); at++) {
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT person_id FROM pdi.absorbed WHERE survivor_id = ?::uuid")) {
+                    ps.setString(1, all.get(at));
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            all.add(rs.getString(1));
+                        }
+                    }
+                }
+            }
+            return List.copyOf(all);
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault absorption listing failed", e);
+        }
+    }
+
+    /**
+     * One human, held as two people, becomes one — records, claims and index
+     * rows move; the absorbed person keeps its key and its identity as the
+     * name history seals under.
+     */
+    public void absorb(String absorbedId, String survivorId) {
+        if (absorbedId.equals(survivorId)) {
+            return;
+        }
+        try (Connection c = ds.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                for (String move : new String[] {
+                        "UPDATE pdi.record SET person_id = ?::uuid WHERE person_id = ?::uuid",
+                        "UPDATE pdi.identifier SET person_id = ?::uuid WHERE person_id = ?::uuid",
+                        "UPDATE pdi.lookup SET person_id = ?::uuid WHERE person_id = ?::uuid"}) {
+                    try (PreparedStatement ps = c.prepareStatement(move)) {
+                        ps.setString(1, survivorId);
+                        ps.setString(2, absorbedId);
+                        ps.executeUpdate();
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement("""
+                        INSERT INTO pdi.absorbed (person_id, survivor_id) VALUES (?::uuid, ?::uuid)
+                        ON CONFLICT (person_id) DO UPDATE SET survivor_id = excluded.survivor_id""")) {
+                    ps.setString(1, absorbedId);
+                    ps.setString(2, survivorId);
+                    ps.executeUpdate();
+                }
+                c.commit();
+            } catch (SQLException failed) {
+                c.rollback();
+                throw failed;
+            } finally {
+                c.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault absorption failed", e);
+        }
+    }
+
+    /** Whether this person holds any claim of their own — an identified human. */
+    public boolean claimed(String personId) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT 1 FROM pdi.identifier WHERE person_id = ?::uuid LIMIT 1")) {
+            ps.setString(1, personId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault claim check failed", e);
         }
     }
 
@@ -325,8 +552,29 @@ public final class PersonVault {
         }
     }
 
-    /** §14.1: destroy the key, drop the index, remember only the fact. */
-    public Shred shred(String personId) {
+    /**
+     * §14.1: destroy the key, drop the index, remember only the fact.
+     *
+     * <p>Every key this human holds, which after a merge is more than one.
+     * History is byte-immutable and names the person whose key sealed it, so
+     * a survivor's own key opens only what was written since — leaving the
+     * absorbed key alive would leave a version of the same human readable,
+     * which is the promise failing in the one place nobody would look.
+     */
+    public Shred shred(String survivorId) {
+        Shred total = null;
+        for (String personId : absorbedInto(survivorId)) {
+            Shred one = shredOne(personId);
+            total = total == null ? one
+                    : new Shred(total.known() || one.known(),
+                            total.keyDestroyed() || one.keyDestroyed(),
+                            total.identifiers() + one.identifiers(),
+                            total.lookups() + one.lookups());
+        }
+        return total == null ? Shred.unknown() : total;
+    }
+
+    private Shred shredOne(String personId) {
         try (Connection c = ds.getConnection()) {
             String fingerprint;
             boolean known;

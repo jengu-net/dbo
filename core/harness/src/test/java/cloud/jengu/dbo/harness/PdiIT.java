@@ -67,6 +67,19 @@ class PdiIT {
     static byte[] ownerKey = new byte[32];
     static String personId;
 
+    /**
+     * The human the Patient record above speaks about.
+     *
+     * <p>Not the same thing as the record's id, and the vault's operations are
+     * about the human: restriction and erasure reach every record of theirs,
+     * which is the point of the distinction and was not true while a person
+     * was a row.
+     */
+    private static String person() {
+        return vault.personOf("Patient", personId).orElseThrow(
+                () -> new AssertionError("no person bound to Patient/" + personId));
+    }
+
     @BeforeAll
     void up() {
         postgres = SharedPostgres.get();
@@ -221,12 +234,12 @@ class PdiIT {
     @Order(4)
     @Proving(DboPromises.PDI_RIGHTS_AS_OPERATIONS)
     void restrictionMakesReadsPseudonymous() {
-        vault.restrict(personId, true);
+        vault.restrict(person(), true);
         // asked for whole, and still pseudonymous: restriction is not a mode a
         // caller can talk its way past
         assertFalse(reading(() -> new String(store.get("Patient", personId).orElseThrow()
                 .payload(), StandardCharsets.UTF_8)).contains("Salakas"));
-        vault.restrict(personId, false);
+        vault.restrict(person(), false);
         assertTrue(reading(() -> new String(store.get("Patient", personId).orElseThrow()
                 .payload(), StandardCharsets.UTF_8)).contains("Salakas-Uus"));
     }
@@ -306,7 +319,7 @@ class PdiIT {
         ByteArrayOutputStream archive = new ByteArrayOutputStream();
         TenantExport.export(ds, R4Personality.DOMAIN, ownerKey, archive);
 
-        vault.shred(personId);
+        vault.shred(person());
 
         String read = new String(store.get("Patient", personId).orElseThrow().payload(),
                 StandardCharsets.UTF_8);

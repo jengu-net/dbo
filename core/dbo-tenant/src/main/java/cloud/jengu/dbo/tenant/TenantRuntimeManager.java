@@ -1290,16 +1290,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 erasureContexts.put(spec.code(), erasurePath);
                 sharedServer.createContext(erasurePath, new ErasureHandler(authority,
                         new PersonErasure(vault, erasureRuns),
-                        // Here the reference and the vault's person coincide —
-                        // a person IS the record it is stored as — so this
-                        // only strips a face's type prefix. It stays a seam
-                        // because a face whose references do not coincide
-                        // would resolve them here rather than in the door.
+                        // A reference names a RECORD and an erasure destroys a
+                        // PERSON, and they are not the same thing: a human held
+                        // as a Person and a Patient is spoken about by two
+                        // records and has one key. So the reference is resolved
+                        // through the vault, and erasing by either record
+                        // reaches the whole human — which is what the promise
+                        // says happens and, while a person was a row, did not.
                         reference -> {
                             int slash = reference.lastIndexOf('/');
-                            String id = slash < 0 ? reference : reference.substring(slash + 1);
-                            return id.isBlank() ? java.util.Optional.empty()
-                                    : java.util.Optional.of(id);
+                            if (slash < 0 || slash == reference.length() - 1) {
+                                return java.util.Optional.<String>empty();
+                            }
+                            return vault.personOf(reference.substring(0, slash),
+                                    reference.substring(slash + 1));
                         }));
             }
             // Identification. Beside erasure rather than inside maintenance,

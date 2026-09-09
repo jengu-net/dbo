@@ -632,6 +632,7 @@ cloud.jengu.dbo.core.api.IdentityConflictException                     class
 cloud.jengu.dbo.core.api.IdentityConflictException                     existingId():String
 cloud.jengu.dbo.core.api.IdentityConflictException                     identifier():cloud.jengu.dbo.core.api.Identifier
 cloud.jengu.dbo.core.api.IdentityConflictException                     new(String,String,cloud.jengu.dbo.core.api.Identifier)
+cloud.jengu.dbo.core.api.IdentityConflictException                     wouldMerge(String,String):cloud.jengu.dbo.core.api.IdentityConflictException
 cloud.jengu.dbo.core.api.IdentityRef                                   canonical(String):cloud.jengu.dbo.core.api.IdentityRef
 cloud.jengu.dbo.core.api.IdentityRef                                   identifier(String,String):cloud.jengu.dbo.core.api.IdentityRef
 cloud.jengu.dbo.core.api.IdentityRef                                   interface
@@ -1783,9 +1784,13 @@ cloud.jengu.dbo.pdi.PdiSpec.Disposition                                enum
 cloud.jengu.dbo.pdi.PdiSpec.Disposition                                valueOf(String):cloud.jengu.dbo.pdi.PdiSpec.Disposition
 cloud.jengu.dbo.pdi.PdiSpec.Disposition                                values():cloud.jengu.dbo.pdi.PdiSpec.Disposition[]
 cloud.jengu.dbo.pdi.PersonVault                                        TELECOM_SYSTEM:String
+cloud.jengu.dbo.pdi.PersonVault                                        absorb(String,String):void
+cloud.jengu.dbo.pdi.PersonVault                                        absorbedInto(String):List
+cloud.jengu.dbo.pdi.PersonVault                                        bind(String,String,String):void
 cloud.jengu.dbo.pdi.PersonVault                                        claim(String,List):Optional
 cloud.jengu.dbo.pdi.PersonVault                                        claimantsCount(String):long
 cloud.jengu.dbo.pdi.PersonVault                                        claimantsIn(String,String,int):List
+cloud.jengu.dbo.pdi.PersonVault                                        claimed(String):boolean
 cloud.jengu.dbo.pdi.PersonVault                                        class
 cloud.jengu.dbo.pdi.PersonVault                                        decrypt(byte[],byte[]):byte[]
 cloud.jengu.dbo.pdi.PersonVault                                        encrypt(byte[],byte[]):byte[]
@@ -1795,10 +1800,14 @@ cloud.jengu.dbo.pdi.PersonVault                                        fingerpri
 cloud.jengu.dbo.pdi.PersonVault                                        index(String,String,String):void
 cloud.jengu.dbo.pdi.PersonVault                                        keyFor(String,boolean):Optional
 cloud.jengu.dbo.pdi.PersonVault                                        new(DataSource,byte[])
+cloud.jengu.dbo.pdi.PersonVault                                        personOf(String,String):Optional
+cloud.jengu.dbo.pdi.PersonVault                                        recordsOf(String):List
+cloud.jengu.dbo.pdi.PersonVault                                        recordsOf(String,String):List
 cloud.jengu.dbo.pdi.PersonVault                                        replayLedger():int
 cloud.jengu.dbo.pdi.PersonVault                                        restrict(String,boolean):void
 cloud.jengu.dbo.pdi.PersonVault                                        restricted(String):boolean
 cloud.jengu.dbo.pdi.PersonVault                                        shred(String):cloud.jengu.dbo.pdi.PersonVault.Shred
+cloud.jengu.dbo.pdi.PersonVault                                        survivorOf(String):String
 cloud.jengu.dbo.pdi.PersonVault.Shred                                  equals(Object):boolean
 cloud.jengu.dbo.pdi.PersonVault.Shred                                  hashCode():int
 cloud.jengu.dbo.pdi.PersonVault.Shred                                  identifiers():int
