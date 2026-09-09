@@ -229,6 +229,33 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             // decision about everybody in it.
             throw new IllegalArgumentException(code + ": scim requires pdi");
         }
+        if (scim != null) {
+            // What identifies a person is declared ONCE, on the type. This
+            // only says which of Person's systems the directory speaks — a
+            // selector, not a second declaration.
+            //
+            // They used to be two. `scim.system` named a namespace nowhere
+            // else mentioned, the membrane read only the type's own systems,
+            // and the directory's uniqueness quietly went missing: a second
+            // User claiming one employee's externalId was created rather than
+            // refused, and lookup by it answered nothing. A rule that has to
+            // be remembered in two vocabularies is one that gets remembered in
+            // one of them.
+            // A tenant declaring no Person at all is left to bring-up, which
+            // already records that scim is declared and unservable. This is
+            // about the declaration disagreeing with itself, not about the one
+            // that is missing.
+            java.util.Optional<cloud.jengu.dbo.fhir.common.FhirTypeConfig> person = types.stream()
+                    .filter(t -> "Person".equals(t.typeName()))
+                    .findFirst();
+            if (person.isPresent() && !person.get().identitySystems().contains(scim.system())) {
+                throw new IllegalArgumentException(code + ": scim speaks '" + scim.system()
+                        + "' and Person is not declared identified by it. Declare Person "
+                        + "with \"identity\":\"identifier\" and that system among its "
+                        + "\"systems\" — what identifies somebody is said once, on the type, "
+                        + "and scim names which of those the directory uses");
+            }
+        }
         return new TenantSpec(code, face, types, pdi,
                 cloud.jengu.dbo.policy.TenantPolicies.parse(root),
                 Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),

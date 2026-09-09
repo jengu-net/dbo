@@ -1769,36 +1769,6 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * working key derives from the authority KEK (machinery custody); PDI
      * therefore requires the authority to be configured.
      */
-    /**
-     * Every system that identifies a person type here, from every declaration
-     * that names one.
-     *
-     * <p>A type's own {@code identity} is not the only place a tenant says
-     * this. Declaring SCIM names the namespace {@code externalId} values live
-     * in, and that namespace identifies the Person the directory provisions —
-     * the surface resolves a User through the vault by it, and refuses a
-     * second User claiming one. It is a second identity declaration for the
-     * same type, made somewhere else, and a rule that read only the type's own
-     * would take the directory's uniqueness away while looking correct.
-     */
-    private static java.util.Map<String, java.util.Set<String>> identitiesOf(TenantSpec spec,
-            java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> registrations,
-            cloud.jengu.dbo.pdi.PdiSpec pdiSpec) {
-        java.util.Map<String, java.util.Set<String>> declared =
-                new java.util.LinkedHashMap<>(cloud.jengu.dbo.pdi.PdiSetup
-                        .identifiedBy(registrations, pdiSpec));
-        if (spec.scim() != null) {
-            java.util.Set<String> both = new java.util.LinkedHashSet<>(
-                    declared.getOrDefault(SCIM_SUBJECT, java.util.Set.of()));
-            both.add(spec.scim().system());
-            declared.put(SCIM_SUBJECT, java.util.Set.copyOf(both));
-        }
-        return java.util.Map.copyOf(declared);
-    }
-
-    /** The type a SCIM User is (REQ-DBO-SCIM-USER-IS-THE-PERSON). */
-    private static final String SCIM_SUBJECT = "Person";
-
     private ObjectStore pdiWrapped(TenantSpec spec,
             TenantDatabaseProvisioner.TenantDatabase db,
             java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> registrations,
@@ -1830,7 +1800,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // every person type reads INTERNAL with no systems, and the
                 // membrane enforcing identity would have nothing to enforce
                 // but a guess.
-                identitiesOf(spec, registrations, pdiSpec));
+                cloud.jengu.dbo.pdi.PdiSetup.identifiedBy(registrations, pdiSpec));
     }
 
     /**

@@ -40,7 +40,8 @@ class ScimProvisioningIT {
 
     private static final String SYSTEM = "urn:test:idp:external-id";
     private static final String PERSON_TYPES = """
-            [{"name":"Person","identity":"internal","handling":"operational"},
+            [{"name":"Person","identity":"identifier","systems":["urn:test:idp:external-id"],
+              "handling":"operational"},
              {"name":"Practitioner","identity":"internal","handling":"operational"}]""";
 
     static PostgreSQLContainer<?> postgres;

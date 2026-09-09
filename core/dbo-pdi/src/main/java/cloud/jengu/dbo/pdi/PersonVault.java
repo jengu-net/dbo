@@ -13,6 +13,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -351,6 +352,17 @@ public final class PersonVault {
                         ps.executeUpdate();
                     }
                 }
+                // Anyone the absorbed person had themselves absorbed comes
+                // along, pointing at the survivor directly. Kept flat on
+                // purpose: a read resolves who somebody is now, and a chain
+                // would make that a walk per row on the path this exists to
+                // keep cheap.
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE pdi.absorbed SET survivor_id = ?::uuid WHERE survivor_id = ?::uuid")) {
+                    ps.setString(1, survivorId);
+                    ps.setString(2, absorbedId);
+                    ps.executeUpdate();
+                }
                 try (PreparedStatement ps = c.prepareStatement("""
                         INSERT INTO pdi.absorbed (person_id, survivor_id) VALUES (?::uuid, ?::uuid)
                         ON CONFLICT (person_id) DO UPDATE SET survivor_id = excluded.survivor_id""")) {
@@ -381,6 +393,59 @@ public final class PersonVault {
             }
         } catch (SQLException e) {
             throw new IllegalStateException("vault claim check failed", e);
+        }
+    }
+
+    /**
+     * What a read needs to know about the people a page of records was sealed
+     * under, in one question.
+     *
+     * <p>Asked per row it was three: who they are now, whether they are
+     * restricted, and the key. Every one of those took a connection of its
+     * own, so a page of two hundred person records paid six hundred round
+     * trips to decide whether a coarse birth date survived — on the DEFAULT
+     * disclosure mode, where nothing is even decrypted.
+     *
+     * <p>Sharing is what makes it worth batching rather than merely caching:
+     * several records of one human resolve to one person, and pay once.
+     */
+    public Map<String, Sealed> sealedUnder(java.util.Collection<String> personIds) {
+        if (personIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Sealed> states = new java.util.HashMap<>();
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     SELECT p.id, p.wrapped_key, COALESCE(s.id, p.id) AS survivor,
+                            COALESCE(s.restricted, p.restricted) AS restricted
+                       FROM pdi.person p
+                       LEFT JOIN pdi.absorbed a ON a.person_id = p.id
+                       LEFT JOIN pdi.person s ON s.id = a.survivor_id
+                      WHERE p.id = ANY (?)""")) {
+            ps.setArray(1, c.createArrayOf("uuid", personIds.toArray()));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    byte[] wrapped = rs.getBytes(2);
+                    states.put(rs.getString(1), new Sealed(rs.getString(3),
+                            rs.getBoolean(4), wrapped == null ? null : unwrap(wrapped)));
+                }
+            }
+            return Map.copyOf(states);
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault page lookup failed", e);
+        }
+    }
+
+    /**
+     * A person as a read needs them: who they are now, whether they are
+     * restricted, and the key that opens what they sealed — null once
+     * shredded, which is the same fact as unreadable.
+     */
+    public record Sealed(String survivor, boolean restricted, byte[] key) {
+
+        /** Nobody by that id: no key, and nothing claiming to be restricted. */
+        public static Sealed unknown(String personId) {
+            return new Sealed(personId, false, null);
         }
     }
 

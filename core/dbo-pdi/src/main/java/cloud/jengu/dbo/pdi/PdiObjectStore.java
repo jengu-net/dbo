@@ -198,15 +198,17 @@ public final class PdiObjectStore implements ObjectStore {
                 .distinct()
                 .map(record -> inner.get(typeName, record))
                 .filter(Optional::isPresent)
-                .map(o -> reassembled(typeName, o.get()))
-                .toList();
+                .map(Optional::get)
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toList(),
+                        rows -> reassembled(typeName, rows)));
     }
 
     @Override
     public List<StoredObject> history(String typeName, String id) {
-        return inner.history(typeName, id).stream()
-                .map(o -> reassembled(typeName, o))
-                .toList();
+        // Versions of one record, which after a merge may name more than one
+        // person: the earlier ones were sealed before the human was known.
+        return reassembled(typeName, inner.history(typeName, id));
     }
 
     /**
@@ -354,9 +356,7 @@ public final class PdiObjectStore implements ObjectStore {
             return lookup.get();
         }
         guardIdentifyingSearch(criteria);
-        return inner.select(criteria).stream()
-                .map(o -> reassembled(criteria.typeName(), o))
-                .toList();
+        return reassembled(criteria.typeName(), inner.select(criteria));
     }
 
     @Override
@@ -386,8 +386,7 @@ public final class PdiObjectStore implements ObjectStore {
         }
         guardIdentifyingSearch(criteria);
         FeedChunk<StoredObject> chunk = inner.page(criteria, cursor);
-        return new FeedChunk<>(chunk.items().stream()
-                .map(o -> reassembled(criteria.typeName(), o))
+        return new FeedChunk<>(reassembled(criteria.typeName(), chunk.items()).stream()
                 .toList(), chunk.nextCursor(), chunk.drained());
     }
 
@@ -641,7 +640,46 @@ public final class PdiObjectStore implements ObjectStore {
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * A page of records, with the vault asked once instead of per row.
+     *
+     * <p>Which person sealed a payload is written in the payload, so the whole
+     * page's people are known before the vault is asked anything — and several
+     * records of one human collapse to one entry. What was three queries a row
+     * is two for the page: this one, and nothing else.
+     */
+    private List<StoredObject> reassembled(String typeName, List<StoredObject> objects) {
+        if (!spec.isPersonType(typeName) || objects.isEmpty()) {
+            return objects;
+        }
+        Set<String> people = new java.util.LinkedHashSet<>();
+        for (StoredObject object : objects) {
+            sealingPersonOf(object).ifPresent(people::add);
+        }
+        Map<String, PersonVault.Sealed> sealed = vault.sealedUnder(people);
+        List<StoredObject> out = new ArrayList<>(objects.size());
+        for (StoredObject object : objects) {
+            out.add(reassembled(typeName, object, sealed));
+        }
+        return List.copyOf(out);
+    }
+
+    /** The person named in the payload as having sealed it, if it says. */
+    @SuppressWarnings("unchecked")
+    private Optional<String> sealingPersonOf(StoredObject object) {
+        Object parsed = Json.parse(new String(object.payload(), StandardCharsets.UTF_8));
+        if (parsed instanceof Map<?, ?> fields && fields.get("__pdiPerson") != null) {
+            return Optional.of(String.valueOf(fields.get("__pdiPerson")));
+        }
+        return Optional.empty();
+    }
+
     private StoredObject reassembled(String typeName, StoredObject object) {
+        return reassembled(typeName, object, Map.of());
+    }
+
+    private StoredObject reassembled(String typeName, StoredObject object,
+            Map<String, PersonVault.Sealed> known) {
         if (typeName == null || !spec.isPersonType(typeName)) {
             return object;
         }
@@ -676,10 +714,12 @@ public final class PdiObjectStore implements ObjectStore {
         // human comes from whoever they turned out to be.
         String sealedBy = stamped != null ? String.valueOf(stamped)
                 : vault.personOf(typeName, object.id()).orElse(object.id());
-        String personId = vault.survivorOf(sealedBy);
+        PersonVault.Sealed state = known.containsKey(sealedBy) ? known.get(sealedBy)
+                : vault.sealedUnder(List.of(sealedBy))
+                        .getOrDefault(sealedBy, PersonVault.Sealed.unknown(sealedBy));
         Optional<byte[]> key = mode == cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE
-                && !vault.restricted(personId)
-                ? vault.keyFor(sealedBy, false)
+                && !state.restricted() && state.key() != null
+                ? Optional.of(state.key())
                 : Optional.empty();
         if (key.isPresent()) {
             Map<String, Object> identifying = (Map<String, Object>) Json.parse(new String(
@@ -687,7 +727,7 @@ public final class PdiObjectStore implements ObjectStore {
                     StandardCharsets.UTF_8));
             parsed.putAll(identifying);
         }
-        if (key.isEmpty() && erased(sealedBy)) {
+        if (key.isEmpty() && (state.restricted() || state.key() == null)) {
             // Shredded or restricted, which is not the same as merely lacking
             // authority — and not the same as being told to omit. A coarse
             // value is a DISCLOSURE control — what somebody without the right

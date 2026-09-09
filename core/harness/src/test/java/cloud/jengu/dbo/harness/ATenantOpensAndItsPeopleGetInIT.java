@@ -66,7 +66,8 @@ class ATenantOpensAndItsPeopleGetInIT {
     private static final String IDP = "urn:test:idp:kevad";
 
     private static final String STAFF_TYPES = """
-            [{"name":"Person","identity":"internal","handling":"operational"},
+            [{"name":"Person","identity":"identifier","systems":["urn:test:idp:kevad"],
+              "handling":"operational"},
              {"name":"Practitioner","identity":"internal","handling":"operational"},
              {"name":"Patient","identity":"internal","handling":"operational"}]""";
 

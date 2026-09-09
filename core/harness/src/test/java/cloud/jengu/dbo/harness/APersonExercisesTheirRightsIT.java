@@ -84,9 +84,10 @@ class APersonExercisesTheirRightsIT {
                  "types":[
                   {"name":"Patient","identity":"identifier","systems":["%s"],
                    "handling":"operational"},
-                  {"name":"Person","identity":"internal","handling":"operational"},
+                  {"name":"Person","identity":"identifier","systems":["%s"],
+                   "handling":"operational"},
                   {"name":"Practitioner","identity":"internal","handling":"operational"}]}"""
-                .formatted(CLINIC, IDP, EID));
+                .formatted(CLINIC, IDP, EID, IDP));
         UntilServed.scan(manager, CLINIC);
         erasureDoor = URI.create(
                 "http://127.0.0.1:" + manager.port() + "/t/" + CLINIC + "/erasure");
