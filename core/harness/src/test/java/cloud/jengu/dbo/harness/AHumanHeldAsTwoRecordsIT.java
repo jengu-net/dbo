@@ -24,6 +24,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * One human, held as a Person and as a Patient — the ordinary shape, and one
@@ -212,6 +213,34 @@ class AHumanHeldAsTwoRecordsIT {
         assertEquals(409, joined.statusCode(),
                 "a link joined two people who each hold an identity of their own, so the "
                         + "store decided which human they are: " + joined.body());
+    }
+
+    @Test
+    @DisplayName("the record that carries somebody's number is found by it, even where its "
+            + "type claims nothing")
+    @Proving({DboPromises.PDI_EXACT_RESOLUTION, DboPromises.SRCH_HONEST_CAPABILITY})
+    void theCarriedNumberStillFindsTheRecord() throws Exception {
+        String token = token();
+        assertEquals(201, post("/Person", """
+                {"resourceType":"Person",
+                 "identifier":[{"system":"%s","value":"39501020304"}],
+                 "name":[{"family":"Leidja"}]}""".formatted(EID), token).statusCode());
+        assertEquals(201, post("/Patient", """
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"%s","value":"39501020304"}],
+                 "name":[{"family":"Leidja"}]}""".formatted(EID), token).statusCode());
+
+        HttpResponse<String> found = http.send(HttpRequest.newBuilder(
+                        URI.create(base() + "/fhir/Patient?identifier="
+                                + URLEncoder.encode(EID + "|39501020304", StandardCharsets.UTF_8)))
+                        .header("Authorization", "Bearer " + token)
+                        .header("Purpose-Of-Use", "TREAT").GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, found.statusCode(), found.body());
+        assertTrue(found.body().contains("\"resourceType\":\"Patient\""),
+                "the record carrying the number answered an empty bundle, and empty reads as "
+                        + "nobody here — which is how a caller that meant to recognise "
+                        + "somebody mints a second identity instead: " + found.body());
     }
 
     /** What the erasure door admits: its own scope, not a broad write grant. */

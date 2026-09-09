@@ -440,10 +440,16 @@ public final class PdiObjectStore implements ObjectStore {
      * That is a request to merge two humans, and it is refused and surfaced
      * rather than decided here.
      */
-    private String personFor(String typeName, String recordId, List<String[]> claims) {
+    /** Whether any person type here is declared identified by this system. */
+    private boolean identifiesSomebodyHere(String system) {
+        return identifiedBy.values().stream().anyMatch(systems -> systems.contains(system));
+    }
+
+    private String personFor(String typeName, String recordId, List<String[]> namesTheHuman,
+            List<String[]> claims) {
         Optional<String> bound = vault.personOf(typeName, recordId);
         Optional<String> byValue = Optional.empty();
-        for (String[] sv : claims) {
+        for (String[] sv : namesTheHuman) {
             Optional<String> owner = vault.findByIdentifier(sv[0], sv[1]);
             if (owner.isPresent()) {
                 if (byValue.isPresent() && !byValue.get().equals(owner.get())) {
@@ -454,8 +460,22 @@ public final class PdiObjectStore implements ObjectStore {
             }
         }
         if (byValue.isPresent() && bound.isPresent() && !byValue.get().equals(bound.get())) {
-            throw new IdentityConflictException(byValue.get(), bound.get(),
-                    new Identifier(claims.get(0)[0], claims.get(0)[1]));
+            // A record written before it carried the number that identifies
+            // it, now carrying it. The person it had was provisional — nobody
+            // could reach them by any value — so they were always this human,
+            // and saying so is what the number just did. Absorbed rather than
+            // refused, and rather than re-keyed: the earlier person keeps
+            // their key, so the history sealed under it still opens and still
+            // dies when this human is erased.
+            //
+            // The same rule a link follows, because it is the same situation
+            // arriving through the other door.
+            if (!vault.claimed(bound.get())) {
+                vault.absorb(bound.get(), byValue.get());
+            } else {
+                throw new IdentityConflictException(byValue.get(), bound.get(),
+                        new Identifier(namesTheHuman.get(0)[0], namesTheHuman.get(0)[1]));
+            }
         }
         String person = byValue.or(() -> bound).orElseGet(cloud.jengu.dbo.core.UuidV7::newId);
         // One human may be spoken about by a Person and a Patient; they are
@@ -568,7 +588,26 @@ public final class PdiObjectStore implements ObjectStore {
         List<String[]> claims = present.stream()
                 .filter(sv -> identifiedBy.contains(sv[0]))
                 .toList();
-        String personId = personFor(typeName, recordId, claims);
+        // WHO this is and WHAT it may claim are different questions, and the
+        // type's declaration answers only the second.
+        //
+        // A tenant declaring a system identifying for Person has said that
+        // system names people. A Patient carrying a value under it is that
+        // person — carrying somebody's national number is not a weaker fact
+        // about who they are because of the type it was written on. What the
+        // declaration decides is whether this record's value is exclusive:
+        // Patient declared internal claims nothing, so two of them may carry
+        // it, and neither is refused.
+        //
+        // Filtering the binding by the record's own type instead left an
+        // identity record bound to a person nobody could reach by the number
+        // on it, so a lookup by that number answered an empty bundle — and
+        // empty reads as nobody here, which is the answer this store exists
+        // not to give.
+        List<String[]> namesTheHuman = present.stream()
+                .filter(sv -> identifiesSomebodyHere(sv[0]))
+                .toList();
+        String personId = personFor(typeName, recordId, namesTheHuman, claims);
         vault.bind(typeName, recordId, personId);
         bindWhatItLinksTo(parsed, personId);
 
