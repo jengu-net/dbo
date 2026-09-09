@@ -200,6 +200,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private volatile boolean running;
 
     /**
+     * Set once, when the node is being taken down.
+     *
+     * <p>Distinct from {@code running}, which says the loops are turning. A
+     * round asked for directly — a test does, a bring-up does — has to work
+     * whether or not the loops were ever started, so a drain cannot ask that
+     * question. What it may ask is whether the pools it is reading through are
+     * about to be closed.
+     */
+    private volatile boolean closing;
+
+    /**
      * §13 authority wiring: when present, every tenant gets its own OIDC
      * authority at {@code /t/<code>/oidc} and the store surface accepts only
      * that authority's tokens. issuerBase null → derived from the serving
@@ -1657,6 +1668,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public int shapesRound() {
         int rebuilt = 0;
         for (TenantRuntime runtime : runtimes.values()) {
+            if (closing) {
+                // The feed keeps its place, so what is left is read on the
+                // next node's first round rather than through a pool this one
+                // is closing.
+                break;
+            }
             String consumer = "shapes." + runtime.spec().code();
             try {
                 boolean moved = false;
@@ -1666,7 +1683,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // Drained rather than sampled: the interesting item is not
                 // necessarily in the first chunk of a busy tenant, and leaving
                 // it behind would defer the rebuild by a round each time.
-                while (!(chunk = runtime.feed().readFor(consumer, 500)).items().isEmpty()) {
+                while (!closing
+                        && !(chunk = runtime.feed().readFor(consumer, 500)).items().isEmpty()) {
                     for (cloud.jengu.dbo.core.api.feed.FeedItem item : chunk.items()) {
                         moved |= "StructureDefinition".equals(item.typeName());
                         searchMoved |= "SearchParameter".equals(item.typeName());
@@ -1728,6 +1746,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // it, and, while this shared a thread with the scan, every tenant
         // still coming up as well.
         together(streams, streamsTogether, engine -> {
+            if (closing) {
+                return;
+            }
             try {
                 long began = System.currentTimeMillis();
                 int carried = 0;
@@ -1736,7 +1757,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     events = engine.syncOnce(500);
                     carried += events;
                     seen.addAndGet(events);
-                } while (events > 0);
+                    // A backlog is drained in one round, unless the node is
+                    // going down — then the chunk in hand is the last one. The
+                    // rest is still on the feed at the acked cursor, which is
+                    // what the cursor is for; carrying on would only mean
+                    // reading through a pool somebody is closing.
+                } while (events > 0 && !closing);
                 // one recorded round: re-attempt what is parked and say
                 // what is left, which is the part a person can act on
                 engine.pass(500);
@@ -2385,17 +2411,58 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     @Override
     public synchronized void close() {
+        closing = true;
         running = false;
-        if (scanner != null) {
-            scanner.interrupt();
-        }
-        if (reconciler != null) {
-            reconciler.interrupt();
-        }
+        // WAITED for, not merely asked to stop. An interrupt ends the sleep
+        // between rounds and does nothing to a round already talking to a
+        // database, so taking the tenants down straight afterwards closed the
+        // pools underneath a round still reading through them — and a shutdown
+        // that was working exactly as intended ended in a stack trace per
+        // item, per tenant.
+        //
+        // Nothing was wrong beyond the noise, which is the reason to fix it:
+        // a teardown that logs like a crash is where a real crash goes to hide.
+        stopped(scanner);
+        stopped(reconciler);
         for (String code : Set.copyOf(runtimes.keySet())) {
             takeDown(code, null);
         }
         sharedServer.stop(0);
+    }
+
+    /**
+     * Ends a loop and waits for the round it is in, but not forever.
+     *
+     * <p>A round that will not end in a few seconds is abandoned, and the
+     * pools go anyway: a shutdown that hangs is worse than a shutdown that
+     * logs. The wait is what makes the ordinary case quiet, not a guarantee
+     * about the extraordinary one.
+     */
+    private static void stopped(Thread loop) {
+        if (loop == null) {
+            return;
+        }
+        // ASKED, then waited for. Interrupting is what made the noise, and it
+        // is worth stating because it is the opposite of what it looks like:
+        // these loops are virtual threads, and interrupting a virtual thread
+        // blocked on socket I/O closes the channel under it. So the interrupt
+        // did not end a round early — it broke the connection the round was
+        // reading through, mid-query, and the resulting I/O error was reported
+        // per item, per tenant, as a pool failure at teardown.
+        //
+        // The round already knows to stop: it checks on the way round and the
+        // feed keeps its place. So this waits for it to notice, and only
+        // interrupts if it will not — a shutdown that hangs being worse than
+        // one that logs.
+        try {
+            loop.join(java.time.Duration.ofSeconds(10));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+        if (loop.isAlive()) {
+            loop.interrupt();
+        }
     }
 
     /**
