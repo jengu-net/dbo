@@ -18,6 +18,7 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Optional;
 
 /**
@@ -40,6 +41,17 @@ public final class PdiObjectStore implements ObjectStore {
     private final PdiSpec spec;
     private final Coarsening coarsening;
 
+    /**
+     * What each person type is identified by — the tenant's declaration,
+     * carried past the transform that forgets it.
+     *
+     * <p>Empty for a type nothing declared, and that is an answer: it claims
+     * nothing. A store built without it claims nothing anywhere, which fails
+     * loudly at the first tenant that wanted uniqueness rather than quietly
+     * staking exclusivity on every number that passes.
+     */
+    private final java.util.Map<String, Set<String>> identifiedBy;
+
     public PdiObjectStore(ObjectStore inner, PersonVault vault, PdiSpec spec) {
         this(inner, vault, spec, Coarsening.NONE);
     }
@@ -51,10 +63,24 @@ public final class PdiObjectStore implements ObjectStore {
      */
     public PdiObjectStore(ObjectStore inner, PersonVault vault, PdiSpec spec,
             Coarsening coarsening) {
+        this(inner, vault, spec, coarsening, java.util.Map.of());
+    }
+
+    /**
+     * @param identifiedBy per person type, the systems the tenant declared it
+     *                     is identified by — from
+     *                     {@link PdiSetup#identifiedBy}, taken before the
+     *                     transform rewrites every person type to INTERNAL.
+     *                     A type absent from the map, or present with no
+     *                     systems, claims nothing.
+     */
+    public PdiObjectStore(ObjectStore inner, PersonVault vault, PdiSpec spec,
+            Coarsening coarsening, java.util.Map<String, Set<String>> identifiedBy) {
         this.inner = inner;
         this.vault = vault;
         this.spec = spec;
         this.coarsening = coarsening;
+        this.identifiedBy = java.util.Map.copyOf(identifiedBy);
     }
 
     public PersonVault vault() {
@@ -412,17 +438,47 @@ public final class PdiObjectStore implements ObjectStore {
         // identity claims from the ORIGINAL identifier list, vault-side
         Object identifierList = identifying.get("identifier");
         if (identifierList instanceof List<?> list) {
-            List<String[]> claims = list.stream()
+            List<String[]> present = list.stream()
                     .filter(e -> e instanceof Map<?, ?> m && m.get("system") != null && m.get("value") != null)
                     .map(e -> new String[] {
                             String.valueOf(((Map<?, ?>) e).get("system")),
                             String.valueOf(((Map<?, ?>) e).get("value"))})
                     .toList();
-            List<String[]> claimed = claims;
-            vault.claim(personId, claims).ifPresent(owner -> {
-                throw new IdentityConflictException(owner, personId,
-                        new Identifier(claimed.get(0)[0], claimed.get(0)[1]));
-            });
+            // WHICH of them this type is identified BY is the tenant's word,
+            // and it already said so: a type declared IDENTIFIER names the
+            // systems that identify it, and one declared INTERNAL carries none
+            // by construction.
+            //
+            // The rest are indexed and not claimed, which is the same parting
+            // telecom makes above and for the same reason. Finding a person by
+            // a value replaces plaintext search once the plaintext is gone and
+            // is inherent to the membrane; refusing a SECOND record the same
+            // value is a uniqueness policy, and whether a number identifies a
+            // Patient or only travels on one is a judgement about that
+            // tenant's model rather than about this store's.
+            //
+            // Claiming for every person type staked exclusivity per OBJECT id,
+            // so a human held as both a Person and a Patient — the ordinary
+            // shape, and one the tenant had declared — collided with itself on
+            // whichever record presented the number second. The refusal named
+            // two ids the caller had never seen, for a conflict it did not
+            // cause.
+            Set<String> identifiedBy = identitySystemsOf(typeName);
+            List<String[]> claims = present.stream()
+                    .filter(sv -> identifiedBy.contains(sv[0]))
+                    .toList();
+            for (String[] sv : present) {
+                if (!identifiedBy.contains(sv[0])) {
+                    vault.index(personId, sv[0], sv[1]);
+                }
+            }
+            if (!claims.isEmpty()) {
+                List<String[]> claimed = claims;
+                vault.claim(personId, claims).ifPresent(owner -> {
+                    throw new IdentityConflictException(owner, personId,
+                            new Identifier(claimed.get(0)[0], claimed.get(0)[1]));
+                });
+            }
         }
         if (!identifying.isEmpty()) {
             byte[] key = vault.keyFor(personId, true).orElseThrow(
@@ -434,6 +490,20 @@ public final class PdiObjectStore implements ObjectStore {
                     vault.encrypt(key, Json.render(identifying).getBytes(StandardCharsets.UTF_8))));
         }
         return Json.render(parsed).getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * The systems this type is identified BY, as the tenant declared them.
+     *
+     * <p>Read from what was handed in rather than from the inner store's
+     * registration: {@link PdiSetup} has already rewritten every person type
+     * to INTERNAL with no systems by the time the inner store sees one, which
+     * is the whole point of the transform — the payload reaches it stripped,
+     * so envelope identity would claim nothing. Asking the inner store here
+     * returns an empty set for every type and quietly claims nothing at all.
+     */
+    private Set<String> identitySystemsOf(String typeName) {
+        return identifiedBy.getOrDefault(typeName, Set.of());
     }
 
     /**

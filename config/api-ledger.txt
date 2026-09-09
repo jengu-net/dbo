@@ -1740,6 +1740,7 @@ cloud.jengu.dbo.pdi.PdiObjectStore                                     getByIden
 cloud.jengu.dbo.pdi.PdiObjectStore                                     history(String,String):List
 cloud.jengu.dbo.pdi.PdiObjectStore                                     new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,cloud.jengu.dbo.pdi.PdiSpec)
 cloud.jengu.dbo.pdi.PdiObjectStore                                     new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,cloud.jengu.dbo.pdi.PdiSpec,cloud.jengu.dbo.core.face.Coarsening)
+cloud.jengu.dbo.pdi.PdiObjectStore                                     new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,cloud.jengu.dbo.pdi.PdiSpec,cloud.jengu.dbo.core.face.Coarsening,Map)
 cloud.jengu.dbo.pdi.PdiObjectStore                                     page(cloud.jengu.dbo.core.api.Criteria,String):cloud.jengu.dbo.core.api.feed.FeedChunk
 cloud.jengu.dbo.pdi.PdiObjectStore                                     put(cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.pdi.PdiObjectStore                                     put(cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
@@ -1759,6 +1760,7 @@ cloud.jengu.dbo.pdi.PdiObjectStore.LinkedType                          refPath()
 cloud.jengu.dbo.pdi.PdiObjectStore.LinkedType                          toString():String
 cloud.jengu.dbo.pdi.PdiObjectStore.LinkedType                          typeName():String
 cloud.jengu.dbo.pdi.PdiSetup                                           class
+cloud.jengu.dbo.pdi.PdiSetup                                           identifiedBy(List,cloud.jengu.dbo.pdi.PdiSpec):Map
 cloud.jengu.dbo.pdi.PdiSetup                                           transform(List,cloud.jengu.dbo.pdi.PdiSpec):List
 cloud.jengu.dbo.pdi.PdiSpec                                            dispositionOf(String,String):cloud.jengu.dbo.pdi.PdiSpec.Disposition
 cloud.jengu.dbo.pdi.PdiSpec                                            equals(Object):boolean

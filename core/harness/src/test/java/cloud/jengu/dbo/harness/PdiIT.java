@@ -88,7 +88,10 @@ class PdiIT {
         vault = new PersonVault(ds, workingKey);
         store = new PdiObjectStore(new PgObjectStore(ds, transformed), vault, spec,
                 cloud.jengu.dbo.fhir.r4.R4FhirVersion.INSTANCE.face()
-                        .require(cloud.jengu.dbo.core.face.Coarsening.class));
+                        .require(cloud.jengu.dbo.core.face.Coarsening.class),
+                // From the SAME pre-transform list the registrations came from:
+                // what identifies a person type is gone from them afterwards.
+                PdiSetup.identifiedBy(personality.registrations(), spec));
     }
 
     @AfterAll
