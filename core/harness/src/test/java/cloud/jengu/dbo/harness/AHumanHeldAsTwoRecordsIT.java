@@ -20,6 +20,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,6 +50,7 @@ class AHumanHeldAsTwoRecordsIT {
     private static final String CLINIC = "kaksrida";
     private static final String EID = "https://ee.ee/eid";
     private static final String NID = "47101010033";
+    private static final String UNDECLARED = "https://kliinik.example/kaart";
 
     static PostgreSQLContainer<?> postgres;
     static Path dir;
@@ -74,7 +76,8 @@ class AHumanHeldAsTwoRecordsIT {
                  "types":[
                   {"name":"Person","identity":"identifier","systems":["%s"],
                    "handling":"operational"},
-                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
+                  {"name":"Patient","identity":"internal","handling":"operational"},
+                  {"name":"Practitioner","identity":"internal","handling":"operational"}]}"""
                 .formatted(CLINIC, EID));
         UntilServed.scan(manager, CLINIC);
     }
@@ -241,6 +244,54 @@ class AHumanHeldAsTwoRecordsIT {
                 "the record carrying the number answered an empty bundle, and empty reads as "
                         + "nobody here — which is how a caller that meant to recognise "
                         + "somebody mints a second identity instead: " + found.body());
+    }
+
+    @Test
+    @DisplayName("every way a person-type record can carry a value, a lookup by that value "
+            + "finds it or refuses — and never comes back empty")
+    @Proving({DboPromises.PDI_EXACT_RESOLUTION, DboPromises.SRCH_HONEST_CAPABILITY})
+    void noneOfTheseAnswersEmpty() throws Exception {
+        String token = token();
+        List<String> silent = new ArrayList<>();
+
+        // the type identified by that system, claiming the value
+        check("Person", EID, "30101010001", token, silent);
+        // a type declared internal, carrying a value another type is identified by
+        check("Patient", EID, "30101010002", token, silent);
+        check("Practitioner", EID, "30101010003", token, silent);
+        // a value NOTHING here is identified by: held, indexed, and nobody's identity
+        check("Patient", UNDECLARED, "card-4471", token, silent);
+
+        assertTrue(silent.isEmpty(),
+                "these are held by this store and a lookup for them answered an empty "
+                        + "bundle. Empty reads as nobody here, and a caller acting on it "
+                        + "creates the person again:\n  " + String.join("\n  ", silent));
+    }
+
+    /** Writes one record carrying the value, then asks for it back. */
+    private void check(String type, String system, String value, String token,
+            List<String> silent)
+            throws Exception {
+        HttpResponse<String> written = post("/" + type, """
+                {"resourceType":"%s","identifier":[{"system":"%s","value":"%s"}],
+                 "name":[{"family":"Otsitav"}]}""".formatted(type, system, value), token);
+        assertEquals(201, written.statusCode(), written.body());
+        String id = written.headers().firstValue("Location").orElseThrow()
+                .replaceAll(".*/([^/]+)$", "$1");
+
+        HttpResponse<String> found = http.send(HttpRequest.newBuilder(
+                        URI.create(base() + "/fhir/" + type + "?identifier="
+                                + URLEncoder.encode(system + "|" + value, StandardCharsets.UTF_8)))
+                        .header("Authorization", "Bearer " + token)
+                        .header("Purpose-Of-Use", "TREAT").GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+
+        // A refusal is a fine answer: it says the store holds this and cannot
+        // match on it, which a caller can act on. Silence is the failure.
+        if (found.statusCode() == 200 && !found.body().contains(id)) {
+            silent.add(type + " carrying " + system + "|" + value
+                    + " (record " + id + ") -> " + found.body().replaceAll("\\s+", " "));
+        }
     }
 
     /** What the erasure door admits: its own scope, not a broad write grant. */
