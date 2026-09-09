@@ -60,7 +60,7 @@ class APartnerFollowsWorkIT {
 
     private static final String PARTNER = "kaskad";
     private static final String MANAGED = "praxis";
-    private static final String OTHER = "meristem";
+    private static final String OTHER = "kambium";
     private static final String STEP = "dbo.lab.assay";
     private static final StepDeclaration ASSAY = StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
             .taking("specimen", "https://meristem.example/shape/specimen");
