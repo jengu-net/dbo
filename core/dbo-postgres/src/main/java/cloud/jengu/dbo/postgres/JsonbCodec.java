@@ -88,6 +88,83 @@ final class JsonbCodec {
         }
     }
 
+    /**
+     * One value back from the form {@link #envelopeJson} wrote — the exact
+     * shapes above and no others, which is why this is not a JSON parser.
+     */
+    static EnvelopeValue decodeValue(String json) {
+        // Postgres renders jsonb back with a space after each colon and
+        // comma, whatever was written, so the reader steps over blanks.
+        Map<String, String> fields = new java.util.HashMap<>();
+        int at = blanks(json, 1);
+        while (at < json.length() && json.charAt(at) == '"') {
+            int keyEnd = json.indexOf('"', at + 1);
+            String key = json.substring(at + 1, keyEnd);
+            at = blanks(json, keyEnd + 1);
+            at = blanks(json, at + 1); // past the colon
+            StringBuilder value = new StringBuilder();
+            if (json.charAt(at) == '"') {
+                at = unstring(json, at + 1, value);
+            } else {
+                int end = at;
+                while (end < json.length() && json.charAt(end) != ',' && json.charAt(end) != '}') {
+                    end++;
+                }
+                value.append(json, at, end);
+                at = end;
+            }
+            fields.put(key, value.toString());
+            at = blanks(json, at);
+            if (at < json.length() && json.charAt(at) == ',') {
+                at = blanks(json, at + 1);
+            }
+        }
+        String v = fields.get("v");
+        return switch (fields.get("t")) {
+            case "str" -> EnvelopeValue.of(v);
+            case "num" -> EnvelopeValue.of(new java.math.BigDecimal(v));
+            case "date" -> EnvelopeValue.of(java.time.Instant.from(
+                    cloud.jengu.dbo.core.api.DateKeys.FORMAT.parse(v)));
+            case "toks" -> new EnvelopeValue.Token(v, null);
+            case "tokc" -> new EnvelopeValue.Token(null, v);
+            case "tok" -> new EnvelopeValue.Token(fields.get("s"), v);
+            case "ref" -> new EnvelopeValue.Ref(fields.get("tt"), fields.get("ti"));
+            default -> throw new IllegalStateException("not an envelope value: " + json);
+        };
+    }
+
+    private static int blanks(String json, int at) {
+        while (at < json.length() && json.charAt(at) == ' ') {
+            at++;
+        }
+        return at;
+    }
+
+    /** Reads a string written by {@link #string} from {@code at} (past the quote); returns the index past its closing quote. */
+    private static int unstring(String json, int at, StringBuilder out) {
+        while (json.charAt(at) != '"') {
+            char c = json.charAt(at);
+            if (c == '\\') {
+                char escaped = json.charAt(at + 1);
+                switch (escaped) {
+                    case 'n' -> out.append('\n');
+                    case 'r' -> out.append('\r');
+                    case 't' -> out.append('\t');
+                    case 'u' -> {
+                        out.append((char) Integer.parseInt(json.substring(at + 2, at + 6), 16));
+                        at += 4;
+                    }
+                    default -> out.append(escaped);
+                }
+                at += 2;
+            } else {
+                out.append(c);
+                at++;
+            }
+        }
+        return at + 1;
+    }
+
     private static void string(StringBuilder sb, String s) {
         sb.append('"');
         for (int i = 0; i < s.length(); i++) {

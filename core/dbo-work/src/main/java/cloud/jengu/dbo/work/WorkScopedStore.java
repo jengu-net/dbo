@@ -136,6 +136,12 @@ public final class WorkScopedStore implements ObjectStore {
     }
 
     @Override
+    public java.util.List<cloud.jengu.dbo.core.api.Held> inventory(String typeName,
+            java.util.List<String> paths) {
+        return inner.inventory(typeName, paths);
+    }
+
+    @Override
     public int rebuildEnvelopes(String typeName) {
         return inner.rebuildEnvelopes(typeName);
     }

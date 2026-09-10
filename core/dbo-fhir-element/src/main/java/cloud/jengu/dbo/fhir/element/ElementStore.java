@@ -761,15 +761,33 @@ public final class ElementStore implements FhirStoreFacade {
     /** The tenant's own converters, alongside its own profiles. */
     private static List<String> storedMaps(ObjectStore engine) {
         try {
-            return engine.select(cloud.jengu.dbo.core.api.Criteria.of("StructureMap")
-                            .limit(500)).stream()
-                    .map(stored -> new String(stored.payload(), StandardCharsets.UTF_8))
-                    .toList();
+            return everyHeld(engine, "StructureMap");
         } catch (RuntimeException e) {
             // A tenant that does not register StructureMap has no converters,
             // which is a shape of tenant, not a broken one.
             return List.of();
         }
+    }
+
+    /**
+     * Every document of the type, page after page until the store says it is
+     * drained. This read used to take the first five hundred and stop, and a
+     * tenant holding its whole version as records holds four times that: the
+     * profile a document claimed was in the store and not in the view, and
+     * the claim was refused as a profile the tenant did not have.
+     */
+    private static List<String> everyHeld(ObjectStore engine, String typeName) {
+        List<String> out = new ArrayList<>();
+        String cursor = null;
+        cloud.jengu.dbo.core.api.feed.FeedChunk<StoredObject> chunk;
+        do {
+            chunk = engine.page(cloud.jengu.dbo.core.api.Criteria.of(typeName).limit(500), cursor);
+            for (StoredObject stored : chunk.items()) {
+                out.add(new String(stored.payload(), StandardCharsets.UTF_8));
+            }
+            cursor = chunk.nextCursor();
+        } while (!chunk.drained() && cursor != null);
+        return out;
     }
 
     /**
@@ -839,10 +857,7 @@ public final class ElementStore implements FhirStoreFacade {
 
     private static List<String> storedProfiles(ObjectStore engine) {
         try {
-            return engine.select(cloud.jengu.dbo.core.api.Criteria.of("StructureDefinition")
-                            .limit(500)).stream()
-                    .map(stored -> new String(stored.payload(), StandardCharsets.UTF_8))
-                    .toList();
+            return everyHeld(engine, "StructureDefinition");
         } catch (RuntimeException e) {
             // A tenant that does not register StructureDefinition is not a
             // tenant whose bring-up should fail over profiles it never had.

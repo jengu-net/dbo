@@ -310,6 +310,18 @@ public final class PolicyObjectStore implements ObjectStore,
     }
 
     @Override
+    public java.util.List<cloud.jengu.dbo.core.api.Held> inventory(String typeName,
+            java.util.List<String> paths) {
+        if (!answerableToTheAudience(typeName)) {
+            return java.util.List.of();
+        }
+        // Not audited: no payload leaves, and the reader is the store taking
+        // stock of its own shelf at bring-up, which is not an access anybody
+        // is owed a record of.
+        return inner.inventory(typeName, paths);
+    }
+
+    @Override
     public int rebuildEnvelopes(String typeName) {
         return inner.rebuildEnvelopes(typeName);
     }

@@ -29,6 +29,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -1178,6 +1179,56 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     // -------------------------------------------------------------- rebuild
+
+    @Override
+    public List<cloud.jengu.dbo.core.api.Held> inventory(String typeName, List<String> paths) {
+        TypeRegistration type = registry.require(typeName);
+        String d = type.domain();
+        StringBuilder sql = new StringBuilder("SELECT d.id, d.version_id");
+        for (int i = 0; i < paths.size(); i++) {
+            // the first value under the path, as the text this codec wrote
+            sql.append(", d.envelope -> ? -> 0");
+        }
+        sql.append(" FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted ORDER BY d.id".formatted(d));
+        Map<UUID, List<Identifier>> identifiers = new java.util.HashMap<>();
+        List<cloud.jengu.dbo.core.api.Held> out = new ArrayList<>();
+        try (Connection c = ds.getConnection()) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT object_id, system, value FROM state.%s_identifier WHERE type = ?".formatted(d))) {
+                ps.setString(1, typeName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        identifiers.computeIfAbsent((UUID) rs.getObject(1), k -> new ArrayList<>())
+                                .add(new Identifier(rs.getString(2), rs.getString(3)));
+                    }
+                }
+            }
+            try (PreparedStatement ps = c.prepareStatement(sql.toString())) {
+                int p = 1;
+                for (String path : paths) {
+                    ps.setString(p++, path);
+                }
+                ps.setString(p, typeName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        UUID id = (UUID) rs.getObject(1);
+                        Map<String, cloud.jengu.dbo.core.api.EnvelopeValue> firsts = new java.util.LinkedHashMap<>();
+                        for (int i = 0; i < paths.size(); i++) {
+                            String value = rs.getString(3 + i);
+                            if (value != null) {
+                                firsts.put(paths.get(i), JsonbCodec.decodeValue(value));
+                            }
+                        }
+                        out.add(new cloud.jengu.dbo.core.api.Held(id.toString(), rs.getLong(2),
+                                List.copyOf(identifiers.getOrDefault(id, List.of())), firsts));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("inventory failed", e);
+        }
+        return out;
+    }
 
     @Override
     public int rebuildEnvelopes(String typeName) {

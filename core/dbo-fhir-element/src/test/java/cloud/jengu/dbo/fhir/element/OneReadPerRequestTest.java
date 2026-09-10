@@ -154,6 +154,11 @@ class OneReadPerRequestTest {
         }
 
         @Override
+        public List<cloud.jengu.dbo.core.api.Held> inventory(String typeName, List<String> paths) {
+            return List.of();
+        }
+
+        @Override
         public int rebuildEnvelopes(String typeName) {
             return 0;
         }

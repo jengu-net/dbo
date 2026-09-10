@@ -610,6 +610,15 @@ cloud.jengu.dbo.core.api.HandlingRefusedException                      class
 cloud.jengu.dbo.core.api.HandlingRefusedException                      new(String,String,String)
 cloud.jengu.dbo.core.api.HandlingRefusedException                      rule():String
 cloud.jengu.dbo.core.api.HandlingRefusedException                      typeName():String
+cloud.jengu.dbo.core.api.Held                                          equals(Object):boolean
+cloud.jengu.dbo.core.api.Held                                          firsts():Map
+cloud.jengu.dbo.core.api.Held                                          hashCode():int
+cloud.jengu.dbo.core.api.Held                                          id():String
+cloud.jengu.dbo.core.api.Held                                          identifiers():List
+cloud.jengu.dbo.core.api.Held                                          new(String,long,List,Map)
+cloud.jengu.dbo.core.api.Held                                          record
+cloud.jengu.dbo.core.api.Held                                          toString():String
+cloud.jengu.dbo.core.api.Held                                          versionId():long
 cloud.jengu.dbo.core.api.Identifier                                    CANONICAL_SYSTEM:String
 cloud.jengu.dbo.core.api.Identifier                                    equals(Object):boolean
 cloud.jengu.dbo.core.api.Identifier                                    hashCode():int
@@ -662,6 +671,7 @@ cloud.jengu.dbo.core.api.ObjectStore                                   get(Strin
 cloud.jengu.dbo.core.api.ObjectStore                                   getByIdentifier(String,List):List
 cloud.jengu.dbo.core.api.ObjectStore                                   history(String,String):List
 cloud.jengu.dbo.core.api.ObjectStore                                   interface
+cloud.jengu.dbo.core.api.ObjectStore                                   inventory(String,List):List
 cloud.jengu.dbo.core.api.ObjectStore                                   page(cloud.jengu.dbo.core.api.Criteria,String):cloud.jengu.dbo.core.api.feed.FeedChunk
 cloud.jengu.dbo.core.api.ObjectStore                                   put(cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.core.api.ObjectStore                                   put(cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
@@ -1750,6 +1760,7 @@ cloud.jengu.dbo.pdi.PdiObjectStore                                     exportPer
 cloud.jengu.dbo.pdi.PdiObjectStore                                     get(String,String):Optional
 cloud.jengu.dbo.pdi.PdiObjectStore                                     getByIdentifier(String,List):List
 cloud.jengu.dbo.pdi.PdiObjectStore                                     history(String,String):List
+cloud.jengu.dbo.pdi.PdiObjectStore                                     inventory(String,List):List
 cloud.jengu.dbo.pdi.PdiObjectStore                                     new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,cloud.jengu.dbo.pdi.PdiSpec)
 cloud.jengu.dbo.pdi.PdiObjectStore                                     new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,cloud.jengu.dbo.pdi.PdiSpec,cloud.jengu.dbo.core.face.Coarsening)
 cloud.jengu.dbo.pdi.PdiObjectStore                                     new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,cloud.jengu.dbo.pdi.PdiSpec,cloud.jengu.dbo.core.face.Coarsening,Map)
@@ -1855,6 +1866,7 @@ cloud.jengu.dbo.policy.PolicyObjectStore                               delete(St
 cloud.jengu.dbo.policy.PolicyObjectStore                               get(String,String):Optional
 cloud.jengu.dbo.policy.PolicyObjectStore                               getByIdentifier(String,List):List
 cloud.jengu.dbo.policy.PolicyObjectStore                               history(String,String):List
+cloud.jengu.dbo.policy.PolicyObjectStore                               inventory(String,List):List
 cloud.jengu.dbo.policy.PolicyObjectStore                               new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.policy.TenantPolicies)
 cloud.jengu.dbo.policy.PolicyObjectStore                               page(cloud.jengu.dbo.core.api.Criteria,String):cloud.jengu.dbo.core.api.feed.FeedChunk
 cloud.jengu.dbo.policy.PolicyObjectStore                               policies():cloud.jengu.dbo.policy.TenantPolicies
@@ -1940,6 +1952,7 @@ cloud.jengu.dbo.postgres.PgObjectStore                                 delete(St
 cloud.jengu.dbo.postgres.PgObjectStore                                 get(String,String):Optional
 cloud.jengu.dbo.postgres.PgObjectStore                                 getByIdentifier(String,List):List
 cloud.jengu.dbo.postgres.PgObjectStore                                 history(String,String):List
+cloud.jengu.dbo.postgres.PgObjectStore                                 inventory(String,List):List
 cloud.jengu.dbo.postgres.PgObjectStore                                 new(DataSource,List)
 cloud.jengu.dbo.postgres.PgObjectStore                                 new(DataSource,List,List)
 cloud.jengu.dbo.postgres.PgObjectStore                                 page(cloud.jengu.dbo.core.api.Criteria,String):cloud.jengu.dbo.core.api.feed.FeedChunk
@@ -3646,6 +3659,7 @@ cloud.jengu.dbo.work.WorkScopedStore                                   delete(St
 cloud.jengu.dbo.work.WorkScopedStore                                   get(String,String):Optional
 cloud.jengu.dbo.work.WorkScopedStore                                   getByIdentifier(String,List):List
 cloud.jengu.dbo.work.WorkScopedStore                                   history(String,String):List
+cloud.jengu.dbo.work.WorkScopedStore                                   inventory(String,List):List
 cloud.jengu.dbo.work.WorkScopedStore                                   new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Runs)
 cloud.jengu.dbo.work.WorkScopedStore                                   page(cloud.jengu.dbo.core.api.Criteria,String):cloud.jengu.dbo.core.api.feed.FeedChunk
 cloud.jengu.dbo.work.WorkScopedStore                                   put(cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult

@@ -94,6 +94,16 @@ public interface ObjectStore {
     cloud.jengu.dbo.core.api.feed.FeedChunk<StoredObject> page(Criteria criteria, String cursor);
 
     /**
+     * Everything live of a type, without the payloads: each object's id,
+     * version, identifiers, and the first value under each of {@code paths}
+     * in its envelope (absent when the envelope has none). Every object,
+     * not a page of them — an inventory is the one read whose answer is
+     * only right when it is complete, and a cap on it is a definition the
+     * tenant holds and does not know about.
+     */
+    List<Held> inventory(String typeName, List<String> paths);
+
+    /**
      * Recompute envelopes, identifiers and references for a type from stored
      * payloads and (re)apply declared indexes. Payloads are never touched
      * (REQ-DBO-CORE-REINDEX-IS-AN-OPERATION).
