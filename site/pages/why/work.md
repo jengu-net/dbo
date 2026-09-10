@@ -5,6 +5,7 @@ standfirst: >-
   An exchange between two organisations is a process with obligations, not a
   file drop. Somebody has to hold the record of it — what has to be done, who
   is entitled to do it, who is doing it now, and what happened.
+why: 2
 template: essay.html
 ---
 

@@ -5,6 +5,7 @@ standfirst: >-
   Who read this, who changed it, on whose authority, and when. Kept as ordinary
   records in the tenant's own store — append-only against everyone, the vendor
   included — rather than as lines in a file somewhere else.
+why: 7
 template: essay.html
 ---
 

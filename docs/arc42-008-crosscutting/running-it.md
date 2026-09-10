@@ -226,6 +226,6 @@ choice and needs to be a deliberate one.
 - **Why an incremental export is a feed** — [change, and who is
   listening](change-and-who-is-listening.md).
 - **Why the operator holds no readable credentials** — [data
-  isolation](data-isolation.md).
+  isolation](data-isolation/README.md).
 - **What work is, and who performs it** — [processes and
   work](processes-and-work.md).

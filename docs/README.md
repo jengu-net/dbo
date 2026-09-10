@@ -51,7 +51,7 @@ Structured per [arc42](https://arc42.org/).
   deployment shape, backup as export, upgrades),
   [who may act](arc42-008-crosscutting/who-may-act.md) (§13, §16 — the
   tenant as trust root, and how systems and people get in),
-  [data isolation](arc42-008-crosscutting/data-isolation.md) (§14, tenant from
+  [data isolation](arc42-008-crosscutting/data-isolation/README.md) (§14, tenant from
   tenant, person from everyone, and what is declared to cross),
   [declared rules](arc42-008-crosscutting/declared-rules.md) (§15, §17 — what a
   tenant must do, what its jurisdiction says, and how the two layer)

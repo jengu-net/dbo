@@ -169,7 +169,7 @@ that zone is running on a stale fact.
 - **Who the actor in a trail is, and where authority comes from** — [who may
   act](who-may-act.md).
 - **Why a trail can be exact and still contain no personal data**, and what
-  shredding does — [data isolation](data-isolation.md).
+  shredding does — [data isolation](data-isolation/README.md).
 - **How declarations reach dependent tenants** — [change, and who is
   listening](change-and-who-is-listening.md).
 - **How a trail is rendered** for a reader of a particular standard — [work

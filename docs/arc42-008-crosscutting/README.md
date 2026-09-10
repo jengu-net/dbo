@@ -31,7 +31,7 @@ assumes the split it describes.
 
 - [**Who may act**](who-may-act.md) (§13, §16) — the tenant as its own trust
   root, and how systems and people get in.
-- [**Data isolation**](data-isolation.md) (§14) — tenant from tenant, person
+- [**Data isolation**](data-isolation/README.md) (§14) — tenant from tenant, person
   from everyone, and what is declared to cross.
 - [**Declared rules**](declared-rules.md) (§15, §17) — what a tenant must do,
   what its jurisdiction says, and how the two layer.

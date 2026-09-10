@@ -5,6 +5,7 @@ standfirst: >-
   Which identifier systems establish that a person is who they say they are,
   and which brokers may authenticate one, are properties of a country. Building
   them into an application is how a product becomes unexportable.
+why: 10
 template: essay.html
 ---
 

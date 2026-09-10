@@ -5,6 +5,7 @@ standfirst: >-
   A directory of specifications says what was declared. Only the runtime knows
   that a specification was written and its tenant never came up — which is the
   question worth asking, and the one a list of served tenants cannot answer.
+why: 9
 template: essay.html
 ---
 

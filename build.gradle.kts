@@ -535,10 +535,20 @@ val liniBin = (findProperty("lini") as String?) ?: "lini"
 val diagramSrc = siteDir.dir("diagrams")
 val diagramOut = siteDir.dir("assets/diagrams")
 
+// A diagram's source lives with what it draws: beside the concept for a
+// concept's figure, in site/diagrams for one not yet moved to its own. The
+// compiled SVG stays in one flat place, because a page includes it by a path
+// and that path should not encode where the drawing happens to be filed.
+fun diagramSources(): List<File> =
+    (diagramSrc.asFile.listFiles { f: File -> f.extension == "lini" }.orEmpty().toList() +
+        layout.projectDirectory.dir("docs").asFile.walkTopDown()
+            .filter { it.isFile && it.extension == "lini" && it.parentFile.name == "diagrams" }
+            .toList())
+        .sortedBy { it.name }
+
 fun liniCommand(target: File) = listOf(
     "bash", "-c",
-    diagramSrc.asFile.listFiles { f: File -> f.extension == "lini" }
-        .orEmpty().sortedBy { it.name }.joinToString(" && ") { src ->
+    diagramSources().joinToString(" && ") { src ->
             val svg = File(target, src.nameWithoutExtension + ".svg")
             "'$liniBin' --strict '${src.absolutePath}' -o '${svg.absolutePath}'"
         }.ifEmpty { "true" },
@@ -557,7 +567,7 @@ fun liniCommand(target: File) = listOf(
 // is the whole figure — which also puts the text under `siteDiagramsCheck`,
 // where an edited description drifts exactly like an edited drawing.
 fun describe(target: File) {
-    diagramSrc.asFile.listFiles { f: File -> f.extension == "lini" }.orEmpty().forEach { src ->
+    diagramSources().forEach { src ->
         val name = src.nameWithoutExtension
         val desc = File(src.parentFile, "$name.desc")
         if (!desc.exists()) throw GradleException("$name has no $name.desc — every figure states what it shows")
@@ -584,6 +594,7 @@ fun describe(target: File) {
 val siteDiagrams by tasks.registering(Exec::class) {
     group = "documentation"
     description = "Compiles site/diagrams/*.lini to site/assets/diagrams/*.svg."
+    inputs.files(diagramSources())
     inputs.dir(diagramSrc)
     outputs.dir(diagramOut)
     doFirst { diagramOut.asFile.mkdirs() }
@@ -607,8 +618,7 @@ val siteDiagramFont by tasks.registering {
         // Every source, not one: a diagram that reaches for the mono family
         // embeds a face the others never mention, and sampling one file would
         // leave that diagram rendering in whatever the browser falls back to.
-        val sources = diagramSrc.asFile.listFiles { f: File -> f.extension == "lini" }
-            .orEmpty().sortedBy { it.name }
+        val sources = diagramSources()
         if (sources.isEmpty()) throw GradleException("no .lini source to take the faces from")
         val faces = sources.flatMap { src ->
             val embedded = providers.exec {
@@ -680,9 +690,91 @@ val siteAssemble by tasks.registering(Sync::class) {
         // than what is; both stay readable in the repository and neither is
         // part of the published specification. index.html and _config.yml
         // belong to the Jekyll site this replaces.
-        exclude("tasks/**", "plans/**", "index.html", "_config.yml")
+        // A `why-` page is an essay that lives with the concept it argues, and
+        // it is collected to /why/ below rather than rendered twice here. A
+        // concept's diagrams are compiler sources, not pages.
+        exclude("tasks/**", "plans/**", "index.html", "_config.yml",
+                "**/why-*.md", "**/diagrams/**")
     }
     from(layout.projectDirectory.file("docs/favicon.ico")) { into("assets") }
+
+    // The essays are excluded from the copy above and collected in doLast, so
+    // Gradle cannot see them as inputs — and an up-to-date Sync skips the
+    // collector entirely. Naming them makes an edited essay rebuild the site.
+    inputs.files(
+        layout.projectDirectory.dir("docs").asFile.walkTopDown()
+            .filter { it.isFile && it.name.startsWith("why-") && it.extension == "md" }
+            .toList(),
+    )
+
+
+    // The essays, gathered from wherever they live.
+    //
+    // An essay belongs beside the concept it argues — whoever edits
+    // `data-isolation` should find its drawings and its prose in one place —
+    // but a reader arriving at the site wants /why/, not a path through the
+    // specification. So the front matter carries `why: <rank>`, the page is
+    // collected here under the name it had, and the reading order is computed
+    // from the ranks rather than kept in a second list that can disagree.
+    //
+    // The order is not alphabetical and never was: what the thing IS comes
+    // first, because every page after it says "the engine" and means
+    // something particular; then work, which is what people are most
+    // surprised a store does at all; then the three properties a deployment
+    // is judged on — who is separated from whom, what a record is held to,
+    // and how anybody gets in; then the two pages about the gap between what
+    // was declared and what is true, which is where operating it actually
+    // lives; last, the two mechanisms that keep copies and jurisdictions
+    // honest.
+    doLast {
+        val fromConcepts = layout.projectDirectory.dir("docs").asFile.walkTopDown()
+            .filter { it.isFile && it.name.startsWith("why-") && it.extension == "md" }
+        val fromPages = siteDir.dir("pages/why").asFile.walkTopDown()
+            .filter { it.isFile && it.extension == "md" && it.name != "index.md" }
+        val essays = (fromConcepts + fromPages).map { f ->
+            val rank = Regex("^why:\\s*(\\d+)\\s*$", RegexOption.MULTILINE)
+                .find(f.readText())?.groupValues?.get(1)?.toInt()
+                ?: throw GradleException(f.name + " sits in a why position and states no `why:` rank")
+            rank to f
+        }.sortedBy { it.first }.toList()
+
+        // An essay is written to be read WHERE IT IS STORED — beside its
+        // concept, linking to `README.md` as the sibling it is — and then
+        // published somewhere else. So the reference frame it was moved into
+        // is repaired here rather than by asking the author to write links
+        // that are wrong in the repository and right on the site.
+        val docsRoot = layout.projectDirectory.dir("docs").asFile.canonicalFile
+        fun reframe(essay: File, text: String): String {
+            if (!essay.canonicalPath.startsWith(docsRoot.path)) return text
+            return Regex("]\\((?!https?:|/|#)([^)#]+)(#[^)]*)?\\)").replace(text) { m ->
+                val target = File(essay.parentFile, m.groupValues[1]).canonicalFile
+                if (target.name.startsWith("why-") && target.extension == "md") {
+                    "](" + target.name.removePrefix("why-") + m.groupValues[2] + ")"
+                } else if (target.path.startsWith(docsRoot.path)) {
+                    "](../docs/" + target.relativeTo(docsRoot).path.replace(File.separatorChar, '/') +
+                        m.groupValues[2] + ")"
+                } else {
+                    m.value
+                }
+            }
+        }
+
+        val out = siteSrc.get().dir("why").asFile
+        out.mkdirs()
+        essays.forEach { (_, f) ->
+            File(out, f.name.removePrefix("why-")).writeText(reframe(f, f.readText()))
+        }
+
+        val lines = mutableListOf(
+            "# Generated by siteAssemble from each essay's `why:` rank. The order,",
+            "# and the reason it is not alphabetical, are stated in build.gradle.kts.",
+            "nav:",
+            "  - index.md",
+        )
+        essays.forEach { (_, f) -> lines.add("  - " + f.name.removePrefix("why-")) }
+        File(out, ".nav.yml").writeText(lines.joinToString("\n") + "\n")
+        logger.lifecycle("collected " + essays.size + " essays into /why/")
+    }
 
     // Sync deletes what is no longer produced, so a page renamed in docs/
     // does not linger in the output as a stale URL.

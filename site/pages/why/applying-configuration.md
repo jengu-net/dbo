@@ -5,6 +5,7 @@ standfirst: >-
   Value sets, profiles, search parameters, which tenants a deployment serves,
   whether a step is automated. Declared in a source, applied as a run, and
   accounted for afterwards — rather than logged and hoped about.
+why: 8
 template: essay.html
 ---
 

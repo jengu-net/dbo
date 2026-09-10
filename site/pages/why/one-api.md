@@ -5,6 +5,7 @@ standfirst: >-
   No admin plane. No settings blob. No second vocabulary to learn and no second
   surface to secure — including for the things a FHIR server usually keeps
   somewhere else.
+why: 6
 template: essay.html
 ---
 

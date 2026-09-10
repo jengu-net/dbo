@@ -11,7 +11,7 @@ deciding the rest.
 [finding things](../arc42-008-crosscutting/finding-things.md) (terminology),
 [who may act](../arc42-008-crosscutting/who-may-act.md) (the tenant
 authority), [declared rules](../arc42-008-crosscutting/declared-rules.md)
-(audit), [data isolation](../arc42-008-crosscutting/data-isolation.md)
+(audit), [data isolation](../arc42-008-crosscutting/data-isolation/README.md)
 (why some profiles are refused), [running it](../arc42-008-crosscutting/running-it.md)
 (blob storage), [where a neutral store earns its keep](../plans/neutral-exchange-domains.md).
 

@@ -5,6 +5,7 @@ standfirst: >-
   Paging through results, subscribing to changes, keeping a dependent copy
   current, and reconciling an appliance that was offline all weekend. Most
   systems grow four mechanisms for those. This one has a single primitive.
+why: 11
 template: essay.html
 ---
 

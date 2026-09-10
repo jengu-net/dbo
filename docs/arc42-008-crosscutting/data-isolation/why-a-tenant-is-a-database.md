@@ -5,6 +5,7 @@ standfirst: >-
   Not a filter over a shared one. That difference decides what happens on the
   day somebody writes a query with a bug in it, and what "we have removed your
   data" is actually worth.
+why: 3
 template: essay.html
 ---
 
@@ -72,8 +73,8 @@ has to argue for itself.
 
 <div class="further" markdown>
 The other wall — the one between a person's data and the operator — is
-[personal data](personal-data.md), and the two together with the crossings that
+[personal data](why-personal-data.md), and the two together with the crossings that
 are declared are
-[Data isolation (§14)](../docs/arc42-008-crosscutting/data-isolation.md).
-Who a tenant lets in is [Who may act (§13, §16)](../docs/arc42-008-crosscutting/who-may-act.md).
+[Data isolation (§14)](README.md).
+Who a tenant lets in is [Who may act (§13, §16)](../who-may-act.md).
 </div>

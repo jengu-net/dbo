@@ -16,7 +16,7 @@ deliberately unfiled until step 1 lands.
 **Concepts** —
 [change, and who is listening](../arc42-008-crosscutting/change-and-who-is-listening.md) ·
 [processes and work](../arc42-008-crosscutting/processes-and-work.md) ·
-[data isolation](../arc42-008-crosscutting/data-isolation.md) ·
+[data isolation](../arc42-008-crosscutting/data-isolation/README.md) ·
 [the FHIR face](../arc42-008-crosscutting/the-fhir-face.md)
 
 ## What this is

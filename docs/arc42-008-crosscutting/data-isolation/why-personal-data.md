@@ -5,6 +5,7 @@ standfirst: >-
   Two different questions get asked of a shared store, and they have different
   answers. Can another organisation see my data — and can anyone, including
   whoever runs the thing, see who this is about?
+why: 4
 template: essay.html
 ---
 
@@ -101,7 +102,7 @@ written specially for it.
 <div class="further" markdown>
 The mechanism in full — both walls, the declared crossings, key custody, and
 what a restore replays before it will serve — is
-[Data isolation (§14)](../docs/arc42-008-crosscutting/data-isolation.md), with
+[Data isolation (§14)](README.md), with
 the handling rules in
-[Declared rules (§15, §17)](../docs/arc42-008-crosscutting/declared-rules.md).
+[Declared rules (§15, §17)](../declared-rules.md).
 </div>

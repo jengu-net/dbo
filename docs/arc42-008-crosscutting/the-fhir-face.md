@@ -198,7 +198,7 @@ is destroyed, and the person is gone from the live store, from history and from
 every archive. It also means a bulk export you are given is pseudonymous unless
 you were entitled to more.
 
-→ [Data isolation](data-isolation.md)
+→ [Data isolation](data-isolation/README.md)
 
 ## `AuditEvent`, and the rules a tenant declared
 

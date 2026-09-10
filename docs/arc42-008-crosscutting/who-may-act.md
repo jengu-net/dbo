@@ -193,13 +193,13 @@ and loses only the authorisation-server role it should never have held.
 
 Consent — who must agree before a person's identifying data may be unwrapped —
 is a separate track that attaches to the seams in [data
-isolation](data-isolation.md).
+isolation](data-isolation/README.md).
 
 ## Where the detail is written down
 
 - **The exact rules and their proofs** — the authority and provisioning entries
   in the [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
-- **Who may see what, once they may act** — [data isolation](data-isolation.md).
+- **Who may see what, once they may act** — [data isolation](data-isolation/README.md).
 - **Where broker declarations and regional configuration live** — [declared
   rules](declared-rules.md).
 - **How identity artefacts behave as records** — [records you can rely
