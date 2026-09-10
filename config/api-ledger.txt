@@ -672,6 +672,7 @@ cloud.jengu.dbo.core.api.ObjectStore                                   registrat
 cloud.jengu.dbo.core.api.ObjectStore                                   reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration):int
 cloud.jengu.dbo.core.api.ObjectStore                                   select(cloud.jengu.dbo.core.api.Criteria):List
 cloud.jengu.dbo.core.api.ObjectStore                                   transact(List):List
+cloud.jengu.dbo.core.api.ObjectStore                                   transact(List,cloud.jengu.dbo.core.api.Handling.Authority):List
 cloud.jengu.dbo.core.api.Paths                                         class
 cloud.jengu.dbo.core.api.Paths                                         requireValid(String):void
 cloud.jengu.dbo.core.api.PayloadConverter                              convert(String,byte[]):byte[]
@@ -1762,6 +1763,7 @@ cloud.jengu.dbo.pdi.PdiObjectStore                                     registrat
 cloud.jengu.dbo.pdi.PdiObjectStore                                     reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration):int
 cloud.jengu.dbo.pdi.PdiObjectStore                                     select(cloud.jengu.dbo.core.api.Criteria):List
 cloud.jengu.dbo.pdi.PdiObjectStore                                     transact(List):List
+cloud.jengu.dbo.pdi.PdiObjectStore                                     transact(List,cloud.jengu.dbo.core.api.Handling.Authority):List
 cloud.jengu.dbo.pdi.PdiObjectStore                                     vault():cloud.jengu.dbo.pdi.PersonVault
 cloud.jengu.dbo.pdi.PdiObjectStore.LinkedType                          equals(Object):boolean
 cloud.jengu.dbo.pdi.PdiObjectStore.LinkedType                          hashCode():int
@@ -1870,6 +1872,7 @@ cloud.jengu.dbo.policy.PolicyObjectStore                               reindexUn
 cloud.jengu.dbo.policy.PolicyObjectStore                               replayAuditEntry(String,String,long,byte[],Instant):boolean
 cloud.jengu.dbo.policy.PolicyObjectStore                               select(cloud.jengu.dbo.core.api.Criteria):List
 cloud.jengu.dbo.policy.PolicyObjectStore                               transact(List):List
+cloud.jengu.dbo.policy.PolicyObjectStore                               transact(List,cloud.jengu.dbo.core.api.Handling.Authority):List
 cloud.jengu.dbo.policy.RetentionSweep                                  PROCESS:String
 cloud.jengu.dbo.policy.RetentionSweep                                  STEP:String
 cloud.jengu.dbo.policy.RetentionSweep                                  class
@@ -1950,6 +1953,7 @@ cloud.jengu.dbo.postgres.PgObjectStore                                 registrat
 cloud.jengu.dbo.postgres.PgObjectStore                                 reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration):int
 cloud.jengu.dbo.postgres.PgObjectStore                                 select(cloud.jengu.dbo.core.api.Criteria):List
 cloud.jengu.dbo.postgres.PgObjectStore                                 transact(List):List
+cloud.jengu.dbo.postgres.PgObjectStore                                 transact(List,cloud.jengu.dbo.core.api.Handling.Authority):List
 cloud.jengu.dbo.postgres.PgObjectStore                                 verifyChain(String,String):cloud.jengu.dbo.postgres.PgObjectStore.ChainCheck
 cloud.jengu.dbo.postgres.PgObjectStore.ChainCheck                      atVersion():Long
 cloud.jengu.dbo.postgres.PgObjectStore.ChainCheck                      equals(Object):boolean
@@ -3652,3 +3656,4 @@ cloud.jengu.dbo.work.WorkScopedStore                                   registrat
 cloud.jengu.dbo.work.WorkScopedStore                                   reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration):int
 cloud.jengu.dbo.work.WorkScopedStore                                   select(cloud.jengu.dbo.core.api.Criteria):List
 cloud.jengu.dbo.work.WorkScopedStore                                   transact(List):List
+cloud.jengu.dbo.work.WorkScopedStore                                   transact(List,cloud.jengu.dbo.core.api.Handling.Authority):List

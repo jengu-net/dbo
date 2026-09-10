@@ -48,6 +48,18 @@ public interface ObjectStore {
                 "this store cannot apply several writes as one unit");
     }
 
+    /**
+     * The unit above, saying who is making it — see
+     * {@link #put(PutRequest, Handling.Authority)}. The default refuses for
+     * the same reason the unit's default does, and for one more: a default
+     * that dropped to the one-argument form would discard the authority on
+     * the way through a wrapper, and the failure would be toward permissive.
+     */
+    default List<PutResult> transact(List<PutRequest> requests, Handling.Authority caller) {
+        throw new UnsupportedOperationException(
+                "this store cannot apply several writes as one unit for a stated caller");
+    }
+
     PutResult putIfAbsent(IdentityRef identity, PutRequest request);
 
     /** Conditional upsert by identity: create if absent, else update (with optional expected version). */

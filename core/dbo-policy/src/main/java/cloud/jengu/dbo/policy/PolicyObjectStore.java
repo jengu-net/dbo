@@ -64,11 +64,17 @@ public final class PolicyObjectStore implements ObjectStore,
 
     @Override
     public java.util.List<PutResult> transact(java.util.List<PutRequest> requests) {
+        return transact(requests, Handling.Authority.TENANT_USERS);
+    }
+
+    @Override
+    public java.util.List<PutResult> transact(java.util.List<PutRequest> requests,
+            Handling.Authority caller) {
         // The same shield per request as a single write, checked BEFORE the
         // unit begins; the audit entries land after it commits, one per
         // write, exactly as they do for single puts.
         requests.forEach(r -> refuseDirectAuditWrites(r.typeName()));
-        java.util.List<PutResult> results = inner.transact(requests);
+        java.util.List<PutResult> results = inner.transact(requests, caller);
         for (int i = 0; i < results.size(); i++) {
             auditWrite(results.get(i).created() ? "create" : "update",
                     requests.get(i).typeName(), results.get(i).id());

@@ -113,18 +113,283 @@ public final class PgObjectStore implements ObjectStore {
 
     @Override
     public List<PutResult> transact(List<PutRequest> requests) {
+        return transact(requests, Handling.Authority.TENANT_USERS);
+    }
+
+    @Override
+    public List<PutResult> transact(List<PutRequest> requests, Handling.Authority caller) {
         // Resolve every registration BEFORE the transaction opens: an unknown
         // type refuses the whole unit with nothing begun, rather than half-way.
         List<TypeRegistration> types = requests.stream()
                 .map(r -> registry.require(r.typeName())).toList();
         return inTx(c -> {
+            if (writableTogether(types, requests)) {
+                return writeObjects(c, types, requests, caller);
+            }
             List<PutResult> out = new ArrayList<>();
             for (int i = 0; i < requests.size(); i++) {
-                out.add(writeObject(c, types.get(i), requests.get(i),
-                        Handling.Authority.TENANT_USERS));
+                out.add(writeObject(c, types.get(i), requests.get(i), caller));
             }
             return out;
         });
+    }
+
+    /**
+     * Whether a unit can be written as a set of batched statements rather
+     * than object by object. Each object's writes are decided in Java once
+     * its current row is known, so what the set form needs is that no object
+     * depends on another's outcome inside the unit: every id stated and
+     * distinct, one domain, and no replayed history — a replay carries its
+     * own version and moment, and is rare enough to take the plain path.
+     */
+    private static boolean writableTogether(List<TypeRegistration> types, List<PutRequest> requests) {
+        if (requests.size() < 2) {
+            return false;
+        }
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        String domain = types.get(0).domain();
+        for (int i = 0; i < requests.size(); i++) {
+            PutRequest request = requests.get(i);
+            if (request.id() == null || !ids.add(request.id()) || request.carriesRecordedHistory()
+                    || !types.get(i).domain().equals(domain)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * The unit as batched statements: one lock-and-read for every row, then
+     * one statement per table for the whole set. A write is nine round trips
+     * on its own, and a tenant taking its version from a face root writes two
+     * thousand definitions before it can serve; nine statements for the set
+     * instead of nine per row is what makes that a moment rather than a
+     * wait. The decisions are the same as {@link #writeObject}'s, made in the
+     * same order, on the same locked rows.
+     */
+    private List<PutResult> writeObjects(Connection c, List<TypeRegistration> types,
+            List<PutRequest> requests, Handling.Authority caller) throws SQLException {
+        String d = types.get(0).domain();
+        int n = requests.size();
+        UUID[] uuids = new UUID[n];
+        for (int i = 0; i < n; i++) {
+            uuids[i] = UUID.fromString(requests.get(i).id());
+        }
+        // lock and read every current row at once: version for the check,
+        // chain for the link
+        java.util.Map<UUID, Object[]> current = new java.util.HashMap<>();
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT id, type, version_id, chain_hash FROM state.%s_data WHERE id = ANY(?) FOR UPDATE"
+                        .formatted(d))) {
+            ps.setArray(1, c.createArrayOf("uuid", uuids));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    current.put((UUID) rs.getObject(1),
+                            new Object[] {rs.getString(2), rs.getLong(3), rs.getBytes(4)});
+                }
+            }
+        }
+        Instant now = Instant.now();
+        long[] versions = new long[n];
+        boolean[] created = new boolean[n];
+        Envelope[] envelopes = new Envelope[n];
+        String[] envelopeJson = new String[n];
+        String[] shapeJson = new String[n];
+        byte[][] chains = new byte[n][];
+        for (int i = 0; i < n; i++) {
+            PutRequest request = requests.get(i);
+            TypeRegistration type = types.get(i);
+            Object[] row = current.get(uuids[i]);
+            Long version = row != null && type.typeName().equals(row[0]) ? (Long) row[1] : null;
+            if (request.expectedVersion() != null) {
+                long actual = version == null ? 0 : version;
+                if (actual != request.expectedVersion()) {
+                    throw new VersionConflictException(type.typeName(), request.id(),
+                            request.expectedVersion(), actual);
+                }
+            }
+            created[i] = version == null;
+            versions[i] = created[i] ? 1 : version + 1;
+            guardWrite(type, request, created[i], caller);
+            envelopes[i] = type.extractor().extract(type.typeName(), request.payload());
+            shapeIntoEnvelope(envelopes[i], request.shape());
+            envelopeJson[i] = JsonbCodec.envelopeJson(envelopes[i].paths());
+            shapeJson[i] = shapeJson(request.shape());
+            chains[i] = VersionChain.link(row == null ? null : (byte[]) row[2], request.payload(),
+                    versions[i], now, false);
+        }
+        try (PreparedStatement ps = c.prepareStatement("""
+                INSERT INTO state.%s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version, chain_hash, shape)
+                VALUES (?, ?, ?, ?, ?::jsonb, ?, false, ?, ?, ?::jsonb)
+                ON CONFLICT (id) DO UPDATE SET
+                  version_id = EXCLUDED.version_id,
+                  last_updated = EXCLUDED.last_updated,
+                  envelope = EXCLUDED.envelope,
+                  payload = EXCLUDED.payload,
+                  deleted = false,
+                  payload_version = EXCLUDED.payload_version,
+                  chain_hash = EXCLUDED.chain_hash,
+                  shape = EXCLUDED.shape""".formatted(d))) {
+            for (int i = 0; i < n; i++) {
+                ps.setObject(1, uuids[i]);
+                ps.setString(2, types.get(i).typeName());
+                ps.setLong(3, versions[i]);
+                ps.setTimestamp(4, Timestamp.from(now));
+                ps.setString(5, envelopeJson[i]);
+                ps.setBytes(6, requests.get(i).payload());
+                ps.setString(7, types.get(i).payloadVersion());
+                ps.setBytes(8, chains[i]);
+                ps.setString(9, shapeJson[i]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+        replaceIdentifiers(c, d, types, uuids, envelopes, created);
+        replaceReferences(c, d, uuids, envelopes, created);
+        try (PreparedStatement ps = c.prepareStatement("""
+                INSERT INTO history.%s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape)
+                VALUES (?, ?, ?, ?, ?, false, ?, ?, ?::jsonb)""".formatted(d))) {
+            for (int i = 0; i < n; i++) {
+                ps.setObject(1, uuids[i]);
+                ps.setLong(2, versions[i]);
+                ps.setString(3, types.get(i).typeName());
+                ps.setTimestamp(4, Timestamp.from(now));
+                ps.setBytes(5, requests.get(i).payload());
+                ps.setString(6, types.get(i).payloadVersion());
+                ps.setBytes(7, chains[i]);
+                ps.setString(8, shapeJson[i]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+        try (PreparedStatement ps = c.prepareStatement("""
+                INSERT INTO state.%s_outbox (object_id, type, version_id, kind)
+                VALUES (?, ?, ?, ?)""".formatted(d))) {
+            for (int i = 0; i < n; i++) {
+                ps.setObject(1, uuids[i]);
+                ps.setString(2, types.get(i).typeName());
+                ps.setLong(3, versions[i]);
+                ps.setString(4, created[i] ? "C" : "U");
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+        List<PutResult> out = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            out.add(new PutResult(requests.get(i).id(), versions[i], created[i]));
+        }
+        return out;
+    }
+
+    /**
+     * The set form of {@link #replaceIdentifiers(Connection, TypeRegistration, UUID, List)}:
+     * the identity claims of the whole set are asked about in one query per
+     * type before any is inserted, and a claim made twice within the set is
+     * a conflict between its two makers — the unique index would say so, and
+     * the answer is owed before the batch reaches it.
+     */
+    private void replaceIdentifiers(Connection c, String d, List<TypeRegistration> types,
+            UUID[] uuids, Envelope[] envelopes, boolean[] created) throws SQLException {
+        int n = uuids.length;
+        UUID[] updated = java.util.stream.IntStream.range(0, n).filter(i -> !created[i])
+                .mapToObj(i -> uuids[i]).toArray(UUID[]::new);
+        if (updated.length > 0) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "DELETE FROM state.%s_identifier WHERE object_id = ANY(?)".formatted(d))) {
+                ps.setArray(1, c.createArrayOf("uuid", updated));
+                ps.executeUpdate();
+            }
+        }
+        // claims by type: (system, value) -> the index of the object making it
+        java.util.Map<String, java.util.Map<Identifier, Integer>> claims = new java.util.HashMap<>();
+        boolean[][] identity = new boolean[n][];
+        for (int i = 0; i < n; i++) {
+            List<Identifier> identifiers = envelopes[i].identifiers();
+            identity[i] = new boolean[identifiers.size()];
+            for (int k = 0; k < identifiers.size(); k++) {
+                Identifier ident = identifiers.get(k);
+                identity[i][k] = registry.isIdentityBearing(types.get(i), ident);
+                if (!identity[i][k]) {
+                    continue;
+                }
+                Integer other = claims.computeIfAbsent(types.get(i).typeName(), t -> new java.util.HashMap<>())
+                        .putIfAbsent(ident, i);
+                if (other != null && other != i) {
+                    throw new IdentityConflictException(uuids[other].toString(), uuids[i].toString(), ident);
+                }
+            }
+        }
+        for (var byType : claims.entrySet()) {
+            TypeRegistration type = types.get(byType.getValue().values().iterator().next());
+            String[] systems = byType.getValue().keySet().stream().map(Identifier::system).toArray(String[]::new);
+            String[] values = byType.getValue().keySet().stream().map(Identifier::value).toArray(String[]::new);
+            try (PreparedStatement ps = c.prepareStatement("""
+                    SELECT system, value, object_id FROM state.%s_identifier
+                    WHERE type = ? AND identity AND system = ANY(?) AND value = ANY(?)""".formatted(d))) {
+                ps.setString(1, byType.getKey());
+                ps.setArray(2, c.createArrayOf("text", systems));
+                ps.setArray(3, c.createArrayOf("text", values));
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        Identifier ident = new Identifier(rs.getString(1), rs.getString(2));
+                        Integer maker = byType.getValue().get(ident);
+                        String holder = rs.getObject(3).toString();
+                        if (maker != null && !holder.equals(uuids[maker].toString())) {
+                            throw identityConflict(c, type, ident, uuids[maker].toString());
+                        }
+                    }
+                }
+            }
+        }
+        try (PreparedStatement ps = c.prepareStatement("""
+                INSERT INTO state.%s_identifier (type, system, value, object_id, identity)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT (type, system, value, object_id) DO NOTHING""".formatted(d))) {
+            for (int i = 0; i < n; i++) {
+                List<Identifier> identifiers = envelopes[i].identifiers();
+                for (int k = 0; k < identifiers.size(); k++) {
+                    ps.setString(1, types.get(i).typeName());
+                    ps.setString(2, identifiers.get(k).system());
+                    ps.setString(3, identifiers.get(k).value());
+                    ps.setObject(4, uuids[i]);
+                    ps.setBoolean(5, identity[i][k]);
+                    ps.addBatch();
+                }
+            }
+            ps.executeBatch();
+        }
+    }
+
+    private void replaceReferences(Connection c, String d, UUID[] uuids, Envelope[] envelopes,
+            boolean[] created) throws SQLException {
+        int n = uuids.length;
+        UUID[] updated = java.util.stream.IntStream.range(0, n).filter(i -> !created[i])
+                .mapToObj(i -> uuids[i]).toArray(UUID[]::new);
+        if (updated.length > 0) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "DELETE FROM state.%s_reference WHERE owner_id = ANY(?)".formatted(d))) {
+                ps.setArray(1, c.createArrayOf("uuid", updated));
+                ps.executeUpdate();
+            }
+        }
+        try (PreparedStatement ps = c.prepareStatement("""
+                INSERT INTO state.%s_reference (owner_id, ref_type, target_type, target_id)
+                VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING""".formatted(d))) {
+            boolean any = false;
+            for (int i = 0; i < n; i++) {
+                for (Envelope.ReferenceEdge edge : envelopes[i].references()) {
+                    ps.setObject(1, uuids[i]);
+                    ps.setString(2, edge.refType());
+                    ps.setString(3, edge.targetType());
+                    ps.setString(4, edge.targetId());
+                    ps.addBatch();
+                    any = true;
+                }
+            }
+            if (any) {
+                ps.executeBatch();
+            }
+        }
     }
 
     @Override

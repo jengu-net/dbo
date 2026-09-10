@@ -204,14 +204,70 @@ public final class ContentSyncEngine {
         if (chunk.items().isEmpty()) {
             return 0;
         }
-        for (FeedItem item : chunk.items()) {
-            if (!dependency.declaredTypes().contains(item.typeName())) {
-                continue; // REQ-DBO-SYNC-DECLARED-ONLY: nothing syncs undeclared
+        List<FeedItem> declared = chunk.items().stream()
+                .filter(item -> dependency.declaredTypes().contains(item.typeName()))
+                .toList(); // REQ-DBO-SYNC-DECLARED-ONLY: nothing syncs undeclared
+        if (!applyTogether(declared)) {
+            for (FeedItem item : declared) {
+                applyItem(item);
             }
-            applyItem(item);
         }
         sourceFeed.ack(consumer(), chunk.nextCursor());
         return chunk.items().size();
+    }
+
+    /**
+     * A chunk of plain upserts as ONE unit: one transaction for the writes,
+     * one statement for their origins. Applying a first sync one item at a
+     * time cost eight statements and two connections per definition, and a
+     * subscriber taking its version from a face root drained two thousand of
+     * them before it could serve — measured at twenty seconds, of which the
+     * parse this was blamed on was under three.
+     *
+     * <p>Only a chunk that needs nothing decided per item qualifies: no
+     * deletions, no conversion. The first sync onto an empty store is exactly
+     * that chunk. An identity conflict is decided per item — a local override
+     * shadows, a verbatim copy is skipped — so a unit that meets one is rolled
+     * back whole, nothing written, and the chunk takes the per-item path that
+     * knows how to decide. Returns false when the chunk did not qualify or
+     * was rolled back.
+     */
+    private boolean applyTogether(List<FeedItem> items) {
+        if (items.isEmpty()) {
+            return true;
+        }
+        for (FeedItem item : items) {
+            if (item.kind() == ChangeKind.DELETED || item.deleted()
+                    || !item.payloadVersion().equals(targetPayloadVersion)) {
+                return false;
+            }
+        }
+        List<byte[]> transported = new ArrayList<>(items.size());
+        List<PutRequest> requests = new ArrayList<>(items.size());
+        for (FeedItem item : items) {
+            byte[] payload = sourceGrain != null && sourceGrain.handles(item.typeName())
+                    ? sourceGrain.forTransport(item.typeName(), item.payload())
+                    : item.payload();
+            byte[] stored = targetGrain != null && targetGrain.handles(item.typeName())
+                    ? targetGrain.storedFormOf(item.typeName(), payload)
+                    : payload;
+            transported.add(payload);
+            requests.add(new PutRequest(item.typeName(), item.objectId(), null, stored)
+                    .stamped(item.shape()));
+        }
+        try {
+            targetStore.transact(requests, cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
+        } catch (IdentityConflictException conflict) {
+            return false;
+        }
+        for (int i = 0; i < items.size(); i++) {
+            FeedItem item = items.get(i);
+            if (targetGrain != null && targetGrain.handles(item.typeName())) {
+                targetGrain.keep(item.typeName(), transported.get(i));
+            }
+        }
+        recordOrigins(items, targetPayloadVersion);
+        return true;
     }
 
     /** Re-attempts parked (shadowed) events — the fallback path after a local override is removed. */
@@ -464,6 +520,10 @@ public final class ContentSyncEngine {
     // ------------------------------------------------------------- plumbing
 
     private void recordOrigin(FeedItem item, String appliedVersion) {
+        recordOrigins(List.of(item), appliedVersion);
+    }
+
+    private void recordOrigins(List<FeedItem> items, String appliedVersion) {
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement("""
                      INSERT INTO state.%s_sync_origin
@@ -473,12 +533,15 @@ public final class ContentSyncEngine {
                        source_version_id = EXCLUDED.source_version_id,
                        applied_payload_version = EXCLUDED.applied_payload_version,
                        synced_at = now()""".formatted(targetDomain))) {
-            ps.setObject(1, UUID.fromString(item.objectId()));
-            ps.setString(2, dependency.name());
-            ps.setString(3, item.typeName());
-            ps.setLong(4, item.versionId());
-            ps.setString(5, appliedVersion);
-            ps.executeUpdate();
+            for (FeedItem item : items) {
+                ps.setObject(1, UUID.fromString(item.objectId()));
+                ps.setString(2, dependency.name());
+                ps.setString(3, item.typeName());
+                ps.setLong(4, item.versionId());
+                ps.setString(5, appliedVersion);
+                ps.addBatch();
+            }
+            ps.executeBatch();
         } catch (SQLException e) {
             throw new IllegalStateException("origin write failed", e);
         }
