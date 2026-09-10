@@ -155,6 +155,13 @@ public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
     private void putCompose(ValueSet vs) {
         List<Compose.Include> includes = new ArrayList<>();
         for (ValueSet.ConceptSetComponent inc : vs.getCompose().getInclude()) {
+            // A value set composed of other value sets names no system, and
+            // the native form holds systems and codes: there is nothing of it
+            // to hold, and the toolchain answers membership for it from the
+            // record's own compose. The R4 core carries twenty-nine of these.
+            if (!inc.hasSystem()) {
+                continue;
+            }
             String isA = null;
             for (ValueSet.ConceptSetFilterComponent f : inc.getFilter()) {
                 if ("concept".equals(f.getProperty())
@@ -168,6 +175,9 @@ public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
         }
         List<Compose.Exclude> excludes = new ArrayList<>();
         for (ValueSet.ConceptSetComponent ex : vs.getCompose().getExclude()) {
+            if (!ex.hasSystem()) {
+                continue;
+            }
             excludes.add(new Compose.Exclude(ex.getSystem(),
                     ex.getConcept().stream().map(ValueSet.ConceptReferenceComponent::getCode).toList()));
         }

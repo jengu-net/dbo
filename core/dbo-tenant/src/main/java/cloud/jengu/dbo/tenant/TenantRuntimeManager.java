@@ -727,7 +727,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // has to mean taking it — a field classified hot and then merely
             // remembered is the no-op the classification exists to prevent.
             if (declared.faceRoot() && !serving.spec().faceRoot()) {
-                FaceRoot.load(declared, serving.engine(), serving.store());
+                FaceRoot.load(declared, serving.engine(), serving.store(), serving.grain());
             }
             // Nothing this tenant is made of changes, so nothing is rebuilt:
             // the runtime carries the declaration it answers about, and it
@@ -1523,7 +1523,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // Filled before it is published: a dependent that wires against
             // an empty root would stream nothing and serve with no definitions
             // to validate against.
-            FaceRoot.load(spec, engine, store);
+            FaceRoot.load(spec, engine, store, runtime.grain());
         }
         // The engine's own vocabularies land after the face's definitions,
         // because publishing one validates it, and validating needs the
@@ -1607,7 +1607,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /** What a tenant must have received from its face before it may serve. */
     static final java.util.Set<String> CRITICAL_ON_THE_FACE =
-            java.util.Set.of("StructureDefinition", "SearchParameter");
+            java.util.Set.of("StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem");
 
     /**
      * A tenant that subscribes to a face is not served until the definitions

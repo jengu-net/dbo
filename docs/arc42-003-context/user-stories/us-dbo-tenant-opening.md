@@ -115,6 +115,7 @@ citations say it is.
 | `REQ-DBO-TEN-DEDICATED-DATABASE-TIER` | A tenant can run on a dedicated database; this tier is the design anchor. (R5) | PROVEN |
 | `REQ-DBO-TEN-CREDENTIAL-BLIND-PROVISIONING` | Tenant databases and buckets are provisioned by an external operator; credentials exist only as platform secrets and are never readable by tenant-manager code. (R5, §4) | PROVEN |
 | `REQ-DBO-TEN-STRUCTURAL-SCOPING` | No code path can read or write data without an explicit tenant context. (R3) | PROVEN |
+| `REQ-DBO-TEN-READY-WHEN-ITS-CRITICAL-DEFINITIONS-ARRIVED` | A tenant on a face is served only once the version's structures, search parameters, value sets and code systems have arrived from it — the four a version is made of — and a face root declares all four or is refused. A chain that carried structures without the code systems their bindings name would serve a tenant that accepts any code at all. | PROVEN |
 | `REQ-DBO-TEN-REGISTRY-SCOPED-ACCESS` | Application code obtains a tenant's data services from the service registry and can use them without ever seeing credentials. (R5, §4) | PROVEN |
 | `REQ-DBO-TEN-A-PARTNER-MANAGES-TENANTS` | A partner is a tenant that manages other tenants, declared when the managed tenant is created. The relation says which tenants the partner may read at all; within each, the partner is a declared audience saying what of each — runs and their journey, never documents, purposes only if the managed tenant opts in. What the partner is shown is assembled outside the store: a store instance is one tenant's store, and no cross-tenant query is grown to serve a support desk. | PROVEN |
 | `REQ-DBO-AUTH-TENANT-SCOPED-ISSUER` | Every tenant is its own OIDC authority with its own issuer URL, discovery document, key set and token endpoint; relying parties trust exactly one tenant's authority, never the store's. A token from any other tenant fails signature verification before any claim is read. | PROVEN |
@@ -139,7 +140,7 @@ citations say it is.
 | `REQ-DBO-AUTH-RECOVERY-IS-AN-OPERATOR-ACT` | A subject who cannot sign in is recovered by provisioning or an operator write, never by a self-service ceremony: recovery needs a channel the authority does not have, and acquiring one would put delivery inside the trust root. | PROVEN |
 | `REQ-DBO-AUTH-DEACTIVATION-RETIRES-CREDENTIALS` | Deactivating a subject retires its credentials — every factor, at once, and never by deletion: history and audit need the record, and a login that vanishes cannot be told from one that never existed. | PROVEN |
 
-Coverage: {PROVEN=32} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=33} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet

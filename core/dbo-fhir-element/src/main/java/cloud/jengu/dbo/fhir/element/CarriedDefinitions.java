@@ -150,23 +150,59 @@ public final class CarriedDefinitions {
             new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
-     * The package on disk, extracted once per process and opened by its
-     * index — so that listing what it carries, or reading one definition
-     * from it, costs neither the whole archive in memory nor a parse of
-     * anything else in it. The archive read into memory was tens of
-     * megabytes per version held for the life of the process, and the only
-     * reason to hold it was that nothing had put it on disk.
+     * The package on disk, extracted once and opened by its index — so that
+     * listing what it carries, or reading one definition from it, costs
+     * neither the whole archive in memory nor a parse of anything else in
+     * it. The archive read into memory was tens of megabytes per version
+     * held for the life of the process, and the only reason to hold it was
+     * that nothing had put it on disk.
+     *
+     * <p>Once, in a place named by the package rather than by the process:
+     * a fresh temporary directory per process was two hundred megabytes a
+     * boot that nothing removed, and a day of test runs filled a disk. A
+     * package is immutable under its id, so an extraction that finished is
+     * reused by every later process; one that did not finish — no marker —
+     * is done again. Processes extracting the same package at once take a
+     * lock on it, so neither reads the other's half.
      */
     static NpmPackage packageOf(Carried carried) {
         return EXTRACTED.computeIfAbsent(carried.id(), id -> {
             try {
-                java.nio.file.Path dir = java.nio.file.Files.createTempDirectory(
-                        "dbo-" + carried.name() + "-");
-                return NpmPackage.extractFromTgz(open(carried), id, dir.toString(), false);
+                java.nio.file.Path dir = extractionRoot().resolve(id.replace('#', '-'));
+                java.nio.file.Files.createDirectories(dir.getParent());
+                try (java.nio.channels.FileChannel lock = java.nio.channels.FileChannel.open(
+                        dir.getParent().resolve(dir.getFileName() + ".lock"),
+                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.WRITE);
+                     java.nio.channels.FileLock held = lock.lock()) {
+                    java.nio.file.Path marker = dir.resolve(".dbo-complete");
+                    if (!java.nio.file.Files.exists(marker)) {
+                        removeTree(dir);
+                        NpmPackage npm = NpmPackage.extractFromTgz(open(carried), id, dir.toString(), false);
+                        java.nio.file.Files.writeString(marker, carried.version());
+                        return npm;
+                    }
+                }
+                return NpmPackage.fromFolderMinimal(dir.toString());
             } catch (IOException e) {
                 throw new UncheckedIOException("cannot extract " + id, e);
             }
         });
+    }
+
+    /** Where extracted packages live: under the process's temporary directory, by package. */
+    static java.nio.file.Path extractionRoot() {
+        return java.nio.file.Path.of(System.getProperty("java.io.tmpdir"), "dbo-definitions");
+    }
+
+    private static void removeTree(java.nio.file.Path dir) throws IOException {
+        if (!java.nio.file.Files.exists(dir)) {
+            return;
+        }
+        try (var walk = java.nio.file.Files.walk(dir)) {
+            for (java.nio.file.Path p : walk.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                java.nio.file.Files.deleteIfExists(p);
+            }
+        }
     }
 
     /**

@@ -135,6 +135,7 @@ public enum DboStories implements Story {
                     DboPromises.TEN_DEDICATED_DATABASE_TIER,
                     DboPromises.TEN_CREDENTIAL_BLIND_PROVISIONING,
                     DboPromises.TEN_STRUCTURAL_SCOPING,
+                    DboPromises.TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED,
                     DboPromises.TEN_REGISTRY_SCOPED_ACCESS,
                     DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
                     // Its own authority, and nothing reachable without it.
@@ -195,6 +196,7 @@ public enum DboStories implements Story {
                     DboPromises.TERM_EVERY_TENANT_ANSWERS,
                     DboPromises.TERM_OPERATIONS_FROM_NATIVE_FORM,
                     DboPromises.TERM_VALIDATION_USES_TENANT_TERMINOLOGY,
+                    DboPromises.TERM_BINDINGS_ANSWERED_FROM_RECORDS,
                     DboPromises.VAL_BINDING_STRENGTH_IS_THE_ANSWER,
                     DboPromises.VAL_UNRESOLVABLE_IS_NOT_INVALID,
                     // Finding it again, with the store saying what it can do.

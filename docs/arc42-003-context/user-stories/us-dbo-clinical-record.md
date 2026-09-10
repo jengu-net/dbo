@@ -128,6 +128,7 @@ citations say it is.
 | `REQ-DBO-TERM-EVERY-TENANT-ANSWERS` | Every served tenant answers `$lookup`, `$expand` and `$validate-code` from its own store's native form, whichever FHIR version it speaks; no tenant is a second-class reader. A terminology write reaches that form rather than being stored whole — a resource that is present and answers nothing is worse than one that is absent. | PROVEN |
 | `REQ-DBO-TERM-OPERATIONS-FROM-NATIVE-FORM` | `$expand`, `$lookup` and `validate-code` are served from the normalized form at tenant-local speed. | PROVEN |
 | `REQ-DBO-TERM-VALIDATION-USES-TENANT-TERMINOLOGY` | Validation resolves coded values against the tenant's own terminology where the carried definitions are silent: a code from a system the tenant holds either exists in it or the write is refused, value-set membership respects the binding's declared strength, and a system nobody holds is reported as unresolvable — a coverage fact, never an invalidity. | PROVEN |
+| `REQ-DBO-TERM-BINDINGS-ANSWERED-FROM-RECORDS` | A binding's value set and code system are answered from the tenant's records — the version's own, published by its root and taken apart into the native form on arrival, and the tenant's own — never from a carried package. A code outside a required binding is refused by name; a code from a system the tenant does not hold is unresolvable, never invalid. | PROVEN |
 | `REQ-DBO-VAL-BINDING-STRENGTH-IS-THE-ANSWER` | A coded value is checked against the terminology the store holds, and the answer follows the binding's strength: required violated is a refusal, weaker bindings are advice a caller is given rather than refused for, and everything the face had to say reaches the outcome rather than only what would refuse. | PROVEN |
 | `REQ-DBO-VAL-UNRESOLVABLE-IS-NOT-INVALID` | A code from a system the store does not hold is reported as unresolvable, never as invalid: one says this store's content is incomplete and the other says the caller's data is wrong, and they are fixed by different people. | PROVEN |
 | `REQ-DBO-SRCH-TIER1-PARITY` | Every search feature a production healthcare platform actually issues works identically ([inventory](../../evidence/search-usage-inventory.md)). | PROVEN |
@@ -153,7 +154,7 @@ citations say it is.
 | `REQ-DBO-EVT-DURABLE-DELIVERY` | Subscription delivery is durable, tenant-scoped and replayable, with retries, backoff and dead-lettering. (R8, §9) | PROVEN |
 | `REQ-DBO-EVT-IN-PROCESS-SURFACE` | Co-located consumers get the same topics with identical semantics through the in-process/OSGi surface. (R8) | PROVEN |
 
-Coverage: {PROVEN=49} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=50} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet

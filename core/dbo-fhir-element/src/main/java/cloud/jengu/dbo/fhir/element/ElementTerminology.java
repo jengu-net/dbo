@@ -190,6 +190,13 @@ final class ElementTerminology implements FhirTerminology {
         List<Compose.Exclude> excludes = new ArrayList<>();
         if (compose != null) {
             for (Element include : children(compose, "include")) {
+                // A value set composed of other value sets names no system,
+                // and the native form holds systems and codes: there is
+                // nothing of it to hold, and the toolchain answers membership
+                // for it from the record's own compose.
+                if (include.getNamedChildValue("system") == null) {
+                    continue;
+                }
                 String isA = null;
                 for (Element filter : children(include, "filter")) {
                     if ("concept".equals(filter.getNamedChildValue("property"))
@@ -201,6 +208,9 @@ final class ElementTerminology implements FhirTerminology {
                         codesOf(include), isA));
             }
             for (Element exclude : children(compose, "exclude")) {
+                if (exclude.getNamedChildValue("system") == null) {
+                    continue;
+                }
                 excludes.add(new Compose.Exclude(exclude.getNamedChildValue("system"),
                         codesOf(exclude)));
             }

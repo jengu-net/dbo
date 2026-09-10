@@ -2302,11 +2302,13 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_DECLA
 cloud.jengu.dbo.promises.DboPromises                                   TEN_DEDICATED_DATABASE_TIER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_ERASURE_BY_DROP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_FAIRNESS_QUOTAS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_REGISTRY_SCOPED_ACCESS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_SERVED_FROM_WHAT_WAS_APPLIED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_SHARED_TIER_ISOLATION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_STRUCTURAL_SCOPING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TERM_BINDINGS_ANSWERED_FROM_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TERM_BULK_LOAD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TERM_EVERY_TENANT_ANSWERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TERM_NATIVE_FORM:cloud.jengu.dbo.promises.DboPromises

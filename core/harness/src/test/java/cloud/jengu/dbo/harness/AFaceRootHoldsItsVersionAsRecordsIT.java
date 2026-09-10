@@ -127,7 +127,9 @@ class AFaceRootHoldsItsVersionAsRecordsIT {
         String types = """
                 "types":[
                   {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"SearchParameter","identity":"canonical","handling":"operational"}]""";
+                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"}]""";
         Files.writeString(dir.resolve(later + ".json"), """
                 {"code":"%s","face":"r4","audit":{"level":"none"},%s}""".formatted(later, types));
         UntilServed.scan(manager, later);

@@ -63,16 +63,21 @@ class ATenantSubscribesToItsVersionIT {
                 {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
                  "types":[
                   {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"SearchParameter","identity":"canonical","handling":"operational"}]}"""
+                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
                 .formatted(ROOT));
         Files.writeString(dir.resolve(SUBSCRIBER + ".json"), """
                 {"code":"%s","face":"r4","audit":{"level":"none"},
                  "dependencies":[{"name":"%s","face":true,
-                                  "types":["StructureDefinition","SearchParameter"]}],
+                                  "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]}],
                  "types":[
                   {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
                   {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
-                  {"name":"Observation","identity":"internal","handling":"operational"}]}"""
+                  {"name":"ValueSet","identity":"canonical","handling":"replicated"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"replicated"},
+                  {"name":"Observation","identity":"internal","handling":"operational"},
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
                 .formatted(SUBSCRIBER, ROOT));
         contextBuildsBefore = cloud.jengu.dbo.fhir.element.ElementVersion.contextBuilds();
         UntilServed.scan(manager, ROOT);
@@ -146,6 +151,65 @@ class ATenantSubscribesToItsVersionIT {
                 "the subscriber validates against nothing: " + refused.body());
         assertEquals(contextBuildsBefore, cloud.jengu.dbo.fhir.element.ElementVersion.contextBuilds(),
                 "a tenant on a face built the carried toolchain context instead of reading its records");
+    }
+
+    @Test
+    @DisplayName("a code outside a required binding is refused by name, answered from the "
+            + "code system the subscriber took from its root — and a code in it is accepted")
+    @Proving(DboPromises.TERM_BINDINGS_ANSWERED_FROM_RECORDS)
+    void aBindingIsAnsweredFromTheRecordsTheSubscriberHolds() throws Exception {
+        manager.authority(SUBSCRIBER).ensureClient("writer", "writer-secret",
+                List.of("system/*.read", "system/*.write"));
+        String token = http.send(HttpRequest.newBuilder(URI.create(base(SUBSCRIBER) + "/oidc/token"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "grant_type=client_credentials&client_id=writer&client_secret=writer-secret"))
+                        .build(), HttpResponse.BodyHandlers.ofString())
+                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+        HttpResponse<String> unicorn = http.send(HttpRequest.newBuilder(
+                        URI.create(base(SUBSCRIBER) + "/fhir/Patient"))
+                        .header("Authorization", "Bearer " + token)
+                        .header("Content-Type", "application/fhir+json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"resourceType\":\"Patient\",\"gender\":\"unicorn\"}"))
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(422, unicorn.statusCode(),
+                "a gender outside the required binding was accepted: " + unicorn.body());
+        assertTrue(unicorn.body().contains("unicorn"),
+                "the refusal does not name the code: " + unicorn.body());
+        HttpResponse<String> female = http.send(HttpRequest.newBuilder(
+                        URI.create(base(SUBSCRIBER) + "/fhir/Patient"))
+                        .header("Authorization", "Bearer " + token)
+                        .header("Content-Type", "application/fhir+json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"resourceType\":\"Patient\",\"gender\":\"female\"}"))
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(201, female.statusCode(), female.body());
+        assertEquals(contextBuildsBefore, cloud.jengu.dbo.fhir.element.ElementVersion.contextBuilds(),
+                "the binding was answered by building the carried context");
+    }
+
+    @Test
+    @DisplayName("a face chain that does not carry the code systems is refused before anything "
+            + "is drained, naming what it lacks")
+    @Proving(DboPromises.TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED)
+    void aChainWithoutTheCodeSystemsIsRefusedByName() throws Exception {
+        Files.writeString(dir.resolve("poolik.json"), """
+                {"code":"poolik","face":"r4","audit":{"level":"none"},
+                 "dependencies":[{"name":"%s","face":true,
+                                  "types":["StructureDefinition","SearchParameter","ValueSet"]}],
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
+                  {"name":"ValueSet","identity":"canonical","handling":"replicated"}]}"""
+                .formatted(ROOT));
+        manager.scanOnce();
+        String trouble = manager.troubles().get("poolik");
+        assertTrue(trouble != null && trouble.contains("CodeSystem"),
+                "a chain without code systems was accepted, or refused for another reason: "
+                        + manager.troubles());
     }
 
     @Test

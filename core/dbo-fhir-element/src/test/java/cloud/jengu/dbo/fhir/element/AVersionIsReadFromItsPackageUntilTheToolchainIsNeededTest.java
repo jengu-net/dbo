@@ -38,6 +38,24 @@ class AVersionIsReadFromItsPackageUntilTheToolchainIsNeededTest {
     }
 
     @Test
+    @DisplayName("a package is extracted once, into a place named by the package, and reused")
+    void aPackageIsExtractedOnceAndReused() throws Exception {
+        CarriedDefinitions.Carried core = CarriedDefinitions.definitionPackages("r4").get(0);
+        CarriedDefinitions.packageOf(core);
+        java.nio.file.Path dir = CarriedDefinitions.extractionRoot().resolve(core.id().replace('#', '-'));
+        assertTrue(java.nio.file.Files.exists(dir.resolve(".dbo-complete")),
+                "no completion marker at " + dir + ": a later process would extract again, or worse, "
+                        + "read a half-written one");
+        assertTrue(java.nio.file.Files.exists(dir.resolve("package").resolve(".index.json")),
+                "the extracted package is not indexed");
+        // and no per-process directory beside it
+        try (var siblings = java.nio.file.Files.list(java.nio.file.Path.of(System.getProperty("java.io.tmpdir")))) {
+            assertTrue(siblings.noneMatch(p -> p.getFileName().toString().startsWith("dbo-hl7.")),
+                    "a process-named extraction directory exists — the kind that filled a disk");
+        }
+    }
+
+    @Test
     @DisplayName("what the package says a type is searched by is what the loaded context says")
     void theParametersReadFromThePackageAreTheContexts() {
         for (String face : CarriedDefinitions.versions()) {

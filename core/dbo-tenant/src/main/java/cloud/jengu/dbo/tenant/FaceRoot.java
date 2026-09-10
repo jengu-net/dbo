@@ -53,13 +53,20 @@ final class FaceRoot {
      *
      * @return what was loaded, by type; empty when the root was already full
      */
-    static Map<String, Integer> load(TenantSpec spec, ObjectStore engine, FhirStoreFacade store) {
+    static Map<String, Integer> load(TenantSpec spec, ObjectStore engine, FhirStoreFacade store,
+            cloud.jengu.dbo.core.face.GrainCodec grain) {
         Set<String> declared = new LinkedHashSet<>();
         for (FhirTypeConfig type : spec.types()) {
             declared.add(type.typeName());
         }
-        if (alreadyHoldsTheVersion(engine)) {
-            return Map.of();
+        // A root holds the version, and a version is the four: a root that
+        // declared structures without the code systems their bindings name
+        // would publish a chain whose subscribers accept `gender: unicorn`.
+        for (String critical : TenantRuntimeManager.CRITICAL_ON_THE_FACE) {
+            if (!declared.contains(critical)) {
+                throw new IllegalStateException(spec.code() + " is declared a face root and does "
+                        + "not declare " + critical + ", which the version it holds is made of");
+            }
         }
         List<FaceRootPackages.Definition> definitions =
                 FaceRootPackages.definitionsFor(spec.face(), declared);
@@ -68,9 +75,51 @@ final class FaceRoot {
         // "already held" and came up over the refusal — the check had been
         // failing on every boot and nobody had seen it.
         selfConsistent(definitions);
+        // What is here already is not written again, definition by
+        // definition: a load is resumed where it stopped rather than skipped
+        // because something of it is there. A marker — the version's root
+        // definition — said "held" after any attempt that got past the
+        // structures, and a root whose terminology had failed to land came up
+        // on the next boot serving a version it held half of.
+        Map<String, Set<String>> held = new java.util.HashMap<>();
+        for (String type : declared) {
+            Set<String> urls = new HashSet<>();
+            try {
+                for (cloud.jengu.dbo.core.api.Held one : engine.inventory(type, List.of())) {
+                    one.identifiers().stream()
+                            .filter(i -> cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM.equals(i.system()))
+                            .forEach(i -> urls.add(i.value()));
+                }
+            } catch (RuntimeException notRegistered) {
+                // a declared type the engine does not serve is refused elsewhere
+            }
+            held.put(type, urls);
+        }
+        definitions = definitions.stream()
+                .filter(d -> d.url() == null || !held.getOrDefault(d.typeName(), Set.of()).contains(d.url()))
+                .toList();
+        if (definitions.isEmpty()) {
+            return Map.of();
+        }
         Map<String, Integer> loaded = new TreeMap<>();
-        List<PutRequest> batch = new ArrayList<>(BATCH);
+        // Everything but the code systems first, whole — a value set's record
+        // is its stored form — then the view is rebuilt from them, and only
+        // then the code systems, taken apart by the face's own grain, which
+        // reads one through the view. In that order the view is built from
+        // the records just written and never from the carried packages; the
+        // base the version's tenants share is built with the value sets in
+        // it, so a binding can be resolved to the value set it names; and a
+        // root's code systems land where its bindings are answered from: the
+        // concepts natively, the shell as a record. The value sets' composes
+        // are kept natively after the view exists, for the same reason.
+        List<FaceRootPackages.Definition> shapes = new ArrayList<>();
+        List<FaceRootPackages.Definition> codeSystems = new ArrayList<>();
         for (FaceRootPackages.Definition definition : definitions) {
+            ("CodeSystem".equals(definition.typeName()) && grain != null ? codeSystems : shapes)
+                    .add(definition);
+        }
+        List<PutRequest> batch = new ArrayList<>(BATCH);
+        for (FaceRootPackages.Definition definition : shapes) {
             batch.add(PutRequest.create(definition.typeName(), definition.document()));
             loaded.merge(definition.typeName(), 1, Integer::sum);
             if (batch.size() == BATCH) {
@@ -80,32 +129,35 @@ final class FaceRoot {
         }
         if (!batch.isEmpty()) {
             engine.transact(batch);
+            batch.clear();
         }
-        // The view was built before the records existed; it is rebuilt once,
-        // not once per definition, which is why the batch went past the
-        // facade.
         store.shapesChanged();
+        if (grain != null) {
+            for (FaceRootPackages.Definition definition : shapes) {
+                if (grain.handles(definition.typeName())) {
+                    grain.keep(definition.typeName(), definition.document());
+                }
+            }
+        }
+        List<FaceRootPackages.Definition> kept = new ArrayList<>(BATCH);
+        for (FaceRootPackages.Definition definition : codeSystems) {
+            batch.add(PutRequest.create(definition.typeName(),
+                    grain.storedFormOf(definition.typeName(), definition.document())));
+            kept.add(definition);
+            loaded.merge(definition.typeName(), 1, Integer::sum);
+            if (batch.size() == BATCH) {
+                engine.transact(batch);
+                kept.forEach(d -> grain.keep(d.typeName(), d.document()));
+                batch.clear();
+                kept.clear();
+            }
+        }
+        if (!batch.isEmpty()) {
+            engine.transact(batch);
+            kept.forEach(d -> grain.keep(d.typeName(), d.document()));
+        }
         LOG.info("face root {} holds {} as records: {}", spec.code(), spec.face(), loaded);
         return loaded;
-    }
-
-    /**
-     * Whether the version is here already — asked of its root definition by
-     * canonical url, not of the type. A tenant holds definitions of its own
-     * before any package is read: the face writes what its vocabulary needs at
-     * bring-up. Asking "is there any StructureDefinition" answered yes to those
-     * and the packages were never loaded, silently, which is the shape of a
-     * marker that guards the wrong thing.
-     */
-    private static boolean alreadyHoldsTheVersion(ObjectStore engine) {
-        try {
-            return !engine.getByIdentifier("StructureDefinition", List.of(
-                    new cloud.jengu.dbo.core.api.Identifier(
-                            cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM,
-                            "http://hl7.org/fhir/StructureDefinition/Resource"))).isEmpty();
-        } catch (RuntimeException undeclared) {
-            return false;
-        }
     }
 
     /**

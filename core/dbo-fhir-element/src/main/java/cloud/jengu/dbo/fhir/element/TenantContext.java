@@ -239,7 +239,10 @@ final class TenantContext extends FaceBase.Rows {
      */
     private ValidationResult fromStore(Coding coding, ValueSet vs) {
         String system = coding.getSystem();
-        if (system == null || fetchCodeSystem(system) != null) {
+        if (system == null) {
+            return fromStoreByValueSet(coding.getCode(), vs);
+        }
+        if (fetchCodeSystem(system) != null) {
             return null;
         }
         var membership = terms.membership(system, coding.getCode());
@@ -263,6 +266,47 @@ final class TenantContext extends FaceBase.Rows {
                             + (vs == null ? "?" : vs.getUrl()) + "'", null);
             case UNANSWERABLE -> null;
         };
+    }
+
+    /**
+     * A bare code — a primitive {@code code} element, which the toolchain
+     * offers with no system and expects the value set to name one. The
+     * systems are the value set's own includes; each the tenant holds is
+     * asked, and the compose decides. A value set none of whose systems the
+     * tenant holds is not this class's question — unresolvable, never
+     * invalid. Left to the toolchain, a bare code against a value set whose
+     * system is in nobody's context was accepted whatever it said, which is
+     * the write a store exists to refuse.
+     */
+    private ValidationResult fromStoreByValueSet(String code, ValueSet vs) {
+        if (code == null || vs == null || !vs.hasCompose()) {
+            return null;
+        }
+        boolean anyHeld = false;
+        for (ValueSet.ConceptSetComponent include : vs.getCompose().getInclude()) {
+            if (!include.hasSystem() || fetchCodeSystem(include.getSystem()) != null) {
+                continue;
+            }
+            var membership = terms.membership(include.getSystem(), code);
+            if (membership.isEmpty()) {
+                continue;
+            }
+            anyHeld = true;
+            if (membership.get().present()
+                    && inValueSet(vs, include.getSystem(), code) == VsAnswer.IN) {
+                return new ValidationResult(include.getSystem(), null,
+                        new CodeSystem.ConceptDefinitionComponent()
+                                .setCode(code)
+                                .setDisplay(membership.get().display()),
+                        membership.get().display());
+            }
+        }
+        if (!anyHeld) {
+            return null;
+        }
+        return new ValidationResult(IssueSeverity.ERROR,
+                "The code '" + code + "' is not in the value set '" + vs.getUrl()
+                        + "' (answered from this tenant's terminology)", null);
     }
 
     private enum VsAnswer { IN, OUT, UNANSWERABLE }

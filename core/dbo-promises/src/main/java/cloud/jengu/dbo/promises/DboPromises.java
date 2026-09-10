@@ -753,6 +753,12 @@ public enum DboPromises implements Promise {
             + "managing tenant records nothing and serves exactly as before: recording what "
             + "is declared is not a condition of honouring it."),
 
+    TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED(
+            "A tenant on a face is served only once the version's structures, search "
+            + "parameters, value sets and code systems have arrived from it — the four a "
+            + "version is made of — and a face root declares all four or is refused. A "
+            + "chain that carried structures without the code systems their bindings name "
+            + "would serve a tenant that accepts any code at all."),
     TEN_STRUCTURAL_SCOPING(
             "No code path can read or write data without an explicit tenant context. "
             + "(R3)"),
@@ -1257,6 +1263,12 @@ public enum DboPromises implements Promise {
     TERM_OPERATIONS_FROM_NATIVE_FORM(
             "`$expand`, `$lookup` and `validate-code` are served from the normalized "
             + "form at tenant-local speed."),
+    TERM_BINDINGS_ANSWERED_FROM_RECORDS(
+            "A binding's value set and code system are answered from the tenant's records "
+            + "— the version's own, published by its root and taken apart into the native "
+            + "form on arrival, and the tenant's own — never from a carried package. A code "
+            + "outside a required binding is refused by name; a code from a system the tenant "
+            + "does not hold is unresolvable, never invalid."),
     TERM_VALIDATION_USES_TENANT_TERMINOLOGY(
             "Validation resolves coded values against the tenant's own terminology "
             + "where the carried definitions are silent: a code from a system the tenant "
