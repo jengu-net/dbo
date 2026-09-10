@@ -1,10 +1,10 @@
 ---
-title: This is not a FHIR store
+title: The engine has no domain in it
 eyebrow: Why DBO
 standfirst: >-
-  It presents as one well enough that the distinction is easy to miss. Missing
-  it is expensive: FHIR ends up in the engine, and the next domain needs a fork
-  rather than a face.
+  It presents as a FHIR server well enough that the distinction is easy to
+  miss. Missing it is expensive: the domain ends up in the engine, and the
+  next one needs a fork rather than a face.
 template: essay.html
 ---
 
