@@ -2301,6 +2301,7 @@ cloud.jengu.dbo.promises.DboPromises                                   VAL_UNRES
 cloud.jengu.dbo.promises.DboPromises                                   VER_BALLOT_RECORDED_PER_VERSION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_BALLOT_SERVED_AS_AUTHORED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_CONCURRENT_VERSIONS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_DEFINITIONS_TRAVEL_WITH_THE_FACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_ONE_READ_PER_REQUEST:cloud.jengu.dbo.promises.DboPromises

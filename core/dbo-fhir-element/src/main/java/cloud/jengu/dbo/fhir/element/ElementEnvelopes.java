@@ -166,7 +166,7 @@ final class ElementEnvelopes {
      * finds nothing — which is worse than an error, because a count of zero
      * looks like an answer.
      */
-    private static void tokenForms(Envelope envelope, String path, String system, String code) {
+    static void tokenForms(Envelope envelope, String path, String system, String code) {
         if (code == null) {
             return;
         }
@@ -269,7 +269,7 @@ final class ElementEnvelopes {
     }
 
     /** A FHIR date, dateTime or instant, whichever precision it was written at. */
-    private static Instant instant(String value) {
+    static Instant instant(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
@@ -298,7 +298,7 @@ final class ElementEnvelopes {
     }
 
     /** Envelope path names: parameter codes with '-' folded to '_' (engine path charset). */
-    private static String pathName(String code) {
+    static String pathName(String code) {
         return code.replace('-', '_');
     }
 }

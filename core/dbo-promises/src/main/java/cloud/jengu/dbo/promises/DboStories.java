@@ -309,6 +309,7 @@ public enum DboStories implements Story {
                     DboPromises.VER_CONCURRENT_VERSIONS,
                     DboPromises.VER_TRANSITION_BY_CONVERTERS,
                     DboPromises.VER_DEFINITIONS_TRAVEL_WITH_THE_FACE,
+                    DboPromises.VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN,
                     DboPromises.VER_BALLOT_RECORDED_PER_VERSION,
                     DboPromises.VER_BALLOT_SERVED_AS_AUTHORED,
                     DboPromises.CORE_UPGRADE_ON_READ,

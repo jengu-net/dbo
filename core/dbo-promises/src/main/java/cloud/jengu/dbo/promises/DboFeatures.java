@@ -174,7 +174,8 @@ public enum DboFeatures implements Feature {
             List.of(DboPromises.ZONE_DECLARATIONS_AS_RECORDS, DboPromises.ZONE_BROKER_CHOICE, DboPromises.ZONE_SESSIONS_ACCUMULATE, DboPromises.ZONE_SUBJECT_DOMAINS)),
 
     VER_MIGRATED("version plurality across personalities — migrated whole from hand-written prose; each promise below carries its own proof status.",
-            List.of(DboPromises.VER_VERSION_AGNOSTIC_CORE, DboPromises.VER_CONCURRENT_VERSIONS, DboPromises.VER_PERSONALITY_OWNS_MEANING, DboPromises.VER_SPECIFIED_VALIDATION, DboPromises.VER_VALIDATION_WITHOUT_WRITING, DboPromises.VER_ONE_READ_PER_REQUEST, DboPromises.VER_BALLOT_RECORDED_PER_VERSION, DboPromises.VER_DEFINITIONS_TRAVEL_WITH_THE_FACE, DboPromises.VER_BALLOT_SERVED_AS_AUTHORED, DboPromises.VER_TRANSITION_BY_CONVERTERS)),
+            List.of(DboPromises.VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN,
+                    DboPromises.VER_VERSION_AGNOSTIC_CORE, DboPromises.VER_CONCURRENT_VERSIONS, DboPromises.VER_PERSONALITY_OWNS_MEANING, DboPromises.VER_SPECIFIED_VALIDATION, DboPromises.VER_VALIDATION_WITHOUT_WRITING, DboPromises.VER_ONE_READ_PER_REQUEST, DboPromises.VER_BALLOT_RECORDED_PER_VERSION, DboPromises.VER_DEFINITIONS_TRAVEL_WITH_THE_FACE, DboPromises.VER_BALLOT_SERVED_AS_AUTHORED, DboPromises.VER_TRANSITION_BY_CONVERTERS)),
 
     SRCH_MIGRATED("search — migrated whole from hand-written prose; each promise below carries its own proof status.",
             List.of(DboPromises.SRCH_TIER1_PARITY, DboPromises.SRCH_STRICT_BY_DEFAULT, DboPromises.SRCH_HONEST_CAPABILITY, DboPromises.SRCH_TYPED_ORDERING, DboPromises.SRCH_DECLARED_INDEXES, DboPromises.SRCH_CUSTOM_PARAMETERS)),

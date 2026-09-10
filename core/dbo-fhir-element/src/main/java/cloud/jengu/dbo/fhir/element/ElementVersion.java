@@ -197,6 +197,18 @@ public final class ElementVersion {
      */
     public EnvelopeExtractor extractor(String typeName, boolean canonical,
             List<SearchParameter> alsoAuthoredHere) {
+        if (alsoAuthoredHere.isEmpty() && DefinitionParameters.isDefinitionType(typeName)) {
+            // A definition is indexed from its JSON, because the toolchain
+            // needs the version's definitions to parse one and a definition
+            // arriving is what a tenant does not have yet. Same expressions,
+            // same envelope — held identical by test over every definition
+            // the face carries. A tenant that authored parameters of its own
+            // over these types takes the toolchain path, whose expressions
+            // are unbounded.
+            List<DefinitionParameters.Parameter> parameters =
+                    DefinitionParameters.forType(code, typeName);
+            return (type, payload) -> DefinitionEnvelopes.extract(parameters, type, payload, canonical);
+        }
         List<SearchParameter> parameters = union(parametersFor(typeName), alsoAuthoredHere);
         return (type, payload) -> extract(parameters, payload, canonical);
     }

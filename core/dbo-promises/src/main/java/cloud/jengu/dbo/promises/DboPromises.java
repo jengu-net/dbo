@@ -999,6 +999,14 @@ public enum DboPromises implements Promise {
             + "root holds is findable by canonical url like any other record. It exists so "
             + "that a version can be subscribed to like a zone rather than loaded into a "
             + "node."),
+    VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN(
+            "A definition — structure, search parameter, value set, code system, map — is "
+            + "indexed from its JSON along the version's own search parameters, with no "
+            + "worker context, and the index is the one the toolchain would have written: "
+            + "identical over every definition every carried face publishes. It exists "
+            + "because the toolchain needs the version's definitions to parse one, and a "
+            + "definition arriving at a tenant is exactly what the tenant does not hold "
+            + "yet."),
     VER_VERSION_AGNOSTIC_CORE(
             "The engine has no knowledge of any FHIR version; all version meaning lives "
             + "in personality bundles. (R6, §1)"),

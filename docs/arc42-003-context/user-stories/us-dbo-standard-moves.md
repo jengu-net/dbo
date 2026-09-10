@@ -89,12 +89,13 @@ citations say it is.
 | `REQ-DBO-VER-CONCURRENT-VERSIONS` | Tenants (and domains within a tenant) on different FHIR versions run concurrently in one container. (R6) | PROVEN |
 | `REQ-DBO-VER-TRANSITION-BY-CONVERTERS` | Moving a tenant between FHIR versions is converters plus reindex, not a data migration ceremony. | PROVEN |
 | `REQ-DBO-VER-DEFINITIONS-TRAVEL-WITH-THE-FACE` | A face brings the definitions it validates and extracts against. Bringing a tenant up fetches nothing over the network and needs no writable cache outside the store's own state. | PROVEN |
+| `REQ-DBO-VER-DEFINITIONS-INDEXED-WITHOUT-THE-TOOLCHAIN` | A definition — structure, search parameter, value set, code system, map — is indexed from its JSON along the version's own search parameters, with no worker context, and the index is the one the toolchain would have written: identical over every definition every carried face publishes. It exists because the toolchain needs the version's definitions to parse one, and a definition arriving at a tenant is exactly what the tenant does not hold yet. | PROVEN |
 | `REQ-DBO-VER-BALLOT-RECORDED-PER-VERSION` | A stored version records the exact version it was authored under — a ballot by its full spelling, never the release it anticipates — so a later version has something to convert from and a reader is never told a guess. | PROVEN |
 | `REQ-DBO-VER-BALLOT-SERVED-AS-AUTHORED` | A version still at ballot promises no normalized truth form and no conversion to or from another version: what an author wrote is what a reader receives. Normalising under a ballot's understanding would bake it into bytes that are never rewritten, and the next ballot moving an element would lose what it moved. | PROVEN |
 | `REQ-DBO-CORE-UPGRADE-ON-READ` | Old payload versions are upgraded lazily by registered converters; a schema-version transition never requires a big-bang rewrite. | PROVEN |
 | `REQ-DBO-CORE-IDENTITY-SURVIVES-CONVERSION` | Conversion between FHIR versions or object shapes never changes identity; canonical urls and identity-bearing identifiers are preserved bit-exact and verified after every conversion. | PROVEN |
 
-Coverage: {PROVEN=22} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=23} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet
