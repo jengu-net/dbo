@@ -17,7 +17,20 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
         String zone, String broker, List<String> acceptedBrokers,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
-        String managedBy) {
+        String managedBy, boolean faceRoot) {
+
+    /**
+     * Without a face root: what every tenant was before a version's
+     * definitions could be held as records.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, false);
+    }
 
     /**
      * Without a partner: the shape every tenant had before one tenant could
@@ -260,7 +273,10 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 cloud.jengu.dbo.policy.TenantPolicies.parse(root),
                 Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),
                 Json.strings(root, "acceptedBrokers"), dependencies, scim,
-                Json.strings(root, "mandatorySteps"), Json.strOpt(root, "managedBy"));
+                Json.strings(root, "mandatorySteps"), Json.strOpt(root, "managedBy"),
+                // A face root holds its version's definitions as records —
+                // the one place the carried packages are ever read.
+                Json.bool(root, "faceRoot"));
     }
 
     /**

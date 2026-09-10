@@ -723,6 +723,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return;
         }
         if (change.kind() == SpecChange.Kind.HOT) {
+            // A hot change is one the tenant takes where it stands, and that
+            // has to mean taking it — a field classified hot and then merely
+            // remembered is the no-op the classification exists to prevent.
+            if (declared.faceRoot() && !serving.spec().faceRoot()) {
+                FaceRoot.load(declared, serving.engine(), serving.store());
+            }
             // Nothing this tenant is made of changes, so nothing is rebuilt:
             // the runtime carries the declaration it answers about, and it
             // answers about the new one from here.
@@ -1516,6 +1522,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
             replicationContexts.put(spec.code(), replicationPath);
         }
         wireDependencies(spec, runtime, db.dataSource());
+        if (spec.faceRoot()) {
+            // Filled before it is published: a dependent that wires against
+            // an empty root would stream nothing and serve with no definitions
+            // to validate against.
+            FaceRoot.load(spec, engine, store);
+        }
         // Published only now: wired, mounted, and safe to be somebody's
         // upstream.
         runtimes.put(spec.code(), runtime);

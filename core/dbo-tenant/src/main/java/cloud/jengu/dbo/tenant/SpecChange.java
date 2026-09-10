@@ -121,6 +121,14 @@ public record SpecChange(Kind kind, List<String> fields) {
         if (!Objects.equals(serving.mandatorySteps(), declared.mandatorySteps())) {
             hot.add("mandatorySteps");
         }
+        if (serving.faceRoot() != declared.faceRoot()) {
+            // Hot both ways. Becoming a root loads the version into a tenant
+            // that keeps serving — an arrival like any profile's, rebuilding
+            // the view once. Ceasing to be one changes nothing it holds:
+            // the records stay, and what they were for is not the store's to
+            // guess.
+            hot.add("faceRoot");
+        }
         if (!cold.isEmpty()) {
             return new SpecChange(Kind.COLD, join(cold, rewire, hot));
         }

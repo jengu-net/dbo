@@ -990,6 +990,15 @@ public enum DboPromises implements Promise {
 
     // ── VER — migrated from hand-written prose (2026-08-27) ──
 
+    VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS(
+            "A face root is a tenant that holds its version's definitions as records — "
+            + "structures, search parameters, value sets, code systems, maps — loaded once "
+            + "from the carried packages, the only place those packages are read. A "
+            + "definition is held once however many times the root boots, the packages are "
+            + "refused if a definition is built on a base they do not carry, and what the "
+            + "root holds is findable by canonical url like any other record. It exists so "
+            + "that a version can be subscribed to like a zone rather than loaded into a "
+            + "node."),
     VER_VERSION_AGNOSTIC_CORE(
             "The engine has no knowledge of any FHIR version; all version meaning lives "
             + "in personality bundles. (R6, §1)"),

@@ -1365,6 +1365,16 @@ cloud.jengu.dbo.fhir.element.ElementVersion                            indexesFo
 cloud.jengu.dbo.fhir.element.ElementVersion                            of(String):cloud.jengu.dbo.fhir.element.ElementVersion
 cloud.jengu.dbo.fhir.element.ElementVersion                            payloadVersion():String
 cloud.jengu.dbo.fhir.element.ElementVersion                            whyNotEvaluable(String):Optional
+cloud.jengu.dbo.fhir.element.FaceRootPackages                          class
+cloud.jengu.dbo.fhir.element.FaceRootPackages                          definitionsFor(String,Set):List
+cloud.jengu.dbo.fhir.element.FaceRootPackages.Definition               document():byte[]
+cloud.jengu.dbo.fhir.element.FaceRootPackages.Definition               equals(Object):boolean
+cloud.jengu.dbo.fhir.element.FaceRootPackages.Definition               hashCode():int
+cloud.jengu.dbo.fhir.element.FaceRootPackages.Definition               new(String,String,byte[])
+cloud.jengu.dbo.fhir.element.FaceRootPackages.Definition               record
+cloud.jengu.dbo.fhir.element.FaceRootPackages.Definition               toString():String
+cloud.jengu.dbo.fhir.element.FaceRootPackages.Definition               typeName():String
+cloud.jengu.dbo.fhir.element.FaceRootPackages.Definition               url():String
 cloud.jengu.dbo.fhir.element.R6FhirVersion                             class
 cloud.jengu.dbo.fhir.element.R6FhirVersion                             new()
 cloud.jengu.dbo.fhir.element.Terms                                     NONE:cloud.jengu.dbo.fhir.element.Terms
@@ -2288,6 +2298,7 @@ cloud.jengu.dbo.promises.DboPromises                                   VER_BALLO
 cloud.jengu.dbo.promises.DboPromises                                   VER_BALLOT_SERVED_AS_AUTHORED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_CONCURRENT_VERSIONS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_DEFINITIONS_TRAVEL_WITH_THE_FACE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_ONE_READ_PER_REQUEST:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_PERSONALITY_OWNS_MEANING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_SPECIFIED_VALIDATION:cloud.jengu.dbo.promises.DboPromises
@@ -3094,6 +3105,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      databaseN
 cloud.jengu.dbo.tenant.TenantSpec                                      dependencies():List
 cloud.jengu.dbo.tenant.TenantSpec                                      equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      face():String
+cloud.jengu.dbo.tenant.TenantSpec                                      faceRoot():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      hashCode():int
 cloud.jengu.dbo.tenant.TenantSpec                                      managedBy():String
 cloud.jengu.dbo.tenant.TenantSpec                                      mandatorySteps():List
@@ -3105,6 +3117,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean)
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      pdi():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      policies():cloud.jengu.dbo.policy.TenantPolicies

@@ -31,7 +31,7 @@ class EveryDeclaredFieldIsClassifiedTest {
      */
     private static final List<String> CLASSIFIED = List.of(
             "code", "face", "types", "pdi", "policies", "zone", "broker",
-            "acceptedBrokers", "dependencies", "scim", "mandatorySteps", "managedBy");
+            "acceptedBrokers", "dependencies", "scim", "mandatorySteps", "managedBy", "faceRoot");
 
     @Test
     @Proving(DboPromises.TEN_A_REDECLARATION_IS_NOTICED)
