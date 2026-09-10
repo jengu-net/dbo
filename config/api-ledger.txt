@@ -3127,9 +3127,11 @@ cloud.jengu.dbo.tenant.TenantSpec                                      toString(
 cloud.jengu.dbo.tenant.TenantSpec                                      types():List
 cloud.jengu.dbo.tenant.TenantSpec                                      zone():String
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           equals(Object):boolean
+cloud.jengu.dbo.tenant.TenantSpec.Dependency                           face():boolean
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           hashCode():int
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           name():String
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           new(String,Set)
+cloud.jengu.dbo.tenant.TenantSpec.Dependency                           new(String,Set,boolean)
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           record
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           toString():String
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           types():Set

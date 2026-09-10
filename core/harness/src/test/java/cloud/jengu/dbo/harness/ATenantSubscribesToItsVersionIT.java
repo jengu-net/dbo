@@ -1,0 +1,158 @@
+package cloud.jengu.dbo.harness;
+
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
+import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
+import cloud.jengu.dbo.tenant.TenantRuntimeManager;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.testcontainers.containers.PostgreSQLContainer;
+
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * A tenant takes its version from a root the way it takes its terminology
+ * from a zone — and is not served until it has.
+ *
+ * <p>No reconciler runs in this test. That is the proof: the only way the
+ * subscriber can hold its version's definitions the instant it is served is
+ * for bring-up to have drained the face chain before publishing it.
+ */
+@Tag("integration")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class ATenantSubscribesToItsVersionIT {
+
+    private static final String ROOT = "tuum-r4";
+    private static final String SUBSCRIBER = "haru";
+    private static final String PATIENT = "http://hl7.org/fhir/StructureDefinition/Patient";
+
+    static PostgreSQLContainer<?> postgres;
+    static Path dir;
+    static LocalDatabasePerTenantProvisioner provisioner;
+    static TenantRuntimeManager manager;
+    static final HttpClient http = HttpClient.newHttpClient();
+
+    @BeforeAll
+    void up() throws Exception {
+        postgres = SharedPostgres.get();
+        dir = Files.createTempDirectory("dbo-face-chain");
+        provisioner = new LocalDatabasePerTenantProvisioner(
+                SharedPostgres.urlFor("ATenantSubscribesToItsVersionIT"),
+                postgres.getUsername(), postgres.getPassword());
+        byte[] kek = new byte[32];
+        new java.security.SecureRandom().nextBytes(kek);
+        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
+                new TenantRuntimeManager.AuthorityConfig(kek, null));
+        Files.writeString(dir.resolve(ROOT + ".json"), """
+                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"operational"}]}"""
+                .formatted(ROOT));
+        Files.writeString(dir.resolve(SUBSCRIBER + ".json"), """
+                {"code":"%s","face":"r4","audit":{"level":"none"},
+                 "dependencies":[{"name":"%s","face":true,
+                                  "types":["StructureDefinition","SearchParameter"]}],
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
+                  {"name":"Observation","identity":"internal","handling":"operational"}]}"""
+                .formatted(SUBSCRIBER, ROOT));
+        UntilServed.scan(manager, ROOT);
+        long began = System.currentTimeMillis();
+        UntilServed.scan(manager, SUBSCRIBER);
+        System.out.println("MEASURED subscriber bring-up incl. face drain: "
+                + (System.currentTimeMillis() - began) + "ms");
+    }
+
+    @AfterAll
+    void down() {
+        if (manager != null) {
+            manager.close();
+        }
+        if (provisioner != null) {
+            provisioner.close();
+        }
+    }
+
+    @Test
+    @DisplayName("the instant a subscriber is served it holds its version's definitions, "
+            + "because bring-up would not publish it before they had streamed")
+    @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
+    void servedMeansTheDefinitionsAreHere() throws Exception {
+        String token = token(SUBSCRIBER);
+        HttpResponse<String> patient = http.send(HttpRequest.newBuilder(
+                        URI.create(base(SUBSCRIBER) + "/fhir/StructureDefinition?url="
+                                + URLEncoder.encode(PATIENT, StandardCharsets.UTF_8)))
+                        .header("Authorization", "Bearer " + token).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, patient.statusCode(), patient.body());
+        assertTrue(patient.body().contains("\"type\":\"Patient\""),
+                "the subscriber was served without its version's definitions — no reconciler "
+                        + "runs here, so nothing else could have brought them: "
+                        + patient.body());
+    }
+
+    @Test
+    @DisplayName("a tenant on one face subscribing to a root of another is refused as a "
+            + "declaration disagreeing with itself — a face chain does not convert")
+    void aRootOfAnotherFaceIsRefused() throws Exception {
+        Files.writeString(dir.resolve("vale.json"), """
+                {"code":"vale","face":"r5","audit":{"level":"none"},
+                 "dependencies":[{"name":"%s","face":true,
+                                  "types":["StructureDefinition","SearchParameter"]}],
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"replicated"}]}"""
+                .formatted(ROOT));
+        manager.scanOnce();
+        String trouble = manager.troubles().get("vale");
+        assertTrue(trouble != null && trouble.contains("does not convert"),
+                "an r5 tenant took its definitions from an r4 root, or failed for some other "
+                        + "reason than the one that matters: " + manager.troubles());
+    }
+
+    @Test
+    @DisplayName("two dependencies declared as the face chain are refused before anything "
+            + "is built, because a tenant is one version")
+    void twoFaceChainsAreRefused() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> cloud.jengu.dbo.tenant.TenantSpec.parse("""
+                        {"code":"kaks","face":"r4","audit":{"level":"none"},
+                         "dependencies":[
+                           {"name":"a","face":true,"types":["StructureDefinition"]},
+                           {"name":"b","face":true,"types":["StructureDefinition"]}],
+                         "types":[
+                          {"name":"StructureDefinition","identity":"canonical","handling":"replicated"}]}"""));
+    }
+
+    private static String token(String code) throws Exception {
+        manager.authority(code).ensureClient("reader", "reader-secret", List.of("system/*.read"));
+        return http.send(HttpRequest.newBuilder(URI.create(base(code) + "/oidc/token"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "grant_type=client_credentials&client_id=reader&client_secret="
+                                        + "reader-secret")).build(),
+                HttpResponse.BodyHandlers.ofString())
+                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+    }
+
+    private static String base(String code) {
+        return "http://127.0.0.1:" + manager.port() + "/t/" + code;
+    }
+}

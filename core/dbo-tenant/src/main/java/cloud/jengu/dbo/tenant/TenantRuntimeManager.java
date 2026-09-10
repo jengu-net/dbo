@@ -1522,6 +1522,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             replicationContexts.put(spec.code(), replicationPath);
         }
         wireDependencies(spec, runtime, db.dataSource());
+        readyOnItsFace(spec, runtime);
         if (spec.faceRoot()) {
             // Filled before it is published: a dependent that wires against
             // an empty root would stream nothing and serve with no definitions
@@ -1597,6 +1598,69 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     upstream.grain(), runtime.grain())));
         }
         syncEngines.put(spec.code(), java.util.List.copyOf(engines));
+    }
+
+    /** What a tenant must have received from its face before it may serve. */
+    static final java.util.Set<String> CRITICAL_ON_THE_FACE =
+            java.util.Set.of("StructureDefinition", "SearchParameter");
+
+    /**
+     * A tenant that subscribes to a face is not served until the definitions
+     * it validates against have arrived.
+     *
+     * <p>Readiness on a zone is the existing rule — an upstream that is not
+     * up stops bring-up until it is. A face adds what must have STREAMED:
+     * a tenant served with search parameters in and structures still on the
+     * way would validate against nothing and say so about every resource.
+     * So the face chain is drained here, before the tenant is published,
+     * rather than left to the reconciler's rounds — and the view rebuilt
+     * once, because it was built before these records existed.
+     *
+     * <p>The chain itself is checked before it is drained: its upstream is a
+     * root, and a root of this tenant's own face. A face chain never
+     * converts — same version both ends, by construction — so a tenant on
+     * one version subscribed to a root of another is refused as a
+     * declaration disagreeing with itself.
+     */
+    private void readyOnItsFace(TenantSpec spec, TenantRuntime runtime) {
+        java.util.Optional<TenantSpec.Dependency> face = spec.dependencies().stream()
+                .filter(TenantSpec.Dependency::face).findFirst();
+        if (face.isEmpty()) {
+            return;
+        }
+        TenantRuntime root = runtimes.get(face.get().name());
+        if (!root.spec().faceRoot()) {
+            throw new IllegalStateException(spec.code() + ": '" + face.get().name()
+                    + "' is declared as the face chain and is not a face root");
+        }
+        if (!root.spec().face().equals(spec.face())) {
+            throw new IllegalStateException(spec.code() + " is face '" + spec.face()
+                    + "' and subscribes to '" + face.get().name() + "', a root of face '"
+                    + root.spec().face() + "' — a face chain does not convert");
+        }
+        for (String critical : CRITICAL_ON_THE_FACE) {
+            if (!face.get().types().contains(critical)) {
+                throw new IllegalStateException(spec.code() + ": the face chain does not carry "
+                        + critical + ", and a tenant cannot serve without it");
+            }
+        }
+        String name = "sync." + face.get().name() + "." + spec.code();
+        cloud.jengu.dbo.sync.ContentSyncEngine chain = syncEngines
+                .getOrDefault(spec.code(), java.util.List.of()).stream()
+                .filter(engine -> name.equals(engine.name()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(spec.code()
+                        + ": the face chain was declared and not wired"));
+        long began = System.currentTimeMillis();
+        int carried = 0;
+        int events;
+        do {
+            events = chain.syncOnce(500);
+            carried += events;
+        } while (events > 0);
+        runtime.store().shapesChanged();
+        LOG.info("tenant {} took its face from {}: events={} in {}ms", spec.code(),
+                face.get().name(), carried, System.currentTimeMillis() - began);
     }
 
     /**

@@ -84,7 +84,18 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * types stream. Declarations are configuration — the runtime wires the
      * stream at bring-up and removes it when the declaration disappears.
      */
-    public record Dependency(String name, Set<String> types) {
+    /**
+     * @param face whether this dependency is the tenant's face chain — the
+     *             root it takes its version's definitions from. At most one,
+     *             and never the same chain as a jurisdiction: a zone says what
+     *             is true here, a face says what a resource is, and a tenant
+     *             chooses each on its own.
+     */
+    public record Dependency(String name, Set<String> types, boolean face) {
+
+        public Dependency(String name, Set<String> types) {
+            this(name, types, false);
+        }
         public Dependency {
             if (name == null || !CODE.matcher(name).matches()) {
                 throw new IllegalArgumentException("invalid dependency name: " + name);
@@ -231,8 +242,12 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         }).toList();
         List<Dependency> dependencies = Json.array(root, "dependencies").stream()
                 .map(d -> new Dependency(Json.str(d, "name"),
-                        Set.copyOf(Json.strings(d, "types"))))
+                        Set.copyOf(Json.strings(d, "types")), Json.bool(d, "face")))
                 .toList();
+        if (dependencies.stream().filter(Dependency::face).count() > 1) {
+            throw new IllegalArgumentException(code + ": two dependencies are declared as the "
+                    + "face chain, and a tenant is one version — name one");
+        }
         Object scimNode = Json.objOpt(root, "scim");
         Scim scim = scimNode == null ? null : new Scim(Json.str(scimNode, "system"));
         boolean pdi = Json.bool(root, "pdi");
