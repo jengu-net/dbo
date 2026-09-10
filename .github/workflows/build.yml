@@ -195,6 +195,71 @@ jobs:
       - name: Run the quickstart
         run: ./quickstart/check.sh
 
+  site:
+    # The published site, which is a BUILD OUTPUT and not a branch.
+    #
+    # `./gradlew site` assembles one tree from two — the hand-written pages in
+    # site/ own the root, the specification in docs/ is mounted under /docs/ —
+    # and renders it with mkdocs. What GitHub Pages used to serve was Jekyll
+    # over docs/ alone, so the landing page, the essays and the header menu
+    # existed in the repository and nowhere a reader could reach them.
+    #
+    # It deliberately does NOT need the build, for the same reason the
+    # quickstart does not: what it renders is the tree at this commit, and
+    # whether the Java suite is green does not change whether a cross
+    # reference resolves. Gating it would mean a red suite silently freezes
+    # the documentation at whatever it last said.
+    #
+    # `mkdocs build --strict` is the check: a broken § reference fails this
+    # job. That is worth running on a pull request, where it can be fixed
+    # before merge — so the job builds on every trigger and deploys on none
+    # of them but a push to main.
+    runs-on: ubuntu-latest
+    # Two seconds of mkdocs behind a pip install into a fresh venv. Fifteen
+    # is for the install and the network it needs, not for the render.
+    timeout-minutes: 15
+    # Stated rather than inherited. `pages: write` and `id-token: write` are
+    # what the deploy needs and are the reason this job is worth reading
+    # carefully: it is the only one here that can change what the world sees.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    # Pages serves one deployment at a time. The workflow-level group is per
+    # ref, which does not stop a tag build and a main build from arriving
+    # together, and cancelling a half-finished deploy leaves the site on the
+    # previous version rather than broken — so queue rather than cancel.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      # The site's Python tools are pinned in site/requirements.txt and are
+      # installed into a venv under build/, so this only has to provide the
+      # interpreter that venv is made from.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the site
+        run: ./gradlew site
+      - name: Upload the site
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/site
+      - name: Deploy to Pages
+        id: deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/deploy-pages@v4
+
   publish:
     needs: build
     # Never on pull_request, and never without a repository to publish to.
