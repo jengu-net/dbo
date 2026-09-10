@@ -1,70 +1,216 @@
-<!--
-  Why a trail of entries is not the same as a chain of them.
-
-  Drawn as a line of links because the claim is about the joins, not the
-  entries: each one commits to the one before, rooted in something the store
-  minted rather than something a participant asserted. A row of boxes with no
-  links between them would be a picture of a log, which is the thing being
-  distinguished from.
-
-  The limit is stated inside the drawing rather than under it. A picture of a
-  chain invites the reader to believe it proves more than it does, and the
-  one thing it cannot prove belongs where that belief forms.
--->
-<svg class="dbo-diagram" viewBox="0 0 760 302" role="img"
-     aria-labelledby="au-title au-desc" xmlns="http://www.w3.org/2000/svg">
-  <title id="au-title">A run's trail, chained from the task the store minted</title>
-  <desc id="au-desc">Five entries in a line: the task, two travel entries as
-  work is handed on, an access entry when a payload is opened, and the result
-  that closes the run. Each carries a link to the one before.</desc>
-
-  <text class="d-eyebrow" x="0" y="14">ONE RUN, ONE CHAIN</text>
-
-  <rect class="d-chip-seal" x="0" y="30" width="134" height="66" rx="8"/>
-  <text class="d-chip-text-seal" x="67" y="52">the task</text>
-  <text class="d-note-small" x="12" y="72">minted by the</text>
-  <text class="d-note-small" x="12" y="88">store, not asked for</text>
-
-  <rect class="d-box" x="156" y="30" width="134" height="66" rx="8"/>
-  <text class="d-caption" x="168" y="52">travel</text>
-  <text class="d-note-small" x="168" y="72">handed to the</text>
-  <text class="d-note-small" x="168" y="88">carrier</text>
-
-  <rect class="d-box" x="312" y="30" width="134" height="66" rx="8"/>
-  <text class="d-caption" x="324" y="52">travel</text>
-  <text class="d-note-small" x="324" y="72">handed to the</text>
-  <text class="d-note-small" x="324" y="88">laboratory</text>
-
-  <rect class="d-box" x="468" y="30" width="134" height="66" rx="8"/>
-  <text class="d-caption" x="480" y="52">access</text>
-  <text class="d-note-small" x="480" y="72">the payload was</text>
-  <text class="d-note-small" x="480" y="88">opened</text>
-
-  <rect class="d-chip-live" x="624" y="30" width="136" height="66" rx="8"/>
-  <text class="d-chip-text-live" x="692" y="52">the result</text>
-  <text class="d-note-small" x="636" y="72">closes the run and</text>
-  <text class="d-note-small" x="636" y="88">names the head</text>
-
-  <!-- the links. Drawn as a join rather than an arrow: an arrow says "then",
-       and what these say is "and I commit to that one". -->
-  <line class="d-lag" x1="134" y1="63" x2="156" y2="63"/>
-  <circle class="d-marker" cx="145" cy="63" r="4"/>
-  <line class="d-lag" x1="290" y1="63" x2="312" y2="63"/>
-  <circle class="d-marker" cx="301" cy="63" r="4"/>
-  <line class="d-lag" x1="446" y1="63" x2="468" y2="63"/>
-  <circle class="d-marker" cx="457" cy="63" r="4"/>
-  <line class="d-lag" x1="602" y1="63" x2="624" y2="63"/>
-  <circle class="d-marker" cx="613" cy="63" r="4"/>
-
-  <text class="d-note-small" x="0" y="122">Each link is signed by the participant that made it.</text>
-
-  <line class="d-seam" x1="0" y1="146" x2="760" y2="146"/>
-
-  <text class="d-has" x="0" y="170">A journey that never started cannot be presented: the root is the store's.</text>
-  <text class="d-has" x="0" y="192">A completion with a gap is refused, and told which link is missing.</text>
-  <text class="d-has" x="0" y="214">A skipped hop is exposed by whoever writes the next entry.</text>
-
-  <text class="d-note" x="0" y="248">And the one thing it does not buy, stated here because a chain invites the</text>
-  <text class="d-note" x="0" y="266">belief that it does: an intended recipient can open a payload and never say</text>
-  <text class="d-miss" x="0" y="288">so. This is non-forgery and non-repudiation. It is not omission-proofing.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-386.4875 -136.5 771.1125 273" width="771.1125" height="273" class="lini lini-scope-4f2c884a">
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-4f2c884a { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-4f2c884a[data-theme="dark"], [data-theme="dark"] .lini-scope-4f2c884a { color-scheme: dark; }
+      .lini-scope-4f2c884a[data-theme="light"], [data-theme="light"] .lini-scope-4f2c884a { color-scheme: light; }
+    }
+    .lini-scope-4f2c884a { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-4f2c884a .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-4f2c884a .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-4f2c884a .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-4f2c884a .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-4f2c884a .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-4f2c884a .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-4f2c884a .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-4f2c884a .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-4f2c884a .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-4f2c884a .lini-seal-card { fill: var(--lini-seal-soft); stroke: var(--lini-seal); stroke-width: 1.25; }
+    .lini-scope-4f2c884a .lini-live-card { fill: var(--lini-accent-soft); stroke: var(--lini-accent); stroke-width: 1.25; }
+    .lini-scope-4f2c884a .lini-plain-card { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-4f2c884a .lini-seal-t { color: var(--lini-seal); font-size: 13px; font-weight: 600; }
+    .lini-scope-4f2c884a .lini-live-t { color: var(--lini-accent); font-size: 13px; font-weight: 600; }
+    .lini-scope-4f2c884a .lini-joinline { stroke: var(--lini-accent); stroke-width: 1.5; }
+    .lini-scope-4f2c884a .lini-dot { fill: var(--lini-accent); stroke: none; }
+    .lini-scope-4f2c884a .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-4f2c884a .lini-miss { color: var(--lini-faint); }
+    .lini-scope-4f2c884a .lini-body { color: var(--lini-muted); }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-311.313,-127)">
+      <rect x="-68.687" y="-5.5" width="137.374" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">ONE RUN, ONE CHAIN</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380,-117.5)">
+    </g>
+    <g class="lini-node lini-block" data-id="chain" transform="translate(0,-79.75)">
+      <rect x="-380" y="-33.75" width="760" height="67.5" rx="0" ry="0"/>
+      <g class="lini-node lini-seal-card lini-box lini-block" transform="translate(-313,0)">
+        <rect x="-68.8625" y="-33" width="137.725" height="66" rx="8" ry="8"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-56.8625" y="-22" width="113.725" height="44" rx="0" ry="0"/>
+          <g class="lini-node lini-seal-t lini-t lini-block" transform="translate(-32.182,-15.5)">
+            <rect x="-24.6805" y="-6.5" width="49.361" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the task</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-16.6313,0.25)">
+            <rect x="-40.2313" y="-6.25" width="80.4625" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">minted by the</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(0,15.75)">
+            <rect x="-56.8625" y="-6.25" width="113.725" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">store, not asked for</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-join lini-block" transform="translate(-235,0)">
+        <rect x="-11" y="-33" width="22" height="66" rx="0" ry="0"/>
+        <g class="lini-node lini-joinline lini-line" transform="translate(-11,0)">
+          <line x1="0" y1="0" x2="22" y2="0"/>
+        </g>
+        <g class="lini-node lini-dot lini-oval" transform="translate(0,0)">
+          <ellipse cx="0" cy="0" rx="4" ry="4"/>
+        </g>
+      </g>
+      <g class="lini-node lini-plain-card lini-box lini-block" transform="translate(-157,0)">
+        <rect x="-67" y="-33" width="134" height="66" rx="8" ry="8"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-55" y="-22" width="110" height="44" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-37.177,-15.5)">
+            <rect x="-17.823" y="-6.5" width="35.646" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">travel</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-14.35,0.25)">
+            <rect x="-40.65" y="-6.25" width="81.3" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">handed to the</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-35.7,15.75)">
+            <rect x="-19.3" y="-6.25" width="38.6" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">carrier</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-join lini-block" transform="translate(-79,0)">
+        <rect x="-11" y="-33" width="22" height="66" rx="0" ry="0"/>
+        <g class="lini-node lini-joinline lini-line" transform="translate(-11,0)">
+          <line x1="0" y1="0" x2="22" y2="0"/>
+        </g>
+        <g class="lini-node lini-dot lini-oval" transform="translate(0,0)">
+          <ellipse cx="0" cy="0" rx="4" ry="4"/>
+        </g>
+      </g>
+      <g class="lini-node lini-plain-card lini-box lini-block" transform="translate(-1,0)">
+        <rect x="-67" y="-33" width="134" height="66" rx="8" ry="8"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-55" y="-22" width="110" height="44" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-37.177,-15.5)">
+            <rect x="-17.823" y="-6.5" width="35.646" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">travel</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-14.35,0.25)">
+            <rect x="-40.65" y="-6.25" width="81.3" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">handed to the</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-24.6187,15.75)">
+            <rect x="-30.3813" y="-6.25" width="60.7625" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">laboratory</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-join lini-block" transform="translate(77,0)">
+        <rect x="-11" y="-33" width="22" height="66" rx="0" ry="0"/>
+        <g class="lini-node lini-joinline lini-line" transform="translate(-11,0)">
+          <line x1="0" y1="0" x2="22" y2="0"/>
+        </g>
+        <g class="lini-node lini-dot lini-oval" transform="translate(0,0)">
+          <ellipse cx="0" cy="0" rx="4" ry="4"/>
+        </g>
+      </g>
+      <g class="lini-node lini-plain-card lini-box lini-block" transform="translate(155,0)">
+        <rect x="-67" y="-33" width="134" height="66" rx="8" ry="8"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-55" y="-22" width="110" height="44" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-33.9335,-15.5)">
+            <rect x="-21.0665" y="-6.5" width="42.133" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">access</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-7.9,0.25)">
+            <rect x="-47.1" y="-6.25" width="94.2" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the payload was</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-32.7938,15.75)">
+            <rect x="-22.2062" y="-6.25" width="44.4125" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">opened</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-join lini-block" transform="translate(233,0)">
+        <rect x="-11" y="-33" width="22" height="66" rx="0" ry="0"/>
+        <g class="lini-node lini-joinline lini-line" transform="translate(-11,0)">
+          <line x1="0" y1="0" x2="22" y2="0"/>
+        </g>
+        <g class="lini-node lini-dot lini-oval" transform="translate(0,0)">
+          <ellipse cx="0" cy="0" rx="4" ry="4"/>
+        </g>
+      </g>
+      <g class="lini-node lini-live-card lini-box lini-block" transform="translate(312,0)">
+        <rect x="-68" y="-33" width="136" height="66" rx="8" ry="8"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-56" y="-22" width="112" height="44" rx="0" ry="0"/>
+          <g class="lini-node lini-live-t lini-t lini-block" transform="translate(-26.633,-15.5)">
+            <rect x="-29.367" y="-6.5" width="58.734" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the result</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-3.1,0.25)">
+            <rect x="-52.9" y="-6.25" width="105.8" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">closes the run and</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-9.8,15.75)">
+            <rect x="-46.2" y="-6.25" width="92.4" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">names the head</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380,-39)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-236.7687,-25.75)">
+      <rect x="-143.2313" y="-6.25" width="286.4625" height="12.5" rx="0" ry="0"/>
+      <g class="lini-node lini-small lini-t lini-block" transform="translate(0,0)">
+        <rect x="-143.2313" y="-6.25" width="286.4625" height="12.5" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Each link is signed by the participant that made it.</text>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380,-12.5)">
+    </g>
+    <g class="lini-node lini-block" data-id="seam" style="fill: var(--lini-accent)" transform="translate(0,-4.5)">
+      <rect x="-380" y="-1" width="760" height="2" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380,2.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-157.726,37)">
+      <rect x="-222.274" y="-28.5" width="444.548" height="57" rx="0" ry="0"/>
+      <g class="lini-node lini-has lini-t lini-block" transform="translate(0,-22)">
+        <rect x="-222.274" y="-6.5" width="444.548" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A journey that never started cannot be presented: the root is the store&apos;s.</text>
+      </g>
+      <g class="lini-node lini-has lini-t lini-block" transform="translate(-23.556,0)">
+        <rect x="-198.718" y="-6.5" width="397.436" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A completion with a gap is refused, and told which link is missing.</text>
+      </g>
+      <g class="lini-node lini-has lini-t lini-block" transform="translate(-40.0205,22)">
+        <rect x="-182.2535" y="-6.5" width="364.507" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A skipped hop is exposed by whoever writes the next entry.</text>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380,73.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-156.725,107)">
+      <rect x="-223.275" y="-25.5" width="446.55" height="51" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-2.6715,-19)">
+        <rect x="-220.6035" y="-6.5" width="441.207" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">And the one thing it does not buy, stated here because a chain invites the</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(0,0)">
+        <rect x="-223.275" y="-6.5" width="446.55" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">belief that it does: an intended recipient can open a payload and never say</text>
+      </g>
+      <g class="lini-node lini-miss lini-t lini-block" transform="translate(-8.3395,19)">
+        <rect x="-214.9355" y="-6.5" width="429.871" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">so. This is non-forgery and non-repudiation. It is not omission-proofing.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
 </svg>

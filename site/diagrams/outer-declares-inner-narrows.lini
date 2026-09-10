@@ -1,0 +1,108 @@
+{
+  // A zone declares the set; a tenant narrows it.
+  //
+  // The broker outside is struck with ONE line rather than a cross: the point
+  // is which broker cannot be accepted, not that something has been crossed
+  // out, so the chip has to stay readable.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed. So every piece of text that must
+  // sit left is wrapped, and its container aligns to start.
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12.5; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |capf::cap|      { color: --faint; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |line-item::box| { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                     height: 26; padding: 0 12; align: start; justify: center; }
+  |lt::t|          { font-size: 12; }
+  |region::box| { radius: 12; fill: --accent-soft; stroke: --line; stroke-width: 1.5;
+                  padding: 16; align: start; }
+  |sealchip::box| { radius: 7; fill: --seal-soft; stroke: --seal; stroke-width: 1.25;
+                    width: 106; height: 30; padding: 0; justify: center; align: center;
+                    font-size: 12; font-weight: semibold; color: --seal; }
+  |ghostchip::sealchip| { fill: none; stroke: --line; stroke-style: dashed;
+                          color: --faint; font-weight: normal; }
+  |strike::line| { stroke: --faint; stroke-width: 1.75; opacity: 0.7; }
+
+  layout: flow; direction: row; align: start; width: 760;
+  padding: 4; gap: 36; clearance: 2;
+}
+
+|col| { width: 560; gap: 0 } [
+  |eyebrow| "Zone — the jurisdiction"
+  |block| { height: 8 } []
+  |region| { width: 560 } [ |col| { width: 528; gap: 0 } [
+    |cap| "declares which brokers exist"
+    |block| { height: 12 } []
+    |block| { layout: grid; columns: repeat(3, 106); gap: 10 } [
+      |sealchip| "broker A"; |sealchip| "broker B"; |sealchip| "broker C" ]
+    |block| { height: 22 } []
+    |block| { layout: grid; columns: 252, 256; gap: 20; align: start, start } [
+
+      |panel| { width: 252; height: 148; padding: 14 } [ |col| { width: 224; gap: 0 } [
+        |cap| "county hospital"
+        |block| { height: 6 } []
+        |small| "accepts"
+        |block| { height: 8 } []
+        |block| { layout: grid; columns: 106, 106; gap: 10 } [
+          |sealchip| "broker A"; |sealchip| "broker B" ]
+        |block| { height: 20 } []
+        |small| "a policy, not a claim that"
+        |small| "the third one does not work"
+      ] ]
+
+      |panel| { width: 256; height: 148; padding: 14 } [ |col| { width: 228; gap: 0 } [
+        |cap| "private clinic"
+        |block| { height: 6 } []
+        |small| "accepts"
+        |block| { height: 8 } []
+        |sealchip| "broker B"
+        |block| { height: 20 } []
+        |small| "narrower still, and nobody"
+        |small| "else is affected by that"
+      ] ]
+    ]
+  ] ]
+]
+
+|col| { width: 164; gap: 0 } [
+  |eyebrow| "Outside"
+  |block| { height: 30 } []
+  // The chip is in flow and only the strike is an overlay: a pinned child
+  // never grows its parent, so pinning both left the box with nothing to
+  // size itself from.
+  |ghostchip| "broker D" [
+    |strike| { points: 0 0, 94 -26; pin: center }
+  ]
+  |block| { height: 16 } []
+  |col| { width: 164; gap: 5 } [
+    |small| "A tenant cannot accept"
+    |small| "what the zone did not"
+    |small| "declare. Widening is an"
+    |small| "act by the party with"
+    |small| "standing; narrowing is"
+    |small| "always available to the"
+    |small| "party underneath."
+  ]
+]

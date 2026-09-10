@@ -1,0 +1,85 @@
+{
+  // The claim the product leads with, drawn as a seam. What matters is that a
+  // reader can run their eye along the lower row and find nothing clinical in
+  // it, so the sentence is checkable from the picture rather than asserted by
+  // it. That is why every concept is listed rather than summarised.
+  //
+  // The third face is dashed because it does not exist. A drawing that shows
+  // what is specified as though it were built is a drawing that lies.
+
+  // The site's own palette, named as the stylesheet names it. Lini has no
+  // light-dark() for a declared variable, so these are the light values and
+  // dbo.css overrides them for the dark scheme the way it already does for
+  // its own --dbo-* set.
+  --ink: #111a24;   --body: #2c3a47;  --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;  --accent: #a8641b; --bg: #fbfaf8;
+
+  // No accessible name here: `hint:` emits a <title> on a NODE and is
+  // silently ignored on the root, and there is no property for <desc> at all.
+  // The hand-written SVG this replaces carried both, wired with
+  // aria-labelledby. What describes the figure now is the visible caption on
+  // the page, which is a weaker guarantee and a deliberate one.
+  layout: flow; direction: column; align: start; width: 760;
+  padding: 0; gap: 0; clearance: 2;
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  |eyebrow::block|  { justify: start; align: center; height: 26;
+                      font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                      text-transform: uppercase; color: --faint; }
+  |face::box|       { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                      padding: 14 16; height: 56; }
+  |card::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |unbuilt::face|   { fill: none; stroke-style: dashed; }
+  |title::block|    { justify: start; font-size: 13; font-weight: semibold; color: --ink; }
+  |ghost::title|    { color: --faint; }
+  |sub::block|      { justify: start; font-size: 12.5; color: --muted; }
+  |drop::line|      { points: 0 0, 0 26; stroke: --line; stroke-width: 1.5; }
+  |chip::box|       { radius: 7; fill: --bg; stroke: --line; stroke-width: 1.25;
+                      width: 136; height: 30; padding: 0;
+                      justify: center; align: center;
+                      font-size: 12; color: --body; }
+}
+
+|eyebrow| "Faces — one domain's standards" { width: 760 }
+
+|block#faces| { layout: grid; columns: 228, 228, 272; gap: 16; align: stretch } [
+  |face|    [ |card| { width: 196 } [ |title| "FHIR R4"; |sub| "serving tenants today" ] ]
+  |face|    [ |card| { width: 196 } [ |title| "FHIR R5"; |sub| "beside R4, same engine" ] ]
+  |unbuilt| [ |card| { width: 240 } [ |ghost| "a domain that is not medicine"; |sub| "specified, not built" ] ]
+]
+
+// One track per face, so each drop line centres under the card above it
+// rather than wherever a router found a channel.
+|block#drops| { layout: grid; columns: 228, 228, 272; gap: 16; height: 36 } [
+  |drop|; |drop|; |drop|
+]
+
+|block#seam| { width: 760; height: 2; fill: --accent; }
+
+|block#lede| { justify: start; align: center; height: 30; width: 760;
+               font-size: 12; font-weight: semibold; color: --accent; } [
+  "a face maps a standard onto the concepts below — and nothing below knows it did"
+]
+
+|box#engine| { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+               padding: 16; height: 180 } [
+ |card| { width: 728; gap: 0; align: start; layout: flow; direction: column } [
+  |eyebrow| "The engine — no domain in it"
+  |block| { layout: grid; columns: repeat(5, 136); gap: 10 12; height: 82 } [
+    |chip| "object";      |chip| "identity";         |chip| "envelope"
+    |chip| "declared handling"; |chip| "history"
+    |chip| "change feed"; |chip| "tenancy and zone"; |chip| "custody"
+    |chip| "erasure";     |chip| "terminology"
+  ]
+  |sub| "Every one of those is what European regulation asks of any system holding personal data:"
+  |sub| "know what you hold, know who may change it, prove what happened, separate identity,"
+  |sub| "erase on request, let people leave with their data."
+ ]
+]

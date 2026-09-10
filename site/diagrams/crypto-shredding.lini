@@ -1,0 +1,103 @@
+{
+  // Erasure destroys the key, not the history.
+  //
+  // Both sides must show the SAME three versions and the SAME archive, byte
+  // for byte, because the claim is that nothing was rewritten. Only the key
+  // changes across the seam; everything else that looks different after is
+  // the same bytes, unreadable.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed. So every piece of text that must
+  // sit left is wrapped, and its container aligns to start.
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12.5; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |capf::cap|      { color: --faint; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |line-item::box| { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                     height: 26; padding: 0 12; align: start; justify: center; }
+  |lt::t|          { font-size: 12; }
+  |vers::t|     { font-size: 12; font-weight: semibold; color: --faint; }
+  |readable::t| { font-size: 13.5; color: --ink; }
+  |act::t|      { font-size: 12; font-weight: semibold; letter-spacing: 0.5; color: --accent; }
+  |keybox::box| { radius: 9; fill: --seal-soft; stroke: --seal; stroke-width: 1.5;
+                  width: 118; height: 44; padding: 0 12; align: start; justify: center; }
+  |keygone::keybox| { fill: none; stroke: --line; stroke-style: dashed; }
+  |vbox::box|   { radius: 8; fill: --panel; stroke: --line; stroke-width: 1.5;
+                  width: 104; height: 58; padding: 10 12; align: start; }
+  |cipher::block| { height: 16; radius: 3; fill: hatch(45, 7, --line); }
+  |strike::line| { stroke: --faint; stroke-width: 2; }
+  |arch::cyl|   { width: 104; height: 58; fill: --panel; stroke: --line; stroke-width: 1.5; }
+  |keyicon::icon| { symbol: key; width: 22; fill: none; stroke: --seal; }
+
+  layout: flow; direction: row; align: start; width: 760;
+  padding: 4; gap: 0; clearance: 2;
+}
+
+|col| { width: 352; gap: 0 } [
+  |eyebrow| "Before"
+  |block| { height: 8 } []
+  |keybox| [ |block| { layout: flow; direction: row; gap: 10; align: center } [
+    |keyicon|; |t| "key" ] ]
+  |block| { height: 32 } []
+  |block| { layout: grid; columns: repeat(3, 104); gap: 10 } [
+    |vbox| [ |col| { width: 80; gap: 6 } [ |vers| "v1"; |readable| "Ada Lovelace" ] ]
+    |vbox| [ |col| { width: 80; gap: 6 } [ |vers| "v2"; |readable| "Ada Lovelace" ] ]
+    |vbox| [ |col| { width: 80; gap: 6 } [ |vers| "v3"; |readable| "A. Lovelace" ] ]
+  ]
+  |block| { height: 24 } []
+  |block| { layout: flow; direction: row; gap: 14; align: center } [
+    |arch|
+    |col| { width: 200; gap: 4 } [
+      |t| "archive taken in March,"; |t| "already off site" ]
+  ]
+]
+
+|col| { width: 76; gap: 0 } [
+  |block| { height: 122 } []
+  |act| "erasure"
+  |block| { height: 6 } []
+  |line| { points: 0 0, 48 0; stroke: --accent; stroke-width: 1.75; marker-end: arrow }
+]
+
+|col| { width: 332; gap: 0 } [
+  |eyebrow| "After"
+  |block| { height: 8 } []
+  |keygone| [ |block| { layout: flow; direction: row; gap: 10; align: center } [
+    |block| { width: 22; height: 22 } [
+      |strike| { points: 0 0, 22 22; pin: center }
+      |strike| { points: 22 0, 0 22; pin: center } ]
+    |capf| "destroyed" ] ]
+  |block| { height: 32 } []
+  |block| { layout: grid; columns: repeat(3, 104); gap: 10 } [
+    |vbox| [ |col| { width: 80; gap: 8 } [ |vers| "v1"; |cipher| { width: 80 } ] ]
+    |vbox| [ |col| { width: 80; gap: 8 } [ |vers| "v2"; |cipher| { width: 80 } ] ]
+    |vbox| [ |col| { width: 80; gap: 8 } [ |vers| "v3"; |cipher| { width: 80 } ] ]
+  ]
+  |block| { height: 24 } []
+  |block| { layout: flow; direction: row; gap: 14; align: center } [
+    |arch| [ |cipher| { width: 68; height: 14 } ]
+    |col| { width: 200; gap: 4 } [
+      |t| "the same file, unchanged"; |t| "and now unreadable" ]
+  ]
+]

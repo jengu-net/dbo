@@ -1,67 +1,210 @@
-<!--
-  Why one sign-in does not mean one set of permissions.
-
-  The same verified person reaches three tenants and gets three different
-  answers, and the refusal on the right is the whole point: a valid identity
-  is not access. Drawing the hub as holding no name matters as much — it is
-  what makes the shared half of this safe to share.
--->
-<svg class="dbo-diagram" viewBox="0 0 760 300" role="img"
-     aria-labelledby="au-title au-desc" xmlns="http://www.w3.org/2000/svg">
-  <title id="au-title">Authentication is shared; authorisation never is</title>
-  <desc id="au-desc">A person authenticates once at a national broker. A hub
-  holds a session carrying only a verified identifier and no name. Three
-  tenants each resolve that person in their own records: two grant access
-  through an active role, and the third refuses the same valid identity
-  because no role there is active.</desc>
-
-  <text class="d-eyebrow" x="0" y="12">SHARED ACROSS THE DEPLOYMENT</text>
-  <rect class="d-box" x="0" y="26" width="196" height="52" rx="9"/>
-  <text class="d-caption" x="16" y="48">a national broker</text>
-  <text class="d-note-small" x="16" y="68">the store authenticates nobody</text>
-
-  <line class="d-arrow" x1="98" y1="82" x2="98" y2="104" marker-end="url(#au-arrow)"/>
-  <defs>
-    <marker id="au-arrow" viewBox="0 0 10 10" refX="9" refY="5"
-            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path class="d-arrowhead" d="M0,0 L10,5 L0,10 z"/>
-    </marker>
-  </defs>
-
-  <rect class="d-box" x="0" y="110" width="196" height="66" rx="9"/>
-  <text class="d-caption" x="16" y="132">one session</text>
-  <text class="d-note-small" x="16" y="152">a verified identifier and</text>
-  <text class="d-note-small" x="16" y="168">the time of the ceremony —</text>
-  <text class="d-miss" x="16" y="196">no name, no national code</text>
-
-  <line class="d-arrow" x1="200" y1="143" x2="248" y2="143" marker-end="url(#au-arrow)"/>
-
-  <text class="d-eyebrow" x="264" y="12">NEVER SHARED</text>
-
-  <rect class="d-box" x="264" y="26" width="240" height="76" rx="9"/>
-  <text class="d-caption" x="280" y="48">county hospital</text>
-  <rect class="d-chip-seal" x="280" y="58" width="208" height="30" rx="7"/>
-  <text class="d-chip-text-seal" x="384" y="77">an active role — in</text>
-
-  <rect class="d-box" x="264" y="112" width="240" height="76" rx="9"/>
-  <text class="d-caption" x="280" y="134">private clinic</text>
-  <rect class="d-chip-seal" x="280" y="144" width="208" height="30" rx="7"/>
-  <text class="d-chip-text-seal" x="384" y="163">an active role — in</text>
-
-  <rect class="d-box" x="264" y="198" width="240" height="76" rx="9"/>
-  <text class="d-caption" x="280" y="220">a hospital across the country</text>
-  <rect class="d-chip-ghost" x="280" y="230" width="208" height="30" rx="7"/>
-  <text class="d-chip-text-faint" x="384" y="249">no active role — refused</text>
-
-  <text class="d-note-small" x="524" y="48">The same person, the same</text>
-  <text class="d-note-small" x="524" y="66">ceremony, three answers.</text>
-  <text class="d-note-small" x="524" y="94">Each tenant resolves them in</text>
-  <text class="d-note-small" x="524" y="112">its own records and mints its</text>
-  <text class="d-note-small" x="524" y="130">own token. A token from one</text>
-  <text class="d-note-small" x="524" y="148">fails at another's signature</text>
-  <text class="d-note-small" x="524" y="166">check before a claim is read.</text>
-  <text class="d-note-small" x="524" y="200">Revoking access is ending a</text>
-  <text class="d-note-small" x="524" y="218">period on an ordinary record.</text>
-  <text class="d-note-small" x="524" y="236">There is no second user</text>
-  <text class="d-note-small" x="524" y="254">directory to go stale.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-387.5995 -140.125 775.199 280.25" width="775.199" height="280.25" class="lini lini-scope-0905a1b6">
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-0905a1b6 { color-scheme: light dark; --lini-accent: #a8641b; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-0905a1b6[data-theme="dark"], [data-theme="dark"] .lini-scope-0905a1b6 { color-scheme: dark; }
+      .lini-scope-0905a1b6[data-theme="light"], [data-theme="light"] .lini-scope-0905a1b6 { color-scheme: light; }
+    }
+    .lini-scope-0905a1b6 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-0905a1b6 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-0905a1b6 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-0905a1b6 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-0905a1b6 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-0905a1b6 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-0905a1b6 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-0905a1b6 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-0905a1b6 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-0905a1b6 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-0905a1b6 .lini-sealchip { fill: var(--lini-seal-soft); stroke: var(--lini-seal); stroke-width: 1.25; color: var(--lini-seal); font-size: 12px; font-weight: 600; }
+    .lini-scope-0905a1b6 .lini-ghostchip { fill: none; stroke: var(--lini-line); color: var(--lini-faint); font-weight: normal; stroke-dasharray: 3,2.5; }
+    .lini-scope-0905a1b6 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-0905a1b6 .lini-down { stroke: var(--lini-accent); stroke-width: 1.75; }
+    .lini-scope-0905a1b6 .lini-across { stroke: var(--lini-accent); stroke-width: 1.75; }
+    .lini-scope-0905a1b6 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-col lini-block" transform="translate(-271.375,-38.625)">
+      <rect x="-112.2245" y="-97.5" width="224.449" height="195" rx="0" ry="0"/>
+      <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(0,-92)">
+        <rect x="-112.2245" y="-5.5" width="224.449" height="11" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">SHARED ACROSS THE DEPLOYMENT</text>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-112.2245,-82.5)">
+      </g>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(-3.9182,-51.75)">
+        <rect x="-107.5562" y="-26" width="215.1125" height="52" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-91.5562" y="-14.75" width="183.1125" height="29.5" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-39.7772,-8.25)">
+            <rect x="-51.779" y="-6.5" width="103.558" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a national broker</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(0,8.5)">
+            <rect x="-91.5562" y="-6.25" width="183.1125" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the store authenticates nobody</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-14.2245,-10)">
+        <rect x="-98" y="-15" width="196" height="30" rx="0" ry="0"/>
+        <g class="lini-node lini-down lini-line" transform="translate(0,-11)">
+          <line x1="0" y1="0" x2="0" y2="18.5"/>
+          <polygon class="lini-marker lini-marker-arrow" points="0,22 -4,14 4,14" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(-13.4745,38.75)">
+        <rect x="-98" y="-33" width="196" height="66" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-82" y="-23" width="164" height="46" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-46.1915,-16.5)">
+            <rect x="-35.8085" y="-6.5" width="71.617" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">one session</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-15.0438,0.25)">
+            <rect x="-66.9562" y="-6.25" width="133.9125" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a verified identifier and</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-1.1875,16.75)">
+            <rect x="-80.8125" y="-6.25" width="161.625" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the time of the ceremony —</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-112.2245,78.5)">
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(-14.2245,91)">
+        <rect x="-98" y="-6.5" width="196" height="13" rx="0" ry="0"/>
+        <g class="lini-node lini-miss lini-t lini-block" transform="translate(-18.7975,0)">
+          <rect x="-79.2025" y="-6.5" width="158.405" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">no name, no national code</text>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-127.1505,-36.125)">
+      <rect x="-32" y="-100" width="64" height="200" rx="0" ry="0"/>
+      <g class="lini-node lini-across lini-line" transform="translate(-24,-40)">
+        <line x1="0" y1="0" x2="44.5" y2="0"/>
+        <polygon class="lini-marker lini-marker-arrow" points="48,0 40,4 40,-4" style="fill: var(--lini-accent)"/>
+      </g>
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(26.2245,0)">
+      <rect x="-121.375" y="-136.125" width="242.75" height="272.25" rx="0" ry="0"/>
+      <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-73.69,-130.625)">
+        <rect x="-47.685" y="-5.5" width="95.37" height="11" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">NEVER SHARED</text>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-121.375,-121.125)">
+      </g>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,-78.25)">
+        <rect x="-120.625" y="-38.125" width="241.25" height="76.25" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-104.625" y="-26.125" width="209.25" height="52.25" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-57.24,-19.625)">
+            <rect x="-47.385" y="-6.5" width="94.77" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">county hospital</text>
+          </g>
+          <g class="lini-node lini-sealchip lini-box lini-block" transform="translate(0,10.5)">
+            <rect x="-104" y="-15" width="208" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">an active role — in</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-121.375,-34.375)">
+      </g>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,9.5)">
+        <rect x="-120.625" y="-38.125" width="241.25" height="76.25" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-104.625" y="-26.125" width="209.25" height="52.25" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-65.378,-19.625)">
+            <rect x="-39.247" y="-6.5" width="78.494" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">private clinic</text>
+          </g>
+          <g class="lini-node lini-sealchip lini-box lini-block" transform="translate(0,10.5)">
+            <rect x="-104" y="-15" width="208" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">an active role — in</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-121.375,53.375)">
+      </g>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,97.25)">
+        <rect x="-120.625" y="-38.125" width="241.25" height="76.25" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-104.625" y="-26.125" width="209.25" height="52.25" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-15.9715,-19.625)">
+            <rect x="-88.6535" y="-6.5" width="177.307" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a hospital across the country</text>
+          </g>
+          <g class="lini-node lini-ghostchip lini-sealchip lini-box lini-block" style="stroke-dasharray: 5.5,4.375" transform="translate(0,10.5)">
+            <rect x="-104" y="-15" width="208" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">no active role — refused</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(265.5995,-16.375)">
+      <rect x="-118" y="-119.75" width="236" height="239.5" rx="0" ry="0"/>
+      <g class="lini-node lini-block" transform="translate(-118,-102.75)">
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(0,-70.75)">
+        <rect x="-118" y="-15" width="236" height="30" rx="0" ry="0"/>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-38.7625,-8.75)">
+          <rect x="-79.2375" y="-6.25" width="158.475" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">The same person, the same</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-42.6,8.75)">
+          <rect x="-75.4" y="-6.25" width="150.8" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">ceremony, three answers.</text>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-118,-49.75)">
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(0,-2.5)">
+        <rect x="-118" y="-41.25" width="236" height="82.5" rx="0" ry="0"/>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-34.5063,-35)">
+          <rect x="-83.4937" y="-6.25" width="166.9875" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">Each tenant resolves them in</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-34.875,-17.5)">
+          <rect x="-83.125" y="-6.25" width="166.25" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">its own records and mints its</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-33.8313,0)">
+          <rect x="-84.1687" y="-6.25" width="168.3375" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">own token. A token from one</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-41.4812,17.5)">
+          <rect x="-76.5188" y="-6.25" width="153.0375" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">fails at another&apos;s signature</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-35.55,35)">
+          <rect x="-82.45" y="-6.25" width="164.9" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">check before a claim is read.</text>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-118,46.75)">
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(0,87.25)">
+        <rect x="-118" y="-32.5" width="236" height="65" rx="0" ry="0"/>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-37.65,-26.25)">
+          <rect x="-80.35" y="-6.25" width="160.7" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">Revoking access is ending a</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-33.2438,-8.75)">
+          <rect x="-84.7562" y="-6.25" width="169.5125" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">period on an ordinary record.</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-49.5875,8.75)">
+          <rect x="-68.4125" y="-6.25" width="136.825" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">There is no second user</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-57.4938,26.25)">
+          <rect x="-60.5062" y="-6.25" width="121.0125" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">directory to go stale.</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
 </svg>

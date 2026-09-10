@@ -1,67 +1,194 @@
-<!--
-  Why applying configuration is a run rather than a log line.
-
-  The two panels are two passes over the same source, because the second one
-  is where most of the argument lives: nothing is re-applied that already
-  agrees, the one thing that failed is picked up again, and fixing the cause
-  is what closes it. A single panel would have shown an outcome; two show a
-  loop that converges.
--->
-<svg class="dbo-diagram" viewBox="0 0 760 340" role="img"
-     aria-labelledby="cf-title cf-desc" xmlns="http://www.w3.org/2000/svg">
-  <title id="cf-title">Two passes over a declared configuration source</title>
-  <desc id="cf-desc">A first pass reads five declarations, applies four, and
-  raises a card naming the one it could not apply. A second pass over the
-  unchanged source re-applies nothing that already agrees, retries the scope
-  with the open card, and closes the card once the cause is fixed.</desc>
-
-  <text class="d-eyebrow" x="0" y="12">FIRST PASS</text>
-  <rect class="d-box" x="0" y="26" width="150" height="132" rx="9"/>
-  <text class="d-caption" x="14" y="46">the source</text>
-  <text class="d-note-small" x="14" y="66">a repository, a mounted</text>
-  <text class="d-note-small" x="14" y="82">directory, a lane</text>
-  <rect class="d-chip" x="14" y="94" width="122" height="22" rx="5"/>
-  <text class="d-chip-text" x="75" y="109">5 declarations</text>
-  <text class="d-note-small" x="14" y="136">read as one set,</text>
-  <text class="d-note-small" x="14" y="150">never one at a time</text>
-
-  <line class="d-arrow" x1="156" y1="88" x2="186" y2="88" marker-end="url(#cf-arrow)"/>
-  <defs>
-    <marker id="cf-arrow" viewBox="0 0 10 10" refX="9" refY="5"
-            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path class="d-arrowhead" d="M0,0 L10,5 L0,10 z"/>
-    </marker>
-  </defs>
-
-  <rect class="d-box" x="194" y="26" width="176" height="132" rx="9"/>
-  <text class="d-caption" x="208" y="46">the pass, as a run</text>
-  <rect class="d-chip-live" x="208" y="58" width="148" height="24" rx="5"/>
-  <text class="d-chip-text-live" x="282" y="75">read 5</text>
-  <rect class="d-chip-live" x="208" y="88" width="148" height="24" rx="5"/>
-  <text class="d-chip-text-live" x="282" y="105">applied 4</text>
-  <rect class="d-chip-ghost" x="208" y="118" width="148" height="24" rx="5"/>
-  <text class="d-chip-text-faint" x="282" y="135">skipped 1</text>
-
-  <text class="d-note" x="0" y="188">The one that failed is a card naming it — held work somebody can pick up.</text>
-  <text class="d-note" x="0" y="208">The other four applied. One bad declaration does not take the rest with it.</text>
-
-  <!-- second pass -->
-  <text class="d-eyebrow" x="416" y="12">NEXT PASS, SOURCE UNCHANGED</text>
-  <rect class="d-box" x="416" y="26" width="344" height="132" rx="9"/>
-  <rect class="d-chip" x="430" y="46" width="316" height="26" rx="5"/>
-  <text class="d-row-text" x="442" y="63">the four that agree — a read, not a re-application</text>
-  <rect class="d-chip-live" x="430" y="80" width="316" height="26" rx="5"/>
-  <text class="d-chip-text-live" x="588" y="97">the scope with the open card — tried again</text>
-  <rect class="d-chip-seal" x="430" y="114" width="316" height="26" rx="5"/>
-  <text class="d-chip-text-seal" x="588" y="131">cause fixed at the source — the card closes itself</text>
-
-  <text class="d-note" x="416" y="188">A sweep closes when what is here agrees</text>
-  <text class="d-note" x="416" y="206">with what was declared.</text>
-  <text class="d-miss" x="416" y="228">Closing by click is how a card reads</text>
-  <text class="d-miss" x="416" y="246">resolved while the fault is live.</text>
-
-  <line class="d-seam" x1="0" y1="272" x2="760" y2="272"/>
-  <text class="d-note-small" x="0" y="294">A source that cannot be read says so — it never answers with an empty set, because</text>
-  <text class="d-note-small" x="0" y="312">empty and unreachable are the same sentence to whoever must decide what is missing.</text>
-  <text class="d-note-small" x="0" y="330">Only a read the source calls COMPLETE may withdraw what it no longer names.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-393.1437 -170 779.8937 340" width="779.8937" height="340" class="lini lini-scope-2818f566">
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-2818f566 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-2818f566[data-theme="dark"], [data-theme="dark"] .lini-scope-2818f566 { color-scheme: dark; }
+      .lini-scope-2818f566[data-theme="light"], [data-theme="light"] .lini-scope-2818f566 { color-scheme: light; }
+    }
+    .lini-scope-2818f566 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-2818f566 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-2818f566 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-2818f566 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-2818f566 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-2818f566 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-2818f566 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-2818f566 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-2818f566 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-2818f566 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-2818f566 .lini-chip { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; color: var(--lini-body); font-size: 12px; }
+    .lini-scope-2818f566 .lini-live { fill: var(--lini-accent-soft); stroke: var(--lini-accent); color: var(--lini-accent); font-weight: 600; }
+    .lini-scope-2818f566 .lini-ghost { fill: none; color: var(--lini-faint); stroke-dasharray: 3,2.5; }
+    .lini-scope-2818f566 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-2818f566 .lini-body { color: var(--lini-muted); }
+    .lini-scope-2818f566 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-2818f566 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-block" data-id="passes" transform="translate(0,-41.75)">
+      <rect x="-380" y="-124.25" width="760" height="248.5" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-158.4475,0)">
+        <rect x="-221.5525" y="-105.875" width="443.105" height="211.75" rx="0" ry="0"/>
+        <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-186.4745,-100.375)">
+          <rect x="-35.078" y="-5.5" width="70.156" height="11" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">FIRST PASS</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-221.5525,-90.875)">
+        </g>
+        <g class="lini-node lini-block" transform="translate(-36.5525,-17.5)">
+          <rect x="-185" y="-69.375" width="370" height="138.75" rx="0" ry="0"/>
+          <g class="lini-node lini-panel lini-box lini-block" transform="translate(-110,0)">
+            <rect x="-83.3937" y="-68.625" width="166.7875" height="137.25" rx="9" ry="9"/>
+            <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+              <rect x="-69.3937" y="-56.625" width="138.7875" height="113.25" rx="0" ry="0"/>
+              <g class="lini-node lini-cap lini-t lini-block" transform="translate(-36.6402,-50.125)">
+                <rect x="-32.7535" y="-6.5" width="65.507" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the source</text>
+              </g>
+              <g class="lini-node lini-small lini-t lini-block" transform="translate(0,-32.375)">
+                <rect x="-69.3937" y="-6.25" width="138.7875" height="12.5" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">a repository, a mounted</text>
+              </g>
+              <g class="lini-node lini-small lini-t lini-block" transform="translate(-22.5687,-14.875)">
+                <rect x="-46.825" y="-6.25" width="93.65" height="12.5" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">directory, a lane</text>
+              </g>
+              <g class="lini-node lini-chip lini-box lini-block" transform="translate(-7.7687,9)">
+                <rect x="-61" y="-12" width="122" height="24" rx="5" ry="5"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">5 declarations</text>
+              </g>
+              <g class="lini-node lini-small lini-t lini-block" transform="translate(-23.6562,32.875)">
+                <rect x="-45.7375" y="-6.25" width="91.475" height="12.5" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">read as one set,</text>
+              </g>
+              <g class="lini-node lini-small lini-t lini-block" transform="translate(-13.7375,50.375)">
+                <rect x="-55.6562" y="-6.25" width="111.3125" height="12.5" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">never one at a time</text>
+              </g>
+            </g>
+          </g>
+          <g class="lini-node lini-block" transform="translate(-13,0)">
+            <rect x="-22" y="-66" width="44" height="132" rx="0" ry="0"/>
+            <g class="lini-node lini-line" style="stroke: var(--lini-accent); stroke-width: 1.75" transform="translate(-15,0)">
+              <line x1="0" y1="0" x2="26.5" y2="0"/>
+              <polygon class="lini-marker lini-marker-arrow" points="30,0 22,4 22,-4" style="fill: var(--lini-accent)"/>
+            </g>
+          </g>
+          <g class="lini-node lini-panel lini-box lini-block" transform="translate(97,0)">
+            <rect x="-88.625" y="-66" width="177.25" height="132" rx="9" ry="9"/>
+            <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+              <rect x="-74.625" y="-53.375" width="149.25" height="106.75" rx="0" ry="0"/>
+              <g class="lini-node lini-cap lini-t lini-block" transform="translate(-21.8385,-46.875)">
+                <rect x="-52.7865" y="-6.5" width="105.573" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the pass, as a run</text>
+              </g>
+              <g class="lini-node lini-live lini-chip lini-box lini-block" transform="translate(0,-21.75)">
+                <rect x="-74" y="-12" width="148" height="24" rx="5" ry="5"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">read 5</text>
+              </g>
+              <g class="lini-node lini-live lini-chip lini-box lini-block" transform="translate(0,9.5)">
+                <rect x="-74" y="-12" width="148" height="24" rx="5" ry="5"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">applied 4</text>
+              </g>
+              <g class="lini-node lini-ghost lini-chip lini-box lini-block" style="stroke-dasharray: 5.5,4.375" transform="translate(0,40.75)">
+                <rect x="-74" y="-12" width="148" height="24" rx="5" ry="5"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">skipped 1</text>
+              </g>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-221.5525,62.875)">
+        </g>
+        <g class="lini-node lini-col lini-block" transform="translate(0,89.875)">
+          <rect x="-221.5525" y="-16" width="443.105" height="32" rx="0" ry="0"/>
+          <g class="lini-node lini-body lini-t lini-block" transform="translate(0,-9.5)">
+            <rect x="-221.5525" y="-6.5" width="443.105" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">The one that failed is a card naming it — held work somebody can pick up.</text>
+          </g>
+          <g class="lini-node lini-body lini-t lini-block" transform="translate(-0.0195,9.5)">
+            <rect x="-221.533" y="-6.5" width="443.066" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">The other four applied. One bad declaration does not take the rest with it.</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(13,0)">
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(209.375,0)">
+        <rect x="-173.375" y="-124.25" width="346.75" height="248.5" rx="0" ry="0"/>
+        <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-66.035,-118.75)">
+          <rect x="-107.34" y="-5.5" width="214.68" height="11" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">NEXT PASS, SOURCE UNCHANGED</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-173.375,-109.25)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,-38.5)">
+          <rect x="-172.625" y="-66" width="345.25" height="132" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-158.625" y="-48.875" width="317.25" height="97.75" rx="0" ry="0"/>
+            <g class="lini-node lini-chip lini-box lini-block" transform="translate(0,-35.25)">
+              <rect x="-158" y="-13" width="316" height="26" rx="5" ry="5"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the four that agree — a read, not a re-application</text>
+            </g>
+            <g class="lini-node lini-live lini-chip lini-box lini-block" transform="translate(0,0)">
+              <rect x="-158" y="-13" width="316" height="26" rx="5" ry="5"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the scope with the open card — tried again</text>
+            </g>
+            <g class="lini-node lini-sealed lini-chip lini-box lini-block" transform="translate(0,35.25)">
+              <rect x="-158" y="-13" width="316" height="26" rx="5" ry="5"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">cause fixed at the source — the card closes itself</text>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-173.375,39.25)">
+        </g>
+        <g class="lini-node lini-col lini-block" transform="translate(-1.375,66.25)">
+          <rect x="-172" y="-16" width="344" height="32" rx="0" ry="0"/>
+          <g class="lini-node lini-body lini-t lini-block" transform="translate(-47.3235,-9.5)">
+            <rect x="-124.6765" y="-6.5" width="249.353" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">A sweep closes when what is here agrees</text>
+          </g>
+          <g class="lini-node lini-body lini-t lini-block" transform="translate(-99.096,9.5)">
+            <rect x="-72.904" y="-6.5" width="145.808" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">with what was declared.</text>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-173.375,87.25)">
+        </g>
+        <g class="lini-node lini-col lini-block" transform="translate(-1.375,108.25)">
+          <rect x="-172" y="-16" width="344" height="32" rx="0" ry="0"/>
+          <g class="lini-node lini-miss lini-t lini-block" transform="translate(-65.79,-9.5)">
+            <rect x="-106.21" y="-6.5" width="212.42" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">Closing by click is how a card reads</text>
+          </g>
+          <g class="lini-node lini-miss lini-t lini-block" transform="translate(-82.1375,9.5)">
+            <rect x="-89.8625" y="-6.5" width="179.725" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">resolved while the fault is live.</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380,92.5)">
+    </g>
+    <g class="lini-node lini-block" data-id="seam" style="fill: var(--lini-accent)" transform="translate(0,103.5)">
+      <rect x="-380" y="-1" width="760" height="2" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380,110.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-125.2562,141.25)">
+      <rect x="-254.7438" y="-24.75" width="509.4875" height="49.5" rx="0" ry="0"/>
+      <g class="lini-node lini-small lini-t lini-block" transform="translate(-10.7125,-18.5)">
+        <rect x="-244.0313" y="-6.25" width="488.0625" height="12.5" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A source that cannot be read says so — it never answers with an empty set, because</text>
+      </g>
+      <g class="lini-node lini-small lini-t lini-block" transform="translate(0,0)">
+        <rect x="-254.7438" y="-6.25" width="509.4875" height="12.5" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">empty and unreachable are the same sentence to whoever must decide what is missing.</text>
+      </g>
+      <g class="lini-node lini-small lini-t lini-block" transform="translate(-25.4187,18.5)">
+        <rect x="-229.325" y="-6.25" width="458.65" height="12.5" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Only a read the source calls COMPLETE may withdraw what it no longer names.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
 </svg>

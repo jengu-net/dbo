@@ -19,7 +19,7 @@ one of them mentions medicine.
 --8<-- "assets/diagrams/engine-and-faces.svg"
 
 <p class="diagram-caption">Run your eye along the lower row. That the engine has
-no FHIR in it is something you can check from the picture rather than something
+no domain in it is something you can check from the picture rather than something
 the picture asserts.</p>
 
 ## Why those concepts hold

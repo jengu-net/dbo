@@ -210,6 +210,26 @@
  * Everything is a class. A diagram carrying its own fill= is a diagram that
  * will be wrong the first time the palette moves. */
 
+/* A Lini-compiled figure names every colour it declares --lini-*, and Lini's
+ * own defaults sit in `@layer lini.defaults`. An unlayered rule beats a
+ * layered one whatever its specificity, so this hands the figures the site's
+ * palette without a fight — and they follow the header toggle for the same
+ * reason the hand-written ones do, rather than only the operating system.
+ *
+ * The hex values in the .lini source stay as they are: they are what a figure
+ * looks like opened on its own, away from this stylesheet. */
+.lini{
+  --lini-ink:var(--dbo-ink);     --lini-body:var(--dbo-body);
+  --lini-muted:var(--dbo-muted); --lini-faint:var(--dbo-faint);
+  --lini-panel:var(--dbo-panel); --lini-line:var(--dbo-line);
+  --lini-accent:var(--dbo-accent); --lini-bg:var(--dbo-bg);
+  --lini-seal:var(--dbo-seal); --lini-seal-soft:var(--dbo-seal-soft);
+  --lini-accent-soft:var(--dbo-accent-soft);
+  --lini-stroke:var(--dbo-line); --lini-fill:var(--dbo-panel);
+  --lini-fg:var(--dbo-body);
+  display:block; width:100%; height:auto; margin:2.4em 0;
+}
+
 .dbo-diagram{
   display:block; width:100%; height:auto; margin:2.4em 0;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;

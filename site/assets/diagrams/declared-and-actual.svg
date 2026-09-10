@@ -1,50 +1,121 @@
-<!--
-  Why a list of served tenants is the wrong question.
-
-  The drawing has to make one thing obvious: the two columns are allowed to
-  disagree, and the disagreement is the useful part. So the declared column is
-  complete and the runtime column is complete, and the reader can see that a
-  list of what is SERVING would have shown two of four and looked healthy.
--->
-<svg class="dbo-diagram" viewBox="0 0 760 282" role="img"
-     aria-labelledby="ds-title ds-desc" xmlns="http://www.w3.org/2000/svg">
-  <title id="ds-title">What was declared, and what the runtime is doing about it</title>
-  <desc id="ds-desc">Four tenants are declared. The runtime reports two as
-  serving, one as coming up, and one as failed to come up. A list of served
-  tenants alone would show only the two.</desc>
-
-  <text class="d-eyebrow" x="0" y="12">WHAT WAS DECLARED</text>
-  <rect class="d-box" x="0" y="26" width="300" height="164" rx="9"/>
-  <rect class="d-row" x="14" y="42" width="272" height="26" rx="5"/>
-  <text class="d-row-text" x="26" y="59">county-hospital.json</text>
-  <rect class="d-row" x="14" y="76" width="272" height="26" rx="5"/>
-  <text class="d-row-text" x="26" y="93">private-clinic.json</text>
-  <rect class="d-row" x="14" y="110" width="272" height="26" rx="5"/>
-  <text class="d-row-text" x="26" y="127">regional-lab.json</text>
-  <rect class="d-row" x="14" y="144" width="272" height="26" rx="5"/>
-  <text class="d-row-text" x="26" y="161">insurer.json</text>
-
-  <line class="d-arrow" x1="308" y1="106" x2="348" y2="106" marker-end="url(#ds-arrow)"/>
-  <defs>
-    <marker id="ds-arrow" viewBox="0 0 10 10" refX="9" refY="5"
-            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path class="d-arrowhead" d="M0,0 L10,5 L0,10 z"/>
-    </marker>
-  </defs>
-
-  <text class="d-eyebrow" x="364" y="12">WHAT THE RUNTIME SAYS IT IS DOING</text>
-  <rect class="d-box" x="364" y="26" width="396" height="164" rx="9"/>
-  <rect class="d-chip-seal" x="378" y="42" width="368" height="26" rx="5"/>
-  <text class="d-chip-text-seal" x="562" y="59">county-hospital — serving</text>
-  <rect class="d-chip-seal" x="378" y="76" width="368" height="26" rx="5"/>
-  <text class="d-chip-text-seal" x="562" y="93">private-clinic — serving</text>
-  <rect class="d-chip-live" x="378" y="110" width="368" height="26" rx="5"/>
-  <text class="d-chip-text-live" x="562" y="127">regional-lab — coming up; the next round is where that changes</text>
-  <rect class="d-chip-ghost" x="378" y="144" width="368" height="26" rx="5"/>
-  <text class="d-chip-text-faint" x="562" y="161">insurer — failed to come up, and will not change on its own</text>
-
-  <line class="d-seam" x1="0" y1="214" x2="760" y2="214"/>
-  <text class="d-note-small" x="0" y="236">A list of what is being served answers two of these four, and looks healthy. The state an</text>
-  <text class="d-note-small" x="0" y="254">operator most wants is the one such a list silently omits — so the runtime is asked what it</text>
-  <text class="d-note-small" x="0" y="272">is doing, rather than the directory what it contains.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -141.75 770.75 283.5" width="770.75" height="283.5" class="lini lini-scope-0856fe5d">
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-0856fe5d { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-0856fe5d[data-theme="dark"], [data-theme="dark"] .lini-scope-0856fe5d { color-scheme: dark; }
+      .lini-scope-0856fe5d[data-theme="light"], [data-theme="light"] .lini-scope-0856fe5d { color-scheme: light; }
+    }
+    .lini-scope-0856fe5d { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-0856fe5d .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-0856fe5d .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-0856fe5d .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-0856fe5d .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-0856fe5d .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-0856fe5d .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-0856fe5d .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-0856fe5d .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-0856fe5d .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-0856fe5d .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); stroke-width: 1.25; color: var(--lini-seal); font-size: 12px; font-weight: 600; }
+    .lini-scope-0856fe5d .lini-live { fill: var(--lini-accent-soft); stroke: var(--lini-accent); color: var(--lini-accent); }
+    .lini-scope-0856fe5d .lini-ghost { fill: none; stroke: var(--lini-line); color: var(--lini-faint); font-weight: normal; stroke-dasharray: 3,2.5; }
+    .lini-scope-0856fe5d .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-block" data-id="cols" transform="translate(0,-42.75)">
+      <rect x="-380" y="-95" width="760" height="190" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-228.625,0)">
+        <rect x="-151.375" y="-92.25" width="302.75" height="184.5" rx="0" ry="0"/>
+        <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-80.9175,-86.75)">
+          <rect x="-70.4575" y="-5.5" width="140.915" height="11" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">WHAT WAS DECLARED</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-151.375,-77.25)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,9.5)">
+          <rect x="-150.625" y="-82" width="301.25" height="164" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-136.625" y="-66.5" width="273.25" height="133" rx="0" ry="0"/>
+            <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,-52.875)">
+              <rect x="-136" y="-13" width="272" height="26" rx="5" ry="5"/>
+              <text class="lini-text" x="-52.4725" y="0" dy="0.358em">county-hospital.json</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,-17.625)">
+              <rect x="-136" y="-13" width="272" height="26" rx="5" ry="5"/>
+              <text class="lini-text" x="-61.8775" y="0" dy="0.358em">private-clinic.json</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,17.625)">
+              <rect x="-136" y="-13" width="272" height="26" rx="5" ry="5"/>
+              <text class="lini-text" x="-65.7175" y="0" dy="0.358em">regional-lab.json</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,52.875)">
+              <rect x="-136" y="-13" width="272" height="26" rx="5" ry="5"/>
+              <text class="lini-text" x="-83.5075" y="0" dy="0.358em">insurer.json</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-48,0)">
+        <rect x="-32" y="-95" width="64" height="190" rx="0" ry="0"/>
+        <g class="lini-node lini-line" style="stroke: var(--lini-accent); stroke-width: 1.75" transform="translate(-20,14)">
+          <line x1="0" y1="0" x2="36.5" y2="0"/>
+          <polygon class="lini-marker lini-marker-arrow" points="40,0 32,4 32,-4" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(183.375,0)">
+        <rect x="-199.375" y="-92.25" width="398.75" height="184.5" rx="0" ry="0"/>
+        <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-78.634,-86.75)">
+          <rect x="-120.741" y="-5.5" width="241.482" height="11" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">WHAT THE RUNTIME SAYS IT IS DOING</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-199.375,-77.25)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,9.5)">
+          <rect x="-198.625" y="-82" width="397.25" height="164" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-184.625" y="-66.5" width="369.25" height="133" rx="0" ry="0"/>
+            <g class="lini-node lini-sealed lini-box lini-block" transform="translate(0,-52.875)">
+              <rect x="-184" y="-13" width="368" height="26" rx="5" ry="5"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">county-hospital — serving</text>
+            </g>
+            <g class="lini-node lini-sealed lini-box lini-block" transform="translate(0,-17.625)">
+              <rect x="-184" y="-13" width="368" height="26" rx="5" ry="5"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">private-clinic — serving</text>
+            </g>
+            <g class="lini-node lini-live lini-sealed lini-box lini-block" transform="translate(0,17.625)">
+              <rect x="-184" y="-13" width="368" height="26" rx="5" ry="5"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">regional-lab — coming up; the next round is where that changes</text>
+            </g>
+            <g class="lini-node lini-ghost lini-sealed lini-box lini-block" style="stroke-dasharray: 5.5,4.375" transform="translate(0,52.875)">
+              <rect x="-184" y="-13" width="368" height="26" rx="5" ry="5"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">insurer — failed to come up, and will not change on its own</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380,63.25)">
+    </g>
+    <g class="lini-node lini-block" data-id="seam" style="fill: var(--lini-accent)" transform="translate(0,75.25)">
+      <rect x="-380" y="-1" width="760" height="2" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380,82.25)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-123.5125,113)">
+      <rect x="-256.4875" y="-24.75" width="512.975" height="49.5" rx="0" ry="0"/>
+      <g class="lini-node lini-small lini-t lini-block" transform="translate(-4.2188,-18.5)">
+        <rect x="-252.2688" y="-6.25" width="504.5375" height="12.5" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A list of what is being served answers two of these four, and looks healthy. The state an</text>
+      </g>
+      <g class="lini-node lini-small lini-t lini-block" transform="translate(0,0)">
+        <rect x="-256.4875" y="-6.25" width="512.975" height="12.5" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">operator most wants is the one such a list silently omits — so the runtime is asked what it</text>
+      </g>
+      <g class="lini-node lini-small lini-t lini-block" transform="translate(-109.9188,18.5)">
+        <rect x="-146.5688" y="-6.25" width="293.1375" height="12.5" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">is doing, rather than the directory what it contains.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
 </svg>

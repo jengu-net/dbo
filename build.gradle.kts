@@ -506,6 +506,123 @@ val siteTools by tasks.registering(Exec::class) {
     )
 }
 
+// ─── The diagrams ──────────────────────────────────────────────────────
+//
+// A figure is written in Lini (`site/diagrams/*.lini`) and compiled to SVG
+// (`site/assets/diagrams/*.svg`). BOTH are committed, and that is the point:
+// the site build consumes the SVG and never needs the compiler, so publishing
+// stays a Python-only job that a fork can run.
+//
+// The compiler is a Rust binary and there is no released artifact for it, so
+// it is a tool a diagram AUTHOR installs rather than one the build assumes:
+//
+//   cargo install lini --locked
+//   ./gradlew siteDiagrams        # rewrite the SVGs from the .lini sources
+//   ./gradlew siteDiagramsCheck   # fail if a committed SVG has drifted
+//
+// The font is the trap. Lini bakes text positions using its own bundled face
+// and centres every string on the baked point, so a browser that substitutes
+// another face renders alignment that is correct in the source and wrong on
+// the screen. Its own answer, `--embed-font`, writes three @font-face rules
+// into EVERY diagram: measured at 357kB against 11kB for the same drawing.
+//
+// So the faces are served once from site/assets/lini-font.css and the sources
+// name the family (`font-family: "Lini Sans"`). `siteDiagramFont` regenerates
+// that file, and is the thing to rerun when lini is upgraded.
+//
+// Set `-Plini=/path/to/lini` if the binary is not on PATH.
+val liniBin = (findProperty("lini") as String?) ?: "lini"
+val diagramSrc = siteDir.dir("diagrams")
+val diagramOut = siteDir.dir("assets/diagrams")
+
+fun liniCommand(target: File) = listOf(
+    "bash", "-c",
+    diagramSrc.asFile.listFiles { f: File -> f.extension == "lini" }
+        .orEmpty().sortedBy { it.name }.joinToString(" && ") { src ->
+            val svg = File(target, src.nameWithoutExtension + ".svg")
+            "'$liniBin' --strict '${src.absolutePath}' -o '${svg.absolutePath}'"
+        }.ifEmpty { "true" },
+)
+
+val siteDiagrams by tasks.registering(Exec::class) {
+    group = "documentation"
+    description = "Compiles site/diagrams/*.lini to site/assets/diagrams/*.svg."
+    inputs.dir(diagramSrc)
+    outputs.dir(diagramOut)
+    doFirst { diagramOut.asFile.mkdirs() }
+    commandLine(liniCommand(diagramOut.asFile))
+}
+
+// The ratchet. A generated file that is committed drifts silently the first
+// time somebody edits the output instead of the source, or upgrades the
+// compiler without rerunning it — so the check recompiles into a scratch
+// directory and diffs, the way the reach ledger and the exported-API record
+// fail when the tree stops matching what was recorded.
+// One diagram compiled with the faces embedded, with everything but the
+// @font-face rules thrown away. Regenerating is a deliberate act rather than
+// a build step: the output is 340kB of base64 that changes only when the
+// compiler does.
+val siteDiagramFont by tasks.registering {
+    group = "documentation"
+    description = "Rewrites site/assets/lini-font.css from lini's bundled faces."
+    doLast {
+        // Every source, not one: a diagram that reaches for the mono family
+        // embeds a face the others never mention, and sampling one file would
+        // leave that diagram rendering in whatever the browser falls back to.
+        val sources = diagramSrc.asFile.listFiles { f: File -> f.extension == "lini" }
+            .orEmpty().sortedBy { it.name }
+        if (sources.isEmpty()) throw GradleException("no .lini source to take the faces from")
+        val faces = sources.flatMap { src ->
+            val embedded = providers.exec {
+                commandLine(liniBin, "--strict", "--embed-font", src.absolutePath)
+            }.standardOutput.asText.get()
+            Regex("""@font-face\s*\{.*?\}""", RegexOption.DOT_MATCHES_ALL)
+                .findAll(embedded).map { it.value }.toList()
+        }.distinct().sorted()
+            // The embed pass renames the bundled families to "Lini Sans*",
+            // but a plain SVG asks the browser for the names the COMPILER
+            // knows — which are the ones the sources must use, because that
+            // is what it measures with. Serving the faces under those names
+            // is what makes a diagram render in the face it was measured in.
+            .map { it.replace("\"Lini Sans Code\"", "\"Google Sans Code\"")
+                     .replace("\"Lini Sans\"", "\"Google Sans\"") }
+        if (faces.isEmpty()) throw GradleException("lini embedded no @font-face rules")
+        // The header is kept and the faces are replaced wholesale. Writing
+        // them back without the separating newline once let a regeneration
+        // read its own output as header and accumulate the previous run's
+        // faces beside the new ones.
+        val css = siteDir.file("assets/lini-font.css").asFile
+        val header = css.readLines().takeWhile { !it.trimStart().startsWith("@font-face") }
+            .joinToString("\n").trimEnd()
+        css.writeText(header + "\n" + faces.joinToString("\n") + "\n")
+        logger.lifecycle("recorded ${faces.size} faces from ${sources.size} sources")
+    }
+}
+
+val siteDiagramsCheck by tasks.registering {
+    group = "verification"
+    description = "Fails when a committed diagram SVG differs from its .lini source."
+    inputs.dir(diagramSrc)
+    inputs.dir(diagramOut)
+    val scratch = layout.buildDirectory.dir("site-diagrams-check")
+    doLast {
+        val dir = scratch.get().asFile
+        dir.deleteRecursively(); dir.mkdirs()
+        providers.exec { commandLine(liniCommand(dir)) }.result.get().assertNormalExitValue()
+        val drifted = dir.listFiles().orEmpty().filter { fresh ->
+            val committed = File(diagramOut.asFile, fresh.name)
+            !committed.exists() || committed.readText() != fresh.readText()
+        }
+        if (drifted.isNotEmpty()) {
+            throw GradleException(
+                "these diagrams no longer match their source: " +
+                    drifted.joinToString(", ") { it.name } +
+                    " — run ./gradlew siteDiagrams and commit the result",
+            )
+        }
+    }
+}
+
 val siteAssemble by tasks.registering(Sync::class) {
     group = "documentation"
     description = "Assembles the site's source tree from docs/ and site/."

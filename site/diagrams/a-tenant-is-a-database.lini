@@ -1,0 +1,91 @@
+{
+  // The forgotten filter, on both arrangements.
+  //
+  // The argument is not that one is tidier. It is that on the left a bug
+  // produces somebody else's records and on the right the same bug produces
+  // nothing, because there is nothing else in there to produce. Both panels
+  // therefore show the SAME defect rather than a good query and a bad one —
+  // otherwise the picture would be about discipline, which is the thing
+  // being argued against.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed. So every piece of text that must
+  // sit left is wrapped, and its container aligns to start.
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12.5; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |capf::cap|      { color: --faint; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |line-item::box| { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                     height: 26; padding: 0 12; align: start; justify: center; }
+  |lt::t|          { font-size: 12; }
+  |miss::t|     { color: --faint; }
+  |has::t|      { font-weight: semibold; color: --seal; }
+  |code::t|     { font-family: "Google Sans Code"; font-size: 12.5; }
+  |codemiss::code| { color: --faint; }
+
+  layout: flow; direction: column; align: start; width: 760;
+  padding: 4; gap: 14;
+}
+
+|block#tops| { layout: grid; columns: 352, 352; gap: 56; align: start } [
+  |eyebrow| "One table, a tenant column"
+  |eyebrow| "A database each"
+]
+
+|block#panels| { layout: grid; columns: 352, 352; gap: 56; align: start } [
+  |panel| { width: 352; height: 132 } [ |col| { width: 324 } [
+    |line-item| { width: 324 } [ |lt| "hospital · Ada Lovelace" ]
+    |line-item| { width: 324 } [ |lt| "insurer · Grace Hopper" ]
+    |line-item| { width: 324 } [ |lt| "clinic · Alan Turing" ]
+    |line-item| { width: 324 } [ |lt| "hospital · Katherine Johnson" ]
+  ] ]
+  |col| { width: 352; gap: 8 } [
+    |panel| { width: 352; height: 60 } [ |col| { width: 324 } [
+      |cap| "hospital"
+      |line-item| { width: 324 } [ |lt| "Ada Lovelace · Katherine Johnson" ]
+    ] ]
+    |panel| { width: 352; height: 30; padding: 0 14; justify: center } [
+      |capf| "clinic — its own database" ]
+    |panel| { width: 352; height: 30; padding: 0 14; justify: center } [
+      |capf| "insurer — its own database" ]
+  ]
+]
+
+// Each outcome sits under the arrangement that produces it. Stacking both in
+// one column read as though both described the right-hand panel, which
+// inverts the whole point of the drawing.
+|block#outcomes| { layout: grid; columns: 352, 352; gap: 56; align: start } [
+  |col| { width: 352; gap: 4 } [
+    |miss| "returns four rows —"; |miss| "three of them not yours" ]
+  |col| { width: 352; gap: 4 } [
+    |has| "returns two rows, both yours,"; |has| "because there is nothing else in there" ]
+]
+
+|col| { gap: 10 } [
+  |small| "The same query, with the same bug in it, against both:"
+  |block#q| { layout: flow; direction: row; gap: 16; align: center } [
+    |code| "SELECT * FROM patients"
+    |codemiss| "-- the tenant filter that should be here"
+  ]
+]

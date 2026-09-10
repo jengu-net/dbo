@@ -1,0 +1,118 @@
+{
+  // One ordered feed, four consumers at different positions.
+  //
+  // This diagram keeps its coordinates, deliberately. Everywhere else a
+  // position is incidental and the layout engine should own it; here the
+  // position IS the content — how far a consumer sits from the head is the
+  // whole point — so each marker is translated to the place that means what
+  // it says. A name that does not fit is drawn off the edge rather than
+  // wrapped, which is the honest failure for this drawing.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed. So every piece of text that must
+  // sit left is wrapped, and its container aligns to start.
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12.5; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |capf::cap|      { color: --faint; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |line-item::box| { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                     height: 26; padding: 0 12; align: start; justify: center; }
+  |lt::t|          { font-size: 12; }
+  |event::box|  { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                  width: 30; height: 30; padding: 0; }
+  |lane::block| { width: 458; height: 40; }
+  |lag::line|   { stroke: --accent; stroke-width: 1.5; opacity: 0.5; }
+  |head-line::line| { stroke: --accent; stroke-width: 1.75; }
+  |dot::oval|   { width: 11; height: 11; fill: --accent; stroke: none; }
+  |name::t|     { font-size: 13; color: --body; }
+  |head-label::t| { font-size: 12; font-weight: semibold; color: --accent; }
+
+  layout: flow; direction: column; align: start; width: 760;
+  padding: 4; gap: 0; clearance: 2;
+}
+
+|block#chart| { layout: flow; direction: column; align: start; width: 760;
+                gap: 0; padding: 0 } [
+
+  |block| { layout: grid; columns: 228, 458, 74; gap: 0; align: start } [
+    |block| { height: 14 } []
+    |eyebrow| "The outbox, in commit order"
+    |block| { height: 14 } []
+  ]
+
+  // The head is one line down the whole chart rather than a mark per lane:
+  // what a reader measures is the distance to it, so it has to be one edge.
+  |head-line| { points: 0 0, 0 196; pin: center; translate: 306 -8; }
+
+  |block| { layout: grid; columns: 228, 458, 74; gap: 0; align: start } [
+    |block| { height: 30 } []
+    |block| { layout: grid; columns: repeat(12, 30); gap: 8; width: 458 } [
+      |event|; |event|; |event|; |event|; |event|; |event|
+      |event|; |event|; |event|; |event|; |event|; |event|
+    ]
+    |col| { width: 74; justify: center } [ |head-label| "head" { translate: 8 0 } ]
+  ]
+
+  |block| { layout: grid; columns: 228, 458, 74; gap: 0; align: center } [
+    |col| { width: 212; align: end } [ |name| "paging a result set" ]
+    |lane| [
+      |lag| { points: 0 0, 10 0; pin: center; translate: 224 0 }
+      |dot| { pin: center; translate: 219 0 }
+    ]
+    |block| { width: 74; height: 40 } []
+  ]
+  |block| { layout: grid; columns: 228, 458, 74; gap: 0; align: center } [
+    |col| { width: 212; align: end } [ |name| "a subscriber" ]
+    |lane| [
+      |lag| { points: 0 0, 40 0; pin: center; translate: 209 0 }
+      |dot| { pin: center; translate: 189 0 }
+    ]
+    |block| { width: 74; height: 40 } []
+  ]
+  |block| { layout: grid; columns: 228, 458, 74; gap: 0; align: center } [
+    |col| { width: 212; align: end } [ |name| "a tenant holding a copy" ]
+    |lane| [
+      |lag| { points: 0 0, 154 0; pin: center; translate: 152 0 }
+      |dot| { pin: center; translate: 75 0 }
+    ]
+    |block| { width: 74; height: 40 } []
+  ]
+  |block| { layout: grid; columns: 228, 458, 74; gap: 0; align: center } [
+    |col| { width: 212; align: end } [ |name| "an appliance, off since Friday" ]
+    |lane| [
+      |lag| { points: 0 0, 306 0; pin: center; translate: 76 0 }
+      |dot| { pin: center; translate: -77 0 }
+    ]
+    |block| { width: 74; height: 40 } []
+  ]
+]
+
+|block| { height: 16 } []
+|block| { layout: grid; columns: 228, 532; gap: 0; align: start } [
+  |block| { height: 4 } []
+  |col| { width: 532; gap: 4 } [
+    |small| "Four different problems, one kind of consumer:"
+    |small| "a name and a position, so the gap to the head means the same thing for each."
+  ]
+]

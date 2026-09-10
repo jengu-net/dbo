@@ -1,0 +1,94 @@
+{
+  // A run's trail, chained from the task the store minted.
+  //
+  // The links are drawn as a join rather than an arrow: an arrow says "then",
+  // and what these say is "and I commit to that one".
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed. So every piece of text that must
+  // sit left is wrapped, and its container aligns to start.
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12.5; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |capf::cap|      { color: --faint; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |line-item::box| { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                     height: 26; padding: 0 12; align: start; justify: center; }
+  |lt::t|          { font-size: 12; }
+  |seal-card::box| { radius: 8; fill: --seal-soft; stroke: --seal; stroke-width: 1.25;
+                     width: 134; height: 66; padding: 10 12; align: start; }
+  |live-card::box| { radius: 8; fill: --accent-soft; stroke: --accent; stroke-width: 1.25;
+                     width: 136; height: 66; padding: 10 12; align: start; }
+  |plain-card::box| { radius: 8; fill: --panel; stroke: --line; stroke-width: 1.5;
+                      width: 134; height: 66; padding: 10 12; align: start; }
+  |seal-t::t|  { font-size: 13; font-weight: semibold; color: --seal; }
+  |live-t::t|  { font-size: 13; font-weight: semibold; color: --accent; }
+  |join::block| { width: 22; height: 66; }
+  |joinline::line| { points: 0 0, 22 0; stroke: --accent; stroke-width: 1.5; }
+  |dot::oval|  { width: 8; height: 8; fill: --accent; stroke: none; }
+  |has::t|     { font-weight: semibold; color: --seal; }
+  |miss::t|    { color: --faint; }
+  |body::t|    { color: --muted; }
+
+  layout: flow; direction: column; align: start; width: 760;
+  padding: 4; gap: 0; clearance: 2;
+}
+
+|eyebrow| "One run, one chain"
+|block| { height: 8 } []
+
+|block#chain| { layout: grid; columns: 134, 22, 134, 22, 134, 22, 134, 22, 136;
+                gap: 0; align: center, center, center, center, center, center, center, center, center } [
+  |seal-card| [ |col| { width: 110; gap: 3 } [
+    |seal-t| "the task"; |small| "minted by the"; |small| "store, not asked for" ] ]
+  |join| [ |joinline| { pin: center }; |dot| { pin: center } ]
+  |plain-card| [ |col| { width: 110; gap: 3 } [
+    |cap| "travel"; |small| "handed to the"; |small| "carrier" ] ]
+  |join| [ |joinline| { pin: center }; |dot| { pin: center } ]
+  |plain-card| [ |col| { width: 110; gap: 3 } [
+    |cap| "travel"; |small| "handed to the"; |small| "laboratory" ] ]
+  |join| [ |joinline| { pin: center }; |dot| { pin: center } ]
+  |plain-card| [ |col| { width: 110; gap: 3 } [
+    |cap| "access"; |small| "the payload was"; |small| "opened" ] ]
+  |join| [ |joinline| { pin: center }; |dot| { pin: center } ]
+  |live-card| [ |col| { width: 112; gap: 3 } [
+    |live-t| "the result"; |small| "closes the run and"; |small| "names the head" ] ]
+]
+
+|block| { height: 14 } []
+|col| { gap: 0 } [ |small| "Each link is signed by the participant that made it." ]
+|block| { height: 14 } []
+|block#seam| { width: 760; height: 2; fill: --accent; }
+|block| { height: 12 } []
+
+|col| { gap: 9 } [
+  |has| "A journey that never started cannot be presented: the root is the store's."
+  |has| "A completion with a gap is refused, and told which link is missing."
+  |has| "A skipped hop is exposed by whoever writes the next entry."
+]
+|block| { height: 16 } []
+|col| { gap: 6 } [
+  |body| "And the one thing it does not buy, stated here because a chain invites the"
+  |body| "belief that it does: an intended recipient can open a payload and never say"
+  |miss| "so. This is non-forgery and non-repudiation. It is not omission-proofing."
+]

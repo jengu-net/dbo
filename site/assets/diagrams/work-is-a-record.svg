@@ -1,71 +1,210 @@
-<!--
-  Why a run being a record is the decision everything else follows from.
-  The two panels hold the same store; the difference is whether the work is
-  inside it. Everything the right-hand panel gets for free is a property the
-  left-hand panel would have had to build separately, which is the argument
-  the prose spends four paragraphs on.
--->
-<svg class="dbo-diagram" viewBox="0 0 760 290" role="img"
-     aria-labelledby="wk-title wk-desc" xmlns="http://www.w3.org/2000/svg">
-  <title id="wk-title">Work held beside the store, and work held in it</title>
-  <desc id="wk-desc">On the left, a store containing records and, beside it, a
-  separate queue holding work in flight. On the right, one store containing
-  both the records and the runs.</desc>
-
-  <!-- ── the usual arrangement ─────────────────────────────────── -->
-  <g>
-    <text class="d-eyebrow" x="0" y="12">A QUEUE BESIDE THE STORE</text>
-
-    <rect class="d-box" x="0" y="26" width="196" height="106" rx="9"/>
-    <text class="d-caption" x="12" y="46">the store</text>
-    <rect class="d-chip" x="12" y="58" width="80" height="26" rx="6"/>
-    <text class="d-chip-text" x="52" y="75">Patient</text>
-    <rect class="d-chip" x="100" y="58" width="84" height="26" rx="6"/>
-    <text class="d-chip-text" x="142" y="75">Observation</text>
-    <rect class="d-chip" x="12" y="92" width="80" height="26" rx="6"/>
-    <text class="d-chip-text" x="52" y="109">Encounter</text>
-
-    <line class="d-arrow-faint" x1="200" y1="79" x2="228" y2="79"/>
-
-    <rect class="d-dash" x="232" y="26" width="112" height="106" rx="9"/>
-    <text class="d-caption-faint" x="244" y="46">a queue</text>
-    <rect class="d-chip-ghost" x="244" y="58" width="88" height="26" rx="6"/>
-    <text class="d-chip-text-faint" x="288" y="75">run</text>
-    <rect class="d-chip-ghost" x="244" y="92" width="88" height="26" rx="6"/>
-    <text class="d-chip-text-faint" x="288" y="109">run</text>
-
-    <text class="d-note" x="0" y="158">Its own state, its own failure modes,</text>
-    <text class="d-note" x="0" y="176">and its own answer needed for each of:</text>
-    <text class="d-miss" x="0" y="202">history</text>
-    <text class="d-miss" x="0" y="222">an audit trail</text>
-    <text class="d-miss" x="0" y="242">an owner</text>
-    <text class="d-miss" x="0" y="262">surviving a restart</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384.75 -137 770.25 274" width="770.25" height="274" class="lini lini-scope-739cdf55">
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-739cdf55 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-stroke: #444444; }
+      .lini-scope-739cdf55[data-theme="dark"], [data-theme="dark"] .lini-scope-739cdf55 { color-scheme: dark; }
+      .lini-scope-739cdf55[data-theme="light"], [data-theme="light"] .lini-scope-739cdf55 { color-scheme: light; }
+    }
+    .lini-scope-739cdf55 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-739cdf55 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-739cdf55 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-739cdf55 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-739cdf55 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-739cdf55 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-739cdf55 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-739cdf55 .lini-capf { color: var(--lini-faint); }
+    .lini-scope-739cdf55 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-739cdf55 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-739cdf55 .lini-chip { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; color: var(--lini-body); font-size: 12px; }
+    .lini-scope-739cdf55 .lini-ghost { fill: none; color: var(--lini-faint); stroke-dasharray: 3,2.5; }
+    .lini-scope-739cdf55 .lini-live { fill: var(--lini-accent-soft); stroke: var(--lini-accent); color: var(--lini-accent); font-weight: 600; }
+    .lini-scope-739cdf55 .lini-dashed { fill: none; stroke: var(--lini-line); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-739cdf55 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-739cdf55 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-739cdf55 .lini-body { color: var(--lini-muted); }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-block" data-id="panels" transform="translate(0,0)">
+      <rect x="-380" y="-133" width="760" height="266" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-208,0)">
+        <rect x="-172" y="-133" width="344" height="266" rx="0" ry="0"/>
+        <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-83.301,-127.5)">
+          <rect x="-88.699" y="-5.5" width="177.398" height="11" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">A QUEUE BESIDE THE STORE</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-172,-118)">
+        </g>
+        <g class="lini-node lini-block" transform="translate(0,-57.5)">
+          <rect x="-172" y="-56.5" width="344" height="113" rx="0" ry="0"/>
+          <g class="lini-node lini-panel lini-box lini-block" transform="translate(-74,0)">
+            <rect x="-98" y="-53.75" width="196" height="107.5" rx="9" ry="9"/>
+            <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+              <rect x="-86" y="-41.75" width="172" height="83.5" rx="0" ry="0"/>
+              <g class="lini-node lini-cap lini-t lini-block" transform="translate(-58.089,-35.25)">
+                <rect x="-27.911" y="-6.5" width="55.822" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the store</text>
+              </g>
+              <g class="lini-node lini-block" transform="translate(0,10.5)">
+                <rect x="-86" y="-31.25" width="172" height="62.5" rx="0" ry="0"/>
+                <g class="lini-node lini-chip lini-box lini-block" transform="translate(-46,-17.625)">
+                  <rect x="-40" y="-13" width="80" height="26" rx="6" ry="6"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">Patient</text>
+                </g>
+                <g class="lini-node lini-chip lini-box lini-block" transform="translate(44,-17.625)">
+                  <rect x="-42" y="-13" width="84" height="26" rx="6" ry="6"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">Observation</text>
+                </g>
+                <g class="lini-node lini-chip lini-box lini-block" transform="translate(-46,17.625)">
+                  <rect x="-40" y="-13" width="80" height="26" rx="6" ry="6"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">Encounter</text>
+                </g>
+              </g>
+            </g>
+          </g>
+          <g class="lini-node lini-block" transform="translate(42,0)">
+            <rect x="-18" y="-53" width="36" height="106" rx="0" ry="0"/>
+            <g class="lini-node lini-line" style="stroke: var(--lini-line); stroke-width: 1.5" transform="translate(-14,0)">
+              <line x1="0" y1="0" x2="28" y2="0"/>
+            </g>
+          </g>
+          <g class="lini-node lini-dashed lini-box lini-block" transform="translate(116,0)">
+            <rect x="-56.625" y="-55.75" width="113.25" height="111.5" rx="9" ry="9"/>
+            <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+              <rect x="-44.625" y="-41.75" width="89.25" height="83.5" rx="0" ry="0"/>
+              <g class="lini-node lini-capf lini-cap lini-t lini-block" transform="translate(-20.3345,-35.25)">
+                <rect x="-24.2905" y="-6.5" width="48.581" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">a queue</text>
+              </g>
+              <g class="lini-node lini-ghost lini-chip lini-box lini-block" style="stroke-dasharray: 5.5,4.375" transform="translate(0,-7.125)">
+                <rect x="-44" y="-13" width="88" height="26" rx="6" ry="6"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">run</text>
+              </g>
+              <g class="lini-node lini-ghost lini-chip lini-box lini-block" style="stroke-dasharray: 5.5,4.375" transform="translate(0,28.125)">
+                <rect x="-44" y="-13" width="88" height="26" rx="6" ry="6"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">run</text>
+              </g>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-172,9)">
+        </g>
+        <g class="lini-node lini-col lini-block" transform="translate(0,34.5)">
+          <rect x="-172" y="-15.5" width="344" height="31" rx="0" ry="0"/>
+          <g class="lini-node lini-body lini-t lini-block" transform="translate(-63.957,-9)">
+            <rect x="-108.043" y="-6.5" width="216.086" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">Its own state, its own failure modes,</text>
+          </g>
+          <g class="lini-node lini-body lini-t lini-block" transform="translate(-53.5115,9)">
+            <rect x="-118.4885" y="-6.5" width="236.977" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">and its own answer needed for each of:</text>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-172,55)">
+        </g>
+        <g class="lini-node lini-col lini-block" transform="translate(0,96.5)">
+          <rect x="-172" y="-36.5" width="344" height="73" rx="0" ry="0"/>
+          <g class="lini-node lini-miss lini-t lini-block" transform="translate(-151.0245,-30)">
+            <rect x="-20.9755" y="-6.5" width="41.951" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">history</text>
+          </g>
+          <g class="lini-node lini-miss lini-t lini-block" transform="translate(-134.6705,-10)">
+            <rect x="-37.3295" y="-6.5" width="74.659" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">an audit trail</text>
+          </g>
+          <g class="lini-node lini-miss lini-t lini-block" transform="translate(-144.0045,10)">
+            <rect x="-27.9955" y="-6.5" width="55.991" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">an owner</text>
+          </g>
+          <g class="lini-node lini-miss lini-t lini-block" transform="translate(-117.5625,30)">
+            <rect x="-54.4375" y="-6.5" width="108.875" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">surviving a restart</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(0,0)">
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(208.75,0)">
+        <rect x="-172.75" y="-131" width="345.5" height="262" rx="0" ry="0"/>
+        <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-108.1225,-125.5)">
+          <rect x="-64.6275" y="-5.5" width="129.255" height="11" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">WORK IN THE STORE</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-172.75,-116)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,-57.5)">
+          <rect x="-172" y="-53.75" width="344" height="107.5" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-160" y="-41.75" width="320" height="83.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-132.089,-35.25)">
+              <rect x="-27.911" y="-6.5" width="55.822" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the store</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-30,10.5)">
+              <rect x="-130" y="-31.25" width="260" height="62.5" rx="0" ry="0"/>
+              <g class="lini-node lini-chip lini-box lini-block" transform="translate(-90,-17.625)">
+                <rect x="-40" y="-13" width="80" height="26" rx="6" ry="6"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">Patient</text>
+              </g>
+              <g class="lini-node lini-chip lini-box lini-block" transform="translate(0,-17.625)">
+                <rect x="-42" y="-13" width="84" height="26" rx="6" ry="6"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">Observation</text>
+              </g>
+              <g class="lini-node lini-chip lini-box lini-block" transform="translate(90,-17.625)">
+                <rect x="-40" y="-13" width="80" height="26" rx="6" ry="6"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">Encounter</text>
+              </g>
+              <g class="lini-node lini-live lini-chip lini-box lini-block" transform="translate(-90,17.625)">
+                <rect x="-40" y="-13" width="80" height="26" rx="6" ry="6"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">run</text>
+              </g>
+              <g class="lini-node lini-live lini-chip lini-box lini-block" transform="translate(0,17.625)">
+                <rect x="-42" y="-13" width="84" height="26" rx="6" ry="6"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">run</text>
+              </g>
+              <g class="lini-node lini-live lini-chip lini-box lini-block" transform="translate(90,17.625)">
+                <rect x="-40" y="-13" width="80" height="26" rx="6" ry="6"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">run</text>
+              </g>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-172.75,7)">
+        </g>
+        <g class="lini-node lini-col lini-block" transform="translate(-0.75,32.5)">
+          <rect x="-172" y="-15.5" width="344" height="31" rx="0" ry="0"/>
+          <g class="lini-node lini-body lini-t lini-block" transform="translate(-76.2745,-9)">
+            <rect x="-95.7255" y="-6.5" width="191.451" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">A run is an ordinary record, so it</text>
+          </g>
+          <g class="lini-node lini-body lini-t lini-block" transform="translate(-60.889,9)">
+            <rect x="-111.111" y="-6.5" width="222.222" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">already has, without anything added:</text>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-172.75,53)">
+        </g>
+        <g class="lini-node lini-col lini-block" transform="translate(-0.75,94.5)">
+          <rect x="-172" y="-36.5" width="344" height="73" rx="0" ry="0"/>
+          <g class="lini-node lini-has lini-t lini-block" transform="translate(-150.537,-30)">
+            <rect x="-21.463" y="-6.5" width="42.926" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">history</text>
+          </g>
+          <g class="lini-node lini-has lini-t lini-block" transform="translate(-133.8645,-10)">
+            <rect x="-38.1355" y="-6.5" width="76.271" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">an audit trail</text>
+          </g>
+          <g class="lini-node lini-has lini-t lini-block" transform="translate(-143.582,10)">
+            <rect x="-28.418" y="-6.5" width="56.836" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">an owner</text>
+          </g>
+          <g class="lini-node lini-has lini-t lini-block" transform="translate(-110.4775,30)">
+            <rect x="-61.5225" y="-6.5" width="123.045" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">it was never in flight</text>
+          </g>
+        </g>
+      </g>
+    </g>
   </g>
-
-  <!-- ── this store ────────────────────────────────────────────── -->
-  <g transform="translate(416,0)">
-    <text class="d-eyebrow" x="0" y="12">WORK IN THE STORE</text>
-
-    <rect class="d-box" x="0" y="26" width="344" height="106" rx="9"/>
-    <text class="d-caption" x="12" y="46">the store</text>
-    <rect class="d-chip" x="12" y="58" width="80" height="26" rx="6"/>
-    <text class="d-chip-text" x="52" y="75">Patient</text>
-    <rect class="d-chip" x="100" y="58" width="84" height="26" rx="6"/>
-    <text class="d-chip-text" x="142" y="75">Observation</text>
-    <rect class="d-chip" x="192" y="58" width="80" height="26" rx="6"/>
-    <text class="d-chip-text" x="232" y="75">Encounter</text>
-    <rect class="d-chip-live" x="12" y="92" width="80" height="26" rx="6"/>
-    <text class="d-chip-text-live" x="52" y="109">run</text>
-    <rect class="d-chip-live" x="100" y="92" width="84" height="26" rx="6"/>
-    <text class="d-chip-text-live" x="142" y="109">run</text>
-    <rect class="d-chip-live" x="192" y="92" width="80" height="26" rx="6"/>
-    <text class="d-chip-text-live" x="232" y="109">run</text>
-
-    <text class="d-note" x="0" y="158">A run is an ordinary record, so it</text>
-    <text class="d-note" x="0" y="176">already has, without anything added:</text>
-    <text class="d-has" x="0" y="202">history</text>
-    <text class="d-has" x="0" y="222">an audit trail</text>
-    <text class="d-has" x="0" y="242">an owner</text>
-    <text class="d-has" x="0" y="262">it was never in flight</text>
-  </g>
+  <g class="lini-links"/>
 </svg>

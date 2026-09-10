@@ -1,74 +1,159 @@
-<!--
-  The claim the whole product leads with, drawn as a seam.
-
-  The horizontal line is doing the work. What matters is not that there are
-  boxes above and boxes below, it is that a reader can run their eye along
-  the lower row and find nothing clinical in it — so the sentence "the engine
-  has no FHIR in it" is checkable from the picture rather than asserted by
-  it. That is why every concept is listed rather than summarised.
-
-  The third face is dashed because it does not exist. A drawing that shows
-  what is specified as though it were built is a drawing that lies, and this
-  one is about a founding requirement the code does not yet meet.
--->
-<svg class="dbo-diagram" viewBox="0 0 760 342" role="img"
-     aria-labelledby="ef-title ef-desc" xmlns="http://www.w3.org/2000/svg">
-  <title id="ef-title">Faces above the seam, the engine's concepts below it</title>
-  <desc id="ef-desc">Two FHIR faces, R4 and R5, and a third face for another
-  domain that is specified but not built, sit above a seam. Below it the
-  engine's concepts are listed: object, identity, envelope, declared
-  handling, history, change feed, tenancy and zone, custody, erasure and
-  terminology. None of them is clinical.</desc>
-
-  <text class="d-eyebrow" x="0" y="12">FACES — ONE DOMAIN'S STANDARDS</text>
-
-  <rect class="d-box" x="0" y="26" width="228" height="56" rx="9"/>
-  <text class="d-caption" x="16" y="50">FHIR R4</text>
-  <text class="d-note-small" x="16" y="70">serving tenants today</text>
-
-  <rect class="d-box" x="244" y="26" width="228" height="56" rx="9"/>
-  <text class="d-caption" x="260" y="50">FHIR R5</text>
-  <text class="d-note-small" x="260" y="70">beside R4, same engine</text>
-
-  <rect class="d-dash" x="488" y="26" width="272" height="56" rx="9"/>
-  <text class="d-caption-faint" x="504" y="50">a domain that is not medicine</text>
-  <text class="d-note-small" x="504" y="70">specified, not built</text>
-
-  <line class="d-arrow-faint" x1="114" y1="86" x2="114" y2="112"/>
-  <line class="d-arrow-faint" x1="358" y1="86" x2="358" y2="112"/>
-  <line class="d-arrow-faint" x1="624" y1="86" x2="624" y2="112"/>
-
-  <!-- the seam -->
-  <line class="d-seam" x1="0" y1="118" x2="760" y2="118"/>
-  <text class="d-caption-accent" x="0" y="136">a face maps a standard onto the concepts below — and nothing below knows it did</text>
-
-  <!-- the engine -->
-  <rect class="d-box" x="0" y="150" width="760" height="180" rx="9"/>
-  <text class="d-eyebrow" x="16" y="174">THE ENGINE — NO FHIR IN IT</text>
-
-  <rect class="d-chip" x="16" y="188" width="136" height="30" rx="7"/>
-  <text class="d-chip-text" x="84" y="207">object</text>
-  <rect class="d-chip" x="164" y="188" width="136" height="30" rx="7"/>
-  <text class="d-chip-text" x="232" y="207">identity</text>
-  <rect class="d-chip" x="312" y="188" width="136" height="30" rx="7"/>
-  <text class="d-chip-text" x="380" y="207">envelope</text>
-  <rect class="d-chip" x="460" y="188" width="136" height="30" rx="7"/>
-  <text class="d-chip-text" x="528" y="207">declared handling</text>
-  <rect class="d-chip" x="608" y="188" width="136" height="30" rx="7"/>
-  <text class="d-chip-text" x="676" y="207">history</text>
-
-  <rect class="d-chip" x="16" y="228" width="136" height="30" rx="7"/>
-  <text class="d-chip-text" x="84" y="247">change feed</text>
-  <rect class="d-chip" x="164" y="228" width="136" height="30" rx="7"/>
-  <text class="d-chip-text" x="232" y="247">tenancy and zone</text>
-  <rect class="d-chip" x="312" y="228" width="136" height="30" rx="7"/>
-  <text class="d-chip-text" x="380" y="247">custody</text>
-  <rect class="d-chip" x="460" y="228" width="136" height="30" rx="7"/>
-  <text class="d-chip-text" x="528" y="247">erasure</text>
-  <rect class="d-chip" x="608" y="228" width="136" height="30" rx="7"/>
-  <text class="d-chip-text" x="676" y="247">terminology</text>
-
-  <text class="d-note-small" x="16" y="288">Every one of those is what European regulation asks of any system holding personal data:</text>
-  <text class="d-note-small" x="16" y="308">know what you hold, know who may change it, prove what happened, separate identity,</text>
-  <text class="d-note-small" x="16" y="322">erase on request, let people leave with their data.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-380.75 -168.25 761.5 336.5" width="761.5" height="336.5" class="lini lini-scope-d2c8fed1">
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-d2c8fed1 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-stroke: #444444; }
+      .lini-scope-d2c8fed1[data-theme="dark"], [data-theme="dark"] .lini-scope-d2c8fed1 { color-scheme: dark; }
+      .lini-scope-d2c8fed1[data-theme="light"], [data-theme="light"] .lini-scope-d2c8fed1 { color-scheme: light; }
+    }
+    .lini-scope-d2c8fed1 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-d2c8fed1 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-d2c8fed1 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-d2c8fed1 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-d2c8fed1 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-d2c8fed1 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-d2c8fed1 .lini-face { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-d2c8fed1 .lini-unbuilt { fill: none; stroke-dasharray: 3,2.5; }
+    .lini-scope-d2c8fed1 .lini-title { color: var(--lini-ink); font-size: 13px; font-weight: 600; }
+    .lini-scope-d2c8fed1 .lini-ghost { color: var(--lini-faint); }
+    .lini-scope-d2c8fed1 .lini-sub { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-d2c8fed1 .lini-drop { stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-d2c8fed1 .lini-chip { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; color: var(--lini-body); font-size: 12px; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-block" transform="translate(-0.75,-155.25)">
+      <rect x="-380" y="-13" width="760" height="26" rx="0" ry="0"/>
+      <text class="lini-text" x="-261.8675" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">FACES — ONE DOMAIN&apos;S STANDARDS</text>
+    </g>
+    <g class="lini-node lini-block" data-id="faces" transform="translate(-0.75,-111.75)">
+      <rect x="-380" y="-30.5" width="760" height="61" rx="0" ry="0"/>
+      <g class="lini-node lini-face lini-box lini-block" transform="translate(-266,0)">
+        <rect x="-113.25" y="-29.75" width="226.5" height="59.5" rx="9" ry="9"/>
+        <g class="lini-node lini-card lini-block" transform="translate(0,0)">
+          <rect x="-98" y="-15.75" width="196" height="31.5" rx="0" ry="0"/>
+          <g class="lini-node lini-title lini-block" transform="translate(-74.145,-9.25)">
+            <rect x="-23.855" y="-6.5" width="47.71" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">FHIR R4</text>
+          </g>
+          <g class="lini-node lini-sub lini-block" transform="translate(-34.8313,9.5)">
+            <rect x="-63.1687" y="-6.25" width="126.3375" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">serving tenants today</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-face lini-box lini-block" transform="translate(-22,0)">
+        <rect x="-113.25" y="-29.75" width="226.5" height="59.5" rx="9" ry="9"/>
+        <g class="lini-node lini-card lini-block" transform="translate(0,0)">
+          <rect x="-98" y="-15.75" width="196" height="31.5" rx="0" ry="0"/>
+          <g class="lini-node lini-title lini-block" transform="translate(-74.4375,-9.25)">
+            <rect x="-23.5625" y="-6.5" width="47.125" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">FHIR R5</text>
+          </g>
+          <g class="lini-node lini-sub lini-block" transform="translate(-29.825,9.5)">
+            <rect x="-68.175" y="-6.25" width="136.35" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">beside R4, same engine</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-unbuilt lini-face lini-box lini-block" style="stroke-dasharray: 6,4.75" transform="translate(244,0)">
+        <rect x="-135.25" y="-29.75" width="270.5" height="59.5" rx="9" ry="9"/>
+        <g class="lini-node lini-card lini-block" transform="translate(0,0)">
+          <rect x="-120" y="-15.75" width="240" height="31.5" rx="0" ry="0"/>
+          <g class="lini-node lini-ghost lini-title lini-block" transform="translate(-30.118,-9.25)">
+            <rect x="-89.882" y="-6.5" width="179.764" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a domain that is not medicine</text>
+          </g>
+          <g class="lini-node lini-sub lini-block" transform="translate(-66.2625,9.5)">
+            <rect x="-53.7375" y="-6.25" width="107.475" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">specified, not built</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" data-id="drops" transform="translate(-0.75,-63.25)">
+      <rect x="-380" y="-18" width="760" height="36" rx="0" ry="0"/>
+      <g class="lini-node lini-drop lini-line" transform="translate(-266,-13)">
+        <line x1="0" y1="0" x2="0" y2="26"/>
+      </g>
+      <g class="lini-node lini-drop lini-line" transform="translate(-22,-13)">
+        <line x1="0" y1="0" x2="0" y2="26"/>
+      </g>
+      <g class="lini-node lini-drop lini-line" transform="translate(244,-13)">
+        <line x1="0" y1="0" x2="0" y2="26"/>
+      </g>
+    </g>
+    <g class="lini-node lini-block" data-id="seam" style="fill: var(--lini-accent)" transform="translate(-0.75,-44.25)">
+      <rect x="-380" y="-1" width="760" height="2" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" data-id="lede" style="color: var(--lini-accent); font-size: 12px; font-weight: 600" transform="translate(-0.75,-28.25)">
+      <rect x="-380" y="-15" width="760" height="30" rx="0" ry="0"/>
+      <text class="lini-text" x="-146.516" y="0" dy="0.358em">a face maps a standard onto the concepts below — and nothing below knows it did</text>
+    </g>
+    <g class="lini-node lini-box lini-block" data-id="engine" style="fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5" transform="translate(0,77.5)">
+      <rect x="-380" y="-90" width="760" height="180" rx="9" ry="9"/>
+      <g class="lini-node lini-card lini-block" transform="translate(0,0)">
+        <rect x="-364" y="-72.75" width="728" height="145.5" rx="0" ry="0"/>
+        <g class="lini-node lini-eyebrow lini-block" transform="translate(-261.296,-59.75)">
+          <rect x="-102.704" y="-13" width="205.408" height="26" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">THE ENGINE — NO DOMAIN IN IT</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(0,-5.75)">
+          <rect x="-364" y="-41" width="728" height="82" rx="0" ry="0"/>
+          <g class="lini-node lini-chip lini-box lini-block" transform="translate(-296,-20.625)">
+            <rect x="-68" y="-15" width="136" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">object</text>
+          </g>
+          <g class="lini-node lini-chip lini-box lini-block" transform="translate(-148,-20.625)">
+            <rect x="-68" y="-15" width="136" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">identity</text>
+          </g>
+          <g class="lini-node lini-chip lini-box lini-block" transform="translate(0,-20.625)">
+            <rect x="-68" y="-15" width="136" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">envelope</text>
+          </g>
+          <g class="lini-node lini-chip lini-box lini-block" transform="translate(148,-20.625)">
+            <rect x="-68" y="-15" width="136" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">declared handling</text>
+          </g>
+          <g class="lini-node lini-chip lini-box lini-block" transform="translate(296,-20.625)">
+            <rect x="-68" y="-15" width="136" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">history</text>
+          </g>
+          <g class="lini-node lini-chip lini-box lini-block" transform="translate(-296,20.625)">
+            <rect x="-68" y="-15" width="136" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">change feed</text>
+          </g>
+          <g class="lini-node lini-chip lini-box lini-block" transform="translate(-148,20.625)">
+            <rect x="-68" y="-15" width="136" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">tenancy and zone</text>
+          </g>
+          <g class="lini-node lini-chip lini-box lini-block" transform="translate(0,20.625)">
+            <rect x="-68" y="-15" width="136" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">custody</text>
+          </g>
+          <g class="lini-node lini-chip lini-box lini-block" transform="translate(148,20.625)">
+            <rect x="-68" y="-15" width="136" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">erasure</text>
+          </g>
+          <g class="lini-node lini-chip lini-box lini-block" transform="translate(296,20.625)">
+            <rect x="-68" y="-15" width="136" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">terminology</text>
+          </g>
+        </g>
+        <g class="lini-node lini-sub lini-block" transform="translate(-105.5937,41.5)">
+          <rect x="-258.4063" y="-6.25" width="516.8125" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">Every one of those is what European regulation asks of any system holding personal data:</text>
+        </g>
+        <g class="lini-node lini-sub lini-block" transform="translate(-110.35,54)">
+          <rect x="-253.65" y="-6.25" width="507.3" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">know what you hold, know who may change it, prove what happened, separate identity,</text>
+        </g>
+        <g class="lini-node lini-sub lini-block" transform="translate(-221.025,66.5)">
+          <rect x="-142.975" y="-6.25" width="285.95" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">erase on request, let people leave with their data.</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
 </svg>

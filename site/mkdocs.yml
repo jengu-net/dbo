@@ -57,6 +57,7 @@ theme:
         name: Light
 
 extra_css:
+  - assets/lini-font.css
   - assets/dbo.css
 
 plugins:

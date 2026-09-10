@@ -1,64 +1,188 @@
-<!--
-  The layering rule, drawn once.
-  Containment is the whole argument: a tenant's chips are drawn INSIDE the
-  zone's, so "cannot widen" is a fact about the picture rather than a caption
-  on it. The refused broker is outside the boundary for the same reason.
--->
-<svg class="dbo-diagram" viewBox="0 0 760 300" role="img"
-     aria-labelledby="zn-title zn-desc" xmlns="http://www.w3.org/2000/svg">
-  <title id="zn-title">A zone declares the set; a tenant narrows it</title>
-  <desc id="zn-desc">A zone declares three identity brokers. Two tenants
-  inside it each accept a subset — one accepts two of the three, the other
-  accepts one. A fourth broker outside the zone cannot be accepted by
-  anyone.</desc>
-
-  <!-- the jurisdiction -->
-  <rect class="d-region" x="0" y="22" width="560" height="256" rx="12"/>
-  <text class="d-eyebrow" x="16" y="14">ZONE — THE JURISDICTION</text>
-  <text class="d-caption" x="16" y="48">declares which brokers exist</text>
-
-  <rect class="d-chip-seal" x="16" y="60" width="106" height="30" rx="7"/>
-  <text class="d-chip-text-seal" x="69" y="79">broker A</text>
-  <rect class="d-chip-seal" x="132" y="60" width="106" height="30" rx="7"/>
-  <text class="d-chip-text-seal" x="185" y="79">broker B</text>
-  <rect class="d-chip-seal" x="248" y="60" width="106" height="30" rx="7"/>
-  <text class="d-chip-text-seal" x="301" y="79">broker C</text>
-
-  <!-- a tenant that takes two of them -->
-  <rect class="d-box" x="16" y="112" width="252" height="148" rx="9"/>
-  <text class="d-caption" x="30" y="134">county hospital</text>
-  <text class="d-note-small" x="30" y="152">accepts</text>
-  <rect class="d-chip-seal" x="30" y="164" width="106" height="30" rx="7"/>
-  <text class="d-chip-text-seal" x="83" y="183">broker A</text>
-  <rect class="d-chip-seal" x="146" y="164" width="106" height="30" rx="7"/>
-  <text class="d-chip-text-seal" x="199" y="183">broker B</text>
-  <text class="d-note-small" x="30" y="222">a policy, not a claim that</text>
-  <text class="d-note-small" x="30" y="240">the third one does not work</text>
-
-  <!-- a tenant that takes one -->
-  <rect class="d-box" x="288" y="112" width="256" height="148" rx="9"/>
-  <text class="d-caption" x="302" y="134">private clinic</text>
-  <text class="d-note-small" x="302" y="152">accepts</text>
-  <rect class="d-chip-seal" x="302" y="164" width="106" height="30" rx="7"/>
-  <text class="d-chip-text-seal" x="355" y="183">broker B</text>
-  <text class="d-note-small" x="302" y="222">narrower still, and nobody</text>
-  <text class="d-note-small" x="302" y="240">else is affected by that</text>
-
-  <!-- what cannot happen -->
-  <g transform="translate(596,0)">
-    <text class="d-eyebrow" x="0" y="14">OUTSIDE</text>
-    <rect class="d-chip-ghost" x="0" y="60" width="106" height="30" rx="7"/>
-    <text class="d-chip-text-faint" x="53" y="79">broker D</text>
-    <!-- One line, not a cross: the chip has to stay readable, because the
-         point is which broker cannot be accepted rather than that something
-         has been struck out. -->
-    <line class="d-strike-soft" x1="6" y1="88" x2="100" y2="62"/>
-    <text class="d-note-small" x="0" y="118">A tenant cannot accept</text>
-    <text class="d-note-small" x="0" y="136">what the zone did not</text>
-    <text class="d-note-small" x="0" y="154">declare. Widening is an</text>
-    <text class="d-note-small" x="0" y="172">act by the party with</text>
-    <text class="d-note-small" x="0" y="190">standing; narrowing is</text>
-    <text class="d-note-small" x="0" y="208">always available to the</text>
-    <text class="d-note-small" x="0" y="226">party underneath.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384.75 -144.125 769.5 288.25" width="769.5" height="288.25" class="lini lini-scope-a605a7ec">
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-a605a7ec { color-scheme: light dark; --lini-accent-soft: #f6efe4; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-a605a7ec[data-theme="dark"], [data-theme="dark"] .lini-scope-a605a7ec { color-scheme: dark; }
+      .lini-scope-a605a7ec[data-theme="light"], [data-theme="light"] .lini-scope-a605a7ec { color-scheme: light; }
+    }
+    .lini-scope-a605a7ec { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-a605a7ec .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-a605a7ec .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-a605a7ec .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-a605a7ec .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-a605a7ec .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-a605a7ec .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-a605a7ec .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-a605a7ec .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-a605a7ec .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-a605a7ec .lini-region { fill: var(--lini-accent-soft); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-a605a7ec .lini-sealchip { fill: var(--lini-seal-soft); stroke: var(--lini-seal); stroke-width: 1.25; color: var(--lini-seal); font-size: 12px; font-weight: 600; }
+    .lini-scope-a605a7ec .lini-ghostchip { fill: none; stroke: var(--lini-line); color: var(--lini-faint); font-weight: normal; stroke-dasharray: 3,2.5; }
+    .lini-scope-a605a7ec .lini-strike { stroke: var(--lini-faint); stroke-width: 1.75; opacity: 0.7; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-col lini-block" transform="translate(-100,0)">
+      <rect x="-280.75" y="-140.125" width="561.5" height="280.25" rx="0" ry="0"/>
+      <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-194.279,-134.625)">
+        <rect x="-86.471" y="-5.5" width="172.942" height="11" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">ZONE — THE JURISDICTION</text>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-280.75,-125.125)">
+      </g>
+      <g class="lini-node lini-region lini-box lini-block" transform="translate(0,9.5)">
+        <rect x="-280" y="-129.875" width="560" height="259.75" rx="12" ry="12"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-264" y="-113.875" width="528" height="227.75" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-176.692,-107.375)">
+            <rect x="-87.308" y="-6.5" width="174.616" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">declares which brokers exist</text>
+          </g>
+          <g class="lini-node lini-block" transform="translate(-264,-94.875)">
+          </g>
+          <g class="lini-node lini-block" transform="translate(-95,-73.25)">
+            <rect x="-169" y="-15.625" width="338" height="31.25" rx="0" ry="0"/>
+            <g class="lini-node lini-sealchip lini-box lini-block" transform="translate(-116,0)">
+              <rect x="-53" y="-15" width="106" height="30" rx="7" ry="7"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">broker A</text>
+            </g>
+            <g class="lini-node lini-sealchip lini-box lini-block" transform="translate(0,0)">
+              <rect x="-53" y="-15" width="106" height="30" rx="7" ry="7"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">broker B</text>
+            </g>
+            <g class="lini-node lini-sealchip lini-box lini-block" transform="translate(116,0)">
+              <rect x="-53" y="-15" width="106" height="30" rx="7" ry="7"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">broker C</text>
+            </g>
+          </g>
+          <g class="lini-node lini-block" transform="translate(-264,-46.625)">
+          </g>
+          <g class="lini-node lini-block" transform="translate(0,39.125)">
+            <rect x="-264" y="-74.75" width="528" height="149.5" rx="0" ry="0"/>
+            <g class="lini-node lini-panel lini-box lini-block" transform="translate(-137.25,0)">
+              <rect x="-126" y="-74" width="252" height="148" rx="9" ry="9"/>
+              <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+                <rect x="-112" y="-57.875" width="224" height="115.75" rx="0" ry="0"/>
+                <g class="lini-node lini-cap lini-t lini-block" transform="translate(-64.615,-51.375)">
+                  <rect x="-47.385" y="-6.5" width="94.77" height="13" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">county hospital</text>
+                </g>
+                <g class="lini-node lini-block" transform="translate(-112,-41.875)">
+                </g>
+                <g class="lini-node lini-small lini-t lini-block" transform="translate(-88.7938,-32.625)">
+                  <rect x="-23.2062" y="-6.25" width="46.4125" height="12.5" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">accepts</text>
+                </g>
+                <g class="lini-node lini-block" transform="translate(-112,-22.375)">
+                </g>
+                <g class="lini-node lini-block" transform="translate(-1,-2.75)">
+                  <rect x="-111" y="-15.625" width="222" height="31.25" rx="0" ry="0"/>
+                  <g class="lini-node lini-sealchip lini-box lini-block" transform="translate(-58,0)">
+                    <rect x="-53" y="-15" width="106" height="30" rx="7" ry="7"/>
+                    <text class="lini-text" x="0" y="0" dy="0.358em">broker A</text>
+                  </g>
+                  <g class="lini-node lini-sealchip lini-box lini-block" transform="translate(58,0)">
+                    <rect x="-53" y="-15" width="106" height="30" rx="7" ry="7"/>
+                    <text class="lini-text" x="0" y="0" dy="0.358em">broker B</text>
+                  </g>
+                </g>
+                <g class="lini-node lini-block" transform="translate(-112,22.875)">
+                </g>
+                <g class="lini-node lini-small lini-t lini-block" transform="translate(-41.8875,39.125)">
+                  <rect x="-70.1125" y="-6.25" width="140.225" height="12.5" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">a policy, not a claim that</text>
+                </g>
+                <g class="lini-node lini-small lini-t lini-block" transform="translate(-31.6938,51.625)">
+                  <rect x="-80.3062" y="-6.25" width="160.6125" height="12.5" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">the third one does not work</text>
+                </g>
+              </g>
+            </g>
+            <g class="lini-node lini-panel lini-box lini-block" transform="translate(136.75,0)">
+              <rect x="-128" y="-74" width="256" height="148" rx="9" ry="9"/>
+              <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+                <rect x="-114" y="-57.875" width="228" height="115.75" rx="0" ry="0"/>
+                <g class="lini-node lini-cap lini-t lini-block" transform="translate(-74.753,-51.375)">
+                  <rect x="-39.247" y="-6.5" width="78.494" height="13" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">private clinic</text>
+                </g>
+                <g class="lini-node lini-block" transform="translate(-114,-41.875)">
+                </g>
+                <g class="lini-node lini-small lini-t lini-block" transform="translate(-90.7938,-32.625)">
+                  <rect x="-23.2062" y="-6.25" width="46.4125" height="12.5" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">accepts</text>
+                </g>
+                <g class="lini-node lini-block" transform="translate(-114,-22.375)">
+                </g>
+                <g class="lini-node lini-sealchip lini-box lini-block" transform="translate(-60.375,-2.75)">
+                  <rect x="-53" y="-15" width="106" height="30" rx="7" ry="7"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">broker B</text>
+                </g>
+                <g class="lini-node lini-block" transform="translate(-114,22.875)">
+                </g>
+                <g class="lini-node lini-small lini-t lini-block" transform="translate(-38.325,39.125)">
+                  <rect x="-75.675" y="-6.25" width="151.35" height="12.5" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">narrower still, and nobody</text>
+                </g>
+                <g class="lini-node lini-small lini-t lini-block" transform="translate(-47.925,51.625)">
+                  <rect x="-66.075" y="-6.25" width="132.15" height="12.5" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">else is affected by that</text>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(298.75,-37.25)">
+      <rect x="-82" y="-102.875" width="164" height="205.75" rx="0" ry="0"/>
+      <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-54.651,-97.375)">
+        <rect x="-27.349" y="-5.5" width="54.698" height="11" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2">OUTSIDE</text>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-82,-76.875)">
+      </g>
+      <g class="lini-node lini-ghostchip lini-sealchip lini-box lini-block" style="stroke-dasharray: 5.5,4.375" transform="translate(-28.375,-46.25)">
+        <rect x="-53" y="-15" width="106" height="30" rx="7" ry="7"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">broker D</text>
+        <g class="lini-node lini-strike lini-line" transform="translate(-47,13)">
+          <line x1="0" y1="0" x2="94" y2="-26"/>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-82,-22.625)">
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(0,44.125)">
+        <rect x="-82" y="-58.75" width="164" height="117.5" rx="0" ry="0"/>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-13.7625,-52.5)">
+          <rect x="-68.2375" y="-6.25" width="136.475" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">A tenant cannot accept</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-19.0438,-35)">
+          <rect x="-62.9562" y="-6.25" width="125.9125" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">what the zone did not</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-15.35,-17.5)">
+          <rect x="-66.65" y="-6.25" width="133.3" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">declare. Widening is an</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-21.9875,0)">
+          <rect x="-60.0125" y="-6.25" width="120.025" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">act by the party with</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-18.15,17.5)">
+          <rect x="-63.85" y="-6.25" width="127.7" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">standing; narrowing is</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-16.7188,35)">
+          <rect x="-65.2812" y="-6.25" width="130.5625" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">always available to the</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-29.6437,52.5)">
+          <rect x="-52.3563" y="-6.25" width="104.7125" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">party underneath.</text>
+        </g>
+      </g>
+    </g>
   </g>
+  <g class="lini-links"/>
 </svg>

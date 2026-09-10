@@ -1,0 +1,109 @@
+{
+  // Work held beside the store, and work held in it.
+  //
+  // Both panels list the SAME four questions, because the argument is not
+  // that a queue is badly built — it is that each of those has to be answered
+  // again for it, and a record answers them by already being one.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed. So every piece of text that must
+  // sit left is wrapped, and its container aligns to start.
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12.5; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |capf::cap|      { color: --faint; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |line-item::box| { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                     height: 26; padding: 0 12; align: start; justify: center; }
+  |lt::t|          { font-size: 12; }
+  |chip::box|  { radius: 6; fill: --bg; stroke: --line; stroke-width: 1.25;
+                 height: 26; padding: 0; justify: center; align: center;
+                 font-size: 12; color: --body; }
+  |ghost::chip| { fill: none; stroke-style: dashed; color: --faint; }
+  |live::chip| { fill: --accent-soft; stroke: --accent; color: --accent;
+                 font-weight: semibold; }
+  |dashed::box| { radius: 9; fill: none; stroke: --line; stroke-width: 1.5;
+                  stroke-style: dashed; padding: 14 12; align: start; }
+  |has::t|     { font-weight: semibold; color: --seal; }
+  |miss::t|    { color: --faint; }
+  |body::t|    { color: --muted; }
+
+  layout: flow; direction: column; align: start; width: 760;
+  padding: 4; gap: 0; clearance: 2;
+}
+
+|block#panels| { layout: grid; columns: 344, 72, 344; gap: 0;
+                 align: start, start, start } [
+
+  |col| { width: 344; gap: 0 } [
+    |eyebrow| "A queue beside the store"
+    |block| { height: 8 } []
+    |block| { layout: grid; columns: 196, 36, 112; gap: 0; align: center, center, center } [
+      |panel| { width: 196; height: 106; padding: 12 } [ |col| { width: 172; gap: 8 } [
+        |cap| "the store"
+        |block| { layout: grid; columns: 80, 84; gap: 8 } [
+          |chip| "Patient" { width: 80 }; |chip| "Observation" { width: 84 }
+          |chip| "Encounter" { width: 80 }
+        ]
+      ] ]
+      |block| { width: 36; height: 106 } [
+        |line| { points: 0 0, 28 0; stroke: --line; stroke-width: 1.5; pin: center } ]
+      |dashed| { width: 112; height: 106 } [ |col| { width: 88; gap: 8 } [
+        |capf| "a queue"
+        |ghost| "run" { width: 88 }
+        |ghost| "run" { width: 88 }
+      ] ]
+    ]
+    |block| { height: 20 } []
+    |col| { width: 344; gap: 5 } [
+      |body| "Its own state, its own failure modes,"
+      |body| "and its own answer needed for each of:" ]
+    |block| { height: 10 } []
+    |col| { width: 344; gap: 7 } [
+      |miss| "history"; |miss| "an audit trail"; |miss| "an owner"
+      |miss| "surviving a restart" ]
+  ]
+
+  |block| { width: 72 } []
+
+  |col| { width: 344; gap: 0 } [
+    |eyebrow| "Work in the store"
+    |block| { height: 8 } []
+    |panel| { width: 344; height: 106; padding: 12 } [ |col| { width: 320; gap: 8 } [
+      |cap| "the store"
+      |block| { layout: grid; columns: 80, 84, 80; gap: 8 } [
+        |chip| "Patient" { width: 80 }; |chip| "Observation" { width: 84 }
+        |chip| "Encounter" { width: 80 }
+        |live| "run" { width: 80 }; |live| "run" { width: 84 }; |live| "run" { width: 80 }
+      ]
+    ] ]
+    |block| { height: 20 } []
+    |col| { width: 344; gap: 5 } [
+      |body| "A run is an ordinary record, so it"
+      |body| "already has, without anything added:" ]
+    |block| { height: 10 } []
+    |col| { width: 344; gap: 7 } [
+      |has| "history"; |has| "an audit trail"; |has| "an owner"
+      |has| "it was never in flight" ]
+  ]
+]

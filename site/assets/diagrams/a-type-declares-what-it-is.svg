@@ -1,56 +1,145 @@
-<!--
-  One declaration, and everything the engine then holds it to.
-
-  The fan is the point: a reader should see that these behaviours are not
-  things the writing code opted into one by one, but consequences of a single
-  line. The left side is deliberately shown as the literal declaration a
-  tenant writes, because it is short enough to show in full and that is
-  itself the argument.
--->
-<svg class="dbo-diagram" viewBox="0 0 760 300" role="img"
-     aria-labelledby="ty-title ty-desc" xmlns="http://www.w3.org/2000/svg">
-  <title id="ty-title">A type declaration and the behaviours it obliges</title>
-  <desc id="ty-desc">A short type declaration naming an identity class and a
-  handling class, fanning out into the behaviours the engine enforces from
-  it: identity, version history, an audit trail, retention, export, and a
-  searchable envelope that is derived and can be rebuilt.</desc>
-
-  <text class="d-eyebrow" x="0" y="12">WHAT THE TENANT DECLARES</text>
-  <rect class="d-box" x="0" y="26" width="292" height="120" rx="9"/>
-  <text class="d-code" x="18" y="52">{ "name": "Patient",</text>
-  <text class="d-code" x="18" y="74">  "identity": "identifier",</text>
-  <text class="d-code" x="18" y="96">  "systems": ["urn:…:mrn"],</text>
-  <text class="d-code" x="18" y="118">  "handling": "operational" }</text>
-  <text class="d-note-small" x="0" y="172">Four lines, and none of them is code.</text>
-  <text class="d-note-small" x="0" y="192">Nothing that writes a Patient has to</text>
-  <text class="d-note-small" x="0" y="212">remember any of what follows.</text>
-
-  <line class="d-arrow" x1="300" y1="86" x2="352" y2="86" marker-end="url(#ty-arrow)"/>
-  <defs>
-    <marker id="ty-arrow" viewBox="0 0 10 10" refX="9" refY="5"
-            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path class="d-arrowhead" d="M0,0 L10,5 L0,10 z"/>
-    </marker>
-  </defs>
-
-  <text class="d-eyebrow" x="368" y="12">WHAT THE ENGINE THEN ENFORCES</text>
-  <rect class="d-chip-live" x="368" y="26" width="188" height="30" rx="7"/>
-  <text class="d-chip-text-live" x="462" y="45">the same thing, next time</text>
-  <rect class="d-chip-live" x="568" y="26" width="192" height="30" rx="7"/>
-  <text class="d-chip-text-live" x="664" y="45">every version kept</text>
-  <rect class="d-chip-live" x="368" y="66" width="188" height="30" rx="7"/>
-  <text class="d-chip-text-live" x="462" y="85">an audit trail</text>
-  <rect class="d-chip-live" x="568" y="66" width="192" height="30" rx="7"/>
-  <text class="d-chip-text-live" x="664" y="85">retained for how long</text>
-  <rect class="d-chip-live" x="368" y="106" width="188" height="30" rx="7"/>
-  <text class="d-chip-text-live" x="462" y="125">exportable</text>
-  <rect class="d-chip-live" x="568" y="106" width="192" height="30" rx="7"/>
-  <text class="d-chip-text-live" x="664" y="125">on the change feed</text>
-
-  <!-- the derived layer, drawn apart because it is not authoritative -->
-  <rect class="d-dash" x="368" y="158" width="392" height="64" rx="9"/>
-  <text class="d-caption-faint" x="384" y="180">the searchable envelope</text>
-  <text class="d-note-small" x="384" y="200">derived from the payload, never authoritative,</text>
-  <text class="d-note-small" x="384" y="216">and rebuildable — so changing how things are</text>
-  <text class="d-note-small" x="384" y="232">indexed is a background job, not a migration</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -127.375 769.5 254.75" width="769.5" height="254.75" class="lini lini-scope-1f907761">
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-1f907761 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-stroke: #444444; }
+      .lini-scope-1f907761[data-theme="dark"], [data-theme="dark"] .lini-scope-1f907761 { color-scheme: dark; }
+      .lini-scope-1f907761[data-theme="light"], [data-theme="light"] .lini-scope-1f907761 { color-scheme: light; }
+    }
+    .lini-scope-1f907761 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-1f907761 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-1f907761 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-1f907761 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-1f907761 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-1f907761 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-1f907761 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-1f907761 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-1f907761 .lini-capf { color: var(--lini-faint); }
+    .lini-scope-1f907761 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-1f907761 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-1f907761 .lini-code { font-family: "Google Sans Code"; font-size: 12px; }
+    .lini-scope-1f907761 .lini-live { fill: var(--lini-accent-soft); stroke: var(--lini-accent); stroke-width: 1.25; color: var(--lini-accent); font-size: 12px; font-weight: 600; }
+    .lini-scope-1f907761 .lini-derived { fill: none; stroke: var(--lini-line); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-1f907761 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-block" data-id="top" transform="translate(0,0)">
+      <rect x="-380" y="-123.375" width="760" height="246.75" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-234,0)">
+        <rect x="-146" y="-102" width="292" height="204" rx="0" ry="0"/>
+        <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-51.317,-96.5)">
+          <rect x="-94.683" y="-5.5" width="189.366" height="11" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">WHAT THE TENANT DECLARES</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-146,-87)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(-30.05,-22.25)">
+          <rect x="-115.2" y="-60" width="230.4" height="120" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-97.2" y="-33" width="194.4" height="66" rx="0" ry="0"/>
+            <g class="lini-node lini-code lini-t lini-block" transform="translate(-25.2,-27)">
+              <rect x="-72" y="-6" width="144" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">{ &quot;name&quot;: &quot;Patient&quot;,</text>
+            </g>
+            <g class="lini-node lini-code lini-t lini-block" transform="translate(-7.2,-9)">
+              <rect x="-90" y="-6" width="180" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">&quot;identity&quot;: &quot;identifier&quot;,</text>
+            </g>
+            <g class="lini-node lini-code lini-t lini-block" transform="translate(-7.2,9)">
+              <rect x="-90" y="-6" width="180" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">&quot;systems&quot;: [&quot;urn:…:mrn&quot;],</text>
+            </g>
+            <g class="lini-node lini-code lini-t lini-block" transform="translate(0,27)">
+              <rect x="-97.2" y="-6" width="194.4" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">&quot;handling&quot;: &quot;operational&quot; }</text>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-146,51.5)">
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-40.2375,70.75)">
+          <rect x="-105.7625" y="-6.25" width="211.525" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">Four lines, and none of them is code.</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-43.8563,83.25)">
+          <rect x="-102.1437" y="-6.25" width="204.2875" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">Nothing that writes a Patient has to</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-56.0563,95.75)">
+          <rect x="-89.9437" y="-6.25" width="179.8875" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">remember any of what follows.</text>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(-50,0)">
+        <rect x="-38" y="-37.875" width="76" height="75.75" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(0,-3.875)">
+        </g>
+        <g class="lini-node lini-line" style="stroke: var(--lini-accent); stroke-width: 1.75" transform="translate(-26,37)">
+          <line x1="0" y1="0" x2="48.5" y2="0"/>
+          <polygon class="lini-marker lini-marker-arrow" points="52,0 44,4 44,-4" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(184.75,0)">
+        <rect x="-196.75" y="-123.375" width="393.5" height="246.75" rx="0" ry="0"/>
+        <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-83.4525,-117.875)">
+          <rect x="-113.2975" y="-5.5" width="226.595" height="11" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">WHAT THE ENGINE THEN ENFORCES</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-196.75,-108.375)">
+        </g>
+        <g class="lini-node lini-block" data-id="chips" transform="translate(-0.75,-47.5)">
+          <rect x="-196" y="-56.875" width="392" height="113.75" rx="0" ry="0"/>
+          <g class="lini-node lini-live lini-box lini-block" transform="translate(-102,-41.25)">
+            <rect x="-94" y="-15" width="188" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the same thing, next time</text>
+          </g>
+          <g class="lini-node lini-live lini-box lini-block" transform="translate(100,-41.25)">
+            <rect x="-96" y="-15" width="192" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">every version kept</text>
+          </g>
+          <g class="lini-node lini-live lini-box lini-block" transform="translate(-102,0)">
+            <rect x="-94" y="-15" width="188" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">an audit trail</text>
+          </g>
+          <g class="lini-node lini-live lini-box lini-block" transform="translate(100,0)">
+            <rect x="-96" y="-15" width="192" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">retained for how long</text>
+          </g>
+          <g class="lini-node lini-live lini-box lini-block" transform="translate(-102,41.25)">
+            <rect x="-94" y="-15" width="188" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">exportable</text>
+          </g>
+          <g class="lini-node lini-live lini-box lini-block" transform="translate(100,41.25)">
+            <rect x="-96" y="-15" width="192" height="30" rx="7" ry="7"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">on the change feed</text>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-196.75,20.375)">
+        </g>
+        <g class="lini-node lini-derived lini-box lini-block" transform="translate(0,77.375)">
+          <rect x="-196" y="-45.25" width="392" height="90.5" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-180" y="-31.25" width="360" height="62.5" rx="0" ry="0"/>
+            <g class="lini-node lini-capf lini-cap lini-t lini-block" transform="translate(-104.808,-24.75)">
+              <rect x="-75.192" y="-6.5" width="150.384" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the searchable envelope</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-46.4125,-8)">
+              <rect x="-133.5875" y="-6.25" width="267.175" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">derived from the payload, never authoritative,</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-47.2813,8.5)">
+              <rect x="-132.7187" y="-6.25" width="265.4375" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">and rebuildable — so changing how things are</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-51.9188,25)">
+              <rect x="-128.0812" y="-6.25" width="256.1625" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">indexed is a background job, not a migration</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
 </svg>

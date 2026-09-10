@@ -1,52 +1,154 @@
-<!--
-  The forgotten filter, on both arrangements.
-
-  The argument is not that one is tidier. It is that on the left a bug
-  produces somebody else's records and on the right the same bug produces
-  nothing, because there is nothing else in there to produce. Both panels
-  therefore show the SAME defect rather than a good query and a bad one —
-  otherwise the picture would be about discipline, which is the thing being
-  argued against.
--->
-<svg class="dbo-diagram" viewBox="0 0 760 286" role="img"
-     aria-labelledby="tn-title tn-desc" xmlns="http://www.w3.org/2000/svg">
-  <title id="tn-title">One shared table, and a database per tenant</title>
-  <desc id="tn-desc">On the left, one table holding rows belonging to three
-  organisations; a query that omits its tenant filter returns all of them. On
-  the right, each organisation has its own database, and the same query
-  returns only that organisation's rows.</desc>
-
-  <text class="d-eyebrow" x="0" y="12">ONE TABLE, A TENANT COLUMN</text>
-  <rect class="d-box" x="0" y="26" width="352" height="132" rx="9"/>
-  <rect class="d-row-alien" x="14" y="40" width="324" height="24" rx="5"/>
-  <text class="d-row-text-alien" x="26" y="57">hospital · Ada Lovelace</text>
-  <rect class="d-row-alien" x="14" y="70" width="324" height="24" rx="5"/>
-  <text class="d-row-text-alien" x="26" y="87">insurer · Grace Hopper</text>
-  <rect class="d-row-alien" x="14" y="100" width="324" height="24" rx="5"/>
-  <text class="d-row-text-alien" x="26" y="117">clinic · Alan Turing</text>
-  <rect class="d-row-alien" x="14" y="130" width="324" height="24" rx="5"/>
-  <text class="d-row-text-alien" x="26" y="147">hospital · Katherine Johnson</text>
-
-  <text class="d-eyebrow" x="408" y="12">A DATABASE EACH</text>
-  <rect class="d-box" x="408" y="26" width="352" height="60" rx="9"/>
-  <text class="d-caption" x="422" y="46">hospital</text>
-  <rect class="d-row" x="422" y="54" width="324" height="24" rx="5"/>
-  <text class="d-row-text" x="434" y="71">Ada Lovelace · Katherine Johnson</text>
-  <rect class="d-box" x="408" y="94" width="352" height="30" rx="9"/>
-  <text class="d-caption-faint" x="422" y="114">clinic — its own database</text>
-  <rect class="d-box" x="408" y="132" width="352" height="30" rx="9"/>
-  <text class="d-caption-faint" x="422" y="152">insurer — its own database</text>
-
-  <!-- Each outcome sits under the arrangement that produces it. Stacking
-       both in one column read as though both described the right-hand
-       panel, which inverts the whole point of the drawing. -->
-  <text class="d-miss" x="0" y="190">returns four rows —</text>
-  <text class="d-miss" x="0" y="210">three of them not yours</text>
-
-  <text class="d-has" x="408" y="190">returns two rows, both yours,</text>
-  <text class="d-has" x="408" y="210">because there is nothing else in there</text>
-
-  <text class="d-note" x="0" y="248">The same query, with the same bug in it, against both:</text>
-  <text class="d-code" x="0" y="272">SELECT * FROM patients</text>
-  <text class="d-code-miss" x="196" y="272">-- the tenant filter that should be here</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -141.25 770.75 282.5" width="770.75" height="282.5" class="lini lini-scope-244a9ef7">
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-244a9ef7 { color-scheme: light dark; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-stroke: #444444; }
+      .lini-scope-244a9ef7[data-theme="dark"], [data-theme="dark"] .lini-scope-244a9ef7 { color-scheme: dark; }
+      .lini-scope-244a9ef7[data-theme="light"], [data-theme="light"] .lini-scope-244a9ef7 { color-scheme: light; }
+    }
+    .lini-scope-244a9ef7 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-244a9ef7 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-244a9ef7 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-244a9ef7 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-244a9ef7 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-244a9ef7 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-244a9ef7 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-244a9ef7 .lini-capf { color: var(--lini-faint); }
+    .lini-scope-244a9ef7 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-244a9ef7 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-244a9ef7 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-244a9ef7 .lini-lt { font-size: 12px; }
+    .lini-scope-244a9ef7 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-244a9ef7 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-244a9ef7 .lini-code { font-family: "Google Sans Code"; font-size: 12.5px; }
+    .lini-scope-244a9ef7 .lini-codemiss { color: var(--lini-faint); }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-block" data-id="tops" transform="translate(0,-131.75)">
+      <rect x="-380" y="-5.5" width="760" height="11" rx="0" ry="0"/>
+      <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-279.2,0)">
+        <rect x="-100.8" y="-5.5" width="201.6" height="11" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">ONE TABLE, A TENANT COLUMN</text>
+      </g>
+      <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(87.363,0)">
+        <rect x="-59.363" y="-5.5" width="118.726" height="11" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">A DATABASE EACH</text>
+      </g>
+    </g>
+    <g class="lini-node lini-block" data-id="panels" transform="translate(0,-34)">
+      <rect x="-380" y="-78.25" width="760" height="156.5" rx="0" ry="0"/>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(-202.625,0)">
+        <rect x="-176.625" y="-77.5" width="353.25" height="155" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-162.625" y="-63.5" width="325.25" height="127" rx="0" ry="0"/>
+          <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,-49.875)">
+            <rect x="-162" y="-13" width="324" height="26" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-86.142,0)">
+              <rect x="-63.858" y="-6" width="127.716" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">hospital · Ada Lovelace</text>
+            </g>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,-16.625)">
+            <rect x="-162" y="-13" width="324" height="26" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-86.484,0)">
+              <rect x="-63.516" y="-6" width="127.032" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">insurer · Grace Hopper</text>
+            </g>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,16.625)">
+            <rect x="-162" y="-13" width="324" height="26" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-99.96,0)">
+              <rect x="-50.04" y="-6" width="100.08" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">clinic · Alan Turing</text>
+            </g>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,49.875)">
+            <rect x="-162" y="-13" width="324" height="26" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-71.142,0)">
+              <rect x="-78.858" y="-6" width="157.716" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">hospital · Katherine Johnson</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(205.375,0)">
+        <rect x="-177.375" y="-77.375" width="354.75" height="154.75" rx="0" ry="0"/>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,-39.5)">
+          <rect x="-176.625" y="-37.125" width="353.25" height="74.25" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-162.625" y="-23.125" width="325.25" height="46.25" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-138.1915,-16.625)">
+              <rect x="-24.4335" y="-6.5" width="48.867" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">hospital</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,9.5)">
+              <rect x="-162" y="-13" width="324" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-55.86,0)">
+                <rect x="-94.14" y="-6" width="188.28" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">Ada Lovelace · Katherine Johnson</text>
+              </g>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(-0.625,22.125)">
+          <rect x="-176" y="-15" width="352" height="30" rx="9" ry="9"/>
+          <g class="lini-node lini-capf lini-cap lini-t lini-block" transform="translate(-85.118,0)">
+            <rect x="-76.882" y="-6.5" width="153.764" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">clinic — its own database</text>
+          </g>
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(-0.625,61.625)">
+          <rect x="-176" y="-15" width="352" height="30" rx="9" ry="9"/>
+          <g class="lini-node lini-capf lini-cap lini-t lini-block" transform="translate(-79.489,0)">
+            <rect x="-82.511" y="-6.5" width="165.022" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">insurer — its own database</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" data-id="outcomes" transform="translate(0,73.25)">
+      <rect x="-380" y="-15" width="760" height="30" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-204,0)">
+        <rect x="-176" y="-15" width="352" height="30" rx="0" ry="0"/>
+        <g class="lini-node lini-miss lini-t lini-block" transform="translate(-115.8815,-8.5)">
+          <rect x="-60.1185" y="-6.5" width="120.237" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">returns four rows —</text>
+        </g>
+        <g class="lini-node lini-miss lini-t lini-block" transform="translate(-104.3375,8.5)">
+          <rect x="-71.6625" y="-6.5" width="143.325" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">three of them not yours</text>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(204,0)">
+        <rect x="-176" y="-15" width="352" height="30" rx="0" ry="0"/>
+        <g class="lini-node lini-has lini-t lini-block" transform="translate(-85.1885,-8.5)">
+          <rect x="-90.8115" y="-6.5" width="181.623" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">returns two rows, both yours,</text>
+        </g>
+        <g class="lini-node lini-has lini-t lini-block" transform="translate(-61.704,8.5)">
+          <rect x="-114.296" y="-6.5" width="228.592" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">because there is nothing else in there</text>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-139.5,119.75)">
+      <rect x="-240.5" y="-17.5" width="481" height="35" rx="0" ry="0"/>
+      <g class="lini-node lini-small lini-t lini-block" transform="translate(-85.15,-11.25)">
+        <rect x="-155.35" y="-6.25" width="310.7" height="12.5" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The same query, with the same bug in it, against both:</text>
+      </g>
+      <g class="lini-node lini-block" data-id="q" transform="translate(0,11.25)">
+        <rect x="-240.5" y="-6.25" width="481" height="12.5" rx="0" ry="0"/>
+        <g class="lini-node lini-code lini-t lini-block" transform="translate(-158,0)">
+          <rect x="-82.5" y="-6.25" width="165" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">SELECT * FROM patients</text>
+        </g>
+        <g class="lini-node lini-codemiss lini-code lini-t lini-block" transform="translate(90.5,0)">
+          <rect x="-150" y="-6.25" width="300" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">-- the tenant filter that should be here</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
 </svg>

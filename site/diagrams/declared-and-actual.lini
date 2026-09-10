@@ -1,0 +1,86 @@
+{
+  // Why a list of served tenants is the wrong question.
+  //
+  // Both columns are complete, and they are allowed to disagree — the
+  // disagreement is the useful part. A reader can see that a list of what is
+  // SERVING would have shown two of four and looked healthy.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed. So every piece of text that must
+  // sit left is wrapped, and its container aligns to start.
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12.5; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |capf::cap|      { color: --faint; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |line-item::box| { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                     height: 26; padding: 0 12; align: start; justify: center; }
+  |lt::t|          { font-size: 12; }
+  |sealed::box| { radius: 5; fill: --seal-soft; stroke: --seal; stroke-width: 1.25;
+                  height: 26; padding: 0; justify: center; align: center;
+                  font-size: 12; font-weight: semibold; color: --seal; }
+  |live::sealed| { fill: --accent-soft; stroke: --accent; color: --accent; }
+  |ghost::sealed| { fill: none; stroke: --line; stroke-style: dashed;
+                    color: --faint; font-weight: normal; }
+
+  layout: flow; direction: column; align: start; width: 760;
+  padding: 4; gap: 0; clearance: 2;
+}
+
+|block#cols| { layout: grid; columns: 300, 64, 396; gap: 0; align: start, start, start } [
+
+  |col| { width: 300; gap: 0 } [
+    |eyebrow| "What was declared"
+    |block| { height: 8 } []
+    |panel| { width: 300; height: 164; padding: 14 } [ |col| { width: 272; gap: 8 } [
+      |line-item| "county-hospital.json" { width: 272 }
+      |line-item| "private-clinic.json" { width: 272 }
+      |line-item| "regional-lab.json" { width: 272 }
+      |line-item| "insurer.json" { width: 272 }
+    ] ]
+  ]
+
+  |block| { width: 64; height: 190 } [
+    |line| { points: 0 0, 40 0; stroke: --accent; stroke-width: 1.75;
+             marker-end: arrow; pin: center; translate: 0 14 } ]
+
+  |col| { width: 396; gap: 0 } [
+    |eyebrow| "What the runtime says it is doing"
+    |block| { height: 8 } []
+    |panel| { width: 396; height: 164; padding: 14 } [ |col| { width: 368; gap: 8 } [
+      |sealed| "county-hospital — serving" { width: 368 }
+      |sealed| "private-clinic — serving" { width: 368 }
+      |live| "regional-lab — coming up; the next round is where that changes" { width: 368 }
+      |ghost| "insurer — failed to come up, and will not change on its own" { width: 368 }
+    ] ]
+  ]
+]
+
+|block| { height: 22 } []
+|block#seam| { width: 760; height: 2; fill: --accent; }
+|block| { height: 12 } []
+|col| { gap: 6 } [
+  |small| "A list of what is being served answers two of these four, and looks healthy. The state an"
+  |small| "operator most wants is the one such a list silently omits — so the runtime is asked what it"
+  |small| "is doing, rather than the directory what it contains."
+]

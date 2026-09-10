@@ -1,107 +1,243 @@
-<!--
-  Erasure, drawn.
-
-  The claim this picture has to carry is the one people disbelieve when it is
-  written down: that history stays byte-for-byte intact and the person is
-  nonetheless gone from it, including from archives already written to tape
-  and handed to somebody else. Two panels, identical but for the key, is the
-  shortest way to say that — nothing moved, nothing was rewritten, and the
-  only thing that changed was destroyed rather than edited.
-
-  No fixed width and no hard-coded colour: it scales to its column and takes
-  the palette from the page, so it is correct in dark mode and on a phone
-  without a second copy of the file existing.
--->
-<svg class="dbo-diagram" viewBox="0 0 760 300" role="img"
-     aria-labelledby="cs-title cs-desc" xmlns="http://www.w3.org/2000/svg">
-  <title id="cs-title">Erasure destroys the key, not the history</title>
-  <desc id="cs-desc">Before erasure, a person's key opens three stored
-  versions and an archive already taken. After erasure the key is gone and the
-  same three versions and the same archive remain, byte for byte, and are
-  unreadable.</desc>
-
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-386.816 -123.75 771.566 247.5" width="771.566" height="247.5" class="lini lini-scope-6345dfaa">
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-6345dfaa { color-scheme: light dark; --lini-accent: #a8641b; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-icon-fill: light-dark(rgba(0, 0, 0, 0.16), rgba(255, 255, 255, 0.18)); --lini-ink: #111a24; --lini-line: #e3e0da; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-6345dfaa[data-theme="dark"], [data-theme="dark"] .lini-scope-6345dfaa { color-scheme: dark; }
+      .lini-scope-6345dfaa[data-theme="light"], [data-theme="light"] .lini-scope-6345dfaa { color-scheme: light; }
+    }
+    .lini-scope-6345dfaa { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-6345dfaa .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-6345dfaa .lini-cyl { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-6345dfaa .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-6345dfaa .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-6345dfaa .lini-icon { fill: var(--lini-icon-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-6345dfaa .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-6345dfaa .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-6345dfaa .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-6345dfaa .lini-capf { color: var(--lini-faint); }
+    .lini-scope-6345dfaa .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-6345dfaa .lini-vers { color: var(--lini-faint); font-size: 12px; font-weight: 600; }
+    .lini-scope-6345dfaa .lini-readable { color: var(--lini-ink); font-size: 13.5px; }
+    .lini-scope-6345dfaa .lini-act { color: var(--lini-accent); font-size: 12px; font-weight: 600; }
+    .lini-scope-6345dfaa .lini-keybox { fill: var(--lini-seal-soft); stroke: var(--lini-seal); stroke-width: 1.5; }
+    .lini-scope-6345dfaa .lini-keygone { fill: none; stroke: var(--lini-line); stroke-dasharray: 3,2.5; }
+    .lini-scope-6345dfaa .lini-vbox { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-6345dfaa .lini-cipher { fill: url(#lini-hatch-d3248360); }
+    .lini-scope-6345dfaa .lini-strike { stroke: var(--lini-faint); stroke-width: 2; }
+    .lini-scope-6345dfaa .lini-arch { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-6345dfaa .lini-keyicon { fill: none; stroke: var(--lini-seal); }
+    .lini-scope-6345dfaa .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
   <defs>
-    <pattern id="cs-hatch" width="7" height="7" patternUnits="userSpaceOnUse"
-             patternTransform="rotate(45)">
-      <line class="d-hatch" x1="0" y1="0" x2="0" y2="7"/>
-    </pattern>
-    <marker id="cs-arrow" viewBox="0 0 10 10" refX="9" refY="5"
-            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path class="d-arrowhead" d="M0,0 L10,5 L0,10 z"/>
-    </marker>
+    <pattern id="lini-hatch-d3248360" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)"><g style="stroke: var(--lini-line)" stroke-width="0.75"><line x1="3.5" y1="0" x2="3.5" y2="7"/></g></pattern>
   </defs>
-
-  <!-- ── before ────────────────────────────────────────────────── -->
-  <g>
-    <text class="d-eyebrow" x="0" y="14">BEFORE</text>
-
-    <!-- the key -->
-    <g transform="translate(0,34)">
-      <rect class="d-key" x="0" y="0" width="118" height="44" rx="9"/>
-      <circle class="d-key-bit" cx="24" cy="22" r="8"/>
-      <path class="d-key-bit-stem" d="M32,22 H60 M52,22 V30 M60,22 V32"/>
-      <text class="d-label" x="74" y="26">key</text>
+  <g class="lini-scene">
+    <g class="lini-node lini-col lini-block" transform="translate(-204,0)">
+      <rect x="-176" y="-119.75" width="352" height="239.5" rx="0" ry="0"/>
+      <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-151.7645,-114.25)">
+        <rect x="-24.2355" y="-5.5" width="48.471" height="11" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2">BEFORE</text>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-176,-104.75)">
+      </g>
+      <g class="lini-node lini-keybox lini-box lini-block" transform="translate(-116.25,-78)">
+        <rect x="-59" y="-22" width="118" height="44" rx="9" ry="9"/>
+        <g class="lini-node lini-block" transform="translate(-15.3335,0)">
+          <rect x="-31.6665" y="-16" width="63.333" height="32" rx="0" ry="0"/>
+          <g class="lini-node lini-keyicon lini-icon" transform="translate(-15.6665,0)">
+            <g transform="scale(0.125) translate(-128 -128)">
+              <g fill="none" stroke="var(--lini-seal)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M93.17,122.83A71.68,71.68,0,0,1,88,95.91c0-38.58,31.08-70.64,69.64-71.87A72,72,0,0,1,232,98.36C230.73,136.92,198.67,168,160.09,168a71.68,71.68,0,0,1-26.92-5.17h0L120,176H96v24H72v24H40a8,8,0,0,1-8-8V187.31a8,8,0,0,1,2.34-5.65l58.83-58.83Z"/>
+              </g>
+              <g fill="var(--lini-seal)" stroke="none">
+                <circle cx="180" cy="76" r="12"/>
+              </g>
+            </g>
+          </g>
+          <g class="lini-node lini-t lini-block" transform="translate(21,0)">
+            <rect x="-10.6665" y="-6.5" width="21.333" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">key</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-176,-39.25)">
+      </g>
+      <g class="lini-node lini-block" transform="translate(-10,6.5)">
+        <rect x="-166" y="-29.75" width="332" height="59.5" rx="0" ry="0"/>
+        <g class="lini-node lini-vbox lini-box lini-block" transform="translate(-114,0)">
+          <rect x="-54.066" y="-29" width="108.132" height="58" rx="8" ry="8"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-42.066" y="-15.75" width="84.132" height="31.5" rx="0" ry="0"/>
+            <g class="lini-node lini-vers lini-t lini-block" transform="translate(-36.018,-9.75)">
+              <rect x="-6.048" y="-6" width="12.096" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">v1</text>
+            </g>
+            <g class="lini-node lini-readable lini-t lini-block" transform="translate(0,9)">
+              <rect x="-42.066" y="-6.75" width="84.132" height="13.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">Ada Lovelace</text>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-vbox lini-box lini-block" transform="translate(0,0)">
+          <rect x="-54.066" y="-29" width="108.132" height="58" rx="8" ry="8"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-42.066" y="-15.75" width="84.132" height="31.5" rx="0" ry="0"/>
+            <g class="lini-node lini-vers lini-t lini-block" transform="translate(-35.454,-9.75)">
+              <rect x="-6.612" y="-6" width="13.224" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">v2</text>
+            </g>
+            <g class="lini-node lini-readable lini-t lini-block" transform="translate(0,9)">
+              <rect x="-42.066" y="-6.75" width="84.132" height="13.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">Ada Lovelace</text>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-vbox lini-box lini-block" transform="translate(114,0)">
+          <rect x="-52" y="-29" width="104" height="58" rx="8" ry="8"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-40" y="-15.75" width="80" height="31.5" rx="0" ry="0"/>
+            <g class="lini-node lini-vers lini-t lini-block" transform="translate(-33.262,-9.75)">
+              <rect x="-6.738" y="-6" width="13.476" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">v3</text>
+            </g>
+            <g class="lini-node lini-readable lini-t lini-block" transform="translate(-4.0023,9)">
+              <rect x="-35.9977" y="-6.75" width="71.9955" height="13.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">A. Lovelace</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-176,48.25)">
+      </g>
+      <g class="lini-node lini-block" transform="translate(-16.25,90)">
+        <rect x="-159.75" y="-29.75" width="319.5" height="59.5" rx="0" ry="0"/>
+        <g class="lini-node lini-arch lini-cyl" transform="translate(-107,0)">
+          <path d="M -52 -23.2 L -52 23.2 A 52 5.8 0 0 0 52 23.2 L 52 -23.2 A 52 5.8 0 0 0 -52 -23.2 Z"/>
+          <ellipse cx="0" cy="-23.2" rx="52" ry="5.8"/>
+        </g>
+        <g class="lini-node lini-col lini-block" transform="translate(59.75,0)">
+          <rect x="-100" y="-15" width="200" height="30" rx="0" ry="0"/>
+          <g class="lini-node lini-t lini-block" transform="translate(-30.073,-8.5)">
+            <rect x="-69.927" y="-6.5" width="139.854" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">archive taken in March,</text>
+          </g>
+          <g class="lini-node lini-t lini-block" transform="translate(-54.8445,8.5)">
+            <rect x="-45.1555" y="-6.5" width="90.311" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">already off site</text>
+          </g>
+        </g>
+      </g>
     </g>
-
-    <!-- three stored versions -->
-    <g transform="translate(0,110)">
-      <rect class="d-box" x="0" y="0" width="104" height="58" rx="8"/>
-      <rect class="d-box" x="114" y="0" width="104" height="58" rx="8"/>
-      <rect class="d-box" x="228" y="0" width="104" height="58" rx="8"/>
-      <text class="d-vers" x="12" y="20">v1</text>
-      <text class="d-vers" x="126" y="20">v2</text>
-      <text class="d-vers" x="240" y="20">v3</text>
-      <text class="d-readable" x="12" y="42">Ada Lovelace</text>
-      <text class="d-readable" x="126" y="42">Ada Lovelace</text>
-      <text class="d-readable" x="240" y="42">A. Lovelace</text>
+    <g class="lini-node lini-col lini-block" transform="translate(10,-48.875)">
+      <rect x="-38" y="-70.875" width="76" height="141.75" rx="0" ry="0"/>
+      <g class="lini-node lini-block" transform="translate(-38,-9.875)">
+      </g>
+      <g class="lini-node lini-act lini-t lini-block" transform="translate(-14.858,57.125)">
+        <rect x="-23.142" y="-6" width="46.284" height="12" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 0.5 0.5 0.5 0.5 0.5 0.5">erasure</text>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-38,66.125)">
+      </g>
+      <g class="lini-node lini-line" style="stroke: var(--lini-accent); stroke-width: 1.75" transform="translate(-37.125,70)">
+        <line x1="0" y1="0" x2="44.5" y2="0"/>
+        <polygon class="lini-marker lini-marker-arrow" points="48,0 40,4 40,-4" style="fill: var(--lini-accent)"/>
+      </g>
     </g>
-
-    <!-- an archive already written -->
-    <g transform="translate(0,192)">
-      <path class="d-box" d="M0,10 a52,10 0 0 1 104,0 v38 a52,10 0 0 1 -104,0 z"/>
-      <path class="d-box-lip" d="M0,10 a52,10 0 0 0 104,0"/>
-      <text class="d-label" x="118" y="34">archive taken in March,</text>
-      <text class="d-label" x="118" y="50">already off site</text>
+    <g class="lini-node lini-col lini-block" transform="translate(214,0)">
+      <rect x="-166" y="-119.75" width="332" height="239.5" rx="0" ry="0"/>
+      <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-146.5665,-114.25)">
+        <rect x="-19.4335" y="-5.5" width="38.867" height="11" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2">AFTER</text>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-166,-104.75)">
+      </g>
+      <g class="lini-node lini-keygone lini-keybox lini-box lini-block" style="stroke-dasharray: 6,4.75" transform="translate(-105.6275,-78)">
+        <rect x="-59.6225" y="-22" width="119.245" height="44" rx="9" ry="9"/>
+        <g class="lini-node lini-block" transform="translate(0,0)">
+          <rect x="-47.6225" y="-11" width="95.245" height="22" rx="0" ry="0"/>
+          <g class="lini-node lini-block" transform="translate(-36.6225,0)">
+            <rect x="-11" y="-11" width="22" height="22" rx="0" ry="0"/>
+            <g class="lini-node lini-strike lini-line" transform="translate(-11,-11)">
+              <line x1="0" y1="0" x2="22" y2="22"/>
+            </g>
+            <g class="lini-node lini-strike lini-line" transform="translate(-11,-11)">
+              <line x1="22" y1="0" x2="0" y2="22"/>
+            </g>
+          </g>
+          <g class="lini-node lini-capf lini-cap lini-t lini-block" transform="translate(16,0)">
+            <rect x="-31.6225" y="-6.5" width="63.245" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">destroyed</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-166,-39.25)">
+      </g>
+      <g class="lini-node lini-block" transform="translate(0,6.5)">
+        <rect x="-166" y="-29.75" width="332" height="59.5" rx="0" ry="0"/>
+        <g class="lini-node lini-vbox lini-box lini-block" transform="translate(-114,0)">
+          <rect x="-52" y="-29" width="104" height="58" rx="8" ry="8"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-40" y="-18" width="80" height="36" rx="0" ry="0"/>
+            <g class="lini-node lini-vers lini-t lini-block" transform="translate(-33.952,-12)">
+              <rect x="-6.048" y="-6" width="12.096" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">v1</text>
+            </g>
+            <g class="lini-node lini-cipher lini-block" transform="translate(0,10)">
+              <rect x="-40" y="-8" width="80" height="16" rx="3" ry="3"/>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-vbox lini-box lini-block" transform="translate(0,0)">
+          <rect x="-52" y="-29" width="104" height="58" rx="8" ry="8"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-40" y="-18" width="80" height="36" rx="0" ry="0"/>
+            <g class="lini-node lini-vers lini-t lini-block" transform="translate(-33.388,-12)">
+              <rect x="-6.612" y="-6" width="13.224" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">v2</text>
+            </g>
+            <g class="lini-node lini-cipher lini-block" transform="translate(0,10)">
+              <rect x="-40" y="-8" width="80" height="16" rx="3" ry="3"/>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-vbox lini-box lini-block" transform="translate(114,0)">
+          <rect x="-52" y="-29" width="104" height="58" rx="8" ry="8"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-40" y="-18" width="80" height="36" rx="0" ry="0"/>
+            <g class="lini-node lini-vers lini-t lini-block" transform="translate(-33.262,-12)">
+              <rect x="-6.738" y="-6" width="13.476" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">v3</text>
+            </g>
+            <g class="lini-node lini-cipher lini-block" transform="translate(0,10)">
+              <rect x="-40" y="-8" width="80" height="16" rx="3" ry="3"/>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-166,48.25)">
+      </g>
+      <g class="lini-node lini-block" transform="translate(-4.25,90)">
+        <rect x="-161.75" y="-29.75" width="323.5" height="59.5" rx="0" ry="0"/>
+        <g class="lini-node lini-arch lini-cyl" transform="translate(-107,0)">
+          <path d="M -54 -23.2 L -54 23.2 A 54 5.8 0 0 0 54 23.2 L 54 -23.2 A 54 5.8 0 0 0 -54 -23.2 Z"/>
+          <ellipse cx="0" cy="-23.2" rx="54" ry="5.8"/>
+          <g class="lini-node lini-cipher lini-block" transform="translate(0,0)">
+            <rect x="-34" y="-7" width="68" height="14" rx="3" ry="3"/>
+          </g>
+        </g>
+        <g class="lini-node lini-col lini-block" transform="translate(61.75,0)">
+          <rect x="-100" y="-15" width="200" height="30" rx="0" ry="0"/>
+          <g class="lini-node lini-t lini-block" transform="translate(-24.4895,-8.5)">
+            <rect x="-75.5105" y="-6.5" width="151.021" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the same file, unchanged</text>
+          </g>
+          <g class="lini-node lini-t lini-block" transform="translate(-38.6855,8.5)">
+            <rect x="-61.3145" y="-6.5" width="122.629" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">and now unreadable</text>
+          </g>
+        </g>
+      </g>
     </g>
   </g>
-
-  <!-- ── the act ───────────────────────────────────────────────── -->
-  <g transform="translate(352,0)">
-    <line class="d-arrow" x1="4" y1="150" x2="52" y2="150" marker-end="url(#cs-arrow)"/>
-    <text class="d-act" x="28" y="132">erasure</text>
-  </g>
-
-  <!-- ── after ─────────────────────────────────────────────────── -->
-  <g transform="translate(428,0)">
-    <text class="d-eyebrow" x="0" y="14">AFTER</text>
-
-    <!-- the key, destroyed: the only thing on this side that changed -->
-    <g transform="translate(0,34)">
-      <rect class="d-key-gone" x="0" y="0" width="118" height="44" rx="9"/>
-      <path class="d-strike" d="M16,14 L46,44 M46,14 L16,44"/>
-      <text class="d-label-faint" x="74" y="26">destroyed</text>
-    </g>
-
-    <!-- the same three versions, byte for byte -->
-    <g transform="translate(0,110)">
-      <rect class="d-box" x="0" y="0" width="104" height="58" rx="8"/>
-      <rect class="d-box" x="114" y="0" width="104" height="58" rx="8"/>
-      <rect class="d-box" x="228" y="0" width="104" height="58" rx="8"/>
-      <rect class="d-cipher" x="10" y="30" width="84" height="16" rx="3"/>
-      <rect class="d-cipher" x="124" y="30" width="84" height="16" rx="3"/>
-      <rect class="d-cipher" x="238" y="30" width="84" height="16" rx="3"/>
-      <text class="d-vers" x="12" y="20">v1</text>
-      <text class="d-vers" x="126" y="20">v2</text>
-      <text class="d-vers" x="240" y="20">v3</text>
-    </g>
-
-    <!-- and the same archive, untouched and now opaque -->
-    <g transform="translate(0,192)">
-      <path class="d-box" d="M0,10 a52,10 0 0 1 104,0 v38 a52,10 0 0 1 -104,0 z"/>
-      <path class="d-box-lip" d="M0,10 a52,10 0 0 0 104,0"/>
-      <rect class="d-cipher" x="18" y="28" width="68" height="14" rx="3"/>
-      <text class="d-label" x="118" y="34">the same file, unchanged</text>
-      <text class="d-label" x="118" y="50">and now unreadable</text>
-    </g>
-  </g>
+  <g class="lini-links"/>
 </svg>
