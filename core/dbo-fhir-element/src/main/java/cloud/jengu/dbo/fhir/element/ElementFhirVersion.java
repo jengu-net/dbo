@@ -106,8 +106,31 @@ public class ElementFhirVersion implements FhirVersion {
         return new Tenant(version(), List.copyOf(types), payloadVersion());
     }
 
-    private record Tenant(ElementVersion version, List<FhirTypeConfig> types,
-            String payloadVersion) implements ForTypes {
+    /**
+     * One tenant's declaration of types, and the one place its registrations
+     * and its store meet. Registrations are asked for first — the engine is
+     * built over them — and the store after, over the engine; the extractors
+     * inside the registrations read documents through whichever view the
+     * store built, which they learn here once it exists.
+     */
+    private static final class Tenant implements ForTypes {
+        private final ElementVersion version;
+        private final List<FhirTypeConfig> types;
+        private final String payloadVersion;
+        // Weak, and deliberately: a registration lives inside the engine, and
+        // an engine outlives the facade over it in every test that keeps one
+        // in a static field. Held strongly here, the facade — its view, its
+        // validators, their caches — was kept for the life of the process by
+        // every engine that ever had one, and the suite's live set grew by a
+        // tenant per class until the heap was all of it.
+        private final java.util.concurrent.atomic.AtomicReference<
+                java.lang.ref.WeakReference<ElementStore>> view = new java.util.concurrent.atomic.AtomicReference<>();
+
+        Tenant(ElementVersion version, List<FhirTypeConfig> types, String payloadVersion) {
+            this.version = version;
+            this.types = types;
+            this.payloadVersion = payloadVersion;
+        }
 
         @Override
         public List<TypeRegistration> registrations() {
@@ -121,11 +144,24 @@ public class ElementFhirVersion implements FhirVersion {
                 out.add(new TypeRegistration(type.typeName(), domain, type.identityClass(),
                         type.identitySystems(), type.handling(),
                         version.extractor(type.typeName(),
-                                type.identityClass() == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL),
+                                type.identityClass() == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL,
+                                List.of(), this::through),
                         indexes(type.typeName()),
                         payloadVersion));
             }
             return out;
+        }
+
+        /** The store's view once there is a store; the version's own payloads until then. */
+        private ElementPayloads through() {
+            java.lang.ref.WeakReference<ElementStore> held = view.get();
+            ElementStore store = held == null ? null : held.get();
+            return store != null ? store.elementPayloads() : version.payloads();
+        }
+
+        private ElementStore viewed(ElementStore store) {
+            view.set(new java.lang.ref.WeakReference<>(store));
+            return store;
         }
 
         /**
@@ -144,7 +180,7 @@ public class ElementFhirVersion implements FhirVersion {
 
         @Override
         public FhirStoreFacade store(ObjectStore engine, String baseUrl) {
-            return new ElementStore(engine, version, types, baseUrl);
+            return viewed(new ElementStore(engine, version, types, baseUrl));
         }
 
         @Override
@@ -157,8 +193,8 @@ public class ElementFhirVersion implements FhirVersion {
             TerminologyBaseline.ensure(terminology, version.code());
             long baselineMillis = System.currentTimeMillis() - baselineAt;
             long profilesAt = System.currentTimeMillis();
-            ElementStore store = new ElementStore(engine, version, types, baseUrl,
-                    cloud.jengu.dbo.core.process.Steps.of(), new StoreTerms(terminology));
+            ElementStore store = viewed(new ElementStore(engine, version, types, baseUrl,
+                    cloud.jengu.dbo.core.process.Steps.of(), new StoreTerms(terminology)));
             // Said out loud because a first boot's cost was a bound inferred
             // from a task's wall clock, and a bound is not a measurement.
             org.slf4j.LoggerFactory.getLogger("dbo.face").info(
@@ -171,7 +207,7 @@ public class ElementFhirVersion implements FhirVersion {
         @Override
         public FhirStoreFacade store(ObjectStore engine, String baseUrl,
                 cloud.jengu.dbo.core.process.Steps steps) {
-            return new ElementStore(engine, version, types, baseUrl, steps);
+            return viewed(new ElementStore(engine, version, types, baseUrl, steps));
         }
 
         @Override

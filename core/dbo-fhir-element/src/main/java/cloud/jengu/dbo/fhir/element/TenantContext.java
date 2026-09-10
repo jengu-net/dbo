@@ -41,7 +41,7 @@ import java.util.List;
  * which is how required and extensible bindings come to differ without this
  * class knowing bindings exist.
  */
-final class TenantContext extends SimpleWorkerContext {
+final class TenantContext extends FaceBase.Rows {
 
     private static final org.slf4j.Logger LOG =
             org.slf4j.LoggerFactory.getLogger(TenantContext.class);
@@ -83,13 +83,64 @@ final class TenantContext extends SimpleWorkerContext {
      */
     TenantContext(SimpleWorkerContext shared, Terms terms, List<String> profiles,
             List<String> maps) throws IOException {
-        super(shared);
+        super(shared, shared.getVersion());
         this.terms = terms;
         for (String profile : profiles) {
             cacheProfile(profile);
         }
         for (String map : maps) {
             cacheMap(map);
+        }
+    }
+
+    /**
+     * The form for a tenant that holds its version as records: a copy of the
+     * face base — the version's definitions, shared — with the tenant's own
+     * definitions offered on top from its own records, read when asked for.
+     * A profile the tenant authored, a map its zone sent, a value set of
+     * its own: whatever it holds under a canonical that is not the
+     * specification's.
+     */
+    TenantContext(FaceBase base, Terms terms, cloud.jengu.dbo.core.api.ObjectStore own)
+            throws IOException {
+        super(base.context(), base.fhirVersion());
+        this.terms = terms;
+        FaceBase.Loading fromOwn = (type, url) -> own.getByIdentifier(type,
+                        List.of(new cloud.jengu.dbo.core.api.Identifier(
+                                cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url)))
+                .stream().findFirst()
+                .map(cloud.jengu.dbo.core.api.StoredObject::payload)
+                .orElseThrow(() -> new org.hl7.fhir.exceptions.FHIRException(
+                        type + " " + url + " is no longer held here"));
+        List<String> ownShapes = new ArrayList<>();
+        for (String type : FaceBase.HELD_TYPES) {
+            for (cloud.jengu.dbo.core.api.Held held : FaceBase.inventoryOf(own, type)) {
+                String url = FaceBase.canonicalOf(held);
+                if (url != null && !url.startsWith("http://hl7.org/fhir/")) {
+                    register(new FaceBase.Proxy(type, held, url, fromOwn, this), packageInfo);
+                    if ("StructureDefinition".equals(type)) {
+                        ownShapes.add(url);
+                    }
+                }
+            }
+        }
+        // A tenant's own profile is snapshotted here, after every record is
+        // registered and outside any load, by the toolchain's generator — a
+        // differential says what changes from the base, and a validator
+        // handed one without a snapshot checks the handful of elements the
+        // author mentioned and silently passes everything else. A profile
+        // that cannot be snapshotted is refused rather than offered
+        // half-formed, and the reason is said.
+        for (String url : ownShapes) {
+            StructureDefinition definition = fetchResource(StructureDefinition.class, url);
+            if (definition != null && !definition.hasSnapshot()) {
+                try {
+                    new org.hl7.fhir.r5.context.ContextUtilities(this).generateSnapshot(definition);
+                } catch (Exception e) {
+                    throw new IllegalStateException("the profile " + url
+                            + " could not be resolved against its base: " + e.getMessage(), e);
+                }
+            }
         }
     }
 

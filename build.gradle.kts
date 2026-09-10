@@ -166,6 +166,14 @@ subprojects {
             (findProperty("dboTestParallelism") as String?)?.let {
                 systemProperty(
                     "junit.jupiter.execution.parallel.config.fixed.parallelism", it)
+                // One means one. A fixed parallelism of one is a ForkJoin pool
+                // of one worker, and a pool compensates for a worker that
+                // blocks — a class whose bring-up waits on a latch — by
+                // starting another, so "sequential" classes ran three at a
+                // time and three versions of the toolchain met in one heap.
+                if (it == "1") {
+                    systemProperty("junit.jupiter.execution.parallel.enabled", "false")
+                }
             }
             // Say what actually applies, in the plain log: five CI runs died
             // to dials that LOOKED set, and the cure is the task stating its

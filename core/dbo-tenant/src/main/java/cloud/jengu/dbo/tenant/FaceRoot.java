@@ -63,6 +63,11 @@ final class FaceRoot {
         }
         List<FaceRootPackages.Definition> definitions =
                 FaceRootPackages.definitionsFor(spec.face(), declared);
+        // Checked before a row is written. Checked after, a refused package
+        // left every row behind, and the next attempt found the version
+        // "already held" and came up over the refusal — the check had been
+        // failing on every boot and nobody had seen it.
+        selfConsistent(definitions);
         Map<String, Integer> loaded = new TreeMap<>();
         List<PutRequest> batch = new ArrayList<>(BATCH);
         for (FaceRootPackages.Definition definition : definitions) {
@@ -76,7 +81,6 @@ final class FaceRoot {
         if (!batch.isEmpty()) {
             engine.transact(batch);
         }
-        selfConsistent(definitions);
         // The view was built before the records existed; it is rebuilt once,
         // not once per definition, which is why the batch went past the
         // facade.
@@ -104,7 +108,15 @@ final class FaceRoot {
         }
     }
 
-    /** Every base a definition names is a definition that was loaded. */
+    /**
+     * Every base a definition names is a definition that was loaded.
+     *
+     * <p>Logical models are exempt: a tooling package ships models of its
+     * own — the CDS Hooks context models, built on a {@code Base} that the
+     * R4 core does not have — and a logical model is not a shape any
+     * resource is validated against, so a base it cannot reach costs the
+     * version nothing it validates with.
+     */
     private static void selfConsistent(List<FaceRootPackages.Definition> definitions) {
         Set<String> held = new HashSet<>();
         for (FaceRootPackages.Definition definition : definitions) {
@@ -118,6 +130,9 @@ final class FaceRoot {
                 continue;
             }
             String document = new String(definition.document(), java.nio.charset.StandardCharsets.UTF_8);
+            if (document.matches("(?s).*\"kind\"\\s*:\\s*\"logical\".*")) {
+                continue;
+            }
             java.util.regex.Matcher base = java.util.regex.Pattern
                     .compile("\"baseDefinition\"\\s*:\\s*\"([^\"]+)\"").matcher(document);
             if (base.find() && !held.contains(base.group(1))) {

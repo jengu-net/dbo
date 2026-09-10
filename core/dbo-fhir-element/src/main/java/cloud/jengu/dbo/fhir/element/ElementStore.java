@@ -49,6 +49,11 @@ public final class ElementStore implements FhirStoreFacade {
      * rather than to whatever was true when the tenant came up.
      */
     private volatile Payloads<Object> payloads;
+    // A lock rather than a monitor, because building the view reads the
+    // database and runs the toolchain, and a virtual thread holding a
+    // monitor through that pins its carrier.
+    private final java.util.concurrent.locks.ReentrantLock building =
+            new java.util.concurrent.locks.ReentrantLock();
     private final PayloadFraming framing;
     /** Null when this store validates against carried definitions alone. */
     private final Terms terms;
@@ -117,11 +122,70 @@ public final class ElementStore implements FhirStoreFacade {
         this.types = List.copyOf(types);
         this.baseUrl = baseUrl;
         this.terms = terms;
-        this.shapesInView = canonicalsOf(terms == null ? List.of() : storedProfiles(store));
-        this.payloads = terms == null
-                ? (Payloads<Object>) version.face().require(Payloads.class)
-                : (Payloads<Object>) (Payloads<?>) version.payloadsFor(terms, storedProfiles(store), storedMaps(store));
-        this.framing = version.face().require(PayloadFraming.class);
+        this.framing = new ElementFraming(() -> elementPayloads().context());
+    }
+
+    /**
+     * The validation view, built the first time something needs it rather
+     * than when the store is. A store is built at mount, before a tenant on
+     * a face has drained its definitions and before a root has loaded its
+     * own; a view built then would be built from the carried packages, and
+     * that is exactly the copy this exists to stop making.
+     *
+     * <p>From records when the store holds the version — the face base,
+     * shared, with the tenant's own on top — and from the carried context
+     * otherwise, exactly as before: a tenant with no face, and every caller
+     * with no tenant database, are unchanged.
+     */
+    @SuppressWarnings("unchecked")
+    private Payloads<Object> payloads() {
+        Payloads<Object> held = payloads;
+        if (held == null) {
+            building.lock();
+            try {
+                held = payloads;
+                if (held == null) {
+                    if (FaceBase.versionRootIn(store).isPresent()) {
+                        held = (Payloads<Object>) (Payloads<?>) version.payloadsFor(
+                                terms == null ? Terms.NONE : terms, store);
+                        shapesInView = heldCanonicals(store);
+                    } else if (terms == null) {
+                        held = (Payloads<Object>) version.face().require(Payloads.class);
+                        shapesInView = java.util.Set.of();
+                    } else {
+                        List<String> profiles = storedProfiles(store);
+                        held = (Payloads<Object>) (Payloads<?>)
+                                version.payloadsFor(terms, profiles, storedMaps(store));
+                        shapesInView = canonicalsOf(profiles);
+                    }
+                    payloads = held;
+                }
+            } finally {
+                building.unlock();
+            }
+        }
+        return held;
+    }
+
+    /** The view, for the terminology facade that shares this store. */
+    Payloads<Object> payloadsView() {
+        return payloads();
+    }
+
+    ElementPayloads elementPayloads() {
+        return (ElementPayloads) (Payloads<?>) payloads();
+    }
+
+    /** Every canonical the store holds of the type, from its inventory — names, not bodies. */
+    private static java.util.Set<String> heldCanonicals(ObjectStore engine) {
+        java.util.Set<String> urls = new java.util.HashSet<>();
+        for (cloud.jengu.dbo.core.api.Held held : FaceBase.inventoryOf(engine, "StructureDefinition")) {
+            String url = FaceBase.canonicalOf(held);
+            if (url != null) {
+                urls.add(url);
+            }
+        }
+        return java.util.Set.copyOf(urls);
     }
 
     /**
@@ -163,8 +227,8 @@ public final class ElementStore implements FhirStoreFacade {
      */
     Accepted accepted(String resourceJson, ElementReferences.Resolver first) {
         byte[] payload = resourceJson.getBytes(StandardCharsets.UTF_8);
-        Object document = payloads.read(null, payload);
-        String type = payloads.typeOf(document);
+        Object document = payloads().read(null, payload);
+        String type = payloads().typeOf(document);
         ElementReferences.Resolver resolver = first == null ? this::identified
                 : (typeName, query) -> {
                     java.util.Optional<String> inBundle = first.resolve(typeName, query);
@@ -191,10 +255,10 @@ public final class ElementStore implements FhirStoreFacade {
             moved |= ElementReferences.resolve(element, resolver);
         }
         if (moved) {
-            payload = payloads.write(document);
+            payload = payloads().write(document);
         }
         loadClaimedShapesThisTenantHolds(document);
-        List<String> issues = payloads.validate(type, document);
+        List<String> issues = payloads().validate(type, document);
         // The ordering rule's own door (REQ-DBO-SHAPE-UNPARSEABLE-VERSION-
         // REFUSED): dbo's pack is data, so "refused at pack load" means
         // refused HERE, when a shape arrives. A version whose leading
@@ -241,7 +305,7 @@ public final class ElementStore implements FhirStoreFacade {
             LOG.warn("accepted with findings: type={} identity={} findings={} first={}",
                     type, identityFor(type, document), issues.size(), issues.get(0));
         }
-        return new Accepted(type, payload, payloads.writtenUnder(document));
+        return new Accepted(type, payload, payloads().writtenUnder(document));
     }
 
     /**
@@ -444,7 +508,7 @@ public final class ElementStore implements FhirStoreFacade {
      */
     public PutResult putCanonical(String resourceJson) {
         Accepted accepted = accepted(resourceJson);
-        Object document = payloads.read(null, accepted.payload());
+        Object document = payloads().read(null, accepted.payload());
         String url = version.canonicalUrlOf(document);
         return store.putConditional(IdentityRef.canonical(url),
                 PutRequest.create(accepted.type(), accepted.payload()).stamped(accepted.shape()));
@@ -520,7 +584,7 @@ public final class ElementStore implements FhirStoreFacade {
 
     private String rendered(StoredObject stored) {
         refuseIfTooNew(stored);
-        return new String(ElementAncestors.rendered(version.context(), stored.payload(),
+        return new String(ElementAncestors.rendered(elementPayloads().context(), stored.payload(),
                 stored.id(), stored.versionId(), null, stampsFor(stored)), StandardCharsets.UTF_8);
     }
 
@@ -641,7 +705,7 @@ public final class ElementStore implements FhirStoreFacade {
                     version.extractor(typeName,
                             current.identityClass()
                                     == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL,
-                            mine),
+                            mine, this::elementPayloads),
                     ElementVersion.indexesFor(ElementVersion.union(
                             version.parametersFor(typeName), mine)),
                     current.payloadVersion()));
@@ -727,10 +791,8 @@ public final class ElementStore implements FhirStoreFacade {
             return;
         }
         try {
-            List<String> profiles = storedProfiles(store);
-            payloads = (Payloads<Object>) (Payloads<?>)
-                    version.payloadsFor(terms, profiles, storedMaps(store));
-            shapesInView = canonicalsOf(profiles);
+            payloads = null;
+            payloads(); // built now, so a broken profile is said now rather than on somebody's write
         } catch (RuntimeException e) {
             throw new cloud.jengu.dbo.fhir.common.ValidationFailedException("StructureDefinition",
                     List.of("the profile was stored, and this tenant's validation still uses "
@@ -752,7 +814,7 @@ public final class ElementStore implements FhirStoreFacade {
      */
     @Override
     public java.util.Optional<cloud.jengu.dbo.core.face.ShapeConversion> shapeConversion() {
-        Object view = payloads;
+        Object view = payloads();
         return view instanceof ElementPayloads tenant
                 ? java.util.Optional.of(new ElementShapeConversion(tenant))
                 : java.util.Optional.empty();
@@ -872,8 +934,8 @@ public final class ElementStore implements FhirStoreFacade {
 
     @Override
     public String bundle(String bundleJson) {
-        Object document = payloads.read(null, bundleJson.getBytes(StandardCharsets.UTF_8));
-        return new ElementBundles(this, version.context())
+        Object document = payloads().read(null, bundleJson.getBytes(StandardCharsets.UTF_8));
+        return new ElementBundles(this, elementPayloads().context())
                 .process((org.hl7.fhir.r5.elementmodel.Element) document);
     }
 
@@ -946,7 +1008,7 @@ public final class ElementStore implements FhirStoreFacade {
         List<StoredObject> included = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (StoredObject item : chunk.items()) {
-            Object document = payloads.read(null, item.payload());
+            Object document = payloads().read(null, item.payload());
             for (String refParam : compiled.includeRefParams()) {
                 for (String[] target : version.referencedTargets(document, item.typeName(), refParam)) {
                     if (seen.add(target[0] + "/" + target[1])) {
@@ -1088,11 +1150,11 @@ public final class ElementStore implements FhirStoreFacade {
 
     @Override
     public String validationOutcome(String resourceJson) {
-        Object document = payloads.read(null, resourceJson.getBytes(StandardCharsets.UTF_8));
+        Object document = payloads().read(null, resourceJson.getBytes(StandardCharsets.UTF_8));
         // Everything the face has to say, not only what would refuse the write
         //: a caller asking whether this is acceptable is also asking what
         // is questionable about it.
-        return ElementOutcomes.issues(payloads.check(payloads.typeOf(document), document, null),
+        return ElementOutcomes.issues(payloads().check(payloads().typeOf(document), document, null),
                 null);
     }
 
@@ -1130,8 +1192,8 @@ public final class ElementStore implements FhirStoreFacade {
             }
             shape = step.get().consumes().get();
         }
-        Object document = payloads.read(null, resourceJson.getBytes(StandardCharsets.UTF_8));
-        return ElementOutcomes.issues(payloads.check(payloads.typeOf(document), document, shape),
+        Object document = payloads().read(null, resourceJson.getBytes(StandardCharsets.UTF_8));
+        return ElementOutcomes.issues(payloads().check(payloads().typeOf(document), document, shape),
                 shape);
     }
 

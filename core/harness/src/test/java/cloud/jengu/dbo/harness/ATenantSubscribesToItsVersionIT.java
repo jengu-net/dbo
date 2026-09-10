@@ -46,6 +46,7 @@ class ATenantSubscribesToItsVersionIT {
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
+    static long contextBuildsBefore;
 
     @BeforeAll
     void up() throws Exception {
@@ -73,6 +74,7 @@ class ATenantSubscribesToItsVersionIT {
                   {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
                   {"name":"Observation","identity":"internal","handling":"operational"}]}"""
                 .formatted(SUBSCRIBER, ROOT));
+        contextBuildsBefore = cloud.jengu.dbo.fhir.element.ElementVersion.contextBuilds();
         UntilServed.scan(manager, ROOT);
         long began = System.currentTimeMillis();
         UntilServed.scan(manager, SUBSCRIBER);
@@ -106,6 +108,44 @@ class ATenantSubscribesToItsVersionIT {
                 "the subscriber was served without its version's definitions — no reconciler "
                         + "runs here, so nothing else could have brought them: "
                         + patient.body());
+    }
+
+    @Test
+    @DisplayName("neither the root nor its subscriber built the carried toolchain context: "
+            + "they were brought up, served a read and accepted a write from their records")
+    @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
+    void nobodyBuiltTheCarriedContext() throws Exception {
+        manager.authority(SUBSCRIBER).ensureClient("writer", "writer-secret",
+                List.of("system/*.read", "system/*.write"));
+        String token = http.send(HttpRequest.newBuilder(URI.create(base(SUBSCRIBER) + "/oidc/token"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "grant_type=client_credentials&client_id=writer&client_secret=writer-secret"))
+                        .build(), HttpResponse.BodyHandlers.ofString())
+                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+        HttpResponse<String> accepted = http.send(HttpRequest.newBuilder(
+                        URI.create(base(SUBSCRIBER) + "/fhir/Observation"))
+                        .header("Authorization", "Bearer " + token)
+                        .header("Content-Type", "application/fhir+json")
+                        .POST(HttpRequest.BodyPublishers.ofString("""
+                                {"resourceType":"Observation","status":"final",
+                                 "code":{"coding":[{"system":"http://loinc.org","code":"8867-4"}]},
+                                 "valueQuantity":{"value":72,"unit":"/min"}}"""))
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(201, accepted.statusCode(), accepted.body());
+        HttpResponse<String> refused = http.send(HttpRequest.newBuilder(
+                        URI.create(base(SUBSCRIBER) + "/fhir/Observation"))
+                        .header("Authorization", "Bearer " + token)
+                        .header("Content-Type", "application/fhir+json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"resourceType\":\"Observation\",\"status\":\"nonesuch\"}"))
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(422, refused.statusCode(),
+                "the subscriber validates against nothing: " + refused.body());
+        assertEquals(contextBuildsBefore, cloud.jengu.dbo.fhir.element.ElementVersion.contextBuilds(),
+                "a tenant on a face built the carried toolchain context instead of reading its records");
     }
 
     @Test

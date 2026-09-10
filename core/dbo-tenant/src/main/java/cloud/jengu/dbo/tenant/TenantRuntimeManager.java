@@ -1206,10 +1206,6 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // so the facade is built here rather than shared — a tenant answers
         // $expand from its own concepts or it is a second-class reader.
         FhirTerminology terminology = declared.terminology(engine, db.dataSource());
-        long vocabularyAt = System.currentTimeMillis();
-        publishVocabularies(spec.code(), engine, store, terminology, version);
-        LOG.info("tenant bring-up cost: code={} facade={}ms vocabulary={}ms",
-                spec.code(), facadeMillis, System.currentTimeMillis() - vocabularyAt);
         // The lane's own objects, built once for this tenant and shared by
         // everything that reaches for a lane.
         //
@@ -1529,6 +1525,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // to validate against.
             FaceRoot.load(spec, engine, store);
         }
+        // The engine's own vocabularies land after the face's definitions,
+        // because publishing one validates it, and validating needs the
+        // view — which is built from the definitions a root has just loaded
+        // or a subscriber has just drained. Published before them, the view
+        // was built from the carried packages instead, at every mount.
+        long vocabularyAt = System.currentTimeMillis();
+        publishVocabularies(spec.code(), engine, store, terminology, version);
+        LOG.info("tenant bring-up cost: code={} facade={}ms vocabulary={}ms",
+                spec.code(), facadeMillis, System.currentTimeMillis() - vocabularyAt);
         // Published only now: wired, mounted, and safe to be somebody's
         // upstream.
         runtimes.put(spec.code(), runtime);

@@ -1373,6 +1373,7 @@ cloud.jengu.dbo.fhir.element.ElementVersion                            contextBu
 cloud.jengu.dbo.fhir.element.ElementVersion                            extractor(String):cloud.jengu.dbo.core.api.EnvelopeExtractor
 cloud.jengu.dbo.fhir.element.ElementVersion                            extractor(String,boolean):cloud.jengu.dbo.core.api.EnvelopeExtractor
 cloud.jengu.dbo.fhir.element.ElementVersion                            extractor(String,boolean,List):cloud.jengu.dbo.core.api.EnvelopeExtractor
+cloud.jengu.dbo.fhir.element.ElementVersion                            extractor(String,boolean,List,Supplier):cloud.jengu.dbo.core.api.EnvelopeExtractor
 cloud.jengu.dbo.fhir.element.ElementVersion                            face():cloud.jengu.dbo.core.face.DomainFace
 cloud.jengu.dbo.fhir.element.ElementVersion                            indexesFor(List):List
 cloud.jengu.dbo.fhir.element.ElementVersion                            of(String):cloud.jengu.dbo.fhir.element.ElementVersion

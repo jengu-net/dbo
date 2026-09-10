@@ -289,12 +289,21 @@ class TenantOsgiIT {
         }
         assertEquals(200, status, "the tenant endpoint must come up from the spec file alone; "
                 + inTheContainer(ctx));
+        // The endpoint answers before the tenant is published: it is mounted
+        // early in a bring-up, and the view a first write needs is built at
+        // the end of one. Served is what the container says it is, so that
+        // is what is waited on, under the same room as above.
+        while (System.currentTimeMillis() < deadline
+                && runtimeState().contains("\"state\":\"coming-up\"")) {
+            Thread.sleep(250);
+        }
 
         // per-tenant services visible in the registry with tenant= properties
         ServiceReference<?>[] stores = ctx.getAllServiceReferences(
                 "cloud.jengu.dbo.fhir.common.FhirStoreFacade", "(tenant=konteiner)");
         assertTrue(stores != null && stores.length == 1,
-                "FhirStoreFacade(tenant=konteiner) must be registered");
+                "FhirStoreFacade(tenant=konteiner) must be registered; the runtime says "
+                        + runtimeState() + "; " + inTheContainer(ctx));
         ServiceReference<?>[] feeds = ctx.getAllServiceReferences(
                 "cloud.jengu.dbo.core.api.feed.ChangeFeed", "(tenant=konteiner)");
         assertTrue(feeds != null && feeds.length == 1);

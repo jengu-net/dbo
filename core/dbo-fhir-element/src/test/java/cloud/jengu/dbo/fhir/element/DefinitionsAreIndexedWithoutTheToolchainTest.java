@@ -100,6 +100,31 @@ class DefinitionsAreIndexedWithoutTheToolchainTest {
         }
     }
 
+    @Test
+    @DisplayName("what a face carries is the package folder, self-consistent: every shape's base is carried too")
+    void whatAFaceCarriesIsSelfConsistent() {
+        for (String face : CarriedDefinitions.versions()) {
+            List<FaceRootPackages.Definition> structures = FaceRootPackages.definitionsFor(face,
+                    java.util.Set.of("StructureDefinition"));
+            java.util.Set<String> urls = new java.util.HashSet<>();
+            structures.forEach(d -> urls.add(d.url()));
+            List<String> orphans = new ArrayList<>();
+            for (FaceRootPackages.Definition d : structures) {
+                String json = new String(d.document(), java.nio.charset.StandardCharsets.UTF_8);
+                if (json.matches("(?s).*\"kind\"\\s*:\\s*\"logical\".*")) {
+                    continue; // a logical model is not a shape a resource is validated against
+                }
+                java.util.regex.Matcher base = java.util.regex.Pattern
+                        .compile("\"baseDefinition\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
+                if (base.find() && !urls.contains(base.group(1))) {
+                    orphans.add(d.url() + " on " + base.group(1));
+                }
+            }
+            assertTrue(orphans.isEmpty(), face + ": a side folder of the package leaked in — "
+                    + orphans);
+        }
+    }
+
     private static List<String> edges(Envelope envelope) {
         return envelope.references().stream().map(Object::toString).sorted().toList();
     }

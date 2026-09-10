@@ -58,7 +58,6 @@ final class ElementTerminology implements FhirTerminology {
     private final ObjectStore store;
     private final ElementStore canonical;
     private final TerminologyStore terminology;
-    private final Payloads<Element> payloads;
 
     @SuppressWarnings("unchecked")
     ElementTerminology(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
@@ -71,7 +70,12 @@ final class ElementTerminology implements FhirTerminology {
         // per-tenant validating context here would cost a parse per tenant for
         // a validation nothing on this path asks for.
         this.canonical = new ElementStore(store, version, types, "");
-        this.payloads = (Payloads<Element>) (Payloads<?>) version.face().require(Payloads.class);
+    }
+
+    /** The store's own view — from records when it holds the version, the carried one otherwise. */
+    @SuppressWarnings("unchecked")
+    private Payloads<Element> payloads() {
+        return (Payloads<Element>) (Payloads<?>) canonical.payloadsView();
     }
 
     // ----------------------------------------------------------- operations
@@ -291,7 +295,7 @@ final class ElementTerminology implements FhirTerminology {
         if (shells.isEmpty()) {
             return Optional.empty();
         }
-        Element shell = payloads.read(null, shells.get(0).payload());
+        Element shell = payloads().read(null, shells.get(0).payload());
         Element originalContent = originalContentOf(shell);
         if (originalContent != null) {
             shell.setChildValue("content", choiceValue(originalContent));
@@ -368,7 +372,7 @@ final class ElementTerminology implements FhirTerminology {
         if (!"CodeSystem".equals(typeName)) {
             return storedPayload;
         }
-        Element shell = payloads.read(null, storedPayload);
+        Element shell = payloads().read(null, storedPayload);
         return codeSystemResource(shell.getNamedChildValue("url"))
                 .map(json -> json.getBytes(StandardCharsets.UTF_8))
                 // a shell whose system this store has no concepts for is sent
@@ -381,7 +385,7 @@ final class ElementTerminology implements FhirTerminology {
         if ("ValueSet".equals(typeName)) {
             return transportedPayload;
         }
-        Element document = payloads.read(null, transportedPayload);
+        Element document = payloads().read(null, transportedPayload);
         List<Concept> flat = new ArrayList<>();
         flatten(document, null, flat);
         return json(shellOf(document, flat.size())).getBytes(StandardCharsets.UTF_8);
@@ -389,7 +393,7 @@ final class ElementTerminology implements FhirTerminology {
 
     @Override
     public void keep(String typeName, byte[] transportedPayload) {
-        Element document = payloads.read(null, transportedPayload);
+        Element document = payloads().read(null, transportedPayload);
         if ("ValueSet".equals(typeName)) {
             putCompose(document);
             return;
@@ -403,11 +407,11 @@ final class ElementTerminology implements FhirTerminology {
     // ------------------------------------------------------------- payloads
 
     private Element read(String json) {
-        return payloads.read(null, json.getBytes(StandardCharsets.UTF_8));
+        return payloads().read(null, json.getBytes(StandardCharsets.UTF_8));
     }
 
     private String json(Element document) {
-        return new String(payloads.write(document), StandardCharsets.UTF_8);
+        return new String(payloads().write(document), StandardCharsets.UTF_8);
     }
 
     private static List<Element> children(Element parent, String name) {

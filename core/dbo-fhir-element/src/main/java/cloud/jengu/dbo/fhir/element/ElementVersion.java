@@ -221,6 +221,21 @@ public final class ElementVersion {
      */
     public EnvelopeExtractor extractor(String typeName, boolean canonical,
             List<SearchParameter> alsoAuthoredHere) {
+        return extractor(typeName, canonical, alsoAuthoredHere, () -> payloads);
+    }
+
+    /**
+     * The same, reading the document through the payloads {@code through}
+     * answers with when the write happens — a tenant's own view over its
+     * records, once its store exists, rather than this version's carried
+     * context. Registrations are made before a tenant's store is, so the
+     * view cannot be handed over at registration; it is looked up at each
+     * write instead, and until a store has said which, the version's own
+     * payloads answer as they always did.
+     */
+    public EnvelopeExtractor extractor(String typeName, boolean canonical,
+            List<SearchParameter> alsoAuthoredHere,
+            java.util.function.Supplier<ElementPayloads> through) {
         if (alsoAuthoredHere.isEmpty() && DefinitionParameters.isDefinitionType(typeName)) {
             // A definition is indexed from its JSON, because the toolchain
             // needs the version's definitions to parse one and a definition
@@ -234,7 +249,12 @@ public final class ElementVersion {
             return (type, payload) -> DefinitionEnvelopes.extract(parameters, type, payload, canonical);
         }
         List<SearchParameter> parameters = union(parametersFor(typeName), alsoAuthoredHere);
-        return (type, payload) -> extract(parameters, payload, canonical);
+        return (type, payload) -> extract(through.get(), parameters, payload, canonical);
+    }
+
+    /** This version's own payloads, over the carried context. */
+    ElementPayloads payloads() {
+        return payloads;
     }
 
     /** This version's parameters for a type, then whichever of the others it does not already define. */
@@ -297,9 +317,10 @@ public final class ElementVersion {
         }
     }
 
-    private Envelope extract(List<SearchParameter> parameters, byte[] payload, boolean canonical) {
-        Element document = payloads.read(null, payload);
-        return ElementEnvelopes.extract(context(), parameters, document, canonical);
+    private static Envelope extract(ElementPayloads through, List<SearchParameter> parameters,
+            byte[] payload, boolean canonical) {
+        Element document = through.read(null, payload);
+        return ElementEnvelopes.extract(through.context(), parameters, document, canonical);
     }
 
     /**
@@ -451,6 +472,20 @@ public final class ElementVersion {
             }
         }
         return held;
+    }
+
+    /**
+     * The tenant form over records: the face base this store's version
+     * root names, copied, with the tenant's own definitions on top.
+     */
+    ElementPayloads payloadsFor(Terms terms, cloud.jengu.dbo.core.api.ObjectStore store) {
+        try {
+            FaceBase base = FaceBase.of(fhirVersion, store);
+            return new ElementPayloads(new TenantContext(base, terms, store), terms);
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(
+                    "cannot derive a tenant context from the records of " + code, e);
+        }
     }
 
     SimpleWorkerContext context() {

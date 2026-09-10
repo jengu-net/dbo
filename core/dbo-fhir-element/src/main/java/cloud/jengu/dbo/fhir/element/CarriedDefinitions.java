@@ -176,10 +176,22 @@ public final class CarriedDefinitions {
      */
     static List<NpmPackage.PackageResourceInformation> indexed(Carried carried, String... types) {
         try {
+            // The package folder only. A package carries side folders too —
+            // examples, other renderings — and their index lists definitions
+            // just the same; three of the r4 core's are built on bases the
+            // package does not carry, and a root that took them refused its
+            // own packages as inconsistent. What the toolchain loads is the
+            // package folder, and so is this.
             // By filename: the index is written in the order the filesystem
             // listed the folder, which is no order at all.
-            List<NpmPackage.PackageResourceInformation> out =
-                    new ArrayList<>(packageOf(carried).listIndexedResources(types));
+            List<NpmPackage.PackageResourceInformation> out = new ArrayList<>();
+            for (NpmPackage.PackageResourceInformation indexed
+                    : packageOf(carried).listIndexedResources(types)) {
+                java.nio.file.Path file = java.nio.file.Path.of(indexed.getFilename());
+                if (file.getParent() != null && "package".equals(file.getParent().getFileName().toString())) {
+                    out.add(indexed);
+                }
+            }
             out.sort(java.util.Comparator.comparing(NpmPackage.PackageResourceInformation::getFilename));
             return out;
         } catch (IOException e) {
