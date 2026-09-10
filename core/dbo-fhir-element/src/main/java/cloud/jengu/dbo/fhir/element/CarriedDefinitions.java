@@ -146,6 +146,84 @@ public final class CarriedDefinitions {
         }
     }
 
+    private static final java.util.Map<String, NpmPackage> EXTRACTED =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * The package on disk, extracted once per process and opened by its
+     * index — so that listing what it carries, or reading one definition
+     * from it, costs neither the whole archive in memory nor a parse of
+     * anything else in it. The archive read into memory was tens of
+     * megabytes per version held for the life of the process, and the only
+     * reason to hold it was that nothing had put it on disk.
+     */
+    static NpmPackage packageOf(Carried carried) {
+        return EXTRACTED.computeIfAbsent(carried.id(), id -> {
+            try {
+                java.nio.file.Path dir = java.nio.file.Files.createTempDirectory(
+                        "dbo-" + carried.name() + "-");
+                return NpmPackage.extractFromTgz(open(carried), id, dir.toString(), false);
+            } catch (IOException e) {
+                throw new UncheckedIOException("cannot extract " + id, e);
+            }
+        });
+    }
+
+    /**
+     * What the package carries of the given types, from its index — an
+     * extracted package is opened by its index alone, and knows nothing of
+     * its files until one is asked for by name.
+     */
+    static List<NpmPackage.PackageResourceInformation> indexed(Carried carried, String... types) {
+        try {
+            // By filename: the index is written in the order the filesystem
+            // listed the folder, which is no order at all.
+            List<NpmPackage.PackageResourceInformation> out =
+                    new ArrayList<>(packageOf(carried).listIndexedResources(types));
+            out.sort(java.util.Comparator.comparing(NpmPackage.PackageResourceInformation::getFilename));
+            return out;
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot list " + carried.id(), e);
+        }
+    }
+
+    /**
+     * The specification ships a few search parameters as examples of the
+     * type — {@code example-reference} declares a second {@code subject} on
+     * Condition, aimed at Organization — and they are in the package beside
+     * the real ones. The toolchain skips the example by name when it loads
+     * a package; so does this, for the same reason: which of two
+     * definitions of a code wins must not depend on the order files come
+     * out of an archive.
+     */
+    static boolean isSpecificationExample(String url) {
+        return url != null && url.startsWith("http://hl7.org/fhir/SearchParameter/example");
+    }
+
+    /** One indexed definition's bytes, read from the extracted package. */
+    static InputStream read(NpmPackage.PackageResourceInformation indexed) {
+        try {
+            return org.hl7.fhir.utilities.filesystem.ManagedFileAccess.inStream(indexed.getFilename());
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot read " + indexed.getFilename(), e);
+        }
+    }
+
+    /** The version's definition packages, terminology aside: the core, and what it tools with. */
+    static List<Carried> definitionPackages(String fhirVersion) {
+        return forVersion(fhirVersion).stream()
+                .filter(c -> !c.name().startsWith("hl7.terminology"))
+                .toList();
+    }
+
+    /**
+     * The FHIR version the core package declares — what a loaded context
+     * would answer as its version, read from the package alone.
+     */
+    static String fhirVersionOf(String code) {
+        return packageOf(definitionPackages(code).get(0)).fhirVersion();
+    }
+
     /** The package's bytes, from this bundle and nowhere else. */
     static InputStream open(Carried carried) {
         InputStream bytes = CarriedDefinitions.class

@@ -50,18 +50,32 @@ public final class ElementVersion {
     private static final Map<String, SoftReference<ElementVersion>> BY_CODE =
             new ConcurrentHashMap<>();
 
+    private static final java.util.concurrent.atomic.AtomicLong CONTEXT_BUILDS =
+            new java.util.concurrent.atomic.AtomicLong();
+
     private final String code;
-    private final SimpleWorkerContext context;
+    private final String fhirVersion;
+    private volatile SimpleWorkerContext context;
+    private volatile List<SearchParameter> carriedParameters;
     private final ElementPayloads payloads;
     private final PayloadFraming framing;
     private final DomainFace face;
     private final Map<String, List<SearchParameter>> searchParameters = new ConcurrentHashMap<>();
 
-    private ElementVersion(String code, SimpleWorkerContext context) {
+    /**
+     * A version is looked up for many things that need no worker context —
+     * a type's registrations, a definition's envelope, its own coordinate —
+     * and building the context here made each of them cost the whole of it:
+     * two hundred megabytes and seconds, for a tenant that may hold every
+     * definition it will ever validate against as records. So the context is
+     * built when something asks for it, and what can be read from the
+     * package alone is.
+     */
+    ElementVersion(String code) {
         this.code = code;
-        this.context = context;
-        this.payloads = new ElementPayloads(context);
-        this.framing = new ElementFraming(context);
+        this.fhirVersion = CarriedDefinitions.fhirVersionOf(code);
+        this.payloads = new ElementPayloads(this::context);
+        this.framing = new ElementFraming(this::context);
         this.face = FhirFace.describing(code)
                 .providing(Payloads.class, payloads)
                 .providing(PayloadFraming.class, framing)
@@ -81,7 +95,7 @@ public final class ElementVersion {
                 // which kind it is.
                 .providing(PortableRendering.class,
                         (payload, id, versionId) -> new String(
-                                ElementAncestors.rendered(context, payload, id, versionId),
+                                ElementAncestors.rendered(context(), payload, id, versionId),
                                 java.nio.charset.StandardCharsets.UTF_8))
                 .build();
     }
@@ -105,7 +119,7 @@ public final class ElementVersion {
             if (held != null) {
                 return held;
             }
-            ElementVersion built = new ElementVersion(code, offline(code));
+            ElementVersion built = new ElementVersion(code);
             BY_CODE.put(code, new SoftReference<>(built));
             return built;
         }
@@ -149,7 +163,17 @@ public final class ElementVersion {
      * spelled would eventually spell it differently.
      */
     public String payloadVersion() {
-        return context.getVersion();
+        return fhirVersion;
+    }
+
+    /** How many times any version's context has been built in this process. */
+    public static long contextBuilds() {
+        return CONTEXT_BUILDS.get();
+    }
+
+    /** Whether this version has built its context — the memory, not the name. */
+    public boolean contextBuilt() {
+        return context != null;
     }
 
     /** What the engine requires from this version. */
@@ -263,8 +287,8 @@ public final class ElementVersion {
         }
         try {
             org.hl7.fhir.r5.fhirpath.FHIRPathEngine engine =
-                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context);
-            engine.setHostServices(new ElementHostServices(context));
+                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context());
+            engine.setHostServices(new ElementHostServices(context()));
             engine.parse(expression);
             return java.util.Optional.empty();
         } catch (Exception notFhirPath) {
@@ -275,14 +299,21 @@ public final class ElementVersion {
 
     private Envelope extract(List<SearchParameter> parameters, byte[] payload, boolean canonical) {
         Element document = payloads.read(null, payload);
-        return ElementEnvelopes.extract(context, parameters, document, canonical);
+        return ElementEnvelopes.extract(context(), parameters, document, canonical);
     }
 
-    /** Every search parameter this version defines over a type, expression first. */
+    /**
+     * Every search parameter this version defines over a type, expression
+     * first — read from the carried package, not from a context, because
+     * registering a type's parameters is the first thing a bring-up does
+     * and the last thing that should cost a version's memory. The same
+     * definitions the context would load, through the same loader, in the
+     * same order.
+     */
     List<SearchParameter> parametersFor(String typeName) {
         return searchParameters.computeIfAbsent(typeName, type -> {
             Map<String, SearchParameter> byCode = new LinkedHashMap<>();
-            for (SearchParameter parameter : context.fetchResourcesByType(SearchParameter.class)) {
+            for (SearchParameter parameter : carriedParameters()) {
                 boolean applies = parameter.getBase().stream()
                         .anyMatch(base -> type.equals(base.getCode()));
                 if (!applies || parameter.getCode().startsWith("_")
@@ -292,7 +323,12 @@ public final class ElementVersion {
                 }
                 byCode.putIfAbsent(parameter.getCode(), parameter);
             }
-            return List.copyOf(new ArrayList<>(byCode.values()));
+            // By code, so the order is the same on every filesystem the
+            // package is unpacked on. It was the archive's file order, which
+            // meant nothing and differed from the index's.
+            List<SearchParameter> ordered = new ArrayList<>(byCode.values());
+            ordered.sort(java.util.Comparator.comparing(SearchParameter::getCode));
+            return List.copyOf(ordered);
         });
     }
 
@@ -313,8 +349,8 @@ public final class ElementVersion {
         List<org.hl7.fhir.r5.model.Base> hits;
         try {
             org.hl7.fhir.r5.fhirpath.FHIRPathEngine fhirPath =
-                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context);
-            fhirPath.setHostServices(new ElementHostServices(context));
+                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context());
+            fhirPath.setHostServices(new ElementHostServices(context()));
             hits = fhirPath.evaluate(element, parameter.getExpression());
         } catch (Exception e) {
             return List.of();
@@ -384,7 +420,50 @@ public final class ElementVersion {
         }
     }
 
+    private List<SearchParameter> carriedParameters() {
+        List<SearchParameter> held = carriedParameters;
+        if (held == null) {
+            synchronized (this) {
+                held = carriedParameters;
+                if (held == null) {
+                    List<SearchParameter> read = new ArrayList<>();
+                    for (CarriedDefinitions.Carried carried : CarriedDefinitions.definitionPackages(code)) {
+                        try {
+                            WithoutNarrative loader = new WithoutNarrative(
+                                    org.hl7.fhir.validation.ValidatorUtils.loaderForVersion(
+                                            CarriedDefinitions.packageOf(carried).fhirVersion()));
+                            for (var indexed : CarriedDefinitions.indexed(carried, "SearchParameter")) {
+                                if (CarriedDefinitions.isSpecificationExample(indexed.getUrl())) {
+                                    continue;
+                                }
+                                try (java.io.InputStream in = CarriedDefinitions.read(indexed)) {
+                                    if (loader.loadResource(in, true) instanceof SearchParameter parameter) {
+                                        read.add(parameter);
+                                    }
+                                }
+                            }
+                        } catch (java.io.IOException e) {
+                            throw new java.io.UncheckedIOException("cannot read " + carried.id(), e);
+                        }
+                    }
+                    held = carriedParameters = List.copyOf(read);
+                }
+            }
+        }
+        return held;
+    }
+
     SimpleWorkerContext context() {
-        return context;
+        SimpleWorkerContext held = context;
+        if (held == null) {
+            synchronized (this) {
+                held = context;
+                if (held == null) {
+                    CONTEXT_BUILDS.incrementAndGet();
+                    held = context = offline(code);
+                }
+            }
+        }
+        return held;
     }
 }

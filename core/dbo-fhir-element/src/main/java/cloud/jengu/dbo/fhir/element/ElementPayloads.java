@@ -34,12 +34,25 @@ final class ElementPayloads implements Payloads<Element> {
     static final java.util.concurrent.atomic.AtomicLong READS =
             new java.util.concurrent.atomic.AtomicLong();
 
-    private final SimpleWorkerContext context;
+    private final java.util.function.Supplier<SimpleWorkerContext> context;
     private final Terms terms;
     private final Payloads<Element> reading;
 
     ElementPayloads(SimpleWorkerContext context) {
         this(context, null);
+    }
+
+    /**
+     * Over a context resolved when first needed rather than handed over
+     * built. The version's own payloads are constructed when the version is,
+     * and a version is looked up for things that need no context at all — a
+     * type's registrations, a definition's envelope — so building one there
+     * was the whole of a version's memory paid for reading its name.
+     */
+    ElementPayloads(java.util.function.Supplier<SimpleWorkerContext> context) {
+        this.terms = null;
+        this.context = context;
+        this.reading = new ReadOnce<>(new Parsing());
     }
 
     /**
@@ -53,7 +66,7 @@ final class ElementPayloads implements Payloads<Element> {
      */
     ElementPayloads(SimpleWorkerContext context, Terms terms) {
         this.terms = terms;
-        this.context = context;
+        this.context = () -> context;
         // One read per request, the same way every face gets it: the engine's
         // envelope extraction asks this face about the bytes the write path
         // already read (REQ-DBO-VER-ONE-READ-PER-REQUEST).
@@ -66,7 +79,7 @@ final class ElementPayloads implements Payloads<Element> {
         public Element read(String typeName, byte[] payload) {
             READS.incrementAndGet();
             try {
-                return Manager.parseSingle(context, new ByteArrayInputStream(payload),
+                return Manager.parseSingle(context(), new ByteArrayInputStream(payload),
                         Manager.FhirFormat.JSON);
             } catch (IOException | RuntimeException e) {
                 // IOException included, and deliberately: the bytes are in
@@ -117,7 +130,7 @@ final class ElementPayloads implements Payloads<Element> {
             for (Element claimed : document.getChildrenByName("meta").stream()
                     .flatMap(meta -> meta.getChildrenByName("profile").stream()).toList()) {
                 String url = claimed.primitiveValue();
-                if (url != null && context.fetchResource(
+                if (url != null && context().fetchResource(
                         org.hl7.fhir.r5.model.StructureDefinition.class, url) == null) {
                     return List.of(new Issue(Issue.ERROR, document.fhirType(),
                             "the resource claims the profile '" + url + "', which this tenant "
@@ -135,7 +148,7 @@ final class ElementPayloads implements Payloads<Element> {
                     returnValidator(validator);
                 }
             } else {
-                if (context.fetchResource(org.hl7.fhir.r5.model.StructureDefinition.class,
+                if (context().fetchResource(org.hl7.fhir.r5.model.StructureDefinition.class,
                         shapeReference) == null) {
                     // Checked here rather than left to the validator, which
                     // throws for a profile it cannot locate — an exception the
@@ -178,7 +191,7 @@ final class ElementPayloads implements Payloads<Element> {
                 String system = element.getNamedChildValue("system");
                 String code = element.getNamedChildValue("code");
                 if (system != null && code != null
-                        && context.fetchResource(
+                        && context().fetchResource(
                                 org.hl7.fhir.r5.model.CodeSystem.class, system) == null) {
                     terms.membership(system, code)
                             .filter(m -> !m.present())
@@ -229,7 +242,7 @@ final class ElementPayloads implements Payloads<Element> {
         public byte[] write(Element document) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             try {
-                Manager.compose(context, document, out, Manager.FhirFormat.JSON,
+                Manager.compose(context(), document, out, Manager.FhirFormat.JSON,
                         IParser.OutputStyle.NORMAL, null);
             } catch (IOException e) {
                 throw new UncheckedIOException("cannot write a payload to memory", e);
@@ -310,11 +323,11 @@ final class ElementPayloads implements Payloads<Element> {
     }
 
     private InstanceValidator newValidator() {
-        InstanceValidator validator = new InstanceValidator(context,
-                new ElementHostServices(context),
-                XVerExtensionManagerFactory.createExtensionManager(context),
+        InstanceValidator validator = new InstanceValidator(context(),
+                new ElementHostServices(context()),
+                XVerExtensionManagerFactory.createExtensionManager(context()),
                 new ValidatorSession(), new ValidatorSettings());
-        validator.setFetcher(new ElementFetcher(context));
+        validator.setFetcher(new ElementFetcher(context()));
         // What a write is held to, and what it is not — see the policy.
         validator.setPolicyAdvisor(new ElementValidationPolicy());
         // An extension whose definition this face does not carry is allowed:
@@ -356,7 +369,7 @@ final class ElementPayloads implements Payloads<Element> {
                 if (url == null || url.isBlank()) {
                     continue;
                 }
-                org.hl7.fhir.r5.model.StructureDefinition sd = context.fetchResource(
+                org.hl7.fhir.r5.model.StructureDefinition sd = context().fetchResource(
                         org.hl7.fhir.r5.model.StructureDefinition.class, url);
                 if (sd != null && sd.getVersion() != null && !sd.getVersion().isBlank()) {
                     stamps.add(url + "|" + sd.getVersion());
@@ -368,7 +381,7 @@ final class ElementPayloads implements Payloads<Element> {
 
     /** This view's definitions — the tenant's, where one was derived. */
     SimpleWorkerContext context() {
-        return context;
+        return context.get();
     }
 
     /**
@@ -377,7 +390,7 @@ final class ElementPayloads implements Payloads<Element> {
      * conflict: a stamp outlives the pack version that made it.
      */
     String declaredVersionOf(String profile) {
-        org.hl7.fhir.r5.model.StructureDefinition sd = context.fetchResource(
+        org.hl7.fhir.r5.model.StructureDefinition sd = context().fetchResource(
                 org.hl7.fhir.r5.model.StructureDefinition.class, profile);
         return sd == null || sd.getVersion() == null || sd.getVersion().isBlank()
                 ? null : sd.getVersion();

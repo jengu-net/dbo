@@ -1368,6 +1368,8 @@ cloud.jengu.dbo.fhir.element.ElementStore                              validatio
 cloud.jengu.dbo.fhir.element.ElementStore                              validationOutcome(String,String):String
 cloud.jengu.dbo.fhir.element.ElementVersion                            class
 cloud.jengu.dbo.fhir.element.ElementVersion                            code():String
+cloud.jengu.dbo.fhir.element.ElementVersion                            contextBuilds():long
+cloud.jengu.dbo.fhir.element.ElementVersion                            contextBuilt():boolean
 cloud.jengu.dbo.fhir.element.ElementVersion                            extractor(String):cloud.jengu.dbo.core.api.EnvelopeExtractor
 cloud.jengu.dbo.fhir.element.ElementVersion                            extractor(String,boolean):cloud.jengu.dbo.core.api.EnvelopeExtractor
 cloud.jengu.dbo.fhir.element.ElementVersion                            extractor(String,boolean,List):cloud.jengu.dbo.core.api.EnvelopeExtractor

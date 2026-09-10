@@ -44,15 +44,12 @@ public final class FaceRootPackages {
      */
     public static List<Definition> definitionsFor(String face, Set<String> types) {
         List<Definition> out = new ArrayList<>();
-        for (CarriedDefinitions.Carried carried : CarriedDefinitions.forVersion(face)) {
-            if (carried.name().startsWith("hl7.terminology")) {
-                continue;
-            }
+        for (CarriedDefinitions.Carried carried : CarriedDefinitions.definitionPackages(face)) {
             try {
-                NpmPackage npm = NpmPackage.fromPackage(CarriedDefinitions.open(carried));
-                for (String name : npm.listResources(types.toArray(new String[0]))) {
+                for (NpmPackage.PackageResourceInformation indexed
+                        : CarriedDefinitions.indexed(carried, types.toArray(new String[0]))) {
                     JsonObject json;
-                    try (var in = npm.loadResource(name)) {
+                    try (var in = CarriedDefinitions.read(indexed)) {
                         json = JsonParser.parseObject(in);
                     }
                     String typeName = json.asString("resourceType");

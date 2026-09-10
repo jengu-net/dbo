@@ -54,15 +54,15 @@ final class DefinitionParameters {
         for (String type : DEFINITION_TYPES) {
             byType.put(type, new LinkedHashMap<>());
         }
-        for (CarriedDefinitions.Carried carried : CarriedDefinitions.forVersion(face)) {
-            if (carried.name().startsWith("hl7.terminology")) {
-                continue;
-            }
+        for (CarriedDefinitions.Carried carried : CarriedDefinitions.definitionPackages(face)) {
             try {
-                NpmPackage npm = NpmPackage.fromPackage(CarriedDefinitions.open(carried));
-                for (String name : npm.listResources("SearchParameter")) {
+                for (NpmPackage.PackageResourceInformation indexed
+                        : CarriedDefinitions.indexed(carried, "SearchParameter")) {
+                    if (CarriedDefinitions.isSpecificationExample(indexed.getUrl())) {
+                        continue;
+                    }
                     JsonObject json;
-                    try (var in = npm.loadResource(name)) {
+                    try (var in = CarriedDefinitions.read(indexed)) {
                         json = JsonParser.parseObject(in);
                     }
                     String code = json.asString("code");
