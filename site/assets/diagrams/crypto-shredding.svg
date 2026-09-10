@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-386.816 -123.75 771.566 247.5" width="771.566" height="247.5" class="lini lini-scope-6345dfaa">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-386.816 -123.75 771.566 247.5" width="771.566" height="247.5" class="lini lini-scope-6345dfaa" role="img" aria-labelledby="crypto-shredding-title crypto-shredding-desc">
+  <title id="crypto-shredding-title">Erasure destroys the key, not the history</title>
+  <desc id="crypto-shredding-desc">Before erasure, a person's key opens three stored versions and an archive already taken. After erasure the key is gone and the same three versions and the same archive remain, byte for byte, and are unreadable.</desc>
   <style>
     @layer lini.defaults {
       :root, .lini-scope-6345dfaa { color-scheme: light dark; --lini-accent: #a8641b; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-icon-fill: light-dark(rgba(0, 0, 0, 0.16), rgba(255, 255, 255, 0.18)); --lini-ink: #111a24; --lini-line: #e3e0da; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }

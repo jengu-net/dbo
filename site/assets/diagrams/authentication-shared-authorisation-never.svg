@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-387.5995 -140.125 775.199 280.25" width="775.199" height="280.25" class="lini lini-scope-0905a1b6">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-387.5995 -140.125 775.199 280.25" width="775.199" height="280.25" class="lini lini-scope-0905a1b6" role="img" aria-labelledby="authentication-shared-authorisation-never-title authentication-shared-authorisation-never-desc">
+  <title id="authentication-shared-authorisation-never-title">Authentication is shared; authorisation never is</title>
+  <desc id="authentication-shared-authorisation-never-desc">A person authenticates once at a national broker. A hub holds a session carrying only a verified identifier and no name. Three tenants each resolve that person in their own records: two grant access through an active role, and the third refuses the same valid identity because no role there is active.</desc>
   <style>
     @layer lini.defaults {
       :root, .lini-scope-0905a1b6 { color-scheme: light dark; --lini-accent: #a8641b; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }

@@ -1,0 +1,6 @@
+One shared table, and a database per tenant
+
+On the left, one table holding rows belonging to three organisations; a
+query that omits its tenant filter returns all of them. On the right, each
+organisation has its own database, and the same query returns only that
+organisation's rows.

@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -127.375 769.5 254.75" width="769.5" height="254.75" class="lini lini-scope-1f907761">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -127.375 769.5 254.75" width="769.5" height="254.75" class="lini lini-scope-1f907761" role="img" aria-labelledby="a-type-declares-what-it-is-title a-type-declares-what-it-is-desc">
+  <title id="a-type-declares-what-it-is-title">A type declaration and the behaviours it obliges</title>
+  <desc id="a-type-declares-what-it-is-desc">A short type declaration naming an identity class and a handling class, fanning out into the behaviours the engine enforces from it: identity, version history, an audit trail, retention, export, and a searchable envelope that is derived and can be rebuilt.</desc>
   <style>
     @layer lini.defaults {
       :root, .lini-scope-1f907761 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-stroke: #444444; }

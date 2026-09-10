@@ -544,6 +544,43 @@ fun liniCommand(target: File) = listOf(
         }.ifEmpty { "true" },
 )
 
+// The accessible name and description, which Lini cannot carry.
+//
+// `hint:` reaches a node and is ignored on the root, and there is no property
+// for a description at all — so a compiled figure arrives with neither, where
+// the hand-drawn ones it replaced had both. A companion `.desc` beside each
+// source holds them: the first line is the title, the rest is the prose. It
+// is required, not optional, because a figure nobody can describe in a
+// sentence is usually a figure that has not decided what it is about.
+//
+// Injected into the SVG rather than into the page, so the committed artifact
+// is the whole figure — which also puts the text under `siteDiagramsCheck`,
+// where an edited description drifts exactly like an edited drawing.
+fun describe(target: File) {
+    diagramSrc.asFile.listFiles { f: File -> f.extension == "lini" }.orEmpty().forEach { src ->
+        val name = src.nameWithoutExtension
+        val desc = File(src.parentFile, "$name.desc")
+        if (!desc.exists()) throw GradleException("$name has no $name.desc — every figure states what it shows")
+        val lines = desc.readLines()
+        val title = lines.first().trim()
+        val prose = lines.drop(1).joinToString(" ").trim().replace(Regex("\\s+"), " ")
+        if (title.isEmpty() || prose.isEmpty()) throw GradleException("$name.desc needs a title line and a description")
+
+        fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        val svg = File(target, "$name.svg")
+        var text = svg.readText()
+        val open = Regex("<svg\\b[^>]*>").find(text) ?: throw GradleException("$name.svg has no root element")
+        val root = open.value.dropLast(1) +
+            " role=\"img\" aria-labelledby=\"$name-title $name-desc\">"
+        text = text.replaceRange(
+            open.range,
+            root + "\n  <title id=\"$name-title\">${esc(title)}</title>" +
+                "\n  <desc id=\"$name-desc\">${esc(prose)}</desc>",
+        )
+        svg.writeText(text)
+    }
+}
+
 val siteDiagrams by tasks.registering(Exec::class) {
     group = "documentation"
     description = "Compiles site/diagrams/*.lini to site/assets/diagrams/*.svg."
@@ -551,6 +588,7 @@ val siteDiagrams by tasks.registering(Exec::class) {
     outputs.dir(diagramOut)
     doFirst { diagramOut.asFile.mkdirs() }
     commandLine(liniCommand(diagramOut.asFile))
+    doLast { describe(diagramOut.asFile) }
 }
 
 // The ratchet. A generated file that is committed drifts silently the first
@@ -609,6 +647,7 @@ val siteDiagramsCheck by tasks.registering {
         val dir = scratch.get().asFile
         dir.deleteRecursively(); dir.mkdirs()
         providers.exec { commandLine(liniCommand(dir)) }.result.get().assertNormalExitValue()
+        describe(dir)
         val drifted = dir.listFiles().orEmpty().filter { fresh ->
             val committed = File(diagramOut.asFile, fresh.name)
             !committed.exists() || committed.readText() != fresh.readText()

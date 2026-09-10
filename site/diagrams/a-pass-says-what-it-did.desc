@@ -1,0 +1,6 @@
+Two passes over a declared configuration source
+
+A first pass reads five declarations, applies four, and raises a card naming
+the one it could not apply. A second pass over the unchanged source re-
+applies nothing that already agrees, retries the scope with the open card,
+and closes the card once the cause is fixed.

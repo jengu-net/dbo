@@ -1,0 +1,7 @@
+Faces above the seam, the engine's concepts below it
+
+Two FHIR faces, R4 and R5, and a third face for another domain that is
+specified but not built, sit above a seam. Below it the engine's concepts
+are listed: object, identity, envelope, declared handling, history, change
+feed, tenancy and zone, custody, erasure and terminology. None of them is
+clinical.

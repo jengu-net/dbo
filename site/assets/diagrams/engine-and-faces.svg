@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-380.75 -168.25 761.5 336.5" width="761.5" height="336.5" class="lini lini-scope-d2c8fed1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-380.75 -168.25 761.5 336.5" width="761.5" height="336.5" class="lini lini-scope-d2c8fed1" role="img" aria-labelledby="engine-and-faces-title engine-and-faces-desc">
+  <title id="engine-and-faces-title">Faces above the seam, the engine's concepts below it</title>
+  <desc id="engine-and-faces-desc">Two FHIR faces, R4 and R5, and a third face for another domain that is specified but not built, sit above a seam. Below it the engine's concepts are listed: object, identity, envelope, declared handling, history, change feed, tenancy and zone, custody, erasure and terminology. None of them is clinical.</desc>
   <style>
     @layer lini.defaults {
       :root, .lini-scope-d2c8fed1 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-stroke: #444444; }

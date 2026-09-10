@@ -1,0 +1,5 @@
+Work held beside the store, and work held in it
+
+On the left, a store containing records and, beside it, a separate queue
+holding work in flight. On the right, one store containing both the records
+and the runs.

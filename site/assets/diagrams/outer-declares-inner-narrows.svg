@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384.75 -144.125 769.5 288.25" width="769.5" height="288.25" class="lini lini-scope-a605a7ec">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384.75 -144.125 769.5 288.25" width="769.5" height="288.25" class="lini lini-scope-a605a7ec" role="img" aria-labelledby="outer-declares-inner-narrows-title outer-declares-inner-narrows-desc">
+  <title id="outer-declares-inner-narrows-title">A zone declares the set; a tenant narrows it</title>
+  <desc id="outer-declares-inner-narrows-desc">A zone declares three identity brokers. Two tenants inside it each accept a subset — one accepts two of the three, the other accepts one. A fourth broker outside the zone cannot be accepted by anyone.</desc>
   <style>
     @layer lini.defaults {
       :root, .lini-scope-a605a7ec { color-scheme: light dark; --lini-accent-soft: #f6efe4; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }

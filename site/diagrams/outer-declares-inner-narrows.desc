@@ -1,0 +1,5 @@
+A zone declares the set; a tenant narrows it
+
+A zone declares three identity brokers. Two tenants inside it each accept a
+subset — one accepts two of the three, the other accepts one. A fourth
+broker outside the zone cannot be accepted by anyone.

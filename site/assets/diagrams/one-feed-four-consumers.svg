@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -133.375 768 262.5" width="768" height="262.5" class="lini lini-scope-062b0b19">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -133.375 768 262.5" width="768" height="262.5" class="lini lini-scope-062b0b19" role="img" aria-labelledby="one-feed-four-consumers-title one-feed-four-consumers-desc">
+  <title id="one-feed-four-consumers-title">One ordered feed, four consumers at different positions</title>
+  <desc id="one-feed-four-consumers-desc">A single ordered sequence of committed changes. Four consumers — a paging client, a subscriber, a dependent tenant and an offline appliance — each sit at a position on it, and the distance from a consumer to the head is its lag.</desc>
   <style>
     @layer lini.defaults {
       :root, .lini-scope-062b0b19 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-stroke: #444444; }

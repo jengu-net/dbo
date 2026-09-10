@@ -1,0 +1,6 @@
+A type declaration and the behaviours it obliges
+
+A short type declaration naming an identity class and a handling class,
+fanning out into the behaviours the engine enforces from it: identity,
+version history, an audit trail, retention, export, and a searchable
+envelope that is derived and can be rebuilt.

@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -141.25 770.75 282.5" width="770.75" height="282.5" class="lini lini-scope-244a9ef7">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -141.25 770.75 282.5" width="770.75" height="282.5" class="lini lini-scope-244a9ef7" role="img" aria-labelledby="a-tenant-is-a-database-title a-tenant-is-a-database-desc">
+  <title id="a-tenant-is-a-database-title">One shared table, and a database per tenant</title>
+  <desc id="a-tenant-is-a-database-desc">On the left, one table holding rows belonging to three organisations; a query that omits its tenant filter returns all of them. On the right, each organisation has its own database, and the same query returns only that organisation's rows.</desc>
   <style>
     @layer lini.defaults {
       :root, .lini-scope-244a9ef7 { color-scheme: light dark; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-stroke: #444444; }

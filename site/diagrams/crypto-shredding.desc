@@ -1,0 +1,5 @@
+Erasure destroys the key, not the history
+
+Before erasure, a person's key opens three stored versions and an archive
+already taken. After erasure the key is gone and the same three versions and
+the same archive remain, byte for byte, and are unreadable.

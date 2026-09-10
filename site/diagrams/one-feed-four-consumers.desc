@@ -1,0 +1,6 @@
+One ordered feed, four consumers at different positions
+
+A single ordered sequence of committed changes. Four consumers — a paging
+client, a subscriber, a dependent tenant and an offline appliance — each sit
+at a position on it, and the distance from a consumer to the head is its
+lag.

@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384.75 -137 770.25 274" width="770.25" height="274" class="lini lini-scope-739cdf55">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384.75 -137 770.25 274" width="770.25" height="274" class="lini lini-scope-739cdf55" role="img" aria-labelledby="work-is-a-record-title work-is-a-record-desc">
+  <title id="work-is-a-record-title">Work held beside the store, and work held in it</title>
+  <desc id="work-is-a-record-desc">On the left, a store containing records and, beside it, a separate queue holding work in flight. On the right, one store containing both the records and the runs.</desc>
   <style>
     @layer lini.defaults {
       :root, .lini-scope-739cdf55 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-stroke: #444444; }

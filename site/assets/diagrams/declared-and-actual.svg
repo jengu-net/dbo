@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -141.75 770.75 283.5" width="770.75" height="283.5" class="lini lini-scope-0856fe5d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -141.75 770.75 283.5" width="770.75" height="283.5" class="lini lini-scope-0856fe5d" role="img" aria-labelledby="declared-and-actual-title declared-and-actual-desc">
+  <title id="declared-and-actual-title">What was declared, and what the runtime is doing about it</title>
+  <desc id="declared-and-actual-desc">Four tenants are declared. The runtime reports two as serving, one as coming up, and one as failed to come up. A list of served tenants alone would show only the two.</desc>
   <style>
     @layer lini.defaults {
       :root, .lini-scope-0856fe5d { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }

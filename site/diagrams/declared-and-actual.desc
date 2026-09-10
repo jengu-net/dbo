@@ -1,0 +1,5 @@
+What was declared, and what the runtime is doing about it
+
+Four tenants are declared. The runtime reports two as serving, one as coming
+up, and one as failed to come up. A list of served tenants alone would show
+only the two.

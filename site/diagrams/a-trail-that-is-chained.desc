@@ -1,0 +1,5 @@
+A run's trail, chained from the task the store minted
+
+Five entries in a line: the task, two travel entries as work is handed on,
+an access entry when a payload is opened, and the result that closes the
+run. Each carries a link to the one before.

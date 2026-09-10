@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-393.1437 -170 779.8937 340" width="779.8937" height="340" class="lini lini-scope-2818f566">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-393.1437 -170 779.8937 340" width="779.8937" height="340" class="lini lini-scope-2818f566" role="img" aria-labelledby="a-pass-says-what-it-did-title a-pass-says-what-it-did-desc">
+  <title id="a-pass-says-what-it-did-title">Two passes over a declared configuration source</title>
+  <desc id="a-pass-says-what-it-did-desc">A first pass reads five declarations, applies four, and raises a card naming the one it could not apply. A second pass over the unchanged source re- applies nothing that already agrees, retries the scope with the open card, and closes the card once the cause is fixed.</desc>
   <style>
     @layer lini.defaults {
       :root, .lini-scope-2818f566 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
