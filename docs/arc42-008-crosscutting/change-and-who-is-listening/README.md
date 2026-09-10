@@ -76,7 +76,7 @@ a **named cursor**. So "how far behind is it?" is a query rather than an
 investigation, and the same answer serves an operator, a resolution decision and
 a monitoring view.
 
-This is the mechanism [presence](processes-and-work.md) is derived from — a
+This is the mechanism [presence](../processes-and-work/README.md) is derived from — a
 participant is present while its named cursor moves — and it is why that needed
 no heartbeat, no lease service and nothing built specially for it.
 
@@ -162,10 +162,10 @@ delays every consumer on that instance.
 ## Where the detail is written down
 
 - **The exact rules and their proofs** — the feed, eventing and sync entries in
-  the [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
+  the [REQ catalogue](../../arc42-006-runtime/req-catalogue.md).
 - **What a cursor's movement is used for** beyond delivery — the presence
-  section of [processes and work](processes-and-work.md).
+  section of [processes and work](../processes-and-work/README.md).
 - **Why a copy can be trusted to mean what it meant upstream** — the shape stamp
-  in [records you can rely on](records-you-can-rely-on.md).
+  in [records you can rely on](../records-you-can-rely-on/README.md).
 - **Where a standard's envelope formats are assembled** — [the engine and its
-  faces](engine-and-faces.md).
+  faces](../engine-and-faces/README.md).

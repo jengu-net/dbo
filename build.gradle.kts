@@ -532,18 +532,17 @@ val siteTools by tasks.registering(Exec::class) {
 //
 // Set `-Plini=/path/to/lini` if the binary is not on PATH.
 val liniBin = (findProperty("lini") as String?) ?: "lini"
-val diagramSrc = siteDir.dir("diagrams")
 val diagramOut = siteDir.dir("assets/diagrams")
 
-// A diagram's source lives with what it draws: beside the concept for a
-// concept's figure, in site/diagrams for one not yet moved to its own. The
-// compiled SVG stays in one flat place, because a page includes it by a path
-// and that path should not encode where the drawing happens to be filed.
+// A diagram's source lives with what it draws — in the `diagrams/` directory
+// of the concept whose figure it is — and there is deliberately no second
+// place to put one. The compiled SVG lands in one flat directory, because a
+// page includes it by path and that path should not encode where the drawing
+// happens to be filed.
 fun diagramSources(): List<File> =
-    (diagramSrc.asFile.listFiles { f: File -> f.extension == "lini" }.orEmpty().toList() +
-        layout.projectDirectory.dir("docs").asFile.walkTopDown()
-            .filter { it.isFile && it.extension == "lini" && it.parentFile.name == "diagrams" }
-            .toList())
+    layout.projectDirectory.dir("docs").asFile.walkTopDown()
+        .filter { it.isFile && it.extension == "lini" && it.parentFile.name == "diagrams" }
+        .toList()
         .sortedBy { it.name }
 
 fun liniCommand(target: File) = listOf(
@@ -595,7 +594,6 @@ val siteDiagrams by tasks.registering(Exec::class) {
     group = "documentation"
     description = "Compiles site/diagrams/*.lini to site/assets/diagrams/*.svg."
     inputs.files(diagramSources())
-    inputs.dir(diagramSrc)
     outputs.dir(diagramOut)
     doFirst { diagramOut.asFile.mkdirs() }
     commandLine(liniCommand(diagramOut.asFile))
@@ -650,7 +648,10 @@ val siteDiagramFont by tasks.registering {
 val siteDiagramsCheck by tasks.registering {
     group = "verification"
     description = "Fails when a committed diagram SVG differs from its .lini source."
-    inputs.dir(diagramSrc)
+    // Asked for in the same invocation as the compile, Gradle is free to run
+    // this first and fail against SVGs that were about to be rewritten.
+    mustRunAfter(siteDiagrams)
+    inputs.files(diagramSources())
     inputs.dir(diagramOut)
     val scratch = layout.buildDirectory.dir("site-diagrams-check")
     doLast {
@@ -706,7 +707,6 @@ val siteAssemble by tasks.registering(Sync::class) {
             .filter { it.isFile && it.name.startsWith("why-") && it.extension == "md" }
             .toList(),
     )
-
 
     // The essays, gathered from wherever they live.
     //

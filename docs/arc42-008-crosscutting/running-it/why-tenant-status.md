@@ -48,7 +48,7 @@ Whether the regional lab came up is not the county hospital's business, and it
 is very much the operator's.
 
 That fits the shape of everything else here: [there is no cross-tenant
-surface](a-tenant-is-a-database.md) for *content*, and a process that needs a
+surface](../data-isolation/why-a-tenant-is-a-database.md) for *content*, and a process that needs a
 fleet view walks tenant by tenant with a credential each. What a node is doing
 about the tenants it was told about is a different kind of fact — about the
 node, not about anybody's records — and it is asked of the node.
@@ -72,9 +72,9 @@ having if a retry reports the original cause rather than the wreckage of the
 last attempt.
 
 <div class="further" markdown>
-What a tenant *is* is [a tenant is a database](a-tenant-is-a-database.md);
+What a tenant *is* is [a tenant is a database](../data-isolation/why-a-tenant-is-a-database.md);
 what gets it declared in the first place is
-[applying configuration](applying-configuration.md). The operational picture in
+[applying configuration](why-applying-configuration.md). The operational picture in
 full — bring-up, embedding, backup as export, upgrades — is
-[Running it (§11)](../docs/arc42-008-crosscutting/running-it.md).
+[Running it (§11)](README.md).
 </div>

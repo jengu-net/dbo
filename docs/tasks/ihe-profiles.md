@@ -7,12 +7,12 @@ in the BALP note on the status page, and serves no profiled surface.
 its own; the tiers are ordered so the first issue can be opened without
 deciding the rest.
 
-**Concepts** — [the FHIR face](../arc42-008-crosscutting/the-fhir-face.md),
-[finding things](../arc42-008-crosscutting/finding-things.md) (terminology),
-[who may act](../arc42-008-crosscutting/who-may-act.md) (the tenant
-authority), [declared rules](../arc42-008-crosscutting/declared-rules.md)
+**Concepts** — [the FHIR face](../arc42-008-crosscutting/the-fhir-face/README.md),
+[finding things](../arc42-008-crosscutting/finding-things/README.md) (terminology),
+[who may act](../arc42-008-crosscutting/who-may-act/README.md) (the tenant
+authority), [declared rules](../arc42-008-crosscutting/declared-rules/README.md)
 (audit), [data isolation](../arc42-008-crosscutting/data-isolation/README.md)
-(why some profiles are refused), [running it](../arc42-008-crosscutting/running-it.md)
+(why some profiles are refused), [running it](../arc42-008-crosscutting/running-it/README.md)
 (blob storage), [where a neutral store earns its keep](../plans/neutral-exchange-domains.md).
 
 ## What this is

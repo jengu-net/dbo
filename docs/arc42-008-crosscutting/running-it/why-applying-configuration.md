@@ -89,8 +89,8 @@ circumstances nobody else sees, is exactly the code path that should not be the
 special one.
 
 <div class="further" markdown>
-Why a run is a record at all is [work](work.md). What a tenant *declares* about
-each type is [a type says what it is](a-type-declares-what-it-is.md), and what
+Why a run is a record at all is [work](../processes-and-work/why-work.md). What a tenant *declares* about
+each type is [a type says what it is](../records-you-can-rely-on/why-a-type-declares-what-it-is.md), and what
 a runtime is actually doing about each tenant is
-[what the node is doing](tenant-status.md).
+[what the node is doing](why-tenant-status.md).
 </div>

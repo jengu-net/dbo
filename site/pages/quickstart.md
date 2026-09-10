@@ -129,6 +129,6 @@ nothing exactly as this one did.
 
 <div class="further" markdown>
 Next: [why any of this is shaped the way it is](why/index.md), or
-[what operating it actually involves](docs/arc42-008-crosscutting/running-it.md)
+[what operating it actually involves](docs/arc42-008-crosscutting/running-it/README.md)
 in the specification.
 </div>

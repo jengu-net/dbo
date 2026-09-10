@@ -11,8 +11,8 @@ per tenant). The migration itself is tracked by the consuming platform, in its
 own task document.
 
 **Concepts** — [data isolation](../arc42-008-crosscutting/data-isolation/README.md) ·
-[who may act](../arc42-008-crosscutting/who-may-act.md) ·
-[engine and faces](../arc42-008-crosscutting/engine-and-faces.md)
+[who may act](../arc42-008-crosscutting/who-may-act/README.md) ·
+[engine and faces](../arc42-008-crosscutting/engine-and-faces/README.md)
 
 ## What this is
 
@@ -37,9 +37,9 @@ than through it.
 - **Identifier resolution** — exact resolution through the vault is exposed as
   the standard FHIR search spelling (#136), not a new primitive.
 - **Data versioning** — the store's half is delivered and is described in
-  [records you can rely on](../arc42-008-crosscutting/records-you-can-rely-on.md).
+  [records you can rely on](../arc42-008-crosscutting/records-you-can-rely-on/README.md).
 - **The edge appliance** — per the participation doctrine in
-  [processes and work](../arc42-008-crosscutting/processes-and-work.md), the
+  [processes and work](../arc42-008-crosscutting/processes-and-work/README.md), the
   edge runs dbo in-JVM as a second appliance of the same tenant. Everything it
   needs from this side is delivered — the batch/apply toolset and the
   credential half of reach among it — so a stall there is a question about the
@@ -56,10 +56,10 @@ where a permanent explanation belongs rather than waiting to be deleted with
 this file:
 
 - a surface moves inside the membrane rather than a primitive widening —
-  [engine and faces](../arc42-008-crosscutting/engine-and-faces.md);
+  [engine and faces](../arc42-008-crosscutting/engine-and-faces/README.md);
 - the store's REST surface stays private, and a provisioned user is the person
   rather than the capacity they act in —
-  [who may act](../arc42-008-crosscutting/who-may-act.md);
+  [who may act](../arc42-008-crosscutting/who-may-act/README.md);
 - a store-visible feature is a decision rather than an accident —
   [data isolation](../arc42-008-crosscutting/data-isolation/README.md).
 

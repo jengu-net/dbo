@@ -165,12 +165,12 @@ that zone is running on a stale fact.
 ## Where the detail is written down
 
 - **The exact rules and their proofs** — the policy, zone and tenancy entries in
-  the [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
+  the [REQ catalogue](../../arc42-006-runtime/req-catalogue.md).
 - **Who the actor in a trail is, and where authority comes from** — [who may
-  act](who-may-act.md).
+  act](../who-may-act/README.md).
 - **Why a trail can be exact and still contain no personal data**, and what
-  shredding does — [data isolation](data-isolation/README.md).
+  shredding does — [data isolation](../data-isolation/README.md).
 - **How declarations reach dependent tenants** — [change, and who is
-  listening](change-and-who-is-listening.md).
+  listening](../change-and-who-is-listening/README.md).
 - **How a trail is rendered** for a reader of a particular standard — [work
-  through a FHIR face](the-fhir-face.md).
+  through a FHIR face](../the-fhir-face/README.md).

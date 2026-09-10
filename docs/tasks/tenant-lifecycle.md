@@ -14,8 +14,8 @@ queue, which is the symptom this document reframes). The consumer half has
 its own issue in the consuming platform's tracker.
 
 **Concepts** —
-[processes and work](../arc42-008-crosscutting/processes-and-work.md) ·
-[change, and who is listening](../arc42-008-crosscutting/change-and-who-is-listening.md) ·
+[processes and work](../arc42-008-crosscutting/processes-and-work/README.md) ·
+[change, and who is listening](../arc42-008-crosscutting/change-and-who-is-listening/README.md) ·
 [an operator's control plane](operator-control-plane.md) ·
 [the REQ catalogue](../arc42-006-runtime/req-catalogue.md)
 

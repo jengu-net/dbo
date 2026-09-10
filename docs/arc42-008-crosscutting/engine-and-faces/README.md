@@ -8,7 +8,7 @@ Miss it and the mistake follows immediately: FHIR ends up in the engine, and the
 domain needs a fork instead of a face.
 
 This is not a later refinement. It is
-[founding requirement R6](../arc42-001-introduction/founding-requirements.md), which
+[founding requirement R6](../../arc42-001-introduction/founding-requirements.md), which
 asks for R4, R5, **R6 and future versions concurrently** — *"different tenants, and
 even different domains within a tenant, on different versions"* — and for the same
 property to keep the engine open to *"sibling models that FHIR does not cover"*, so
@@ -222,7 +222,7 @@ which makes mapping onto it a cheap bet.
 | `Meta.versionId` | the version | ✅ |
 | `Meta.lastUpdated` | when that version was written | ❌ carried beside a read as HTTP metadata, never in the resource |
 | `Meta.source` | **where a copy came from** — a streamed object's upstream | ✅ |
-| `Meta.profile` | **the shape stamp** the object was written under | ✅ `urn:dbo:shape` in `meta.extension` ([records you can rely on](records-you-can-rely-on.md)) |
+| `Meta.profile` | **the shape stamp** the object was written under | ✅ `urn:dbo:shape` in `meta.extension` ([records you can rely on](../records-you-can-rely-on/README.md)) |
 | `Meta.security` | **the declared handling class**, which the store enforces on every write | ✅ `urn:dbo:handling` |
 | `Meta.tag` | operational labels — streamed origin, shadowing state | ✅ `urn:dbo:sync` |
 | `Resource.implicitRules`, `Resource.language` | no engine analogue | face only |
@@ -238,7 +238,7 @@ Two cautions before anyone maps them:
 - **`Meta.profile` is not the storage-format version.** The shape an object was
   authored under and the format its bytes are stored in are different axes; conflating
   them breaks at the first R4→R5 move. `payload_version` stays internal. The two-axes
-  doctrine is [records you can rely on](records-you-can-rely-on.md)'s to state; this is a pointer.
+  doctrine is [records you can rely on](../records-you-can-rely-on/README.md)'s to state; this is a pointer.
 - **The face-only elements are not uninteresting to the engine.** `text` is narrative —
   which is exactly where identifying data hides, so the membrane has a stake in an
   element it does not define. `contained` puts objects inside an object, which
@@ -375,7 +375,7 @@ method somebody adds.
 
 The obligations above that concern a payload — the codec, validation, conversion
 between versions — share one shape, and it is large enough to be its own
-document: [the payload seam](the-payload-seam.md). The short version is that a
+document: [the payload seam](../the-payload-seam/README.md). The short version is that a
 payload crosses as bytes, sets are framed rather than re-serialised, and the
 model a face parses into is a lens rather than a commitment.
 

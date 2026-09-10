@@ -76,5 +76,5 @@ The other wall — the one between a person's data and the operator — is
 [personal data](why-personal-data.md), and the two together with the crossings that
 are declared are
 [Data isolation (§14)](README.md).
-Who a tenant lets in is [Who may act (§13, §16)](../who-may-act.md).
+Who a tenant lets in is [Who may act (§13, §16)](../who-may-act/README.md).
 </div>

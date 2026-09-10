@@ -223,13 +223,13 @@ is the mode that merges two people.
 ## Where the detail is written down
 
 - **The exact rules and their proofs** — the core and shape entries in the
-  [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
+  [REQ catalogue](../../arc42-006-runtime/req-catalogue.md).
 - **Whether a coded value means anything here** — that check belongs with the
   terminology it resolves against, in [finding
-  things](finding-things.md).
+  things](../finding-things/README.md).
 - **What a face owes the engine**, including where validation actually happens —
-  [the engine and its faces](engine-and-faces.md).
+  [the engine and its faces](../engine-and-faces/README.md).
 - **How these records are rendered** to a reader who speaks a particular
-  standard — [the FHIR face](the-fhir-face.md).
+  standard — [the FHIR face](../the-fhir-face/README.md).
 - **Moving data in and out**, and reshape as an operation — [running
-  it](running-it.md).
+  it](../running-it/README.md).

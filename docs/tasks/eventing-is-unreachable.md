@@ -14,10 +14,10 @@ have caught this. Steps 2 onward are the groomable list below and are
 deliberately unfiled until step 1 lands.
 
 **Concepts** —
-[change, and who is listening](../arc42-008-crosscutting/change-and-who-is-listening.md) ·
-[processes and work](../arc42-008-crosscutting/processes-and-work.md) ·
+[change, and who is listening](../arc42-008-crosscutting/change-and-who-is-listening/README.md) ·
+[processes and work](../arc42-008-crosscutting/processes-and-work/README.md) ·
 [data isolation](../arc42-008-crosscutting/data-isolation/README.md) ·
-[the FHIR face](../arc42-008-crosscutting/the-fhir-face.md)
+[the FHIR face](../arc42-008-crosscutting/the-fhir-face/README.md)
 
 ## What this is
 

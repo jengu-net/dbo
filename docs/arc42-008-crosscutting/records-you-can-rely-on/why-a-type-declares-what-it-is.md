@@ -84,5 +84,5 @@ an audit trail somebody can edit is a document rather than evidence.
 <div class="further" markdown>
 The five reliances, the physical layout that makes the payload-and-derivation
 split visible, and the shape-governance rules are in
-[Records you can rely on (§2–§3, §12)](../docs/arc42-008-crosscutting/records-you-can-rely-on.md).
+[Records you can rely on (§2–§3, §12)](README.md).
 </div>

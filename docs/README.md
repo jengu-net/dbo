@@ -34,26 +34,26 @@ Structured per [arc42](https://arc42.org/).
 - [arc42-007-deployment](arc42-007-deployment/README.md) — scaling/routing (§5),
   [tenant provisioning](arc42-007-deployment/tenant-provisioning.md) (§4)
 - [arc42-008-crosscutting](arc42-008-crosscutting/) —
-  [engine and faces](arc42-008-crosscutting/engine-and-faces.md) (§1) and
-  [the payload seam](arc42-008-crosscutting/the-payload-seam.md) (how data
+  [engine and faces](arc42-008-crosscutting/engine-and-faces/README.md) (§1) and
+  [the payload seam](arc42-008-crosscutting/the-payload-seam/README.md) (how data
   crosses that line — bytes, framing, one parse),
-  [records you can rely on](arc42-008-crosscutting/records-you-can-rely-on.md)
+  [records you can rely on](arc42-008-crosscutting/records-you-can-rely-on/README.md)
   (§2–§3, §12 — truth, identity, shape, immutability, rebuild),
-  [finding things](arc42-008-crosscutting/finding-things.md) (search and
+  [finding things](arc42-008-crosscutting/finding-things/README.md) (search and
   terminology — an honest answer or a refusal, never an approximation),
-  [change, and who is listening](arc42-008-crosscutting/change-and-who-is-listening.md)
+  [change, and who is listening](arc42-008-crosscutting/change-and-who-is-listening/README.md)
   (§6, §10 — one feed primitive behind paging, subscriptions, dependent copies
   and appliance sync),
-  [processes and work](arc42-008-crosscutting/processes-and-work.md) (§8) and
-  [the FHIR face](arc42-008-crosscutting/the-fhir-face.md) (every concept above
+  [processes and work](arc42-008-crosscutting/processes-and-work/README.md) (§8) and
+  [the FHIR face](arc42-008-crosscutting/the-fhir-face/README.md) (every concept above
   as a FHIR client sees it — readable on its own),
-  [running it](arc42-008-crosscutting/running-it.md) (§11 — embedding,
+  [running it](arc42-008-crosscutting/running-it/README.md) (§11 — embedding,
   deployment shape, backup as export, upgrades),
-  [who may act](arc42-008-crosscutting/who-may-act.md) (§13, §16 — the
+  [who may act](arc42-008-crosscutting/who-may-act/README.md) (§13, §16 — the
   tenant as trust root, and how systems and people get in),
   [data isolation](arc42-008-crosscutting/data-isolation/README.md) (§14, tenant from
   tenant, person from everyone, and what is declared to cross),
-  [declared rules](arc42-008-crosscutting/declared-rules.md) (§15, §17 — what a
+  [declared rules](arc42-008-crosscutting/declared-rules/README.md) (§15, §17 — what a
   tenant must do, what its jurisdiction says, and how the two layer)
 - [arc42-009-architecture-decisions](arc42-009-architecture-decisions/README.md) —
   resolved questions & risks (§7)

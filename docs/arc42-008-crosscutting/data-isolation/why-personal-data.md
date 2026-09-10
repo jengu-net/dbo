@@ -104,5 +104,5 @@ The mechanism in full — both walls, the declared crossings, key custody, and
 what a restore replays before it will serve — is
 [Data isolation (§14)](README.md), with
 the handling rules in
-[Declared rules (§15, §17)](../declared-rules.md).
+[Declared rules (§15, §17)](../declared-rules/README.md).
 </div>

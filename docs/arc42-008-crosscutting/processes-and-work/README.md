@@ -22,9 +22,9 @@ reaching out to any of them.
 
 **Nothing here is domain-specific.** The engine is a store for regulated data and
 the domain is a face over it ([the engine and its
-faces](engine-and-faces.md)). How these concepts are *rendered* — as FHIR
+faces](../engine-and-faces/README.md)). How these concepts are *rendered* — as FHIR
 resources, or as anything else — is [a face's
-business](the-fhir-face.md) and deliberately not described here.
+business](../the-fhir-face/README.md) and deliberately not described here.
 
 ## The vocabulary
 
@@ -450,9 +450,9 @@ participant without anybody installing a substrate there.
 ## Where the detail is written down
 
 - **How all of this is rendered** for a reader who speaks a particular standard —
-  [the FHIR face](the-fhir-face.md).
+  [the FHIR face](../the-fhir-face/README.md).
 - **The exact rules and their proofs** — the participation entries in the
-  [REQ catalogue](../arc42-006-runtime/req-catalogue.md), which carry each rule
+  [REQ catalogue](../../arc42-006-runtime/req-catalogue.md), which carry each rule
   above in its precise form and name the test for it.
 - **Why neutrality is the point**, and where a store shaped like this is worth
   building for an industry that is not this one —

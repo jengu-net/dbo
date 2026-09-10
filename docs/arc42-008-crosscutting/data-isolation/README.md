@@ -153,7 +153,7 @@ Four things about that, each of which could reasonably have gone the other way:
 
 - **The recipient travels beside the request**, as a per-request fact rather
   than a scope — the third tier of [the face
-  contract](../engine-and-faces.md#where-a-new-obligation-belongs). Nothing
+  contract](../engine-and-faces/README.md#where-a-new-obligation-belongs). Nothing
   becomes recipient-scoped; the store stays a function taking values.
 - **A type outside the declaration is absent, not refused.** A refusal naming
   the type would tell the recipient it exists here, which is the leak an
@@ -215,10 +215,10 @@ pseudonymous, unlinkable records.
 
 - **What is promised, and what proves it** — the
   [REQ catalogue](../../arc42-006-runtime/req-catalogue.md).
-- **Where a tenant's storage actually sits** — [records you can rely on](../records-you-can-rely-on.md).
-- **Who may act, and on whose authority** — [who may act](../who-may-act.md).
+- **Where a tenant's storage actually sits** — [records you can rely on](../records-you-can-rely-on/README.md).
+- **Who may act, and on whose authority** — [who may act](../who-may-act/README.md).
 - **Why measurements leave at all, and what they carry** — the watching section
-  of [processes and work](../processes-and-work.md).
+  of [processes and work](../processes-and-work/README.md).
 - **Why an operator that cannot read the data is the point**, commercially as
   well as legally — [where a neutral store earns its
   keep](https://github.com/jengu-net/dbo/blob/main/docs/plans/neutral-exchange-domains.md), whose last condition is that the

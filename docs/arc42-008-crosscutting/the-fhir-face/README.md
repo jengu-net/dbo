@@ -54,7 +54,7 @@ One caution: **`meta.profile` is not a storage-format version.** The shape a
 record was authored under and the format its bytes are stored in are different
 axes, and conflating them breaks at the first R4→R5 move.
 
-→ [Records you can rely on](records-you-can-rely-on.md)
+→ [Records you can rely on](../records-you-can-rely-on/README.md)
 
 ## Identity and conditional writes
 
@@ -75,7 +75,7 @@ Exactly one match becomes the pointer. Two matches is a refusal, not a guess —
 and two records claiming one identity-bearing identifier is a conflict raised to
 the owner, never a silent merge.
 
-→ [Records you can rely on](records-you-can-rely-on.md)
+→ [Records you can rely on](../records-you-can-rely-on/README.md)
 
 ## Search
 
@@ -99,7 +99,7 @@ types configured, the interactions their handling allows, the parameters
 accepted, the operations registered. It cannot drift from behaviour, so it is
 worth trusting as your integration contract.
 
-→ [Finding things](finding-things.md)
+→ [Finding things](../finding-things/README.md)
 
 ## Terminology
 
@@ -115,7 +115,7 @@ tenant holds, and the answer follows the binding's strength — a violated
 system nobody has loaded is reported as **unresolvable**, which is a coverage
 statement about the deployment, not a claim that your data is invalid.
 
-→ [Finding things](finding-things.md)
+→ [Finding things](../finding-things/README.md)
 
 ## Paging, `_history` and Subscriptions
 
@@ -134,7 +134,7 @@ against that search's sort keys.** A resource updated after the cursor passed it
 will not reappear in later pages. If you must never miss an update, subscribe —
 that is what the notification stream is for.
 
-→ [Change, and who is listening](change-and-who-is-listening.md)
+→ [Change, and who is listening](../change-and-who-is-listening/README.md)
 
 ## Work: `Task`, `PlanDefinition`, `ActivityDefinition`
 
@@ -162,7 +162,7 @@ behind it.
 The definitions are generated, never hand-edited: a hand-written
 `PlanDefinition` would be a second definition of a process that already has one.
 
-→ [Processes and work](processes-and-work.md)
+→ [Processes and work](../processes-and-work/README.md)
 
 ## Authentication and scopes
 
@@ -184,7 +184,7 @@ themselves recorded.
 Automated processes acting for a person use token exchange: the subject stays
 the person, an `act` claim names the acting client, and scopes narrow.
 
-→ [Who may act](who-may-act.md)
+→ [Who may act](../who-may-act/README.md)
 
 ## What you will not find in a `Patient`
 
@@ -198,7 +198,7 @@ is destroyed, and the person is gone from the live store, from history and from
 every archive. It also means a bulk export you are given is pseudonymous unless
 you were entitled to more.
 
-→ [Data isolation](data-isolation/README.md)
+→ [Data isolation](../data-isolation/README.md)
 
 ## `AuditEvent`, and the rules a tenant declared
 
@@ -215,7 +215,7 @@ deletes are accepted, and retention windows. If a tenant runs append-only, a
 `DELETE` returns an `OperationOutcome` naming the policy rather than failing
 obscurely — correction is by superseding, the FHIR way.
 
-→ [Declared rules](declared-rules.md)
+→ [Declared rules](../declared-rules/README.md)
 
 ## Export, and archives you are handed
 
@@ -227,7 +227,7 @@ An archive's attestation renders as a `Provenance` carrying FHIR's `Signature`,
 so your own tooling can verify what you were handed without learning this
 store's internal formats.
 
-→ [Running it](running-it.md)
+→ [Running it](../running-it/README.md)
 
 ## What has no FHIR expression
 

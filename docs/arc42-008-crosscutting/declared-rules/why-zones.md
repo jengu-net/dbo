@@ -90,7 +90,7 @@ inner party declares can grant it more than the outer party allowed.**
 <div class="further" markdown>
 The declarations, the broker and session rules, and the two structural rules
 underneath the layering are in
-[Declared rules (§15, §17)](../docs/arc42-008-crosscutting/declared-rules.md).
+[Declared rules (§15, §17)](README.md).
 How a zone's content reaches the tenants below it is
-[Staying in step](subscriptions.md).
+[Staying in step](../change-and-who-is-listening/why-subscriptions.md).
 </div>

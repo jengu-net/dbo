@@ -89,5 +89,5 @@ four questions whose answers cannot be compared.
 <div class="further" markdown>
 The three sources, the cursor contract, delivery semantics and what each
 transport guarantees are in
-[Change, and who is listening (§6, §10)](../docs/arc42-008-crosscutting/change-and-who-is-listening.md).
+[Change, and who is listening (§6, §10)](README.md).
 </div>

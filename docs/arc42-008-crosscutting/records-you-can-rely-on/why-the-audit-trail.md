@@ -110,7 +110,7 @@ This is where two requirements usually collide. Append-only says nothing may be
 removed; the right to erasure says a person may require exactly that.
 
 They coexist here because [shredding destroys a key rather than rewriting
-anything](personal-data.md). The entries remain, complete and in order — the
+anything](../data-isolation/why-personal-data.md). The entries remain, complete and in order — the
 person evaporates from them. What happened is still provable years later; who
 it happened to is gone.
 
@@ -132,7 +132,7 @@ rather than something an operator remembers.
 <div class="further" markdown>
 Write discipline, retention as a floor and a ceiling, and what a restore
 re-applies before it will serve are in
-[Declared rules (§15, §17)](../docs/arc42-008-crosscutting/declared-rules.md).
+[Declared rules (§15, §17)](../declared-rules/README.md).
 The trail as a FHIR client sees it is
-[The FHIR face](../docs/arc42-008-crosscutting/the-fhir-face.md).
+[The FHIR face](../the-fhir-face/README.md).
 </div>

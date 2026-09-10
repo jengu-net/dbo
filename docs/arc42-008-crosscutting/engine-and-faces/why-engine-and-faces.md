@@ -89,7 +89,7 @@ being precise about missing.
 <div class="further" markdown>
 The mechanics — what the engine requires from a face, how a version is chosen
 at bring-up, and the three groups an obligation falls into — are in
-[The engine and its faces (§1)](../docs/arc42-008-crosscutting/engine-and-faces.md).
+[The engine and its faces (§1)](README.md).
 What is built and what is only specified is the
 [implementation status page](https://github.com/jengu-net/dbo/blob/main/docs/plans/implementation-status.md).
 </div>

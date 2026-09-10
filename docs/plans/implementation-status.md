@@ -310,9 +310,9 @@ the telemetry exporter and the fleet read are built. **TEN** keeps the shared
 tier and quotas, **AUTH** the private surface, **FEED** the lean wire option,
 and **PROC** the three named above. What a process, a step and a run are, and how work reaches
 whoever performs it, is in
-[`processes-and-work.md`](../arc42-008-crosscutting/processes-and-work.md); how
+[`processes-and-work.md`](../arc42-008-crosscutting/processes-and-work/README.md); how
 those concepts are rendered for a reader of a standard is in
-[`the-fhir-face.md`](../arc42-008-crosscutting/the-fhir-face.md).
+[`the-fhir-face.md`](../arc42-008-crosscutting/the-fhir-face/README.md).
 
 ## Known next fronts
 

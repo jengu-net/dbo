@@ -13,7 +13,7 @@ delivered: [#106](https://github.com/jengu-net/dbo/issues/106),
 [#113](https://github.com/jengu-net/dbo/issues/113) · open:
 [#112](https://github.com/jengu-net/dbo/issues/112)
 
-**Concepts** — [engine and faces](../arc42-008-crosscutting/engine-and-faces.md)
+**Concepts** — [engine and faces](../arc42-008-crosscutting/engine-and-faces/README.md)
 
 ## What this is
 
@@ -39,12 +39,12 @@ capability its spec requires is refused at bring-up rather than mid-request.
 **#108 is done.** A second face costs three capabilities and eight methods —
 read a payload, say what type it is, the envelope, the codec — and serving one
 still means a FHIR-shaped facade, which is accepted rather than overlooked;
-[engine and faces](../arc42-008-crosscutting/engine-and-faces.md) says what
+[engine and faces](../arc42-008-crosscutting/engine-and-faces/README.md) says what
 the count means and why it is not lower.
 
 **#113 is done.** What may leave the store and what *this recipient* may see
 are two questions, and a tenant can now say the second per recipient;
-[who may act](../arc42-008-crosscutting/who-may-act.md) holds it.
+[who may act](../arc42-008-crosscutting/who-may-act/README.md) holds it.
 
 **#112 is open**, and it is the last one: what counts as *one object* is a
 face decision the contract has no place for. It is not blocked on anything
@@ -92,7 +92,7 @@ contract reads annotations off constants.
 
 Nothing deliberately excluded. What is left is one slice, and when it closes
 this document is deleted: the decisions above already live in
-[engine and faces](../arc42-008-crosscutting/engine-and-faces.md), and the
+[engine and faces](../arc42-008-crosscutting/engine-and-faces/README.md), and the
 trap belongs in the promise catalogue's own notes.
 
 ## Verifying

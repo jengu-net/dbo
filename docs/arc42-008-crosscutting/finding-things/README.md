@@ -66,7 +66,7 @@ that" from meaning "it will scan the table".
 
 **A tenant or a module can register a search parameter of its own**, and
 extraction, reindexing and the new index follow automatically. This is where
-[the payload being the truth](records-you-can-rely-on.md) pays for itself: a new
+[the payload being the truth](../records-you-can-rely-on/README.md) pays for itself: a new
 way to search is a derivation over data that is already there, so it is a
 background operation rather than a migration.
 
@@ -76,7 +76,7 @@ A standard's full search grammar is large, and implementing all of it before
 anything works is a way to ship nothing. The scope here was set by counting:
 every search interaction that production systems — a clinical cloud, a
 laboratory system, an assistant — actually issue, across roughly 206 call sites,
-[inventoried and kept](../evidence/search-usage-inventory.md).
+[inventoried and kept](../../evidence/search-usage-inventory.md).
 
 Two things came out of that count. What real callers use is a small, sharply
 defined set, and **that set works identically here**. And they all reach the
@@ -144,10 +144,10 @@ the type rather than discovered when a query is slow.
 ## Where the detail is written down
 
 - **The exact rules and their proofs** — the search and terminology entries in
-  the [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
+  the [REQ catalogue](../../arc42-006-runtime/req-catalogue.md).
 - **The measured basis for the search scope** — the [search usage
-  inventory](../evidence/search-usage-inventory.md).
+  inventory](../../evidence/search-usage-inventory.md).
 - **Why the queryable projection can always be rebuilt** — [records you can rely
-  on](records-you-can-rely-on.md).
+  on](../records-you-can-rely-on/README.md).
 - **Which component owes what**, and where a face's validation sits — [the
-  engine and its faces](engine-and-faces.md).
+  engine and its faces](../engine-and-faces/README.md).

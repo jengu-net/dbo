@@ -81,5 +81,5 @@ CapabilityStatement declares the same boundary.
 <div class="further" markdown>
 The full treatment — every concept in the store as a FHIR client meets it,
 including work as `Task`, export, and what has no FHIR expression at all — is
-[The FHIR face](../docs/arc42-008-crosscutting/the-fhir-face.md).
+[The FHIR face](../docs/arc42-008-crosscutting/the-fhir-face/README.md).
 </div>

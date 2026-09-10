@@ -5,7 +5,7 @@ rather than rebuilt, parsed once.*
 
 ## Why this is its own concept
 
-[The engine and its faces](engine-and-faces.md) says a face translates and does
+[The engine and its faces](../engine-and-faces/README.md) says a face translates and does
 not act. This is the mechanics of that translation, and it is a concept rather
 than an implementation note because getting it wrong is not a performance
 problem — it is how a standard's model quietly becomes the engine's model.
@@ -387,7 +387,7 @@ personality that is per version, and the half that is per tenant.
 ## Where the detail is
 
 - **What a face owes the engine, and the three sets it owes them in** — [the
-  engine and its faces](engine-and-faces.md).
+  engine and its faces](../engine-and-faces/README.md).
 - **Why the stored bytes are the truth, and what is derived from them** —
-  [records you can rely on](records-you-can-rely-on.md).
-- **What a FHIR client sees of all this** — [the FHIR face](the-fhir-face.md).
+  [records you can rely on](../records-you-can-rely-on/README.md).
+- **What a FHIR client sees of all this** — [the FHIR face](../the-fhir-face/README.md).

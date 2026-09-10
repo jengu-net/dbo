@@ -11,7 +11,7 @@ forbids — is [design rationale](design-rationale.md).
    ([§1](../arc42-005-building-blocks/README.md), §7.3).
 2. **Payload/envelope split** — opaque payload as truth, derived searchable
    projection, reindex as an operation
-   ([§2–§3](../arc42-008-crosscutting/records-you-can-rely-on.md)).
+   ([§2–§3](../arc42-008-crosscutting/records-you-can-rely-on/README.md)).
 3. **Single-writer tenancy** — durable tenant→pod assignment makes caches and
    subscription state local; Redis-class shared state is designed away
    ([§5](../arc42-007-deployment/README.md),
@@ -20,11 +20,11 @@ forbids — is [design rationale](design-rationale.md).
    by content; cross-boundary hops platform-coordinated and audited (§7.4).
 5. **One feed primitive** — keyset cursors underneath pagination,
    subscriptions, content streams, edge sync and incremental export
-   ([§6, §10](../arc42-008-crosscutting/change-and-who-is-listening.md)).
+   ([§6, §10](../arc42-008-crosscutting/change-and-who-is-listening/README.md)).
 6. **Credential-blind provisioning** — operator + secrets; the management
    plane can never read tenant data or credentials
    ([§4](../arc42-007-deployment/tenant-provisioning.md)).
 7. **Identity before storage** — a tenant's authority is part of the tenant,
    not of the application in front of it, so a store can be adopted without
    first adopting somebody else's identity model
-   ([§13](../arc42-008-crosscutting/who-may-act.md)).
+   ([§13](../arc42-008-crosscutting/who-may-act/README.md)).

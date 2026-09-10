@@ -53,7 +53,7 @@ trail links are checked against, so what it said it opened cannot be forged
 by a carrier or denied by itself. The private halves never cross, which is
 why a copy of the enrolment records opens nothing and signs nothing — the
 only asymmetric material this store keeps, and it keeps only the halves that
-unlock nothing ([constraints](../arc42-002-constraints/README.md)).
+unlock nothing ([constraints](../../arc42-002-constraints/README.md)).
 
 One relation reaches across tenants, and it is declared rather than held: a
 tenant created as **managed by** a partner tenant trusts that partner's own
@@ -193,14 +193,14 @@ and loses only the authorisation-server role it should never have held.
 
 Consent — who must agree before a person's identifying data may be unwrapped —
 is a separate track that attaches to the seams in [data
-isolation](data-isolation/README.md).
+isolation](../data-isolation/README.md).
 
 ## Where the detail is written down
 
 - **The exact rules and their proofs** — the authority and provisioning entries
-  in the [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
-- **Who may see what, once they may act** — [data isolation](data-isolation/README.md).
+  in the [REQ catalogue](../../arc42-006-runtime/req-catalogue.md).
+- **Who may see what, once they may act** — [data isolation](../data-isolation/README.md).
 - **Where broker declarations and regional configuration live** — [declared
-  rules](declared-rules.md).
+  rules](../declared-rules/README.md).
 - **How identity artefacts behave as records** — [records you can rely
-  on](records-you-can-rely-on.md).
+  on](../records-you-can-rely-on/README.md).

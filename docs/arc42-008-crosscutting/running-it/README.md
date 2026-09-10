@@ -143,7 +143,7 @@ An archive has two elements, each on demand:
   state-and-history restore is byte-faithful.
 
 The state element is cut at **a single consistent snapshot**, and an incremental
-export is simply [the feed](change-and-who-is-listening.md) from that snapshot's
+export is simply [the feed](../change-and-who-is-listening/README.md) from that snapshot's
 cursor — the same primitive again, doing a fourth job.
 
 ## The operator runs backups it cannot read
@@ -220,12 +220,12 @@ choice and needs to be a deliberate one.
 
 - **The exact rules and their proofs** — the container, scaling, workflow,
   maintenance and operations entries in the
-  [REQ catalogue](../arc42-006-runtime/req-catalogue.md).
+  [REQ catalogue](../../arc42-006-runtime/req-catalogue.md).
 - **What a reshape is converting between** — [records you can rely
-  on](records-you-can-rely-on.md).
+  on](../records-you-can-rely-on/README.md).
 - **Why an incremental export is a feed** — [change, and who is
-  listening](change-and-who-is-listening.md).
+  listening](../change-and-who-is-listening/README.md).
 - **Why the operator holds no readable credentials** — [data
-  isolation](data-isolation/README.md).
+  isolation](../data-isolation/README.md).
 - **What work is, and who performs it** — [processes and
-  work](processes-and-work.md).
+  work](../processes-and-work/README.md).
