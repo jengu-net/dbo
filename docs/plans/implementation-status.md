@@ -137,8 +137,9 @@ plain SQL with no server extension, and they arrive from the running build
 rather than through any chain. What they answer is how often an element may
 occur — counted inside the parent it occurs in — what it must equal or
 contain, and whether a coded value belongs to the value set its binding names,
-which is a join to the terminology the tenant holds. A code nothing there can
-judge is reported by nobody.
+which is a join to the terminology the tenant holds, and whether a reference
+points at a record this store holds, which is a join to the records. What
+nothing there can judge is reported by nobody.
 
 The first thing that comparison found was a defect of its own making: held as
 records, the version's definitions did not say which specification they were,
@@ -153,8 +154,10 @@ and the comparison costs about 1.6ms on a 5ms write.
 
 *Complete except an R6 personality — there is no ballot to build against.
 Nothing has been handed over to the database: it is measured beside the
-toolchain and acts on nothing. Reference targets are not checked there yet,
-and a tenant not on a face holds the terminology packages rather than its
+toolchain and acts on nothing. A reference is read on its own connection, so a
+bundle that creates a record and points at it in one transaction reads as
+pointing at nothing until validation moves inside the write's own transaction.
+A tenant not on a face holds the terminology packages rather than its
 version's own value sets, so core bindings are unresolvable for it — by
 design, and the reason a face exists.*
 

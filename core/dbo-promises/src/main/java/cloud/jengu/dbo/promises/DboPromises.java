@@ -1030,11 +1030,14 @@ public enum DboPromises implements Promise {
     VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE(
             "The database answers, from the rows a definition was expanded into, what a "
             + "toolchain answered from an object graph: how often an element may occur — "
-            + "counted inside the parent it occurs in — what it must equal or contain, and "
-            + "whether a coded value is in the value set its binding names, which is a join "
-            + "to the terminology this tenant holds. A code nothing here can judge is "
-            + "reported by nobody, because unresolvable is not invalid. The checks read "
-            + "rows and name no FHIR version, so one set of them serves every face."),
+            + "counted inside the parent it occurs in — what it must equal or contain, "
+            + "whether a coded value is in the value set its binding names, and whether a "
+            + "reference points at a record this store holds. The last two are joins, to the "
+            + "terminology and to the records, which is why they are answered here at all. "
+            + "What nothing here can judge is reported by nobody — a code from a system this "
+            + "tenant does not hold, a reference to another server or to something contained "
+            + "in the document — because unresolvable is not invalid. The checks read rows "
+            + "and name no FHIR version, so one set of them serves every face."),
     VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE(
             "The functions a tenant's database answers with are installed into its own "
             + "schema by the dbo release that carries them, and arrive no other way — never "

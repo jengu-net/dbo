@@ -135,7 +135,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
                 "the functions have no schema of their own, so code and data share one");
         assertEquals(List.of("binding_issues", "cardinality_issues", "coded_values",
                         "descends_from", "in_value_set", "instances", "located",
-                        "validate", "value_issues"), query(
+                        "record_exists", "reference_issues", "validate", "value_issues"), query(
                 "SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace"
                 + " WHERE n.nspname = 'dbo' ORDER BY p.proname"),
                 "the release did not install the functions it carries");
@@ -372,6 +372,42 @@ class TheFaceSqlShipsWithTheReleaseIT {
                      "differential":{"element":[{"id":"%s","path":"%s"}]}}"""
                     .formatted(type, type, type, type, type, type));
         }
+    }
+
+    @Test
+    @DisplayName("a reference is resolved against the records beside the document, and one "
+            + "this store cannot speak for is left alone")
+    @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
+    void aReferenceIsResolvedAgainstTheRecords() throws Exception {
+        String id = manager.runtime(CLINIC).orElseThrow().store().create("""
+                {"resourceType":"Patient","name":[{"family":"Viide"}]}""").id();
+
+        assertEquals(List.of(), issuesAgainst(CLINIC, PINNED, """
+                {"resourceType":"Patient",
+                 "link":[{"other":{"reference":"Patient/%s"},"type":"seealso"}]}"""
+                .formatted(id)),
+                "a reference to a record this store holds was refused");
+
+        List<String> missing = issuesAgainst(CLINIC, PINNED, """
+                {"resourceType":"Patient",
+                 "link":[{"other":{"reference":"Patient/8f2b1a54-0000-4000-8000-000000000000"},
+                          "type":"seealso"}]}""");
+        assertTrue(missing.stream().anyMatch(issue -> issue.contains("Patient.link.other")
+                        && issue.contains("not a record this store holds")),
+                "a reference to nothing at all was accepted: " + missing);
+
+        // What this store cannot speak for it does not judge: another
+        // server's url, and a fragment naming something inside the document.
+        assertEquals(List.of(), issuesAgainst(CLINIC, PINNED, """
+                {"resourceType":"Patient",
+                 "link":[{"other":{"reference":"https://teine.ee/fhir/Patient/7"},
+                          "type":"seealso"}]}"""),
+                "a reference to another server was judged as if it were this one's");
+        assertEquals(List.of(), issuesAgainst(CLINIC, PINNED, """
+                {"resourceType":"Patient",
+                 "contained":[{"resourceType":"Patient","id":"sees"}],
+                 "link":[{"other":{"reference":"#sees"},"type":"seealso"}]}"""),
+                "a reference to something contained in the document was judged as a record");
     }
 
     // ------------------------------------------------------------- reading

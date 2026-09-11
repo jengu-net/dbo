@@ -50,7 +50,8 @@ public final class FaceFunctions {
             "/sql/005-terminology.sql",
             "/sql/006-values.sql",
             "/sql/007-bindings.sql",
-            "/sql/008-validate.sql");
+            "/sql/009-references.sql",
+            "/sql/010-validate.sql");
 
     /**
      * What the scripts read, and what therefore has to be there before they
