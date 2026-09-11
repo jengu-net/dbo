@@ -89,5 +89,5 @@ state is not quiet, it is inaudible, and from outside the two look identical.
 The constraints and their reasoning are
 [Constraints](../docs/arc42-002-constraints/README.md); the deployment shape,
 embedding, backup and upgrades are
-[Running it (§11)](../docs/arc42-008-crosscutting/running-it/README.md).
+[Running it](../docs/arc42-008-crosscutting/running-it/README.md).
 </div>

@@ -5,7 +5,7 @@ standfirst: >-
   Who read this, who changed it, on whose authority, and when. Kept as ordinary
   records in the tenant's own store — append-only against everyone, the vendor
   included — rather than as lines in a file somewhere else.
-why: 7
+why: 9
 template: essay.html
 ---
 
@@ -132,7 +132,7 @@ rather than something an operator remembers.
 <div class="further" markdown>
 Write discipline, retention as a floor and a ceiling, and what a restore
 re-applies before it will serve are in
-[Declared rules (§15, §17)](../declared-rules/README.md).
+[Declared rules](../declared-rules/README.md).
 The trail as a FHIR client sees it is
 [The FHIR face](../the-fhir-face/README.md).
 </div>

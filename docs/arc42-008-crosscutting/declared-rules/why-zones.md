@@ -5,7 +5,7 @@ standfirst: >-
   Which identifier systems establish that a person is who they say they are,
   and which brokers may authenticate one, are properties of a country. Building
   them into an application is how a product becomes unexportable.
-why: 10
+why: 12
 template: essay.html
 ---
 
@@ -90,7 +90,7 @@ inner party declares can grant it more than the outer party allowed.**
 <div class="further" markdown>
 The declarations, the broker and session rules, and the two structural rules
 underneath the layering are in
-[Declared rules (§15, §17)](README.md).
+[Declared rules](README.md).
 How a zone's content reaches the tenants below it is
 [Staying in step](../change-and-who-is-listening/why-subscriptions.md).
 </div>

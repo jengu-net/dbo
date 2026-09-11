@@ -29,8 +29,8 @@ kind.
 
 ## Start here
 
-**[What it actually is](engine-and-faces.md).** Not a FHIR store. A store whose
-concepts are regulatory — object, identity, custody, declared handling,
+**[What it actually is](engine-and-faces.md).** One line of a tenant's spec
+says which standard it speaks. Underneath, the concepts are regulatory — object, identity, custody, declared handling,
 history, tenancy, erasure — with FHIR as a *face* mapped onto them. That is why
 R4 and R5 run side by side over one engine, and why a domain that has never
 heard of a patient is a configuration rather than a fork.
@@ -43,9 +43,9 @@ it somewhere two organisations who do not trust each other can both work.
 
 **[Personal data](personal-data.md).** Identifying material is encrypted inside
 the payload with a key belonging to the person, in the same write that stores
-it. Erasure destroys the key. History stays immutable, archives stay valid, and
-the operator running the system can back it up and restore it without ever
-being able to read it.
+it — so every copy the store makes of itself carries ciphertext because of
+where the encryption happens, not because each path was written correctly. The
+operator can back it up and restore it without ever being able to read it.
 
 **[Zones](zones.md).** Which identifier systems establish a person, and which
 brokers may authenticate one, are facts about a country rather than about a
@@ -58,7 +58,19 @@ changes, keeping a dependent copy current, and reconciling an appliance that
 was offline all weekend look like four problems. They are one, and solving them
 once means there is one place to look when something is behind.
 
-## And three that decide what it is like to run
+## And two about endings
+
+**[Leaving](leaving.md).** One sealed archive the operator cannot read and
+somebody else can verify — and it is the artefact the nightly backup already
+produces, so the way out is the path with the most mileage on it rather than a
+feature nobody has run.
+
+**[Erasure](erasure.md).** Keeping every version immutably and erasing a person
+on request point in opposite directions, and most systems quietly pick one.
+Destroying the person's key rather than their rows resolves it, and reaches the
+copies nobody can recall.
+
+## And four that decide what it is like to run
 
 **[A tenant is a database](a-tenant-is-a-database.md).** Not a filter over a
 shared one — which changes what a query with a bug in it can return, and what
@@ -96,7 +108,7 @@ your own writes.
 <div class="cols" markdown>
 <div class="col" markdown>
 ### If you are responsible for lawfulness
-Start with [personal data](personal-data.md), then
+Start with [personal data](personal-data.md), then [erasure](erasure.md), then
 [the audit trail](the-audit-trail.md). Between them: the mechanism that turns
 access, portability and erasure from procedures somebody performs into
 operations the system runs, and the evidence that survives all three.

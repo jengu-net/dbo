@@ -18,7 +18,7 @@ invalid — so that a number from here can be argued with on how it was taken.
 
 <div class="further" markdown>
 Operating it end to end — bring-up, embedding, backup as export, reshape,
-upgrades — is [Running it (§11)](../docs/arc42-008-crosscutting/running-it/README.md).
+upgrades — is [Running it](../docs/arc42-008-crosscutting/running-it/README.md).
 Routing and scaling are
-[Deployment (§5)](../docs/arc42-007-deployment/README.md).
+[Deployment](../docs/arc42-007-deployment/README.md).
 </div>

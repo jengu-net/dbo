@@ -5,7 +5,7 @@ standfirst: >-
   No admin plane. No settings blob. No second vocabulary to learn and no second
   surface to secure — including for the things a FHIR server usually keeps
   somewhere else.
-why: 6
+why: 8
 template: essay.html
 ---
 
@@ -82,5 +82,5 @@ exactly the moment when everyone is already having a bad day.
 <div class="further" markdown>
 The two doors — a system acting on its own behalf, and a person acting as
 themselves — the enrolment keys, and the one declared cross-tenant relation are
-in [Who may act (§13, §16)](README.md).
+in [Who may act](README.md).
 </div>

@@ -44,20 +44,6 @@ retention and erasure as everybody else's, instead of living in a privileged
 plane with rules written specially for it.
 </div>
 
-## Leaving
-
-This is the part that is hard to promise and easy here.
-
-Removing an organisation drops a database. Not a delete sweep across shared
-tables that somebody has to certify was complete, and not a `deleted` flag that
-a later reporting query forgets about. A thing you can watch happen, and
-afterwards there is no table left to have missed a row in.
-
-Taking your data with you is one sealed archive — the same artefact that
-serves as backup, restore and migration, encrypted under the owner's key so the
-operator cannot read it, and restore-tested by ordinary use rather than by an
-annual exercise nobody enjoys.
-
 ## What this costs
 
 Honesty about the trade: a database per tenant is more databases. Connection
@@ -72,9 +58,10 @@ tier is what the design is reasoned from, and the variant is the exception that
 has to argue for itself.
 
 <div class="further" markdown>
-The other wall — the one between a person's data and the operator — is
-[personal data](why-personal-data.md), and the two together with the crossings that
+Leaving with what is yours is [a tenant leaves and takes everything with
+it](why-leaving.md). The other wall — the one between a person's data and the
+operator — is [personal data](why-personal-data.md), and the two together with the crossings that
 are declared are
-[Data isolation (§14)](README.md).
-Who a tenant lets in is [Who may act (§13, §16)](../who-may-act/README.md).
+[Data isolation](README.md).
+Who a tenant lets in is [Who may act](../who-may-act/README.md).
 </div>

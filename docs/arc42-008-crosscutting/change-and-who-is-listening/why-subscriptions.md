@@ -5,7 +5,7 @@ standfirst: >-
   Paging through results, subscribing to changes, keeping a dependent copy
   current, and reconciling an appliance that was offline all weekend. Most
   systems grow four mechanisms for those. This one has a single primitive.
-why: 11
+why: 13
 template: essay.html
 ---
 
@@ -89,5 +89,5 @@ four questions whose answers cannot be compared.
 <div class="further" markdown>
 The three sources, the cursor contract, delivery semantics and what each
 transport guarantees are in
-[Change, and who is listening (§6, §10)](README.md).
+[Change, and who is listening](README.md).
 </div>

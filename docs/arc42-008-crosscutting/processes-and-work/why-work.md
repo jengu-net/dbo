@@ -136,6 +136,6 @@ have.
 <div class="further" markdown>
 The full treatment — the vocabulary, executor resolution and its precedence
 rules, what a run may report, and the proofs for each — is
-[Processes and work (§8)](README.md)
+[Processes and work](README.md)
 in the specification.
 </div>
