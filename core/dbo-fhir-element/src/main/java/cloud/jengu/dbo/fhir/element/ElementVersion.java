@@ -171,6 +171,11 @@ public final class ElementVersion {
         return CONTEXT_BUILDS.get();
     }
 
+    /** How many face bases this process has built — one per face version, if the sharing holds. */
+    public static long baseBuilds() {
+        return FaceBase.builds();
+    }
+
     /** Whether this version has built its context — the memory, not the name. */
     public boolean contextBuilt() {
         return context != null;
@@ -301,14 +306,14 @@ public final class ElementVersion {
      * only moment a person is present to fix it is the write — after that it
      * is a background reindex failing about a document nobody is looking at.
      */
-    public java.util.Optional<String> whyNotEvaluable(String expression) {
+    public java.util.Optional<String> whyNotEvaluable(SimpleWorkerContext context, String expression) {
         if (expression == null || expression.isBlank()) {
             return java.util.Optional.of("it has no expression, so there is nothing to extract");
         }
         try {
             org.hl7.fhir.r5.fhirpath.FHIRPathEngine engine =
-                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context());
-            engine.setHostServices(new ElementHostServices(context()));
+                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context);
+            engine.setHostServices(new ElementHostServices(context));
             engine.parse(expression);
             return java.util.Optional.empty();
         } catch (Exception notFhirPath) {
@@ -360,7 +365,8 @@ public final class ElementVersion {
      * own expression, so what an include follows and what a search filters on
      * are the same definition rather than two readings of it.
      */
-    List<String[]> referencedTargets(Object document, String typeName, String refParam) {
+    List<String[]> referencedTargets(SimpleWorkerContext context, Object document, String typeName,
+            String refParam) {
         SearchParameter parameter = parametersFor(typeName).stream()
                 .filter(p -> p.getCode().equals(refParam)).findFirst().orElse(null);
         if (parameter == null || !(document instanceof Element element)) {
@@ -370,8 +376,8 @@ public final class ElementVersion {
         List<org.hl7.fhir.r5.model.Base> hits;
         try {
             org.hl7.fhir.r5.fhirpath.FHIRPathEngine fhirPath =
-                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context());
-            fhirPath.setHostServices(new ElementHostServices(context()));
+                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context);
+            fhirPath.setHostServices(new ElementHostServices(context));
             hits = fhirPath.evaluate(element, parameter.getExpression());
         } catch (Exception e) {
             return List.of();

@@ -1366,6 +1366,7 @@ cloud.jengu.dbo.fhir.element.ElementStore                              shapesCha
 cloud.jengu.dbo.fhir.element.ElementStore                              update(String,Long,String):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.fhir.element.ElementStore                              validationOutcome(String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              validationOutcome(String,String):String
+cloud.jengu.dbo.fhir.element.ElementVersion                            baseBuilds():long
 cloud.jengu.dbo.fhir.element.ElementVersion                            class
 cloud.jengu.dbo.fhir.element.ElementVersion                            code():String
 cloud.jengu.dbo.fhir.element.ElementVersion                            contextBuilds():long
@@ -1378,7 +1379,7 @@ cloud.jengu.dbo.fhir.element.ElementVersion                            face():cl
 cloud.jengu.dbo.fhir.element.ElementVersion                            indexesFor(List):List
 cloud.jengu.dbo.fhir.element.ElementVersion                            of(String):cloud.jengu.dbo.fhir.element.ElementVersion
 cloud.jengu.dbo.fhir.element.ElementVersion                            payloadVersion():String
-cloud.jengu.dbo.fhir.element.ElementVersion                            whyNotEvaluable(String):Optional
+cloud.jengu.dbo.fhir.element.ElementVersion                            whyNotEvaluable(SimpleWorkerContext,String):Optional
 cloud.jengu.dbo.fhir.element.FaceRootPackages                          class
 cloud.jengu.dbo.fhir.element.FaceRootPackages                          definitionsFor(String,Set):List
 cloud.jengu.dbo.fhir.element.FaceRootPackages.Definition               document():byte[]

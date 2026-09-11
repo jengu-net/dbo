@@ -286,7 +286,7 @@ public final class ElementStore implements FhirStoreFacade {
         // than thrown, so a replicated copy is held-and-warned like any other
         // arrival while an authored write refuses.
         if (SEARCH_PARAMETER.equals(type)) {
-            java.util.Optional<String> why = version.whyNotEvaluable(
+            java.util.Optional<String> why = version.whyNotEvaluable(elementPayloads().context(),
                     Json.str(Json.parse(new String(payload, StandardCharsets.UTF_8)),
                             "expression"));
             if (why.isPresent()) {
@@ -755,7 +755,7 @@ public final class ElementStore implements FhirStoreFacade {
                     + "force: id={} code={} type={}", stored.id(), code, type);
             return null;
         }
-        java.util.Optional<String> why = version.whyNotEvaluable(expression);
+        java.util.Optional<String> why = version.whyNotEvaluable(elementPayloads().context(), expression);
         if (why.isPresent()) {
             LOG.warn("a stored SearchParameter is not evaluable and is not in force: "
                     + "id={} code={} reason={}", stored.id(), code, why.get());
@@ -1010,7 +1010,8 @@ public final class ElementStore implements FhirStoreFacade {
         for (StoredObject item : chunk.items()) {
             Object document = payloads().read(null, item.payload());
             for (String refParam : compiled.includeRefParams()) {
-                for (String[] target : version.referencedTargets(document, item.typeName(), refParam)) {
+                for (String[] target : version.referencedTargets(elementPayloads().context(),
+                        document, item.typeName(), refParam)) {
                     if (seen.add(target[0] + "/" + target[1])) {
                         store.get(target[0], target[1]).ifPresent(included::add);
                     }

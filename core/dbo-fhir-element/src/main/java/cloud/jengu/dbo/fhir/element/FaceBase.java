@@ -62,6 +62,13 @@ final class FaceBase {
     static final List<String> HELD_TYPES = List.of("StructureDefinition", "StructureMap", "ValueSet");
 
     private static final Map<String, SoftReference<FaceBase>> BY_VERSION = new ConcurrentHashMap<>();
+    private static final java.util.concurrent.atomic.AtomicLong BUILDS =
+            new java.util.concurrent.atomic.AtomicLong();
+
+    /** How many bases this process has built — one per face version, if the sharing holds. */
+    public static long builds() {
+        return BUILDS.get();
+    }
     // A lock, not a monitor: the build blocks on the database and runs the
     // toolchain for seconds, and a virtual thread holding a monitor through
     // that pins its carrier for the whole of it.
@@ -131,6 +138,7 @@ final class FaceBase {
 
     private static FaceBase build(String fhirVersion, ObjectStore store) {
         try {
+            BUILDS.incrementAndGet();
             Rows context = new Rows(fhirVersion);
             FaceBase base = new FaceBase(fhirVersion, context);
             base.join(store);

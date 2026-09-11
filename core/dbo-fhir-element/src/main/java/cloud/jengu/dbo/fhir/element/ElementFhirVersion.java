@@ -218,11 +218,13 @@ public class ElementFhirVersion implements FhirVersion {
 
         @Override
         public PortableRendering portableRendering() {
-            // One implementation, declared on the face and reached here. The
-            // method stays because FhirVersion's callers use it; what changed
-            // is that the obligation is now placed rather than duplicated
-            // wherever somebody needs it.
-            return version.face().require(PortableRendering.class);
+            // Through the tenant's view once it has a store, like every other
+            // read of its records: an export rendered through the version's
+            // carried context was the last thing that built one for a tenant
+            // holding its version as records.
+            return (payload, id, versionId) -> new String(
+                    ElementAncestors.rendered(through().context(), payload, id, versionId),
+                    java.nio.charset.StandardCharsets.UTF_8);
         }
     }
 }

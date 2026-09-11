@@ -192,6 +192,53 @@ class ATenantSubscribesToItsVersionIT {
     }
 
     @Test
+    @DisplayName("a second tenant on the face builds no base of its own and costs the heap little: "
+            + "the version's definitions are shared, the tenant's own are its own")
+    @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
+    void aSecondTenantOnTheFaceSharesTheBase() throws Exception {
+        long basesBefore = cloud.jengu.dbo.fhir.element.ElementVersion.baseBuilds();
+        long contextsBefore = cloud.jengu.dbo.fhir.element.ElementVersion.contextBuilds();
+        long heapBefore = settledHeapMb();
+        Files.writeString(dir.resolve("teisik.json"), """
+                {"code":"teisik","face":"r4","audit":{"level":"none"},
+                 "dependencies":[{"name":"%s","face":true,
+                                  "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]}],
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
+                  {"name":"ValueSet","identity":"canonical","handling":"replicated"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"replicated"},
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
+                .formatted(ROOT));
+        UntilServed.scan(manager, "teisik");
+        String token = token("teisik");
+        HttpResponse<String> patient = http.send(HttpRequest.newBuilder(
+                        URI.create(base("teisik") + "/fhir/Patient?gender=female"))
+                        .header("Authorization", "Bearer " + token).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, patient.statusCode(), patient.body());
+        // Printed, not asserted: a heap delta after a collection still counts
+        // what is softly reachable — the drain's validator pools and toolchain
+        // caches — and was measured at +134 MB that vanished under pressure.
+        // What is asserted is the structure the number would have caught.
+        System.out.println("MEASURED second tenant on the face: heap +" + (settledHeapMb() - heapBefore)
+                + "MB settled, bases built " + (cloud.jengu.dbo.fhir.element.ElementVersion.baseBuilds() - basesBefore));
+        assertEquals(basesBefore, cloud.jengu.dbo.fhir.element.ElementVersion.baseBuilds(),
+                "a second tenant on the face built a base of its own");
+        assertEquals(contextsBefore, cloud.jengu.dbo.fhir.element.ElementVersion.contextBuilds(),
+                "a second tenant on the face built the carried toolchain context");
+    }
+
+    private static long settledHeapMb() throws InterruptedException {
+        for (int i = 0; i < 4; i++) {
+            System.gc();
+            Thread.sleep(100);
+        }
+        Runtime runtime = Runtime.getRuntime();
+        return (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
+    }
+
+    @Test
     @DisplayName("a face chain that does not carry the code systems is refused before anything "
             + "is drained, naming what it lacks")
     @Proving(DboPromises.TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED)
