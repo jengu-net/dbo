@@ -1019,6 +1019,18 @@ public enum DboPromises implements Promise {
             + "arrives, naming the definition and the element. A definition is never held "
             + "with an element nothing can check, because a checker holding no row for an "
             + "element enforces nothing about it and says so to nobody."),
+    VAL_AN_INVARIANT_IS_COMPILED_WHEN_IT_ARRIVES(
+            "Every rule an element carries is compiled once, when its definition arrives, into "
+            + "a path the database runs, and held as a row with its key, its severity and the "
+            + "expression it came from. It is read by the toolchain's own parser, because the "
+            + "claim being made is that the two agree and compiling from the tree the toolchain "
+            + "interprets is the only version of that claim anybody can check."),
+    VAL_AN_INVARIANT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME(
+            "A rule this store cannot express is held saying so — naming the definition, the "
+            + "element, the rule's own key and the part that stopped it — and never silently "
+            + "dropped, because a rule nobody holds is a rule nobody checks and nobody knows "
+            + "nobody checks. It never refuses the definition that carries it: the published "
+            + "versions contain such rules, and refusing them would refuse the specification."),
     VAL_DIVERGENCE_IS_MEASURED_OVER_THE_VERSION(
             "Everything a version publishes is put to both checkers, and what they disagree "
             + "about is recorded per resource type as a baseline that may fall and may not "

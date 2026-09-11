@@ -251,6 +251,38 @@ class ADefinitionIsExpandedWhenItArrivesIT {
                 "the rebuilt expansion is not the one that was there");
     }
 
+    @Test
+    @DisplayName("the rules a definition carries are held as rows, compiled where they can be "
+            + "and named where they cannot")
+    @Proving({DboPromises.VAL_AN_INVARIANT_IS_COMPILED_WHEN_IT_ARRIVES,
+            DboPromises.VAL_AN_INVARIANT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME})
+    void theRulesAreHeldAsRows() throws Exception {
+        List<String> patient = query(
+                "SELECT key || ' ' || severity || ' ' || coalesce(path, '-')"
+                + " FROM state.definition_invariant WHERE canonical = ? AND element_id = 'Patient'"
+                + " ORDER BY key", PATIENT);
+        assertTrue(patient.size() > 4, "Patient's own rules are not held: " + patient);
+        assertTrue(patient.stream().anyMatch(rule -> rule.startsWith("dom-2 error !exists(")),
+                "the rule about contained resources did not compile: " + patient);
+        assertTrue(patient.stream().anyMatch(rule -> rule.contains("warning")),
+                "a warning-severity rule was dropped: " + patient);
+
+        // Held whole: the version's rules are thousands, and what cannot be
+        // compiled is a row saying why rather than an absence.
+        long all = Long.parseLong(query(
+                "SELECT count(*)::text FROM state.definition_invariant").get(0));
+        long named = Long.parseLong(query("SELECT count(*)::text FROM state.definition_invariant"
+                + " WHERE unenforceable IS NOT NULL").get(0));
+        long compiled = Long.parseLong(query("SELECT count(*)::text FROM state.definition_invariant"
+                + " WHERE path IS NOT NULL").get(0));
+        assertTrue(all > 1000, "the version carries more rules than " + all);
+        assertEquals(all, named + compiled,
+                "a rule is neither compiled nor named, which is the silence this refuses");
+        assertTrue(query("SELECT key FROM state.definition_invariant"
+                + " WHERE unenforceable IS NOT NULL AND path IS NOT NULL").isEmpty(),
+                "a rule that could not be compiled carries a path anyway");
+    }
+
     // ------------------------------------------------------------- reading
 
     private long elements() throws Exception {

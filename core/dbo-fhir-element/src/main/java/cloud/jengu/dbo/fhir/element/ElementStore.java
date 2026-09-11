@@ -951,7 +951,7 @@ public final class ElementStore implements FhirStoreFacade {
             moved.add(new cloud.jengu.dbo.definitions.DefinitionStore.Expanded(
                     canonical, expansion.version(), expansion.type(), expansion.kind(),
                     expansion.base(), expansion.derivation(),
-                    held.id(), held.versionId(), expansion.elements()));
+                    held.id(), held.versionId(), expansion.elements(), expansion.invariants()));
         }
         int unresolved = expandedFromTheView(differential, moved);
         definitions.replaceAll(moved);
@@ -997,7 +997,8 @@ public final class ElementStore implements FhirStoreFacade {
             moved.add(new cloud.jengu.dbo.definitions.DefinitionStore.Expanded(
                     entry.getKey(), expansion.version(), expansion.type(), expansion.kind(),
                     expansion.base(), expansion.derivation(),
-                    entry.getValue().id(), entry.getValue().versionId(), expansion.elements()));
+                    entry.getValue().id(), entry.getValue().versionId(),
+                    expansion.elements(), expansion.invariants()));
         }
         return unresolved;
     }

@@ -1,6 +1,7 @@
 package cloud.jengu.dbo.fhir.element;
 
 import cloud.jengu.dbo.definitions.DefinitionElement;
+import cloud.jengu.dbo.definitions.DefinitionInvariant;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -57,6 +58,7 @@ public final class DefinitionElements {
             String base,
             String derivation,
             List<DefinitionElement> elements,
+            List<DefinitionInvariant> invariants,
             List<Refusal> refusals) {}
 
     /**
@@ -79,9 +81,11 @@ public final class DefinitionElements {
         }
 
         List<DefinitionElement> rows = new ArrayList<>(elements.size());
+        List<DefinitionInvariant> rules = new ArrayList<>();
         List<Refusal> refusals = new ArrayList<>();
         for (Object element : elements) {
             String id = idOf(element);
+            rules.addAll(invariantsOf(id, element));
             try {
                 rows.add(row(id, element, byId, elements));
             } catch (Untranslatable why) {
@@ -91,7 +95,31 @@ public final class DefinitionElements {
         }
         return new Expansion(canonical, text(sd, "version"), text(sd, "type"),
                 text(sd, "kind"), text(sd, "baseDefinition"), text(sd, "derivation"),
-                List.copyOf(rows), List.copyOf(refusals));
+                List.copyOf(rows), List.copyOf(rules), List.copyOf(refusals));
+    }
+
+    /**
+     * The rules this element carries, compiled.
+     *
+     * <p>One that cannot be compiled is kept saying why rather than dropped:
+     * an invariant nobody holds is a rule nobody checks and nobody knows
+     * nobody checks, which is the shape of silence this store refuses
+     * everywhere else.
+     */
+    private static List<DefinitionInvariant> invariantsOf(String id, Object element) {
+        List<DefinitionInvariant> rules = new ArrayList<>();
+        for (Object constraint : array(element, "constraint")) {
+            String key = text(constraint, "key");
+            String expression = text(constraint, "expression");
+            if (key == null) {
+                continue;
+            }
+            InvariantPaths.Compiled compiled = InvariantPaths.of(expression);
+            rules.add(new DefinitionInvariant(id, key,
+                    text(constraint, "severity"), expression,
+                    compiled.path(), compiled.why()));
+        }
+        return rules;
     }
 
     // ------------------------------------------------------------- one row

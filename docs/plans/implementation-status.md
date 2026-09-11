@@ -152,6 +152,13 @@ it is counted rather than acted on. The verdict a caller receives is the
 toolchain's, unchanged. The tally is by resource type and never by document,
 and the comparison costs about 1.6ms on a 5ms write.
 
+The rules an element carries are compiled when its definition arrives, by the
+toolchain's own expression parser, into paths the database can run, and held as
+rows with their key, severity and the expression they came from. What cannot be
+compiled is a row saying which part stopped it, never an absence: of the
+distinct expressions R4 publishes 126 of 213 compile, and R5 153 of 308.
+Nothing runs them yet.
+
 Slicing costs a write nothing procedural. A discriminator is read once, when
 the definition arrives, and compiled into the filter that locates the slice, so
 no control flow runs per write to tell slices apart. Measured on R4's blood

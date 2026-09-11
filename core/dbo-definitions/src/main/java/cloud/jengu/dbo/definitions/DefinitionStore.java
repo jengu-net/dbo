@@ -40,7 +40,8 @@ public final class DefinitionStore {
             String derivation,
             String sourceId,
             long sourceVersion,
-            List<DefinitionElement> elements) {}
+            List<DefinitionElement> elements,
+            List<DefinitionInvariant> invariants) {}
 
     private static final int BATCH = 1_000;
 
@@ -53,7 +54,7 @@ public final class DefinitionStore {
      * the definitions again — migrating them would be preserving a copy
      * against the thing it was copied from.
      */
-    private static final int SHAPE = 2;
+    private static final int SHAPE = 3;
 
     private final DataSource ds;
 
@@ -110,6 +111,7 @@ public final class DefinitionStore {
                         ps.executeBatch();
                     }
                 }
+                writeInvariants(c, definitions);
                 c.commit();
             } catch (Throwable t) {
                 c.rollback();
@@ -150,6 +152,56 @@ public final class DefinitionStore {
         ps.setString(21, element.unenforceable());
     }
 
+    private void writeInvariants(Connection c, Collection<Expanded> definitions)
+            throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement("""
+                INSERT INTO state.definition_invariant (
+                  canonical, element_id, key, severity, expression, path, unenforceable)
+                VALUES (?,?,?,?,?,?,?)""")) {
+            int pending = 0;
+            for (Expanded definition : definitions) {
+                for (DefinitionInvariant rule : definition.invariants()) {
+                    ps.setString(1, definition.canonical());
+                    ps.setString(2, rule.elementId());
+                    ps.setString(3, rule.key());
+                    ps.setString(4, rule.severity());
+                    ps.setString(5, rule.expression());
+                    ps.setString(6, rule.path());
+                    ps.setString(7, rule.unenforceable());
+                    ps.addBatch();
+                    if (++pending == BATCH) {
+                        ps.executeBatch();
+                        pending = 0;
+                    }
+                }
+            }
+            if (pending > 0) {
+                ps.executeBatch();
+            }
+        }
+    }
+
+    /** One definition's rules, in the order the definition states them. */
+    public List<DefinitionInvariant> invariantsOf(String canonical) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     SELECT element_id, key, severity, expression, path, unenforceable
+                       FROM state.definition_invariant WHERE canonical = ?
+                      ORDER BY element_id, key""")) {
+            ps.setString(1, canonical);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<DefinitionInvariant> rules = new ArrayList<>();
+                while (rs.next()) {
+                    rules.add(new DefinitionInvariant(rs.getString(1), rs.getString(2),
+                            rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6)));
+                }
+                return List.copyOf(rules);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("reading the rules of " + canonical + " failed", e);
+        }
+    }
+
     /** Drop what is held for these definitions — a withdrawal, or a reindex. */
     public void forget(Collection<String> canonicals) {
         if (canonicals.isEmpty()) {
@@ -163,10 +215,12 @@ public final class DefinitionStore {
     }
 
     private void forget(Connection c, Collection<String> canonicals) throws SQLException {
-        try (PreparedStatement ps = c.prepareStatement(
-                "DELETE FROM state.definition_element WHERE canonical = ANY (?)")) {
-            ps.setArray(1, c.createArrayOf("text", canonicals.toArray()));
-            ps.executeUpdate();
+        for (String table : List.of("state.definition_element", "state.definition_invariant")) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "DELETE FROM " + table + " WHERE canonical = ANY (?)")) {
+                ps.setArray(1, c.createArrayOf("text", canonicals.toArray()));
+                ps.executeUpdate();
+            }
         }
     }
 
@@ -344,6 +398,17 @@ public final class DefinitionStore {
                     "CREATE INDEX IF NOT EXISTS definition_element_by_parent"
                             + " ON state.definition_element (canonical, parent_id)",
                     """
+                    CREATE TABLE IF NOT EXISTS state.definition_invariant (
+                      canonical     text NOT NULL,
+                      element_id    text NOT NULL,
+                      key           text NOT NULL,
+                      severity      text,
+                      expression    text,
+                      path          text,
+                      unenforceable text,
+                      PRIMARY KEY (canonical, element_id, key)
+                    )""",
+                    """
                     CREATE TABLE IF NOT EXISTS state.definition_shape (
                       only_row int PRIMARY KEY DEFAULT 1 CHECK (only_row = 1),
                       shape    int NOT NULL
@@ -388,7 +453,7 @@ public final class DefinitionStore {
             }
         }
         try (PreparedStatement ps = c.prepareStatement(
-                "TRUNCATE TABLE state.definition_element")) {
+                "TRUNCATE TABLE state.definition_element, state.definition_invariant")) {
             ps.execute();
         }
         try (PreparedStatement ps = c.prepareStatement("""
