@@ -572,6 +572,70 @@ class TheFaceSqlShipsWithTheReleaseIT {
         }
     }
 
+    @Test
+    @DisplayName("what each check costs a write, so the expensive one is known rather than "
+            + "guessed at")
+    @Proving(DboPromises.VAL_AN_INVARIANT_IS_ANSWERED_IN_THE_DATABASE)
+    void whatEachCheckCosts() throws Exception {
+        String shape = "http://hl7.org/fhir/StructureDefinition/StructureDefinition";
+        String document = """
+                {"resourceType":"StructureDefinition","url":"https://ee.ee/sd/kulu","name":"Kulu",
+                 "status":"active","kind":"resource","abstract":false,"type":"Patient",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient",
+                 "derivation":"constraint",
+                 "differential":{"element":[
+                   {"id":"Patient.name","path":"Patient.name","min":1},
+                   {"id":"Patient.gender","path":"Patient.gender","max":"1"}]}}""";
+
+        // What there is to do: the rows walked, and the rules run over them.
+        String elements = rootQuery("SELECT count(*)::text FROM state.definition_element"
+                + " WHERE canonical = ?", shape).get(0);
+        String rules = rootQuery("SELECT count(*)::text FROM state.definition_invariant"
+                + " WHERE canonical = ? AND path IS NOT NULL", shape).get(0);
+
+        int rounds = 20;
+        StringBuilder shares = new StringBuilder();
+        long whole = 0;
+        for (String check : List.of("cardinality_issues", "value_issues", "binding_issues",
+                "reference_issues", "invariant_issues", "validate")) {
+            long each = timedCheck(rounds, check, document, shape);
+            if ("validate".equals(check)) {
+                whole = each;
+            } else {
+                shares.append(' ').append(check.replace("_issues", "")).append('=')
+                        .append(each).append("us");
+            }
+        }
+        System.out.printf("METRICS tier-one elements=%s rules=%s%s whole=%dus over %d rounds%n",
+                elements, rules, shares, whole, rounds);
+
+        // A bound rather than a target: what this guards is a check quietly
+        // becoming the cost of the write. The numbers belong in the commit
+        // that moves them.
+        assertTrue(whole < 200_000,
+                "tier one took " + whole + "us over " + elements + " elements and "
+                        + rules + " rules, which is no longer something to run beside a write");
+    }
+
+    /** Microseconds per call of one check, warmed, on one connection. */
+    private long timedCheck(int rounds, String check, String document, String profile)
+            throws Exception {
+        try (Connection c = tenantSource(ROOT).getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT count(*) FROM dbo." + check + "(?::jsonb, ?)")) {
+            ps.setString(1, document);
+            ps.setString(2, profile);
+            for (int i = 0; i < 3; i++) {
+                ps.executeQuery().close();
+            }
+            long from = System.nanoTime();
+            for (int i = 0; i < rounds; i++) {
+                ps.executeQuery().close();
+            }
+            return (System.nanoTime() - from) / rounds / 1_000;
+        }
+    }
+
     // ------------------------------------------------------------- reading
 
     private String tally() {
