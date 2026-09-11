@@ -1,10 +1,10 @@
 ---
-title: What the node is actually doing
+title: A tenant that never came up says so
 eyebrow: Why DBO
 standfirst: >-
-  A directory of specifications says what was declared. Only the runtime knows
-  that a specification was written and its tenant never came up — which is the
-  question worth asking, and the one a list of served tenants cannot answer.
+  Every tenant the node was told about has a state — serving, coming up, or
+  failed and not going to change on its own. The one worth knowing about is the
+  one a list of served tenants leaves out.
 why: 11
 template: essay.html
 ---

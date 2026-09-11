@@ -98,10 +98,10 @@ set is a run, not a start-up log line: it tallies what it read, applied and
 skipped, one declaration nobody could apply is a card rather than a silence,
 and an unreadable source never answers with an empty set.
 
-**[What the node is doing](tenant-status.md).** Serving, coming up, or failed —
-one state per tenant, from runtime state rather than from re-reading the
-declarations, so comparing the two finds a disagreement instead of confirming
-your own writes.
+**[A tenant that never came up says so](tenant-status.md).** Serving, coming up,
+or failed — one state per tenant, taken from the runtime rather than by
+re-reading the declarations, so comparing the two finds a disagreement instead
+of confirming your own writes.
 
 ## Who each part is for
 
