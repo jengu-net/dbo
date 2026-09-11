@@ -1,13 +1,54 @@
 ---
-title: Work is a record, not a queue
+title: Work is why data is accessed
 eyebrow: Why DBO
 standfirst: >-
-  An exchange between two organisations is a process with obligations, not a
-  file drop. Somebody has to hold the record of it — what has to be done, who
-  is entitled to do it, who is doing it now, and what happened.
+  Every read of a regulated record needs a reason, and a permission is not one.
+  The reason is a step of some process — so that is what access is granted to,
+  and performing it leaves the proof.
 why: 2
 template: essay.html
 ---
+
+A store holding regulated data has to answer a question an ordinary one never
+asks. Not *who may read this* — every database can express that — but *why was
+this read*. A permission answers the first and is silent on the second, so
+every allowed read looks identical afterwards, and the second is most of what
+the regulation is about.
+
+Outside, nobody reads a record for no reason. The reason is a step of some
+process: a sample is validated, a consignment is cleared, a passport is
+published. And the step knows exactly what it needs — these documents, for
+this decision, and no others.
+
+## Access is granted to a step, not to somebody
+
+So the step is where the reason already lives, and this store makes it the
+mechanism rather than the paperwork. A step declares what it consumes and who
+may perform it. A participant claims a run of it, and what arrives is what that
+run named:
+
+> A claimed run's inputs arrive with the work, resolved by the party that holds
+> the objects; the runner's only read takes the run, a run the asking identity
+> has not claimed is refused, and a run without slots delivers exactly nothing.
+
+There is no general read behind that to fall back on, and the claim itself is
+bounded twice over: what a participant may take is the intersection of what its
+credential covers and what the step admits, and a lane's entitlement is stated
+when the lane is provisioned — there is no implicit unrestricted, so the reach
+of a remote participant never depends on a parameter somebody forgot.
+
+Then the part that makes it auditable rather than merely careful. Performing
+the step leaves a record, because a run is a record. That record is the proof
+the work happened *and* the reason the data was read — not two artefacts to be
+correlated later, one artefact. An auditor asking why this laboratory saw this
+person's sample is answered by the run that made it necessary.
+
+<div class="takeaway" markdown>
+Access is not granted to somebody. It is granted to a step, for the length of
+one run, and the record of the work is the record of the reason.
+</div>
+
+## The work is somewhere else
 
 Almost none of the work happens where the store is. A sample is analysed on an
 instrument in a laboratory. A consignment is inspected at a border. A
@@ -31,8 +72,7 @@ A **run** is one attempt at one step.
 
 ## The one decision everything else follows from
 
-A run is an ordinary record in the tenant's own store. Not a message on a
-queue. Not a row in a scheduler's private table.
+A run is an ordinary record in the tenant's own store.
 
 That sounds like an implementation detail and is not. Because a run is a
 record, it has history, an audit trail and an owner — every record here does.
@@ -41,17 +81,18 @@ interface as everything else, with nothing special built for looking at work.
 And it survives a restart of anything at all, because it was never in flight to
 begin with.
 
-A queue would have given none of that, and would have needed its own separate
-answer to each.
+Each of those four is something a system that holds work elsewhere — a queue,
+a scheduler's own table — has to go and answer for itself, separately. Here
+they arrive with the record, because the store already gives them to every
+record it holds.
 
 --8<-- "assets/diagrams/work-is-a-record.svg"
 
-<p class="diagram-caption">The right-hand panel added nothing to get those four. It inherited them by being a record in a store that already gives every record all four.</p>
+<p class="diagram-caption">Nothing was added to get those four. They arrive with the record, in a store that already gives all four to everything it holds.</p>
 
 
 <div class="takeaway" markdown>
-Work is not a subsystem beside the store. It is the store, holding a different
-kind of record.
+Work is the store, holding a different kind of record.
 </div>
 
 ## Nobody is pushed. Everybody pulls

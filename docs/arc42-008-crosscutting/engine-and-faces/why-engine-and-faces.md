@@ -1,10 +1,10 @@
 ---
-title: The engine has no domain in it
+title: A tenant declares the standard it speaks
 eyebrow: Why DBO
 standfirst: >-
-  It presents as a FHIR server well enough that the distinction is easy to
-  miss. Missing it is expensive: the domain ends up in the engine, and the
-  next one needs a fork rather than a face.
+  One line of a tenant's spec says FHIR R4, and that is where the domain lives.
+  The engine underneath knows records, custody, history and erasure, and has
+  never heard of a patient.
 why: 1
 template: essay.html
 ---

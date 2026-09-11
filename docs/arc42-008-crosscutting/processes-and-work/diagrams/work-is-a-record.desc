@@ -1,5 +1,5 @@
-Work held beside the store, and work held in it
-
-On the left, a store containing records and, beside it, a separate queue
-holding work in flight. On the right, one store containing both the records
-and the runs.
+Work held in the store, among the records
+One store holding six records side by side: three content records — Patient,
+Observation and Encounter — and three runs, marked apart. Beneath them, the
+four properties a run has by being a record: history, an audit trail, an owner,
+and never having been in flight.

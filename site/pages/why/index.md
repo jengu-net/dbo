@@ -36,10 +36,10 @@ R4 and R5 run side by side over one engine, and why a domain that has never
 heard of a patient is a configuration rather than a fork.
 
 **[Work](work.md).** A store that only answers questions is a database. This
-one also holds what has to be done, who may do it, and how far they have got —
-as ordinary records rather than as messages on a queue. That is what makes it
-somewhere two organisations who do not trust each other can both work, instead
-of a place one of them drops files.
+one also holds what has to be done, who may do it, and how far they have got.
+So access is granted to a step of a process rather than to somebody, and the
+record of the work is the record of why the data was seen — which is what makes
+it somewhere two organisations who do not trust each other can both work.
 
 **[Personal data](personal-data.md).** Identifying material is encrypted inside
 the payload with a key belonging to the person, in the same write that stores
