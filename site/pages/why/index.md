@@ -84,10 +84,10 @@ enforced by the engine rather than by the habits of whatever code writes it.
 vocabulary. The organisation model *is* the authorisation model, so revoking
 access is ending a period on an ordinary record.
 
-**[The trail is a record, not a log](the-audit-trail.md).** Who read this, on
-whose authority, and when — kept in the tenant's own store, append-only against
-everyone including the operator, and still provable after the person in it has
-been erased.
+**[The audit trail](the-audit-trail.md).** Who read this, on whose authority,
+and when — kept in the tenant's own store, append-only against everyone
+including the operator, still provable after the person in it has been erased,
+and still answerable when the machines that held it are long gone.
 
 ## And two about the gap between declared and true
 

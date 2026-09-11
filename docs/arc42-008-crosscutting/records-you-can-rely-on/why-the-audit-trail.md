@@ -1,26 +1,24 @@
 ---
-title: The trail is a record, not a log
+title: Evidence that outlives the infrastructure
 eyebrow: Why DBO
 standfirst: >-
-  Who read this, who changed it, on whose authority, and when. Kept as ordinary
-  records in the tenant's own store — append-only against everyone, the vendor
-  included — rather than as lines in a file somewhere else.
+  Who read this, who changed it, on whose authority, and when — kept as
+  ordinary records in the tenant's own store, append-only against everyone with
+  the vendor included, and still answerable years after the machines are gone.
 why: 9
 template: essay.html
 ---
 
-Most systems audit by writing to a log. The log then goes to an aggregator,
-which belongs to whoever operates the deployment, and is retained according to
-that aggregator's settings.
-
-Every part of that is wrong for evidence. It leaves the tenant. It can be
-edited, or simply not shipped. Its retention is somebody else's dial. And when
-you need it — years later, under question — you are asking an operations team
-to search infrastructure that has been replaced twice since.
-
-Here the trail is records. They live in the tenant's own store, they appear on
-its change feed, they are exported and restored with it, and they obey the same
+The trail is records. They live in the tenant's own store, they appear on its
+change feed, they are exported and restored with it, and they obey the same
 authority as everything else in it.
+
+So the question that decides whether evidence is worth anything — is it there
+when somebody finally asks — has a structural answer rather than an
+operational one. The usual arrangement writes audit to a log that leaves the
+tenant for an aggregator somebody else owns and retains on their own dial,
+which is three separate ways for it to be missing years later, when the machines
+that held it have been replaced twice.
 
 ## Append-only, and the exemption is unconditional
 
@@ -101,8 +99,9 @@ is supported — it is the qualifier that is not.
 
 --8<-- "assets/diagrams/a-trail-that-is-chained.svg"
 
-<p class="diagram-caption">The links are the claim, not the entries. A row of
-entries with nothing joining them is a log.</p>
+<p class="diagram-caption">The links are the claim, not the entries. What each
+one commits to is the entry before it, so a gap is visible rather than
+inferred.</p>
 
 ## It survives erasure
 
