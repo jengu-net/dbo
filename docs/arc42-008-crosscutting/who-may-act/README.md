@@ -1,4 +1,4 @@
-# Who may act (§13, §16)
+# Who may act
 
 ## The question
 

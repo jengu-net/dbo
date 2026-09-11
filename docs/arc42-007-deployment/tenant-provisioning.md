@@ -1,4 +1,4 @@
-# Tenant lifecycle — credential-blind provisioning (§4)
+# Tenant lifecycle — credential-blind provisioning
 
 ```
 tenant manager ──(TenantRegistration CR)──▶ k8s operator

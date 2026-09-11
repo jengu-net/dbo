@@ -1,4 +1,4 @@
-# Change, and who is listening (§6, §10)
+# Change, and who is listening
 
 ## Four problems that turn out to be one
 

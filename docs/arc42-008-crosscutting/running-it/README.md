@@ -1,4 +1,4 @@
-# Running it (§11)
+# Running it
 
 ## What operating this actually involves
 

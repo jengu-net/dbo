@@ -1,4 +1,4 @@
-# Design rationale (§9)
+# Design rationale
 
 Why the engine is shaped the way it is. Two bodies of experience stand behind
 these choices: a mature open-source FHIR server that this design was measured

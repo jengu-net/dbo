@@ -1,4 +1,4 @@
-# Records you can rely on (§2–§3, §12)
+# Records you can rely on
 
 ## Why this is one concept
 

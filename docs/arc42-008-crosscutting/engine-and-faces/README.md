@@ -1,4 +1,4 @@
-# The engine and its faces (§1)
+# The engine and its faces
 
 ## This is not a FHIR store
 

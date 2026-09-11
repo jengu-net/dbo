@@ -1,4 +1,4 @@
-# Scaling — tenant-aware routing (§5)
+# Scaling — tenant-aware routing
 
 - One Kubernetes-managed flat network; every DBO pod sees every other pod.
 - Assignment maps tenants → pods: a pod serves one or more tenants; a big tenant

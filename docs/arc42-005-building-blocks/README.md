@@ -1,4 +1,4 @@
-# Building blocks — layering (§1)
+# Building blocks — layering
 
 What the code is divided into, why the divisions fall where they do, and which
 divisions the build enforces. The behaviour behind each name is in

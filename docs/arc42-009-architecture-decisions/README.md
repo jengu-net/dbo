@@ -1,4 +1,4 @@
-# Resolved questions and known risks (§7)
+# Resolved questions and known risks
 
 ## 7. Open questions / known risks
 

@@ -1,4 +1,4 @@
-# Data isolation (§14)
+# Data isolation
 
 ## Two walls, and the openings that are declared
 

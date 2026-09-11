@@ -1,4 +1,4 @@
-# Declared rules, and how they layer (§15, §17)
+# Declared rules, and how they layer
 
 ## Two questions with one mechanism
 

@@ -65,7 +65,36 @@ Structured per [arc42](https://arc42.org/).
 - [plans/karaf-console.md](https://github.com/jengu-net/dbo/blob/main/docs/plans/karaf-console.md) — proposal: a Karaf console for
   seeing inside the container (development and operator tooling; not production)
 
-**§-numbering note:** the spec grew as one document; its section numbers
-(§1–§17) are preserved in the titles above, so cross-references like "(§7.4)"
-remain stable across the split. Every subsection a cross-reference names is a
-heading in its own right, so "(§7.4)" and "(§16.2)" are places you can jump to.
+## The § numbers, and why they are not in the titles
+
+This specification grew as one document with sections §1–§17, and comments in
+the code still cite them — 216 of them, and 27 that name a subsection such as
+"(§7.4)". They were carried in every title so those citations kept resolving,
+which put a number from a dissolved document in the most-read string of every
+page: the menu entry, the browser tab, the search result.
+
+They are decoded here instead. Nothing declares them and nothing checks them,
+which is the honest reason they are leaving: the promises are constants in
+`core/dbo-promises`, cited by an annotation the compiler checks, projected
+into the catalogue and reported on every run — a § is a number in a heading
+that could stop being true without anything failing. A new reference should
+name a REQ, or name the document.
+
+| § | is now |
+|---|---|
+| §1 | [building blocks — layering](arc42-005-building-blocks/README.md), and [the engine and its faces](arc42-008-crosscutting/engine-and-faces/README.md) |
+| §2, §3, §12 | [records you can rely on](arc42-008-crosscutting/records-you-can-rely-on/README.md) |
+| §4 | [tenant lifecycle — credential-blind provisioning](arc42-007-deployment/tenant-provisioning.md) |
+| §5 | [scaling — tenant-aware routing](arc42-007-deployment/README.md) |
+| §6, §10 | [change, and who is listening](arc42-008-crosscutting/change-and-who-is-listening/README.md) |
+| §7 | [resolved questions and known risks](arc42-009-architecture-decisions/README.md) |
+| §8 | [processes and work](arc42-008-crosscutting/processes-and-work/README.md) |
+| §9 | [design rationale](arc42-004-solution-strategy/design-rationale.md) |
+| §11 | [running it](arc42-008-crosscutting/running-it/README.md) |
+| §13, §16 | [who may act](arc42-008-crosscutting/who-may-act/README.md) |
+| §14 | [data isolation](arc42-008-crosscutting/data-isolation/README.md) |
+| §15, §17 | [declared rules, and how they layer](arc42-008-crosscutting/declared-rules/README.md) |
+
+§1 is claimed by two documents, which is what a numbering nobody checks looks
+like after a few splits. A subsection — "(§7.4)", "(§16.2)" — is a heading
+inside the document its top-level number names; search the page for it.

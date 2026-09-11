@@ -1,4 +1,4 @@
-# Processes and work (§8)
+# Processes and work
 
 ## What this is about
 
