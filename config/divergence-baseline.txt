@@ -1,0 +1,22 @@
+# What the toolchain and the database disagree about, over everything the
+# version publishes. One line per resource type:
+#
+#   <type> compared=<n> onlyTheToolchain=<n> onlyTheDatabase=<n>
+#
+# GENERATED. Re-record with:
+#     ./gradlew :core:harness:test --tests '*TheTwoAnswersAreCompared*' \
+#         -Ddbo.divergence.record=true
+#
+# It may fall and may not rise. The database is measured beside the
+# toolchain and acts on nothing, and the whole case for it answering at
+# all is that it answers the same.
+CapabilityStatement compared=8 onlyTheToolchain=5 onlyTheDatabase=0
+CodeSystem compared=40 onlyTheToolchain=0 onlyTheDatabase=0
+CompartmentDefinition compared=6 onlyTheToolchain=0 onlyTheDatabase=0
+ConceptMap compared=40 onlyTheToolchain=0 onlyTheDatabase=0
+NamingSystem compared=2 onlyTheToolchain=0 onlyTheDatabase=0
+OperationDefinition compared=40 onlyTheToolchain=0 onlyTheDatabase=0
+SearchParameter compared=40 onlyTheToolchain=0 onlyTheDatabase=0
+StructureDefinition compared=40 onlyTheToolchain=2 onlyTheDatabase=0
+StructureMap compared=2 onlyTheToolchain=2 onlyTheDatabase=0
+ValueSet compared=40 onlyTheToolchain=1 onlyTheDatabase=0

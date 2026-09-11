@@ -152,6 +152,13 @@ it is counted rather than acted on. The verdict a caller receives is the
 toolchain's, unchanged. The tally is by resource type and never by document,
 and the comparison costs about 1.6ms on a 5ms write.
 
+Everything the version publishes is put to both, and what they disagree about
+is recorded per resource type in `config/divergence-baseline.txt` as a number
+that may fall and may not rise. Over 258 of the specification's own documents
+the two agree about 248. Every disagreement is the toolchain finding something
+the database does not — invariants, which it does not compile yet — and in no
+case does the database refuse what the toolchain accepts.
+
 *Complete except an R6 personality — there is no ballot to build against.
 Nothing has been handed over to the database: it is measured beside the
 toolchain and acts on nothing. A reference is read on its own connection, so a

@@ -316,6 +316,7 @@ public enum DboStories implements Story {
                     DboPromises.VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE,
                     DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE,
                     DboPromises.VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT,
+                    DboPromises.VAL_DIVERGENCE_IS_MEASURED_OVER_THE_VERSION,
                     DboPromises.VER_AN_ELEMENT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME,
                     DboPromises.VER_BALLOT_RECORDED_PER_VERSION,
                     DboPromises.VER_BALLOT_SERVED_AS_AUTHORED,

@@ -1019,6 +1019,14 @@ public enum DboPromises implements Promise {
             + "arrives, naming the definition and the element. A definition is never held "
             + "with an element nothing can check, because a checker holding no row for an "
             + "element enforces nothing about it and says so to nobody."),
+    VAL_DIVERGENCE_IS_MEASURED_OVER_THE_VERSION(
+            "Everything a version publishes is put to both checkers, and what they disagree "
+            + "about is recorded per resource type as a baseline that may fall and may not "
+            + "rise. The corpus is the specification's own conformance resources — deep, "
+            + "sliced, bound and referenced documents of real types — because the instance "
+            + "examples ship in a package a store has no use for. The whole case for the "
+            + "database answering at all is that it answers the same, so the measurement is "
+            + "kept where a change to either side has to face it."),
     VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT(
             "On a write the database is asked what it makes of the document, against the same "
             + "definitions the toolchain used, and the answer changes nothing: the verdict a "
