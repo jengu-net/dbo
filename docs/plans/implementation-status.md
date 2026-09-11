@@ -162,10 +162,10 @@ it, and one that cannot be run against a particular document is reported by
 nobody rather than as broken.
 
 What tier one costs, on a definition of 56 elements carrying 16 runnable
-rules: 3.3ms for all five checks, of which cardinality is 1.4ms, the rules
-1.3ms, bindings 1.0ms, values 0.4ms and references 0.2ms. Each check walks the
-document itself, so a validation walks it five times — which is where the next
-saving is, and it is larger than any single check.
+rules: 2.8ms for all five checks, of which cardinality is 1.7ms, the rules
+1.3ms, bindings 1.2ms, values 0.3ms and references 0.2ms. The walk each check
+needs is done once and handed to all of them; asked for one at a time they
+still walk for themselves, which is why they sum to more than the whole.
 
 Running them did not move the divergence baseline, and reading the ten
 disagreements one at a time says why: none of them is a rule a definition

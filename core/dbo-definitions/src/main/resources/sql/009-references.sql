@@ -41,29 +41,26 @@ BEGIN
 END;
 $$;
 
--- A reference at an element that may hold one, resolved against the records.
---
--- Only where the definition says a reference may stand, so a string that looks
--- like one somewhere else is not chased. What is read is the literal reference
--- a document carries: a conditional reference is a question, and by the time a
--- write reaches here the face has already answered it.
---
--- ON ITS OWN CONNECTION, which is what "advisory" costs: a bundle that creates
--- a record and points at it in the same transaction has not committed when
--- this reads, so the reference reads as missing. Checking a reference as it is
--- WHEN THE WRITE HAPPENS means validating inside the write's own transaction,
--- which is the step after this one.
-CREATE OR REPLACE FUNCTION dbo.reference_issues(doc jsonb, profile text)
+-- Two entry points, one body. The name taking a document walks it and hands
+-- the walk on; the name taking a walk is what `dbo.validate` calls, so a whole
+-- validation walks once instead of once per check.
+CREATE OR REPLACE FUNCTION dbo.reference_in(walked jsonb, profile text)
 RETURNS TABLE (severity text, path text, key text, detail text)
 LANGUAGE sql STABLE AS $$
   SELECT 'error', e.path, 'reference',
          format('%s points at %s, which is not a record this store holds',
                 e.path, pointed.at)
-    FROM dbo.instances(doc, profile) i
+    FROM jsonb_array_elements(walked) AS at
     JOIN state.definition_element e
-      ON e.canonical = profile AND e.element_id = i.element_id AND e.unenforceable IS NULL
+      ON e.canonical = profile AND e.element_id = at.value ->> 'e' AND e.unenforceable IS NULL
      AND e.types @> '[{"code":"Reference"}]'::jsonb
-   CROSS JOIN LATERAL (SELECT i.instance ->> 'reference') AS pointed(at)
+   CROSS JOIN LATERAL (SELECT (at.value -> 'i') ->> 'reference') AS pointed(at)
    WHERE pointed.at IS NOT NULL
      AND dbo.record_exists(split_part(pointed.at, '/', 1), split_part(pointed.at, '/', 2)) IS FALSE
+$$;
+
+CREATE OR REPLACE FUNCTION dbo.reference_issues(doc jsonb, profile text)
+RETURNS TABLE (severity text, path text, key text, detail text)
+LANGUAGE sql STABLE AS $$
+  SELECT * FROM dbo.reference_in(dbo.walked(doc, profile), profile)
 $$;

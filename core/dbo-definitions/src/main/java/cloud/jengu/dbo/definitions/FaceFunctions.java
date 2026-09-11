@@ -46,13 +46,15 @@ public final class FaceFunctions {
             "/sql/001-schema.sql",
             "/sql/002-located.sql",
             "/sql/003-instances.sql",
-            "/sql/004-cardinality.sql",
-            "/sql/005-terminology.sql",
-            "/sql/006-values.sql",
-            "/sql/007-bindings.sql",
+            // the walk, before everything that shares it
+            "/sql/004-walked.sql",
+            "/sql/005-cardinality.sql",
+            "/sql/006-terminology.sql",
+            "/sql/007-values.sql",
+            "/sql/008-bindings.sql",
             "/sql/009-references.sql",
-            "/sql/011-invariants.sql",
-            "/sql/012-validate.sql");
+            "/sql/010-invariants.sql",
+            "/sql/011-validate.sql");
 
     /**
      * What the scripts read, and what therefore has to be there before they

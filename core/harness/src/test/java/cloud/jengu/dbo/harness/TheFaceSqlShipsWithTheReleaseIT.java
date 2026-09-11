@@ -133,10 +133,11 @@ class TheFaceSqlShipsWithTheReleaseIT {
         assertEquals(List.of("dbo"), query(
                 "SELECT nspname FROM pg_namespace WHERE nspname = 'dbo'"),
                 "the functions have no schema of their own, so code and data share one");
-        assertEquals(List.of("binding_issues", "cardinality_issues", "coded_values",
-                        "descends_from", "in_value_set", "instances", "invariant_holds",
-                        "invariant_issues", "located", "record_exists", "reference_issues",
-                        "validate", "value_issues"), query(
+        assertEquals(List.of("binding_in", "binding_issues", "cardinality_in",
+                        "cardinality_issues", "coded_values", "descends_from", "in_value_set",
+                        "instances", "invariant_holds", "invariant_in", "invariant_issues",
+                        "located", "record_exists", "reference_in", "reference_issues",
+                        "validate", "value_in", "value_issues", "walked"), query(
                 "SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace"
                 + " WHERE n.nspname = 'dbo' ORDER BY p.proname"),
                 "the release did not install the functions it carries");
