@@ -94,10 +94,10 @@ and still answerable when the machines that held it are long gone.
 
 Every system has one. Most of them find out about it from a support ticket.
 
-**[Applying configuration](applying-configuration.md).** Applying a declared
-set is a run, not a start-up log line: it tallies what it read, applied and
-skipped, one declaration nobody could apply is a card rather than a silence,
-and an unreadable source never answers with an empty set.
+**[Every skipped declaration has a name](applying-configuration.md).** Applying
+a declared set is a run: it tallies what it read, applied and skipped, the one
+nobody could apply becomes a card somebody can pick up, and an unreadable source
+says so rather than answering with an empty set.
 
 **[A tenant that never came up says so](tenant-status.md).** Serving, coming up,
 or failed — one state per tenant, taken from the runtime rather than by

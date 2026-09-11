@@ -1,10 +1,11 @@
 ---
-title: Applying configuration is work, and it says what it did
+title: Every skipped declaration has a name
 eyebrow: Why DBO
 standfirst: >-
   Value sets, profiles, search parameters, which tenants a deployment serves,
-  whether a step is automated. Declared in a source, applied as a run, and
-  accounted for afterwards — rather than logged and hoped about.
+  whether a step is automated. Applying a declared set is a run that tallies
+  what it read, what it applied and what it skipped, and a skip is held work
+  somebody can pick up.
 why: 10
 template: essay.html
 ---
