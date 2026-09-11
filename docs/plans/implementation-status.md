@@ -134,12 +134,18 @@ structure rather than the handful of elements its author mentioned.
 The release installs its own functions into each tenant's database, in a
 schema of their own beside the data: they read the expanded rows, they are
 plain SQL with no server extension, and they arrive from the running build
-rather than through any chain. What they answer so far is how often an element
-may occur, counted inside the parent it occurs in.
+rather than through any chain. What they answer is how often an element may
+occur — counted inside the parent it occurs in — what it must equal or
+contain, and whether a coded value belongs to the value set its binding names,
+which is a join to the terminology the tenant holds. A code nothing there can
+judge is reported by nobody.
 
 *Complete except an R6 personality — there is no ballot to build against.
 Nothing in production calls those functions yet: the writes are still judged
-by the toolchain alone, and running the two side by side is the next front.*
+by the toolchain alone, and running the two side by side is the next front.
+Reference targets are not checked there yet, and a tenant not on a face holds
+the terminology packages rather than its version's own value sets, so core
+bindings are unresolvable for it — by design, and the reason a face exists.*
 
 ### SRCH — search
 

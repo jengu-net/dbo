@@ -314,6 +314,7 @@ public enum DboStories implements Story {
                     DboPromises.VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN,
                     DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES,
                     DboPromises.VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE,
+                    DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE,
                     DboPromises.VER_AN_ELEMENT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME,
                     DboPromises.VER_BALLOT_RECORDED_PER_VERSION,
                     DboPromises.VER_BALLOT_SERVED_AS_AUTHORED,

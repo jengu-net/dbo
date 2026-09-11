@@ -45,7 +45,30 @@ public final class FaceFunctions {
     private static final List<String> SCRIPTS = List.of(
             "/sql/001-schema.sql",
             "/sql/002-located.sql",
-            "/sql/003-cardinality.sql");
+            "/sql/003-instances.sql",
+            "/sql/004-cardinality.sql",
+            "/sql/005-terminology.sql",
+            "/sql/006-values.sql",
+            "/sql/007-bindings.sql",
+            "/sql/008-validate.sql");
+
+    /**
+     * What the scripts read, and what therefore has to be there before they
+     * are created.
+     *
+     * <p>A SQL function is checked against the catalogue when it is created,
+     * so a missing table is a parse error pointing at a line of shipped SQL
+     * rather than at the arrangement that is actually wrong. These tables
+     * belong to other parts of the store — the expanded definitions to this
+     * module, the terminology to its own — and a tenant's bring-up creates
+     * them before it gets here. Naming them turns "relation does not exist"
+     * into a sentence about what was brought up in what order.
+     */
+    private static final List<String> READS = List.of(
+            "state.definition_element",
+            "state.term_valueset",
+            "state.term_system",
+            "state.term_concept");
 
     private FaceFunctions() {}
 
@@ -65,6 +88,7 @@ public final class FaceFunctions {
                     c.commit();
                     return fingerprint;
                 }
+                refuseIfWhatTheyReadIsAbsent(c);
                 for (String script : scripts) {
                     try (PreparedStatement ps = c.prepareStatement(script)) {
                         ps.execute();
@@ -90,6 +114,26 @@ public final class FaceFunctions {
             return installed(c);
         } catch (SQLException e) {
             throw new IllegalStateException("reading the installed functions failed", e);
+        }
+    }
+
+    private static void refuseIfWhatTheyReadIsAbsent(Connection c) throws SQLException {
+        List<String> absent = new java.util.ArrayList<>();
+        try (PreparedStatement ps = c.prepareStatement("SELECT to_regclass(?) IS NULL")) {
+            for (String table : READS) {
+                ps.setString(1, table);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getBoolean(1)) {
+                        absent.add(table);
+                    }
+                }
+            }
+        }
+        if (!absent.isEmpty()) {
+            throw new IllegalStateException("this release's functions read " + absent
+                    + ", which this tenant's database does not have yet — they are installed "
+                    + "after the tables they read, and something brought them up in the "
+                    + "other order");
         }
     }
 

@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.fhir.element;
 
+import cloud.jengu.dbo.terminology.Compose;
 import cloud.jengu.dbo.terminology.Concept;
 import cloud.jengu.dbo.terminology.TerminologyStore;
 import org.hl7.fhir.utilities.json.model.JsonArray;
@@ -32,6 +33,12 @@ import java.util.Map;
  * <p>Parsed as plain JSON. A CodeSystem's concept tree has had the same shape
  * in every FHIR release this store serves, and reading it without a typed
  * model is what lets one importer serve every version's baseline.
+ *
+ * <p>The value sets come too, and not as an afterthought: a binding names a
+ * value set, and a tenant holding every concept but no rule about which of
+ * them a binding admits cannot answer the binding at all. A tenant on a face
+ * takes both from its root through the chain; this is the same pair for every
+ * tenant that is not on one.
  */
 final class TerminologyBaseline {
 
@@ -64,11 +71,76 @@ final class TerminologyBaseline {
      * parsing, which is round-trip overhead rather than work. Applying a face
      * is a bulk load, so it is written as one.
      */
+    private static Compose composeOf(JsonObject valueSet) {
+        List<Compose.Include> includes = new ArrayList<>();
+        List<Compose.Exclude> excludes = new ArrayList<>();
+        JsonObject compose = valueSet.getJsonObject("compose");
+        if (compose != null) {
+            for (JsonElement element : arrayOf(compose, "include")) {
+                JsonObject include = (JsonObject) element;
+                String system = include.asString("system");
+                // A value set built from other value sets names no system,
+                // and what is held here is systems and codes: the codes live
+                // under the systems those others name.
+                if (system != null) {
+                    includes.add(new Compose.Include(system, codesOf(include), isAOf(include)));
+                }
+            }
+            for (JsonElement element : arrayOf(compose, "exclude")) {
+                JsonObject exclude = (JsonObject) element;
+                String system = exclude.asString("system");
+                if (system != null) {
+                    excludes.add(new Compose.Exclude(system, codesOf(exclude)));
+                }
+            }
+        }
+        return new Compose(includes, excludes);
+    }
+
+    private static List<String> codesOf(JsonObject conceptSet) {
+        List<String> codes = new ArrayList<>();
+        for (JsonElement element : arrayOf(conceptSet, "concept")) {
+            String code = ((JsonObject) element).asString("code");
+            if (code != null) {
+                codes.add(code);
+            }
+        }
+        return codes;
+    }
+
+    /** The one filter that carries most of the specification's hierarchy. */
+    private static String isAOf(JsonObject include) {
+        for (JsonElement element : arrayOf(include, "filter")) {
+            JsonObject filter = (JsonObject) element;
+            if ("concept".equals(filter.asString("property"))
+                    && "is-a".equals(filter.asString("op"))) {
+                return filter.asString("value");
+            }
+        }
+        return null;
+    }
+
+    private static List<JsonElement> arrayOf(JsonObject holder, String name) {
+        JsonArray array = holder.getJsonArray(name);
+        return array == null ? List.of() : array.getItems();
+    }
+
     private static void importPackage(TerminologyStore store, CarriedDefinitions.Carried pkg) {
         try {
             NpmPackage npm = NpmPackage.fromPackage(CarriedDefinitions.open(pkg));
             List<TerminologyStore.System> systems = new ArrayList<>();
+            List<TerminologyStore.ValueSetCompose> valueSets = new ArrayList<>();
             for (String file : npm.list("package")) {
+                if (file.startsWith("ValueSet-") && file.endsWith(".json")) {
+                    JsonObject valueSet = org.hl7.fhir.utilities.json.parser.JsonParser
+                            .parseObject(npm.load("package", file));
+                    String url = valueSet.asString("url");
+                    if (url != null) {
+                        valueSets.add(new TerminologyStore.ValueSetCompose(url,
+                                valueSet.asString("version"), composeOf(valueSet)));
+                    }
+                    continue;
+                }
                 if (!file.startsWith("CodeSystem-") || !file.endsWith(".json")) {
                     continue;
                 }
@@ -84,6 +156,7 @@ final class TerminologyBaseline {
                         flat));
             }
             store.importSystems(systems);
+            store.putValueSets(valueSets);
         } catch (IOException e) {
             throw new UncheckedIOException(
                     "cannot import the terminology baseline from " + pkg.id(), e);

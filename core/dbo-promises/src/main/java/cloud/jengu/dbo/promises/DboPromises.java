@@ -1019,6 +1019,14 @@ public enum DboPromises implements Promise {
             + "arrives, naming the definition and the element. A definition is never held "
             + "with an element nothing can check, because a checker holding no row for an "
             + "element enforces nothing about it and says so to nobody."),
+    VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE(
+            "The database answers, from the rows a definition was expanded into, what a "
+            + "toolchain answered from an object graph: how often an element may occur — "
+            + "counted inside the parent it occurs in — what it must equal or contain, and "
+            + "whether a coded value is in the value set its binding names, which is a join "
+            + "to the terminology this tenant holds. A code nothing here can judge is "
+            + "reported by nobody, because unresolvable is not invalid. The checks read "
+            + "rows and name no FHIR version, so one set of them serves every face."),
     VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE(
             "The functions a tenant's database answers with are installed into its own "
             + "schema by the dbo release that carries them, and arrive no other way — never "
