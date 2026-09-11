@@ -1,23 +1,24 @@
 ---
-title: One API, and it is FHIR
+title: Who works here is who may act
 eyebrow: Why DBO
 standfirst: >-
-  No admin plane. No settings blob. No second vocabulary to learn and no second
-  surface to secure — including for the things a FHIR server usually keeps
-  somewhere else.
+  The records a tenant keeps anyway say who works here, in what role, from when
+  until when. Those are read as grants — so there is one surface to secure, and
+  revoking access is ending a period on an ordinary record.
 why: 8
 template: essay.html
 ---
 
-Most clinical servers have two interfaces. There is the standard one, and there
-is the other one: the admin console, the user table, the client registry, the
-settings that live in a file somebody edits.
+The records a tenant keeps anyway — who works here, in what role, in which part
+of the organisation, from when until when — are read as grants. There is no
+second list of users, because the first one was never only a list of users.
 
-The second one is where the security problems are. It is younger, less
-scrutinised, and usually authorised by a different mechanism from the interface
-everyone actually reviewed.
+Most clinical servers keep a second interface for that: an admin console, a
+user table, a client registry, settings in a file somebody edits. It is younger
+than the interface everyone reviewed, and usually authorised by a different
+mechanism, which is why it is where the security problems are.
 
-Here there is one. `Person`, `Practitioner`, `Organization` and
+Here there is one surface. `Person`, `Practitioner`, `Organization` and
 `PractitionerRole` are not just records the store happens to hold — they **are**
 the identity and authorisation model. Where FHIR has no resource for something
 — client applications, signing keys, role grants, audit entries — the store

@@ -80,9 +80,9 @@ shared one — which changes what a query with a bug in it can return, and what
 versioned, retained for how long, identified by what: declared once per type and
 enforced by the engine rather than by the habits of whatever code writes it.
 
-**[One API, and it is FHIR](one-api.md).** No admin plane and no second
-vocabulary. The organisation model *is* the authorisation model, so revoking
-access is ending a period on an ordinary record.
+**[Who works here is who may act](one-api.md).** The organisation model *is*
+the authorisation model, so revoking access is ending a period on an ordinary
+record — and one surface to secure, because there is no second list of users.
 
 **[The audit trail](the-audit-trail.md).** Who read this, on whose authority,
 and when — kept in the tenant's own store, append-only against everyone
