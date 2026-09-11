@@ -410,6 +410,117 @@ class TheFaceSqlShipsWithTheReleaseIT {
                 "a reference to something contained in the document was judged as a record");
     }
 
+    @Test
+    @DisplayName("a slice is told apart by a predicate compiled when the definition arrived, "
+            + "so telling it apart costs a write nothing procedural")
+    @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
+    void slicingIsCompiledRatherThanInterpreted() throws Exception {
+        String bp = "http://hl7.org/fhir/StructureDefinition/bp";
+        String observation = "http://hl7.org/fhir/StructureDefinition/Observation";
+
+        // What the row holds is a filter, not a rule to be interpreted: the
+        // discriminator was read once, when the definition arrived.
+        List<String> systolic = rootQuery(
+                "SELECT unnest(steps) FROM state.definition_element"
+                + " WHERE canonical = ? AND element_id = 'Observation.component:SystolicBP'", bp);
+        assertEquals(1, systolic.size(), "the systolic component is located by " + systolic);
+        assertTrue(systolic.get(0).contains(" ? ("),
+                "the slice is located without a predicate, so nothing tells it apart: "
+                        + systolic);
+
+        // And it does tell them apart at a write. The profile requires one
+        // systolic component; a document whose components carry another code
+        // has none, and only the predicate can know that.
+        assertTrue(findings(bp, bloodPressure("8480-6")).stream()
+                        .noneMatch(issue -> issue.contains("component:SystolicBP")),
+                "a blood pressure with a systolic component was told it had none: "
+                        + findings(bp, bloodPressure("8480-6")));
+        assertTrue(findings(bp, bloodPressure("9999-9")).stream()
+                        .anyMatch(issue -> issue.contains("Observation.component")),
+                "a component under the wrong code counted as the slice the profile requires: "
+                        + findings(bp, bloodPressure("9999-9")));
+
+        // What it costs, against the same document under the definition the
+        // profile narrows — which has the same elements and none of the
+        // slices.
+        int rounds = 30;
+        long sliced = timedValidate(rounds, bp, bloodPressure("8480-6"));
+        long plain = timedValidate(rounds, observation, bloodPressure("8480-6"));
+        // Stated with what it is a cost OF: a profile carries its base's
+        // elements and its slices' as well, so some of the difference is
+        // simply more rows and some is the predicates on them.
+        String slicedRows = rootQuery("SELECT count(*)::text FROM state.definition_element"
+                + " WHERE canonical = ?", bp).get(0);
+        String plainRows = rootQuery("SELECT count(*)::text FROM state.definition_element"
+                + " WHERE canonical = ?", observation).get(0);
+        String withPredicates = rootQuery("SELECT count(*)::text FROM state.definition_element"
+                + " WHERE canonical = ? AND array_to_string(steps, '') LIKE '%?%'", bp).get(0);
+        System.out.printf("METRICS slicing sliced=%dus/%srows unsliced=%dus/%srows "
+                + "predicates=%s over %d rounds%n",
+                sliced, slicedRows, plain, plainRows, withPredicates, rounds);
+        assertTrue(sliced < plain * 5,
+                "telling slices apart cost " + sliced + "us against " + plain
+                        + "us without them, which is the procedural cost this avoided");
+    }
+
+    /** A blood pressure whose systolic component carries the given code. */
+    private static String bloodPressure(String systolicCode) {
+        return """
+                {"resourceType":"Observation","status":"final",
+                 "category":[{"coding":[{"system":
+                   "http://terminology.hl7.org/CodeSystem/observation-category","code":"vital-signs"}]}],
+                 "code":{"coding":[{"system":"http://loinc.org","code":"85354-9"}]},
+                 "subject":{"reference":"Patient/8f2b1a54-0000-4000-8000-000000000000"},
+                 "effectiveDateTime":"2026-09-11",
+                 "component":[
+                   {"code":{"coding":[{"system":"http://loinc.org","code":"%s"}]},
+                    "valueQuantity":{"value":120,"unit":"mmHg","system":"http://unitsofmeasure.org",
+                                     "code":"mm[Hg]"}},
+                   {"code":{"coding":[{"system":"http://loinc.org","code":"8462-4"}]},
+                    "valueQuantity":{"value":80,"unit":"mmHg","system":"http://unitsofmeasure.org",
+                                     "code":"mm[Hg]"}}]}""".formatted(systolicCode);
+    }
+
+    private List<String> findings(String profile, String document) throws Exception {
+        return issuesAgainst(ROOT, profile, document);
+    }
+
+    /**
+     * Microseconds per validation, warmed, on ONE connection — what is being
+     * compared is two profiles, and opening a connection costs more than
+     * either of them.
+     */
+    private long timedValidate(int rounds, String profile, String document) throws Exception {
+        try (Connection c = tenantSource(ROOT).getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT count(*) FROM dbo.validate(?::jsonb, ?)")) {
+            ps.setString(1, document);
+            ps.setString(2, profile);
+            for (int i = 0; i < 3; i++) {
+                ps.executeQuery().close();
+            }
+            long from = System.nanoTime();
+            for (int i = 0; i < rounds; i++) {
+                ps.executeQuery().close();
+            }
+            return (System.nanoTime() - from) / rounds / 1_000;
+        }
+    }
+
+    private List<String> rootQuery(String sql, String argument) throws Exception {
+        try (Connection c = tenantSource(ROOT).getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, argument);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<String> rows = new ArrayList<>();
+                while (rs.next()) {
+                    rows.add(rs.getString(1));
+                }
+                return rows;
+            }
+        }
+    }
+
     // ------------------------------------------------------------- reading
 
     private String tally() {

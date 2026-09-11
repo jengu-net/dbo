@@ -152,6 +152,14 @@ it is counted rather than acted on. The verdict a caller receives is the
 toolchain's, unchanged. The tally is by resource type and never by document,
 and the comparison costs about 1.6ms on a 5ms write.
 
+Slicing costs a write nothing procedural. A discriminator is read once, when
+the definition arrives, and compiled into the filter that locates the slice, so
+no control flow runs per write to tell slices apart. Measured on R4's blood
+pressure profile against the definition it narrows: 7.1ms over 131 element
+rows with six predicates among them, against 2.9ms over 50 rows — the same
+cost per row either way, and the difference is the profile having more
+elements rather than the predicates costing anything.
+
 Everything the version publishes is put to both, and what they disagree about
 is recorded per resource type in `config/divergence-baseline.txt` as a number
 that may fall and may not rise. Over 258 of the specification's own documents
