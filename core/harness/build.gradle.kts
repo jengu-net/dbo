@@ -152,6 +152,7 @@ val ledgerBundles = mapOf(
     "dbo.pdi" to "dbo-pdi", "dbo.policy" to "dbo-policy", "dbo.work" to "dbo-work",
     "dbo.runner" to "dbo-runner", "dbo.stream" to "dbo-stream", "dbo.sync" to "dbo-sync",
     "dbo.maintenance" to "dbo-maintenance", "dbo.terminology" to "dbo-terminology",
+    "dbo.definitions" to "dbo-definitions",
     "dbo.subscriptions" to "dbo-subscriptions", "dbo.rest" to "dbo-rest",
     "dbo.scim" to "dbo-scim", "dbo.telemetry" to "dbo-telemetry",
     "dbo.promises" to "dbo-promises", "dbo.tenant" to "dbo-tenant",
@@ -169,7 +170,8 @@ val ledgerBundles = mapOf(
 val reachModules = listOf(
     "core:dbo-core", "core:dbo-postgres", "core:dbo-auth", "core:dbo-pdi", "core:dbo-policy",
     "core:dbo-work", "core:dbo-runner", "core:dbo-stream", "core:dbo-sync",
-    "core:dbo-maintenance", "core:dbo-terminology", "core:dbo-subscriptions", "core:dbo-rest",
+    "core:dbo-maintenance", "core:dbo-terminology", "core:dbo-definitions",
+    "core:dbo-subscriptions", "core:dbo-rest",
     "core:dbo-scim", "core:dbo-telemetry", "core:dbo-telemetry-otlp", "core:dbo-promises",
     "core:dbo-tenant", "core:dbo-tenant-k8s", "core:dbo-fhir-common", "core:dbo-fhir-element",
     "core:dbo-fhir-r4", "core:dbo-fhir-r5", "core:dbo-logging", "core:dbo-verify",
@@ -288,7 +290,8 @@ tasks.withType<Test>().configureEach {
         "dbo.postgres.jar",
         project(":core:dbo-postgres").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
     )
-    dependsOn(":core:dbo-terminology:jar", ":core:dbo-fhir-r5:jar", ":core:dbo-fhir-stack:jar",
+    dependsOn(":core:dbo-terminology:jar", ":core:dbo-definitions:jar",
+        ":core:dbo-fhir-r5:jar", ":core:dbo-fhir-stack:jar",
         ":core:dbo-fhir-element:jar",
         ":core:dbo-fhir-common:jar", ":core:dbo-subscriptions:jar", ":core:dbo-rest:jar",
         ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar",
@@ -325,6 +328,7 @@ tasks.withType<Test>().configureEach {
         "dbo.runner.jar" to "dbo-runner",
         "dbo.stream.jar" to "dbo-stream",
         "dbo.fhir.element.jar" to "dbo-fhir-element",
+        "dbo.definitions.jar" to "dbo-definitions",
     )) {
         systemProperty(
             prop,
@@ -358,6 +362,10 @@ tasks.withType<Test>().configureEach {
     systemProperty(
         "dbo.terminology.jar",
         project(":core:dbo-terminology").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
+    )
+    systemProperty(
+        "dbo.definitions.jar",
+        project(":core:dbo-definitions").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
     )
     systemProperty(
         "dbo.fhir.r4.jar",

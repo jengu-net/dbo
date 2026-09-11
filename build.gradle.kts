@@ -19,6 +19,7 @@ val moduleBlurbs = mapOf(
     "dbo-subscriptions" to "Durable FHIR subscription delivery over the change feed.",
     "dbo-sync" to "Declared content dependencies streamed between tenant stores.",
     "dbo-terminology" to "Concept-per-row terminology with \$expand, \$lookup and \$validate-code.",
+    "dbo-definitions" to "Element-per-row definitions: a snapshot expanded once, located by jsonpath.",
     "dbo-maintenance" to "Sealed, attested archives: backup, restore, portable export and import.",
     "dbo-scim" to "Per-tenant SCIM 2.0 staff provisioning over the person vault (RFC 7643/7644).",
     "dbo-tenant" to "Tenant runtime wiring: spec files to live per-tenant service sets.",
@@ -41,7 +42,7 @@ val dboRuntimeModules = listOf(
     ":core:dbo-core", ":core:dbo-fhir-common", ":core:dbo-postgres",
     // the HL7/HAPI engine, once, for every personality after it
     ":core:dbo-fhir-stack",
-    ":core:dbo-terminology", ":core:dbo-subscriptions",
+    ":core:dbo-terminology", ":core:dbo-definitions", ":core:dbo-subscriptions",
     // the shared facade every version is served through, and the definitions
     // it carries — before the faces that import it
     ":core:dbo-fhir-element",

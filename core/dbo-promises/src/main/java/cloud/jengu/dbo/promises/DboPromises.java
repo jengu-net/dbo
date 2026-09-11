@@ -1005,6 +1005,20 @@ public enum DboPromises implements Promise {
             + "root holds is findable by canonical url like any other record. It exists so "
             + "that a version can be subscribed to like a zone rather than loaded into a "
             + "node."),
+    VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES(
+            "A structure arriving at a tenant by any path — a feed, the face, a restore — "
+            + "is expanded once into element rows the database checks against: what may "
+            + "stand at each element, how often, what it must equal or contain and what it "
+            + "is bound to, located by a jsonpath with the choice keys and slice members "
+            + "already resolved. Bringing a tenant up reads those rows; nothing expands a "
+            + "definition per boot or per write, and the rows are rebuilt from the record "
+            + "by a reindex like any other projection."),
+    VER_AN_ELEMENT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME(
+            "An element the database cannot locate — a slice told apart by following a "
+            + "reference, a count that is no number — is refused when the definition "
+            + "arrives, naming the definition and the element. A definition is never held "
+            + "with an element nothing can check, because a checker holding no row for an "
+            + "element enforces nothing about it and says so to nobody."),
     VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN(
             "A definition — structure, search parameter, value set, code system, map — is "
             + "indexed from its JSON along the version's own search parameters, with no "

@@ -57,6 +57,13 @@ public final class ElementStore implements FhirStoreFacade {
     private final PayloadFraming framing;
     /** Null when this store validates against carried definitions alone. */
     private final Terms terms;
+
+    /**
+     * Where this tenant's definitions are held expanded, or null for a store
+     * with no database of its own — the engine's own extraction path and
+     * every caller that builds a facade to read one document.
+     */
+    private final cloud.jengu.dbo.definitions.DefinitionStore definitions;
     /**
      * The canonical urls the validation view was built from.
      *
@@ -113,9 +120,21 @@ public final class ElementStore implements FhirStoreFacade {
      * shared, definitions-only payloads — the engine's own extraction path
      * and every caller with no tenant database stay exactly as they were.
      */
-    @SuppressWarnings("unchecked")
     ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
             String baseUrl, cloud.jengu.dbo.core.process.Steps steps, Terms terms) {
+        this(store, version, types, baseUrl, steps, terms, null);
+    }
+
+    /**
+     * The expanded-definitions form: a structure the tenant holds is taken
+     * apart into rows when it arrives, so what checks it never reads the
+     * definition again.
+     */
+    @SuppressWarnings("unchecked")
+    ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
+            String baseUrl, cloud.jengu.dbo.core.process.Steps steps, Terms terms,
+            cloud.jengu.dbo.definitions.DefinitionStore definitions) {
+        this.definitions = definitions;
         this.steps = steps;
         this.store = store;
         this.version = version;
@@ -790,6 +809,9 @@ public final class ElementStore implements FhirStoreFacade {
                 || !("StructureDefinition".equals(typeName) || "StructureMap".equals(typeName))) {
             return;
         }
+        if ("StructureDefinition".equals(typeName)) {
+            expandDefinitionsHeld();
+        }
         try {
             payloads = null;
             payloads(); // built now, so a broken profile is said now rather than on somebody's write
@@ -798,6 +820,72 @@ public final class ElementStore implements FhirStoreFacade {
                     List.of("the profile was stored, and this tenant's validation still uses "
                             + "the shapes it had: " + e.getMessage()));
         }
+    }
+
+    /**
+     * Take apart every structure this tenant holds that is not taken apart
+     * already (REQ-DBO-VER-A-DEFINITION-IS-EXPANDED-WHEN-IT-ARRIVES).
+     *
+     * <p>What moved, and only what moved: the inventory says which record
+     * each held expansion came from, so a definition whose record is where it
+     * was is passed over without its payload being read. A tenant that
+     * changed nothing writes nothing, which is what lets this be called at
+     * bring-up as well as at every arrival — the first bring-up after an
+     * upgrade is where rows that never existed come into being, and a tenant
+     * whose rows were dropped for a rebuild is the same case.
+     *
+     * <p>A definition carrying no snapshot is counted rather than expanded.
+     * Snapshotting a differential against the base it derives from is the
+     * face's, it happens once on arrival like this does, and it is the next
+     * thing; until then nothing reads these rows, so nothing is passed by a
+     * row that is missing.
+     *
+     * @return how many definitions were expanded
+     */
+    public int expandDefinitionsHeld() {
+        if (definitions == null
+                || types.stream().noneMatch(t -> "StructureDefinition".equals(t.typeName()))) {
+            return 0;
+        }
+        java.util.Map<String, Long> expanded = definitions.expandedFrom();
+        List<cloud.jengu.dbo.definitions.DefinitionStore.Expanded> moved = new ArrayList<>();
+        int withoutSnapshot = 0;
+        for (cloud.jengu.dbo.core.api.Held held
+                : store.inventory("StructureDefinition", List.of())) {
+            String canonical = canonicalOf(held);
+            if (canonical == null || Long.valueOf(held.versionId()).equals(expanded.get(canonical))) {
+                continue;
+            }
+            StoredObject stored = store.get("StructureDefinition", held.id()).orElse(null);
+            if (stored == null) {
+                continue;
+            }
+            DefinitionElements.Expansion expansion;
+            try {
+                expansion = DefinitionElements.of(stored.payload());
+            } catch (IllegalArgumentException noSnapshot) {
+                withoutSnapshot++;
+                continue;
+            }
+            moved.add(new cloud.jengu.dbo.definitions.DefinitionStore.Expanded(
+                    canonical, expansion.version(), expansion.type(), expansion.kind(),
+                    held.id(), held.versionId(), expansion.elements()));
+        }
+        definitions.replaceAll(moved);
+        if (!moved.isEmpty() || withoutSnapshot > 0) {
+            LOG.info("definitions expanded: structures={} elements={} withoutSnapshot={}",
+                    moved.size(),
+                    moved.stream().mapToInt(one -> one.elements().size()).sum(),
+                    withoutSnapshot);
+        }
+        return moved.size();
+    }
+
+    private static String canonicalOf(cloud.jengu.dbo.core.api.Held held) {
+        return held.identifiers().stream()
+                .filter(i -> cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM.equals(i.system()))
+                .map(cloud.jengu.dbo.core.api.Identifier::value)
+                .findFirst().orElse(null);
     }
 
     /**

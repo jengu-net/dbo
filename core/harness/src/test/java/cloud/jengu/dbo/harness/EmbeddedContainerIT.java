@@ -78,6 +78,9 @@ class EmbeddedContainerIT {
         ctx.installBundle("file:" + System.getProperty("dbo.logging.jar")).start();
         bundles.put("slf4j", slf4j);
         for (String name : List.of("dbo.core", "dbo.fhir.common", "dbo.postgres", "dbo.terminology",
+                // the expanded form of a definition, which the element face
+                // writes into on arrival
+                "dbo.definitions",
                 // the HL7/HAPI engine, once, for both personalities after it
                 "dbo.fhir.stack",
                 // the shared facade the versions are served through
@@ -310,5 +313,6 @@ class EmbeddedContainerIT {
         bundles.get("dbo.fhir.r5").loadClass("cloud.jengu.dbo.fhir.r5.R4ToR5Converter");
         bundles.get("dbo.subscriptions").loadClass("cloud.jengu.dbo.subscriptions.SubscriptionEngine");
         bundles.get("dbo.terminology").loadClass("cloud.jengu.dbo.terminology.TerminologyStore");
+        bundles.get("dbo.definitions").loadClass("cloud.jengu.dbo.definitions.DefinitionStore");
     }
 }

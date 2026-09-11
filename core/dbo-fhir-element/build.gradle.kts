@@ -24,6 +24,8 @@ dependencies {
     api(project(":core:dbo-fhir-stack"))
     // the native form validation consults for the tenant's own codes
     api(project(":core:dbo-terminology"))
+    // the native form a definition is expanded into when it arrives
+    api(project(":core:dbo-definitions"))
     compileOnly("org.slf4j:slf4j-api:2.0.18")
     compileOnly("org.osgi:osgi.core:8.0.0")
     // A token-level JSON copier, so a stored payload reaches a reader with the

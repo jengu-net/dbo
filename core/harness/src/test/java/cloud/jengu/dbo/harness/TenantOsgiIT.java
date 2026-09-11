@@ -86,6 +86,8 @@ class TenantOsgiIT {
                 // the HL7/HAPI engine both personalities import from
                 "dbo.fhir.stack.jar",
                 "dbo.terminology.jar",
+                // the expanded form the element face writes on arrival
+                "dbo.definitions.jar",
                 // run records, before subscriptions and policy, which write them
                 "dbo.work.jar",
                 "dbo.subscriptions.jar",

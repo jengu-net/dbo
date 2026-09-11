@@ -29,7 +29,8 @@ class SqlDisciplineTest {
     @Proving(DboPromises.CORE_PARAMETERIZED_SQL)
     void noClassInDboPostgresUsesRawStatements() throws Exception {
         List<String> offenders = new ArrayList<>();
-        for (String prop : List.of("dbo.postgres.jar", "dbo.terminology.jar", "dbo.sync.jar", "dbo.maintenance.jar")) {
+        for (String prop : List.of("dbo.postgres.jar", "dbo.terminology.jar",
+                "dbo.definitions.jar", "dbo.sync.jar", "dbo.maintenance.jar")) {
             scanJar(Path.of(System.getProperty(prop)), offenders);
         }
         assertEquals(List.of(), offenders, "raw Statement usage detected");

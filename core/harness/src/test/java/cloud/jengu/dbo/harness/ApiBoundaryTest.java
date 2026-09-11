@@ -55,7 +55,8 @@ class ApiBoundaryTest {
      */
     private static final List<String> BUNDLES = List.of("dbo.core", "dbo.fhir.common",
             "dbo.postgres", "dbo.rest", "dbo.auth", "dbo.pdi", "dbo.policy", "dbo.work",
-            "dbo.sync", "dbo.maintenance", "dbo.terminology", "dbo.subscriptions",
+            "dbo.sync", "dbo.maintenance", "dbo.terminology", "dbo.definitions",
+            "dbo.subscriptions",
             "dbo.tenant", "dbo.tenant.k8s", "dbo.fhir.element", "dbo.fhir.stack",
             "dbo.fhir.r4", "dbo.fhir.r5");
 

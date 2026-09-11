@@ -42,7 +42,7 @@ final class ApiLedger {
     /** Every bundle that exports a package of this store's own. */
     static final List<String> BUNDLES = List.of("dbo.core", "dbo.postgres", "dbo.auth",
             "dbo.pdi", "dbo.policy", "dbo.work", "dbo.runner", "dbo.stream", "dbo.sync", "dbo.maintenance",
-            "dbo.terminology", "dbo.subscriptions", "dbo.rest", "dbo.scim", "dbo.telemetry",
+            "dbo.terminology", "dbo.definitions", "dbo.subscriptions", "dbo.rest", "dbo.scim", "dbo.telemetry",
             "dbo.promises", "dbo.tenant", "dbo.tenant.k8s", "dbo.fhir.common",
             "dbo.fhir.element", "dbo.fhir.r4", "dbo.fhir.r5");
 

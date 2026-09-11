@@ -118,7 +118,19 @@ HAPI engine they both import; `dbo-fhir-r4` and `dbo-fhir-r5` coexist in one
 JVM over one database, with zero differences in the engine between them. Search parameters
 are extracted from HAPI's own definitions rather than hand-listed.
 
-*Complete except an R6 personality — there is no ballot to build against.*
+A tenant holds its version as records rather than as a context loaded into its
+node: a face root reads the carried packages once and its subscribers take the
+definitions from it through the ordinary chain. Every structure a tenant holds
+is taken apart on arrival into element rows in the tenant's own database —
+cardinality, types, fixed and pattern values, bindings, each located by a
+jsonpath with choice keys and slice members already resolved — so a checker
+reads rows instead of an object graph. An element nothing can locate is held
+saying so rather than dropped.
+
+*Complete except an R6 personality — there is no ballot to build against.
+Nothing reads the expanded rows yet: the database-side checker they exist for
+is the next front, and a structure that arrives without a snapshot is counted
+rather than expanded until the face snapshots it on arrival.*
 
 ### SRCH — search
 

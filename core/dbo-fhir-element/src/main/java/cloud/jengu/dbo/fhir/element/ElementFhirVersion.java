@@ -194,6 +194,8 @@ public class ElementFhirVersion implements FhirVersion {
                 javax.sql.DataSource dataSource, boolean versionHeldAsRecords) {
             cloud.jengu.dbo.terminology.TerminologyStore terminology =
                     new cloud.jengu.dbo.terminology.TerminologyStore(dataSource);
+            cloud.jengu.dbo.definitions.DefinitionStore definitions =
+                    new cloud.jengu.dbo.definitions.DefinitionStore(dataSource);
             // the carried baseline becomes tenant data, once — see the class
             long baselineAt = System.currentTimeMillis();
             if (!versionHeldAsRecords) {
@@ -206,13 +208,22 @@ public class ElementFhirVersion implements FhirVersion {
             long baselineMillis = System.currentTimeMillis() - baselineAt;
             long profilesAt = System.currentTimeMillis();
             ElementStore store = viewed(new ElementStore(engine, version, types, baseUrl,
-                    cloud.jengu.dbo.core.process.Steps.of(), new StoreTerms(terminology)));
+                    cloud.jengu.dbo.core.process.Steps.of(), new StoreTerms(terminology),
+                    definitions));
+            // What the tenant already holds and has never been taken apart:
+            // an upgrade to a store that expands definitions, or a rebuild.
+            // A no-op once the rows are there, which is every bring-up after
+            // the first.
+            long expandedAt = System.currentTimeMillis();
+            int expanded = store.expandDefinitionsHeld();
             // Said out loud because a first boot's cost was a bound inferred
             // from a task's wall clock, and a bound is not a measurement.
             org.slf4j.LoggerFactory.getLogger("dbo.face").info(
-                    "face bring-up cost: version={} terminologyBaseline={}ms profiles={}ms",
+                    "face bring-up cost: version={} terminologyBaseline={}ms profiles={}ms"
+                    + " definitionsExpanded={} in {}ms",
                     version.code(), baselineMillis,
-                    System.currentTimeMillis() - profilesAt);
+                    System.currentTimeMillis() - profilesAt, expanded,
+                    System.currentTimeMillis() - expandedAt);
             return store;
         }
 
