@@ -48,12 +48,18 @@ public final class TerminologyStore {
      * one transaction and one COPY stream: the system is a column in the row,
      * so the rows of every system travel together.
      *
+     * <p>A system named twice is the later one: a feed chunk carries every
+     * version of a record that changed within it, and importing each in turn
+     * would have ended on the last — copied together, the first's rows are
+     * duplicates of the last's keys, and the unit fails whole.
+     *
      * @return how many concepts landed
      */
     public long importSystems(List<System> systems) {
         if (systems.isEmpty()) {
             return 0;
         }
+        systems = lastOfEach(systems, System::url);
         try (Connection c = ds.getConnection()) {
             c.setAutoCommit(false);
             try {
@@ -127,6 +133,53 @@ public final class TerminologyStore {
         } catch (SQLException | IOException e) {
             throw new IllegalStateException("terminology import failed for " + systemUrl, e);
         }
+    }
+
+    /** One value set's compose, for a bulk registration. */
+    public record ValueSetCompose(String url, String version, Compose compose) {}
+
+    /**
+     * Many value sets registered as one unit: one transaction, one batched
+     * statement, the same rows {@link #putValueSet} writes one at a time. A
+     * version's terminology carries some three thousand of them, and a
+     * transaction each was most of a subscriber's first sync.
+     */
+    public void putValueSets(List<ValueSetCompose> valueSets) {
+        if (valueSets.isEmpty()) {
+            return;
+        }
+        valueSets = lastOfEach(valueSets, ValueSetCompose::url);
+        try (Connection c = ds.getConnection()) {
+            c.setAutoCommit(false);
+            try (PreparedStatement ps = c.prepareStatement("""
+                     INSERT INTO state.term_valueset (url, version, compose, updated_at)
+                     VALUES (?, ?, ?::jsonb, now())
+                     ON CONFLICT (url) DO UPDATE SET version = EXCLUDED.version,
+                       compose = EXCLUDED.compose, updated_at = now()""")) {
+                for (ValueSetCompose vs : valueSets) {
+                    ps.setString(1, vs.url());
+                    ps.setString(2, vs.version());
+                    ps.setString(3, composeJson(vs.compose()));
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+                c.commit();
+            } catch (Throwable t) {
+                c.rollback();
+                throw t;
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "valueset registration failed for " + valueSets.size() + " value sets", e);
+        }
+    }
+
+    private static <T> List<T> lastOfEach(List<T> items, java.util.function.Function<T, String> key) {
+        Map<String, T> last = new LinkedHashMap<>();
+        for (T item : items) {
+            last.put(key.apply(item), item);
+        }
+        return last.size() == items.size() ? items : new ArrayList<>(last.values());
     }
 
     public void putValueSet(String url, String version, Compose compose) {

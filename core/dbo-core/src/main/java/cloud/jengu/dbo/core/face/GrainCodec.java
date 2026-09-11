@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.core.face;
 
+import java.util.List;
+
 /**
  * For types whose stored form is smaller than the thing itself
  * (REQ-DBO-CORE-DECLARED-TRUTH-FORM).
@@ -68,8 +70,19 @@ public interface GrainCodec {
      */
     void keep(String typeName, byte[] transportedPayload);
 
+    /** One accepted item of a chunk, for {@link #keep(List)}. */
+    record Part(String typeName, byte[] transportedPayload) {}
+
     /**
-     * At the destination: the wire form taken apart. Parts with their own home
-     * are written there; the returned bytes are what the engine stores.
+     * Phase two for a whole chunk the engine accepted together. The parts of
+     * a chunk have one home, and a codec that knows the whole chunk can put
+     * them there in one visit; one at a time, a first sync's terminology was
+     * as many transactions as it had code systems, and the round trips were
+     * the time. The default visits per item, which is correct and slow.
      */
+    default void keep(List<Part> parts) {
+        for (Part part : parts) {
+            keep(part.typeName(), part.transportedPayload());
+        }
+    }
 }

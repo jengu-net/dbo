@@ -1004,8 +1004,16 @@ cloud.jengu.dbo.core.face.DomainFace.CapabilityMissingException        new(Strin
 cloud.jengu.dbo.core.face.GrainCodec                                   forTransport(String,byte[]):byte[]
 cloud.jengu.dbo.core.face.GrainCodec                                   handles(String):boolean
 cloud.jengu.dbo.core.face.GrainCodec                                   interface
+cloud.jengu.dbo.core.face.GrainCodec                                   keep(List):void
 cloud.jengu.dbo.core.face.GrainCodec                                   keep(String,byte[]):void
 cloud.jengu.dbo.core.face.GrainCodec                                   storedFormOf(String,byte[]):byte[]
+cloud.jengu.dbo.core.face.GrainCodec.Part                              equals(Object):boolean
+cloud.jengu.dbo.core.face.GrainCodec.Part                              hashCode():int
+cloud.jengu.dbo.core.face.GrainCodec.Part                              new(String,byte[])
+cloud.jengu.dbo.core.face.GrainCodec.Part                              record
+cloud.jengu.dbo.core.face.GrainCodec.Part                              toString():String
+cloud.jengu.dbo.core.face.GrainCodec.Part                              transportedPayload():byte[]
+cloud.jengu.dbo.core.face.GrainCodec.Part                              typeName():String
 cloud.jengu.dbo.core.face.PayloadFraming                               frame(String,cloud.jengu.dbo.core.face.PayloadFraming.Facts):cloud.jengu.dbo.core.face.PayloadFraming.Frame
 cloud.jengu.dbo.core.face.PayloadFraming                               interface
 cloud.jengu.dbo.core.face.PayloadFraming                               member(cloud.jengu.dbo.core.face.PayloadFraming.Member,OutputStream):void
@@ -1471,6 +1479,7 @@ cloud.jengu.dbo.fhir.r4.R4Terminology                                  forTransp
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  handles(String):boolean
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  ingestCodeSystem(String):cloud.jengu.dbo.fhir.common.TerminologyFacade.IngestResult
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  ingestValueSet(String):cloud.jengu.dbo.core.api.PutResult
+cloud.jengu.dbo.fhir.r4.R4Terminology                                  keep(List):void
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  keep(String,byte[]):void
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  lookup(String,String):Optional
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.r4.R4Personality,cloud.jengu.dbo.terminology.TerminologyStore)
@@ -1548,6 +1557,7 @@ cloud.jengu.dbo.fhir.r5.R5Terminology                                  forTransp
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  handles(String):boolean
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  ingestCodeSystem(String):cloud.jengu.dbo.fhir.common.TerminologyFacade.IngestResult
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  ingestValueSet(String):cloud.jengu.dbo.core.api.PutResult
+cloud.jengu.dbo.fhir.r5.R5Terminology                                  keep(List):void
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  keep(String,byte[]):void
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  lookup(String,String):Optional
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.r5.R5Personality,cloud.jengu.dbo.terminology.TerminologyStore)
@@ -3227,6 +3237,7 @@ cloud.jengu.dbo.terminology.TerminologyStore                           importSys
 cloud.jengu.dbo.terminology.TerminologyStore                           lookup(String,String):Optional
 cloud.jengu.dbo.terminology.TerminologyStore                           new(DataSource)
 cloud.jengu.dbo.terminology.TerminologyStore                           putValueSet(String,String,cloud.jengu.dbo.terminology.Compose):void
+cloud.jengu.dbo.terminology.TerminologyStore                           putValueSets(List):void
 cloud.jengu.dbo.terminology.TerminologyStore                           systemVersion(String):Optional
 cloud.jengu.dbo.terminology.TerminologyStore                           validateCode(String,String):boolean
 cloud.jengu.dbo.terminology.TerminologyStore                           valueSetCompose(String):Optional
@@ -3253,6 +3264,14 @@ cloud.jengu.dbo.terminology.TerminologyStore.System                    record
 cloud.jengu.dbo.terminology.TerminologyStore.System                    toString():String
 cloud.jengu.dbo.terminology.TerminologyStore.System                    url():String
 cloud.jengu.dbo.terminology.TerminologyStore.System                    version():String
+cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           compose():cloud.jengu.dbo.terminology.Compose
+cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           equals(Object):boolean
+cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           hashCode():int
+cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           new(String,String,cloud.jengu.dbo.terminology.Compose)
+cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           record
+cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           toString():String
+cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           url():String
+cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           version():String
 cloud.jengu.dbo.work.Automation                                        equals(Object):boolean
 cloud.jengu.dbo.work.Automation                                        hashCode():int
 cloud.jengu.dbo.work.Automation                                        new(String,String,cloud.jengu.dbo.work.Scope,boolean)

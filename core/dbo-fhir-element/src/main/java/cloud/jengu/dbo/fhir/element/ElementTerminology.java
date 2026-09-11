@@ -185,6 +185,11 @@ final class ElementTerminology implements FhirTerminology {
 
     /** A ValueSet's compose, into the native form — shared by ingest and receive. */
     private void putCompose(Element vs) {
+        terminology.putValueSet(vs.getNamedChildValue("url"), vs.getNamedChildValue("version"),
+                composeOf(vs));
+    }
+
+    private static Compose composeOf(Element vs) {
         Element compose = vs.getNamedChild("compose");
         List<Compose.Include> includes = new ArrayList<>();
         List<Compose.Exclude> excludes = new ArrayList<>();
@@ -215,8 +220,7 @@ final class ElementTerminology implements FhirTerminology {
                         codesOf(exclude)));
             }
         }
-        terminology.putValueSet(vs.getNamedChildValue("url"), vs.getNamedChildValue("version"),
-                new Compose(includes, excludes));
+        return new Compose(includes, excludes);
     }
 
     private static List<String> codesOf(Element conceptSet) {
@@ -403,15 +407,32 @@ final class ElementTerminology implements FhirTerminology {
 
     @Override
     public void keep(String typeName, byte[] transportedPayload) {
-        Element document = payloads().read(null, transportedPayload);
-        if ("ValueSet".equals(typeName)) {
-            putCompose(document);
-            return;
+        keep(List.of(new Part(typeName, transportedPayload)));
+    }
+
+    /**
+     * A chunk's code systems land in one import and its value sets in one
+     * registration: the parsing is milliseconds, and the transactions were
+     * the time.
+     */
+    @Override
+    public void keep(List<Part> parts) {
+        List<TerminologyStore.System> systems = new ArrayList<>();
+        List<TerminologyStore.ValueSetCompose> valueSets = new ArrayList<>();
+        for (Part part : parts) {
+            Element document = payloads().read(null, part.transportedPayload());
+            if ("ValueSet".equals(part.typeName())) {
+                valueSets.add(new TerminologyStore.ValueSetCompose(document.getNamedChildValue("url"),
+                        document.getNamedChildValue("version"), composeOf(document)));
+                continue;
+            }
+            List<Concept> flat = new ArrayList<>();
+            flatten(document, null, flat);
+            systems.add(new TerminologyStore.System(document.getNamedChildValue("url"),
+                    document.getNamedChildValue("version"), flat));
         }
-        List<Concept> flat = new ArrayList<>();
-        flatten(document, null, flat);
-        terminology.importSystem(document.getNamedChildValue("url"),
-                document.getNamedChildValue("version"), flat.iterator());
+        terminology.importSystems(systems);
+        terminology.putValueSets(valueSets);
     }
 
     // ------------------------------------------------------------- payloads

@@ -260,11 +260,15 @@ public final class ContentSyncEngine {
         } catch (IdentityConflictException conflict) {
             return false;
         }
-        for (int i = 0; i < items.size(); i++) {
-            FeedItem item = items.get(i);
-            if (targetGrain != null && targetGrain.handles(item.typeName())) {
-                targetGrain.keep(item.typeName(), transported.get(i));
+        if (targetGrain != null) {
+            List<GrainCodec.Part> parts = new ArrayList<>();
+            for (int i = 0; i < items.size(); i++) {
+                FeedItem item = items.get(i);
+                if (targetGrain.handles(item.typeName())) {
+                    parts.add(new GrainCodec.Part(item.typeName(), transported.get(i)));
+                }
             }
+            targetGrain.keep(parts);
         }
         recordOrigins(items, targetPayloadVersion);
         return true;

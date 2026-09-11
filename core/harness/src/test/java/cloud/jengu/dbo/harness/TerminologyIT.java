@@ -107,6 +107,40 @@ class TerminologyIT {
         assertFalse(nativeStore.validateCode(BIG_SYS, "C012345"));
     }
 
+    /**
+     * A chunk of a feed carries every version of a record that changed
+     * within it, and the destination keeps the chunk's terminology as one
+     * unit — so a code system twice in a chunk has to end the way keeping
+     * them one at a time would have: on the later one, with the earlier
+     * one's concepts gone.
+     */
+    @Test
+    @Proving(DboPromises.TERM_BULK_LOAD)
+    void aSystemTwiceInOneChunkEndsOnTheLaterOne() {
+        String url = "https://terms.dbo.test/colors";
+        String earlier = colours(url, "1.0", "red", "green");
+        String later = colours(url, "2.0", "blue");
+        terminology.keep(List.of(
+                new cloud.jengu.dbo.core.face.GrainCodec.Part("CodeSystem",
+                        earlier.getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                new cloud.jengu.dbo.core.face.GrainCodec.Part("CodeSystem",
+                        later.getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+
+        assertTrue(nativeStore.validateCode(url, "blue"), "the later system's concept is missing");
+        assertFalse(nativeStore.validateCode(url, "red"), "the earlier system's concept survived");
+        assertEquals(1, nativeStore.conceptCount(url));
+    }
+
+    private static String colours(String url, String version, String... codes) {
+        StringBuilder sb = new StringBuilder("{\"resourceType\":\"CodeSystem\",\"url\":\"")
+                .append(url).append("\",\"version\":\"").append(version)
+                .append("\",\"status\":\"active\",\"content\":\"complete\",\"concept\":[");
+        for (int i = 0; i < codes.length; i++) {
+            sb.append(i == 0 ? "" : ",").append("{\"code\":\"").append(codes[i]).append("\"}");
+        }
+        return sb.append("]}").toString();
+    }
+
     /** The truth-form inversion: shell payload carries no concepts; reassembly restores the tree. */
     @Test
     @Proving({DboPromises.CORE_DECLARED_TRUTH_FORM, DboPromises.TERM_NATIVE_FORM})

@@ -2,6 +2,7 @@ package cloud.jengu.dbo.tenant;
 
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PutRequest;
+import cloud.jengu.dbo.core.face.GrainCodec;
 import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.element.FaceRootPackages;
@@ -133,28 +134,25 @@ final class FaceRoot {
         }
         store.shapesChanged();
         if (grain != null) {
-            for (FaceRootPackages.Definition definition : shapes) {
-                if (grain.handles(definition.typeName())) {
-                    grain.keep(definition.typeName(), definition.document());
-                }
-            }
+            grain.keep(shapes.stream().filter(d -> grain.handles(d.typeName()))
+                    .map(d -> new GrainCodec.Part(d.typeName(), d.document())).toList());
         }
-        List<FaceRootPackages.Definition> kept = new ArrayList<>(BATCH);
+        List<GrainCodec.Part> kept = new ArrayList<>(BATCH);
         for (FaceRootPackages.Definition definition : codeSystems) {
             batch.add(PutRequest.create(definition.typeName(),
                     grain.storedFormOf(definition.typeName(), definition.document())));
-            kept.add(definition);
+            kept.add(new GrainCodec.Part(definition.typeName(), definition.document()));
             loaded.merge(definition.typeName(), 1, Integer::sum);
             if (batch.size() == BATCH) {
                 engine.transact(batch);
-                kept.forEach(d -> grain.keep(d.typeName(), d.document()));
+                grain.keep(kept);
                 batch.clear();
                 kept.clear();
             }
         }
         if (!batch.isEmpty()) {
             engine.transact(batch);
-            kept.forEach(d -> grain.keep(d.typeName(), d.document()));
+            grain.keep(kept);
         }
         LOG.info("face root {} holds {} as records: {}", spec.code(), spec.face(), loaded);
         return loaded;

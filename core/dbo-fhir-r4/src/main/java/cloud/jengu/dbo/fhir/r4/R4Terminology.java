@@ -153,6 +153,10 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
 
     /** A ValueSet's compose, into the native form — shared by ingest and receive. */
     private void putCompose(ValueSet vs) {
+        terminology.putValueSet(vs.getUrl(), vs.getVersion(), composeOf(vs));
+    }
+
+    private static Compose composeOf(ValueSet vs) {
         List<Compose.Include> includes = new ArrayList<>();
         for (ValueSet.ConceptSetComponent inc : vs.getCompose().getInclude()) {
             // A value set composed of other value sets names no system, and
@@ -181,7 +185,7 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
             excludes.add(new Compose.Exclude(ex.getSystem(),
                     ex.getConcept().stream().map(ValueSet.ConceptReferenceComponent::getCode).toList()));
         }
-        terminology.putValueSet(vs.getUrl(), vs.getVersion(), new Compose(includes, excludes));
+        return new Compose(includes, excludes);
     }
 
     /** The stored form: metadata, a count, and an honest {@code not-present}. */
@@ -372,14 +376,32 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
 
     @Override
     public void keep(String typeName, byte[] transportedPayload) {
-        String json = new String(transportedPayload, StandardCharsets.UTF_8);
-        if ("ValueSet".equals(typeName)) {
-            putCompose((ValueSet) personality.ctxInternal().newJsonParser().parseResource(json));
-            return;
+        keep(List.of(new Part(typeName, transportedPayload)));
+    }
+
+    /**
+     * A chunk's code systems land in one import and its value sets in one
+     * registration: the parsing is milliseconds, and the transactions were
+     * the time.
+     */
+    @Override
+    public void keep(List<Part> parts) {
+        List<TerminologyStore.System> systems = new ArrayList<>();
+        List<TerminologyStore.ValueSetCompose> valueSets = new ArrayList<>();
+        for (Part part : parts) {
+            String json = new String(part.transportedPayload(), StandardCharsets.UTF_8);
+            if ("ValueSet".equals(part.typeName())) {
+                ValueSet vs = (ValueSet) personality.ctxInternal().newJsonParser().parseResource(json);
+                valueSets.add(new TerminologyStore.ValueSetCompose(vs.getUrl(), vs.getVersion(),
+                        composeOf(vs)));
+                continue;
+            }
+            CodeSystem cs = (CodeSystem) personality.ctxInternal().newJsonParser().parseResource(json);
+            List<Concept> flat = new ArrayList<>();
+            flatten(cs.getConcept(), null, flat);
+            systems.add(new TerminologyStore.System(cs.getUrl(), cs.getVersion(), flat));
         }
-        CodeSystem cs = (CodeSystem) personality.ctxInternal().newJsonParser().parseResource(json);
-        List<Concept> flat = new ArrayList<>();
-        flatten(cs.getConcept(), null, flat);
-        terminology.importSystem(cs.getUrl(), cs.getVersion(), flat.iterator());
+        terminology.importSystems(systems);
+        terminology.putValueSets(valueSets);
     }
 }
