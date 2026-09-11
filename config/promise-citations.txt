@@ -17,13 +17,7 @@
 #                  it is testing.
 #
 # @Proving is checked by the compiler. This file is the other half.
-AREA-SHARED-CONCERN                             FIXTURE
-REQ-DBO-AUTH-OPEN-CAPABILITY                    INVENTED
-REQ-DBO-CORE-READER-RECEIVES-THE-DECLARED-FORM  INVENTED
-REQ-DBO-CORE-REFERENCE-CLOSURE                  INVENTED
-REQ-DBO-PROC-WORK-ARRIVES-WHOLE                 INVENTED — FEAT-DBO-WORK-ARRIVES-WHOLE says this, in a namespace that is not REQ
-REQ-DBO-SRCH-RESULTS-STREAM                     INVENTED
-REQ-DBO-VER-NORMALISING-LOSES-NOTHING           INVENTED
-US-DBO-ALL-HOPE                                 FIXTURE
-US-DBO-NEVER-WRITTEN                            FIXTURE
-US-DBO-ONLY-PROSE                               FIXTURE
+AREA-SHARED-CONCERN   FIXTURE
+US-DBO-ALL-HOPE       FIXTURE
+US-DBO-NEVER-WRITTEN  FIXTURE
+US-DBO-ONLY-PROSE     FIXTURE

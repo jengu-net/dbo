@@ -19,7 +19,7 @@ import java.util.Set;
 
 /**
  * A stored payload with the engine's own facts put back, and nothing else
- * touched (REQ-DBO-CORE-READER-RECEIVES-THE-DECLARED-FORM).
+ * touched (REQ-DBO-CORE-PAYLOAD-IS-TRUTH).
  *
  * <p>Stamping is a claim about custody at a moment and is made at write; putting
  * the ancestors into a document a reader receives is the other act and belongs
@@ -34,7 +34,7 @@ import java.util.Set;
  * comes back without it. Nothing is lost in storage, because the payload is
  * kept as it arrived; it is lost on the way to a reader, silently, which is
  * worse than a refusal. It is also why the element model may not be declared a
- * normalized truth form (REQ-DBO-VER-NORMALISING-LOSES-NOTHING): it does not
+ * normalized truth form (REQ-DBO-CORE-DECLARED-TRUTH-FORM): it does not
  * pass that requirement's own round-trip test.
  *
  * <p>So the document is copied token for token — every field, in the order it

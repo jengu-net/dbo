@@ -21,7 +21,7 @@ import java.util.Arrays;
  * for comparing and is never written back: a payload is returned to a reader
  * as it arrived (REQ-DBO-CORE-PAYLOAD-IS-TRUTH), and a face that re-rendered
  * one through a model would drop what that model does not define
- * (REQ-DBO-VER-NORMALISING-LOSES-NOTHING). Canonicalising the document tree
+ * (REQ-DBO-CORE-DECLARED-TRUTH-FORM). Canonicalising the document tree
  * has neither hazard: nothing is interpreted, so nothing can be lost.
  */
 @FunctionalInterface

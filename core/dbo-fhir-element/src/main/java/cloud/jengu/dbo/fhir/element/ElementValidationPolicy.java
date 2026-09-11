@@ -22,7 +22,7 @@ import java.util.List;
  * instant — the same two writes accepted in one order and refused in the other,
  * and a resource pointing at something arriving a second later refused for
  * being early. Referential closure is the engine's, checked where it can be
- * checked consistently (REQ-DBO-CORE-REFERENCE-CLOSURE).
+ * checked consistently (REQ-DBO-CORE-REFERENCE-EDGES).
  *
  * <p><b>No profile is inferred from content.</b> The toolchain will otherwise
  * recognise, say, an Observation carrying a heart-rate LOINC code and hold it

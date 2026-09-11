@@ -70,8 +70,7 @@ public interface FhirStoreFacade {
     String search(String typeName, Map<String, String> params, String cursor);
 
     /**
-     * The same searchset, written as it is produced rather than returned whole
-     * (REQ-DBO-SRCH-RESULTS-STREAM).
+     * The same searchset, written as it is produced rather than returned whole.
      *
      * <p>Returning a String means a page exists three times before a reader
      * sees any of it — the payloads, whatever the face built from them, and the

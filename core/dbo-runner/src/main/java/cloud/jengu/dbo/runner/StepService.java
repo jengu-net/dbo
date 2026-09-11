@@ -36,7 +36,7 @@ public interface StepService {
      * Performs one run's work.
      *
      * <p>The {@link Work} arrives whole — the run and the objects it
-     * references (REQ-DBO-PROC-WORK-ARRIVES-WHOLE); a service never fetches,
+     * references (REQ-DBO-PROC-INPUTS-ARRIVE-WITH-THE-WORK); a service never fetches,
      * which is what keeps the same service honest on a runner with nothing to
      * fetch from. Long work checkpoints through {@link Work#progress}, which
      * extends the claim — counts are the evidence, never a heartbeat.

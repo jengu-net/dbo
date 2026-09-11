@@ -257,7 +257,14 @@ tasks.withType<Test>().configureEach {
     inputs.file(rootProject.file("config/promise-citations.txt"))
     inputs.files(rootProject.fileTree(".") {
         include("**/*.java", "**/*.md", "**/*.kts")
-        exclude("**/build/**", ".git/**", "docs/tasks/**")
+        // The last three are written by other tasks. Declaring another task's
+        // output as this one's input without saying so is an undeclared
+        // dependency, and Gradle fails the build rather than let the order
+        // decide the answer — which is the right call and cost a red CI to
+        // learn, because nothing in a single-task run reaches that check.
+        exclude("**/build/**", ".git/**", "docs/tasks/**",
+                "tools/dbo-conventions/**", "CLAUDE.md",
+                "docs/arc42-006-runtime/req-catalogue.md")
     }).withPathSensitivity(PathSensitivity.RELATIVE)
 
     systemProperty("dbo.build.workflow",

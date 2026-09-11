@@ -74,8 +74,18 @@ final class PromiseCitations {
                 // Working documents are exempt for the reason the branding check
                 // exempts them: they carry a topic between its issues and its
                 // concepts, and a code proposed there may not exist yet.
+                //
+                // Generated files are exempt because a citation is not authored
+                // in one: tools/dbo-conventions and CLAUDE.md are written by
+                // generateSkills and req-catalogue.md by the projection, so a
+                // bad code there is a bad code in the source it came from, said
+                // twice. Reading them also made this task consume another's
+                // output, which Gradle refuses as an undeclared dependency.
                 if (rel.contains("build/") || rel.startsWith(".git")
                         || rel.startsWith("docs/tasks/") || rel.startsWith("config/")
+                        || rel.startsWith("tools/dbo-conventions/")
+                        || rel.equals("CLAUDE.md")
+                        || rel.equals("docs/arc42-006-runtime/req-catalogue.md")
                         || !(name.endsWith(".java") || name.endsWith(".md")
                              || name.endsWith(".kts"))) {
                     continue;

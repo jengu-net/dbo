@@ -22,7 +22,7 @@ import java.util.List;
  * so a resource pointing at something not yet written would be refused, and the
  * same two writes in the other order would both be accepted. Referential
  * closure is the engine's, checked where it can be checked consistently
- * (REQ-DBO-CORE-REFERENCE-CLOSURE), not a validator's guess.
+ * (REQ-DBO-CORE-REFERENCE-EDGES), not a validator's guess.
  *
  * <p>Answering "not resolved" is different from not being asked: without a host
  * at all, a search parameter using {@code resolve()} and a profile that

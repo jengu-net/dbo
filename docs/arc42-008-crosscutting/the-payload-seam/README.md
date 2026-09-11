@@ -210,7 +210,7 @@ what the version's StructureDefinitions describe, so an element the version does
 define is dropped — a Patient stored carrying `instantiatesCanonical` under R4 comes back
 without it. Nothing is lost in storage, since the payload is kept as it arrived, but a
 reader is handed less than was written, silently. That is
-REQ-DBO-VER-NORMALISING-LOSES-NOTHING's own round trip, failed: a face that cannot pass
+REQ-DBO-CORE-DECLARED-TRUTH-FORM's own round trip, failed: a face that cannot pass
 it may not declare a normalized truth form, and this one cannot.
 
 So a read copies the stored document **token for token** — every field, in the order it

@@ -247,7 +247,10 @@ public final class FhirHttpServer implements AutoCloseable {
         Map<String, String> query = parseQuery(exchange.getRequestURI().getRawQuery());
 
         if (segments.length == 1 && "metadata".equals(segments[0]) && "GET".equals(method)) {
-            // anonymous by REQ-DBO-AUTH-OPEN-CAPABILITY; declares the auth mode
+            // Served without a token, so a client can discover how to get one:
+            // the statement is what declares the auth mode. No promise says
+            // so — this is the one door the deny-by-default rule does not
+            // cover, and it is deliberate rather than an omission.
             // The audit trail has a surface of its own, so the statement
             // advertises the parameters THAT surface honours rather than
             // every one the version defines.

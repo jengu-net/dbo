@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A reader receives what was stored, and the store's own ancestor slots
- * (REQ-DBO-CORE-READER-RECEIVES-THE-DECLARED-FORM).
+ * (REQ-DBO-CORE-PAYLOAD-IS-TRUTH).
  *
  * <p>The obvious way to put an id into a document is to read it into a model
  * and write it back, and it loses data: a model writes what the version's
@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * worse than a refusal.
  *
  * <p>That is also why this face declares no normalized truth form
- * (REQ-DBO-VER-NORMALISING-LOSES-NOTHING): it would not pass that requirement's
+ * (REQ-DBO-CORE-DECLARED-TRUTH-FORM): it would not pass that requirement's
  * own round trip, and the test below is that round trip.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

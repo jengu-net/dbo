@@ -22,7 +22,7 @@ import java.util.Set;
  * refused in the other, and a resource pointing at something arriving a second
  * later would be refused for being early. Referential closure is the engine's,
  * checked where it can be checked consistently
- * (REQ-DBO-CORE-REFERENCE-CLOSURE).
+ * (REQ-DBO-CORE-REFERENCE-EDGES).
  *
  * <p>Present rather than absent, though, because the two are not the same: with
  * no fetcher at all the validator does not skip the check, it fails with

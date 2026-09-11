@@ -6,7 +6,7 @@ import cloud.jengu.dbo.work.Run;
 import java.util.Map;
 
 /**
- * One run's work, arrived whole (REQ-DBO-PROC-WORK-ARRIVES-WHOLE): the run,
+ * One run's work, arrived whole (REQ-DBO-PROC-INPUTS-ARRIVE-WITH-THE-WORK): the run,
  * its inputs, and the way to say "still moving".
  *
  * @param run    the claimed run — the global truth this work answers to
