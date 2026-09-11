@@ -51,7 +51,8 @@ public final class FaceFunctions {
             "/sql/006-values.sql",
             "/sql/007-bindings.sql",
             "/sql/009-references.sql",
-            "/sql/010-validate.sql");
+            "/sql/011-invariants.sql",
+            "/sql/012-validate.sql");
 
     /**
      * What the scripts read, and what therefore has to be there before they
@@ -67,6 +68,7 @@ public final class FaceFunctions {
      */
     private static final List<String> READS = List.of(
             "state.definition_element",
+            "state.definition_invariant",
             "state.term_valueset",
             "state.term_system",
             "state.term_concept");

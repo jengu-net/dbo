@@ -318,6 +318,7 @@ public enum DboStories implements Story {
                     DboPromises.VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT,
                     DboPromises.VAL_DIVERGENCE_IS_MEASURED_OVER_THE_VERSION,
                     DboPromises.VAL_AN_INVARIANT_IS_COMPILED_WHEN_IT_ARRIVES,
+                    DboPromises.VAL_AN_INVARIANT_IS_ANSWERED_IN_THE_DATABASE,
                     DboPromises.VAL_AN_INVARIANT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME,
                     DboPromises.VER_AN_ELEMENT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME,
                     DboPromises.VER_BALLOT_RECORDED_PER_VERSION,

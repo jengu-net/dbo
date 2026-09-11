@@ -14,4 +14,6 @@ LANGUAGE sql STABLE AS $$
   SELECT * FROM dbo.binding_issues(doc, profile)
   UNION ALL
   SELECT * FROM dbo.reference_issues(doc, profile)
+  UNION ALL
+  SELECT * FROM dbo.invariant_issues(doc, profile)
 $$;

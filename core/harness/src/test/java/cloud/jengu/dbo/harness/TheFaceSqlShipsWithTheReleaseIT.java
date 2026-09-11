@@ -134,8 +134,9 @@ class TheFaceSqlShipsWithTheReleaseIT {
                 "SELECT nspname FROM pg_namespace WHERE nspname = 'dbo'"),
                 "the functions have no schema of their own, so code and data share one");
         assertEquals(List.of("binding_issues", "cardinality_issues", "coded_values",
-                        "descends_from", "in_value_set", "instances", "located",
-                        "record_exists", "reference_issues", "validate", "value_issues"), query(
+                        "descends_from", "in_value_set", "instances", "invariant_holds",
+                        "invariant_issues", "located", "record_exists", "reference_issues",
+                        "validate", "value_issues"), query(
                 "SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace"
                 + " WHERE n.nspname = 'dbo' ORDER BY p.proname"),
                 "the release did not install the functions it carries");
@@ -157,10 +158,11 @@ class TheFaceSqlShipsWithTheReleaseIT {
     void anElementIsCountedInsideItsParent() throws Exception {
         // Three contacts, one name each. Flattened from the root that is
         // three names where one is allowed, and the document is correct.
-        assertEquals(List.of(), issues("""
+        assertTrue(issues("""
                 {"resourceType":"Patient","name":[{"family":"Tamm"}],
                  "contact":[{"name":{"family":"A"}},{"name":{"family":"B"}},
-                            {"name":{"family":"C"}}]}"""),
+                            {"name":{"family":"C"}}]}""").stream()
+                        .noneMatch(issue -> issue.startsWith("cardinality")),
                 "a patient whose contacts each have a name was refused");
 
         // One contact with two names is what the profile forbids, and only
@@ -179,8 +181,9 @@ class TheFaceSqlShipsWithTheReleaseIT {
             + "into, inherited elements and all")
     @Proving(DboPromises.VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE)
     void theTenantsOwnRuleIsAnswered() throws Exception {
-        assertEquals(List.of(), issues("""
-                {"resourceType":"Patient","name":[{"family":"Tamm"}]}"""),
+        assertTrue(issues("""
+                {"resourceType":"Patient","name":[{"family":"Tamm"}]}""").stream()
+                        .noneMatch(issue -> issue.contains("Patient.name")),
                 "a patient with the one name the profile requires was refused");
 
         List<String> none = issues("""
@@ -212,9 +215,10 @@ class TheFaceSqlShipsWithTheReleaseIT {
         // and the concepts under it are rows in this same database. A tenant
         // not on a face holds the terminology packages and not the core's
         // own value sets, and for those its answer is that it cannot say.
-        assertEquals(List.of(), rootIssues("""
+        assertTrue(rootIssues("""
                 {"resourceType":"StructureDefinition","url":"https://ee.ee/sd/a","name":"A",
-                 "status":"active","kind":"resource","abstract":false,"type":"Patient"}"""),
+                 "status":"active","kind":"resource","abstract":false,"type":"Patient"}""")
+                        .stream().noneMatch(issue -> issue.startsWith("binding")),
                 "a status inside the binding was refused");
 
         List<String> bogus = rootIssues("""
@@ -226,10 +230,11 @@ class TheFaceSqlShipsWithTheReleaseIT {
 
         // A code from a system this tenant does not hold: nobody here can
         // say, and saying nothing is the answer rather than a refusal.
-        assertEquals(List.of(), rootIssues("""
+        assertTrue(rootIssues("""
                 {"resourceType":"StructureDefinition","url":"https://ee.ee/sd/c","name":"C",
                  "status":"active","kind":"resource","abstract":false,"type":"Patient",
-                 "jurisdiction":[{"coding":[{"system":"https://ee.ee/oma-maa","code":"EE"}]}]}"""),
+                 "jurisdiction":[{"coding":[{"system":"https://ee.ee/oma-maa","code":"EE"}]}]}""")
+                        .stream().noneMatch(issue -> issue.startsWith("binding")),
                 "a code from a system this tenant does not hold was refused as invalid");
     }
 
@@ -238,11 +243,13 @@ class TheFaceSqlShipsWithTheReleaseIT {
             + "rows the profile was expanded into")
     @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
     void whatAnElementMustHoldIsAnswered() throws Exception {
-        assertEquals(List.of(), issuesAgainst(PINNED, """
+        assertTrue(issuesAgainst(PINNED, """
                 {"resourceType":"Patient","identifier":[{"system":"https://ee.ee/ik","value":"1"}],
                  "maritalStatus":{"coding":[{"system":
                    "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus","code":"M"}],
-                   "text":"Abielus"}}"""),
+                   "text":"Abielus"}}""").stream()
+                        .noneMatch(issue -> issue.startsWith("fixed")
+                                || issue.startsWith("pattern")),
                 "a patient holding exactly what the profile pins was refused");
 
         List<String> wrong = issuesAgainst(PINNED, """
@@ -382,10 +389,10 @@ class TheFaceSqlShipsWithTheReleaseIT {
         String id = manager.runtime(CLINIC).orElseThrow().store().create("""
                 {"resourceType":"Patient","name":[{"family":"Viide"}]}""").id();
 
-        assertEquals(List.of(), issuesAgainst(CLINIC, PINNED, """
+        assertTrue(issuesAgainst(CLINIC, PINNED, """
                 {"resourceType":"Patient",
                  "link":[{"other":{"reference":"Patient/%s"},"type":"seealso"}]}"""
-                .formatted(id)),
+                .formatted(id)).stream().noneMatch(issue -> issue.startsWith("reference")),
                 "a reference to a record this store holds was refused");
 
         List<String> missing = issuesAgainst(CLINIC, PINNED, """
@@ -398,15 +405,17 @@ class TheFaceSqlShipsWithTheReleaseIT {
 
         // What this store cannot speak for it does not judge: another
         // server's url, and a fragment naming something inside the document.
-        assertEquals(List.of(), issuesAgainst(CLINIC, PINNED, """
+        assertTrue(issuesAgainst(CLINIC, PINNED, """
                 {"resourceType":"Patient",
                  "link":[{"other":{"reference":"https://teine.ee/fhir/Patient/7"},
-                          "type":"seealso"}]}"""),
+                          "type":"seealso"}]}""").stream()
+                        .noneMatch(issue -> issue.startsWith("reference")),
                 "a reference to another server was judged as if it were this one's");
-        assertEquals(List.of(), issuesAgainst(CLINIC, PINNED, """
+        assertTrue(issuesAgainst(CLINIC, PINNED, """
                 {"resourceType":"Patient",
                  "contained":[{"resourceType":"Patient","id":"sees"}],
-                 "link":[{"other":{"reference":"#sees"},"type":"seealso"}]}"""),
+                 "link":[{"other":{"reference":"#sees"},"type":"seealso"}]}""").stream()
+                        .noneMatch(issue -> issue.startsWith("reference")),
                 "a reference to something contained in the document was judged as a record");
     }
 
@@ -507,10 +516,52 @@ class TheFaceSqlShipsWithTheReleaseIT {
         }
     }
 
-    private List<String> rootQuery(String sql, String argument) throws Exception {
+    @Test
+    @DisplayName("a broken rule is reported by its own key, a warning refuses nothing, and one "
+            + "that cannot be run is reported by nobody")
+    @Proving(DboPromises.VAL_AN_INVARIANT_IS_ANSWERED_IN_THE_DATABASE)
+    void aBrokenRuleIsReportedByItsKey() throws Exception {
+        String shape = "http://hl7.org/fhir/StructureDefinition/StructureDefinition";
+
+        // dom-2: a contained resource may not itself contain one. The rule
+        // is R4's; what is new is that this store runs it.
+        List<String> broken = rootIssuesWithKeys("""
+                {"resourceType":"StructureDefinition","url":"https://ee.ee/sd/x","name":"X",
+                 "status":"active","kind":"resource","abstract":false,"type":"Patient",
+                 "contained":[{"resourceType":"Patient","id":"a",
+                               "contained":[{"resourceType":"Patient","id":"b"}]}]}""");
+        assertTrue(broken.stream().anyMatch(issue -> issue.startsWith("dom-2")),
+                "a contained resource holding another was accepted: " + broken);
+
+        assertTrue(rootIssuesWithKeys("""
+                {"resourceType":"StructureDefinition","url":"https://ee.ee/sd/y","name":"Y",
+                 "status":"active","kind":"resource","abstract":false,"type":"Patient"}""")
+                        .stream().noneMatch(issue -> issue.startsWith("dom-2")),
+                "a definition containing nothing was told it contained too much");
+
+        // Severity is the rule's own, and only an error is a refusal.
+        List<String> severities = rootQuery(
+                "SELECT DISTINCT severity FROM dbo.validate(?::jsonb, ?) ORDER BY severity",
+                """
+                {"resourceType":"StructureDefinition","url":"https://ee.ee/sd/z","name":"Z",
+                 "status":"active","kind":"resource","abstract":false,"type":"Patient"}""",
+                shape);
+        assertTrue(severities.contains("warning"),
+                "no rule reported advice, so severity is not the rule's own: " + severities);
+    }
+
+    private List<String> rootIssuesWithKeys(String document) throws Exception {
+        return rootQuery("SELECT key || ' ' || detail FROM dbo.validate(?::jsonb, ?)"
+                + " ORDER BY key", document,
+                "http://hl7.org/fhir/StructureDefinition/StructureDefinition");
+    }
+
+    private List<String> rootQuery(String sql, String... arguments) throws Exception {
         try (Connection c = tenantSource(ROOT).getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, argument);
+            for (int i = 0; i < arguments.length; i++) {
+                ps.setString(i + 1, arguments[i]);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 List<String> rows = new ArrayList<>();
                 while (rs.next()) {
@@ -558,7 +609,8 @@ class TheFaceSqlShipsWithTheReleaseIT {
             throws Exception {
         try (Connection c = tenantSource(tenant).getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT detail FROM dbo.validate(?::jsonb, ?) ORDER BY path, key")) {
+                     "SELECT key || ' | ' || detail FROM dbo.validate(?::jsonb, ?)"
+                     + " WHERE severity = 'error' ORDER BY path, key")) {
             ps.setString(1, document);
             ps.setString(2, profile);
             try (ResultSet rs = ps.executeQuery()) {

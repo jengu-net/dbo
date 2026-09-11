@@ -210,6 +210,18 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
             # It may fall and may not rise. The database is measured beside the
             # toolchain and acts on nothing, and the whole case for it answering at
             # all is that it answers the same.
+            #
+            # What the remaining ten are, read one by one rather than assumed: rules
+            # the toolchain knows that no definition states. A canonical url must be
+            # absolute; a uuid must be lowercase; an identifier under urn:ietf:rfc:3986
+            # must be a full uri; a StructureMap's source context must be one it
+            # declared. They are hard-coded in the validator, so nothing compiled FROM
+            # the definitions can produce them, and compiling invariants did not move
+            # this number by one.
+            #
+            # Which bounds what "the specification is data" can reach. A checker built
+            # from the definitions answers what the definitions say, and a validator
+            # carries knowledge besides.
             """;
 
     private static String asLines(Map<String, int[]> perType) {

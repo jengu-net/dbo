@@ -156,8 +156,19 @@ The rules an element carries are compiled when its definition arrives, by the
 toolchain's own expression parser, into paths the database can run, and held as
 rows with their key, severity and the expression they came from. What cannot be
 compiled is a row saying which part stopped it, never an absence: of the
-distinct expressions R4 publishes 126 of 213 compile, and R5 153 of 308.
-Nothing runs them yet.
+distinct expressions R4 publishes 126 of 213 compile, and R5 153 of 308. They
+run: a broken rule is reported by its own key, with severity as the rule states
+it, and one that cannot be run against a particular document is reported by
+nobody rather than as broken.
+
+Running them did not move the divergence baseline, and reading the ten
+disagreements one at a time says why: none of them is a rule a definition
+states. They are rules the toolchain carries itself — a canonical url must be
+absolute, a uuid must be lowercase, a StructureMap's source context must be one
+it declared — which nothing compiled from the definitions can produce. That
+bounds what "the specification is data" reaches: a checker built from the
+definitions answers what the definitions say, and a validator knows more than
+they say.
 
 Slicing costs a write nothing procedural. A discriminator is read once, when
 the definition arrives, and compiled into the filter that locates the slice, so

@@ -331,8 +331,12 @@ public final class DefinitionStore {
                     }
                 }
             }
+            // Errors only. A warning is advice and refuses nothing, and
+            // counting it beside a toolchain verdict that means refusal
+            // would manufacture a disagreement out of two things that never
+            // disagreed.
             try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT count(*) FROM dbo.validate(?::jsonb, ?)")) {
+                    "SELECT count(*) FROM dbo.validate(?::jsonb, ?) WHERE severity = 'error'")) {
                 ps.setString(1, new String(document, java.nio.charset.StandardCharsets.UTF_8));
                 ps.setString(2, canonical);
                 try (ResultSet rs = ps.executeQuery()) {

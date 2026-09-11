@@ -1025,6 +1025,14 @@ public enum DboPromises implements Promise {
             + "expression it came from. It is read by the toolchain's own parser, because the "
             + "claim being made is that the two agree and compiling from the tree the toolchain "
             + "interprets is the only version of that claim anybody can check."),
+    VAL_AN_INVARIANT_IS_ANSWERED_IN_THE_DATABASE(
+            "A broken rule is reported by its own key, against the element instance it is about, "
+            + "from the path compiled when the definition arrived — nothing is parsed or "
+            + "interpreted at a write. Severity is the rule's own: a warning is advice and "
+            + "refuses nothing, as a binding weaker than required already is. A rule that cannot "
+            + "be run against a particular document is reported by nobody rather than as broken, "
+            + "because a document is not wrong for being a shape a rule could not be run "
+            + "against."),
     VAL_AN_INVARIANT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME(
             "A rule this store cannot express is held saying so — naming the definition, the "
             + "element, the rule's own key and the part that stopped it — and never silently "
