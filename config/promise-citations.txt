@@ -1,0 +1,29 @@
+# Promise codes spelled out in the tree that no catalogue declares.
+#
+# GENERATED — do not edit the code list. Re-record with:
+#     ./gradlew :core:harness:promiseCitations
+#
+# The REASON is yours and regeneration keeps it. A new entry arrives
+# as REASON MISSING and the build fails until somebody says which of
+# these it is:
+#
+#   INVENTED     — the code never existed in any catalogue. The
+#                  sentence still says something true; the code in
+#                  brackets was never a citation of anything. Cite a
+#                  promise that exists, or drop the brackets.
+#   RENAMED to X — the promise is still there under another name.
+#   FIXTURE      — a test of the catalogue machinery has to name a
+#                  code that does not exist, because that is the case
+#                  it is testing.
+#
+# @Proving is checked by the compiler. This file is the other half.
+AREA-SHARED-CONCERN                             FIXTURE
+REQ-DBO-AUTH-OPEN-CAPABILITY                    INVENTED
+REQ-DBO-CORE-READER-RECEIVES-THE-DECLARED-FORM  INVENTED
+REQ-DBO-CORE-REFERENCE-CLOSURE                  INVENTED
+REQ-DBO-PROC-WORK-ARRIVES-WHOLE                 INVENTED — FEAT-DBO-WORK-ARRIVES-WHOLE says this, in a namespace that is not REQ
+REQ-DBO-SRCH-RESULTS-STREAM                     INVENTED
+REQ-DBO-VER-NORMALISING-LOSES-NOTHING           INVENTED
+US-DBO-ALL-HOPE                                 FIXTURE
+US-DBO-NEVER-WRITTEN                            FIXTURE
+US-DBO-ONLY-PROSE                               FIXTURE

@@ -178,6 +178,16 @@ val reachModules = listOf(
 
 fun reachProperty(module: String) = module.replace(':', '.').replace('-', '.') + ".reach.jar"
 
+val promiseCitations by tasks.registering(JavaExec::class) {
+    group = "documentation"
+    description = "Re-records config/promise-citations.txt from the prose in the tree."
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("cloud.jengu.dbo.harness.PromiseCitations")
+    systemProperty("dbo.repo.root", rootProject.projectDir.absolutePath)
+    args(rootProject.file("config/promise-citations.txt").absolutePath)
+}
+
 val reachLedger by tasks.registering(JavaExec::class) {
     group = "documentation"
     description = "Re-records config/reach-ledger.txt from the built production jars."
@@ -238,6 +248,18 @@ tasks.withType<Test>().configureEach {
     }
     // Declared as an input for the same reason: a guard over a file Gradle
     // does not know about is a guard that stops running when the file changes.
+    // The prose citations live in the source tree rather than in a jar, so
+    // the guard needs the tree — and it needs Gradle to know the tree is an
+    // input, or a renamed promise lands while this task is up to date.
+    systemProperty("dbo.repo.root", rootProject.projectDir.absolutePath)
+    systemProperty("dbo.promise.citations",
+        rootProject.file("config/promise-citations.txt").absolutePath)
+    inputs.file(rootProject.file("config/promise-citations.txt"))
+    inputs.files(rootProject.fileTree(".") {
+        include("**/*.java", "**/*.md", "**/*.kts")
+        exclude("**/build/**", ".git/**", "docs/tasks/**")
+    }).withPathSensitivity(PathSensitivity.RELATIVE)
+
     systemProperty("dbo.build.workflow",
         rootProject.file(".github/workflows/build.yml").absolutePath)
     inputs.file(rootProject.file(".github/workflows/build.yml"))
