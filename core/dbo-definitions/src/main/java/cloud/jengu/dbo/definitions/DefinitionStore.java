@@ -36,11 +36,24 @@ public final class DefinitionStore {
             String version,
             String structureType,
             String kind,
+            String base,
+            String derivation,
             String sourceId,
             long sourceVersion,
             List<DefinitionElement> elements) {}
 
     private static final int BATCH = 1_000;
+
+    /**
+     * What shape these rows are in.
+     *
+     * <p>Bumped whenever a release changes what a row carries. These rows are
+     * derived from records the tenant still holds, so the cheap and correct
+     * answer to "the columns changed" is to drop them and let the face expand
+     * the definitions again — migrating them would be preserving a copy
+     * against the thing it was copied from.
+     */
+    private static final int SHAPE = 2;
 
     private final DataSource ds;
 
@@ -76,10 +89,11 @@ public final class DefinitionStore {
                 try (PreparedStatement ps = c.prepareStatement("""
                         INSERT INTO state.definition_element (
                           canonical, element_id, definition_version, structure_type, kind,
+                          base_definition, derivation,
                           source_id, source_version, ordinal, path, parent_id, steps,
                           min_occurs, max_occurs, types, fixed, pattern,
                           binding_strength, binding_valueset, unenforceable)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,?::jsonb,?,?,?)""")) {
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,?::jsonb,?,?,?)""")) {
                     int pending = 0;
                     for (Expanded definition : definitions) {
                         int ordinal = 0;
@@ -114,24 +128,26 @@ public final class DefinitionStore {
         ps.setString(3, definition.version());
         ps.setString(4, definition.structureType());
         ps.setString(5, definition.kind());
-        ps.setString(6, definition.sourceId());
-        ps.setLong(7, definition.sourceVersion());
-        ps.setInt(8, ordinal);
-        ps.setString(9, element.path());
-        ps.setString(10, element.parentId());
-        ps.setArray(11, c.createArrayOf("text", element.steps().toArray()));
-        ps.setInt(12, element.min());
+        ps.setString(6, definition.base());
+        ps.setString(7, definition.derivation());
+        ps.setString(8, definition.sourceId());
+        ps.setLong(9, definition.sourceVersion());
+        ps.setInt(10, ordinal);
+        ps.setString(11, element.path());
+        ps.setString(12, element.parentId());
+        ps.setArray(13, c.createArrayOf("text", element.steps().toArray()));
+        ps.setInt(14, element.min());
         if (element.max() == null) {
-            ps.setNull(13, java.sql.Types.INTEGER);
+            ps.setNull(15, java.sql.Types.INTEGER);
         } else {
-            ps.setInt(13, element.max());
+            ps.setInt(15, element.max());
         }
-        ps.setString(14, Json.types(element.types()));
-        ps.setString(15, element.fixedJson());
-        ps.setString(16, element.patternJson());
-        ps.setString(17, element.bindingStrength());
-        ps.setString(18, element.bindingValueSet());
-        ps.setString(19, element.unenforceable());
+        ps.setString(16, Json.types(element.types()));
+        ps.setString(17, element.fixedJson());
+        ps.setString(18, element.patternJson());
+        ps.setString(19, element.bindingStrength());
+        ps.setString(20, element.bindingValueSet());
+        ps.setString(21, element.unenforceable());
     }
 
     /** Drop what is held for these definitions — a withdrawal, or a reindex. */
@@ -212,6 +228,70 @@ public final class DefinitionStore {
                 rs.getString(12));
     }
 
+    /**
+     * The definition a resource of this type is validated against when it
+     * claims no profile: the one that IS the type rather than a narrowing of
+     * it.
+     *
+     * <p>Read from what the definitions say about themselves — a
+     * specialization introduces a type, a constraint profiles one — rather
+     * than from the shape of a url, because a canonical is a name and names
+     * are a face's to choose. Two of them claiming one type is a fact about
+     * what this tenant holds, and picking one would be choosing by accident
+     * which rules apply.
+     */
+    public java.util.Optional<String> theTypeItself(String structureType) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     SELECT DISTINCT canonical FROM state.definition_element
+                      WHERE structure_type = ? AND derivation = 'specialization'
+                        AND parent_id IS NULL""")) {
+            ps.setString(1, structureType);
+            try (ResultSet rs = ps.executeQuery()) {
+                String only = rs.next() ? rs.getString(1) : null;
+                return rs.next() ? java.util.Optional.empty() : java.util.Optional.ofNullable(only);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("reading the definition of " + structureType
+                    + " failed", e);
+        }
+    }
+
+    /**
+     * What this release's functions make of a document under one definition,
+     * as a count of findings — or nothing at all where the definition is not
+     * held here, which is different from finding nothing.
+     *
+     * <p>A count rather than the findings: what is being measured is whether
+     * the two checkers agree, and the findings themselves are about a
+     * document, which in this store is a person.
+     */
+    public java.util.OptionalLong issuesUnder(byte[] document, String canonical) {
+        try (Connection c = ds.getConnection()) {
+            try (PreparedStatement held = c.prepareStatement(
+                    "SELECT 1 FROM state.definition_element WHERE canonical = ? LIMIT 1")) {
+                held.setString(1, canonical);
+                try (ResultSet rs = held.executeQuery()) {
+                    if (!rs.next()) {
+                        return java.util.OptionalLong.empty();
+                    }
+                }
+            }
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT count(*) FROM dbo.validate(?::jsonb, ?)")) {
+                ps.setString(1, new String(document, java.nio.charset.StandardCharsets.UTF_8));
+                ps.setString(2, canonical);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() ? java.util.OptionalLong.of(rs.getLong(1))
+                            : java.util.OptionalLong.empty();
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("asking the database about a " + canonical
+                    + " failed", e);
+        }
+    }
+
     /** How many elements are held, over every definition. */
     public long count() {
         try (Connection c = ds.getConnection();
@@ -241,6 +321,8 @@ public final class DefinitionStore {
                       definition_version text,
                       structure_type     text,
                       kind               text,
+                      base_definition    text,
+                      derivation         text,
                       source_id          text,
                       source_version     bigint  NOT NULL DEFAULT 0,
                       ordinal            int     NOT NULL,
@@ -260,13 +342,60 @@ public final class DefinitionStore {
                     // The two ways a checker reaches these rows: everything
                     // of one definition, and the children of one element.
                     "CREATE INDEX IF NOT EXISTS definition_element_by_parent"
-                            + " ON state.definition_element (canonical, parent_id)")) {
+                            + " ON state.definition_element (canonical, parent_id)",
+                    """
+                    CREATE TABLE IF NOT EXISTS state.definition_shape (
+                      only_row int PRIMARY KEY DEFAULT 1 CHECK (only_row = 1),
+                      shape    int NOT NULL
+                    )""")) {
                 try (PreparedStatement ps = c.prepareStatement(ddl)) {
                     ps.execute();
                 }
             }
+            resetIfTheShapeMoved(c);
         } catch (SQLException e) {
             throw new IllegalStateException("the definition schema setup failed", e);
+        }
+    }
+
+    /**
+     * Rows from a release that carried different columns are dropped, not
+     * migrated.
+     *
+     * <p>They are a projection of records this tenant still holds, so the
+     * face expands them again on the pass that finds them missing. The
+     * columns are added first because a table that exists is never recreated,
+     * and then emptied because what is in them was written by a release that
+     * did not have them.
+     */
+    private void resetIfTheShapeMoved(Connection c) throws SQLException {
+        Integer held = null;
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT shape FROM state.definition_shape WHERE only_row = 1");
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                held = rs.getInt(1);
+            }
+        }
+        if (Integer.valueOf(SHAPE).equals(held)) {
+            return;
+        }
+        for (String column : List.of("base_definition", "derivation")) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "ALTER TABLE state.definition_element ADD COLUMN IF NOT EXISTS "
+                    + column + " text")) {
+                ps.execute();
+            }
+        }
+        try (PreparedStatement ps = c.prepareStatement(
+                "TRUNCATE TABLE state.definition_element")) {
+            ps.execute();
+        }
+        try (PreparedStatement ps = c.prepareStatement("""
+                INSERT INTO state.definition_shape (only_row, shape) VALUES (1, ?)
+                ON CONFLICT (only_row) DO UPDATE SET shape = EXCLUDED.shape""")) {
+            ps.setInt(1, SHAPE);
+            ps.executeUpdate();
         }
     }
 }

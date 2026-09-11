@@ -24,6 +24,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -264,7 +265,113 @@ class TheFaceSqlShipsWithTheReleaseIT {
                 "a pattern was read as equality, so carrying more than it states was refused");
     }
 
+    @Test
+    @DisplayName("a write is shown to both, the toolchain's verdict is the one used, and what "
+            + "they made of it is counted")
+    @Proving(DboPromises.VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT)
+    void bothAreAskedAndOnlyOneAnswers() throws Exception {
+        String before = tally();
+
+        // A patient the profile is happy with. Accepted, as it would be
+        // without any of this.
+        manager.runtime(CLINIC).orElseThrow().store().create("""
+                {"resourceType":"Patient","meta":{"profile":["%s"]},
+                 "name":[{"family":"Tamm","given":["Mari"]}]}""".formatted(PROFILE));
+
+        // And one the profile refuses: two names where it allows one. The
+        // refusal is the toolchain's, and it still arrives.
+        cloud.jengu.dbo.fhir.common.ValidationFailedException refused =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        cloud.jengu.dbo.fhir.common.ValidationFailedException.class,
+                        () -> manager.runtime(CLINIC).orElseThrow().store().create("""
+                                {"resourceType":"Patient","meta":{"profile":["%s"]},
+                                 "name":[{"family":"Tamm"},{"family":"Kask"}]}"""
+                                .formatted(PROFILE)));
+        assertTrue(refused.getMessage().contains("name"),
+                "the refusal did not come from the toolchain as it always did: "
+                        + refused.getMessage());
+
+        assertNotEquals(before, tally(), "neither write was shown to the database");
+        assertTrue(compared() >= 2, "fewer writes were compared than were made: " + tally());
+    }
+
+    @Test
+    @DisplayName("a document the database cannot judge is counted as that, and never as the "
+            + "database finding nothing")
+    @Proving(DboPromises.VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT)
+    void whatCannotBeComparedIsCountedAsThat() throws Exception {
+        long unheldBefore = countOf("notHeld");
+
+        // This tenant holds its own two profiles expanded and nothing else —
+        // it is not on a face — so a patient claiming neither of them has no
+        // rows to be judged against. Saying "the database found nothing"
+        // about that would read as agreement and mean silence.
+        manager.runtime(CLINIC).orElseThrow().store().create("""
+                {"resourceType":"Patient","name":[{"family":"Saar"}]}""");
+
+        assertTrue(countOf("notHeld") > unheldBefore,
+                "a write with nothing to compare against was counted as a comparison: "
+                        + tally());
+    }
+
+    @Test
+    @DisplayName("what the comparison costs a write, said rather than assumed")
+    @Proving(DboPromises.VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT)
+    void whatItCostsIsMeasured() throws Exception {
+        // Both through the write path, so what differs between them is the
+        // comparison and not the connection: a patient claiming the profile
+        // is judged against every element of it, and one claiming nothing has
+        // no rows to be judged against and costs a single existence query.
+        int writes = 50;
+        long unclaimed = timed(writes, """
+                {"resourceType":"Patient","name":[{"family":"Mets","given":["Ants"]}]}""");
+        long claimed = timed(writes, """
+                {"resourceType":"Patient","meta":{"profile":["%s"]},
+                 "name":[{"family":"Mets","given":["Ants"]}]}""".formatted(PROFILE));
+
+        System.out.printf(
+                "METRICS advisory-validation write=%dus claimed=%dus comparison=%dus over %d%n",
+                unclaimed, claimed, claimed - unclaimed, writes);
+        // A bound rather than a target: what this guards is the comparison
+        // becoming the cost of the write. The number itself belongs in the
+        // commit that changes it.
+        assertTrue(claimed - unclaimed < 50_000,
+                "the comparison added " + (claimed - unclaimed)
+                        + "us to a write, which is no longer advisory");
+    }
+
+    /** Microseconds per write, warmed. */
+    private long timed(int writes, String document) {
+        for (int i = 0; i < 5; i++) {
+            manager.runtime(CLINIC).orElseThrow().store().create(document);
+        }
+        long from = System.nanoTime();
+        for (int i = 0; i < writes; i++) {
+            manager.runtime(CLINIC).orElseThrow().store().create(document);
+        }
+        return (System.nanoTime() - from) / writes / 1_000;
+    }
+
     // ------------------------------------------------------------- reading
+
+    private String tally() {
+        return ((cloud.jengu.dbo.fhir.element.ElementStore)
+                manager.runtime(CLINIC).orElseThrow().store()).advisoryTally();
+    }
+
+    private long compared() {
+        return countOf("agreed") + countOf("onlyTheToolchain") + countOf("onlyTheDatabase");
+    }
+
+    private long countOf(String name) {
+        for (String part : tally().split(" ")) {
+            if (part.startsWith(name + "=")) {
+                return Long.parseLong(part.substring(name.length() + 1));
+            }
+        }
+        throw new IllegalStateException(name + " is not in " + tally());
+    }
+
 
     private List<String> issues(String document) throws Exception {
         return issuesAgainst(CLINIC, PROFILE, document);

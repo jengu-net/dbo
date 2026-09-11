@@ -64,6 +64,9 @@ public final class ElementStore implements FhirStoreFacade {
      * every caller that builds a facade to read one document.
      */
     private final cloud.jengu.dbo.definitions.DefinitionStore definitions;
+
+    /** What the database said about a write beside what the toolchain said. */
+    private final AdvisoryVerdicts advisory = new AdvisoryVerdicts();
     /**
      * The canonical urls the validation view was built from.
      *
@@ -314,6 +317,7 @@ public final class ElementStore implements FhirStoreFacade {
                         + "stored and then never answer anything: " + why.get());
             }
         }
+        takenBesideTheToolchain(type, payload, issues);
         if (!issues.isEmpty()) {
             if (!authoredElsewhere(type)) {
                 throw new ValidationFailedException(type, issues);
@@ -827,6 +831,76 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     /**
+     * Ask the database what it makes of this write, and act on none of it
+     * (REQ-DBO-VAL-THE-DATABASE-ANSWER-IS-ADVISORY-UNTIL-IT-IS-NOT).
+     *
+     * <p>Nothing here changes what the caller is told. The verdict is the
+     * toolchain's, and what this adds is the one measurement that says
+     * whether it could stop being: on real writes, with real profiles and
+     * this tenant's own terminology, do the two answer alike?
+     *
+     * <p>Against the same definitions the toolchain used — the type itself,
+     * and the profiles the document claims — so a disagreement is about the
+     * checking rather than about which rules were checked. Where this tenant
+     * holds no expanded rows for any of them there is nothing to compare, and
+     * that is counted as itself rather than as the database finding nothing.
+     *
+     * <p>It cannot fail a write. A comparison that throws is counted and
+     * swallowed, because a store that refused a correct document because a
+     * measurement broke would be worse than one that measures nothing.
+     */
+    private void takenBesideTheToolchain(String type, byte[] payload, List<String> issues) {
+        if (definitions == null) {
+            return;
+        }
+        try {
+            List<String> against = new ArrayList<>();
+            definitions.theTypeItself(type).ifPresent(against::add);
+            against.addAll(claimedIn(payload));
+            long found = 0;
+            boolean held = false;
+            for (String profile : against) {
+                java.util.OptionalLong issuesThere = definitions.issuesUnder(payload, profile);
+                if (issuesThere.isPresent()) {
+                    held = true;
+                    found += issuesThere.getAsLong();
+                }
+            }
+            if (!held) {
+                advisory.notHeld();
+                return;
+            }
+            if (issues.isEmpty() == (found == 0)) {
+                advisory.agreed();
+                return;
+            }
+            if (advisory.diverged(type, !issues.isEmpty())) {
+                // Once per type, and counts only: what provoked it is a
+                // document, and a document here is somebody.
+                LOG.info("the database and the toolchain disagree about a {}: theToolchain={} "
+                        + "theDatabase={} — the toolchain's verdict is the one that was used",
+                        type, issues.size(), found);
+            }
+        } catch (RuntimeException measurementBroke) {
+            advisory.failed();
+            LOG.warn("taking the database's answer beside the toolchain's failed, and the "
+                    + "write was unaffected: {}", measurementBroke.getMessage());
+        }
+    }
+
+    /** The profiles a document claims, as written. */
+    private static List<String> claimedIn(byte[] payload) {
+        Object document = Json.parse(new String(payload, StandardCharsets.UTF_8));
+        Object meta = document instanceof java.util.Map<?, ?> map ? map.get("meta") : null;
+        return meta == null ? List.of() : Json.strings(meta, "profile");
+    }
+
+    /** What the database made of the writes it was shown, for whoever reports it. */
+    public String advisoryTally() {
+        return advisory.toString();
+    }
+
+    /**
      * Take apart every structure this tenant holds that is not taken apart
      * already (REQ-DBO-VER-A-DEFINITION-IS-EXPANDED-WHEN-IT-ARRIVES).
      *
@@ -876,6 +950,7 @@ public final class ElementStore implements FhirStoreFacade {
             }
             moved.add(new cloud.jengu.dbo.definitions.DefinitionStore.Expanded(
                     canonical, expansion.version(), expansion.type(), expansion.kind(),
+                    expansion.base(), expansion.derivation(),
                     held.id(), held.versionId(), expansion.elements()));
         }
         int unresolved = expandedFromTheView(differential, moved);
@@ -921,6 +996,7 @@ public final class ElementStore implements FhirStoreFacade {
             DefinitionElements.Expansion expansion = DefinitionElements.of(snapshotted);
             moved.add(new cloud.jengu.dbo.definitions.DefinitionStore.Expanded(
                     entry.getKey(), expansion.version(), expansion.type(), expansion.kind(),
+                    expansion.base(), expansion.derivation(),
                     entry.getValue().id(), entry.getValue().versionId(), expansion.elements()));
         }
         return unresolved;

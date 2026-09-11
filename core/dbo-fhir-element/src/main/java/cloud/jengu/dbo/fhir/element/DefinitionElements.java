@@ -41,12 +41,21 @@ public final class DefinitionElements {
     /** An element that could not be located, and why — never silently dropped. */
     public record Refusal(String elementId, String why) {}
 
-    /** What a definition's snapshot came to. */
+    /**
+     * What a definition's snapshot came to.
+     *
+     * @param base       the definition this one is built on, or null at the
+     *                   root of the type system
+     * @param derivation {@code specialization} for a type of its own,
+     *                   {@code constraint} for a profile narrowing another
+     */
     public record Expansion(
             String canonical,
             String version,
             String type,
             String kind,
+            String base,
+            String derivation,
             List<DefinitionElement> elements,
             List<Refusal> refusals) {}
 
@@ -81,7 +90,8 @@ public final class DefinitionElements {
             }
         }
         return new Expansion(canonical, text(sd, "version"), text(sd, "type"),
-                text(sd, "kind"), List.copyOf(rows), List.copyOf(refusals));
+                text(sd, "kind"), text(sd, "baseDefinition"), text(sd, "derivation"),
+                List.copyOf(rows), List.copyOf(refusals));
     }
 
     // ------------------------------------------------------------- one row

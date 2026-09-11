@@ -140,12 +140,18 @@ contain, and whether a coded value belongs to the value set its binding names,
 which is a join to the terminology the tenant holds. A code nothing there can
 judge is reported by nobody.
 
+On a write both are asked and only one answers: the database is shown the
+document against the same definitions the toolchain used, and what it makes of
+it is counted rather than acted on. The verdict a caller receives is the
+toolchain's, unchanged. The tally is by resource type and never by document,
+and the comparison costs about 1.6ms on a 5ms write.
+
 *Complete except an R6 personality — there is no ballot to build against.
-Nothing in production calls those functions yet: the writes are still judged
-by the toolchain alone, and running the two side by side is the next front.
-Reference targets are not checked there yet, and a tenant not on a face holds
-the terminology packages rather than its version's own value sets, so core
-bindings are unresolvable for it — by design, and the reason a face exists.*
+Nothing has been handed over to the database: it is measured beside the
+toolchain and acts on nothing. Reference targets are not checked there yet,
+and a tenant not on a face holds the terminology packages rather than its
+version's own value sets, so core bindings are unresolvable for it — by
+design, and the reason a face exists.*
 
 ### SRCH — search
 

@@ -1019,6 +1019,14 @@ public enum DboPromises implements Promise {
             + "arrives, naming the definition and the element. A definition is never held "
             + "with an element nothing can check, because a checker holding no row for an "
             + "element enforces nothing about it and says so to nobody."),
+    VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT(
+            "On a write the database is asked what it makes of the document, against the same "
+            + "definitions the toolchain used, and the answer changes nothing: the verdict a "
+            + "caller receives is the toolchain's. What is kept is a tally — the two agreed, "
+            + "one of them found something the other did not, or this tenant holds no expanded "
+            + "rows to compare against — by resource type and never by document, since a "
+            + "document here is a person. A comparison that fails is counted and never reaches "
+            + "the write."),
     VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE(
             "The database answers, from the rows a definition was expanded into, what a "
             + "toolchain answered from an object graph: how often an element may occur — "
