@@ -1199,7 +1199,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // stopped being invisible the day it quadrupled under memory pressure
         // and surfaced as a closed connection pool.
         long facadeAt = System.currentTimeMillis();
-        FhirStoreFacade store = declared.store(engine, base, db.dataSource());
+        boolean versionHeldAsRecords = spec.faceRoot()
+                || spec.dependencies().stream().anyMatch(TenantSpec.Dependency::face);
+        FhirStoreFacade store = declared.store(engine, base, db.dataSource(), versionHeldAsRecords);
         long facadeMillis = System.currentTimeMillis() - facadeAt;
 
         // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is per tenant,

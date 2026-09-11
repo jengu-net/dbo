@@ -42,18 +42,44 @@ public final class FaceRootPackages {
      *              cannot hold, and a package resource of any other type is
      *              left in the package rather than refused
      */
+    /** The types a terminology package contributes: its systems and value sets, not its own structures. */
+    private static final Set<String> TERMINOLOGY_TYPES = Set.of("CodeSystem", "ValueSet");
+
     public static List<Definition> definitionsFor(String face, Set<String> types) {
         List<Definition> out = new ArrayList<>();
-        for (CarriedDefinitions.Carried carried : CarriedDefinitions.definitionPackages(face)) {
+        // The terminology package carries value sets and code systems the core
+        // package carries too, under the same canonical; a canonical is one
+        // record, and the terminology package's is the one held — it is the
+        // terminology authority, which is why the baseline was read from it.
+        // Read first, so that the core's copy of a url it already answered
+        // for is the one skipped.
+        List<CarriedDefinitions.Carried> packages = new ArrayList<>(CarriedDefinitions.forVersion(face));
+        packages.sort(java.util.Comparator.comparing(c -> c.name().startsWith("hl7.terminology") ? 0 : 1));
+        Set<String> seen = new java.util.HashSet<>();
+        for (CarriedDefinitions.Carried carried : packages) {
+            // The terminology packages carry the version's value sets and code
+            // systems beside a few structures of their own; a root holds the
+            // former as records, so that a subscriber takes them from it
+            // rather than from a package, and leaves the latter to the
+            // definition packages, whose structures are the version's.
+            Set<String> wanted = carried.name().startsWith("hl7.terminology")
+                    ? types.stream().filter(TERMINOLOGY_TYPES::contains).collect(java.util.stream.Collectors.toSet())
+                    : types;
+            if (wanted.isEmpty()) {
+                continue;
+            }
             try {
                 for (NpmPackage.PackageResourceInformation indexed
-                        : CarriedDefinitions.indexed(carried, types.toArray(new String[0]))) {
+                        : CarriedDefinitions.indexed(carried, wanted.toArray(new String[0]))) {
                     JsonObject json;
                     try (var in = CarriedDefinitions.read(indexed)) {
                         json = JsonParser.parseObject(in);
                     }
                     String typeName = json.asString("resourceType");
-                    if (typeName == null || !types.contains(typeName)) {
+                    if (typeName == null || !wanted.contains(typeName)) {
+                        continue;
+                    }
+                    if (json.asString("url") != null && !seen.add(typeName + "|" + json.asString("url"))) {
                         continue;
                     }
                     json.remove("text");

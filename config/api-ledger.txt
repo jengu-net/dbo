@@ -1255,6 +1255,7 @@ cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       registrat
 cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       registrations(String):List
 cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       store(cloud.jengu.dbo.core.api.ObjectStore,String):cloud.jengu.dbo.fhir.common.FhirStoreFacade
 cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       store(cloud.jengu.dbo.core.api.ObjectStore,String,DataSource):cloud.jengu.dbo.fhir.common.FhirStoreFacade
+cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       store(cloud.jengu.dbo.core.api.ObjectStore,String,DataSource,boolean):cloud.jengu.dbo.fhir.common.FhirStoreFacade
 cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       store(cloud.jengu.dbo.core.api.ObjectStore,String,cloud.jengu.dbo.core.process.Steps):cloud.jengu.dbo.fhir.common.FhirStoreFacade
 cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       terminology(cloud.jengu.dbo.core.api.ObjectStore,DataSource):cloud.jengu.dbo.fhir.common.FhirTerminology
 cloud.jengu.dbo.fhir.common.FhirVersions                               byCode(String):Optional

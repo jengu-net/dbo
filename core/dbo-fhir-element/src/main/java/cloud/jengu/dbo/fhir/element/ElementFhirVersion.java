@@ -186,11 +186,23 @@ public class ElementFhirVersion implements FhirVersion {
         @Override
         public FhirStoreFacade store(ObjectStore engine, String baseUrl,
                 javax.sql.DataSource dataSource) {
+            return store(engine, baseUrl, dataSource, false);
+        }
+
+        @Override
+        public FhirStoreFacade store(ObjectStore engine, String baseUrl,
+                javax.sql.DataSource dataSource, boolean versionHeldAsRecords) {
             cloud.jengu.dbo.terminology.TerminologyStore terminology =
                     new cloud.jengu.dbo.terminology.TerminologyStore(dataSource);
             // the carried baseline becomes tenant data, once — see the class
             long baselineAt = System.currentTimeMillis();
-            TerminologyBaseline.ensure(terminology, version.code());
+            if (!versionHeldAsRecords) {
+                // A tenant on a face takes the version's terminology from its
+                // records — a root loads it from the packages once, a
+                // subscriber takes it from the root — and is the one place
+                // the carried packages are not read.
+                TerminologyBaseline.ensure(terminology, version.code());
+            }
             long baselineMillis = System.currentTimeMillis() - baselineAt;
             long profilesAt = System.currentTimeMillis();
             ElementStore store = viewed(new ElementStore(engine, version, types, baseUrl,

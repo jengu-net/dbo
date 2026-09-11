@@ -239,6 +239,35 @@ class ATenantSubscribesToItsVersionIT {
     }
 
     @Test
+    @DisplayName("the version's terminology reaches a subscriber through the chain, and the "
+            + "subscriber is given nothing from the carried packages")
+    @Proving(DboPromises.TERM_BINDINGS_ANSWERED_FROM_RECORDS)
+    void theTerminologyBaselineArrivesThroughTheChain() throws Exception {
+        String token = token(SUBSCRIBER);
+        HttpResponse<String> lookup = http.send(HttpRequest.newBuilder(
+                        URI.create(base(SUBSCRIBER) + "/fhir/CodeSystem/$lookup?system="
+                                + URLEncoder.encode("http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+                                        StandardCharsets.UTF_8) + "&code=M"))
+                        .header("Authorization", "Bearer " + token).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, lookup.statusCode(), lookup.body());
+        assertTrue(lookup.body().contains("Married"),
+                "a code system from the terminology package is not held by the subscriber: " + lookup.body());
+        // and it came from the root, not from a package read here: the
+        // baseline import leaves a marker system behind, and there is none
+        String url = SharedPostgres.urlFor("x").replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + SUBSCRIBER);
+        try (java.sql.Connection c = java.sql.DriverManager.getConnection(url,
+                postgres.getUsername(), postgres.getPassword());
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                     "select count(*) from state.term_system where url like 'urn:dbo:terminology-baseline:%'");
+             java.sql.ResultSet rs = ps.executeQuery()) {
+            rs.next();
+            assertEquals(0, rs.getLong(1),
+                    "the subscriber imported the terminology baseline from a carried package");
+        }
+    }
+
+    @Test
     @DisplayName("a face chain that does not carry the code systems is refused before anything "
             + "is drained, naming what it lacks")
     @Proving(DboPromises.TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED)

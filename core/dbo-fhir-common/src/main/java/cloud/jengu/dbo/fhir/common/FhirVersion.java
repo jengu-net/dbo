@@ -65,6 +65,18 @@ public interface FhirVersion {
         FhirStoreFacade store(ObjectStore engine, String baseUrl);
 
         /**
+         * The same, for a tenant that holds its version as records — a face
+         * root, or a tenant on a face chain. Such a tenant takes the
+         * version's terminology from its records too, and is given nothing
+         * from the carried packages at bring-up; every other tenant is
+         * given the terminology baseline from the packages, as before.
+         */
+        default FhirStoreFacade store(ObjectStore engine, String baseUrl,
+                javax.sql.DataSource dataSource, boolean versionHeldAsRecords) {
+            return store(engine, baseUrl, dataSource);
+        }
+
+        /**
          * The same, knowing the tenant's database — which is where the
          * tenant's OWN validation truth lives: its terminology today, its
          * structure definitions next. The default ignores it, so a
