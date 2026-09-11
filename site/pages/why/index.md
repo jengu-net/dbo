@@ -76,9 +76,10 @@ copies nobody can recall.
 shared one — which changes what a query with a bug in it can return, and what
 "we have removed your data" is worth.
 
-**[A type says what it is](a-type-declares-what-it-is.md).** Append-only,
-versioned, retained for how long, identified by what: declared once per type and
-enforced by the engine rather than by the habits of whatever code writes it.
+**[A type declares it; the engine enforces it](a-type-declares-what-it-is.md).**
+Append-only, versioned, retained for how long, identified by what: declared once
+per type, so what a record promises does not rest on the habits of whatever code
+happens to write it.
 
 **[Who works here is who may act](one-api.md).** The organisation model *is*
 the authorisation model, so revoking access is ending a period on an ordinary

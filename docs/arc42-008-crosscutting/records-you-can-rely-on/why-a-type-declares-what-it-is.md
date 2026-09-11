@@ -1,5 +1,5 @@
 ---
-title: A type says what it is, and the engine holds it to that
+title: A type declares it; the engine enforces it
 eyebrow: Why DBO
 standfirst: >-
   Append-only, versioned, auditable, retained for how long, identified by what.
@@ -41,7 +41,7 @@ Only the payload is authoritative. Everything else is a cache with a rebuild
 button, which is what makes an index change a Tuesday afternoon rather than a
 project.
 
-## Identity is declared, not guessed
+## Recognising the same thing again
 
 Every mechanism that has to recognise *the same thing again* — a conditional
 write, a replicated record arriving twice, an import, a converter — needs one
@@ -63,7 +63,7 @@ logical artefact expressed under two different versions of a standard is the
 after every conversion rather than trusting it.
 </div>
 
-## Handling is a declaration, not a convention
+## The handling label is what the engine enforces
 
 `operational`, and the others beside it, are not labels for humans to read.
 They are what the engine enforces: whether history is kept, whether a write may
