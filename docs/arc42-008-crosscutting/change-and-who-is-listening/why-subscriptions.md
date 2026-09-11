@@ -1,10 +1,11 @@
 ---
-title: Four problems that are one problem
+title: One place to look when something is behind
 eyebrow: Why DBO
 standfirst: >-
   Paging through results, subscribing to changes, keeping a dependent copy
-  current, and reconciling an appliance that was offline all weekend. Most
-  systems grow four mechanisms for those. This one has a single primitive.
+  current, and reconciling an appliance that was offline all weekend are one
+  primitive here — so every consumer is a name and a position, and progress,
+  lag and replay mean the same thing for each.
 why: 13
 template: essay.html
 ---
@@ -54,7 +55,7 @@ the data is.
 No broker. No cache tier. No second source of truth about what has happened.
 </div>
 
-## Cursors are positions, not offsets
+## A cursor is stable while rows shift
 
 This is worth being blunt about, because offset paging quietly pushes a real
 cost onto every caller.

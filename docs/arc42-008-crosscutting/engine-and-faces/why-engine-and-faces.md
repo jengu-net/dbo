@@ -41,10 +41,10 @@ face's. The test for where something belongs is whether the concept carries
 domain meaning.
 </div>
 
-## The claim is structural, not aspirational
+## The module layout is the claim, made checkable
 
-It would be easy to say this and have FHIR quietly everywhere. The module
-layout is the claim made checkable:
+It would be easy to say this and have FHIR quietly everywhere, so the
+arrangement is the evidence:
 
 - `dbo-core` — the engine's concepts. **No FHIR**, and no dependencies either.
 - `dbo-fhir-common` — what every FHIR face shares. A module of its own,
