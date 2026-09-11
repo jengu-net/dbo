@@ -352,6 +352,28 @@ class TheFaceSqlShipsWithTheReleaseIT {
         return (System.nanoTime() - from) / writes / 1_000;
     }
 
+    @Test
+    @DisplayName("a tenant holding its version as records can be written a profile, because "
+            + "its definitions say where they came from")
+    @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
+    void aProfileCanBeWrittenToATenantHoldingItsVersionAsRecords() {
+        // The toolchain will not believe a type exists unless some definition
+        // it holds says its type is that AND came from a package named like
+        // the specification's core. Held as records under a package called
+        // "records", every one of these was refused — on exactly the tenants
+        // whose design is to hold the specification as records.
+        for (String type : List.of("Patient", "Observation", "Task")) {
+            manager.runtime(ROOT).orElseThrow().store().create("""
+                    {"resourceType":"StructureDefinition",
+                     "url":"https://ee.ee/sd/oma-%s","name":"Oma%s","status":"active",
+                     "kind":"resource","abstract":false,"type":"%s",
+                     "baseDefinition":"http://hl7.org/fhir/StructureDefinition/%s",
+                     "derivation":"constraint",
+                     "differential":{"element":[{"id":"%s","path":"%s"}]}}"""
+                    .formatted(type, type, type, type, type, type));
+        }
+    }
+
     // ------------------------------------------------------------- reading
 
     private String tally() {

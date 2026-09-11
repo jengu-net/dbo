@@ -140,6 +140,11 @@ contain, and whether a coded value belongs to the value set its binding names,
 which is a join to the terminology the tenant holds. A code nothing there can
 judge is reported by nobody.
 
+The first thing that comparison found was a defect of its own making: held as
+records, the version's definitions did not say which specification they were,
+and the toolchain refuses a profile whose type no definition it trusts claims.
+Every profile written to a tenant on a face was refused. They say now.
+
 On a write both are asked and only one answers: the database is shown the
 document against the same definitions the toolchain used, and what it makes of
 it is counted rather than acted on. The verdict a caller receives is the

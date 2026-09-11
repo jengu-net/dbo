@@ -225,7 +225,7 @@ final class FaceBase {
         Rows(String fhirVersion) throws IOException {
             super(new SimpleWorkerContextBuilder().withAllowLoadingDuplicates(true).fromNothing());
             this.version = fhirVersion;
-            this.packageInfo = new PackageInformation("records", "1", fhirVersion, new Date());
+            this.packageInfo = theSpecificationsOwn(fhirVersion);
             setNoTerminologyServer(true);
             setCanRunWithoutTerminology(true);
             setExpansionParameters(new org.hl7.fhir.r5.model.Parameters());
@@ -235,7 +235,43 @@ final class FaceBase {
         Rows(SimpleWorkerContext base, String fhirVersion) throws IOException {
             super(base);
             this.version = fhirVersion;
+            // A tenant's own definitions are the tenant's. Only what is
+            // registered on the BASE is the specification's, and only that
+            // says so.
             this.packageInfo = new PackageInformation("records", "1", fhirVersion, new Date());
+        }
+
+        /**
+         * What the definitions on the base came from, named as what they are.
+         *
+         * <p>The base holds the specification's own canonicals and nothing
+         * else, and the toolchain asks where a definition came from before it
+         * will believe a type exists: it accepts {@code Patient} as a type
+         * when some definition it holds says its type is Patient AND came
+         * from a package named like the core's. Registered as "records" — the
+         * transport rather than the content — every profile a tenant wrote
+         * was refused with "the type Patient is not legal because it is not
+         * defined in the FHIR specification", on the tenants whose whole
+         * design is to hold that specification as records.
+         *
+         * <p>What changed when definitions became records is how they travel,
+         * not what they are, and this says so.
+         */
+        private static PackageInformation theSpecificationsOwn(String fhirVersion) {
+            for (CarriedDefinitions.Carried carried : CarriedDefinitions.carried()) {
+                if (carried.name().endsWith(".core") && carried.version().equals(fhirVersion)) {
+                    return new PackageInformation(carried.name(), carried.version(),
+                            fhirVersion, new Date());
+                }
+            }
+            // Read from the index, which is metadata: no package is opened
+            // here, and a face root is still the only thing that reads one.
+            org.slf4j.LoggerFactory.getLogger("dbo.face").warn(
+                    "no carried core package is version {}, so definitions held as records "
+                    + "cannot say which specification they are — profiles written to a tenant "
+                    + "on this face will be refused as naming types that do not exist",
+                    fhirVersion);
+            return new PackageInformation("records", "1", fhirVersion, new Date());
         }
 
         void register(Proxy proxy, PackageInformation packageInfo) {
