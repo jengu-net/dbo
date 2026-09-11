@@ -71,6 +71,7 @@ dependencies {
     testImplementation(project(":core:dbo-tenant"))
     testImplementation(project(":core:dbo-subscriptions"))
     testImplementation(project(":core:dbo-terminology"))
+    testImplementation(project(":core:dbo-definitions"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation(project(":core:dbo-operator"))

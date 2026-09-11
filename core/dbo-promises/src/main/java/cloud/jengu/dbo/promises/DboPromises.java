@@ -1019,6 +1019,14 @@ public enum DboPromises implements Promise {
             + "arrives, naming the definition and the element. A definition is never held "
             + "with an element nothing can check, because a checker holding no row for an "
             + "element enforces nothing about it and says so to nobody."),
+    VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE(
+            "The functions a tenant's database answers with are installed into its own "
+            + "schema by the dbo release that carries them, and arrive no other way — never "
+            + "through a chain, a restore or a feed, because a function that could be "
+            + "replicated would be a way to run code on a tenant by writing to a stream. They "
+            + "are plain SQL with no server extension, so they run wherever the store runs, "
+            + "and a bring-up whose release carries the SQL already in place installs "
+            + "nothing."),
     VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN(
             "A definition — structure, search parameter, value set, code system, map — is "
             + "indexed from its JSON along the version's own search parameters, with no "

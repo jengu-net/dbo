@@ -1217,6 +1217,9 @@ cloud.jengu.dbo.definitions.DefinitionStore.Expanded                   sourceVer
 cloud.jengu.dbo.definitions.DefinitionStore.Expanded                   structureType():String
 cloud.jengu.dbo.definitions.DefinitionStore.Expanded                   toString():String
 cloud.jengu.dbo.definitions.DefinitionStore.Expanded                   version():String
+cloud.jengu.dbo.definitions.FaceFunctions                              class
+cloud.jengu.dbo.definitions.FaceFunctions                              install(DataSource):String
+cloud.jengu.dbo.definitions.FaceFunctions                              installedIn(DataSource):String
 cloud.jengu.dbo.fhir.common.ArchiveProvenance                          KEY_SYSTEM:String
 cloud.jengu.dbo.fhir.common.ArchiveProvenance                          ROOT_SYSTEM:String
 cloud.jengu.dbo.fhir.common.ArchiveProvenance                          class
@@ -2405,6 +2408,7 @@ cloud.jengu.dbo.promises.DboPromises                                   VER_FACE_
 cloud.jengu.dbo.promises.DboPromises                                   VER_ONE_READ_PER_REQUEST:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_PERSONALITY_OWNS_MEANING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_SPECIFIED_VALIDATION:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_TRANSITION_BY_CONVERTERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_VALIDATION_WITHOUT_WRITING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_VERSION_AGNOSTIC_CORE:cloud.jengu.dbo.promises.DboPromises

@@ -196,6 +196,12 @@ public class ElementFhirVersion implements FhirVersion {
                     new cloud.jengu.dbo.terminology.TerminologyStore(dataSource);
             cloud.jengu.dbo.definitions.DefinitionStore definitions =
                     new cloud.jengu.dbo.definitions.DefinitionStore(dataSource);
+            // The functions this release answers with, put in place by the
+            // release: they read the rows above, so they are installed
+            // beside them and by nothing else (a function arriving through a
+            // chain would be a way to run code on a tenant by writing to a
+            // feed). A no-op when the release's SQL is already what is here.
+            String functions = cloud.jengu.dbo.definitions.FaceFunctions.install(dataSource);
             // the carried baseline becomes tenant data, once — see the class
             long baselineAt = System.currentTimeMillis();
             if (!versionHeldAsRecords) {
@@ -220,10 +226,10 @@ public class ElementFhirVersion implements FhirVersion {
             // from a task's wall clock, and a bound is not a measurement.
             org.slf4j.LoggerFactory.getLogger("dbo.face").info(
                     "face bring-up cost: version={} terminologyBaseline={}ms profiles={}ms"
-                    + " definitionsExpanded={} in {}ms",
+                    + " definitionsExpanded={} in {}ms functions={}",
                     version.code(), baselineMillis,
                     System.currentTimeMillis() - profilesAt, expanded,
-                    System.currentTimeMillis() - expandedAt);
+                    System.currentTimeMillis() - expandedAt, functions);
             return store;
         }
 

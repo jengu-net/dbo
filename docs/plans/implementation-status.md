@@ -131,9 +131,15 @@ A profile that states only what it changes is expanded from the snapshot its
 face makes for it against the base it derives from, so its rows are the whole
 structure rather than the handful of elements its author mentioned.
 
+The release installs its own functions into each tenant's database, in a
+schema of their own beside the data: they read the expanded rows, they are
+plain SQL with no server extension, and they arrive from the running build
+rather than through any chain. What they answer so far is how often an element
+may occur, counted inside the parent it occurs in.
+
 *Complete except an R6 personality — there is no ballot to build against.
-Nothing reads the expanded rows yet: the database-side checker they exist for
-is the next front.*
+Nothing in production calls those functions yet: the writes are still judged
+by the toolchain alone, and running the two side by side is the next front.*
 
 ### SRCH — search
 
