@@ -809,9 +809,6 @@ public final class ElementStore implements FhirStoreFacade {
                 || !("StructureDefinition".equals(typeName) || "StructureMap".equals(typeName))) {
             return;
         }
-        if ("StructureDefinition".equals(typeName)) {
-            expandDefinitionsHeld();
-        }
         try {
             payloads = null;
             payloads(); // built now, so a broken profile is said now rather than on somebody's write
@@ -819,6 +816,13 @@ public final class ElementStore implements FhirStoreFacade {
             throw new cloud.jengu.dbo.fhir.common.ValidationFailedException("StructureDefinition",
                     List.of("the profile was stored, and this tenant's validation still uses "
                             + "the shapes it had: " + e.getMessage()));
+        }
+        if ("StructureDefinition".equals(typeName)) {
+            // After the view, not before: a profile that states only what it
+            // changes is snapshotted by the view against the base it derives
+            // from, and expanding it before that would expand the handful of
+            // elements its author happened to mention.
+            expandDefinitionsHeld();
         }
     }
 
@@ -834,11 +838,14 @@ public final class ElementStore implements FhirStoreFacade {
      * upgrade is where rows that never existed come into being, and a tenant
      * whose rows were dropped for a rebuild is the same case.
      *
-     * <p>A definition carrying no snapshot is counted rather than expanded.
-     * Snapshotting a differential against the base it derives from is the
-     * face's, it happens once on arrival like this does, and it is the next
-     * thing; until then nothing reads these rows, so nothing is passed by a
-     * row that is missing.
+     * <p>A profile that states only what it CHANGES is expanded from the
+     * snapshot its face made for it, not from the record: a differential
+     * names a handful of elements and inherits the rest, and rows for the
+     * handful would be a checker enforcing the author's edits and nothing
+     * else. The face snapshots a tenant's own profiles against the base they
+     * derive from when it builds the view, which is where this reads them
+     * from — asked for only when there is one, so a tenant whose definitions
+     * all carry their own snapshot never builds a view to expand them.
      *
      * @return how many definitions were expanded
      */
@@ -849,7 +856,7 @@ public final class ElementStore implements FhirStoreFacade {
         }
         java.util.Map<String, Long> expanded = definitions.expandedFrom();
         List<cloud.jengu.dbo.definitions.DefinitionStore.Expanded> moved = new ArrayList<>();
-        int withoutSnapshot = 0;
+        Map<String, cloud.jengu.dbo.core.api.Held> differential = new java.util.LinkedHashMap<>();
         for (cloud.jengu.dbo.core.api.Held held
                 : store.inventory("StructureDefinition", List.of())) {
             String canonical = canonicalOf(held);
@@ -864,21 +871,85 @@ public final class ElementStore implements FhirStoreFacade {
             try {
                 expansion = DefinitionElements.of(stored.payload());
             } catch (IllegalArgumentException noSnapshot) {
-                withoutSnapshot++;
+                differential.put(canonical, held);
                 continue;
             }
             moved.add(new cloud.jengu.dbo.definitions.DefinitionStore.Expanded(
                     canonical, expansion.version(), expansion.type(), expansion.kind(),
                     held.id(), held.versionId(), expansion.elements()));
         }
+        int unresolved = expandedFromTheView(differential, moved);
         definitions.replaceAll(moved);
-        if (!moved.isEmpty() || withoutSnapshot > 0) {
-            LOG.info("definitions expanded: structures={} elements={} withoutSnapshot={}",
+        if (!moved.isEmpty() || unresolved > 0) {
+            LOG.info("definitions expanded: structures={} elements={} fromTheirDifferential={}"
+                    + " withoutABase={}",
                     moved.size(),
                     moved.stream().mapToInt(one -> one.elements().size()).sum(),
-                    withoutSnapshot);
+                    differential.size() - unresolved, unresolved);
         }
         return moved.size();
+    }
+
+    /**
+     * The profiles that state only what they change, expanded from the
+     * snapshot the face made for them.
+     *
+     * <p>A profile the face could not snapshot is not here to be found: the
+     * view refuses one it cannot resolve against its base rather than
+     * offering it half-formed, so it is counted and named, and no row claims
+     * to check it.
+     *
+     * @return how many could not be resolved
+     */
+    private int expandedFromTheView(
+            Map<String, cloud.jengu.dbo.core.api.Held> differential,
+            List<cloud.jengu.dbo.definitions.DefinitionStore.Expanded> moved) {
+        if (differential.isEmpty()) {
+            return 0;
+        }
+        org.hl7.fhir.r5.context.SimpleWorkerContext view = elementPayloads().context();
+        int unresolved = 0;
+        for (Map.Entry<String, cloud.jengu.dbo.core.api.Held> entry : differential.entrySet()) {
+            byte[] snapshotted = snapshotFrom(view, entry.getKey());
+            if (snapshotted == null) {
+                unresolved++;
+                LOG.warn("the profile {} states only what it changes and its face could not "
+                        + "resolve it against its base, so nothing checks against it",
+                        entry.getKey());
+                continue;
+            }
+            DefinitionElements.Expansion expansion = DefinitionElements.of(snapshotted);
+            moved.add(new cloud.jengu.dbo.definitions.DefinitionStore.Expanded(
+                    entry.getKey(), expansion.version(), expansion.type(), expansion.kind(),
+                    entry.getValue().id(), entry.getValue().versionId(), expansion.elements()));
+        }
+        return unresolved;
+    }
+
+    /**
+     * One profile as the face holds it, snapshot and all.
+     *
+     * <p>The toolchain keeps every version's definitions in one internal
+     * model, so what comes back is that model's spelling of this profile
+     * rather than the face's. The elements are the same elements — the same
+     * ids, paths, counts and bindings, which is all an expansion reads — and
+     * the alternative is a snapshot generator of our own, which is the one
+     * thing the design says to port last.
+     */
+    private static byte[] snapshotFrom(org.hl7.fhir.r5.context.SimpleWorkerContext view,
+            String canonical) {
+        org.hl7.fhir.r5.model.StructureDefinition held = view.fetchResource(
+                org.hl7.fhir.r5.model.StructureDefinition.class, canonical);
+        if (held == null || !held.hasSnapshot()) {
+            return null;
+        }
+        try {
+            return new org.hl7.fhir.r5.formats.JsonParser().composeBytes(held);
+        } catch (java.io.IOException unwritable) {
+            LOG.warn("the profile {} could not be written back out to be expanded: {}",
+                    canonical, unwritable.getMessage());
+            return null;
+        }
     }
 
     private static String canonicalOf(cloud.jengu.dbo.core.api.Held held) {

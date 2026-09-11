@@ -39,6 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ADefinitionIsExpandedWhenItArrivesIT {
 
     private static final String ROOT = "vaartus-r4";
+    /** An ordinary tenant, which is where a profile of one's own actually lives. */
+    private static final String CLINIC = "vaartus-kliinik";
     private static final String PATIENT = "http://hl7.org/fhir/StructureDefinition/Patient";
 
     static PostgreSQLContainer<?> postgres;
@@ -65,7 +67,14 @@ class ADefinitionIsExpandedWhenItArrivesIT {
                   {"name":"ValueSet","identity":"canonical","handling":"operational"},
                   {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
                 .formatted(ROOT));
+        Files.writeString(dir.resolve(CLINIC + ".json"), """
+                {"code":"%s","face":"r4","audit":{"level":"none"},
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
+                .formatted(CLINIC));
         UntilServed.scan(manager, ROOT);
+        UntilServed.scan(manager, CLINIC);
     }
 
     @AfterAll
@@ -144,6 +153,75 @@ class ADefinitionIsExpandedWhenItArrivesIT {
     }
 
     @Test
+    @DisplayName("a profile that states only what it changes is expanded whole, with what it "
+            + "inherits and not only what it mentions")
+    @Proving(DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES)
+    void aProfileThatStatesOnlyItsChangesIsExpandedWhole() throws Exception {
+        String canonical = "https://ee.ee/StructureDefinition/nimeline-patsient";
+        manager.runtime(CLINIC).orElseThrow().store().create("""
+                {"resourceType":"StructureDefinition",
+                 "url":"%s","name":"NimelinePatsient","status":"active","kind":"resource",
+                 "abstract":false,"type":"Patient",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient",
+                 "derivation":"constraint",
+                 "differential":{"element":[
+                   {"id":"Patient.name","path":"Patient.name","min":1}]}}"""
+                .formatted(canonical));
+        manager.runtime(CLINIC).orElseThrow().store().shapesChanged();
+
+        // What it says: a name is now required.
+        assertEquals(List.of("1"), queryOf(CLINIC,
+                "SELECT min_occurs::text FROM state.definition_element"
+                + " WHERE canonical = ? AND element_id = 'Patient.name'", canonical),
+                "the profile's own change is not held");
+
+        // What it inherits and never mentions: the rest of Patient, located
+        // and bound exactly as the base states it. A differential names four
+        // lines; a checker reading only those would enforce four lines and
+        // pass everything else in silence.
+        List<String> birthDate = queryOf(CLINIC, 
+                "SELECT array_to_string(steps, '|') FROM state.definition_element"
+                + " WHERE canonical = ? AND element_id = 'Patient.birthDate'", canonical);
+        assertEquals(List.of("$.\"birthDate\"[*]"), birthDate,
+                "an element the profile never mentions was not inherited");
+        // Everything, in fact: the profile's elements are the version's own
+        // Patient elements, because that is what deriving from it means. The
+        // root holds that version expanded, so the two sets are comparable
+        // and this says "whole" without a number nobody can check.
+        assertEquals(
+                query("SELECT element_id FROM state.definition_element"
+                        + " WHERE canonical = ? ORDER BY element_id", PATIENT),
+                queryOf(CLINIC, "SELECT element_id FROM state.definition_element"
+                        + " WHERE canonical = ? ORDER BY element_id", canonical),
+                "a profile derived from Patient does not hold Patient's elements");
+
+        List<String> gender = queryOf(CLINIC, 
+                "SELECT binding_strength FROM state.definition_element"
+                + " WHERE canonical = ? AND element_id = 'Patient.gender'", canonical);
+        assertEquals(List.of("required"), gender,
+                "an inherited binding did not come with the element that carries it");
+    }
+
+    @Test
+    @DisplayName("the version's own differential profiles are expanded too, from the same "
+            + "snapshot their face makes for them")
+    @Proving(DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES)
+    void theVersionsOwnDifferentialsAreExpandedToo() throws Exception {
+        // R4 publishes two profiles with no snapshot of their own, both
+        // constraining Composition. They are the carried case of exactly what
+        // a tenant authors, and until the face snapshotted them they were
+        // counted and skipped.
+        String canonical = "http://hl7.org/fhir/StructureDefinition/example-composition";
+        assertTrue(Long.parseLong(query("SELECT count(*)::text FROM state.definition_element"
+                        + " WHERE canonical = ?", canonical).get(0)) > 20,
+                "a carried differential profile is still not expanded");
+        assertEquals(List.of("$.\"status\"[*]"), query(
+                "SELECT array_to_string(steps, '|') FROM state.definition_element"
+                + " WHERE canonical = ? AND element_id = 'Composition.status'", canonical),
+                "an element it inherits from Composition is not held");
+    }
+
+    @Test
     @DisplayName("the rows are rebuilt from the records, so they are a projection and not "
             + "a second copy of the truth")
     @Proving(DboPromises.CORE_PAYLOAD_IS_TRUTH)
@@ -153,7 +231,7 @@ class ADefinitionIsExpandedWhenItArrivesIT {
                 + " FROM state.definition_element WHERE canonical = ? ORDER BY ordinal", PATIENT);
         assertFalse(before.isEmpty(), "the Patient definition is not expanded at all");
 
-        try (Connection c = tenantConnection();
+        try (Connection c = tenantConnection(ROOT);
              PreparedStatement ps = c.prepareStatement(
                      "DELETE FROM state.definition_element WHERE canonical = ?")) {
             ps.setString(1, PATIENT);
@@ -186,7 +264,11 @@ class ADefinitionIsExpandedWhenItArrivesIT {
     }
 
     private List<String> query(String sql, String... arguments) throws Exception {
-        try (Connection c = tenantConnection();
+        return queryOf(ROOT, sql, arguments);
+    }
+
+    private List<String> queryOf(String tenant, String sql, String... arguments) throws Exception {
+        try (Connection c = tenantConnection(tenant);
              PreparedStatement ps = c.prepareStatement(sql)) {
             for (int i = 0; i < arguments.length; i++) {
                 ps.setString(i + 1, arguments[i]);
@@ -201,9 +283,9 @@ class ADefinitionIsExpandedWhenItArrivesIT {
         }
     }
 
-    private Connection tenantConnection() throws Exception {
+    private Connection tenantConnection(String tenant) throws Exception {
         String url = SharedPostgres.urlFor("x")
-                .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + ROOT.replace('-', '_'));
+                .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + tenant.replace('-', '_'));
         return java.sql.DriverManager.getConnection(url,
                 postgres.getUsername(), postgres.getPassword());
     }

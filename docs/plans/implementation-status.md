@@ -127,10 +127,13 @@ jsonpath with choice keys and slice members already resolved — so a checker
 reads rows instead of an object graph. An element nothing can locate is held
 saying so rather than dropped.
 
+A profile that states only what it changes is expanded from the snapshot its
+face makes for it against the base it derives from, so its rows are the whole
+structure rather than the handful of elements its author mentioned.
+
 *Complete except an R6 personality — there is no ballot to build against.
 Nothing reads the expanded rows yet: the database-side checker they exist for
-is the next front, and a structure that arrives without a snapshot is counted
-rather than expanded until the face snapshots it on arrival.*
+is the next front.*
 
 ### SRCH — search
 
