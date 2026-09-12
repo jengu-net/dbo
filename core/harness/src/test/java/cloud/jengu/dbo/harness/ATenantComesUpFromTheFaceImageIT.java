@@ -181,6 +181,49 @@ class ATenantComesUpFromTheFaceImageIT {
                         + "tenant brought up from it, or reached it more than once");
     }
 
+    @Test
+    @Timeout(900)
+    @DisplayName("the first tenant to want a face cuts it, and the next one finds it there")
+    @Proving(DboPromises.VER_AN_IMAGE_IS_CUT_ONLY_WHEN_COMPLETE)
+    void theFirstTenantToWantAFaceCutsIt() throws Exception {
+        // Not every root that comes up: a deployment serving one face has no
+        // use for images of the others, and an edge node may want none at
+        // all. The cost is paid where the benefit is.
+        Path kept = Files.createTempDirectory("dbo-image-on-demand");
+        manager.faceImagesIn(kept);
+        try (var before = Files.list(kept)) {
+            assertEquals(java.util.List.of(), before.toList(),
+                    "an image was cut before anybody asked for one");
+        }
+
+        Files.writeString(dir.resolve("kysija.json"), subscriber("kysija"));
+        UntilServed.scan(manager, "kysija");
+
+        try (var after = Files.list(kept)) {
+            assertEquals(java.util.List.of("r4.faceimage"),
+                    after.map(f -> f.getFileName().toString()).sorted().toList(),
+                    "the first tenant to want this face did not leave one behind, so the "
+                            + "next one reads the whole face through the chain as well");
+        }
+
+        // And the one after it is brought up from what the first one cut.
+        Files.writeString(dir.resolve("jargmine.json"), subscriber("jargmine"));
+        long began = System.currentTimeMillis();
+        UntilServed.scan(manager, "jargmine");
+        long secondMillis = System.currentTimeMillis() - began;
+
+        assertEquals(count("kysija", "SELECT count(*) FROM "
+                        + Domains.tables(Domains.DEFINITIONS) + "_data"),
+                count("jargmine", "SELECT count(*) FROM "
+                        + Domains.tables(Domains.DEFINITIONS) + "_data"),
+                "the tenant that cut the face and the one brought up from it hold "
+                        + "different amounts of it");
+        System.out.printf("METRICS faceOnDemand secondTenantMs=%d%n", secondMillis);
+        assertTrue(secondMillis < chainMillis,
+                "the tenant after the one that cut the face took " + secondMillis
+                        + "ms, no better than the " + chainMillis + "ms of reading the chain");
+    }
+
     // ------------------------------------------------------------- the face
 
     private static String subscriber(String code) {

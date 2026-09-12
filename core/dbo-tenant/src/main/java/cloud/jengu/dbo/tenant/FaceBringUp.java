@@ -53,8 +53,16 @@ final class FaceBringUp {
 
     private FaceBringUp() {}
 
-    /** Whether the face came from an image, and what happened either way. */
-    record Outcome(boolean fromImage, String said) {}
+    /**
+     * Whether the face came from an image, what happened either way, and
+     * whether cutting a fresh one would change the answer.
+     *
+     * <p>The last is the difference between "there is nothing to load" and
+     * "there is something and it is no use": a missing image and one from the
+     * release before are both fixed by cutting, and a schema that already
+     * holds a face is not.
+     */
+    record Outcome(boolean fromImage, String said, boolean worthCutting) {}
 
     /**
      * Loads the face's image into this tenant, if there is one it can use.
@@ -69,11 +77,11 @@ final class FaceBringUp {
             TenantRuntimeManager.TenantRuntime upstream, String consumer, String dependency,
             java.util.Set<String> declaredTypes) {
         if (directory == null) {
-            return new Outcome(false, "no image directory is configured");
+            return new Outcome(false, "no image directory is configured", false);
         }
         Path image = directory.resolve(face + ".faceimage");
         if (!Files.isReadable(image)) {
-            return new Outcome(false, "no image of face '" + face + "' is kept at " + directory);
+            return new Outcome(false, "no image of face '" + face + "' is kept yet", true);
         }
 
         FaceImage.Facts expected = new FaceImage.Facts(FaceRootPackages.carried(face), face,
@@ -83,10 +91,13 @@ final class FaceBringUp {
             answer = FaceImage.accept(into, expected, bytes);
         } catch (IOException unreadable) {
             return new Outcome(false, "the image at " + image + " could not be read: "
-                    + unreadable.getMessage());
+                    + unreadable.getMessage(), false);
         }
         if (answer instanceof FaceImage.Acceptance.Refused refused) {
-            return new Outcome(false, refused.why());
+            // An image from another release is worth replacing; one refused
+            // because this database already holds a face is not, and cutting
+            // over and over because of it would be the loop nobody notices.
+            return new Outcome(false, refused.why(), !refused.why().contains("already holds"));
         }
 
         FaceImage.Acceptance.Accepted accepted = (FaceImage.Acceptance.Accepted) answer;
@@ -95,7 +106,7 @@ final class FaceBringUp {
             standAtTheCut(upstream.definitionsFeed(), consumer, accepted.manifest().cursor());
             return new Outcome(true, "brought its face up from the image at " + image
                     + ": rows=" + accepted.rows() + " marked=" + marked
-                    + " cutAt=" + accepted.manifest().cutAt());
+                    + " cutAt=" + accepted.manifest().cutAt(), false);
         } catch (SQLException e) {
             // The rows are in and their provenance is not. Saying so is the
             // only honest move: a tenant serving definitions that claim to be

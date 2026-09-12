@@ -100,6 +100,40 @@ public final class TenantRuntimeManager implements AutoCloseable {
             cloud.jengu.dbo.sync.Lanes replication) {}
 
     /**
+     * Cuts this face, if there is no image of it worth using.
+     *
+     * <p>On the first tenant that asks for it rather than on every root that
+     * comes up. A deployment serving one face has no use for images of the
+     * others, and an edge node may never want one at all — so the cost is
+     * paid where the benefit is, by the tenant that is about to save fifty
+     * seconds by not reading the same face through a chain.
+     *
+     * <p>Also when the image there is from another release. That case is the
+     * one worth catching: it costs nothing visible, because the tenant comes
+     * up correctly through the chain, and every tenant after it pays the same
+     * again forever while a perfectly good image sits unused.
+     *
+     * <p>Never fatal. A face that could not be cut costs the tenants on it the
+     * half minute they would have cost anyway.
+     */
+    private void cutTheFaceFor(TenantSpec spec, String rootCode, FaceBringUp.Outcome missing) {
+        java.nio.file.Path directory = faceImages;
+        if (directory == null || !missing.worthCutting()) {
+            return;
+        }
+        LOG.info("cutting face {} because {}", spec.face(), missing.said());
+        try {
+            FaceWarmup.Outcome outcome = FaceWarmup.cut(this, rootCode, directory);
+            if (outcome instanceof FaceWarmup.Outcome.NotYet notYet) {
+                LOG.info("face {} was not cut: {}", spec.face(), notYet.why());
+            }
+        } catch (java.io.IOException | RuntimeException couldNotCut) {
+            LOG.warn("face {} could not be cut, so tenants on it read it through the chain: {}",
+                    spec.face(), couldNotCut.toString());
+        }
+    }
+
+    /**
      * A dependent reached before its upstream. Not a failure: the scan comes
      * round again, and by then the upstream is up. It exists so the log can
      * say that rather than reporting an error that fixes itself.
@@ -1300,10 +1334,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // what everything else on this lane writes through.
                 engine instanceof cloud.jengu.dbo.core.api.AuditReplay admitted ? admitted : null,
                 // The second bound: declarations by type, from the tenant's
-                // content feed. What the lane admits by type is every type
+                // content feeds. What the lane admits by type is every type
                 // the tenant declared except the ones about a person — those
-                // travel by work or not at all.
+                // travel by work or not at all. Both feeds, because a declared
+                // set spans them: a profile or a value set a tenant authors is
+                // on the one its face moves on, and an observation is not.
                 new PgChangeFeed(db.dataSource(), version.domain()),
+                new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.core.api.Domains.DEFINITIONS),
                 declarationTypes(spec));
         TenantRuntime runtime = new TenantRuntime(spec, engine, store,
                 new PgChangeFeed(db.dataSource(), version.domain()),
@@ -1755,6 +1792,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         FaceBringUp.Outcome image = FaceBringUp.from(faceImages, spec.face(),
                 tenantDataSources.get(spec.code()), root,
                 name + ".definitions", face.get().name(), face.get().types());
+        if (!image.fromImage() && image.worthCutting()) {
+            // The first tenant to want this face cuts it, and pays a few
+            // seconds so that it and everyone after it need not pay fifty.
+            cutTheFaceFor(spec, face.get().name(), image);
+            image = FaceBringUp.from(faceImages, spec.face(),
+                    tenantDataSources.get(spec.code()), root,
+                    name + ".definitions", face.get().name(), face.get().types());
+        }
         if (image.fromImage()) {
             LOG.info("tenant {} {}", spec.code(), image.said());
         } else {

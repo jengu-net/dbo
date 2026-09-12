@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.core.api.Domains;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
@@ -88,10 +89,15 @@ class TheLaneHasTwoBoundsIT {
         edgeStore = new PgObjectStore(edgeDs, declarations);
         cloudRuns = new Runs(cloudStore);
         edgeRuns = new Runs(edgeStore);
+        // Both content feeds: a declared set spans them, since a code system
+        // travels on the one a face moves on and an observation does not.
+        String defs = Domains.DEFINITIONS;
         cloud = new Lanes(cloudStore, new PgChangeFeed(cloudDs, WorkModel.DOMAIN), cloudRuns,
-                "cloud", null, new PgChangeFeed(cloudDs, R4Personality.DOMAIN), DECLARATIONS);
+                "cloud", null, new PgChangeFeed(cloudDs, R4Personality.DOMAIN),
+                new PgChangeFeed(cloudDs, defs), DECLARATIONS);
         edge = new Lanes(edgeStore, new PgChangeFeed(edgeDs, WorkModel.DOMAIN), edgeRuns,
-                "edge", null, new PgChangeFeed(edgeDs, R4Personality.DOMAIN), DECLARATIONS);
+                "edge", null, new PgChangeFeed(edgeDs, R4Personality.DOMAIN),
+                new PgChangeFeed(edgeDs, defs), DECLARATIONS);
     }
 
     @Test

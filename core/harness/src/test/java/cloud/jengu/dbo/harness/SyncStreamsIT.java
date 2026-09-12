@@ -55,7 +55,9 @@ class SyncStreamsIT {
     static R5Store leaf;
     static PgObjectStore leafEngine;
     static ContentSyncEngine zoneToMid;
+    static ContentSyncEngine zoneToMidDefinitions;
     static ContentSyncEngine midToLeaf;
+    static ContentSyncEngine midToLeafDefinitions;
 
     @BeforeAll
     void up() throws Exception {
@@ -91,15 +93,32 @@ class SyncStreamsIT {
         mid = new R4Store(midEngine, midP, "https://mid.test");
         leaf = new R5Store(leafEngine, leafP, "https://leaf.test");
 
+        // One declared set, two feeds: a value set travels on the one a face
+        // moves on and an encounter on the one records move on, so a stream
+        // over a declared set is a stream per feed — which is what the tenant
+        // runtime wires for a dependency, and what this mirrors.
         Set<String> declared = Set.of("ValueSet", "Encounter");
+        Set<String> records = Set.of("Encounter");
+        Set<String> definitions = Set.of("ValueSet");
+        String defs = cloud.jengu.dbo.core.api.Domains.DEFINITIONS;
         zoneToMid = new ContentSyncEngine(
-                new ContentDependency("zone", declared),
+                new ContentDependency("zone", records),
                 new PgChangeFeed(zoneDs, R4Personality.DOMAIN),
                 midEngine, midDs, R4Personality.DOMAIN, "4.0", List.of());
+        zoneToMidDefinitions = new ContentSyncEngine(
+                new ContentDependency("zone", definitions),
+                new PgChangeFeed(zoneDs, defs),
+                midEngine, midDs, defs, "4.0", List.of());
         midToLeaf = new ContentSyncEngine(
-                new ContentDependency("mid", declared),
+                new ContentDependency("mid", records),
                 new PgChangeFeed(midDs, R4Personality.DOMAIN),
                 leafEngine, leafDs, R5Personality.DOMAIN, "5.0",
+                List.of(new BoomAwareConverter()))
+                .withRuns(new cloud.jengu.dbo.work.Runs(leafEngine));
+        midToLeafDefinitions = new ContentSyncEngine(
+                new ContentDependency("mid", definitions),
+                new PgChangeFeed(midDs, defs),
+                leafEngine, leafDs, defs, "5.0",
                 List.of(new BoomAwareConverter()))
                 .withRuns(new cloud.jengu.dbo.work.Runs(leafEngine));
     }
@@ -137,7 +156,9 @@ class SyncStreamsIT {
 
     private void syncAll() {
         while (zoneToMid.syncOnce(100) > 0) { }
+        while (zoneToMidDefinitions.syncOnce(100) > 0) { }
         while (midToLeaf.syncOnce(100) > 0) { }
+        while (midToLeafDefinitions.syncOnce(100) > 0) { }
     }
 
     private static String valueSet(String url, String name) {
@@ -164,7 +185,7 @@ class SyncStreamsIT {
         assertEquals(0, mid.search("Patient", java.util.Map.of("identifier", EID + "|"), null)
                 .split("fullUrl", -1).length - 1, "undeclared Patient must not stream");
 
-        assertTrue(zoneToMid.origins().stream()
+        assertTrue(zoneToMidDefinitions.origins().stream()
                 .anyMatch(o -> o.objectId().equals(vs.id()) && o.typeName().equals("ValueSet")),
                 "provenance must record the streamed copy");
     }
@@ -236,10 +257,11 @@ class SyncStreamsIT {
 
         assertTrue(leafEngine.get("ValueSet", good.id()).isPresent(), "sibling must apply");
         assertTrue(leafEngine.get("ValueSet", bad.id()).isEmpty());
-        assertTrue(midToLeaf.degraded(), "dead letters must degrade the dependency visibly");
-        assertTrue(midToLeaf.deadLetters().stream()
+        assertTrue(midToLeafDefinitions.degraded(),
+                "dead letters must degrade the dependency visibly");
+        assertTrue(midToLeafDefinitions.deadLetters().stream()
                 .anyMatch(d -> d.objectId().equals(bad.id())));
-        assertFalse(zoneToMid.degraded(), "the R4→R4 hop is unaffected");
+        assertFalse(zoneToMidDefinitions.degraded(), "the R4→R4 hop is unaffected");
     }
 
     /** A local object shadows the stream; deleting it + reconcile falls back to the live upstream. */
@@ -258,15 +280,15 @@ class SyncStreamsIT {
         assertTrue(new String(leafEngine.get("ValueSet", local.id()).orElseThrow().payload(),
                 StandardCharsets.UTF_8).contains("LocalOverride"));
         assertTrue(leafEngine.get("ValueSet", upstream.id()).isEmpty());
-        assertEquals(1, midToLeaf.shadowedEvents().size());
+        assertEquals(1, midToLeafDefinitions.shadowedEvents().size());
 
         // removing the override falls back to the LIVE upstream version
         leaf.delete("ValueSet", local.id(), null);
-        int applied = midToLeaf.reconcile();
+        int applied = midToLeafDefinitions.reconcile();
         assertEquals(1, applied);
         assertTrue(new String(leafEngine.get("ValueSet", upstream.id()).orElseThrow().payload(),
                 StandardCharsets.UTF_8).contains("UpstreamContent"));
-        assertTrue(midToLeaf.shadowedEvents().isEmpty());
+        assertTrue(midToLeafDefinitions.shadowedEvents().isEmpty());
     }
 
     /**
@@ -283,7 +305,7 @@ class SyncStreamsIT {
         zone.putCanonical(valueSet(url, "UpstreamContent"));
         syncAll();
 
-        cloud.jengu.dbo.work.Run sweep = midToLeaf.pass(100);
+        cloud.jengu.dbo.work.Run sweep = midToLeafDefinitions.pass(100);
         assertEquals(cloud.jengu.dbo.work.RunKind.SWEEP, sweep.kind());
         assertEquals(1L, sweep.tally().get("parked"));
 
@@ -296,7 +318,7 @@ class SyncStreamsIT {
 
         // the person removes the override; nobody closes anything by hand
         leaf.delete("ValueSet", local.id(), null);
-        cloud.jengu.dbo.work.Run after = midToLeaf.pass(100);
+        cloud.jengu.dbo.work.Run after = midToLeafDefinitions.pass(100);
 
         assertEquals(0L, after.tally().get("parked"));
         assertTrue(runs.items(after).stream()

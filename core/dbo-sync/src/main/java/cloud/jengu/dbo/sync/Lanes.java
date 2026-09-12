@@ -120,6 +120,21 @@ public final class Lanes {
      * asked for — a consumer's own promise that a bench holds no register of
      * people rests on that refusal.
      */
+    /**
+     * As above, for a tenant whose changes are on two feeds.
+     *
+     * <p>What a tenant declares is a set of types, and since its definitions
+     * became a domain of their own the split runs through that set — a value
+     * set on one feed and an observation on the other. The bound is over what
+     * was declared, so it has to be over both.
+     */
+    public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String appliance,
+            cloud.jengu.dbo.core.api.AuditReplay auditReplay, ChangeFeed recordFeed,
+            ChangeFeed definitionsFeed, Set<String> admitted) {
+        this(store, workFeed, runs, appliance, auditReplay,
+                new BothFeeds(recordFeed, definitionsFeed), admitted);
+    }
+
     public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String appliance,
             cloud.jengu.dbo.core.api.AuditReplay auditReplay, ChangeFeed contentFeed,
             Set<String> admitted) {

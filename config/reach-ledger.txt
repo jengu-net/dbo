@@ -31,7 +31,6 @@ cloud.jengu.dbo.stream.StreamLane                                        NOT REA
 cloud.jengu.dbo.subscriptions.RestHookTransport                          NOT REACHED — delivery for an engine nothing mounts
 cloud.jengu.dbo.subscriptions.SubscriptionEngine                         NOT REACHED — four eventing promises read PROVEN and no tenant has ever delivered a notification
 cloud.jengu.dbo.sync.http.HttpLanes                                      an external consumer: a host that drives a tenant's replication over HTTP from its own process, which is why it is not built in this one
-cloud.jengu.dbo.tenant.FaceWarmup                                        REASON MISSING
 cloud.jengu.dbo.tenant.k8s.SpecDirSync                                   NOT REACHED — the spec mount for a process with no ConfigMap volume, and the operator builds none
 cloud.jengu.dbo.work.Runner                                              an external consumer: the embeddable participant, built by whatever process does the work — a hospital's integration, an edge with no orchestrator
 cloud.jengu.dbo.work.WorkScopedStore                                     NOT REACHED — and the replication lane reads the manifest it would write, so a travelling run carries none of what it made

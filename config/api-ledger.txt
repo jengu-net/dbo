@@ -3000,6 +3000,7 @@ cloud.jengu.dbo.sync.Lanes                                             mark(Stri
 cloud.jengu.dbo.sync.Lanes                                             new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Runs,String)
 cloud.jengu.dbo.sync.Lanes                                             new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Runs,String,cloud.jengu.dbo.core.api.AuditReplay)
 cloud.jengu.dbo.sync.Lanes                                             new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Runs,String,cloud.jengu.dbo.core.api.AuditReplay,cloud.jengu.dbo.core.api.feed.ChangeFeed,Set)
+cloud.jengu.dbo.sync.Lanes                                             new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Runs,String,cloud.jengu.dbo.core.api.AuditReplay,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,Set)
 cloud.jengu.dbo.sync.Lanes                                             open(String):cloud.jengu.dbo.sync.Lanes.Lane
 cloud.jengu.dbo.sync.Lanes                                             outbound(String,int,Set):cloud.jengu.dbo.sync.Lanes.Batch
 cloud.jengu.dbo.sync.Lanes                                             outbound(String,int,Set,Set):cloud.jengu.dbo.sync.Lanes.Batch
