@@ -1242,9 +1242,10 @@ cloud.jengu.dbo.definitions.DefinitionStore                            forget(Co
 cloud.jengu.dbo.definitions.DefinitionStore                            invariantsOf(String):List
 cloud.jengu.dbo.definitions.DefinitionStore                            issuesUnder(byte[],String):OptionalLong
 cloud.jengu.dbo.definitions.DefinitionStore                            new(DataSource)
+cloud.jengu.dbo.definitions.DefinitionStore                            parametersFrom():String
 cloud.jengu.dbo.definitions.DefinitionStore                            parametersOf(String):List
 cloud.jengu.dbo.definitions.DefinitionStore                            replaceAll(Collection):void
-cloud.jengu.dbo.definitions.DefinitionStore                            replaceParameters(Collection):void
+cloud.jengu.dbo.definitions.DefinitionStore                            replaceParameters(Collection,String):void
 cloud.jengu.dbo.definitions.DefinitionStore                            theTypeItself(String):Optional
 cloud.jengu.dbo.definitions.DefinitionStore.Expanded                   base():String
 cloud.jengu.dbo.definitions.DefinitionStore.Expanded                   canonical():String

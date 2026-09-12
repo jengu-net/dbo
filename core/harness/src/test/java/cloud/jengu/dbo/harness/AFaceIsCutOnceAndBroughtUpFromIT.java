@@ -126,6 +126,16 @@ class AFaceIsCutOnceAndBroughtUpFromIT {
         assertEquals(rowsPerTable(rootSource()), rowsPerTable(fresh),
                 "a tenant brought up from the image does not hold what the face holds");
 
+        // And what is about the receiving tenant rather than about the face
+        // does not arrive at all. The compiled parameters are the types a
+        // tenant registers, and a root carrying a face registers different
+        // ones from the tenants it serves — so they are compiled where they
+        // are used, and an image that brought them would put somebody else's
+        // set where a tenant's own belongs.
+        assertEquals(0L, rowsIn(fresh, Domains.schema(Domains.DEFINITIONS)
+                        + ".definition_parameter"),
+                "the image carried compiled parameters, which are not the face's to carry");
+
         // The number this whole issue is about. A face root's natural bring-up
         // is around half a minute; what replaces it for every tenant after the
         // first is the accept below.
@@ -327,7 +337,13 @@ class AFaceIsCutOnceAndBroughtUpFromIT {
                 || t.contains("_sync_")
                 // The shape marker is about the database, not the face: every
                 // store writes its own as it is built, before any face arrives.
-                || t.equals("definition_shape"));
+                || t.equals("definition_shape")
+                // And the compiled parameters are about the types THIS tenant
+                // registers. A root carrying a face registers the definition
+                // types and the tenants it serves register clinical ones, so
+                // carried they would arrive as somebody else's set where a
+                // tenant's own belongs.
+                || t.equals("definition_parameter"));
         return counts;
     }
 
