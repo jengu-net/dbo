@@ -1115,6 +1115,16 @@ public enum DboPromises implements Promise {
             + "comes up the way tenants came up before there were images. The check exists "
             + "because a wrong image fails nowhere — the rows load, the tenant serves, and "
             + "it answers from a specification or an expander that is not this one."),
+    ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME(
+            "A definition converted to another face is judged on that face rather than "
+            + "trusted because it converted. Converting downward loses what the older "
+            + "version cannot say, and a structure built on a resource that version never "
+            + "had comes out well-formed and standing on nothing — it loads, and nothing "
+            + "can be validated against it. So the projection, the one tenant holding both "
+            + "the converted definitions and the face they were converted into, names "
+            + "every definition whose base that face does not carry, and says which base "
+            + "it lost. Named rather than counted: a count says a zone is partly "
+            + "unservable and leaves somebody to find out which part."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "

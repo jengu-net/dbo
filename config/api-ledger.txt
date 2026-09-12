@@ -2521,6 +2521,7 @@ cloud.jengu.dbo.promises.DboPromises                                   ZONE_BROK
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_DECLARATIONS_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SESSIONS_ACCUMULATE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SUBJECT_DOMAINS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   enum
 cloud.jengu.dbo.promises.DboPromises                                   text():String
 cloud.jengu.dbo.promises.DboPromises                                   valueOf(String):cloud.jengu.dbo.promises.DboPromises
@@ -3162,6 +3163,16 @@ cloud.jengu.dbo.tenant.ConfigurationHandler                            SCOPE:Str
 cloud.jengu.dbo.tenant.ConfigurationHandler                            class
 cloud.jengu.dbo.tenant.ConfigurationHandler                            handle(HttpExchange):void
 cloud.jengu.dbo.tenant.ConfigurationHandler                            new(cloud.jengu.dbo.auth.TenantAuthority,Supplier,BiFunction)
+cloud.jengu.dbo.tenant.ConvertedDefinitions                            class
+cloud.jengu.dbo.tenant.ConvertedDefinitions                            said(List):String
+cloud.jengu.dbo.tenant.ConvertedDefinitions                            unfounded(DataSource):List
+cloud.jengu.dbo.tenant.ConvertedDefinitions.Unfounded                  base():String
+cloud.jengu.dbo.tenant.ConvertedDefinitions.Unfounded                  equals(Object):boolean
+cloud.jengu.dbo.tenant.ConvertedDefinitions.Unfounded                  hashCode():int
+cloud.jengu.dbo.tenant.ConvertedDefinitions.Unfounded                  new(String,String)
+cloud.jengu.dbo.tenant.ConvertedDefinitions.Unfounded                  record
+cloud.jengu.dbo.tenant.ConvertedDefinitions.Unfounded                  toString():String
+cloud.jengu.dbo.tenant.ConvertedDefinitions.Unfounded                  url():String
 cloud.jengu.dbo.tenant.ErasureHandler                                  SCOPE:String
 cloud.jengu.dbo.tenant.ErasureHandler                                  class
 cloud.jengu.dbo.tenant.ErasureHandler                                  handle(HttpExchange):void
@@ -3298,6 +3309,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            substrate
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            syncRound():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            tenantStates():List
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            troubles():Map
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            whatTheVersionCouldNotCarry(String):List
 cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            brokerSecrets():Map
 cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            hashCode():int

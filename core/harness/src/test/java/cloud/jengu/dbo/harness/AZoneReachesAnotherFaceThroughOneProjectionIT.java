@@ -41,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AZoneReachesAnotherFaceThroughOneProjectionIT {
 
+    private static final String R4_ROOT = "r4-juur";
     private static final String ZONE = "vald";
     private static final String ON_R4 = "vald-on-r4";
     private static final String SAME_FACE = "sama-nagu";
@@ -64,10 +65,22 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
 
+        // The face the zone will be converted INTO has to be somewhere, or the
+        // projection has nothing to judge a converted definition against.
+        Files.writeString(dir.resolve(R4_ROOT + ".json"), """
+                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
+                .formatted(R4_ROOT));
+
         // The zone publishes in R5.
         Files.writeString(dir.resolve(ZONE + ".json"), """
                 {"code":"%s","face":"r5","audit":{"level":"none"},
                  "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
                   {"name":"Observation","identity":"identifier","systems":["%s"],
                    "handling":"operational"}]}"""
                 .formatted(ZONE, EID));
@@ -75,7 +88,7 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
         Files.writeString(dir.resolve(SAME_FACE + ".json"), tenant(SAME_FACE, "r5"));
         Files.writeString(dir.resolve(OTHER_FACE + ".json"), tenant(OTHER_FACE, "r4"));
 
-        UntilServed.scan(manager, ZONE);
+        UntilServed.scan(manager, R4_ROOT, ZONE);
         UntilServed.scan(manager, SAME_FACE, OTHER_FACE);
     }
 
@@ -169,6 +182,44 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
                 "the tenant on the other face never received the zone's record");
     }
 
+    @Test
+    @Timeout(900)
+    @DisplayName("a definition the older face cannot stand up is named, not passed on")
+    @Proving(DboPromises.ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME)
+    void aDefinitionTheOlderFaceCannotStandUpIsNamed() throws Exception {
+        // Nothing here is unservable yet, and saying so is half the point: a
+        // check that always finds something is a check nobody reads.
+        assertEquals(List.of(), manager.whatTheVersionCouldNotCarry(ON_R4),
+                "a zone that converts cleanly was reported as partly unservable");
+
+        // A profile built on a resource the older version never had. It
+        // converts — the document is well-formed either way — and what comes
+        // out stands on nothing, which is the failure worth catching: it
+        // loads, and nothing can be validated against it.
+        manager.runtime(ZONE).orElseThrow().store().create("""
+                {"resourceType":"StructureDefinition","url":"https://zone.test/only-in-r5",
+                 "name":"OnlyInR5","status":"draft","kind":"resource","abstract":false,
+                 "type":"ActorDefinition",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/ActorDefinition",
+                 "derivation":"constraint",
+                 "differential":{"element":[
+                   {"id":"ActorDefinition","path":"ActorDefinition"}]}}""");
+        for (int round = 0; round < 10 && manager.syncRound() > 0; round++) {
+            // carried as far as it goes
+        }
+        manager.syncRound();
+
+        List<cloud.jengu.dbo.tenant.ConvertedDefinitions.Unfounded> lost =
+                manager.whatTheVersionCouldNotCarry(ON_R4);
+        assertTrue(lost.stream().anyMatch(one -> "https://zone.test/only-in-r5".equals(one.url())),
+                "a profile standing on a resource this face never had was carried across as "
+                        + "though it still stood on something: " + lost);
+        assertTrue(lost.stream().anyMatch(one ->
+                        one.base().contains("ActorDefinition")),
+                "the report does not say what it lost, which is the part somebody can act "
+                        + "on: " + lost);
+    }
+
     /**
      * One observation into the zone, carried until everything is quiet.
      *
@@ -231,8 +282,10 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
     private static String tenant(String code, String face) {
         return """
                 {"code":"%s","face":"%s","audit":{"level":"none"},
-                 "dependencies":[{"name":"%s","types":["Observation"]}],
+                 "dependencies":[{"name":"%s",
+                                  "types":["Observation","StructureDefinition"]}],
                  "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
                   {"name":"Observation","identity":"identifier","systems":["%s"],
                    "handling":"replicated"}]}"""
                 .formatted(code, face, ZONE, EID);

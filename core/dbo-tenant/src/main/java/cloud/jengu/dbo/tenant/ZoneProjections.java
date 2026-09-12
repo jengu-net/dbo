@@ -42,6 +42,10 @@ final class ZoneProjections {
 
     private ZoneProjections() {}
 
+    /** What a face gives a tenant that takes it as records. */
+    private static final List<String> FACE_TYPES =
+            List.of("StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem");
+
     /** What a projection is called: the zone, as seen on a face. */
     static String codeFor(String zone, String face) {
         return zone + "-on-" + face;
@@ -71,7 +75,8 @@ final class ZoneProjections {
                     continue;
                 }
                 wanted.computeIfAbsent(codeFor(dependency.name(), spec.face()),
-                                ignored -> new Wanted(dependency.name(), spec.face()))
+                                ignored -> new Wanted(dependency.name(), spec.face(),
+                                        faceRootFor(byCode, spec.face())))
                         .add(dependency.types(), spec.types());
             }
         }
@@ -110,16 +115,37 @@ final class ZoneProjections {
 
     // ------------------------------------------------------------ the spec
 
+    /**
+     * The face root of a face, when this deployment declares one.
+     *
+     * <p>A projection needs the face it is converting INTO, not only the zone
+     * it is converting from: a profile is expanded against the base it is
+     * built on, and judging whether a converted one still stands up means
+     * having the definitions it stands on. Without a root there is nothing to
+     * judge against, and the projection carries what it converts unexamined —
+     * which is what happened before there were projections at all.
+     */
+    private static String faceRootFor(Map<String, TenantSpec> byCode, String face) {
+        for (TenantSpec spec : byCode.values()) {
+            if (spec.faceRoot() && spec.face().equals(face)) {
+                return spec.code();
+            }
+        }
+        return null;
+    }
+
     /** One projection's subject: the zone, the face, and what is asked of it. */
     private static final class Wanted {
         private final String zone;
         private final String face;
+        private final String faceRoot;
         private final Set<String> types = new TreeSet<>();
         private final Map<String, FhirTypeConfig> asDeclared = new LinkedHashMap<>();
 
-        Wanted(String zone, String face) {
+        Wanted(String zone, String face, String faceRoot) {
             this.zone = zone;
             this.face = face;
+            this.faceRoot = faceRoot;
         }
 
         /**
@@ -151,11 +177,31 @@ final class ZoneProjections {
                 }
                 types.append(typeOf(declared));
             }
+            String face = faceRoot == null ? "" : """
+                    {"name":"%s","face":true,
+                      "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]},
+                     """.formatted(faceRoot);
+            // Once each. A zone and a face both carry structures and value
+            // sets, and a type declared twice is a tenant that will not come
+            // up at all — which reads as the projection being broken rather
+            // than as two declarations meeting.
+            StringBuilder faceTypes = new StringBuilder();
+            if (faceRoot != null) {
+                for (String name : FACE_TYPES) {
+                    if (this.types.contains(name)) {
+                        continue;
+                    }
+                    faceTypes.append("{\"name\":\"").append(name)
+                            .append("\",\"identity\":\"canonical\",")
+                            .append("\"handling\":\"replicated\"},\n  ");
+                }
+            }
             return """
                     {"code":"%s","face":"%s","audit":{"level":"none"},
-                     "dependencies":[{"name":"%s","types":[%s]}],
-                     "types":[%s]}"""
-                    .formatted(code, face, zone, quoted(this.types), types);
+                     "dependencies":[%s{"name":"%s","types":[%s]}],
+                     "types":[%s%s]}"""
+                    .formatted(code, this.face, face, zone, quoted(this.types),
+                            faceTypes, types);
         }
 
         /**

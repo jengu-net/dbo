@@ -1845,6 +1845,41 @@ public final class TenantRuntimeManager implements AutoCloseable {
             java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter(),
                     new cloud.jengu.dbo.fhir.r4.R5ToR4Converter());
 
+    /**
+     * Says, once, what a tenant holds that it cannot validate anything
+     * against — which for a projection is what the version could not carry.
+     *
+     * <p>At INFO and by name: a count would say a zone is partly unservable
+     * and leave somebody to work out which part, and the part is the whole of
+     * what anybody can act on.
+     */
+    private void sayWhatTheVersionCouldNotCarry(String code) {
+        java.util.List<ConvertedDefinitions.Unfounded> orphaned = whatTheVersionCouldNotCarry(code);
+        if (!orphaned.isEmpty()) {
+            LOG.info("tenant {}: {}", code, ConvertedDefinitions.said(orphaned));
+        }
+    }
+
+    /**
+     * What a projection could not carry across the version, named.
+     *
+     * <p>Asked of the projection because it is the one tenant holding both the
+     * converted definitions and the face they were converted into — its
+     * dependents hold the result and have nothing to compare it against. Asked
+     * after its streams have run, because a base that is still on its way is
+     * not a base that is missing.
+     *
+     * <p>Said rather than thrown. A zone that is partly unservable on a face
+     * is a fact about that zone, and the tenants of it are refused where
+     * readiness is decided; a projection that refused to come up would take
+     * the servable part of the zone down with the rest.
+     */
+    public java.util.List<ConvertedDefinitions.Unfounded> whatTheVersionCouldNotCarry(
+            String projection) {
+        javax.sql.DataSource on = tenantDataSources.get(projection);
+        return on == null ? java.util.List.of() : ConvertedDefinitions.unfounded(on);
+    }
+
     /** What a tenant must have received from its face before it may serve. */
     static final java.util.Set<String> CRITICAL_ON_THE_FACE =
             java.util.Set.of("StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem");
@@ -1938,6 +1973,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         LOG.info("tenant {} took its face from {}: image={} events={} in {}ms", spec.code(),
                 face.get().name(), image.fromImage(), carried,
                 System.currentTimeMillis() - began);
+        sayWhatTheVersionCouldNotCarry(spec.code());
     }
 
     /**
