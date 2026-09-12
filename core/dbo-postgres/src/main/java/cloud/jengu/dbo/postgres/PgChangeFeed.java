@@ -5,6 +5,8 @@ import cloud.jengu.dbo.core.api.feed.ChangeKind;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
 
+import cloud.jengu.dbo.core.api.Domains;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -55,6 +57,9 @@ public final class PgChangeFeed implements ChangeFeed {
 
     private final DataSource ds;
     private final String domain;
+    /** Where this domain's tables are, qualified. */
+    private final String tables;
+    private final String historyTables;
 
     public PgChangeFeed(DataSource dataSource, String domain) {
         if (!DOMAIN.matcher(domain).matches()) {
@@ -62,6 +67,8 @@ public final class PgChangeFeed implements ChangeFeed {
         }
         this.ds = dataSource;
         this.domain = domain;
+        this.tables = Domains.tables(domain);
+        this.historyTables = Domains.historyTables(domain);
     }
 
     @Override
@@ -83,13 +90,13 @@ public final class PgChangeFeed implements ChangeFeed {
         Cursors.FeedCursor at = Cursors.decodeFeed(cursor);
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     INSERT INTO state.%s_consumer (name, seq, cursor_xid, updated_at)
+                     INSERT INTO %s_consumer (name, seq, cursor_xid, updated_at)
                      VALUES (?, ?, ?::text::xid8, now())
                      ON CONFLICT (name) DO UPDATE
                      SET seq = EXCLUDED.seq, cursor_xid = EXCLUDED.cursor_xid, updated_at = now()
                      WHERE (%s_consumer.cursor_xid, %s_consumer.seq)
                          < (EXCLUDED.cursor_xid, EXCLUDED.seq)"""
-                     .formatted(domain, domain, domain))) {
+                     .formatted(tables, domain, domain))) {
             ps.setString(1, consumer);
             ps.setLong(2, at.seq());
             ps.setString(3, Long.toString(at.xid()));
@@ -106,11 +113,11 @@ public final class PgChangeFeed implements ChangeFeed {
                 ? new Cursors.FeedCursor(0, 0) : Cursors.decodeFeed(cursor);
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     INSERT INTO state.%s_consumer (name, seq, cursor_xid, updated_at)
+                     INSERT INTO %s_consumer (name, seq, cursor_xid, updated_at)
                      VALUES (?, ?, ?::text::xid8, now())
                      ON CONFLICT (name) DO UPDATE
                      SET seq = EXCLUDED.seq, cursor_xid = EXCLUDED.cursor_xid, updated_at = now()"""
-                     .formatted(domain))) {
+                     .formatted(tables))) {
             ps.setString(1, consumer);
             ps.setLong(2, at.seq());
             ps.setString(3, Long.toString(at.xid()));
@@ -134,9 +141,9 @@ public final class PgChangeFeed implements ChangeFeed {
         try (Connection c = ds.getConnection()) {
             String horizon = localHorizon(c);
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT count(*) FROM state.%s_outbox o
+                    SELECT count(*) FROM %s_outbox o
                     WHERE (o.xact_id, o.seq) > (?::text::xid8, ?) AND %s"""
-                    .formatted(domain, BARRIER))) {
+                    .formatted(tables, BARRIER))) {
                 ps.setString(1, Long.toString(at.xid()));
                 ps.setLong(2, at.seq());
                 ps.setString(3, horizon);
@@ -165,10 +172,10 @@ public final class PgChangeFeed implements ChangeFeed {
         String sql = """
                 SELECT o.seq, o.object_id, o.type, o.version_id, o.kind, o.committed_at,
                        h.payload, h.deleted, h.payload_version, o.xact_id::text, h.shape
-                FROM state.%s_outbox o
-                JOIN history.%s_history h ON h.id = o.object_id AND h.version_id = o.version_id
+                FROM %s_outbox o
+                JOIN %s_history h ON h.id = o.object_id AND h.version_id = o.version_id
                 WHERE (o.xact_id, o.seq) > (?::text::xid8, ?) AND %s
-                ORDER BY o.xact_id, o.seq LIMIT ?""".formatted(domain, domain, BARRIER);
+                ORDER BY o.xact_id, o.seq LIMIT ?""".formatted(tables, historyTables, BARRIER);
         try (Connection c = ds.getConnection()) {
             String horizon = localHorizon(c); // BEFORE the read snapshot
             try (PreparedStatement ps = c.prepareStatement(sql)) {
@@ -216,8 +223,8 @@ public final class PgChangeFeed implements ChangeFeed {
     private Cursors.FeedCursor consumerCursor(String consumer) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT cursor_xid::text, seq FROM state.%s_consumer WHERE name = ?"
-                             .formatted(domain))) {
+                     "SELECT cursor_xid::text, seq FROM %s_consumer WHERE name = ?"
+                             .formatted(tables))) {
             ps.setString(1, consumer);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next()

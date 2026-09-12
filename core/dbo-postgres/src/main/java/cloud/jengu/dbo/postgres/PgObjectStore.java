@@ -3,6 +3,7 @@ package cloud.jengu.dbo.postgres;
 import cloud.jengu.dbo.core.TypeRegistry;
 import cloud.jengu.dbo.core.UuidV7;
 import cloud.jengu.dbo.core.api.Criteria;
+import cloud.jengu.dbo.core.api.Domains;
 import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
 import cloud.jengu.dbo.core.api.Caller;
@@ -170,7 +171,8 @@ public final class PgObjectStore implements ObjectStore {
      */
     private List<PutResult> writeObjects(Connection c, List<TypeRegistration> types,
             List<PutRequest> requests, Handling.Authority caller) throws SQLException {
-        String d = types.get(0).domain();
+        String domain = types.get(0).domain();
+        String d = Domains.tables(domain);
         int n = requests.size();
         UUID[] uuids = new UUID[n];
         for (int i = 0; i < n; i++) {
@@ -180,7 +182,7 @@ public final class PgObjectStore implements ObjectStore {
         // chain for the link
         java.util.Map<UUID, Object[]> current = new java.util.HashMap<>();
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT id, type, version_id, chain_hash FROM state.%s_data WHERE id = ANY(?) FOR UPDATE"
+                "SELECT id, type, version_id, chain_hash FROM %s_data WHERE id = ANY(?) FOR UPDATE"
                         .formatted(d))) {
             ps.setArray(1, c.createArrayOf("uuid", uuids));
             try (ResultSet rs = ps.executeQuery()) {
@@ -220,7 +222,7 @@ public final class PgObjectStore implements ObjectStore {
                     versions[i], now, false);
         }
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.%s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version, chain_hash, shape)
+                INSERT INTO %s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version, chain_hash, shape)
                 VALUES (?, ?, ?, ?, ?::jsonb, ?, false, ?, ?, ?::jsonb)
                 ON CONFLICT (id) DO UPDATE SET
                   version_id = EXCLUDED.version_id,
@@ -245,11 +247,11 @@ public final class PgObjectStore implements ObjectStore {
             }
             ps.executeBatch();
         }
-        replaceIdentifiers(c, d, types, uuids, envelopes, created);
-        replaceReferences(c, d, uuids, envelopes, created);
+        replaceIdentifiers(c, domain, types, uuids, envelopes, created);
+        replaceReferences(c, domain, uuids, envelopes, created);
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO history.%s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape)
-                VALUES (?, ?, ?, ?, ?, false, ?, ?, ?::jsonb)""".formatted(d))) {
+                INSERT INTO %s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape)
+                VALUES (?, ?, ?, ?, ?, false, ?, ?, ?::jsonb)""".formatted(Domains.historyTables(domain)))) {
             for (int i = 0; i < n; i++) {
                 ps.setObject(1, uuids[i]);
                 ps.setLong(2, versions[i]);
@@ -264,7 +266,7 @@ public final class PgObjectStore implements ObjectStore {
             ps.executeBatch();
         }
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.%s_outbox (object_id, type, version_id, kind)
+                INSERT INTO %s_outbox (object_id, type, version_id, kind)
                 VALUES (?, ?, ?, ?)""".formatted(d))) {
             for (int i = 0; i < n; i++) {
                 ps.setObject(1, uuids[i]);
@@ -289,14 +291,14 @@ public final class PgObjectStore implements ObjectStore {
      * a conflict between its two makers — the unique index would say so, and
      * the answer is owed before the batch reaches it.
      */
-    private void replaceIdentifiers(Connection c, String d, List<TypeRegistration> types,
+    private void replaceIdentifiers(Connection c, String domain, List<TypeRegistration> types,
             UUID[] uuids, Envelope[] envelopes, boolean[] created) throws SQLException {
         int n = uuids.length;
         UUID[] updated = java.util.stream.IntStream.range(0, n).filter(i -> !created[i])
                 .mapToObj(i -> uuids[i]).toArray(UUID[]::new);
         if (updated.length > 0) {
             try (PreparedStatement ps = c.prepareStatement(
-                    "DELETE FROM state.%s_identifier WHERE object_id = ANY(?)".formatted(d))) {
+                    "DELETE FROM %s_identifier WHERE object_id = ANY(?)".formatted(Domains.tables(domain)))) {
                 ps.setArray(1, c.createArrayOf("uuid", updated));
                 ps.executeUpdate();
             }
@@ -325,8 +327,8 @@ public final class PgObjectStore implements ObjectStore {
             String[] systems = byType.getValue().keySet().stream().map(Identifier::system).toArray(String[]::new);
             String[] values = byType.getValue().keySet().stream().map(Identifier::value).toArray(String[]::new);
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT system, value, object_id FROM state.%s_identifier
-                    WHERE type = ? AND identity AND system = ANY(?) AND value = ANY(?)""".formatted(d))) {
+                    SELECT system, value, object_id FROM %s_identifier
+                    WHERE type = ? AND identity AND system = ANY(?) AND value = ANY(?)""".formatted(Domains.tables(domain)))) {
                 ps.setString(1, byType.getKey());
                 ps.setArray(2, c.createArrayOf("text", systems));
                 ps.setArray(3, c.createArrayOf("text", values));
@@ -343,9 +345,9 @@ public final class PgObjectStore implements ObjectStore {
             }
         }
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.%s_identifier (type, system, value, object_id, identity)
+                INSERT INTO %s_identifier (type, system, value, object_id, identity)
                 VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT (type, system, value, object_id) DO NOTHING""".formatted(d))) {
+                ON CONFLICT (type, system, value, object_id) DO NOTHING""".formatted(Domains.tables(domain)))) {
             for (int i = 0; i < n; i++) {
                 List<Identifier> identifiers = envelopes[i].identifiers();
                 for (int k = 0; k < identifiers.size(); k++) {
@@ -361,21 +363,21 @@ public final class PgObjectStore implements ObjectStore {
         }
     }
 
-    private void replaceReferences(Connection c, String d, UUID[] uuids, Envelope[] envelopes,
+    private void replaceReferences(Connection c, String domain, UUID[] uuids, Envelope[] envelopes,
             boolean[] created) throws SQLException {
         int n = uuids.length;
         UUID[] updated = java.util.stream.IntStream.range(0, n).filter(i -> !created[i])
                 .mapToObj(i -> uuids[i]).toArray(UUID[]::new);
         if (updated.length > 0) {
             try (PreparedStatement ps = c.prepareStatement(
-                    "DELETE FROM state.%s_reference WHERE owner_id = ANY(?)".formatted(d))) {
+                    "DELETE FROM %s_reference WHERE owner_id = ANY(?)".formatted(Domains.tables(domain)))) {
                 ps.setArray(1, c.createArrayOf("uuid", updated));
                 ps.executeUpdate();
             }
         }
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.%s_reference (owner_id, ref_type, target_type, target_id)
-                VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING""".formatted(d))) {
+                INSERT INTO %s_reference (owner_id, ref_type, target_type, target_id)
+                VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING""".formatted(Domains.tables(domain)))) {
             boolean any = false;
             for (int i = 0; i < n; i++) {
                 for (Envelope.ReferenceEdge edge : envelopes[i].references()) {
@@ -479,9 +481,10 @@ public final class PgObjectStore implements ObjectStore {
             Handling.Authority caller) throws SQLException {
         String id = request.id() != null ? request.id() : UuidV7.newId();
         UUID uuid = UUID.fromString(id);
-        String d = type.domain();
+        String domain = type.domain();
+        String d = Domains.tables(domain);
 
-        Long current = lockVersion(c, d, type.typeName(), uuid);
+        Long current = lockVersion(c, domain, type.typeName(), uuid);
         if (request.expectedVersion() != null) {
             long actual = current == null ? 0 : current;
             if (actual != request.expectedVersion()) {
@@ -520,11 +523,11 @@ public final class PgObjectStore implements ObjectStore {
         // Link this version to the one before it. Computed on the ordinary
         // write path, so a restored version is chained exactly as a live one —
         // a restore that skipped chaining would be the hole the chain closes.
-        byte[] chainHash = VersionChain.link(previousChain(c, d, uuid), request.payload(),
+        byte[] chainHash = VersionChain.link(previousChain(c, domain, uuid), request.payload(),
                 newVersion, now, false);
 
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.%s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version, chain_hash, shape)
+                INSERT INTO %s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version, chain_hash, shape)
                 VALUES (?, ?, ?, ?, ?::jsonb, ?, false, ?, ?, ?::jsonb)
                 ON CONFLICT (id) DO UPDATE SET
                   version_id = EXCLUDED.version_id,
@@ -548,8 +551,8 @@ public final class PgObjectStore implements ObjectStore {
         }
 
         replaceIdentifiers(c, type, uuid, envelope.identifiers());
-        replaceReferences(c, d, uuid, envelope.references(), newVersion == 1);
-        insertHistory(c, d, uuid, type.typeName(), newVersion, now, request.payload(), false,
+        replaceReferences(c, domain, uuid, envelope.references(), newVersion == 1);
+        insertHistory(c, type.domain(), uuid, type.typeName(), newVersion, now, request.payload(), false,
                 type.payloadVersion(), chainHash, shapeJson);
         if (!request.isRestore()) {
             // A restore re-establishes state; it does not change it. The outbox
@@ -558,7 +561,7 @@ public final class PgObjectStore implements ObjectStore {
             // busy one, and a hospital's downstream systems receive its entire
             // history as fresh news on the day it is already having its worst
             // day.
-            insertOutbox(c, d, uuid, type.typeName(), newVersion, created ? "C" : "U");
+            insertOutbox(c, domain, uuid, type.typeName(), newVersion, created ? "C" : "U");
         }
 
         return new PutResult(id, newVersion, created);
@@ -566,9 +569,9 @@ public final class PgObjectStore implements ObjectStore {
 
     private void replaceIdentifiers(Connection c, TypeRegistration type, UUID id, List<Identifier> identifiers)
             throws SQLException {
-        String d = type.domain();
+        String d = Domains.tables(type.domain());
         try (PreparedStatement ps = c.prepareStatement(
-                "DELETE FROM state.%s_identifier WHERE object_id = ?".formatted(d))) {
+                "DELETE FROM %s_identifier WHERE object_id = ?".formatted(d))) {
             ps.setObject(1, id);
             ps.executeUpdate();
         }
@@ -592,7 +595,7 @@ public final class PgObjectStore implements ObjectStore {
             // violation of the partial identity-claim index still RAISES —
             // swallowing it would silently merge identities
             try (PreparedStatement ps = c.prepareStatement("""
-                    INSERT INTO state.%s_identifier (type, system, value, object_id, identity)
+                    INSERT INTO %s_identifier (type, system, value, object_id, identity)
                     VALUES (?, ?, ?, ?, ?)
                     ON CONFLICT (type, system, value, object_id) DO NOTHING""".formatted(d))) {
                 ps.setString(1, type.typeName());
@@ -615,8 +618,8 @@ public final class PgObjectStore implements ObjectStore {
         // the tx is doomed; report the existing claimant read via a fresh connection
         try (Connection c2 = ds.getConnection();
              PreparedStatement ps = c2.prepareStatement("""
-                     SELECT object_id FROM state.%s_identifier
-                     WHERE type = ? AND system = ? AND value = ? AND identity""".formatted(type.domain()))) {
+                     SELECT object_id FROM %s_identifier
+                     WHERE type = ? AND system = ? AND value = ? AND identity""".formatted(Domains.tables(type.domain())))) {
             ps.setString(1, type.typeName());
             ps.setString(2, ident.system());
             ps.setString(3, ident.value());
@@ -640,11 +643,11 @@ public final class PgObjectStore implements ObjectStore {
      * edges to clear, and issuing the statement anyway was a round trip per
      * write to delete nothing.
      */
-    private void replaceReferences(Connection c, String d, UUID id,
+    private void replaceReferences(Connection c, String domain, UUID id,
             List<Envelope.ReferenceEdge> references, boolean firstVersion) throws SQLException {
         if (!firstVersion) {
             try (PreparedStatement ps = c.prepareStatement(
-                    "DELETE FROM state.%s_reference WHERE owner_id = ?".formatted(d))) {
+                    "DELETE FROM %s_reference WHERE owner_id = ?".formatted(Domains.tables(domain)))) {
                 ps.setObject(1, id);
                 ps.executeUpdate();
             }
@@ -653,8 +656,8 @@ public final class PgObjectStore implements ObjectStore {
             return;
         }
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.%s_reference (owner_id, ref_type, target_type, target_id)
-                VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING""".formatted(d))) {
+                INSERT INTO %s_reference (owner_id, ref_type, target_type, target_id)
+                VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING""".formatted(Domains.tables(domain)))) {
             for (Envelope.ReferenceEdge edge : references) {
                 ps.setObject(1, id);
                 ps.setString(2, edge.refType());
@@ -666,13 +669,14 @@ public final class PgObjectStore implements ObjectStore {
         }
     }
 
-    private void insertHistory(Connection c, String d, UUID id, String type, long version,
+    private void insertHistory(Connection c, String domain, UUID id, String type, long version,
             Instant at, byte[] payload, boolean deleted, String payloadVersion, byte[] chainHash,
             String shapeJson)
             throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO history.%s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)""".formatted(d))) {
+                INSERT INTO %s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)"""
+                .formatted(Domains.historyTables(domain)))) {
             ps.setObject(1, id);
             ps.setLong(2, version);
             ps.setString(3, type);
@@ -707,8 +711,8 @@ public final class PgObjectStore implements ObjectStore {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
                      SELECT version_id, last_updated, payload, deleted, chain_hash
-                     FROM history.%s_history WHERE id = ? ORDER BY version_id"""
-                     .formatted(type.domain()))) {
+                     FROM %s_history WHERE id = ? ORDER BY version_id"""
+                     .formatted(Domains.historyTables(type.domain())))) {
             ps.setObject(1, uuid);
             byte[] previous = VersionChain.GENESIS;
             boolean sawAny = false;
@@ -747,9 +751,9 @@ public final class PgObjectStore implements ObjectStore {
         }
     }
 
-    private byte[] previousChain(Connection c, String d, UUID id) throws SQLException {
+    private byte[] previousChain(Connection c, String domain, UUID id) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT chain_hash FROM state.%s_data WHERE id = ?".formatted(d))) {
+                "SELECT chain_hash FROM %s_data WHERE id = ?".formatted(Domains.tables(domain)))) {
             ps.setObject(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? rs.getBytes(1) : null;
@@ -757,11 +761,11 @@ public final class PgObjectStore implements ObjectStore {
         }
     }
 
-    private void insertOutbox(Connection c, String d, UUID id, String type, long version, String kind)
+    private void insertOutbox(Connection c, String domain, UUID id, String type, long version, String kind)
             throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.%s_outbox (object_id, type, version_id, kind)
-                VALUES (?, ?, ?, ?)""".formatted(d))) {
+                INSERT INTO %s_outbox (object_id, type, version_id, kind)
+                VALUES (?, ?, ?, ?)""".formatted(Domains.tables(domain)))) {
             ps.setObject(1, id);
             ps.setString(2, type);
             ps.setLong(3, version);
@@ -778,10 +782,10 @@ public final class PgObjectStore implements ObjectStore {
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement("""
                     SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version, d.shape,
-                      (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
-                  (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
-                    FROM state.%s_data d WHERE d.id = ? AND d.type = ? AND NOT d.deleted"""
-                    .formatted(type.domain(), type.domain(), type.domain()))) {
+                      (SELECT o.dependency FROM %s_sync_origin o WHERE o.object_id = d.id) AS origin,
+                  (SELECT s.dependency FROM %s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
+                    FROM %s_data d WHERE d.id = ? AND d.type = ? AND NOT d.deleted"""
+                    .formatted(Domains.tables(type.domain()), Domains.tables(type.domain()), Domains.tables(type.domain())))) {
                 ps.setObject(1, UUID.fromString(id));
                 ps.setString(2, typeName);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -815,12 +819,12 @@ public final class PgObjectStore implements ObjectStore {
         // widens with every row.
         String sql = """
                 SELECT DISTINCT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version, d.shape,
-                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
-                  (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
-                FROM state.%s_data d
-                JOIN state.%s_identifier i ON i.object_id = d.id
+                  (SELECT o.dependency FROM %s_sync_origin o WHERE o.object_id = d.id) AS origin,
+                  (SELECT s.dependency FROM %s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
+                FROM %s_data d
+                JOIN %s_identifier i ON i.object_id = d.id
                 WHERE d.type = ? AND NOT d.deleted AND i.type = ? AND (%s)"""
-                .formatted(type.domain(), type.domain(), type.domain(), type.domain(), or);
+                .formatted(Domains.tables(type.domain()), Domains.tables(type.domain()), Domains.tables(type.domain()), Domains.tables(type.domain()), or);
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement(sql)) {
                 int p = 1;
@@ -841,10 +845,11 @@ public final class PgObjectStore implements ObjectStore {
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement("""
                     SELECT h.id, h.type, h.version_id, h.last_updated, h.payload, h.deleted, h.payload_version, h.shape,
-                      (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = h.id) AS origin,
-                      (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = h.id LIMIT 1) AS shadowing
-                    FROM history.%s_history h WHERE h.id = ? ORDER BY h.version_id"""
-                    .formatted(type.domain(), type.domain(), type.domain()))) {
+                      (SELECT o.dependency FROM %s_sync_origin o WHERE o.object_id = h.id) AS origin,
+                      (SELECT s.dependency FROM %s_sync_shadow s WHERE s.shadows_object_id = h.id LIMIT 1) AS shadowing
+                    FROM %s_history h WHERE h.id = ? ORDER BY h.version_id"""
+                    .formatted(Domains.tables(type.domain()), Domains.tables(type.domain()),
+                            Domains.historyTables(type.domain())))) {
                 ps.setObject(1, UUID.fromString(id));
                 return readAll(ps);
             }
@@ -854,15 +859,16 @@ public final class PgObjectStore implements ObjectStore {
     @Override
     public List<StoredObject> select(Criteria criteria) {
         TypeRegistration type = registry.require(criteria.typeName());
-        String d = type.domain();
+        String domain = type.domain();
+        String d = Domains.tables(domain);
         StringBuilder sql = new StringBuilder("""
                 SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version, d.shape,
-                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
-                  (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
-                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, d, d));
+                  (SELECT o.dependency FROM %s_sync_origin o WHERE o.object_id = d.id) AS origin,
+                  (SELECT s.dependency FROM %s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing
+                FROM %s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, d, d));
         List<Object> params = new ArrayList<>();
         params.add(criteria.typeName());
-        appendWhere(criteria, d, sql, params);
+        appendWhere(criteria, domain, sql, params);
         appendOrder(criteria, sql, true);
         sql.append(" LIMIT ?");
         params.add(criteria.limitValue());
@@ -880,12 +886,13 @@ public final class PgObjectStore implements ObjectStore {
     @Override
     public long count(Criteria criteria) {
         TypeRegistration type = registry.require(criteria.typeName());
-        String d = type.domain();
+        String domain = type.domain();
+        String d = Domains.tables(domain);
         StringBuilder sql = new StringBuilder(
-                "SELECT count(*) FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted".formatted(d));
+                "SELECT count(*) FROM %s_data d WHERE d.type = ? AND NOT d.deleted".formatted(d));
         List<Object> params = new ArrayList<>();
         params.add(criteria.typeName());
-        appendWhere(criteria, d, sql, params);
+        appendWhere(criteria, domain, sql, params);
         return withConnection(c -> {
             try (PreparedStatement ps = c.prepareStatement(sql.toString())) {
                 for (int i = 0; i < params.size(); i++) {
@@ -900,7 +907,7 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     /** All non-sort predicates, shared by select/page/count. Values are always bound. */
-    private void appendWhere(Criteria criteria, String d, StringBuilder sql, List<Object> params) {
+    private void appendWhere(Criteria criteria, String domain, StringBuilder sql, List<Object> params) {
         if (criteria.idEqualsValue() != null) {
             sql.append(" AND d.id = ?");
             params.add(UUID.fromString(criteria.idEqualsValue()));
@@ -950,14 +957,14 @@ public final class PgObjectStore implements ObjectStore {
             params.add(Timestamp.from(lu.value()));
         }
         for (Criteria.Referencing ref : criteria.referencingPredicates()) {
-            sql.append(" AND EXISTS (SELECT 1 FROM state.%s_reference r WHERE r.owner_id = d.id".formatted(d));
+            sql.append(" AND EXISTS (SELECT 1 FROM %s_reference r WHERE r.owner_id = d.id".formatted(Domains.tables(domain)));
             sql.append(" AND r.ref_type = ? AND r.target_type = ? AND r.target_id = ?)");
             params.add(ref.refType());
             params.add(ref.targetType());
             params.add(ref.targetId());
         }
         for (Criteria.ReferencingAny any : criteria.referencingAnyPredicates()) {
-            sql.append(" AND EXISTS (SELECT 1 FROM state.%s_reference r WHERE r.owner_id = d.id".formatted(d));
+            sql.append(" AND EXISTS (SELECT 1 FROM %s_reference r WHERE r.owner_id = d.id".formatted(Domains.tables(domain)));
             sql.append(" AND r.ref_type = ? AND r.target_type = ? AND r.target_id IN (");
             params.add(any.refType());
             params.add(any.targetType());
@@ -969,16 +976,16 @@ public final class PgObjectStore implements ObjectStore {
         }
         for (Criteria.RefMissing rm : criteria.refMissingPredicates()) {
             sql.append(rm.missing() ? " AND NOT EXISTS" : " AND EXISTS")
-               .append(" (SELECT 1 FROM state.%s_reference r WHERE r.owner_id = d.id AND r.ref_type = ?)"
-                       .formatted(d));
+               .append(" (SELECT 1 FROM %s_reference r WHERE r.owner_id = d.id AND r.ref_type = ?)"
+                       .formatted(Domains.tables(domain)));
             params.add(rm.refType());
         }
         for (Criteria.Chained ch : criteria.chainedPredicates()) {
-            String td = registry.require(ch.targetType()).domain();
+            String td = Domains.tables(registry.require(ch.targetType()).domain());
             switch (ch.target()) {
                 case Criteria.ChainTarget.ByIdentifier bi -> {
-                    sql.append(" AND EXISTS (SELECT 1 FROM state.%s_reference r".formatted(d))
-                       .append(" JOIN state.%s_identifier ti ON ti.object_id::text = r.target_id".formatted(td))
+                    sql.append(" AND EXISTS (SELECT 1 FROM %s_reference r".formatted(Domains.tables(domain)))
+                       .append(" JOIN %s_identifier ti ON ti.object_id::text = r.target_id".formatted(td))
                        .append(" AND ti.type = r.target_type WHERE r.owner_id = d.id")
                        .append(" AND r.ref_type = ? AND r.target_type = ?");
                     params.add(ch.refPath());
@@ -994,8 +1001,8 @@ public final class PgObjectStore implements ObjectStore {
                     sql.append(')');
                 }
                 case Criteria.ChainTarget.ByEq be -> {
-                    sql.append(" AND EXISTS (SELECT 1 FROM state.%s_reference r".formatted(d))
-                       .append(" JOIN state.%s_data td ON td.id::text = r.target_id AND NOT td.deleted".formatted(td))
+                    sql.append(" AND EXISTS (SELECT 1 FROM %s_reference r".formatted(Domains.tables(domain)))
+                       .append(" JOIN %s_data td ON td.id::text = r.target_id AND NOT td.deleted".formatted(td))
                        .append(" WHERE r.owner_id = d.id AND r.ref_type = ? AND r.target_type = ?")
                        .append(" AND td.envelope @> ?::jsonb)");
                     params.add(ch.refPath());
@@ -1036,7 +1043,8 @@ public final class PgObjectStore implements ObjectStore {
     @Override
     public cloud.jengu.dbo.core.api.feed.FeedChunk<StoredObject> page(Criteria criteria, String cursor) {
         TypeRegistration type = registry.require(criteria.typeName());
-        String d = type.domain();
+        String domain = type.domain();
+        String d = Domains.tables(domain);
         Criteria.Sort s = criteria.sort();
         boolean ascending = s != null ? s.ascending()
                 : criteria.sortLastUpdatedAscending() == null || criteria.sortLastUpdatedAscending();
@@ -1044,12 +1052,12 @@ public final class PgObjectStore implements ObjectStore {
 
         StringBuilder sql = new StringBuilder("""
                 SELECT d.id, d.type, d.version_id, d.last_updated, d.payload, d.deleted, d.payload_version, d.shape,
-                  (SELECT o.dependency FROM state.%s_sync_origin o WHERE o.object_id = d.id) AS origin,
-                  (SELECT s.dependency FROM state.%s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing, %s AS sort_key
-                FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, d, sortExpr, d));
+                  (SELECT o.dependency FROM %s_sync_origin o WHERE o.object_id = d.id) AS origin,
+                  (SELECT s.dependency FROM %s_sync_shadow s WHERE s.shadows_object_id = d.id LIMIT 1) AS shadowing, %s AS sort_key
+                FROM %s_data d WHERE d.type = ? AND NOT d.deleted""".formatted(d, d, sortExpr, d));
         List<Object> params = new ArrayList<>();
         params.add(criteria.typeName());
-        appendWhere(criteria, d, sql, params);
+        appendWhere(criteria, domain, sql, params);
 
         if (cursor != null) {
             String[] keyset = Cursors.decodeKeyset(cursor);
@@ -1124,10 +1132,11 @@ public final class PgObjectStore implements ObjectStore {
                             + " and only that lane may remove it");
             case null -> { }
         }
-        String d = type.domain();
+        String domain = type.domain();
+        String d = Domains.tables(domain);
         UUID uuid = UUID.fromString(id);
         inTx(c -> {
-            Long current = lockVersion(c, d, typeName, uuid);
+            Long current = lockVersion(c, domain, typeName, uuid);
             if (current == null) {
                 return null; // deleting the absent is a no-op (idempotent)
             }
@@ -1139,7 +1148,7 @@ public final class PgObjectStore implements ObjectStore {
             byte[] lastPayload;
             String lastPayloadVersion;
             try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT payload, payload_version FROM state.%s_data WHERE id = ?".formatted(d))) {
+                    "SELECT payload, payload_version FROM %s_data WHERE id = ?".formatted(d))) {
                 ps.setObject(1, uuid);
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
@@ -1150,10 +1159,10 @@ public final class PgObjectStore implements ObjectStore {
             // A deletion is a version too. An unchained tombstone would be
             // the gap: remove a record, leave no link, and the history reads as
             // if it never held one.
-            byte[] tombstoneChain = VersionChain.link(previousChain(c, d, uuid), lastPayload,
+            byte[] tombstoneChain = VersionChain.link(previousChain(c, domain, uuid), lastPayload,
                     newVersion, now, true);
             try (PreparedStatement ps = c.prepareStatement("""
-                    UPDATE state.%s_data SET deleted = true, version_id = ?, last_updated = ?,
+                    UPDATE %s_data SET deleted = true, version_id = ?, last_updated = ?,
                     envelope = '{}'::jsonb, chain_hash = ? WHERE id = ?""".formatted(d))) {
                 ps.setLong(1, newVersion);
                 ps.setTimestamp(2, Timestamp.from(now));
@@ -1162,18 +1171,18 @@ public final class PgObjectStore implements ObjectStore {
                 ps.executeUpdate();
             }
             try (PreparedStatement ps = c.prepareStatement(
-                    "DELETE FROM state.%s_identifier WHERE object_id = ?".formatted(d))) {
+                    "DELETE FROM %s_identifier WHERE object_id = ?".formatted(d))) {
                 ps.setObject(1, uuid);
                 ps.executeUpdate();
             }
             try (PreparedStatement ps = c.prepareStatement(
-                    "DELETE FROM state.%s_reference WHERE owner_id = ?".formatted(d))) {
+                    "DELETE FROM %s_reference WHERE owner_id = ?".formatted(d))) {
                 ps.setObject(1, uuid);
                 ps.executeUpdate();
             }
-            insertHistory(c, d, uuid, typeName, newVersion, now, lastPayload, true,
+            insertHistory(c, type.domain(), uuid, typeName, newVersion, now, lastPayload, true,
                     lastPayloadVersion, tombstoneChain, null);
-            insertOutbox(c, d, uuid, typeName, newVersion, "D");
+            insertOutbox(c, domain, uuid, typeName, newVersion, "D");
             return null;
         });
     }
@@ -1183,18 +1192,18 @@ public final class PgObjectStore implements ObjectStore {
     @Override
     public List<cloud.jengu.dbo.core.api.Held> inventory(String typeName, List<String> paths) {
         TypeRegistration type = registry.require(typeName);
-        String d = type.domain();
+        String d = Domains.tables(type.domain());
         StringBuilder sql = new StringBuilder("SELECT d.id, d.version_id");
         for (int i = 0; i < paths.size(); i++) {
             // the first value under the path, as the text this codec wrote
             sql.append(", d.envelope -> ? -> 0");
         }
-        sql.append(" FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted ORDER BY d.id".formatted(d));
+        sql.append(" FROM %s_data d WHERE d.type = ? AND NOT d.deleted ORDER BY d.id".formatted(d));
         Map<UUID, List<Identifier>> identifiers = new java.util.HashMap<>();
         List<cloud.jengu.dbo.core.api.Held> out = new ArrayList<>();
         try (Connection c = ds.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT object_id, system, value FROM state.%s_identifier WHERE type = ?".formatted(d))) {
+                    "SELECT object_id, system, value FROM %s_identifier WHERE type = ?".formatted(d))) {
                 ps.setString(1, typeName);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
@@ -1259,7 +1268,8 @@ public final class PgObjectStore implements ObjectStore {
     public int rebuildEnvelopes(String typeName, int batchSize) {
         TypeRegistration type = registry.require(typeName);
         schema.applyIndexes(registry);
-        String d = type.domain();
+        String domain = type.domain();
+        String d = Domains.tables(domain);
         int total = 0;
         UUID after = null;
         while (true) {
@@ -1268,8 +1278,8 @@ public final class PgObjectStore implements ObjectStore {
             List<Row> batch = inTx(c -> {
                 List<Row> rows = new ArrayList<>();
                 String sql = cursor == null
-                        ? "SELECT id, payload, payload_version, shape FROM state.%s_data WHERE type = ? AND NOT deleted ORDER BY id LIMIT ?"
-                        : "SELECT id, payload, payload_version, shape FROM state.%s_data WHERE type = ? AND NOT deleted AND id > ? ORDER BY id LIMIT ?";
+                        ? "SELECT id, payload, payload_version, shape FROM %s_data WHERE type = ? AND NOT deleted ORDER BY id LIMIT ?"
+                        : "SELECT id, payload, payload_version, shape FROM %s_data WHERE type = ? AND NOT deleted AND id > ? ORDER BY id LIMIT ?";
                 try (PreparedStatement ps = c.prepareStatement(sql.formatted(d))) {
                     int p = 1;
                     ps.setString(p++, typeName);
@@ -1291,14 +1301,14 @@ public final class PgObjectStore implements ObjectStore {
                     // because it never depended on the payload
                     shapeIntoEnvelope(envelope, shapeOf(row.shapeJson()));
                     try (PreparedStatement up = c.prepareStatement(
-                            "UPDATE state.%s_data SET envelope = ?::jsonb WHERE id = ?".formatted(d))) {
+                            "UPDATE %s_data SET envelope = ?::jsonb WHERE id = ?".formatted(d))) {
                         up.setString(1, JsonbCodec.envelopeJson(envelope.paths()));
                         up.setObject(2, row.id());
                         up.executeUpdate();
                     }
                     replaceIdentifiers(c, type, row.id(), envelope.identifiers());
                     // a reindex rewrites edges for rows that already have them
-                    replaceReferences(c, d, row.id(), envelope.references(), false);
+                    replaceReferences(c, domain, row.id(), envelope.references(), false);
                 }
                 return rows;
             });
@@ -1315,8 +1325,8 @@ public final class PgObjectStore implements ObjectStore {
     private Optional<String> resolveIdentity(Connection c, TypeRegistration type, Identifier ident)
             throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("""
-                SELECT object_id FROM state.%s_identifier
-                WHERE type = ? AND system = ? AND value = ? AND identity""".formatted(type.domain()))) {
+                SELECT object_id FROM %s_identifier
+                WHERE type = ? AND system = ? AND value = ? AND identity""".formatted(Domains.tables(type.domain())))) {
             ps.setString(1, type.typeName());
             ps.setString(2, ident.system());
             ps.setString(3, ident.value());
@@ -1331,9 +1341,11 @@ public final class PgObjectStore implements ObjectStore {
         return v == null ? 0 : v;
     }
 
-    private Long lockVersion(Connection c, String d, String typeName, UUID id) throws SQLException {
+    private Long lockVersion(Connection c, String domain, String typeName, UUID id)
+            throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT version_id FROM state.%s_data WHERE id = ? AND type = ? FOR UPDATE".formatted(d))) {
+                "SELECT version_id FROM %s_data WHERE id = ? AND type = ? FOR UPDATE"
+                        .formatted(Domains.tables(domain)))) {
             ps.setObject(1, id);
             ps.setString(2, typeName);
             try (ResultSet rs = ps.executeQuery()) {

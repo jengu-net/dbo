@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.maintenance;
 
+import cloud.jengu.dbo.core.api.Domains;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PutRequest;
 import org.postgresql.PGConnection;
@@ -307,9 +308,10 @@ public final class TenantImport {
                     // every domain has its own, and one left behind hands out
                     // sequence numbers that already exist
                     try (PreparedStatement ps = c.prepareStatement("""
-                            SELECT setval(pg_get_serial_sequence('state.%s_outbox', 'seq'),
-                                          COALESCE((SELECT max(seq) FROM state.%s_outbox), 0) + 1,
-                                          false)""".formatted(restored, restored))) {
+                            SELECT setval(pg_get_serial_sequence('%s_outbox', 'seq'),
+                                          COALESCE((SELECT max(seq) FROM %s_outbox), 0) + 1,
+                                          false)""".formatted(Domains.tables(restored),
+                                    Domains.tables(restored)))) {
                         ps.execute();
                     }
                 }
@@ -399,15 +401,16 @@ public final class TenantImport {
             return;
         }
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.%s_consumer (name, seq, cursor_xid, updated_at)
+                INSERT INTO %s_consumer (name, seq, cursor_xid, updated_at)
                 SELECT ?, COALESCE(head.seq, 0), COALESCE(head.xact_id, '0'::xid8), now()
                 FROM (SELECT 1) one
                 LEFT JOIN LATERAL (
-                  SELECT seq, xact_id FROM state.%s_outbox
+                  SELECT seq, xact_id FROM %s_outbox
                   ORDER BY xact_id DESC, seq DESC LIMIT 1) head ON true
                 ON CONFLICT (name) DO UPDATE
                   SET seq = EXCLUDED.seq, cursor_xid = EXCLUDED.cursor_xid,
-                      updated_at = EXCLUDED.updated_at""".formatted(domain, domain))) {
+                      updated_at = EXCLUDED.updated_at"""
+                .formatted(Domains.tables(domain), Domains.tables(domain)))) {
             for (String consumer : consumers) {
                 ps.setString(1, consumer);
                 ps.addBatch();
@@ -458,8 +461,8 @@ public final class TenantImport {
         // arbitrary table in the target database, which is what this check
         // exists to prevent.
         boolean known = terminology || domains.stream().anyMatch(d ->
-                archiveName.startsWith("state." + d + "_")
-                        || archiveName.startsWith("history." + d + "_"));
+                archiveName.startsWith(Domains.tables(d) + "_")
+                        || archiveName.startsWith(Domains.historyTables(d) + "_"));
         if (!known) {
             throw new IllegalArgumentException("unexpected fidelity table: " + archiveName
                     + " — the archive declares " + domains);

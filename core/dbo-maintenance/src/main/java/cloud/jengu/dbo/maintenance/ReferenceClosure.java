@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.maintenance;
 
+import cloud.jengu.dbo.core.api.Domains;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -99,9 +100,9 @@ public final class ReferenceClosure {
         long checked;
         try (Connection c = ds.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT count(*) FROM state.%s_reference r
-                    JOIN state.%s_data o ON o.id = r.owner_id AND NOT o.deleted
-                    """.formatted(domain, domain));
+                    SELECT count(*) FROM %s_reference r
+                    JOIN %s_data o ON o.id = r.owner_id AND NOT o.deleted
+                    """.formatted(Domains.tables(domain), Domains.tables(domain)));
                  ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 checked = rs.getLong(1);
@@ -111,13 +112,13 @@ public final class ReferenceClosure {
             // than report the row.
             try (PreparedStatement ps = c.prepareStatement("""
                     SELECT o.type, r.owner_id::text, r.ref_type, r.target_type, r.target_id
-                    FROM state.%s_reference r
-                    JOIN state.%s_data o ON o.id = r.owner_id AND NOT o.deleted
-                    LEFT JOIN state.%s_data t
+                    FROM %s_reference r
+                    JOIN %s_data o ON o.id = r.owner_id AND NOT o.deleted
+                    LEFT JOIN %s_data t
                            ON t.id::text = r.target_id AND NOT t.deleted
                     WHERE t.id IS NULL
                     ORDER BY o.type, r.owner_id, r.ref_type
-                    """.formatted(domain, domain, domain));
+                    """.formatted(Domains.tables(domain), Domains.tables(domain), Domains.tables(domain)));
                  ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     LooseEnd end = new LooseEnd(rs.getString(1), rs.getString(2),

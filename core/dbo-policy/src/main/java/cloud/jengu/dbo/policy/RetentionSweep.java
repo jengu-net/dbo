@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.policy;
 
+import cloud.jengu.dbo.core.api.Domains;
 import cloud.jengu.dbo.work.Failure;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
@@ -92,8 +93,8 @@ public final class RetentionSweep {
         List<String> expired = new ArrayList<>();
         try (Connection c = ds.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT id FROM state.%s_data
-                    WHERE type = ? AND last_updated < ? LIMIT 500""".formatted(domain))) {
+                    SELECT id FROM %s_data
+                    WHERE type = ? AND last_updated < ? LIMIT 500""".formatted(Domains.tables(domain)))) {
                 ps.setString(1, typeName);
                 ps.setTimestamp(2, java.sql.Timestamp.from(ceiling));
                 try (ResultSet rs = ps.executeQuery()) {
@@ -106,10 +107,10 @@ public final class RetentionSweep {
                 c.setAutoCommit(false);
                 try {
                     for (String sql : List.of(
-                            "DELETE FROM history.%s_history WHERE id = ?::uuid".formatted(domain),
-                            "DELETE FROM state.%s_identifier WHERE object_id = ?::uuid".formatted(domain),
-                            "DELETE FROM state.%s_reference WHERE owner_id = ?::uuid".formatted(domain),
-                            "DELETE FROM state.%s_data WHERE id = ?::uuid".formatted(domain))) {
+                            "DELETE FROM %s_history WHERE id = ?::uuid".formatted(Domains.historyTables(domain)),
+                            "DELETE FROM %s_identifier WHERE object_id = ?::uuid".formatted(Domains.tables(domain)),
+                            "DELETE FROM %s_reference WHERE owner_id = ?::uuid".formatted(Domains.tables(domain)),
+                            "DELETE FROM %s_data WHERE id = ?::uuid".formatted(Domains.tables(domain)))) {
                         try (PreparedStatement ps = c.prepareStatement(sql)) {
                             ps.setString(1, id);
                             ps.executeUpdate();

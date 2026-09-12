@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.subscriptions;
 
+import cloud.jengu.dbo.core.api.Domains;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.work.Failure;
@@ -237,10 +238,10 @@ public final class SubscriptionEngine implements AutoCloseable {
     private long nextEventNumber(String subscriptionId) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     INSERT INTO state.%s_topic_counter (subscription_id, events)
+                     INSERT INTO %s_topic_counter (subscription_id, events)
                      VALUES (?, 1)
                      ON CONFLICT (subscription_id) DO UPDATE SET events = %s_topic_counter.events + 1
-                     RETURNING events""".formatted(domain, domain))) {
+                     RETURNING events""".formatted(Domains.tables(domain), Domains.tables(domain)))) {
             ps.setString(1, subscriptionId);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
@@ -254,10 +255,10 @@ public final class SubscriptionEngine implements AutoCloseable {
     private void ensureTopicCounterTable() {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     CREATE TABLE IF NOT EXISTS state.%s_topic_counter (
+                     CREATE TABLE IF NOT EXISTS %s_topic_counter (
                        subscription_id text PRIMARY KEY,
                        events bigint NOT NULL
-                     )""".formatted(domain))) {
+                     )""".formatted(Domains.tables(domain)))) {
             ps.execute();
         } catch (SQLException e) {
             throw new IllegalStateException("counter setup failed", e);

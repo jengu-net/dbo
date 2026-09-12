@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.sync;
 
+import cloud.jengu.dbo.core.api.Domains;
 import cloud.jengu.dbo.core.api.IdentityConflictException;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.face.GrainCodec;
@@ -412,8 +413,8 @@ public final class ContentSyncEngine {
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement("""
                      SELECT object_id, type, source_version_id, applied_payload_version, synced_at
-                     FROM state.%s_sync_origin WHERE dependency = ? ORDER BY synced_at"""
-                     .formatted(targetDomain))) {
+                     FROM %s_sync_origin WHERE dependency = ? ORDER BY synced_at"""
+                     .formatted(Domains.tables(targetDomain)))) {
             ps.setString(1, dependency.name());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -462,7 +463,7 @@ public final class ContentSyncEngine {
     public boolean isStreamedOrigin(String objectId) {
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT 1 FROM state.%s_sync_origin WHERE object_id = ?".formatted(targetDomain))) {
+                     "SELECT 1 FROM %s_sync_origin WHERE object_id = ?".formatted(Domains.tables(targetDomain)))) {
             ps.setObject(1, UUID.fromString(objectId));
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
@@ -479,8 +480,8 @@ public final class ContentSyncEngine {
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement("""
                      SELECT object_id, type, source_version_id, reason
-                     FROM state.%s_sync_dlq WHERE dependency = ? ORDER BY created_at"""
-                     .formatted(targetDomain))) {
+                     FROM %s_sync_dlq WHERE dependency = ? ORDER BY created_at"""
+                     .formatted(Domains.tables(targetDomain)))) {
             ps.setString(1, dependency.name());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -507,7 +508,7 @@ public final class ContentSyncEngine {
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement("""
                      SELECT object_id, type, source_version_id, payload, deleted, payload_version
-                     FROM state.%s_sync_shadow WHERE dependency = ?""".formatted(targetDomain))) {
+                     FROM %s_sync_shadow WHERE dependency = ?""".formatted(Domains.tables(targetDomain)))) {
             ps.setString(1, dependency.name());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -530,13 +531,13 @@ public final class ContentSyncEngine {
     private void recordOrigins(List<FeedItem> items, String appliedVersion) {
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     INSERT INTO state.%s_sync_origin
+                     INSERT INTO %s_sync_origin
                        (object_id, dependency, type, source_version_id, applied_payload_version, synced_at)
                      VALUES (?, ?, ?, ?, ?, now())
                      ON CONFLICT (object_id) DO UPDATE SET
                        source_version_id = EXCLUDED.source_version_id,
                        applied_payload_version = EXCLUDED.applied_payload_version,
-                       synced_at = now()""".formatted(targetDomain))) {
+                       synced_at = now()""".formatted(Domains.tables(targetDomain)))) {
             for (FeedItem item : items) {
                 ps.setObject(1, UUID.fromString(item.objectId()));
                 ps.setString(2, dependency.name());
@@ -554,7 +555,7 @@ public final class ContentSyncEngine {
     private void park(FeedItem item, String shadowedBy) {
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     INSERT INTO state.%s_sync_shadow
+                     INSERT INTO %s_sync_shadow
                        (dependency, object_id, type, source_version_id, payload, deleted, payload_version, parked_at, shadows_object_id)
                      VALUES (?, ?, ?, ?, ?, ?, ?, now(), ?)
                      ON CONFLICT (dependency, object_id) DO UPDATE SET
@@ -563,7 +564,7 @@ public final class ContentSyncEngine {
                        deleted = EXCLUDED.deleted,
                        payload_version = EXCLUDED.payload_version,
                        parked_at = now(),
-                       shadows_object_id = EXCLUDED.shadows_object_id""".formatted(targetDomain))) {
+                       shadows_object_id = EXCLUDED.shadows_object_id""".formatted(Domains.tables(targetDomain)))) {
             ps.setString(1, dependency.name());
             ps.setObject(2, UUID.fromString(item.objectId()));
             ps.setString(3, item.typeName());
@@ -581,8 +582,8 @@ public final class ContentSyncEngine {
     private void removeShadow(String objectId) {
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "DELETE FROM state.%s_sync_shadow WHERE dependency = ? AND object_id = ?"
-                             .formatted(targetDomain))) {
+                     "DELETE FROM %s_sync_shadow WHERE dependency = ? AND object_id = ?"
+                             .formatted(Domains.tables(targetDomain)))) {
             ps.setString(1, dependency.name());
             ps.setObject(2, UUID.fromString(objectId));
             ps.executeUpdate();
@@ -594,11 +595,11 @@ public final class ContentSyncEngine {
     private void deadLetter(FeedItem item, String reason) {
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     INSERT INTO state.%s_sync_dlq
+                     INSERT INTO %s_sync_dlq
                        (dependency, object_id, type, source_version_id, reason, created_at)
                      VALUES (?, ?, ?, ?, ?, now())
                      ON CONFLICT (dependency, object_id, source_version_id) DO NOTHING"""
-                     .formatted(targetDomain))) {
+                     .formatted(Domains.tables(targetDomain)))) {
             ps.setString(1, dependency.name());
             ps.setObject(2, UUID.fromString(item.objectId()));
             ps.setString(3, item.typeName());
@@ -614,16 +615,16 @@ public final class ContentSyncEngine {
         try (Connection c = targetDs.getConnection()) {
             for (String ddl : List.of(
                     """
-                    CREATE TABLE IF NOT EXISTS state.%s_sync_origin (
+                    CREATE TABLE IF NOT EXISTS %s_sync_origin (
                       object_id uuid PRIMARY KEY,
                       dependency text NOT NULL,
                       type text NOT NULL,
                       source_version_id bigint NOT NULL,
                       applied_payload_version text,
                       synced_at timestamptz NOT NULL
-                    )""".formatted(targetDomain),
+                    )""".formatted(Domains.tables(targetDomain)),
                     """
-                    CREATE TABLE IF NOT EXISTS state.%s_sync_shadow (
+                    CREATE TABLE IF NOT EXISTS %s_sync_shadow (
                       dependency text NOT NULL,
                       object_id uuid NOT NULL,
                       type text NOT NULL,
@@ -634,12 +635,12 @@ public final class ContentSyncEngine {
                       parked_at timestamptz NOT NULL,
                       shadows_object_id uuid,
                       PRIMARY KEY (dependency, object_id)
-                    )""".formatted(targetDomain),
+                    )""".formatted(Domains.tables(targetDomain)),
                     // idempotent, for shadow tables that predate the column
-                    "ALTER TABLE state.%s_sync_shadow ADD COLUMN IF NOT EXISTS shadows_object_id uuid"
-                            .formatted(targetDomain),
+                    "ALTER TABLE %s_sync_shadow ADD COLUMN IF NOT EXISTS shadows_object_id uuid"
+                            .formatted(Domains.tables(targetDomain)),
                     """
-                    CREATE TABLE IF NOT EXISTS state.%s_sync_dlq (
+                    CREATE TABLE IF NOT EXISTS %s_sync_dlq (
                       dependency text NOT NULL,
                       object_id uuid NOT NULL,
                       type text NOT NULL,
@@ -647,7 +648,7 @@ public final class ContentSyncEngine {
                       reason text NOT NULL,
                       created_at timestamptz NOT NULL,
                       PRIMARY KEY (dependency, object_id, source_version_id)
-                    )""".formatted(targetDomain))) {
+                    )""".formatted(Domains.tables(targetDomain)))) {
                 try (PreparedStatement ps = c.prepareStatement(ddl)) {
                     ps.execute();
                 }

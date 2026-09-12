@@ -607,6 +607,15 @@ public enum DboPromises implements Promise {
     CORE_SIBLING_MODELS(
             "Non-FHIR object models ride the same engine as FHIR resources, not beside "
             + "it. (R6)"),
+    CORE_A_SEPARABLE_DOMAIN_HAS_A_SCHEMA_OF_ITS_OWN(
+            "A domain that is handed over on its own — dumped, restored, granted on, "
+            + "dropped — lives in a schema of its own rather than sharing the schemas "
+            + "every other domain is told apart inside by a prefix, because a schema is "
+            + "the unit the database moves. Everything that names its tables finds them "
+            + "there: the store, its history, its feed, the retention sweep and the "
+            + "backup, whose sweep discovers a domain by looking for its tables and "
+            + "would otherwise carry every domain except the one made portable, "
+            + "silently."),
     CORE_DECLARED_IDENTITY(
             "Every type in every personality declares exactly one primary identity "
             + "class — canonical url, designated identifiers, or internal — and the "

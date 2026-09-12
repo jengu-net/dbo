@@ -485,6 +485,15 @@ cloud.jengu.dbo.core.api.Disclosure.Mode                               valueOf(S
 cloud.jengu.dbo.core.api.Disclosure.Mode                               values():cloud.jengu.dbo.core.api.Disclosure.Mode[]
 cloud.jengu.dbo.core.api.DisclosureRefusedException                    class
 cloud.jengu.dbo.core.api.DisclosureRefusedException                    new(String)
+cloud.jengu.dbo.core.api.Domains                                       DEFINITIONS:String
+cloud.jengu.dbo.core.api.Domains                                       allSchemas():Set
+cloud.jengu.dbo.core.api.Domains                                       class
+cloud.jengu.dbo.core.api.Domains                                       historySchema(String):String
+cloud.jengu.dbo.core.api.Domains                                       historyTables(String):String
+cloud.jengu.dbo.core.api.Domains                                       schema(String):String
+cloud.jengu.dbo.core.api.Domains                                       schemas():Set
+cloud.jengu.dbo.core.api.Domains                                       separable(String):boolean
+cloud.jengu.dbo.core.api.Domains                                       tables(String):String
 cloud.jengu.dbo.core.api.Envelope                                      class
 cloud.jengu.dbo.core.api.Envelope                                      identifier(String,String):cloud.jengu.dbo.core.api.Envelope
 cloud.jengu.dbo.core.api.Envelope                                      identifiers():List
@@ -2196,6 +2205,7 @@ cloud.jengu.dbo.promises.DboPromises                                   CONT_FRAM
 cloud.jengu.dbo.promises.DboPromises                                   CONT_IMPORTS_ARE_COMPUTED_OR_CHECKED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_PRIVATE_DEPENDENCIES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_ATOMIC_TRANSACTION_BUNDLE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   CORE_A_SEPARABLE_DOMAIN_HAS_A_SCHEMA_OF_ITS_OWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_BATCH_ANSWERS_PER_ENTRY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_CONDITIONAL_REFERENCES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_CONDITIONAL_UPSERT:cloud.jengu.dbo.promises.DboPromises

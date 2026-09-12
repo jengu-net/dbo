@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.maintenance;
 
+import cloud.jengu.dbo.core.api.Domains;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -55,8 +56,8 @@ public final class TenantInventory {
             for (String domain : TenantExport.domainsOf(c)) {
                 try (PreparedStatement ps = c.prepareStatement("""
                         SELECT d.type, s.entry, count(*)
-                        FROM state.%s_data d, jsonb_array_elements_text(d.shape) s(entry)
-                        WHERE NOT d.deleted GROUP BY 1, 2 ORDER BY 1, 2""".formatted(domain));
+                        FROM %s_data d, jsonb_array_elements_text(d.shape) s(entry)
+                        WHERE NOT d.deleted GROUP BY 1, 2 ORDER BY 1, 2""".formatted(Domains.tables(domain)));
                      ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         String entry = rs.getString(2);
@@ -72,9 +73,9 @@ public final class TenantInventory {
                 // rows the query bounds walk, so query and report agree.
                 try (PreparedStatement ps = c.prepareStatement("""
                         SELECT d.type, p->>'v', count(*)
-                        FROM state.%s_data d, jsonb_array_elements(d.envelope->'_profile') p
+                        FROM %s_data d, jsonb_array_elements(d.envelope->'_profile') p
                         WHERE NOT d.deleted AND (d.shape IS NULL OR d.shape = '[]'::jsonb)
-                        GROUP BY 1, 2 ORDER BY 1, 2""".formatted(domain));
+                        GROUP BY 1, 2 ORDER BY 1, 2""".formatted(Domains.tables(domain)));
                      ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         lines.add(new ShapeLine(domain, rs.getString(1), rs.getString(2),
@@ -110,14 +111,15 @@ public final class TenantInventory {
                 SELECT d.type,
                        count(*) AS total,
                        count(*) FILTER (WHERE EXISTS (
-                           SELECT 1 FROM state.%s_identifier i
+                           SELECT 1 FROM %s_identifier i
                            WHERE i.object_id = d.id AND i.identity)) AS identified,
-                       COALESCE((SELECT count(*) FROM history.%s_history h
+                       COALESCE((SELECT count(*) FROM %s_history h
                                  WHERE h.type = d.type), 0) AS versions
-                FROM state.%s_data d
+                FROM %s_data d
                 WHERE NOT d.deleted
                 GROUP BY d.type
-                ORDER BY d.type""".formatted(domain, domain, domain));
+                ORDER BY d.type""".formatted(Domains.tables(domain), Domains.historyTables(domain),
+                        Domains.tables(domain)));
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 lines.add(new Line(domain, rs.getString(1), rs.getLong(2),
@@ -146,10 +148,10 @@ public final class TenantInventory {
             for (String domain : TenantExport.domainsOf(c)) {
                 try (PreparedStatement ps = c.prepareStatement("""
                         SELECT k.name,
-                               (SELECT count(*) FROM state.%s_outbox o
+                               (SELECT count(*) FROM %s_outbox o
                                 WHERE (o.xact_id, o.seq) > (k.cursor_xid, k.seq))
-                        FROM state.%s_consumer k
-                        ORDER BY k.name""".formatted(domain, domain));
+                        FROM %s_consumer k
+                        ORDER BY k.name""".formatted(Domains.tables(domain), Domains.tables(domain)));
                      ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         delivery.add(new Delivery(domain, rs.getString(1), rs.getLong(2)));

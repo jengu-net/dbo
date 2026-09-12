@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.maintenance;
 
+import cloud.jengu.dbo.core.api.Domains;
 import org.postgresql.PGConnection;
 
 import javax.sql.DataSource;
@@ -68,13 +69,19 @@ public final class TenantExport {
      */
     static List<String> domainsOf(Connection c) throws SQLException {
         List<String> domains = new ArrayList<>();
+        // Across every schema a domain's tables can be in, not only the
+        // shared one: a domain given a schema of its own so it could be moved
+        // separately would otherwise be moved by nothing at all, and the
+        // backup would be short by exactly the part that was made portable.
         try (PreparedStatement ps = c.prepareStatement("""
                 SELECT replace(table_name, '_data', '') FROM information_schema.tables
-                WHERE table_schema = 'state' AND table_name LIKE '%\\_data'
-                ORDER BY table_name""");
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                domains.add(rs.getString(1));
+                WHERE table_schema = ANY(?) AND table_name LIKE '%\\_data'
+                ORDER BY table_name""")) {
+            ps.setArray(1, c.createArrayOf("text", Domains.schemas().toArray()));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    domains.add(rs.getString(1));
+                }
             }
         }
         return domains;
@@ -82,13 +89,23 @@ public final class TenantExport {
 
     private static List<String> stateTablesOf(Connection c, String domain) throws SQLException {
         List<String> tables = new ArrayList<>();
+        // The tenant-scoped tables ride with whichever domain sweeps them
+        // first, and they live in the shared schema — so a domain with a
+        // schema of its own carries its own tables and nothing else.
+        String tenantScoped = Domains.separable(domain) ? ""
+                : " OR table_name LIKE 'term\\_%' OR table_name = 'projection_marker'";
+        // History is dumped separately below, with the type-level travel
+        // exclusions applied to it. A domain whose history shares its schema
+        // would otherwise be swept up here as well and written twice.
         try (PreparedStatement ps = c.prepareStatement("""
                 SELECT table_name FROM information_schema.tables
-                WHERE table_schema = 'state'
-                  AND (table_name LIKE ? OR table_name LIKE 'term\\_%'
-                       OR table_name = 'projection_marker')
-                ORDER BY table_name""")) {
-            ps.setString(1, domain + "\\_%");
+                WHERE table_schema = ?
+                  AND table_name <> ?
+                  AND (table_name LIKE ?%s)
+                ORDER BY table_name""".formatted(tenantScoped))) {
+            ps.setString(1, Domains.schema(domain));
+            ps.setString(2, domain + "_history");
+            ps.setString(3, domain + "\\_%");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     tables.add(rs.getString(1));
@@ -485,7 +502,7 @@ public final class TenantExport {
             throws SQLException, IOException {
         StringBuilder roster = new StringBuilder();
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT name FROM state.%s_consumer ORDER BY name".formatted(domain));
+                "SELECT name FROM %s_consumer ORDER BY name".formatted(Domains.tables(domain)));
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 roster.append(rs.getString(1)).append('\n');
@@ -517,7 +534,7 @@ public final class TenantExport {
         DigestingZip zip = out;
         long fence;
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT COALESCE(max(seq), 0) FROM state.%s_outbox".formatted(domain));
+                "SELECT COALESCE(max(seq), 0) FROM %s_outbox".formatted(Domains.tables(domain)));
              ResultSet rs = ps.executeQuery()) {
             rs.next();
             fence = rs.getLong(1);
@@ -527,8 +544,8 @@ public final class TenantExport {
         Map<String, Long> counts = new LinkedHashMap<>();
         List<String> types = new ArrayList<>();
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT DISTINCT type FROM state.%s_data WHERE NOT deleted ORDER BY type"
-                        .formatted(domain));
+                "SELECT DISTINCT type FROM %s_data WHERE NOT deleted ORDER BY type"
+                        .formatted(Domains.tables(domain)));
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 String type = rs.getString(1);
@@ -550,10 +567,10 @@ public final class TenantExport {
                     SELECT d.id, d.version_id, d.payload_version, d.last_updated, d.payload,
                            COALESCE((SELECT string_agg(i.system || '|' || i.value, '\u001f'
                                                        ORDER BY i.system, i.value)
-                                     FROM state.%s_identifier i
+                                     FROM %s_identifier i
                                      WHERE i.object_id = d.id AND i.identity), '')
-                    FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted ORDER BY d.id"""
-                    .formatted(domain, domain))) {
+                    FROM %s_data d WHERE d.type = ? AND NOT d.deleted ORDER BY d.id"""
+                    .formatted(Domains.tables(domain), Domains.tables(domain)))) {
                 ps.setString(1, type);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
@@ -585,8 +602,8 @@ public final class TenantExport {
                 long lines = 0;
                 try (PreparedStatement ps = c.prepareStatement("""
                         SELECT d.id, d.version_id, d.payload
-                        FROM state.%s_data d WHERE d.type = ? AND NOT d.deleted
-                        ORDER BY d.id""".formatted(domain))) {
+                        FROM %s_data d WHERE d.type = ? AND NOT d.deleted
+                        ORDER BY d.id""".formatted(Domains.tables(domain)))) {
                     ps.setString(1, type);
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
@@ -634,20 +651,22 @@ public final class TenantExport {
                 // The terminology tables are tenant-scoped rather than
                 // domain-scoped: they appear once, under the first domain
                 // that sweeps them up, and the import resolves them by name.
+                String schema = Domains.schema(backedUp);
                 for (String table : stateTablesOf(c, backedUp)) {
-                    if (isDeliveryState(backedUp, table) || written.contains(table)) {
+                    String qualified = schema + "." + table;
+                    if (isDeliveryState(backedUp, table) || written.contains(qualified)) {
                         continue;
                     }
-                    written.add(table);
-                    dumpInto(copy, zip, "fidelity/state." + table + ".csv",
-                            copyOf("state." + table,
+                    written.add(qualified);
+                    dumpInto(copy, zip, "fidelity/" + qualified + ".csv",
+                            copyOf(qualified,
                                     table.equals(backedUp + "_data") ? exclusions : Set.of()),
                             table);
                 }
                 writeConsumerRoster(c, zip, backedUp);
-                dumpInto(copy, zip, "fidelity/history." + backedUp + "_history.csv",
-                        copyOf("history." + backedUp + "_history", exclusions),
-                        "history." + backedUp);
+                String history = Domains.historyTables(backedUp) + "_history";
+                dumpInto(copy, zip, "fidelity/" + history + ".csv",
+                        copyOf(history, exclusions), history);
             }
 
             // §14 vault (present only under PDI): wrapped keys, HMAC index,
