@@ -1146,17 +1146,21 @@ public enum DboPromises implements Promise {
             + "projection serves it follows from its own face and is not a tenant's to "
             + "know."),
     SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE(
-            "The database builds a document's envelope from the compiled parameters and "
-            + "the document already in hand, by the same typed rules the JVM used: three "
-            + "forms per coded value, a string folded and kept as written, a date at the "
-            + "moment its span opens, and a reference kept as the edge it is rather than "
-            + "as a key. Proven by building both over the same stored records — one "
+            "A write derives what a document can be found by in the statement that stores "
+            + "it, from the compiled parameters and the bytes it is writing anyway, and a "
+            + "reindex derives it without carrying a single payload. By the same typed "
+            + "rules the extractor in the JVM keeps: three forms per coded value, a string "
+            + "folded and kept as written, a date at the moment its span opens, and a "
+            + "reference kept as the edge it is rather than as a key. Proven by building "
+            + "both over the same stored records — one "
             + "document per shape the rules have to get right, written for the purpose "
             + "because a version ships its conformance resources and not its examples — "
             + "and comparing them per type, as a number that may rise and may not fall. "
             + "What a document can be found by is the whole of what a search answers, and "
             + "a difference is a document that quietly stops being findable, which reads "
-            + "as an empty result rather than as a fault."),
+            + "as an empty result rather than as a fault. A type with nothing compiled to "
+            + "index by is refused rather than stored: an envelope with nothing in it is a "
+            + "record accepted, acknowledged and findable by nobody."),
     SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES(
             "Every way a tenant can be asked after a record — the version's own parameters "
             + "and whatever the tenant has authored — is compiled when the definition "

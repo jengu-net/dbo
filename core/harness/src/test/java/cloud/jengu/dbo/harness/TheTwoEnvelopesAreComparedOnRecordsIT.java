@@ -35,13 +35,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The index, built twice over the same records, and compared.
  *
- * <p>What a document can be found by is its envelope, and it has been built in
- * the JVM by evaluating thirty-odd expressions over an object tree on every
- * write. The database can now build one from the compiled parameters and the
- * bytes already in hand. Moving where that happens is worth exactly nothing
- * unless what comes out is the same, so this writes records through a tenant —
- * which makes the JVM build and store its envelope — and asks the database for
- * its own over the same bytes.
+ * <p>What a document can be found by is its envelope, and it was built in the
+ * JVM by evaluating thirty-odd expressions over an object tree on every write.
+ * The statement that stores a document builds it now, from the compiled
+ * parameters and the bytes it is writing anyway. Moving where that happens is
+ * worth exactly nothing unless what comes out is the same, so this writes
+ * records through a tenant — which stores what the database derived — and
+ * asks the extractor in the JVM for its answer over the same bytes.
+ *
+ * <p>Held in that direction on purpose. Asking the database twice would
+ * compare it with itself and pass for that reason; the JVM extractor is the
+ * readable statement of the rules and is still what runs for a face that says
+ * nothing and for a record at an older payload version.
  *
  * <p><b>Ordinary records, on purpose.</b> The first attempt at this compared
  * the two over the definitions a version publishes and found nought agreement
@@ -133,26 +138,31 @@ class TheTwoEnvelopesAreComparedOnRecordsIT {
         Map<String, int[]> perType = new TreeMap<>();
         Map<String, Set<String>> differingKeys = new TreeMap<>();
 
+        var version = cloud.jengu.dbo.fhir.element.ElementVersion.of("r4");
         try (Connection c = tenantSource().getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     SELECT type, envelope, convert_from(payload, 'UTF8'),
-                            dbo.envelope(convert_from(payload, 'UTF8')::jsonb, type)
+                     SELECT type, envelope, payload, shape
                        FROM state.r4_data WHERE NOT deleted ORDER BY type, id""");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 String type = rs.getString(1);
                 int[] tally = perType.computeIfAbsent(type, ignored -> new int[2]);
                 tally[0]++;
-                // The shape stamp is the engine's, not the extractor's: it
-                // says which pack versions the accept was judged against,
-                // and it joins the envelope after extraction from the accept
-                // event rather than from the bytes. Comparing it here would
-                // be comparing the engine with itself.
-                com.fasterxml.jackson.databind.node.ObjectNode inForce =
-                        (com.fasterxml.jackson.databind.node.ObjectNode)
-                                JSON.readTree(rs.getString(2));
-                inForce.remove("_shape");
-                JsonNode built = JSON.readTree(rs.getString(4));
+                // What the store holds is what the write derived, and for
+                // this face the write derives in the database. So the side
+                // held against it is the extractor in the JVM, asked here
+                // over the same bytes — otherwise this would be comparing
+                // the database with itself and passing for that reason.
+                JsonNode built = JSON.readTree(rs.getString(2));
+                if (built instanceof com.fasterxml.jackson.databind.node.ObjectNode object) {
+                    // The shape stamp is the engine's, not the extractor's:
+                    // it says which pack versions the accept was judged
+                    // against, and it joins the envelope from the accept
+                    // event rather than from the bytes.
+                    object.remove("_shape");
+                }
+                JsonNode inForce = rendered(
+                        version.extractor(type).extract(type, rs.getBytes(3)));
                 if (inForce.equals(built)) {
                     tally[1]++;
                 } else {
@@ -283,25 +293,47 @@ class TheTwoEnvelopesAreComparedOnRecordsIT {
 
     @Test
     @Timeout(900)
-    @DisplayName("a reindex whose parameters are not compiled refuses, rather than emptying "
-            + "every envelope it touches")
+    @DisplayName("a write and a reindex with nothing compiled to index by refuse, rather "
+            + "than storing an envelope with nothing in it")
     @Proving(DboPromises.SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE)
-    void aReindexWithoutParametersRefuses() throws Exception {
+    void nothingToIndexByIsRefusedRatherThanStored() throws Exception {
         // Two things at once, and the second is why this is here at all. An
         // envelope built from no parameters has nothing in it, and a record
         // carrying one answers no search while looking perfectly stored — so
         // the function refuses instead. And a reindex that refuses BECAUSE
         // of that is a reindex that went through the function: the seam is
         // taken by the face a tenant actually gets, not merely offered.
-        var engine = manager.runtime(TENANT).orElseThrow().engine();
+        var runtime = manager.runtime(TENANT).orElseThrow();
         withoutTheParametersFor("Encounter", () -> {
             IllegalStateException refused = assertThrows(IllegalStateException.class,
-                    () -> engine.rebuildEnvelopes("Encounter"),
+                    () -> runtime.engine().rebuildEnvelopes("Encounter"),
                     "a reindex with nothing compiled to index by did not refuse, so either "
                             + "the envelopes were emptied or nothing derives where the bytes are");
             assertTrue(String.valueOf(refused.getCause()).contains("no compiled parameters"),
                     "refused for another reason: " + refused.getCause());
+
+            // And a write, for the same reason and with more at stake: a
+            // record stored with an empty envelope is accepted, acknowledged
+            // and findable by nothing, and nobody learns that until somebody
+            // searches for it and is told there is no such patient.
+            Exception refusedWrite = assertThrows(Exception.class,
+                    () -> runtime.store().create("""
+                            {"resourceType":"Encounter","status":"planned",
+                             "class":{"code":"IMP"},"period":{"start":"2025"}}"""),
+                    "a write with nothing compiled to index by was accepted, so either it "
+                            + "stored an envelope with nothing in it or it derives elsewhere");
+            assertTrue(said(refusedWrite).contains("no compiled parameters"),
+                    "refused for another reason: " + said(refusedWrite));
         });
+    }
+
+    /** Everything a failure said, cause by cause. */
+    private static String said(Throwable thrown) {
+        StringBuilder all = new StringBuilder();
+        for (Throwable at = thrown; at != null; at = at.getCause()) {
+            all.append(at).append('\n');
+        }
+        return all.toString();
     }
 
     /** The rows put back, whatever the body does, because the tenant lives on. */
@@ -360,6 +392,49 @@ class TheTwoEnvelopesAreComparedOnRecordsIT {
                 "the database agrees with the envelope in force about fewer records than it "
                         + "did. Re-record with -Ddbo.envelope.record=true only when meant.\n"
                         + observed);
+    }
+
+    /**
+     * One envelope from the JVM, in the shape the column carries.
+     *
+     * <p>Written out here rather than borrowed, because the shape IS the
+     * contract between the two sides and a comparison that encoded one of
+     * them with the other's code would agree about the encoding rather than
+     * about the values. The same shapes this suite already asserts literally,
+     * one at a time, in the rules it holds.
+     */
+    private static JsonNode rendered(cloud.jengu.dbo.core.api.Envelope envelope) {
+        var out = JSON.createObjectNode();
+        envelope.paths().forEach((key, values) -> {
+            var array = out.putArray(key);
+            for (cloud.jengu.dbo.core.api.EnvelopeValue value : values) {
+                var one = array.addObject();
+                switch (value) {
+                    case cloud.jengu.dbo.core.api.EnvelopeValue.Str v ->
+                            one.put("t", "str").put("v", v.value());
+                    case cloud.jengu.dbo.core.api.EnvelopeValue.Num v ->
+                            one.put("t", "num").put("v", v.value());
+                    case cloud.jengu.dbo.core.api.EnvelopeValue.Date v ->
+                            one.put("t", "date").put("v",
+                                    java.time.format.DateTimeFormatter
+                                            .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                                            .withZone(java.time.ZoneOffset.UTC)
+                                            .format(v.value()));
+                    case cloud.jengu.dbo.core.api.EnvelopeValue.Token v -> {
+                        if (v.code() == null) {
+                            one.put("t", "toks").put("v", v.system());
+                        } else if (v.system() == null) {
+                            one.put("t", "tokc").put("v", v.code());
+                        } else {
+                            one.put("t", "tok").put("s", v.system()).put("v", v.code());
+                        }
+                    }
+                    case cloud.jengu.dbo.core.api.EnvelopeValue.Ref v ->
+                            one.put("t", "ref").put("tt", v.targetType()).put("ti", v.targetId());
+                }
+            }
+        });
+        return out;
     }
 
     /** Which keys the two disagree about, which is what names the work left. */

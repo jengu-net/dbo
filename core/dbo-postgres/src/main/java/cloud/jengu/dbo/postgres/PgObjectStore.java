@@ -197,6 +197,7 @@ public final class PgObjectStore implements ObjectStore {
         long[] versions = new long[n];
         boolean[] created = new boolean[n];
         Envelope[] envelopes = new Envelope[n];
+        EnvelopeExtractor.InTheStatement[] derived = new EnvelopeExtractor.InTheStatement[n];
         String[] envelopeJson = new String[n];
         String[] shapeJson = new String[n];
         byte[][] chains = new byte[n][];
@@ -215,38 +216,52 @@ public final class PgObjectStore implements ObjectStore {
             created[i] = version == null;
             versions[i] = created[i] ? 1 : version + 1;
             guardWrite(type, request, created[i], caller);
-            envelopes[i] = type.extractor().extract(type.typeName(), request.payload());
-            shapeIntoEnvelope(envelopes[i], request.shape());
-            envelopeJson[i] = JsonbCodec.envelopeJson(envelopes[i].paths());
+            derived[i] = type.extractor().inTheStatement().orElse(null);
+            envelopes[i] = new Envelope();
+            if (derived[i] == null) {
+                envelopes[i] = type.extractor().extract(type.typeName(), request.payload());
+                shapeIntoEnvelope(envelopes[i], request.shape());
+                envelopeJson[i] = JsonbCodec.envelopeJson(envelopes[i].paths());
+            } else {
+                envelopeJson[i] = stampOnly(request.shape());
+            }
             shapeJson[i] = shapeJson(request.shape());
             chains[i] = VersionChain.link(row == null ? null : (byte[]) row[2], request.payload(),
                     versions[i], now, false);
         }
-        try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO %s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version, chain_hash, shape)
-                VALUES (?, ?, ?, ?, ?::jsonb, ?, false, ?, ?, ?::jsonb)
-                ON CONFLICT (id) DO UPDATE SET
-                  version_id = EXCLUDED.version_id,
-                  last_updated = EXCLUDED.last_updated,
-                  envelope = EXCLUDED.envelope,
-                  payload = EXCLUDED.payload,
-                  deleted = false,
-                  payload_version = EXCLUDED.payload_version,
-                  chain_hash = EXCLUDED.chain_hash,
-                  shape = EXCLUDED.shape""".formatted(d))) {
-            for (int i = 0; i < n; i++) {
-                ps.setObject(1, uuids[i]);
-                ps.setString(2, types.get(i).typeName());
-                ps.setLong(3, versions[i]);
-                ps.setTimestamp(4, Timestamp.from(now));
-                ps.setString(5, envelopeJson[i]);
-                ps.setBytes(6, requests.get(i).payload());
-                ps.setString(7, types.get(i).payloadVersion());
-                ps.setBytes(8, chains[i]);
-                ps.setString(9, shapeJson[i]);
-                ps.addBatch();
+        // One batch per spelling of the insert, because a set of writes can
+        // carry types whose faces answer differently about where extraction
+        // happens — a statement is one string, and grouping is what lets both
+        // kinds travel in the same transaction.
+        for (EnvelopeExtractor.InTheStatement spelling : new java.util.LinkedHashSet<>(
+                java.util.Arrays.asList(derived))) {
+            try (PreparedStatement ps = c.prepareStatement(storing(d, spelling))) {
+                int batched = 0;
+                for (int i = 0; i < n; i++) {
+                    if (!java.util.Objects.equals(derived[i], spelling)) {
+                        continue;
+                    }
+                    ps.setObject(1, uuids[i]);
+                    ps.setString(2, types.get(i).typeName());
+                    ps.setLong(3, versions[i]);
+                    ps.setTimestamp(4, Timestamp.from(now));
+                    ps.setString(5, envelopeJson[i]);
+                    ps.setBytes(6, requests.get(i).payload());
+                    ps.setString(7, types.get(i).payloadVersion());
+                    ps.setBytes(8, chains[i]);
+                    ps.setString(9, shapeJson[i]);
+                    ps.addBatch();
+                    batched++;
+                }
+                if (batched > 0) {
+                    ps.executeBatch();
+                }
             }
-            ps.executeBatch();
+        }
+        for (int i = 0; i < n; i++) {
+            if (derived[i] != null) {
+                readDerived(c, d, derived[i], types.get(i).typeName(), uuids[i], envelopes[i]);
+            }
         }
         replaceIdentifiers(c, domain, types, uuids, envelopes, created);
         replaceReferences(c, domain, uuids, envelopes, created);
@@ -513,13 +528,22 @@ public final class PgObjectStore implements ObjectStore {
             now = request.recordedAt();
         }
 
-        Envelope envelope = type.extractor().extract(type.typeName(), request.payload());
+        EnvelopeExtractor.InTheStatement here = type.extractor().inTheStatement().orElse(null);
         // The shape dimension derives from the ROW, not from the payload:
         // the extractor stays a pure function of bytes, and the stamp joins
         // the envelope here — the same place reindex re-adds it from the
         // column (REQ-DBO-SHAPE-STAMP-IS-DERIVED).
-        shapeIntoEnvelope(envelope, request.shape());
-        String envelopeJson = JsonbCodec.envelopeJson(envelope.paths());
+        Envelope envelope = new Envelope();
+        String envelopeJson;
+        if (here == null) {
+            envelope = type.extractor().extract(type.typeName(), request.payload());
+            shapeIntoEnvelope(envelope, request.shape());
+            envelopeJson = JsonbCodec.envelopeJson(envelope.paths());
+        } else {
+            // Derived by the statement below, which has the payload anyway:
+            // what goes in here is the stamp it adds to what it built.
+            envelopeJson = stampOnly(request.shape());
+        }
         String shapeJson = shapeJson(request.shape());
         // Link this version to the one before it. Computed on the ordinary
         // write path, so a restored version is chained exactly as a live one —
@@ -527,18 +551,7 @@ public final class PgObjectStore implements ObjectStore {
         byte[] chainHash = VersionChain.link(previousChain(c, domain, uuid), request.payload(),
                 newVersion, now, false);
 
-        try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO %s_data (id, type, version_id, last_updated, envelope, payload, deleted, payload_version, chain_hash, shape)
-                VALUES (?, ?, ?, ?, ?::jsonb, ?, false, ?, ?, ?::jsonb)
-                ON CONFLICT (id) DO UPDATE SET
-                  version_id = EXCLUDED.version_id,
-                  last_updated = EXCLUDED.last_updated,
-                  envelope = EXCLUDED.envelope,
-                  payload = EXCLUDED.payload,
-                  deleted = false,
-                  payload_version = EXCLUDED.payload_version,
-                  chain_hash = EXCLUDED.chain_hash,
-                  shape = EXCLUDED.shape""".formatted(d))) {
+        try (PreparedStatement ps = c.prepareStatement(storing(d, here))) {
             ps.setObject(1, uuid);
             ps.setString(2, type.typeName());
             ps.setLong(3, newVersion);
@@ -549,6 +562,13 @@ public final class PgObjectStore implements ObjectStore {
             ps.setBytes(8, chainHash);
             ps.setString(9, shapeJson);
             ps.executeUpdate();
+        }
+        if (here != null) {
+            // Read back from the row just written, because a claim and an
+            // edge are not the record's own: one is adjudicated against
+            // every other record and the other is a table a chained search
+            // joins against. A handful of short strings, and no payload.
+            readDerived(c, d, here, type.typeName(), uuid, envelope);
         }
 
         replaceIdentifiers(c, type, uuid, envelope.identifiers());
@@ -1418,6 +1438,50 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     /** The stamp's search dimension: one token per profile, system|code = profile|version. */
+    /**
+     * The statement that stores a document, deriving what it stores by.
+     *
+     * <p>Two spellings of one insert. Where the face says its extraction can
+     * run here, the envelope is not carried in as a value — the statement
+     * builds it from the payload it is writing, which it has in hand anyway,
+     * and the JVM never parses the document at all. Where the face says
+     * nothing, the envelope arrives as it always did.
+     *
+     * <p>The columns bind in the same order either way, so one binding
+     * serves both: only the fifth changes meaning, from the whole envelope to
+     * the shape stamp the statement adds to what it built.
+     */
+    private static String storing(String d, EnvelopeExtractor.InTheStatement here) {
+        String head = "INSERT INTO %s_data (id, type, version_id, last_updated, envelope,"
+                + " payload, deleted, payload_version, chain_hash, shape) ";
+        String values = here == null
+                ? "VALUES (?, ?, ?, ?, ?::jsonb, ?, false, ?, ?, ?::jsonb) "
+                : "SELECT i.id, i.type, i.version_id, i.last_updated,"
+                  + " " + here.envelope() + "(convert_from(i.payload, 'UTF8')::jsonb, i.type)"
+                  + " || i.stamp, i.payload, false, i.payload_version, i.chain_hash, i.shape"
+                  + " FROM (SELECT ?::uuid AS id, ?::text AS type, ?::bigint AS version_id,"
+                  + " ?::timestamptz AS last_updated, ?::jsonb AS stamp, ?::bytea AS payload,"
+                  + " ?::text AS payload_version, ?::bytea AS chain_hash,"
+                  + " ?::jsonb AS shape) i ";
+        return (head + values + """
+                ON CONFLICT (id) DO UPDATE SET
+                  version_id = EXCLUDED.version_id,
+                  last_updated = EXCLUDED.last_updated,
+                  envelope = EXCLUDED.envelope,
+                  payload = EXCLUDED.payload,
+                  deleted = false,
+                  payload_version = EXCLUDED.payload_version,
+                  chain_hash = EXCLUDED.chain_hash,
+                  shape = EXCLUDED.shape""").formatted(d);
+    }
+
+    /** The stamp alone, which is what the fifth column carries when derived. */
+    private static String stampOnly(java.util.List<String> shape) {
+        Envelope stamp = new Envelope();
+        shapeIntoEnvelope(stamp, shape);
+        return JsonbCodec.envelopeJson(stamp.paths());
+    }
+
     /**
      * The envelope written by the statement that has the bytes.
      *
