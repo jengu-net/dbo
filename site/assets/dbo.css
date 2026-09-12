@@ -308,3 +308,10 @@
 /* A caption belongs to the figure, not to the paragraph after it. */
 .dbo-essay .md-typeset .diagram-caption{font-size:14.5px; color:var(--dbo-muted);
      max-width:60ch; margin:-1.6em 0 2.6em; padding-left:2px}
+
+/* The landing page is read, not navigated within. A heading anchor beside the
+ * first sentence somebody sees is noise, and the table of contents it belongs
+ * to is switched off for this page in its front matter — so the pilcrow would
+ * have pointed into a list nobody is shown. Essays keep theirs: a section of
+ * an argument is a thing worth linking to. */
+.dbo-home .headerlink { display: none; }

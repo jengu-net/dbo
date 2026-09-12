@@ -6,8 +6,11 @@
   page sets its own full-bleed layout and would otherwise be laid out twice,
   once by the theme and once by itself.
 
-  The markup lives in _landing-body.html rather than here so that the page's
-  content and the reason it is wired this way stay separable. Material's
+  The content is markdown, in site/pages/index.md, so that the page a visitor
+  reads first is edited the way every other page is — and so that a diagram can
+  be inlined into it, which the snippets extension does for markdown and cannot
+  do for a template. What stays here is the layout decision and nothing else.
+  Material's
   header, search and navigation are kept, so the landing is part of the site
   rather than a door standing next to it.
 -#}
@@ -22,7 +25,7 @@
   only way to move.
 -#}
 {% block container %}
-<div class="dbo">
-  {% include "_landing-body.html" %}
+<div class="dbo dbo-home">
+  {{ page.content }}
 </div>
 {% endblock %}
