@@ -96,20 +96,20 @@ class ADefinitionIsExpandedWhenItArrivesIT {
                 "a version of seven hundred structures came to " + elements() + " elements");
 
         List<String> steps = query(
-                "SELECT unnest(steps) FROM state.definition_element"
+                "SELECT unnest(steps) FROM definitions.definition_element"
                 + " WHERE canonical = ? AND element_id = 'Patient.contact.name'", PATIENT);
         assertEquals(List.of("$.\"name\"[*]"), steps,
                 "a contact's name is not located inside a contact");
 
         List<String> parent = query(
-                "SELECT parent_id FROM state.definition_element"
+                "SELECT parent_id FROM definitions.definition_element"
                 + " WHERE canonical = ? AND element_id = 'Patient.contact.name'", PATIENT);
         assertEquals(List.of("Patient.contact"), parent,
                 "a contact's name is looked for in the document rather than in its contact");
 
         List<String> gender = query(
                 "SELECT binding_strength || ' ' || binding_valueset"
-                + " FROM state.definition_element"
+                + " FROM definitions.definition_element"
                 + " WHERE canonical = ? AND element_id = 'Patient.gender'", PATIENT);
         assertEquals(1, gender.size(), "the gender element is not held");
         assertTrue(gender.get(0).startsWith("required ")
@@ -133,7 +133,7 @@ class ADefinitionIsExpandedWhenItArrivesIT {
         // path reaches it — so the row is held saying exactly that, rather
         // than being dropped into a checker that would then pass anything.
         List<String> unenforceable = query(
-                "SELECT element_id || ' | ' || unenforceable FROM state.definition_element"
+                "SELECT element_id || ' | ' || unenforceable FROM definitions.definition_element"
                 + " WHERE canonical = ? AND unenforceable IS NOT NULL ORDER BY ordinal",
                 "http://hl7.org/fhir/StructureDefinition/lipidprofile");
         assertFalse(unenforceable.isEmpty(),
@@ -141,7 +141,7 @@ class ADefinitionIsExpandedWhenItArrivesIT {
                         + "unenforceable, so nothing knows they are not being checked");
         assertTrue(unenforceable.stream().allMatch(row -> row.contains("follows a reference")),
                 "something other than a followed reference cannot be located: " + unenforceable);
-        assertTrue(query("SELECT element_id FROM state.definition_element"
+        assertTrue(query("SELECT element_id FROM definitions.definition_element"
                         + " WHERE canonical = ? AND unenforceable IS NOT NULL"
                         + " AND cardinality(steps) > 0",
                 "http://hl7.org/fhir/StructureDefinition/lipidprofile").isEmpty(),
@@ -171,7 +171,7 @@ class ADefinitionIsExpandedWhenItArrivesIT {
 
         // What it says: a name is now required.
         assertEquals(List.of("1"), queryOf(CLINIC,
-                "SELECT min_occurs::text FROM state.definition_element"
+                "SELECT min_occurs::text FROM definitions.definition_element"
                 + " WHERE canonical = ? AND element_id = 'Patient.name'", canonical),
                 "the profile's own change is not held");
 
@@ -180,7 +180,7 @@ class ADefinitionIsExpandedWhenItArrivesIT {
         // lines; a checker reading only those would enforce four lines and
         // pass everything else in silence.
         List<String> birthDate = queryOf(CLINIC, 
-                "SELECT array_to_string(steps, '|') FROM state.definition_element"
+                "SELECT array_to_string(steps, '|') FROM definitions.definition_element"
                 + " WHERE canonical = ? AND element_id = 'Patient.birthDate'", canonical);
         assertEquals(List.of("$.\"birthDate\"[*]"), birthDate,
                 "an element the profile never mentions was not inherited");
@@ -189,14 +189,14 @@ class ADefinitionIsExpandedWhenItArrivesIT {
         // root holds that version expanded, so the two sets are comparable
         // and this says "whole" without a number nobody can check.
         assertEquals(
-                query("SELECT element_id FROM state.definition_element"
+                query("SELECT element_id FROM definitions.definition_element"
                         + " WHERE canonical = ? ORDER BY element_id", PATIENT),
-                queryOf(CLINIC, "SELECT element_id FROM state.definition_element"
+                queryOf(CLINIC, "SELECT element_id FROM definitions.definition_element"
                         + " WHERE canonical = ? ORDER BY element_id", canonical),
                 "a profile derived from Patient does not hold Patient's elements");
 
         List<String> gender = queryOf(CLINIC, 
-                "SELECT binding_strength FROM state.definition_element"
+                "SELECT binding_strength FROM definitions.definition_element"
                 + " WHERE canonical = ? AND element_id = 'Patient.gender'", canonical);
         assertEquals(List.of("required"), gender,
                 "an inherited binding did not come with the element that carries it");
@@ -212,11 +212,11 @@ class ADefinitionIsExpandedWhenItArrivesIT {
         // a tenant authors, and until the face snapshotted them they were
         // counted and skipped.
         String canonical = "http://hl7.org/fhir/StructureDefinition/example-composition";
-        assertTrue(Long.parseLong(query("SELECT count(*)::text FROM state.definition_element"
+        assertTrue(Long.parseLong(query("SELECT count(*)::text FROM definitions.definition_element"
                         + " WHERE canonical = ?", canonical).get(0)) > 20,
                 "a carried differential profile is still not expanded");
         assertEquals(List.of("$.\"status\"[*]"), query(
-                "SELECT array_to_string(steps, '|') FROM state.definition_element"
+                "SELECT array_to_string(steps, '|') FROM definitions.definition_element"
                 + " WHERE canonical = ? AND element_id = 'Composition.status'", canonical),
                 "an element it inherits from Composition is not held");
     }
@@ -228,16 +228,16 @@ class ADefinitionIsExpandedWhenItArrivesIT {
     void theRowsAreRebuiltFromTheRecords() throws Exception {
         List<String> before = query(
                 "SELECT element_id || ' ' || array_to_string(steps, '|') || ' ' || min_occurs"
-                + " FROM state.definition_element WHERE canonical = ? ORDER BY ordinal", PATIENT);
+                + " FROM definitions.definition_element WHERE canonical = ? ORDER BY ordinal", PATIENT);
         assertFalse(before.isEmpty(), "the Patient definition is not expanded at all");
 
         try (Connection c = tenantConnection(ROOT);
              PreparedStatement ps = c.prepareStatement(
-                     "DELETE FROM state.definition_element WHERE canonical = ?")) {
+                     "DELETE FROM definitions.definition_element WHERE canonical = ?")) {
             ps.setString(1, PATIENT);
             ps.executeUpdate();
         }
-        assertTrue(query("SELECT element_id FROM state.definition_element WHERE canonical = ?",
+        assertTrue(query("SELECT element_id FROM definitions.definition_element WHERE canonical = ?",
                 PATIENT).isEmpty(), "the rows did not go away");
 
         // The record never moved; only the projection did. Asking the tenant
@@ -247,7 +247,7 @@ class ADefinitionIsExpandedWhenItArrivesIT {
 
         assertEquals(before, query(
                 "SELECT element_id || ' ' || array_to_string(steps, '|') || ' ' || min_occurs"
-                + " FROM state.definition_element WHERE canonical = ? ORDER BY ordinal", PATIENT),
+                + " FROM definitions.definition_element WHERE canonical = ? ORDER BY ordinal", PATIENT),
                 "the rebuilt expansion is not the one that was there");
     }
 
@@ -259,7 +259,7 @@ class ADefinitionIsExpandedWhenItArrivesIT {
     void theRulesAreHeldAsRows() throws Exception {
         List<String> patient = query(
                 "SELECT key || ' ' || severity || ' ' || coalesce(path, '-')"
-                + " FROM state.definition_invariant WHERE canonical = ? AND element_id = 'Patient'"
+                + " FROM definitions.definition_invariant WHERE canonical = ? AND element_id = 'Patient'"
                 + " ORDER BY key", PATIENT);
         assertTrue(patient.size() > 4, "Patient's own rules are not held: " + patient);
         assertTrue(patient.stream().anyMatch(rule -> rule.startsWith("dom-2 error !exists(")),
@@ -270,15 +270,15 @@ class ADefinitionIsExpandedWhenItArrivesIT {
         // Held whole: the version's rules are thousands, and what cannot be
         // compiled is a row saying why rather than an absence.
         long all = Long.parseLong(query(
-                "SELECT count(*)::text FROM state.definition_invariant").get(0));
-        long named = Long.parseLong(query("SELECT count(*)::text FROM state.definition_invariant"
+                "SELECT count(*)::text FROM definitions.definition_invariant").get(0));
+        long named = Long.parseLong(query("SELECT count(*)::text FROM definitions.definition_invariant"
                 + " WHERE unenforceable IS NOT NULL").get(0));
-        long compiled = Long.parseLong(query("SELECT count(*)::text FROM state.definition_invariant"
+        long compiled = Long.parseLong(query("SELECT count(*)::text FROM definitions.definition_invariant"
                 + " WHERE path IS NOT NULL").get(0));
         assertTrue(all > 1000, "the version carries more rules than " + all);
         assertEquals(all, named + compiled,
                 "a rule is neither compiled nor named, which is the silence this refuses");
-        assertTrue(query("SELECT key FROM state.definition_invariant"
+        assertTrue(query("SELECT key FROM definitions.definition_invariant"
                 + " WHERE unenforceable IS NOT NULL AND path IS NOT NULL").isEmpty(),
                 "a rule that could not be compiled carries a path anyway");
     }
@@ -286,12 +286,12 @@ class ADefinitionIsExpandedWhenItArrivesIT {
     // ------------------------------------------------------------- reading
 
     private long elements() throws Exception {
-        return Long.parseLong(query("SELECT count(*) FROM state.definition_element").get(0));
+        return Long.parseLong(query("SELECT count(*) FROM definitions.definition_element").get(0));
     }
 
     private long unlocatable() throws Exception {
         return Long.parseLong(query(
-                "SELECT count(*) FROM state.definition_element WHERE unenforceable IS NOT NULL")
+                "SELECT count(*) FROM definitions.definition_element WHERE unenforceable IS NOT NULL")
                 .get(0));
     }
 

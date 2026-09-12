@@ -21,7 +21,7 @@ LANGUAGE sql STABLE AS $$
          format('%s occurs %s times here; the profile allows %s..%s',
                 c.path, present.n, c.min_occurs, coalesce(c.max_occurs::text, '*'))
     FROM jsonb_array_elements(walked) AS parent
-    JOIN state.definition_element c
+    JOIN definitions.definition_element c
       ON c.canonical = profile AND c.parent_id = parent.value ->> 'e'
      AND c.unenforceable IS NULL
    CROSS JOIN LATERAL (SELECT jsonb_array_length(dbo.located(parent.value -> 'i', c.steps)))

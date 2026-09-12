@@ -259,7 +259,7 @@ class ATenantSubscribesToItsVersionIT {
         try (java.sql.Connection c = java.sql.DriverManager.getConnection(url,
                 postgres.getUsername(), postgres.getPassword());
              java.sql.PreparedStatement ps = c.prepareStatement(
-                     "select count(*) from state.term_system where url like 'urn:dbo:terminology-baseline:%'");
+                     "select count(*) from definitions.term_system where url like 'urn:dbo:terminology-baseline:%'");
              java.sql.ResultSet rs = ps.executeQuery()) {
             rs.next();
             assertEquals(0, rs.getLong(1),

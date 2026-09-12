@@ -88,7 +88,7 @@ public final class DefinitionStore {
             try {
                 forget(c, definitions.stream().map(Expanded::canonical).toList());
                 try (PreparedStatement ps = c.prepareStatement("""
-                        INSERT INTO state.definition_element (
+                        INSERT INTO definitions.definition_element (
                           canonical, element_id, definition_version, structure_type, kind,
                           base_definition, derivation,
                           source_id, source_version, ordinal, path, parent_id, steps,
@@ -155,7 +155,7 @@ public final class DefinitionStore {
     private void writeInvariants(Connection c, Collection<Expanded> definitions)
             throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.definition_invariant (
+                INSERT INTO definitions.definition_invariant (
                   canonical, element_id, key, severity, expression, path, unenforceable)
                 VALUES (?,?,?,?,?,?,?)""")) {
             int pending = 0;
@@ -186,7 +186,7 @@ public final class DefinitionStore {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
                      SELECT element_id, key, severity, expression, path, unenforceable
-                       FROM state.definition_invariant WHERE canonical = ?
+                       FROM definitions.definition_invariant WHERE canonical = ?
                       ORDER BY element_id, key""")) {
             ps.setString(1, canonical);
             try (ResultSet rs = ps.executeQuery()) {
@@ -215,7 +215,7 @@ public final class DefinitionStore {
     }
 
     private void forget(Connection c, Collection<String> canonicals) throws SQLException {
-        for (String table : List.of("state.definition_element", "state.definition_invariant")) {
+        for (String table : List.of("definitions.definition_element", "definitions.definition_invariant")) {
             try (PreparedStatement ps = c.prepareStatement(
                     "DELETE FROM " + table + " WHERE canonical = ANY (?)")) {
                 ps.setArray(1, c.createArrayOf("text", canonicals.toArray()));
@@ -237,7 +237,7 @@ public final class DefinitionStore {
         Map<String, Long> held = new LinkedHashMap<>();
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT canonical, max(source_version) FROM state.definition_element"
+                     "SELECT canonical, max(source_version) FROM definitions.definition_element"
                      + " GROUP BY canonical");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
@@ -256,7 +256,7 @@ public final class DefinitionStore {
                      SELECT element_id, path, parent_id, steps, min_occurs, max_occurs,
                             types::text, fixed::text, pattern::text,
                             binding_strength, binding_valueset, unenforceable
-                       FROM state.definition_element
+                       FROM definitions.definition_element
                       WHERE canonical = ? ORDER BY ordinal""")) {
             ps.setString(1, canonical);
             try (ResultSet rs = ps.executeQuery()) {
@@ -297,7 +297,7 @@ public final class DefinitionStore {
     public java.util.Optional<String> theTypeItself(String structureType) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     SELECT DISTINCT canonical FROM state.definition_element
+                     SELECT DISTINCT canonical FROM definitions.definition_element
                       WHERE structure_type = ? AND derivation = 'specialization'
                         AND parent_id IS NULL""")) {
             ps.setString(1, structureType);
@@ -323,7 +323,7 @@ public final class DefinitionStore {
     public java.util.OptionalLong issuesUnder(byte[] document, String canonical) {
         try (Connection c = ds.getConnection()) {
             try (PreparedStatement held = c.prepareStatement(
-                    "SELECT 1 FROM state.definition_element WHERE canonical = ? LIMIT 1")) {
+                    "SELECT 1 FROM definitions.definition_element WHERE canonical = ? LIMIT 1")) {
                 held.setString(1, canonical);
                 try (ResultSet rs = held.executeQuery()) {
                     if (!rs.next()) {
@@ -354,7 +354,7 @@ public final class DefinitionStore {
     public long count() {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT count(*) FROM state.definition_element");
+                     "SELECT count(*) FROM definitions.definition_element");
              ResultSet rs = ps.executeQuery()) {
             return rs.next() ? rs.getLong(1) : 0;
         } catch (SQLException e) {
@@ -372,8 +372,9 @@ public final class DefinitionStore {
             // bytecode rather than the intent.
             for (String ddl : List.of(
                     "CREATE SCHEMA IF NOT EXISTS state",
+                    "CREATE SCHEMA IF NOT EXISTS definitions",
                     """
-                    CREATE TABLE IF NOT EXISTS state.definition_element (
+                    CREATE TABLE IF NOT EXISTS definitions.definition_element (
                       canonical          text    NOT NULL,
                       element_id         text    NOT NULL,
                       definition_version text,
@@ -400,9 +401,9 @@ public final class DefinitionStore {
                     // The two ways a checker reaches these rows: everything
                     // of one definition, and the children of one element.
                     "CREATE INDEX IF NOT EXISTS definition_element_by_parent"
-                            + " ON state.definition_element (canonical, parent_id)",
+                            + " ON definitions.definition_element (canonical, parent_id)",
                     """
-                    CREATE TABLE IF NOT EXISTS state.definition_invariant (
+                    CREATE TABLE IF NOT EXISTS definitions.definition_invariant (
                       canonical     text NOT NULL,
                       element_id    text NOT NULL,
                       key           text NOT NULL,
@@ -413,7 +414,7 @@ public final class DefinitionStore {
                       PRIMARY KEY (canonical, element_id, key)
                     )""",
                     """
-                    CREATE TABLE IF NOT EXISTS state.definition_shape (
+                    CREATE TABLE IF NOT EXISTS definitions.definition_shape (
                       only_row int PRIMARY KEY DEFAULT 1 CHECK (only_row = 1),
                       shape    int NOT NULL
                     )""")) {
@@ -440,7 +441,7 @@ public final class DefinitionStore {
     private void resetIfTheShapeMoved(Connection c) throws SQLException {
         Integer held = null;
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT shape FROM state.definition_shape WHERE only_row = 1");
+                "SELECT shape FROM definitions.definition_shape WHERE only_row = 1");
              ResultSet rs = ps.executeQuery()) {
             if (rs.next()) {
                 held = rs.getInt(1);
@@ -451,17 +452,17 @@ public final class DefinitionStore {
         }
         for (String column : List.of("base_definition", "derivation")) {
             try (PreparedStatement ps = c.prepareStatement(
-                    "ALTER TABLE state.definition_element ADD COLUMN IF NOT EXISTS "
+                    "ALTER TABLE definitions.definition_element ADD COLUMN IF NOT EXISTS "
                     + column + " text")) {
                 ps.execute();
             }
         }
         try (PreparedStatement ps = c.prepareStatement(
-                "TRUNCATE TABLE state.definition_element, state.definition_invariant")) {
+                "TRUNCATE TABLE definitions.definition_element, definitions.definition_invariant")) {
             ps.execute();
         }
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO state.definition_shape (only_row, shape) VALUES (1, ?)
+                INSERT INTO definitions.definition_shape (only_row, shape) VALUES (1, ?)
                 ON CONFLICT (only_row) DO UPDATE SET shape = EXCLUDED.shape""")) {
             ps.setInt(1, SHAPE);
             ps.executeUpdate();

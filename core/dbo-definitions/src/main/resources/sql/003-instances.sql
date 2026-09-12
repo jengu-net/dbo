@@ -14,12 +14,12 @@ LANGUAGE sql STABLE AS $$
   WITH RECURSIVE walk AS (
       -- the resource itself: one instance, and it is the document
       SELECT e.element_id, doc AS instance
-        FROM state.definition_element e
+        FROM definitions.definition_element e
        WHERE e.canonical = profile AND e.parent_id IS NULL
     UNION ALL
       SELECT c.element_id, found.value
         FROM walk w
-        JOIN state.definition_element c
+        JOIN definitions.definition_element c
           ON c.canonical = profile AND c.parent_id = w.element_id
        CROSS JOIN LATERAL jsonb_array_elements(dbo.located(w.instance, c.steps)) AS found(value)
   )

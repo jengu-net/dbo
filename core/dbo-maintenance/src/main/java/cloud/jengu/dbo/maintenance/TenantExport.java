@@ -89,10 +89,16 @@ public final class TenantExport {
 
     private static List<String> stateTablesOf(Connection c, String domain) throws SQLException {
         List<String> tables = new ArrayList<>();
-        // The tenant-scoped tables ride with whichever domain sweeps them
-        // first, and they live in the shared schema — so a domain with a
-        // schema of its own carries its own tables and nothing else.
-        String tenantScoped = Domains.separable(domain) ? ""
+        // A schema of its own is swept WHOLE. A prefix tells a domain apart
+        // from its neighbours in a shared schema and means nothing in a
+        // dedicated one — where the rows DERIVED from this domain's records
+        // sit under names carrying no domain at all, and a sweep still
+        // looking for the prefix would leave them out of every archive.
+        //
+        // In the shared schema the tenant-scoped tables ride with whichever
+        // domain sweeps them up first.
+        String alsoMatching = Domains.separable(domain)
+                ? " OR true"
                 : " OR table_name LIKE 'term\\_%' OR table_name = 'projection_marker'";
         // History is dumped separately below, with the type-level travel
         // exclusions applied to it. A domain whose history shares its schema
@@ -102,7 +108,7 @@ public final class TenantExport {
                 WHERE table_schema = ?
                   AND table_name <> ?
                   AND (table_name LIKE ?%s)
-                ORDER BY table_name""".formatted(tenantScoped))) {
+                ORDER BY table_name""".formatted(alsoMatching))) {
             ps.setString(1, Domains.schema(domain));
             ps.setString(2, domain + "_history");
             ps.setString(3, domain + "\\_%");

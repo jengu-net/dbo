@@ -29,11 +29,11 @@ $$;
 CREATE OR REPLACE FUNCTION dbo.descends_from(p_system text, p_code text, p_ancestor text)
 RETURNS boolean LANGUAGE sql STABLE AS $$
   WITH RECURSIVE up AS (
-      SELECT c.code, c.parent_code FROM state.term_concept c
+      SELECT c.code, c.parent_code FROM definitions.term_concept c
        WHERE c.system = p_system AND c.code = p_code
     UNION ALL
       SELECT parent.code, parent.parent_code FROM up
-        JOIN state.term_concept parent
+        JOIN definitions.term_concept parent
           ON parent.system = p_system AND parent.code = up.parent_code
   )
   SELECT coalesce(bool_or(up.code = p_ancestor), false) FROM up
@@ -58,7 +58,7 @@ DECLARE
   v_named   boolean := false;  -- the value set is built from this system
   v_judged  boolean := false;  -- and this tenant holds it, so it could say
 BEGIN
-  SELECT compose INTO v_compose FROM state.term_valueset
+  SELECT compose INTO v_compose FROM definitions.term_valueset
    WHERE url = split_part(p_valueset, '|', 1);
   IF v_compose IS NULL THEN
     RETURN NULL;
@@ -68,7 +68,7 @@ BEGIN
   FOR v_set IN SELECT * FROM jsonb_array_elements(coalesce(v_compose -> 'excludes', '[]'::jsonb))
   LOOP
     IF (p_system IS NULL OR p_system = v_set ->> 'system')
-       AND EXISTS (SELECT 1 FROM state.term_system WHERE url = v_set ->> 'system')
+       AND EXISTS (SELECT 1 FROM definitions.term_system WHERE url = v_set ->> 'system')
        AND (NOT (v_set ? 'codes')
             OR p_code IN (SELECT jsonb_array_elements_text(v_set -> 'codes')))
     THEN
@@ -82,7 +82,7 @@ BEGIN
       CONTINUE;
     END IF;
     v_named := true;
-    IF NOT EXISTS (SELECT 1 FROM state.term_system WHERE url = v_set ->> 'system') THEN
+    IF NOT EXISTS (SELECT 1 FROM definitions.term_system WHERE url = v_set ->> 'system') THEN
       CONTINUE;
     END IF;
     v_judged := true;
@@ -94,7 +94,7 @@ BEGIN
       IF dbo.descends_from(v_set ->> 'system', p_code, v_set ->> 'isA') THEN
         RETURN true;
       END IF;
-    ELSIF EXISTS (SELECT 1 FROM state.term_concept
+    ELSIF EXISTS (SELECT 1 FROM definitions.term_concept
                    WHERE system = v_set ->> 'system' AND code = p_code) THEN
       RETURN true;
     END IF;

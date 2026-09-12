@@ -10,6 +10,8 @@ plugins {
 // org.postgresql.*, exactly right.
 
 dependencies {
+    // Where a separable domain's rows live is said in one place.
+    api(project(":core:dbo-core"))
     implementation("org.postgresql:postgresql:42.7.13")
 }
 

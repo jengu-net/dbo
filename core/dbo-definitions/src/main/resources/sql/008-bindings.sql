@@ -24,7 +24,7 @@ LANGUAGE sql STABLE AS $$
          format('%s is bound to %s, and %s is not in it', e.path,
                 split_part(e.binding_valueset, '|', 1), verdict.shown)
     FROM jsonb_array_elements(walked) AS at
-    JOIN state.definition_element e
+    JOIN definitions.definition_element e
       ON e.canonical = profile AND e.element_id = at.value ->> 'e' AND e.unenforceable IS NULL
      AND e.binding_strength = 'required' AND e.binding_valueset IS NOT NULL
    CROSS JOIN LATERAL (

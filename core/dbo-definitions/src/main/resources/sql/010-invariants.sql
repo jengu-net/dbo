@@ -45,10 +45,10 @@ LANGUAGE sql STABLE AS $$
   SELECT coalesce(rule.severity, 'error'), element.path, rule.key,
          format('%s: %s', rule.key, coalesce(rule.expression, rule.key))
     FROM jsonb_array_elements(walked) AS at
-    JOIN state.definition_invariant rule
+    JOIN definitions.definition_invariant rule
       ON rule.canonical = profile AND rule.element_id = at.value ->> 'e'
      AND rule.path IS NOT NULL
-    JOIN state.definition_element element
+    JOIN definitions.definition_element element
       ON element.canonical = profile AND element.element_id = at.value ->> 'e'
    WHERE dbo.invariant_holds(at.value -> 'i', rule.path) IS FALSE
 $$;

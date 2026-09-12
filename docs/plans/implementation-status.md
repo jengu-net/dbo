@@ -20,7 +20,12 @@ commit.**
 `StoredObject`, UUIDv7 identifiers, the sealed `IdentityRef`, and the
 `Handling` classification every registered type must declare. `dbo-postgres`
 implements it — single-transaction writes, database-enforced no-merge on
-identity claims, and the `state`/`history`/`dbos` schema split. Payloads
+identity claims, and the `state`/`history`/`dbos` schema split. A domain that
+is handed over on its own gets a schema of its own instead of a prefix inside
+the shared ones, because a schema is the unit the database dumps, restores,
+grants on and drops; `definitions` is the one domain that is, and it holds
+what a face gave a tenant — the definition records, their history, and every
+row derived from one. Payloads
 carry a version and pass through a `PayloadConverter` chain on read, so a
 domain written under one FHIR version re-binds to another without a rewrite;
 history is exempt by design. Every version links to the one before it, so a
@@ -128,7 +133,11 @@ are extracted from HAPI's own definitions rather than hand-listed.
 
 A tenant holds its version as records rather than as a context loaded into its
 node: a face root reads the carried packages once and its subscribers take the
-definitions from it through the ordinary chain. Every structure a tenant holds
+definitions from it through the ordinary chain. Those records are a domain of
+their own — their own schema, their own feed, their own cursor — so what a
+face gave a tenant is a thing the database can name and hand over, and a
+subscriber does not read a root's clinical traffic on the way to the next
+profile. Every structure a tenant holds
 is taken apart on arrival into element rows in the tenant's own database —
 cardinality, types, fixed and pattern values, bindings, each located by a
 jsonpath with choice keys and slice members already resolved — so a checker

@@ -146,6 +146,46 @@ class ASeparableDomainIsMovedOnItsOwnIT {
                 "its records came back without their versions");
     }
 
+    @Test
+    @Timeout(300)
+    @DisplayName("what the schema holds beside its records travels with it")
+    @Proving(DboPromises.CORE_A_SEPARABLE_DOMAIN_HAS_A_SCHEMA_OF_ITS_OWN)
+    void whatTheSchemaHoldsBesideItsRecordsTravels() throws Exception {
+        // A separable domain holds more than the engine's own tables: the rows
+        // something DERIVED from its records live there too — a definition
+        // expanded into elements, a code system into concepts. Those carry no
+        // domain in their names, so a backup that still swept by the domain
+        // prefix would take the records and leave the rows computed from them,
+        // and say nothing. This stands in for them: any table in the schema.
+        String derived = Domains.schema(SEPARABLE) + ".derived_from_a_record";
+        try (Connection c = ds.getConnection();
+             PreparedStatement ddl = c.prepareStatement(
+                     "CREATE TABLE IF NOT EXISTS " + derived + " (note text)");
+             PreparedStatement row = c.prepareStatement(
+                     "INSERT INTO " + derived + " VALUES ('computed, not written')")) {
+            ddl.execute();
+            row.execute();
+        }
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        TenantExport.export(ds, GadgetModel.DOMAIN, OWNER_KEY, out, TYPES,
+                TenantExport.Kind.BACKUP);
+
+        PGSimpleDataSource target = database("separable_domain_derived");
+        new PgObjectStore(target, TYPES);
+        try (Connection c = target.getConnection();
+             PreparedStatement ddl = c.prepareStatement(
+                     "CREATE TABLE IF NOT EXISTS " + derived + " (note text)")) {
+            ddl.execute();
+        }
+        CoSignedArchive.over(out.toByteArray(), OWNER_KEY)
+                .restoreFidelityInto(target, GadgetModel.DOMAIN, OWNER_KEY);
+
+        assertEquals(1, rows(target, derived),
+                "the backup carried the domain's records and left behind what was computed "
+                        + "from them, which restores a face missing half of itself");
+    }
+
     // ------------------------------------------------------------- the model
 
     /**

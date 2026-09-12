@@ -64,18 +64,18 @@ public final class TerminologyStore {
             c.setAutoCommit(false);
             try {
                 try (PreparedStatement ps = c.prepareStatement(
-                        "DELETE FROM state.term_concept WHERE system = ANY (?)")) {
+                        "DELETE FROM definitions.term_concept WHERE system = ANY (?)")) {
                     ps.setArray(1, c.createArrayOf("text",
                             systems.stream().map(System::url).toArray()));
                     ps.executeUpdate();
                 }
                 CopyManager copy = c.unwrap(PGConnection.class).getCopyAPI();
                 long rows = copy.copyIn(
-                        "COPY state.term_concept (system, code, display, parent_code,"
+                        "COPY definitions.term_concept (system, code, display, parent_code,"
                                 + " designations, properties) FROM STDIN WITH (FORMAT csv)",
                         new SystemsCsvReader(systems));
                 try (PreparedStatement ps = c.prepareStatement("""
-                        INSERT INTO state.term_system (url, version, concept_count, updated_at)
+                        INSERT INTO definitions.term_system (url, version, concept_count, updated_at)
                         VALUES (?, ?, ?, now())
                         ON CONFLICT (url) DO UPDATE SET version = EXCLUDED.version,
                           concept_count = EXCLUDED.concept_count, updated_at = now()""")) {
@@ -105,17 +105,17 @@ public final class TerminologyStore {
             c.setAutoCommit(false);
             try {
                 try (PreparedStatement ps = c.prepareStatement(
-                        "DELETE FROM state.term_concept WHERE system = ?")) {
+                        "DELETE FROM definitions.term_concept WHERE system = ?")) {
                     ps.setString(1, systemUrl);
                     ps.executeUpdate();
                 }
                 CopyManager copy = c.unwrap(PGConnection.class).getCopyAPI();
                 long rows = copy.copyIn(
-                        "COPY state.term_concept (system, code, display, parent_code, designations, properties)"
+                        "COPY definitions.term_concept (system, code, display, parent_code, designations, properties)"
                                 + " FROM STDIN WITH (FORMAT csv)",
                         new ConceptCsvReader(systemUrl, concepts));
                 try (PreparedStatement ps = c.prepareStatement("""
-                        INSERT INTO state.term_system (url, version, concept_count, updated_at)
+                        INSERT INTO definitions.term_system (url, version, concept_count, updated_at)
                         VALUES (?, ?, ?, now())
                         ON CONFLICT (url) DO UPDATE SET version = EXCLUDED.version,
                           concept_count = EXCLUDED.concept_count, updated_at = now()""")) {
@@ -152,7 +152,7 @@ public final class TerminologyStore {
         try (Connection c = ds.getConnection()) {
             c.setAutoCommit(false);
             try (PreparedStatement ps = c.prepareStatement("""
-                     INSERT INTO state.term_valueset (url, version, compose, updated_at)
+                     INSERT INTO definitions.term_valueset (url, version, compose, updated_at)
                      VALUES (?, ?, ?::jsonb, now())
                      ON CONFLICT (url) DO UPDATE SET version = EXCLUDED.version,
                        compose = EXCLUDED.compose, updated_at = now()""")) {
@@ -185,7 +185,7 @@ public final class TerminologyStore {
     public void putValueSet(String url, String version, Compose compose) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     INSERT INTO state.term_valueset (url, version, compose, updated_at)
+                     INSERT INTO definitions.term_valueset (url, version, compose, updated_at)
                      VALUES (?, ?, ?::jsonb, now())
                      ON CONFLICT (url) DO UPDATE SET version = EXCLUDED.version,
                        compose = EXCLUDED.compose, updated_at = now()""")) {
@@ -204,7 +204,7 @@ public final class TerminologyStore {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
                      SELECT code, display, parent_code, designations::text, properties::text
-                     FROM state.term_concept WHERE system = ? AND code = ?""")) {
+                     FROM definitions.term_concept WHERE system = ? AND code = ?""")) {
             ps.setString(1, system);
             ps.setString(2, code);
             try (ResultSet rs = ps.executeQuery()) {
@@ -229,7 +229,7 @@ public final class TerminologyStore {
     public Optional<String> systemVersion(String url) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT coalesce(version, '') FROM state.term_system WHERE url = ?")) {
+                     "SELECT coalesce(version, '') FROM definitions.term_system WHERE url = ?")) {
             ps.setString(1, url);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? Optional.of(rs.getString(1)) : Optional.empty();
@@ -242,7 +242,7 @@ public final class TerminologyStore {
     public long conceptCount(String system) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT count(*) FROM state.term_concept WHERE system = ?")) {
+                     "SELECT count(*) FROM definitions.term_concept WHERE system = ?")) {
             ps.setString(1, system);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
@@ -256,7 +256,7 @@ public final class TerminologyStore {
     public Optional<Compose> valueSetCompose(String url) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT compose::text FROM state.term_valueset WHERE url = ?")) {
+                     "SELECT compose::text FROM definitions.term_valueset WHERE url = ?")) {
             ps.setString(1, url);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? Optional.of(parseCompose(rs.getString(1))) : Optional.empty();
@@ -278,7 +278,7 @@ public final class TerminologyStore {
      */
     public Expansion expand(Compose compose, String filter, int offset, int count) {
         StringBuilder sql = new StringBuilder(
-                "SELECT DISTINCT c.system, c.code, c.display FROM state.term_concept c WHERE (");
+                "SELECT DISTINCT c.system, c.code, c.display FROM definitions.term_concept c WHERE (");
         List<Object> params = new ArrayList<>();
         boolean first = true;
         for (Compose.Include inc : compose.includes()) {
@@ -290,9 +290,9 @@ public final class TerminologyStore {
                 sql.append("""
                         (c.system = ? AND c.code IN (
                           WITH RECURSIVE sub AS (
-                            SELECT code FROM state.term_concept WHERE system = ? AND code = ?
+                            SELECT code FROM definitions.term_concept WHERE system = ? AND code = ?
                             UNION ALL
-                            SELECT ch.code FROM state.term_concept ch JOIN sub s
+                            SELECT ch.code FROM definitions.term_concept ch JOIN sub s
                               ON ch.parent_code = s.code AND ch.system = ?
                           ) SELECT code FROM sub))""");
                 params.add(inc.system());
@@ -356,7 +356,7 @@ public final class TerminologyStore {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
                      SELECT code, display, parent_code, designations::text, properties::text
-                     FROM state.term_concept WHERE system = ? ORDER BY code""")) {
+                     FROM definitions.term_concept WHERE system = ? ORDER BY code""")) {
             ps.setString(1, system);
             try (ResultSet rs = ps.executeQuery()) {
                 List<Concept> out = new ArrayList<>();
@@ -440,8 +440,9 @@ public final class TerminologyStore {
         try (Connection c = ds.getConnection()) {
             for (String ddl : List.of(
                     "CREATE SCHEMA IF NOT EXISTS state",
+                    "CREATE SCHEMA IF NOT EXISTS definitions",
                     """
-                    CREATE TABLE IF NOT EXISTS state.term_concept (
+                    CREATE TABLE IF NOT EXISTS definitions.term_concept (
                       system text NOT NULL,
                       code text NOT NULL,
                       display text,
@@ -450,17 +451,17 @@ public final class TerminologyStore {
                       properties jsonb,
                       PRIMARY KEY (system, code)
                     )""",
-                    "CREATE INDEX IF NOT EXISTS term_concept_parent_ix ON state.term_concept (system, parent_code)",
-                    "CREATE INDEX IF NOT EXISTS term_concept_display_ix ON state.term_concept (system, lower(display) text_pattern_ops)",
+                    "CREATE INDEX IF NOT EXISTS term_concept_parent_ix ON definitions.term_concept (system, parent_code)",
+                    "CREATE INDEX IF NOT EXISTS term_concept_display_ix ON definitions.term_concept (system, lower(display) text_pattern_ops)",
                     """
-                    CREATE TABLE IF NOT EXISTS state.term_system (
+                    CREATE TABLE IF NOT EXISTS definitions.term_system (
                       url text PRIMARY KEY,
                       version text,
                       concept_count bigint NOT NULL,
                       updated_at timestamptz NOT NULL DEFAULT now()
                     )""",
                     """
-                    CREATE TABLE IF NOT EXISTS state.term_valueset (
+                    CREATE TABLE IF NOT EXISTS definitions.term_valueset (
                       url text PRIMARY KEY,
                       version text,
                       compose jsonb NOT NULL,

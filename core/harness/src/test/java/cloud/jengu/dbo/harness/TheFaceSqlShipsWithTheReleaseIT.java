@@ -153,6 +153,36 @@ class TheFaceSqlShipsWithTheReleaseIT {
     }
 
     @Test
+    @DisplayName("the installed functions read a definition from one schema and nowhere else")
+    @Proving(DboPromises.VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN)
+    void theFunctionsReadDefinitionsFromOneSchema() throws Exception {
+        // Asserted over what was INSTALLED rather than over the files, because
+        // a function created from an older script is what the database would
+        // actually run.
+        //
+        // Not "no function mentions the shared schema": one of them must reach
+        // the records, since a reference points at one, and it finds them by
+        // scanning every schema a domain's tables can be in. What may not
+        // happen is a definition or a vocabulary being read from outside the
+        // schema a face is cut from — that function would answer from rows an
+        // image neither carries nor restores.
+        // The body is fetched inside a subquery so it is only ever asked for
+        // about a plain function in this schema: pg_get_functiondef refuses an
+        // aggregate, and a planner free to call it before the filter finds one.
+        List<String> reachingElsewhere = query(
+                "SELECT proname || ' reads ' ||"
+                + " substring(body from 'state[.](?:definition|term)_[a-z_]+') FROM ("
+                + "   SELECT p.proname, pg_get_functiondef(p.oid) AS body"
+                + "     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace"
+                + "    WHERE n.nspname = 'dbo' AND p.prokind = 'f') f"
+                + " WHERE body ~ 'state[.](definition|term)_'"
+                + " ORDER BY proname");
+        assertEquals(List.of(), reachingElsewhere,
+                "a face function reads what a face gave the tenant from outside the schema "
+                        + "the face is cut from");
+    }
+
+    @Test
     @DisplayName("an element is counted inside the parent it occurs in, which is the count "
             + "the profile actually states")
     @Proving(DboPromises.VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE)
@@ -431,7 +461,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
         // What the row holds is a filter, not a rule to be interpreted: the
         // discriminator was read once, when the definition arrived.
         List<String> systolic = rootQuery(
-                "SELECT unnest(steps) FROM state.definition_element"
+                "SELECT unnest(steps) FROM definitions.definition_element"
                 + " WHERE canonical = ? AND element_id = 'Observation.component:SystolicBP'", bp);
         assertEquals(1, systolic.size(), "the systolic component is located by " + systolic);
         assertTrue(systolic.get(0).contains(" ? ("),
@@ -459,11 +489,11 @@ class TheFaceSqlShipsWithTheReleaseIT {
         // Stated with what it is a cost OF: a profile carries its base's
         // elements and its slices' as well, so some of the difference is
         // simply more rows and some is the predicates on them.
-        String slicedRows = rootQuery("SELECT count(*)::text FROM state.definition_element"
+        String slicedRows = rootQuery("SELECT count(*)::text FROM definitions.definition_element"
                 + " WHERE canonical = ?", bp).get(0);
-        String plainRows = rootQuery("SELECT count(*)::text FROM state.definition_element"
+        String plainRows = rootQuery("SELECT count(*)::text FROM definitions.definition_element"
                 + " WHERE canonical = ?", observation).get(0);
-        String withPredicates = rootQuery("SELECT count(*)::text FROM state.definition_element"
+        String withPredicates = rootQuery("SELECT count(*)::text FROM definitions.definition_element"
                 + " WHERE canonical = ? AND array_to_string(steps, '') LIKE '%?%'", bp).get(0);
         System.out.printf("METRICS slicing sliced=%dus/%srows unsliced=%dus/%srows "
                 + "predicates=%s over %d rounds%n",
@@ -589,9 +619,9 @@ class TheFaceSqlShipsWithTheReleaseIT {
                    {"id":"Patient.gender","path":"Patient.gender","max":"1"}]}}""";
 
         // What there is to do: the rows walked, and the rules run over them.
-        String elements = rootQuery("SELECT count(*)::text FROM state.definition_element"
+        String elements = rootQuery("SELECT count(*)::text FROM definitions.definition_element"
                 + " WHERE canonical = ?", shape).get(0);
-        String rules = rootQuery("SELECT count(*)::text FROM state.definition_invariant"
+        String rules = rootQuery("SELECT count(*)::text FROM definitions.definition_invariant"
                 + " WHERE canonical = ? AND path IS NOT NULL", shape).get(0);
 
         int rounds = 20;

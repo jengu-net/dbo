@@ -69,11 +69,11 @@ public final class FaceFunctions {
      * into a sentence about what was brought up in what order.
      */
     private static final List<String> READS = List.of(
-            "state.definition_element",
-            "state.definition_invariant",
-            "state.term_valueset",
-            "state.term_system",
-            "state.term_concept");
+            "definitions.definition_element",
+            "definitions.definition_invariant",
+            "definitions.term_valueset",
+            "definitions.term_system",
+            "definitions.term_concept");
 
     private FaceFunctions() {}
 
@@ -144,6 +144,16 @@ public final class FaceFunctions {
 
     // ------------------------------------------------------------- register
 
+    /**
+     * The register stays in the shared schema, deliberately.
+     *
+     * <p>It records that THIS database has the functions, and the functions
+     * live in {@code dbo} — which no image carries, because code arrives with
+     * the release and never through a restore. Kept in the definitions schema
+     * it would ride along inside an image and tell a fresh tenant that
+     * functions are installed which were never restored: the store would then
+     * skip the install and answer with nothing.
+     */
     private static void ensureRegister(Connection c) throws SQLException {
         for (String ddl : List.of(
                 "CREATE SCHEMA IF NOT EXISTS state",

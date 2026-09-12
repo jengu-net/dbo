@@ -14,14 +14,14 @@ LANGUAGE sql STABLE AS $$
   SELECT 'error', e.path, 'fixed',
          format('%s is fixed to %s and holds %s', e.path, e.fixed, at.value -> 'i')
     FROM jsonb_array_elements(walked) AS at
-    JOIN state.definition_element e
+    JOIN definitions.definition_element e
       ON e.canonical = profile AND e.element_id = at.value ->> 'e' AND e.unenforceable IS NULL
    WHERE e.fixed IS NOT NULL AND (at.value -> 'i') IS DISTINCT FROM e.fixed
   UNION ALL
   SELECT 'error', e.path, 'pattern',
          format('%s must contain %s and holds %s', e.path, e.pattern, at.value -> 'i')
     FROM jsonb_array_elements(walked) AS at
-    JOIN state.definition_element e
+    JOIN definitions.definition_element e
       ON e.canonical = profile AND e.element_id = at.value ->> 'e' AND e.unenforceable IS NULL
    WHERE e.pattern IS NOT NULL AND NOT ((at.value -> 'i') @> e.pattern)
 $$;

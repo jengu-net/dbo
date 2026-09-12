@@ -460,15 +460,26 @@ public final class TenantImport {
         // DECLARED. Widening it to "any domain" would let an archive name an
         // arbitrary table in the target database, which is what this check
         // exists to prevent.
+        // A domain with a schema of its own owns everything in that schema,
+        // derived tables included — those carry no domain name, so the prefix
+        // test alone would refuse the very rows the backup now carries. The
+        // guard still holds: the schema has to belong to a domain the archive
+        // DECLARED, so an archive still cannot name an arbitrary table.
         boolean known = terminology || domains.stream().anyMatch(d ->
                 archiveName.startsWith(Domains.tables(d) + "_")
-                        || archiveName.startsWith(Domains.historyTables(d) + "_"));
+                        || archiveName.startsWith(Domains.historyTables(d) + "_")
+                        || (Domains.separable(d)
+                                && archiveName.startsWith(Domains.schema(d) + ".")));
         if (!known) {
             throw new IllegalArgumentException("unexpected fidelity table: " + archiveName
                     + " — the archive declares " + domains);
         }
-        String suffix = archiveName.substring(archiveName.indexOf('_') + 1);
-        if (!suffix.matches("[a-z_]{1,32}")) {
+        // The table itself, checked as an identifier rather than as a suffix
+        // after the domain: a derived table carries no domain part, and a
+        // domain's own name carries digits ("r4"), so neither half can be
+        // assumed away.
+        String table = archiveName.substring(archiveName.indexOf('.') + 1);
+        if (!table.matches("[a-z0-9_]{1,63}")) {
             throw new IllegalArgumentException("unexpected fidelity table: " + archiveName);
         }
         return archiveName;
