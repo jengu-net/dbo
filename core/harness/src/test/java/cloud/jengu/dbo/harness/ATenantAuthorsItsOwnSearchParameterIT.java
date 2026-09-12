@@ -248,6 +248,80 @@ class ATenantAuthorsItsOwnSearchParameterIT {
         }
     }
 
+    @Test
+    @Order(8)
+    @DisplayName("a parameter this store could not select with is refused where the author "
+            + "is standing, naming what stopped it")
+    @Proving(DboPromises.SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES)
+    void aParameterThatWillNotCompileIsRefusedByName() throws Exception {
+        // Evaluable is the weaker question, and the one this store used to
+        // ask. An expression can evaluate perfectly and still use a construct
+        // that compiles to nothing the database selects with — and a
+        // parameter like that is accepted, indexed against nothing, and
+        // answers no search, which the author finds out from somebody else
+        // much later.
+        HttpResponse<String> refused = post("/SearchParameter", """
+                {"resourceType":"SearchParameter",
+                 "url":"https://otsija.example/SearchParameter/patient-distinct-name",
+                 "name":"DistinctName","status":"active","description":"an unsayable one",
+                 "code":"distinct-name","base":["Patient"],"type":"token",
+                 "expression":"Patient.name.given.isDistinct()"}""");
+
+        assertEquals(422, refused.statusCode(), refused.body());
+        assertTrue(refused.body().contains("select"), refused.body());
+        assertTrue(refused.body().contains("isDistinct") || refused.body().contains("Patient"),
+                "the refusal does not say what stopped it, which is the whole of what the "
+                        + "author can act on: " + refused.body());
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("the parameters a tenant can be asked by are held as rows, compiled")
+    @Proving(DboPromises.SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES)
+    void theParametersAreHeldAsCompiledRows() throws Exception {
+        // The test before this withdrew it, which is that test's whole point,
+        // so it is authored again here rather than depending on an order that
+        // happens to leave it in place.
+        assertTrue(post("/SearchParameter", MARITAL).statusCode() < 300);
+        manager.shapesRound();
+
+        cloud.jengu.dbo.definitions.DefinitionStore definitions =
+                new cloud.jengu.dbo.definitions.DefinitionStore(tenantSource());
+
+        var onPatient = definitions.parametersOf("Patient");
+        assertFalse(onPatient.isEmpty(),
+                "nothing was compiled for Patient, so every search is still an expression "
+                        + "walked over an object tree");
+
+        // The version's own, and the tenant's, in one set: what a type can be
+        // asked is both together, and a reader of these rows should not have
+        // to know which arrived by which route.
+        assertTrue(onPatient.stream().anyMatch(one -> "identifier".equals(one.code())),
+                "the version's own parameters are not among the rows: "
+                        + onPatient.stream().map(one -> one.code()).sorted().toList());
+        assertTrue(onPatient.stream().anyMatch(one -> "marital-status".equals(one.code())),
+                "the parameter this tenant authored is not among the rows");
+
+        var authored = onPatient.stream()
+                .filter(one -> "marital-status".equals(one.code())).findFirst().orElseThrow();
+        assertTrue(authored.enforceable(),
+                "the authored parameter compiled to nothing: " + authored.unenforceable());
+        assertFalse(authored.paths().isEmpty(), "it selects nowhere");
+        assertEquals("token", authored.kind());
+        assertEquals("Patient.maritalStatus", authored.expression(),
+                "the expression as written is not kept beside the compiled form, so nobody "
+                        + "can read why a search answers the way it does");
+    }
+
+    private static org.postgresql.ds.PGSimpleDataSource tenantSource() {
+        org.postgresql.ds.PGSimpleDataSource source = new org.postgresql.ds.PGSimpleDataSource();
+        source.setUrl(SharedPostgres.urlFor("x")
+                .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_otsija"));
+        source.setUser(SharedPostgres.get().getUsername());
+        source.setPassword(SharedPostgres.get().getPassword());
+        return source;
+    }
+
     private static HttpResponse<String> post(String path, String body) throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create(base + path))
                         .header("Content-Type", "application/fhir+json")

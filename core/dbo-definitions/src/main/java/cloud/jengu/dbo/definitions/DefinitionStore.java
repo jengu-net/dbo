@@ -43,6 +43,72 @@ public final class DefinitionStore {
             List<DefinitionElement> elements,
             List<DefinitionInvariant> invariants) {}
 
+    /**
+     * Replaces every compiled parameter this tenant holds.
+     *
+     * <p>Whole, not one at a time. What a tenant can be asked is the set of
+     * parameters it holds now — a parameter withdrawn has to stop answering,
+     * and reconciling row by row means deciding what "withdrawn" looks like
+     * from the outside when the simple answer is that it is not in the set.
+     */
+    public void replaceParameters(java.util.Collection<DefinitionParameter> parameters) {
+        try (Connection c = ds.getConnection()) {
+            c.setAutoCommit(false);
+            try (PreparedStatement clear = c.prepareStatement(
+                    "TRUNCATE TABLE definitions.definition_parameter")) {
+                clear.execute();
+            }
+            try (PreparedStatement ps = c.prepareStatement("""
+                    INSERT INTO definitions.definition_parameter
+                        (code, base, kind, expression, paths, predicate, unenforceable)
+                    VALUES (?, ?, ?, ?, ?::jsonb, ?, ?)
+                    ON CONFLICT (base, code) DO UPDATE SET
+                      kind = EXCLUDED.kind, expression = EXCLUDED.expression,
+                      paths = EXCLUDED.paths, predicate = EXCLUDED.predicate,
+                      unenforceable = EXCLUDED.unenforceable""")) {
+                int batched = 0;
+                for (DefinitionParameter parameter : parameters) {
+                    ps.setString(1, parameter.code());
+                    ps.setString(2, parameter.base());
+                    ps.setString(3, parameter.kind());
+                    ps.setString(4, parameter.expression());
+                    ps.setString(5, Json.arrayOf(parameter.paths()));
+                    ps.setString(6, parameter.predicate());
+                    ps.setString(7, parameter.unenforceable());
+                    ps.addBatch();
+                    if (++batched % BATCH == 0) {
+                        ps.executeBatch();
+                    }
+                }
+                ps.executeBatch();
+            }
+            c.commit();
+        } catch (SQLException e) {
+            throw new IllegalStateException("the compiled parameters could not be written", e);
+        }
+    }
+
+    /** What this tenant can be asked about that type. */
+    public List<DefinitionParameter> parametersOf(String base) {
+        List<DefinitionParameter> out = new java.util.ArrayList<>();
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     SELECT code, base, kind, expression, paths, predicate, unenforceable
+                       FROM definitions.definition_parameter WHERE base = ? ORDER BY code""")) {
+            ps.setString(1, base);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    out.add(new DefinitionParameter(rs.getString(1), rs.getString(2),
+                            rs.getString(3), rs.getString(4), Json.stringsOf(rs.getString(5)),
+                            rs.getString(6), rs.getString(7)));
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("the compiled parameters could not be read", e);
+        }
+        return out;
+    }
+
     private static final int BATCH = 1_000;
 
     /**
@@ -61,7 +127,7 @@ public final class DefinitionStore {
      * read by the checks of another are wrong in a way nothing reports, so
      * the number travels with the bytes and is compared before they load.
      */
-    public static final int SHAPE = 3;
+    public static final int SHAPE = 4;
 
     private final DataSource ds;
 
@@ -421,6 +487,17 @@ public final class DefinitionStore {
                       PRIMARY KEY (canonical, element_id, key)
                     )""",
                     """
+                    CREATE TABLE IF NOT EXISTS definitions.definition_parameter (
+                      code          text NOT NULL,
+                      base          text NOT NULL,
+                      kind          text,
+                      expression    text,
+                      paths         jsonb NOT NULL,
+                      predicate     text,
+                      unenforceable text,
+                      PRIMARY KEY (base, code)
+                    )""",
+                    """
                     CREATE TABLE IF NOT EXISTS definitions.definition_shape (
                       only_row int PRIMARY KEY DEFAULT 1 CHECK (only_row = 1),
                       shape    int NOT NULL
@@ -465,7 +542,8 @@ public final class DefinitionStore {
             }
         }
         try (PreparedStatement ps = c.prepareStatement(
-                "TRUNCATE TABLE definitions.definition_element, definitions.definition_invariant")) {
+                "TRUNCATE TABLE definitions.definition_element, definitions.definition_invariant,"
+                        + " definitions.definition_parameter")) {
             ps.execute();
         }
         try (PreparedStatement ps = c.prepareStatement("""

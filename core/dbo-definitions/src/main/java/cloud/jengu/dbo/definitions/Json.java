@@ -41,6 +41,30 @@ final class Json {
 
     // ------------------------------------------------------------- writing
 
+    /** A bare JSON array of strings, for a column that holds one. */
+    static String arrayOf(List<String> values) {
+        return strings(values);
+    }
+
+    /** The strings in a bare JSON array, as written by {@link #arrayOf}. */
+    static List<String> stringsOf(String json) {
+        List<String> values = new ArrayList<>();
+        if (json == null) {
+            return values;
+        }
+        int i = 0;
+        while (i < json.length()) {
+            if (json.charAt(i) == '"') {
+                String value = unquote(json, i);
+                values.add(value);
+                i += quote(value).length();
+            } else {
+                i++;
+            }
+        }
+        return List.copyOf(values);
+    }
+
     private static String strings(List<String> values) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < values.size(); i++) {

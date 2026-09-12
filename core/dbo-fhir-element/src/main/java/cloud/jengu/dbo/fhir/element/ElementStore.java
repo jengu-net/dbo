@@ -308,13 +308,22 @@ public final class ElementStore implements FhirStoreFacade {
         // than thrown, so a replicated copy is held-and-warned like any other
         // arrival while an authored write refuses.
         if (SEARCH_PARAMETER.equals(type)) {
-            java.util.Optional<String> why = version.whyNotEvaluable(elementPayloads().context(),
-                    Json.str(Json.parse(new String(payload, StandardCharsets.UTF_8)),
-                            "expression"));
+            Object parameter = Json.parse(new String(payload, StandardCharsets.UTF_8));
+            String expression = Json.str(parameter, "expression");
+            java.util.Optional<String> why = version.whyNotEvaluable(
+                    elementPayloads().context(), expression);
             if (why.isPresent()) {
                 issues = new java.util.ArrayList<>(issues);
                 issues.add("the expression cannot be evaluated, so this parameter would be "
                         + "stored and then never answer anything: " + why.get());
+            } else {
+                // Evaluable is the weaker question. What decides whether this
+                // store can answer by a parameter is whether it compiles to
+                // something the database selects with — and an expression can
+                // be perfectly evaluable and still use a construct the
+                // compiler cannot express. Refused here, where the author is
+                // standing, rather than accepted and found not to answer.
+                issues = alsoWhatWillNotCompile(parameter, expression, issues);
             }
         }
         takenBesideTheToolchain(type, payload, issues);
@@ -739,7 +748,82 @@ public final class ElementStore implements FhirStoreFacade {
         // accepted, which is the only state in which the statement and the
         // surface agree.
         authoredHere = Map.copyOf(authored);
+        compileParametersHeld();
         return rebuilt;
+    }
+
+    /**
+     * What the compiler makes of an authored parameter, as a finding.
+     *
+     * <p>Checked against every type the parameter says it is about, because a
+     * path is compiled for a type: an expression can select cleanly on one
+     * resource and name a field another has never had.
+     */
+    private java.util.List<String> alsoWhatWillNotCompile(Object document, String expression,
+            java.util.List<String> issues) {
+        String kind = Json.str(document, "type");
+        if (!cloud.jengu.dbo.definitions.DefinitionParameter.extractable(kind)) {
+            return issues; // not taken apart by this store at all, here or anywhere
+        }
+        java.util.List<String> found = issues;
+        for (String base : Json.strings(document, "base")) {
+            if (types.stream().noneMatch(t -> t.typeName().equals(base))) {
+                continue; // about a type this tenant does not serve
+            }
+            ExpressionPaths.Selection selection = ExpressionPaths.selection(expression, base);
+            if (selection.paths().isEmpty()) {
+                found = new java.util.ArrayList<>(found);
+                found.add("the expression does not compile to anything this store can select "
+                        + "with, so the parameter would be stored and answer nothing about "
+                        + base + ": "
+                        + (selection.why() == null ? "no path was produced" : selection.why()));
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Compiles every way this tenant can be asked after a record, into rows.
+     *
+     * <p>The same move the elements and the invariants get, for the same
+     * reason: the answer never changes while the definition stands, and what
+     * will run it is a database. What a type can be asked is the version's
+     * own parameters and whatever this tenant has authored, so the rows are
+     * the union — and replaced whole, because a parameter withdrawn has to
+     * stop answering and "not in the set" is the simplest way to say that.
+     *
+     * <p>What does not compile is held saying so rather than dropped. A
+     * parameter with no path is not a search that matches nothing; it is a
+     * search this store cannot run, and the two are indistinguishable to
+     * anybody reading an empty result.
+     */
+    private void compileParametersHeld() {
+        List<cloud.jengu.dbo.definitions.DefinitionParameter> compiled = new ArrayList<>();
+        for (FhirTypeConfig type : types) {
+            String typeName = type.typeName();
+            for (SearchParameter parameter : ElementVersion.union(
+                    version.parametersFor(typeName),
+                    authoredHere.getOrDefault(typeName, List.of()))) {
+                compiled.add(compiledFrom(typeName, parameter));
+            }
+        }
+        definitions.replaceParameters(compiled);
+    }
+
+    /** One parameter, as this store would run it. */
+    private static cloud.jengu.dbo.definitions.DefinitionParameter compiledFrom(
+            String typeName, SearchParameter parameter) {
+        String kind = parameter.hasType() ? parameter.getType().toCode() : null;
+        String expression = parameter.getExpression();
+        if (!cloud.jengu.dbo.definitions.DefinitionParameter.extractable(kind)) {
+            return new cloud.jengu.dbo.definitions.DefinitionParameter(
+                    parameter.getCode(), typeName, kind, expression, List.of(), null,
+                    kind + " values are not taken apart by this store, here or anywhere else");
+        }
+        ExpressionPaths.Selection selection = ExpressionPaths.selection(expression, typeName);
+        return new cloud.jengu.dbo.definitions.DefinitionParameter(
+                parameter.getCode(), typeName, kind, expression,
+                selection.paths(), selection.predicate(), selection.why());
     }
 
     private static Set<String> codesOf(List<SearchParameter> parameters) {
@@ -955,6 +1039,7 @@ public final class ElementStore implements FhirStoreFacade {
         }
         int unresolved = expandedFromTheView(differential, moved);
         definitions.replaceAll(moved);
+        compileParametersHeld();
         if (!moved.isEmpty() || unresolved > 0) {
             LOG.info("definitions expanded: structures={} elements={} fromTheirDifferential={}"
                     + " withoutABase={}",

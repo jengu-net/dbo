@@ -1145,6 +1145,17 @@ public enum DboPromises implements Promise {
             + "for it — and a tenant's declaration still names the zone, since which "
             + "projection serves it follows from its own face and is not a tenant's to "
             + "know."),
+    SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES(
+            "Every way a tenant can be asked after a record — the version's own parameters "
+            + "and whatever the tenant has authored — is compiled when the definition "
+            + "arrives and held as a row: where the values are, which of them count, and "
+            + "what to make of what comes back. The same move the elements and the "
+            + "invariants get, for the same reason: the answer never changes while the "
+            + "definition stands, and what will run it is a database. One that does not "
+            + "compile is refused where the author is standing, naming what stopped it — "
+            + "evaluable is the weaker question, and an expression can evaluate perfectly "
+            + "and still use a construct that selects nothing here, which is a parameter "
+            + "that is accepted, indexed against nothing, and answers no search."),
     VER_CONVERSION_RUNS_BOTH_WAYS(
             "A converter exists for each direction between the versions this store "
             + "carries, registered by the version it converts FROM, so a zone written in "
