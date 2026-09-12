@@ -1,22 +1,24 @@
 ---
-title: Work is why data is accessed
+title: "Access granted to the work"
+headline: "Work is why data is accessed"
 eyebrow: Why DBO
 standfirst: >-
-  Every read of a regulated record needs a reason, and a permission is not one.
+  Every read or change of a regulated record needs a reason, and a permission
+  is not one.
   The reason is a step of some process — so that is what access is granted to,
   and performing it leaves the proof.
-why: 2
+why: 8
 template: essay.html
 ---
 
 A store holding regulated data has to answer a question an ordinary one never
-asks. Not *who may read this* — every database can express that — but *why was
-this read*. A permission answers the first and is silent on the second, so
-every allowed read looks identical afterwards, and the second is most of what
-the regulation is about.
+asks. Not *who may access this* — every database can express that — but *why
+was this accessed*. A permission answers the first and is silent on the second,
+so every allowed access looks identical afterwards, and the second is most of
+what the regulation is about.
 
-Outside, nobody reads a record for no reason. The reason is a step of some
-process: a sample is validated, a consignment is cleared, a passport is
+Outside, nobody reads or changes a record for no reason. The reason is a step
+of some process: a sample is validated, a consignment is cleared, a passport is
 published. And the step knows exactly what it needs — these documents, for
 this decision, and no others.
 
@@ -39,7 +41,7 @@ of a remote participant never depends on a parameter somebody forgot.
 
 Then the part that makes it auditable rather than merely careful. Performing
 the step leaves a record, because a run is a record. That record is the proof
-the work happened *and* the reason the data was read — not two artefacts to be
+the work happened *and* the reason the data was accessed — not two artefacts to be
 correlated later, one artefact. An auditor asking why this laboratory saw this
 person's sample is answered by the run that made it necessary.
 

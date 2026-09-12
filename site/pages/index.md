@@ -43,19 +43,18 @@ Platforms answer those by hand, once per application, above a store that cannot
 help. The answers end up scattered across application code, where each one is
 somebody's good intention rather than a property of the system.
 
-**DBO is the store that helps.** Its concepts are the ones European regulation
-asks of any system holding personal data — object, identity, custody, declared
-handling, history, tenancy, erasure — and none of them belongs to a particular
-trade. A tenant declares which standard it speaks, and that declaration is
-where the domain lives.
+**DBO is the store that helps**, and it starts somewhere unusual: not with the
+data, but with the work that needs it. Nobody reads or changes a regulated
+record for no reason — the reason is a step of some process. So a step is what
+access is granted to, and performing it is what leaves the proof.
 
---8<-- "assets/diagrams/engine-and-faces.svg"
+--8<-- "assets/diagrams/where-access-begins.svg"
 
-<p class="diagram-caption">Run your eye along the lower row. That the engine has
-no domain in it is something you can check from the picture rather than
-something the picture asserts.</p>
+<p class="diagram-caption">Analysing, deciding and recording the decision are
+one piece of work. There is no way to reach the data, or to change it, without
+doing the work that needed it.</p>
 
-[A tenant declares the standard it speaks →](why/engine-and-faces/)
+[Access granted to the work →](why/work/)
 </div>
 </section>
 
@@ -87,17 +86,17 @@ data never means being able to read it. Backup is export and restore is import,
 so every backup is restore-tested by daily use. One PostgreSQL database per
 tenant and nothing else to operate — no broker, no cache, no search cluster.
 
-<p class="start">Start with <a href="why/tenant-status/">what the node is
-doing</a>, then <a href="why/leaving/">leaving</a>.</p>
+<p class="start">Start with <a href="why/tenant-status/">a tenant's whole
+life</a>, then <a href="why/leaving/">leaving</a>.</p>
 </div>
 
 <div class="col" markdown>
 ### If you are deciding on an architecture
 
-The engine holds no domain, so a standard is mapped onto it rather than built
-into it. Work is a record in the same store as the data, which is what lets two
-organisations that do not trust each other share a process rather than a file
-drop.
+The engine holds no domain: a tenant declares which standard it speaks, and that
+declaration is where the domain lives. Work is a record in the same store as the
+data, which is what lets two organisations that do not trust each other share a
+process rather than a file drop.
 
 <p class="start">Start with <a href="why/engine-and-faces/">the engine and its
 faces</a>, then <a href="why/work/">work</a>.</p>

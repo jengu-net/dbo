@@ -1,0 +1,99 @@
+{
+  // The thread the concepts hang on, in one figure.
+  //
+  // Read left to right it is the argument the index page makes: a step is what
+  // needs data, so a step is what access is granted to, and performing it is
+  // what leaves the proof. Reading and changing are the same move here — a
+  // step analyses, decides, and writes what it decided — so the middle column
+  // names both rather than letting "access" be heard as "read". The strip underneath is the boundary all three sit
+  // inside — drawn as an enclosure rather than as a fourth column, because it
+  // is not a later stage of the same sequence — so it is drawn around them.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed. So every piece of text that must
+  // sit left is wrapped, and its container aligns to start.
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12.5; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |line-item::box| { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                     height: 26; padding: 0 12; align: start; justify: center; }
+  |lt::t|          { font-size: 12; }
+  |seal-item::line-item| { fill: --seal-soft; stroke: --seal; }
+  |slt::lt|        { color: --seal; font-weight: semibold; }
+  |dashed::box|    { radius: 9; fill: none; stroke: --line; stroke-width: 1.5;
+                     stroke-style: dashed; padding: 14 16; align: start; }
+  |down::line|     { points: 0 0, 0 22; stroke: --accent; stroke-width: 1.75;
+                     marker-end: arrow; }
+  |across::line|   { points: 0 0, 44 0; stroke: --accent; stroke-width: 1.75;
+                     marker-end: arrow; }
+
+  layout: flow; direction: column; align: start; width: 760;
+  padding: 4; gap: 0; clearance: 2;
+}
+
+|dashed| { width: 760; padding: 16 } [ |col| { width: 728; gap: 14 } [
+
+  |block| { layout: flow; direction: row; align: start; gap: 0; width: 728 } [
+
+    |col| { width: 204; gap: 0 } [
+      |eyebrow| "Where access begins"
+      |block| { height: 8 } []
+      |panel| { width: 204; height: 76; padding: 12 16 } [ |col| { width: 172; gap: 4 } [
+        |cap| "a step of a process"
+        |small| "validating a batch,"
+        |small| "clearing a consignment" ] ]
+      |block| { width: 204; height: 30 } [ |down| { pin: center } ]
+      |panel| { width: 204; height: 76; padding: 12 16 } [ |col| { width: 172; gap: 4 } [
+        |cap| "and who may perform it"
+        |small| "an active role, in the"
+        |small| "tenant's own records" ] ]
+    ]
+
+    |block| { width: 48; height: 212 } [ |across| { pin: center; translate: 0 -46 } ]
+
+    |col| { width: 204; gap: 0 } [
+      |eyebrow| "What it may reach"
+      |block| { height: 8 } []
+      |panel| { width: 204; height: 122; padding: 14 16 } [ |col| { width: 172; gap: 8 } [
+        |line-item| { width: 172 } [ |lt| "the documents it needs" ]
+        |line-item| { width: 172 } [ |lt| "the ones it may change" ]
+        |line-item| { width: 172 } [ |lt| "and no others" ] ] ]
+    ]
+
+    |block| { width: 48; height: 212 } [ |across| { pin: center; translate: 0 -46 } ]
+
+    |col| { width: 224; gap: 0 } [
+      |eyebrow| "What it leaves"
+      |block| { height: 8 } []
+      |panel| { width: 224; height: 122; padding: 14 16 } [ |col| { width: 192; gap: 8 } [
+        |cap| "a run"
+        |seal-item| { width: 192 } [ |slt| "what it read and changed" ]
+        |seal-item| { width: 192 } [ |slt| "when, and on whose authority" ] ] ]
+    ]
+  ]
+
+  |col| { width: 728; gap: 4 } [
+    |cap| "the dashed edge is one tenant, which is its own database"
+    |small| "The party running the deployment holds the copies and cannot read them." ]
+] ]

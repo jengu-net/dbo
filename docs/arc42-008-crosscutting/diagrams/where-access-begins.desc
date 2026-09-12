@@ -1,0 +1,9 @@
+Nothing is accessed except by a step
+
+A step of a process — validating a batch, clearing a consignment — declares
+who may perform it, drawn as an active role in the tenant's own records. The
+step reaches only the documents it needs and the ones it may change, and no
+others; performing it leaves a run recording what it read and changed, when,
+and on whose authority. All three sit inside one tenant, which is its own
+database, and the party running the deployment holds the copies without being
+able to read them.
