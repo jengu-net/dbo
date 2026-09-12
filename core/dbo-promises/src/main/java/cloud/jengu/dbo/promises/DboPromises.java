@@ -1115,6 +1115,17 @@ public enum DboPromises implements Promise {
             + "comes up the way tenants came up before there were images. The check exists "
             + "because a wrong image fails nowhere — the rows load, the tenant serves, and "
             + "it answers from a specification or an expander that is not this one."),
+    ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
+            "A zone's definitions and records reach the tenants of a face it was not "
+            + "written in through one projection per zone per face: a tenant that takes "
+            + "the zone and stands on the target face, so the conversion happens once "
+            + "rather than once per tenant. A zone serving a face it was written in has "
+            + "no projection, because there is nothing to convert and one would be a "
+            + "hop, a database and a second copy for nothing. Nobody declares them — "
+            + "they follow from a zone's version and the faces of the tenants that asked "
+            + "for it — and a tenant's declaration still names the zone, since which "
+            + "projection serves it follows from its own face and is not a tenant's to "
+            + "know."),
     VER_CONVERSION_RUNS_BOTH_WAYS(
             "A converter exists for each direction between the versions this store "
             + "carries, registered by the version it converts FROM, so a zone written in "

@@ -2516,6 +2516,7 @@ cloud.jengu.dbo.promises.DboPromises                                   WF_HOPS_A
 cloud.jengu.dbo.promises.DboPromises                                   WF_PLATFORM_COORDINATED_HOPS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_POSTGRES_SUBSTRATE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_TWO_PLANES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_BROKER_CHOICE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_DECLARATIONS_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SESSIONS_ACCUMULATE:cloud.jengu.dbo.promises.DboPromises

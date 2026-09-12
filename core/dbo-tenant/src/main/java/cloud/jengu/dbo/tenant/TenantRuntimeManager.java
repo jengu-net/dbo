@@ -600,7 +600,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // deployment's size: a consumer declaring two dozen tenants at once
         // got the first few and a refusal for everyone behind them, which
         // reads as a broken tenant rather than a busy one.
-        together(declaredNow(), declaration -> {
+        // What is declared, plus what it implies: a zone reaching a face it
+        // was not written in is converted once, by a tenant that exists to do
+        // it, rather than by each of its tenants separately.
+        java.util.List<cloud.jengu.dbo.sync.ConfigApplication.Declared> declarations =
+                new java.util.ArrayList<>(declaredNow());
+        declarations.addAll(ZoneProjections.neededBy(declarations));
+        together(declarations, declaration -> {
             String named = declaration.name();
             try {
                 TenantSpec spec = TenantSpec.parse(new String(declaration.payload(),
@@ -1226,6 +1232,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // its upstream is COMING_UP rather than FAILED, which is the
         // difference between a wait and a fault on the operator's card.
         for (TenantSpec.Dependency dependency : spec.dependencies()) {
+            // The declared upstream, which has to be up whichever way this
+            // tenant ends up reading it: a projection of a zone is brought up
+            // from that zone, so the zone comes first either way. Whether a
+            // projection stands between them is settled at wiring, where the
+            // upstream's own face is known.
             if (!runtimes.containsKey(dependency.name())) {
                 throw new UpstreamNotReady(spec.code(), dependency.name());
             }
@@ -1767,14 +1778,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String payloadVersion = version.payloadVersion();
         java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> engines = new java.util.ArrayList<>();
         for (TenantSpec.Dependency dependency : spec.dependencies()) {
-            TenantRuntime upstream = runtimes.get(dependency.name());
+            // A zone written in another version is read from its projection on
+            // this face, already converted. The declaration still names the
+            // zone: which projection serves it follows from this tenant's own
+            // face, and is not a tenant's to know.
+            TenantRuntime named = runtimes.get(dependency.name());
+            String from = named == null ? dependency.name()
+                    : ZoneProjections.servedBy(spec, dependency, named.spec().face());
+            TenantRuntime upstream = runtimes.get(from);
             if (upstream == null) {
                 // Bring-up order comes from Files.list, so a dependent can be
                 // reached before the tenant it streams from. That is normal and
                 // temporary — the scan retries — but the null used to travel to
                 // upstream.feed() and arrive as a NullPointerException naming a
                 // local variable. Say which tenant is waiting for which.
-                throw new UpstreamNotReady(spec.code(), dependency.name());
+                throw new UpstreamNotReady(spec.code(), from);
             }
             java.util.Set<String> definitions = new java.util.LinkedHashSet<>();
             java.util.Set<String> records = new java.util.LinkedHashSet<>();
