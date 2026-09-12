@@ -1954,6 +1954,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // could be mounted, guarded and correct while the first verb failed on
         // a type nobody had registered.
         all.addAll(cloud.jengu.dbo.auth.IdentityModel.identificationRegistrations());
+        // Checked rather than assumed: a database this store did not
+        // provision was pinned by nobody, and a managed server may let this
+        // role read the setting and not change it. An isolated tenant does
+        // not come up on a database that would write its people to a log;
+        // any other is told, once, at bring-up.
+        LogDiscipline.leak(db.dataSource()).ifPresent(why -> {
+            if (spec.pdi()) {
+                throw new IllegalStateException(spec.code() + ": its database would log "
+                        + "personal data in the clear — " + why + ". Pin "
+                        + "log_parameter_max_length and log_parameter_max_length_on_error "
+                        + "to 0 on it before bringing an isolated tenant up.");
+            }
+            LOG.warn("tenant {}: its database would log statement parameters, and a slow "
+                    + "write carries identifying data — {}", spec.code(), why);
+        });
         ObjectStore engine = pdiWrapped(spec, db, all, face);
         // Runs go to the engine rather than through the policy decorator, and
         // everything that records them for this tenant uses the same one.

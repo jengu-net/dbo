@@ -232,6 +232,7 @@ public enum DboStories implements Story {
                     // The membrane the record was written through.
                     DboPromises.PDI_STRUCTURAL_VAULT,
                     DboPromises.PDI_BLIND_OPERATIONS,
+                    DboPromises.PDI_PLAINTEXT_IN_FLIGHT_LEAVES_NO_TRACE,
                     DboPromises.PDI_EXACT_RESOLUTION,
                     // Who they are, decided rather than guessed.
                     DboPromises.IDN_IDENTIFICATION_IS_REACHABLE,

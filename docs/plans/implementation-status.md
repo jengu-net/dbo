@@ -78,6 +78,14 @@ OIDC provider so one ceremony serves every tenant in the zone.
 
 ### PDI — personal-data isolation
 
+A tenant's database is part of the store's runtime, and personal data
+passes through it in the clear only in flight, to be validated, extracted or
+converted; it lands nowhere the person's key does not cover. The one way it
+could land is the server logging a statement's parameters, so every database
+the store provisions is pinned not to, an isolated tenant refuses to come up
+on a database that would, and the pin is checked at every bring-up rather than
+assumed.
+
 `dbo-pdi` encrypts identifying elements inside the payload with per-person
 keys, in the same atomic engine write. History, envelopes, feeds, archives
 and sync therefore carry ciphertext by construction rather than by

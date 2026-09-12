@@ -236,6 +236,11 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             }
             java.util.List<String> ddls = new java.util.ArrayList<>(java.util.List.of(
                     "ALTER DATABASE " + dbName + " SET idle_in_transaction_session_timeout = '60s'"));
+            // Personal data passes through this database in the clear, in
+            // flight; the one way it could land is the server logging a
+            // statement's parameters. Pinned here, before the pool opens, so
+            // every session the store ever holds on it sees the pin.
+            ddls.addAll(LogDiscipline.pins(dbName));
             if (transactionTimeoutSupported) {
                 ddls.add("ALTER DATABASE " + dbName + " SET transaction_timeout = '300s'");
                 // The ROLE setting is role-global, not per tenant: every

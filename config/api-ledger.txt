@@ -2251,6 +2251,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PDI_CRYPT
 cloud.jengu.dbo.promises.DboPromises                                   PDI_ERASURE_IS_A_RUN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_ERASURE_SAYS_HOW_FAR_IT_GOT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_EXACT_RESOLUTION:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PDI_PLAINTEXT_IN_FLIGHT_LEAVES_NO_TRACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_RIGHTS_AS_OPERATIONS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_SHRED_LEDGER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_STRUCTURAL_VAULT:cloud.jengu.dbo.promises.DboPromises

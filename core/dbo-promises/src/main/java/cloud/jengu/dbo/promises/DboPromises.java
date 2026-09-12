@@ -113,6 +113,14 @@ public enum DboPromises implements Promise {
             + "read personal data, and opening an archive outside the running system is an "
             + "owner-only act."),
 
+    PDI_PLAINTEXT_IN_FLIGHT_LEAVES_NO_TRACE("A tenant's database is part of this store's "
+            + "runtime, and personal data passes through it in the clear only in flight — "
+            + "validated, extracted, converted — never landing anywhere the person's key does "
+            + "not cover. The one way it could land is the server logging a statement's "
+            + "parameters, so every database the store provisions is pinned not to, an "
+            + "isolated tenant refuses to come up on a database that would, and the pin is "
+            + "checked at every bring-up rather than assumed."),
+
     PDI_SHRED_LEDGER("Erasures are recorded without personal data and re-applied on every "
             + "restore before serving resumes — an old archive cannot silently resurrect "
             + "an erased person."),
