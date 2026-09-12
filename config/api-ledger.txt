@@ -1631,6 +1631,11 @@ cloud.jengu.dbo.fhir.r4.R4Terminology                                  new(cloud
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  operations():List
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  storedFormOf(String,byte[]):byte[]
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  validateCode(String,String):String
+cloud.jengu.dbo.fhir.r4.R5ToR4Converter                                class
+cloud.jengu.dbo.fhir.r4.R5ToR4Converter                                convert(String,byte[]):byte[]
+cloud.jengu.dbo.fhir.r4.R5ToR4Converter                                fromVersion():String
+cloud.jengu.dbo.fhir.r4.R5ToR4Converter                                new()
+cloud.jengu.dbo.fhir.r4.R5ToR4Converter                                toVersion():String
 cloud.jengu.dbo.fhir.r5.Activator                                      class
 cloud.jengu.dbo.fhir.r5.Activator                                      new()
 cloud.jengu.dbo.fhir.r5.Activator                                      start(BundleContext):void
@@ -2494,6 +2499,7 @@ cloud.jengu.dbo.promises.DboPromises                                   VER_A_DEF
 cloud.jengu.dbo.promises.DboPromises                                   VER_BALLOT_RECORDED_PER_VERSION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_BALLOT_SERVED_AS_AUTHORED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_CONCURRENT_VERSIONS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   VER_CONVERSION_RUNS_BOTH_WAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_DEFINITIONS_TRAVEL_WITH_THE_FACE:cloud.jengu.dbo.promises.DboPromises

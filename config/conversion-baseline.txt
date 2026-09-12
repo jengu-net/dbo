@@ -1,0 +1,22 @@
+# What a definition survives being carried to the other version and back.
+# One line per resource type:
+#
+#   <type> carried=<n> home=<n> refused=<n>
+#
+# GENERATED. Re-record with:
+#     ./gradlew :core:harness:test --tests '*WhatConversionCarriesBothWays*' \
+#         -Ddbo.conversion.record=true
+#
+# `home` may not fall and `refused` may not rise. A zone written in one
+# version serves tenants on the other, so this is the hop those tenants'
+# definitions actually take.
+#
+# What `home` is not: a bill of health for the rest. A definition that
+# comes home unchanged certainly converted. One that did not may have lost
+# a constraint the older version cannot say — and whether what came out is
+# still the definition it was meant to be is decided where it is expanded
+# on the target face, which is the only place the question is checkable.
+CodeSystem carried=80 home=80 refused=0
+SearchParameter carried=80 home=2 refused=0
+StructureDefinition carried=80 home=80 refused=0
+ValueSet carried=80 home=80 refused=0

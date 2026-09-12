@@ -1788,7 +1788,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                 dependency.name(), java.util.Set.copyOf(records)),
                         upstream.feed(), runtime.engine(), on,
                         domain, payloadVersion,
-                        java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter()),
+                        CONVERTERS,
                         // The name it has always had: renaming a consumer
                         // restarts it at the head of a feed it was halfway
                         // through.
@@ -1807,13 +1807,25 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         // origins and the cursor — is one schema and moves as
                         // one thing.
                         cloud.jengu.dbo.core.api.Domains.DEFINITIONS, payloadVersion,
-                        java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter()),
+                        CONVERTERS,
                         "sync." + dependency.name() + "." + spec.code() + ".definitions",
                         upstream.grain(), runtime.grain())));
             }
         }
         syncEngines.put(spec.code(), java.util.List.copyOf(engines));
     }
+
+    /**
+     * Both hops between the versions this store carries.
+     *
+     * <p>A stream picks by the version it is converting FROM, so carrying both
+     * is what lets a zone serve tenants on a face older than its own as well
+     * as newer. Only the upward one was here, which made a zone's reach a
+     * one-way street for no reason anybody had decided.
+     */
+    private static final java.util.List<cloud.jengu.dbo.core.api.PayloadConverter> CONVERTERS =
+            java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter(),
+                    new cloud.jengu.dbo.fhir.r4.R5ToR4Converter());
 
     /** What a tenant must have received from its face before it may serve. */
     static final java.util.Set<String> CRITICAL_ON_THE_FACE =

@@ -1115,6 +1115,17 @@ public enum DboPromises implements Promise {
             + "comes up the way tenants came up before there were images. The check exists "
             + "because a wrong image fails nowhere — the rows load, the tenant serves, and "
             + "it answers from a specification or an expander that is not this one."),
+    VER_CONVERSION_RUNS_BOTH_WAYS(
+            "A converter exists for each direction between the versions this store "
+            + "carries, registered by the version it converts FROM, so a zone written in "
+            + "one version can serve tenants on an older face as well as a newer one. "
+            + "What a downward hop costs is counted rather than assumed: every definition "
+            + "a version publishes is carried across and back, and how much comes home "
+            + "unchanged is recorded per type and may not fall. Coming home unchanged "
+            + "proves a definition converted; not coming home does not prove it broke, "
+            + "because an older version may simply have no way to say what a newer one "
+            + "constrained — which is settled where the converted definition is expanded "
+            + "on the target face, the one place the question can be answered."),
     VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN(
             "Every definition a tenant holds, its history, and every row derived from one "
             + "— the elements it was expanded into, the invariants compiled off it, the "
