@@ -20,6 +20,7 @@
 # from META-INF/services, from their annotations and from their own
 # signature.
 cloud.jengu.dbo.auth.SecretHashProbe                                     a test's way into a package-private verifier — SecretHash itself is reached, and widening it to test it is the worse trade
+cloud.jengu.dbo.definitions.FaceImage                                    REASON MISSING
 cloud.jengu.dbo.fhir.common.ArchiveProvenance                            NOT REACHED — the FHIR rendering of an archive's attestation, and no export path builds one
 cloud.jengu.dbo.fhir.r4.R4Subscriptions                                  NOT REACHED — the R4 half of eventing; no composition root knows subscriptions exist
 cloud.jengu.dbo.fhir.r5.R5Subscriptions                                  NOT REACHED — the R5 half of eventing; no composition root knows subscriptions exist

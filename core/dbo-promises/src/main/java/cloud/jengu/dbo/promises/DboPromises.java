@@ -1091,6 +1091,30 @@ public enum DboPromises implements Promise {
             + "tenant does not hold, a reference to another server or to something contained "
             + "in the document — because unresolvable is not invalid. The checks read rows "
             + "and name no FHIR version, so one set of them serves every face."),
+    TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE(
+            "A face is cut once per release into an image of its definitions schema, and a "
+            + "tenant coming up on that face is brought up from the image rather than "
+            + "reading the whole of what the face publishes through a chain and expanding "
+            + "it again. An image is brought up FROM and never merged into: loading one "
+            + "over rows that are already there would double what a face holds or lose "
+            + "half of it, with nothing to say so. What the image carries is the face — "
+            + "the definitions, their history and everything derived from them — and not "
+            + "the tenant's own relationship to a feed, since a tenant that inherited "
+            + "another's cursors would stand at a position it never reached."),
+    VER_AN_IMAGE_IS_CUT_ONLY_WHEN_COMPLETE(
+            "An image is cut in one consistent read and its manifest is written last, so a "
+            + "cut that died partway through produces something without a manifest rather "
+            + "than something that looks whole. An image with no manifest is refused, "
+            + "because there is nothing to check it against and its rows would load "
+            + "perfectly well."),
+    VER_AN_IMAGE_FROM_ANOTHER_RELEASE_IS_REFUSED(
+            "An image says what it was cut from — the release, the face, the shape its "
+            + "definition rows were taken apart into, and the fingerprint of the SQL that "
+            + "reads them — and one that disagrees with this release on any of those is "
+            + "refused by name, nothing loaded. Refused rather than repaired: the tenant "
+            + "comes up the way tenants came up before there were images. The check exists "
+            + "because a wrong image fails nowhere — the rows load, the tenant serves, and "
+            + "it answers from a specification or an expander that is not this one."),
     VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN(
             "Every definition a tenant holds, its history, and every row derived from one "
             + "— the elements it was expanded into, the invariants compiled off it, the "

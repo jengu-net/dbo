@@ -54,7 +54,14 @@ public final class DefinitionStore {
      * the definitions again — migrating them would be preserving a copy
      * against the thing it was copied from.
      */
-    private static final int SHAPE = 3;
+    /**
+     * The shape the rows are taken apart into.
+     *
+     * <p>Public because an image carries it: rows expanded by one shape and
+     * read by the checks of another are wrong in a way nothing reports, so
+     * the number travels with the bytes and is compared before they load.
+     */
+    public static final int SHAPE = 3;
 
     private final DataSource ds;
 
