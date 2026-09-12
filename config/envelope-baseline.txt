@@ -23,4 +23,4 @@
 # rules have to get right, rather than a large borrowed corpus.
 Encounter compared=3 agreed=3 differing=
 Observation compared=5 agreed=5 differing=
-Patient compared=5 agreed=4 differing=deceased
+Patient compared=5 agreed=5 differing=

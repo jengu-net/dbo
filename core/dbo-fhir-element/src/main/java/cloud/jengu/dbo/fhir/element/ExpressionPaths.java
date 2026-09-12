@@ -109,7 +109,7 @@ final class ExpressionPaths {
             return Predicate.refused("the toolchain cannot read it: " + unparseable.getMessage());
         }
         try {
-            return Predicate.of(bool(parsed, "$"));
+            return Predicate.of(bool(parsed, "$", null));
         } catch (Untranslatable why) {
             return Predicate.refused(why.getMessage());
         }
@@ -160,8 +160,9 @@ final class ExpressionPaths {
             notAPath = why;
         }
         try {
-            return new Selection(List.of(), bool(pastTheType(parsed, resourceType), "$"), null,
-                    null);
+            return new Selection(List.of(),
+                    spelledOut(bool(parsed, "$", resourceType), resourceType, elementTypes),
+                    null, null);
         } catch (Untranslatable notAQuestionEither) {
             return Selection.refused(notAPath.getMessage());
         }
@@ -346,6 +347,70 @@ final class ExpressionPaths {
     }
 
     /**
+     * A question about a choice, asked once per key the choice may use.
+     *
+     * <p>A question cannot be spelled out the way a path can, because a step
+     * inside it is not the whole of it: {@code deceased.exists() and deceased
+     * != false} means nothing with the step alone replaced. What holds is
+     * that JSON permits a choice under exactly ONE of its keys, so the whole
+     * question asked of each key in turn, joined by or, answers what the
+     * question asked of the element answers.
+     *
+     * <p>A question mentioning no choice comes back exactly as it went in.
+     */
+    private static String spelledOut(String asked, String resourceType,
+            java.util.Map<String, List<String>> elementTypes) {
+        if (asked == null || resourceType == null || elementTypes.isEmpty()) {
+            return asked;
+        }
+        String question = asked;
+        for (java.util.Map.Entry<String, List<String>> element : elementTypes.entrySet()) {
+            String path = element.getKey();
+            if (!path.endsWith("[x]") || !path.startsWith(resourceType + ".")) {
+                continue;
+            }
+            String base = path.substring(0, path.length() - 3);
+            // Two spellings, because a step is written one way where it is
+            // walked and another where it is compared: a question says
+            // `$."deceased"[*]` and the value beside it says `$."deceased"`.
+            String walked = fragmentOf(base, resourceType, true);
+            String compared = fragmentOf(base, resourceType, false);
+            if (!question.contains(compared)) {
+                continue;
+            }
+            String name = base.substring(base.lastIndexOf('.') + 1);
+            List<String> branches = new ArrayList<>();
+            for (String type : element.getValue()) {
+                String spelt = name + Character.toUpperCase(type.charAt(0)) + type.substring(1);
+                String under = fragmentOf(
+                        base.substring(0, base.lastIndexOf('.') + 1) + spelt, resourceType, true);
+                branches.add("(" + question
+                        .replace(walked, under)
+                        .replace(compared, under.substring(0, under.length() - 3)) + ")");
+            }
+            question = String.join(" || ", branches);
+        }
+        return question;
+    }
+
+    /**
+     * The steps of an element path, as this compiler spells them — walked,
+     * where every step selects a collection, or compared, where the last one
+     * names a value.
+     */
+    private static String fragmentOf(String elementPath, String resourceType, boolean walked) {
+        StringBuilder fragment = new StringBuilder();
+        String[] steps = elementPath.substring(resourceType.length() + 1).split("\\.");
+        for (int i = 0; i < steps.length; i++) {
+            fragment.append('.').append(Json.quoted(steps[i]));
+            if (walked || i < steps.length - 1) {
+                fragment.append("[*]");
+            }
+        }
+        return fragment.toString();
+    }
+
+    /**
      * What the values a parameter selects ARE, when the definition says one
      * thing and says it for every branch.
      *
@@ -447,26 +512,32 @@ final class ExpressionPaths {
      * comparison whose left side is a path, and asking whether that path is a
      * question refuses an expression this compiler can plainly express.
      */
-    private static String bool(ExpressionNode node, String against) {
+    private static String bool(ExpressionNode node, String against, String type) {
+        // Every TERM may name the type it starts from, not only the first:
+        // `Patient.deceased.exists() and Patient.deceased != false` says it
+        // twice. Walking past it once left the second term compiled as a
+        // path through a key named after the resource, which selects nothing
+        // and says so to nobody.
+        node = pastTheType(node, type);
         if (node.getOperation() == null) {
-            return boolOf(node, against);
+            return boolOf(node, against, type);
         }
         return switch (node.getOperation()) {
-            case And -> "(" + boolOf(node, against) + " && "
-                    + bool(node.getOpNext(), against) + ")";
-            case Or -> "(" + boolOf(node, against) + " || "
-                    + bool(node.getOpNext(), against) + ")";
+            case And -> "(" + boolOf(node, against, type) + " && "
+                    + bool(node.getOpNext(), against, type) + ")";
+            case Or -> "(" + boolOf(node, against, type) + " || "
+                    + bool(node.getOpNext(), against, type) + ")";
             // a implies b is "either a does not hold, or b does"
-            case Implies -> "(!(" + boolOf(node, against) + ") || "
-                    + bool(node.getOpNext(), against) + ")";
+            case Implies -> "(!(" + boolOf(node, against, type) + ") || "
+                    + bool(node.getOpNext(), against, type) + ")";
             // and xor is "one of them, not both"
-            case Xor -> xor(boolOf(node, against), bool(node.getOpNext(), against));
-            case Equals -> comparison(node, against, "==");
-            case NotEquals -> comparison(node, against, "!=");
-            case LessThan -> comparison(node, against, "<");
-            case LessOrEqual -> comparison(node, against, "<=");
-            case Greater -> comparison(node, against, ">");
-            case GreaterOrEqual -> comparison(node, against, ">=");
+            case Xor -> xor(boolOf(node, against, type), bool(node.getOpNext(), against, type));
+            case Equals -> comparison(node, against, "==", type);
+            case NotEquals -> comparison(node, against, "!=", type);
+            case LessThan -> comparison(node, against, "<", type);
+            case LessOrEqual -> comparison(node, against, "<=", type);
+            case Greater -> comparison(node, against, ">", type);
+            case GreaterOrEqual -> comparison(node, against, ">=", type);
             case Is -> isType(node, against);
             default -> throw new Untranslatable(
                     "it joins terms with '" + node.getOperation().toCode()
@@ -504,8 +575,9 @@ final class ExpressionPaths {
     }
 
     /** {@code a = b}, where one side is a path and the other usually a value. */
-    private static String comparison(ExpressionNode node, String against, String operator) {
-        ExpressionNode other = node.getOpNext();
+    private static String comparison(ExpressionNode node, String against, String operator,
+            String type) {
+        ExpressionNode other = pastTheType(node.getOpNext(), type);
         if (other.getOperation() != null) {
             throw new Untranslatable("it compares to something that is itself a comparison");
         }
@@ -513,7 +585,46 @@ final class ExpressionPaths {
         if (counted != null) {
             return counted;
         }
-        return "(" + valueOf(node, against) + " " + operator + " " + valueOf(other, against) + ")";
+        if ("!=".equals(operator)) {
+            String differing = differs(node, other, against);
+            if (differing != null) {
+                return differing;
+            }
+        }
+        return "(" + valueOf(node, against) + " " + operator + " " + valueOf(other, against)
+                + ")";
+    }
+
+    /**
+     * {@code x != v}: there is an x, and none of them is v.
+     *
+     * <p>Not written as {@code x != v}, because the two sides can be of
+     * different types and jsonpath answers unknown rather than true when they
+     * are — and unknown, joined to anything by and, is not true. A choice
+     * element is exactly where that happens: {@code deceased != false} is
+     * asked of a patient whose deceased is a date, and the honest answer is
+     * that a date is not the boolean false.
+     *
+     * <p>So it is asked as existence instead, which has no types to disagree
+     * about: something is there, and nothing there equals the value. Null
+     * where neither side is a literal, which is left to the general form.
+     */
+    private static String differs(ExpressionNode node, ExpressionNode other, String against) {
+        ExpressionNode path;
+        ExpressionNode value;
+        if (other.getKind() == ExpressionNode.Kind.Constant
+                && node.getKind() != ExpressionNode.Kind.Constant) {
+            path = node;
+            value = other;
+        } else if (node.getKind() == ExpressionNode.Kind.Constant
+                && other.getKind() != ExpressionNode.Kind.Constant) {
+            path = other;
+            value = node;
+        } else {
+            return null;
+        }
+        String at = valueOf(path, against);
+        return "(exists(" + at + ") && !exists(" + at + " ? (@ == " + literal(value) + ")))";
     }
 
     /**
@@ -552,9 +663,9 @@ final class ExpressionPaths {
         };
     }
 
-    private static String boolOf(ExpressionNode node, String against) {
+    private static String boolOf(ExpressionNode node, String against, String type) {
         if (node.getKind() == ExpressionNode.Kind.Group) {
-            String inner = bool(node.getGroup(), against);
+            String inner = bool(node.getGroup(), against, type);
             if (node.getInner() != null) {
                 throw new Untranslatable("it carries on past a group, which this compiler "
                         + "cannot follow");
@@ -694,7 +805,7 @@ final class ExpressionPaths {
             throw new Untranslatable(function.getName() + "() is given "
                     + function.getParameters().size() + " conditions");
         }
-        return bool(function.getParameters().get(0), against);
+        return bool(function.getParameters().get(0), against, null);
     }
 
     /** The question at the end: what is being asked about everything that survived. */
