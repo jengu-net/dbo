@@ -1092,13 +1092,20 @@ public enum DboPromises implements Promise {
             + "in the document — because unresolvable is not invalid. The checks read rows "
             + "and name no FHIR version, so one set of them serves every face."),
     VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN(
-            "Every definition a tenant holds and its history are in one schema of their "
-            + "own, apart from the tenant's records, so that what a face gave a tenant is "
-            + "a thing the database can name rather than a filter by type inside shared "
-            + "tables. A record is never in it, and a definition is never outside it: the "
-            + "schema is what a face is cut from and handed to every tenant on it, so a "
-            + "profile left among the records makes the image short and a patient among "
-            + "the definitions puts somebody's record in everybody's copy."),
+            "Every definition a tenant holds, its history, and every row derived from one "
+            + "— the elements it was expanded into, the invariants compiled off it, the "
+            + "shape stamps, the concepts and value sets a vocabulary was imported into — "
+            + "are in one schema of their own, apart from the tenant's records. So what a "
+            + "face gave a tenant is a thing the database can name and hand over, rather "
+            + "than a filter by type inside tables shared with somebody's patients. The "
+            + "face's own functions read what a definition says from that schema and "
+            + "nowhere else, which is what makes a dump of it the whole of what the face "
+            + "gave rather than most of it; reaching the RECORDS is the one thing they do "
+            + "outside it, because a reference points at one. A record is never in the "
+            + "schema and a definition never outside it: it is what a face is cut from and "
+            + "handed to every tenant on that face, so a profile left among the records "
+            + "makes the image short, and a patient among the definitions puts somebody's "
+            + "record into everybody's copy."),
     FEED_DEFINITIONS_MOVE_ON_A_FEED_OF_THEIR_OWN(
             "Definitions are a domain with a feed and a cursor of their own. A record "
             + "never appears on that feed and a definition never appears on the record "
