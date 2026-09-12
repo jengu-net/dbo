@@ -1,21 +1,50 @@
 ---
-title: Every skipped declaration has a name
+title: "One configuration, every environment"
+headline: "What you tested is what you apply"
 eyebrow: Why DBO
 standfirst: >-
   Value sets, profiles, search parameters, which tenants a deployment serves,
-  whether a step is automated. Applying a declared set is a run that tallies
-  what it read, what it applied and what it skipped, and a skip is held work
-  somebody can pick up.
-why: 10
+  whether a step is automated. One declared set, read from a repository and
+  applied to a tenant — and then to the next tenant, and to the appliance after
+  that, without being rewritten for either.
+why: 3
 template: essay.html
 ---
 
-Configuration in most systems is applied at start-up, reported in a log, and
-then believed. If half of it did not take, the evidence is a line somebody
-would have had to be watching for. What that presents as, weeks later, is the
-sentence every operator has heard: *my configuration had no effect*.
+Configuration in most systems belongs to the place it runs. Development has its
+own, test has a copy of development from some months ago, and production has
+whatever was applied by hand the last time something was urgent. Nobody can say
+what differs between them, because there is no single thing to compare.
 
-Here, applying a declared set is **a sweep** — a run, in the same list as the
+Here a declared set is a thing in its own right. Where it is read from — a git
+repository, a directory, a mounted ConfigMap, a lane from a cloud — is a detail
+of reading, and reading is all a source does. What a declaration means, where
+it lands and what it costs to apply belong to the applying, and the applying is
+the same operation wherever it runs.
+
+## The same set, applied in more than one place
+
+An apply names a **scope**: a tenant, a deployment. The set does not change
+between scopes. The scope does.
+
+What a scope last agreed with is recorded on its own run, in the store, rather
+than in the source. So two scopes reading the same repository can stand at
+different points in it — a test appliance at the revision being tried,
+production at the one that was tried a month ago. Moving production forward is
+then not a migration somebody writes. It is the same apply, against a revision
+that has already been exercised somewhere it did not matter.
+
+That is the lifecycle a large declared set needs. A hundred value sets and
+profiles are not reviewed by reading them. They are reviewed by applying them
+somewhere harmless and seeing what the pass says it did.
+
+## Which is only safe because a pass says what it did
+
+Applying at start-up, reporting to a log and then believing it is what makes
+the sentence every operator has heard: *my configuration had no effect*. A set
+you intend to promote cannot be believed that way.
+
+So applying a declared set is **a sweep** — a run, in the same list as the
 domain work, with the same counts and the same holders as anything else the
 store is doing.
 
@@ -25,7 +54,7 @@ store is doing.
 It tallies what it read, what it applied, and what it skipped, and the skip has
 a name.</p>
 
-## The four rules that make it trustworthy
+### The four rules that make it trustworthy
 
 **One bad declaration does not take the rest with it.** The others apply, and
 the one that did not becomes a card naming it — held work, in the same queue as
@@ -93,5 +122,5 @@ special one.
 Why a run is a record at all is [work](../processes-and-work/why-work.md). What a tenant *declares* about
 each type is [a type says what it is](../records-you-can-rely-on/why-a-type-declares-what-it-is.md), and what
 a runtime is actually doing about each tenant is
-[what the node is doing](why-tenant-status.md).
+[a tenant's whole life](why-tenant-status.md).
 </div>

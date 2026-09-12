@@ -1,24 +1,52 @@
 ---
-title: A tenant that never came up says so
+title: "Tenants come and go routinely"
+headline: "A tenant's whole life is an operation"
 eyebrow: Why DBO
 standfirst: >-
-  Every tenant the node was told about has a state — serving, coming up, or
-  failed and not going to change on its own. The one worth knowing about is the
-  one a list of served tenants leaves out.
-why: 11
+  Declared, provisioned, brought up, served, and one day taken away. Only the
+  middle of that is a state a running node reports, and the state worth knowing
+  about is the one a list of served tenants leaves out.
+why: 1
 template: essay.html
 ---
 
-Ask a multi-tenant system what it is serving and you usually get a list. The
-list is true. It is also the wrong shape, because everything interesting is
-what the list left out.
+Taking a customer on and letting one go are the two operations a multi-tenant
+store is judged by, and in most of them both are projects. Here they are moves
+in a sequence the runtime already performs, and the only part of that sequence
+anybody has to watch is the middle.
+
+Ask such a system what it is serving and you usually get a list. The list is
+true. It is also the wrong shape, because everything interesting is what the
+list left out.
 
 --8<-- "assets/diagrams/declared-and-actual.svg"
 
 <p class="diagram-caption">Two of four, and no indication that the other two
 exist. Nothing in that answer is false.</p>
 
-## Three states, one per tenant it has been told about
+## Declared, provisioned, serving, gone
+
+**Declared.** A specification says a tenant should exist. Nothing has been
+created yet — which is why a directory of specifications is not an answer about
+what is running.
+
+**Provisioned.** It gets its own database rather than a share of somebody
+else's. [Isolation](../data-isolation/why-a-tenant-is-a-database.md) is a
+property of this move, and every move after it inherits it.
+
+**Coming up, serving or failed.** The three states below: the only part of the
+sequence a running node reports, because it is the only part that can differ
+from what was asked for.
+
+**Deprovisioned.** It leaves, carrying [everything it
+brought](../data-isolation/why-leaving.md) in one sealed archive.
+
+A restore is that last move read backwards — provision a fresh tenant, then
+import the archive by the everyday import route. So bringing a tenant back from
+a backup is not a recovery procedure somebody maintains separately. It is
+onboarding, with the archive already written.
+
+## The three states a node reports
 
 **Serving** — the endpoint is up and the engine is wired.
 
