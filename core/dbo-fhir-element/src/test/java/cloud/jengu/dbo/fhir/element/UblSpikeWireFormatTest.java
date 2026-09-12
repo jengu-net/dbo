@@ -87,6 +87,11 @@ class UblSpikeWireFormatTest {
         return out;
     }
 
+    /** The same model, for the definition-rows spike. */
+    static String modelForSpikes() {
+        return model();
+    }
+
     private static String model() {
         List<String> elements = new ArrayList<>();
         // The root carries the XML name, so composing writes <Invoice> while the

@@ -1,8 +1,9 @@
 # UBL is a face, described in FHIR's own tools
 
-**Status** — two spikes, both green, both in the tree as tests. Nothing is
-built. The two questions that could have killed the approach are answered, and
-the one that remains is a policy call rather than a technical one.
+**Status** — three spikes, all green, all in the tree as tests. Nothing is
+built. The questions that could have killed the approach are answered, including
+whether the definitions-as-rows pipeline holds a model that is not FHIR, and the
+one that remains is a policy call rather than a technical one.
 
 **Issues** — none filed.
 
@@ -36,7 +37,7 @@ Java at all.
 
 ## Where it stands
 
-**The two spikes are done and are the reason this document exists.** Each ran
+**The three spikes are done and are the reason this document exists.** Each ran
 against the unmodified R5 element face, with UBL supplied as a tenant profile,
 and each is left in the tree as a test so its findings are assertions rather
 than recollection.
@@ -55,6 +56,15 @@ that shape, real namespaced UBL XML goes in, JSON comes out as the stored form,
 and UBL's own XML comes back — namespaces, qualifying attributes and written
 decimal precision all intact.
 
+**Definitions as rows — answered, and this is the one that matters most.** The
+expansion that fills `definition_element` reads a snapshot as JSON and names no
+version, so it takes a UBL logical model apart with no change at all: every
+element located, none unenforceable, the kind recorded as logical. The checks
+that read those rows say the same of themselves — *"face-agnostic by
+construction: every check reads the expanded rows, and nothing in them names a
+FHIR version"*. A UBL face inherits the whole in-database checker rather than
+needing one.
+
 **What is next** is generating the models, and nothing blocks it.
 
 **What is open** is the signature question in *Not doing*, which decides what a
@@ -66,15 +76,16 @@ tenant may be promised rather than what can be built.
 |---|---|---|
 | 1 | **Ancestor slots survive a logical model.** Parse by type name, validate from the model, project a subset, index by SearchParameter. | **DONE** 2026-09-12 — `UblSpikeAncestorSlotsTest`, six assertions |
 | 2 | **UBL's own XML crosses both ways.** Text-content values, qualifying attributes, three namespaces, a decimal's written precision. | **DONE** 2026-09-12 — `UblSpikeWireFormatTest`, five assertions |
-| 3 | **Generate the document models.** From the OASIS model spreadsheets rather than the XSDs — the spreadsheets carry the CCTS cardinalities and component names the schemas only encode. One base logical model declaring the store's slots, every document type derived from it. | **NEXT** |
-| 4 | **Invariants from the Schematron.** EN 16931 and the Peppol BIS rules are mostly presence, sum and consistency assertions, which translate to FHIRPath mechanically. Date arithmetic and the regex rules are hand work. | READY, needs 3 |
-| 5 | **Code lists as terminology.** UBL ships genericode; a CodeSystem and ValueSet per list makes bindings validate without a line of code, and gives the face a grain codec it would otherwise have to write. | READY, needs 3 |
-| 6 | **Search parameters.** UBL has no query language, so the face invents its vocabulary — issue date, supplier, buyer, amount, currency, document state — as SearchParameters with FHIRPath expressions. | READY, needs 3 |
-| 7 | **Announce the face.** A `ubl-2` version registering the R5 core beside the UBL package, so a tenant spec can name it and bring-up can refuse what it does not provide. | READY, needs 3 |
-| 8 | **The XML edge.** Rendering to UBL is not a straight compose: the ancestor slots have to come off, and a received document's own bytes have to be kept if signatures are promised. | READY, needs 7 |
-| 9 | **Two faces in one tenant.** A provider issuing invoices wants clinical records and billing in one tenant. | BLOCKED by one face per tenant, which is the store's own gap — see *Not doing* |
+| 3 | **A logical model becomes definition rows.** The expansion and the invariant compiler hold it unchanged, so the in-database checker is inherited rather than written. | **DONE** 2026-09-12 — `UblSpikeDefinitionRowsTest`, two assertions |
+| 4 | **Generate the document models.** From the OASIS model spreadsheets rather than the XSDs — the spreadsheets carry the CCTS cardinalities and component names the schemas only encode. One base logical model declaring the store's slots, every document type derived from it. | **NEXT** |
+| 5 | **Invariants from the Schematron.** EN 16931 and the Peppol BIS rules are mostly presence, sum and consistency assertions, which translate to FHIRPath mechanically. Date arithmetic and the regex rules are hand work. Written in UBL's own names, unrooted — see the decision below. | READY, needs 4 |
+| 6 | **Code lists as terminology.** UBL ships genericode; a CodeSystem and ValueSet per list makes bindings validate without a line of code, and gives the face a grain codec it would otherwise have to write. | READY, needs 4 |
+| 7 | **Search parameters.** UBL has no query language, so the face invents its vocabulary — issue date, supplier, buyer, amount, currency, document state — as SearchParameters with FHIRPath expressions. | READY, needs 4 |
+| 8 | **Announce the face.** A `ubl-2` version registering the R5 core beside the UBL package, so a tenant spec can name it and bring-up can refuse what it does not provide. | READY, needs 4 |
+| 9 | **The XML edge.** Rendering to UBL is not a straight compose: the ancestor slots have to come off, and a received document's own bytes have to be kept if signatures are promised. | READY, needs 8 |
+| 10 | **Two faces in one tenant.** A provider issuing invoices wants clinical records and billing in one tenant. | BLOCKED by one face per tenant, which is the store's own gap — see *Not doing* |
 
-**Critical path:** 3 → 7 → 8. Everything between is definitions, and definitions
+**Critical path:** 4 → 8 → 9. Everything between is definitions, and definitions
 are parallel work.
 
 ## Decisions
@@ -105,12 +116,27 @@ complete data loss that looks like an empty document. So the type is
 `UBLInvoice` and the model carries UBL's real root name as an extension. This is
 the single most dangerous finding in either spike, because nothing fails.
 
-**FHIRPath expressions are rooted.** UBL element names are UpperCamelCase, and an
-uppercase name at the start of a FHIRPath expression is a type test rather than a
-path step — so a bare `LegalMonetaryTotal.PayableAmount >= 0` evaluates to empty
-and the invariant *fails on a conformant document*. Whatever generates invariants
-from the Schematron emits `$this.`-rooted expressions. Asserted, because the
-failure looks like a wrong document rather than a wrong rule.
+**An invariant is written in UBL's own names, for the compiler.** Two engines read
+a leading identifier in opposite ways, and a UBL element name is UpperCamelCase, so
+UBL meets the disagreement on every rule it has. The toolchain's evaluator reads a
+leading identifier as a *type name*, so a bare
+`LegalMonetaryTotal.PayableAmount >= 0` selects nothing and the invariant fails on a
+conformant document. The compiler that turns an expression into a `jsonpath` reads a
+leading identifier as a *child key*, so the same expression compiles to exactly the
+path UBL means. They cannot both be satisfied by how the expression is written.
+
+The rule is therefore written bare, for the compiler, because the compiler is what
+survives: the whole point of holding definitions as rows is that the toolchain is
+retired per path. Both halves are asserted, since each failure is silent in its own
+direction.
+
+**This was recorded the other way round first, and the correction is the useful
+part.** The first spike measured the evaluator and concluded that a generator should
+emit `$this.`-rooted expressions. Compiled, `$this.LegalMonetaryTotal` becomes a
+lookup for a child literally named `$this`, which nothing ever has — so the advice
+would have produced rules that never fire, which is worse than the failure it was
+avoiding. A finding measured against one of two engines is a finding about that
+engine.
 
 **Customisation is the shape stamp, and the document already carries it.** FHIR
 needed the store to write the stamp into `meta`; UBL states its own in
@@ -134,6 +160,15 @@ the parse succeeded, the document had the right shape, and every value was null.
 Nothing errored. The `xmlText` representation on a `value` child is the fix, and
 the shape of the trap is the point: a missing representation reads as an empty
 document rather than as a broken model.
+
+**The specification's own namespace is a literal, in two places.** `FaceBase` and
+`TenantContext` decide what belongs to the shared face base and what is the
+tenant's own by testing whether a canonical starts with `http://hl7.org/fhir/`.
+Every UBL canonical fails that test, so every definition of a UBL face would be
+classified as tenant-authored. It is a face property asserted globally, and the
+face contract already has the mechanism for one: a capability looked up by type.
+Found by reading rather than by a failure, because nothing fails until a face
+whose canonicals are its own exists.
 
 **`Meta.lastUpdated` has nowhere to go here either.** The ancestor checklist's one
 unsaid fact stays unsaid in UBL for the same reason it is unsaid in FHIR, so
