@@ -90,7 +90,15 @@ public final class FaceImage {
             // it would be the first thing already in the way, and the answer
             // it holds is in the manifest anyway, where it is checked before
             // a single row is loaded.
-            "definition_shape");
+            "definition_shape",
+            // And the compiled parameters, because they are the TENANT's
+            // rather than the face's: what a tenant can be asked is the
+            // types it registers, and a root that carries a face registers
+            // the definition types while the tenants it serves register
+            // clinical ones. Carried, they would be a set of parameters
+            // about somebody else's types, arriving where a tenant's own
+            // ought to be.
+            "definition_parameter");
 
     private FaceImage() {}
 

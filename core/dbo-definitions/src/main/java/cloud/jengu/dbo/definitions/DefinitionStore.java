@@ -51,7 +51,8 @@ public final class DefinitionStore {
      * and reconciling row by row means deciding what "withdrawn" looks like
      * from the outside when the simple answer is that it is not in the set.
      */
-    public void replaceParameters(java.util.Collection<DefinitionParameter> parameters) {
+    public void replaceParameters(java.util.Collection<DefinitionParameter> parameters,
+            String from) {
         try (Connection c = ds.getConnection()) {
             c.setAutoCommit(false);
             try (PreparedStatement clear = c.prepareStatement(
@@ -82,9 +83,40 @@ public final class DefinitionStore {
                 }
                 ps.executeBatch();
             }
+            try (PreparedStatement stamped = c.prepareStatement("""
+                    INSERT INTO definitions.definition_shape (only_row, shape, parameters_from)
+                    VALUES (1, ?, ?)
+                    ON CONFLICT (only_row) DO UPDATE SET parameters_from = EXCLUDED.parameters_from
+                    """)) {
+                stamped.setInt(1, SHAPE);
+                stamped.setString(2, from);
+                stamped.executeUpdate();
+            }
             c.commit();
         } catch (SQLException e) {
             throw new IllegalStateException("the compiled parameters could not be written", e);
+        }
+    }
+
+    /**
+     * What the parameters held here were compiled from, or null when nothing
+     * has been.
+     *
+     * <p>Compiling them is a pass over every expression a version publishes
+     * for every type this tenant registers, and the answer only changes when
+     * those change — so it is done when they do, rather than every time the
+     * tenant comes up. A bring-up that recompiles what it already holds is a
+     * face image that saves nothing, which is how this was found.
+     */
+    public String parametersFrom() {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT parameters_from FROM definitions.definition_shape WHERE only_row = 1");
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() ? rs.getString(1) : null;
+        } catch (SQLException e) {
+            throw new IllegalStateException("what the parameters were compiled from could not "
+                    + "be read", e);
         }
     }
 
@@ -127,7 +159,7 @@ public final class DefinitionStore {
      * read by the checks of another are wrong in a way nothing reports, so
      * the number travels with the bytes and is compared before they load.
      */
-    public static final int SHAPE = 4;
+    public static final int SHAPE = 5;
 
     private final DataSource ds;
 
@@ -499,8 +531,9 @@ public final class DefinitionStore {
                     )""",
                     """
                     CREATE TABLE IF NOT EXISTS definitions.definition_shape (
-                      only_row int PRIMARY KEY DEFAULT 1 CHECK (only_row = 1),
-                      shape    int NOT NULL
+                      only_row        int PRIMARY KEY DEFAULT 1 CHECK (only_row = 1),
+                      shape           int NOT NULL,
+                      parameters_from text
                     )""")) {
                 try (PreparedStatement ps = c.prepareStatement(ddl)) {
                     ps.execute();
@@ -540,6 +573,10 @@ public final class DefinitionStore {
                     + column + " text")) {
                 ps.execute();
             }
+        }
+        try (PreparedStatement ps = c.prepareStatement("ALTER TABLE definitions.definition_shape"
+                + " ADD COLUMN IF NOT EXISTS parameters_from text")) {
+            ps.execute();
         }
         try (PreparedStatement ps = c.prepareStatement(
                 "TRUNCATE TABLE definitions.definition_element, definitions.definition_invariant,"

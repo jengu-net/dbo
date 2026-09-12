@@ -798,6 +798,15 @@ public final class ElementStore implements FhirStoreFacade {
      * anybody reading an empty result.
      */
     private void compileParametersHeld() {
+        // Only when what they are compiled FROM has moved. A pass over every
+        // expression a version publishes for every type this tenant
+        // registers is seconds, and it was being paid on every bring-up —
+        // including one from a face image, which then saved nothing, because
+        // the rows it carried were rewritten with the same rows.
+        String from = whatTheParametersComeFrom();
+        if (from.equals(definitions.parametersFrom())) {
+            return;
+        }
         List<cloud.jengu.dbo.definitions.DefinitionParameter> compiled = new ArrayList<>();
         for (FhirTypeConfig type : types) {
             String typeName = type.typeName();
@@ -807,7 +816,29 @@ public final class ElementStore implements FhirStoreFacade {
                 compiled.add(compiledFrom(typeName, parameter, version.choicesOf(typeName)));
             }
         }
-        definitions.replaceParameters(compiled);
+        definitions.replaceParameters(compiled, from);
+    }
+
+    /**
+     * What the compiled rows are a function of: this release's shape, the
+     * types this tenant registers, and what it has authored itself.
+     *
+     * <p>The version's own parameters are not in it because the shape moves
+     * with the release that carries them. What a tenant adds to them does
+     * move on its own, so it is named here — code and expression, since a
+     * parameter rewritten under the same code is a different parameter.
+     */
+    private String whatTheParametersComeFrom() {
+        StringBuilder from = new StringBuilder()
+                .append(cloud.jengu.dbo.definitions.DefinitionStore.SHAPE);
+        types.stream().map(FhirTypeConfig::typeName).sorted()
+                .forEach(name -> from.append(' ').append(name));
+        for (String typeName : new java.util.TreeSet<>(authoredHere.keySet())) {
+            for (String code : codesOf(authoredHere.get(typeName))) {
+                from.append(' ').append(typeName).append('/').append(code);
+            }
+        }
+        return from.toString();
     }
 
     /** One parameter, as this store would run it. */
