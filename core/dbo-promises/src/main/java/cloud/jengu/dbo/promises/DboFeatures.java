@@ -177,7 +177,7 @@ public enum DboFeatures implements Feature {
             List.of(DboPromises.VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN,
                     DboPromises.VER_AN_EXPRESSION_THAT_YIELDS_A_VALUE_IS_COMPILED,
                     DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES,
-                    DboPromises.VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE,
+                    DboPromises.VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE, DboPromises.VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN, DboPromises.FEED_DEFINITIONS_MOVE_ON_A_FEED_OF_THEIR_OWN, DboPromises.TEN_A_TYPE_DECLARES_ITS_DOMAIN,
                     DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE,
                     DboPromises.VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT,
                     DboPromises.VAL_DIVERGENCE_IS_MEASURED_OVER_THE_VERSION,

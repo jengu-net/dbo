@@ -1259,6 +1259,12 @@ cloud.jengu.dbo.fhir.common.ArchiveProvenance.Signer                   party():S
 cloud.jengu.dbo.fhir.common.ArchiveProvenance.Signer                   record
 cloud.jengu.dbo.fhir.common.ArchiveProvenance.Signer                   signature():String
 cloud.jengu.dbo.fhir.common.ArchiveProvenance.Signer                   toString():String
+cloud.jengu.dbo.fhir.common.FaceDefinitions                            TYPES:Set
+cloud.jengu.dbo.fhir.common.FaceDefinitions                            class
+cloud.jengu.dbo.fhir.common.FaceDefinitions                            domainOf(String,String):String
+cloud.jengu.dbo.fhir.common.FaceDefinitions                            isDefinition(String):boolean
+cloud.jengu.dbo.fhir.common.FaceDefinitions                            placed(List,String):List
+cloud.jengu.dbo.fhir.common.FaceDefinitions                            refuseIfMisplaced(List,String):void
 cloud.jengu.dbo.fhir.common.FhirCoarsening                             INSTANCE:cloud.jengu.dbo.core.face.Coarsening
 cloud.jengu.dbo.fhir.common.FhirCoarsening                             class
 cloud.jengu.dbo.fhir.common.FhirCoarsening                             coarsen(String,String,Object):Object
@@ -2227,6 +2233,7 @@ cloud.jengu.dbo.promises.DboPromises                                   EVT_DURAB
 cloud.jengu.dbo.promises.DboPromises                                   EVT_FHIR_SUBSCRIPTIONS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   EVT_IN_PROCESS_SURFACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   EVT_TRANSACTIONAL_OUTBOX:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   FEED_DEFINITIONS_MOVE_ON_A_FEED_OF_THEIR_OWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   FEED_IDEMPOTENT_DELIVERY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   FEED_KEYSET_CURSORS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   FEED_LEAN_WIRE_OPTION:cloud.jengu.dbo.promises.DboPromises
@@ -2410,6 +2417,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DEC
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REDECLARATION_IS_NOTICED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TYPE_DECLARES_ITS_DOMAIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_CREDENTIAL_BLIND_PROVISIONING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_DECLARED_TOGETHER_COME_UP_TOGETHER:cloud.jengu.dbo.promises.DboPromises
@@ -2443,6 +2451,7 @@ cloud.jengu.dbo.promises.DboPromises                                   VER_BALLO
 cloud.jengu.dbo.promises.DboPromises                                   VER_BALLOT_SERVED_AS_AUTHORED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_CONCURRENT_VERSIONS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_DEFINITIONS_TRAVEL_WITH_THE_FACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_ONE_READ_PER_REQUEST:cloud.jengu.dbo.promises.DboPromises
@@ -3232,13 +3241,14 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            upstream(
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   interface
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   tenantDown(String):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   tenantUp(cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime):void
+cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              definitionsFeed():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              endpoint():cloud.jengu.dbo.rest.FhirHttpServer
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              engine():cloud.jengu.dbo.core.api.ObjectStore
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              feed():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              grain():cloud.jengu.dbo.core.face.GrainCodec
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              hashCode():int
-cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              new(cloud.jengu.dbo.tenant.TenantSpec,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.common.FhirStoreFacade,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.rest.FhirHttpServer,cloud.jengu.dbo.core.face.GrainCodec,cloud.jengu.dbo.sync.Lanes)
+cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              new(cloud.jengu.dbo.tenant.TenantSpec,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.common.FhirStoreFacade,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.rest.FhirHttpServer,cloud.jengu.dbo.core.face.GrainCodec,cloud.jengu.dbo.sync.Lanes)
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              record
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              replication():cloud.jengu.dbo.sync.Lanes
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              spec():cloud.jengu.dbo.tenant.TenantSpec

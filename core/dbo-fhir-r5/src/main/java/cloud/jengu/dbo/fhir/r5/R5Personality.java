@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.fhir.r5;
 
+import cloud.jengu.dbo.fhir.common.FaceDefinitions;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.common.UnknownSearchParameterException;
 
@@ -108,7 +109,7 @@ public final class R5Personality {
             out.add(new TypeRegistration(t.typeName(), domain, t.identityClass(),
                     t.identitySystems(), t.handling(), extractor, indexes, PAYLOAD_VERSION));
         }
-        return out;
+        return FaceDefinitions.placed(out, domain);
     }
 
     private List<IndexSpec> defaultIndexes(String typeName) {

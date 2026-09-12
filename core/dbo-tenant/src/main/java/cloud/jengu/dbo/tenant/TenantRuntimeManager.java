@@ -62,7 +62,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
             TenantSpec spec,
             ObjectStore engine,
             FhirStoreFacade store,
+            /** This tenant's records: what happened here. */
             ChangeFeed feed,
+            /**
+             * What its face gave it: profiles, parameters, vocabularies.
+             *
+             * <p>A second feed rather than a filter on the first, because the
+             * two move for different reasons and are read by different
+             * readers. A subscriber to a face wants the definitions and would
+             * otherwise page through every patient a root happens to hold to
+             * find the next profile, and the cursor an image is cut at has to
+             * be a definitions cursor while records keep moving past it.
+             */
+            ChangeFeed definitionsFeed,
             FhirHttpServer endpoint,
             /**
              * This tenant's own grain codec. A stream between two tenants needs
@@ -733,8 +745,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // the runtime carries the declaration it answers about, and it
             // answers about the new one from here.
             runtimes.put(declared.code(), new TenantRuntime(declared, serving.engine(),
-                    serving.store(), serving.feed(), serving.endpoint(), serving.grain(),
-                    serving.replication()));
+                    serving.store(), serving.feed(), serving.definitionsFeed(),
+                    serving.endpoint(), serving.grain(), serving.replication()));
             redeclared.remove(declared.code());
             LOG.info("tenant {} took a change where it stands: {}",
                     declared.code(), change.says());
@@ -1155,6 +1167,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // answer a consumer can act on.
         FhirVersion.ForTypes declared = version.forTypes(withVocabularyTypes(spec.types(),
                 version.face()));
+        // Checked here rather than trusted, because a misplaced type fails
+        // nowhere: its rows are written, read and fed back exactly as they
+        // would be from the right domain, and what breaks is a face cut from a
+        // schema missing a profile — or carrying a patient — long after the
+        // image was handed out.
+        cloud.jengu.dbo.fhir.common.FaceDefinitions.refuseIfMisplaced(
+                declared.registrations(), version.domain());
         cloud.jengu.dbo.policy.PolicyObjectStore engine =
                 policyWrapped(spec, db, declared.registrations(), version.domain(),
                         version.face());
@@ -1251,6 +1270,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 declarationTypes(spec));
         TenantRuntime runtime = new TenantRuntime(spec, engine, store,
                 new PgChangeFeed(db.dataSource(), version.domain()),
+                new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.core.api.Domains.DEFINITIONS),
                 withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
                         terminology, "/t/" + spec.code() + "/fhir", guard), spec),
                         version.face(), engine),
@@ -1593,16 +1613,41 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // local variable. Say which tenant is waiting for which.
                 throw new UpstreamNotReady(spec.code(), dependency.name());
             }
-            engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
-                    new cloud.jengu.dbo.sync.ContentDependency(
-                            dependency.name(), dependency.types()),
-                    upstream.feed(), runtime.engine(), on,
-                    domain, payloadVersion,
-                    java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter()),
-                    "sync." + dependency.name() + "." + spec.code(),
-                    // the upstream reassembles from ITS concepts; this tenant
-                    // takes the result apart into its own
-                    upstream.grain(), runtime.grain())));
+            java.util.Set<String> definitions = new java.util.LinkedHashSet<>();
+            java.util.Set<String> records = new java.util.LinkedHashSet<>();
+            for (String type : dependency.types()) {
+                (cloud.jengu.dbo.fhir.common.FaceDefinitions.isDefinition(type)
+                        ? definitions : records).add(type);
+            }
+            if (!records.isEmpty()) {
+                engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
+                        new cloud.jengu.dbo.sync.ContentDependency(
+                                dependency.name(), java.util.Set.copyOf(records)),
+                        upstream.feed(), runtime.engine(), on,
+                        domain, payloadVersion,
+                        java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter()),
+                        // The name it has always had: renaming a consumer
+                        // restarts it at the head of a feed it was halfway
+                        // through.
+                        "sync." + dependency.name() + "." + spec.code(),
+                        // the upstream reassembles from ITS concepts; this
+                        // tenant takes the result apart into its own
+                        upstream.grain(), runtime.grain())));
+            }
+            if (!definitions.isEmpty()) {
+                engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
+                        new cloud.jengu.dbo.sync.ContentDependency(
+                                dependency.name(), java.util.Set.copyOf(definitions)),
+                        upstream.definitionsFeed(), runtime.engine(), on,
+                        // Its bookkeeping belongs beside the rows it is about,
+                        // so what a face gave this tenant — the records, their
+                        // origins and the cursor — is one schema and moves as
+                        // one thing.
+                        cloud.jengu.dbo.core.api.Domains.DEFINITIONS, payloadVersion,
+                        java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter()),
+                        "sync." + dependency.name() + "." + spec.code() + ".definitions",
+                        upstream.grain(), runtime.grain())));
+            }
         }
         syncEngines.put(spec.code(), java.util.List.copyOf(engines));
     }
@@ -1651,20 +1696,29 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         + critical + ", and a tenant cannot serve without it");
             }
         }
+        // However many streams carry it. A dependency's types are split by the
+        // feed that carries them, and a face's are its definitions — so the
+        // chain is usually one stream over the definitions feed, and is two
+        // the moment a root also publishes something that is not a definition.
         String name = "sync." + face.get().name() + "." + spec.code();
-        cloud.jengu.dbo.sync.ContentSyncEngine chain = syncEngines
+        java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> chain = syncEngines
                 .getOrDefault(spec.code(), java.util.List.of()).stream()
-                .filter(engine -> name.equals(engine.name()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(spec.code()
-                        + ": the face chain was declared and not wired"));
+                .filter(engine -> engine.name().equals(name)
+                        || engine.name().startsWith(name + "."))
+                .toList();
+        if (chain.isEmpty()) {
+            throw new IllegalStateException(spec.code()
+                    + ": the face chain was declared and not wired");
+        }
         long began = System.currentTimeMillis();
         int carried = 0;
-        int events;
-        do {
-            events = chain.syncOnce(500);
-            carried += events;
-        } while (events > 0);
+        for (cloud.jengu.dbo.sync.ContentSyncEngine stream : chain) {
+            int events;
+            do {
+                events = stream.syncOnce(500);
+                carried += events;
+            } while (events > 0);
+        }
         runtime.store().shapesChanged();
         LOG.info("tenant {} took its face from {}: events={} in {}ms", spec.code(),
                 face.get().name(), carried, System.currentTimeMillis() - began);
@@ -1767,12 +1821,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // necessarily in the first chunk of a busy tenant, and leaving
                 // it behind would defer the rebuild by a round each time.
                 while (!closing
-                        && !(chunk = runtime.feed().readFor(consumer, 500)).items().isEmpty()) {
+                        && !(chunk = runtime.definitionsFeed().readFor(consumer, 500))
+                                .items().isEmpty()) {
                     for (cloud.jengu.dbo.core.api.feed.FeedItem item : chunk.items()) {
                         moved |= "StructureDefinition".equals(item.typeName());
                         searchMoved |= "SearchParameter".equals(item.typeName());
                     }
-                    runtime.feed().ack(consumer, chunk.nextCursor());
+                    runtime.definitionsFeed().ack(consumer, chunk.nextCursor());
                 }
                 if (moved) {
                     // Acked before rebuilding, deliberately: a rebuild that

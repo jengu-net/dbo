@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.fhir.r4;
 
+import cloud.jengu.dbo.fhir.common.FaceDefinitions;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.fhir.common.UnknownSearchParameterException;
 
@@ -108,7 +109,9 @@ public final class R4Personality {
             out.add(new TypeRegistration(t.typeName(), domain, t.identityClass(),
                     t.identitySystems(), t.handling(), extractor, indexes, PAYLOAD_VERSION));
         }
-        return out;
+        // The face's definitions are a domain of their own, wherever this
+        // version's records are told to live.
+        return FaceDefinitions.placed(out, domain);
     }
 
     private List<IndexSpec> defaultIndexes(String typeName) {

@@ -18,6 +18,7 @@
 CREATE OR REPLACE FUNCTION dbo.record_exists(p_type text, p_id text)
 RETURNS boolean LANGUAGE plpgsql STABLE AS $$
 DECLARE
+  v_schema text;
   v_table text;
   v_found boolean;
 BEGIN
@@ -26,12 +27,19 @@ BEGIN
   THEN
     RETURN NULL;
   END IF;
-  FOR v_table IN
-      SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-       WHERE n.nspname = 'state' AND c.relkind = 'r' AND c.relname LIKE '%\_data'
+  -- Every schema a domain's records can be in, not only the shared one. A
+  -- tenant's definitions live in a schema of their own, and a reference to
+  -- one — a profile's base, a value set a binding names — would otherwise
+  -- read as pointing at a record this store does not hold.
+  FOR v_schema, v_table IN
+      SELECT n.nspname, c.relname
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname IN ('state', 'definitions')
+         AND c.relkind = 'r' AND c.relname LIKE '%\_data'
   LOOP
-    EXECUTE format('SELECT EXISTS (SELECT 1 FROM state.%I'
-                   || ' WHERE type = $1 AND id = $2::uuid AND NOT deleted)', v_table)
+    EXECUTE format('SELECT EXISTS (SELECT 1 FROM %I.%I'
+                   || ' WHERE type = $1 AND id = $2::uuid AND NOT deleted)',
+                   v_schema, v_table)
       INTO v_found USING p_type, p_id;
     IF v_found THEN
       RETURN true;

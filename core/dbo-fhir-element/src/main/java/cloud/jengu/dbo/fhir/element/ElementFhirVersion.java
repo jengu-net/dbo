@@ -6,6 +6,7 @@ import cloud.jengu.dbo.core.api.TypeRegistration;
 import cloud.jengu.dbo.core.api.ValueKind;
 import cloud.jengu.dbo.core.face.DomainFace;
 import cloud.jengu.dbo.core.face.PortableRendering;
+import cloud.jengu.dbo.fhir.common.FaceDefinitions;
 import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
 import cloud.jengu.dbo.fhir.common.FhirTerminology;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
@@ -149,7 +150,9 @@ public class ElementFhirVersion implements FhirVersion {
                         indexes(type.typeName()),
                         payloadVersion));
             }
-            return out;
+            // The face's definitions are a domain of their own, wherever this
+            // version's records are told to live.
+            return FaceDefinitions.placed(out, domain);
         }
 
         /** The store's view once there is a store; the version's own payloads until then. */

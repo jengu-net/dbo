@@ -1091,6 +1091,26 @@ public enum DboPromises implements Promise {
             + "tenant does not hold, a reference to another server or to something contained "
             + "in the document — because unresolvable is not invalid. The checks read rows "
             + "and name no FHIR version, so one set of them serves every face."),
+    VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN(
+            "Every definition a tenant holds and its history are in one schema of their "
+            + "own, apart from the tenant's records, so that what a face gave a tenant is "
+            + "a thing the database can name rather than a filter by type inside shared "
+            + "tables. A record is never in it, and a definition is never outside it: the "
+            + "schema is what a face is cut from and handed to every tenant on it, so a "
+            + "profile left among the records makes the image short and a patient among "
+            + "the definitions puts somebody's record in everybody's copy."),
+    FEED_DEFINITIONS_MOVE_ON_A_FEED_OF_THEIR_OWN(
+            "Definitions are a domain with a feed and a cursor of their own. A record "
+            + "never appears on that feed and a definition never appears on the record "
+            + "feed, so a subscriber taking a face does not read the root's clinical "
+            + "traffic on the way to the next profile, and the position a face is cut at "
+            + "is a position records cannot move past."),
+    TEN_A_TYPE_DECLARES_ITS_DOMAIN(
+            "Which domain a type's rows live in is part of its registration and is "
+            + "checked when a tenant comes up. A definition registered among the records, "
+            + "or a record among the definitions, is refused by name — because nothing "
+            + "about a misplaced type fails on its own, and what breaks is an image taken "
+            + "later and handed out before anybody looks."),
     VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE(
             "The functions a tenant's database answers with are installed into its own "
             + "schema by the dbo release that carries them, and arrive no other way — never "
