@@ -65,6 +65,7 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
         new java.security.SecureRandom().nextBytes(kek);
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
+        manager.faceImagesIn(Files.createTempDirectory("dbo-zone-images"));
 
         // The face the zone will be converted INTO has to be somewhere, or the
         // projection has nothing to judge a converted definition against.
@@ -257,6 +258,37 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
         assertTrue(manager.codes().contains("hiljem-r5"),
                 "a tenant on the zone's own face was refused for a loss that only happens "
                         + "on the way to another one");
+    }
+
+    @org.junit.jupiter.api.Order(6)
+    @Test
+    @Timeout(900)
+    @DisplayName("a canonical the face already gave the projection does not stop the zone's "
+            + "stream")
+    @Proving(DboPromises.SYNC_LOCAL_SHADOWING)
+    void aCanonicalTheFaceGaveUsDoesNotStopTheZone() {
+        // A tenant can be given the same canonical by two upstreams: the
+        // engine's own vocabulary reaches it with its face, and again with any
+        // zone that publishes structures. The second arrival is a conflict
+        // over identity, and what the stream does with it decides whether
+        // everything behind it is ever delivered.
+        //
+        // It used to rethrow whenever the object already here had come from a
+        // stream — any stream — so the zone's copy stopped this one at the
+        // head of its queue forever. Nothing said so: no dead letter, no
+        // parked shadow, just a zone whose profiles never arrived.
+        var zoneStream = manager.streamsOf(ON_R4).stream()
+                .filter(s -> s.name().equals("sync." + ZONE + "." + ON_R4 + ".definitions"))
+                .findFirst().orElseThrow(() ->
+                        new AssertionError("the projection has no definitions stream for "
+                                + "its zone: " + manager.streamsOf(ON_R4).stream()
+                                .map(s -> s.name()).toList()));
+
+        assertFalse(zoneStream.origins().isEmpty(),
+                "the zone's definitions stream has applied nothing at all, which is what "
+                        + "being stuck at the head of its queue looks like from outside");
+        assertFalse(zoneStream.degraded(),
+                "the zone's definitions stream is degraded: " + zoneStream.deadLetters());
     }
 
     /**

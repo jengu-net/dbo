@@ -460,11 +460,30 @@ public final class ContentSyncEngine {
                 .orElse(false);
     }
 
+    /**
+     * Whether THIS stream put that object here.
+     *
+     * <p>This dependency, not any of them. A tenant can take the same
+     * canonical from two upstreams — its face carries the engine's own
+     * vocabulary, and so does a zone that publishes structures — and an
+     * object another stream wrote is, as far as this one is concerned, held
+     * locally: either identical, and nothing to do, or a difference to be
+     * parked where somebody can see it.
+     *
+     * <p>Matching on the object alone made the second stream rethrow forever.
+     * A rethrow is for a stale claim left by an earlier copy of OUR OWN, which
+     * is a state this stream is responsible for; raising it for another
+     * stream's work stopped this one at the head of its queue, and everything
+     * behind that item — a zone's actual profiles — never arrived at all,
+     * with no dead letter and no parked shadow to say why.
+     */
     public boolean isStreamedOrigin(String objectId) {
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT 1 FROM %s_sync_origin WHERE object_id = ?".formatted(Domains.tables(targetDomain)))) {
+                     ("SELECT 1 FROM %s_sync_origin WHERE object_id = ? AND dependency = ?")
+                             .formatted(Domains.tables(targetDomain)))) {
             ps.setObject(1, UUID.fromString(objectId));
+            ps.setString(2, dependency.name());
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
