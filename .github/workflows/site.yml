@@ -1,0 +1,106 @@
+name: site
+
+# The published site, on its own so that it can actually publish.
+#
+# It lived in `build.yml` beside the Java suite, gated on nothing — the
+# reasoning being that a red suite should not freeze the documentation. That
+# was right about the dependency and wrong about the level: concurrency is
+# per RUN, and a group that allows one pending run evicts the queued one on
+# every push. The site job died with whatever run it was sitting in, so on a
+# busy branch it never deployed at all. Thirteen commits and thirteen hours
+# went undeployed that way before anybody looked at the timestamp.
+#
+# Here it competes with nothing but itself. A docs push deploys in about a
+# minute rather than queueing behind a twenty-minute suite.
+#
+# `mkdocs build --strict` is still the check, and it still runs on a pull
+# request where a broken cross reference can be fixed before merge. Only the
+# deploy is limited to a push to main.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Pages serves one deployment at a time, and cancelling a half-finished deploy
+# leaves the site on the previous version rather than broken — so queue rather
+# than cancel. This is the group Pages itself serialises on, which is why it is
+# named for the product and not for this workflow.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  site:
+    # The published site, which is a BUILD OUTPUT and not a branch.
+    #
+    # `./gradlew site` assembles one tree from two — the hand-written pages in
+    # site/ own the root, the specification in docs/ is mounted under /docs/ —
+    # and renders it with mkdocs. What GitHub Pages used to serve was Jekyll
+    # over docs/ alone, so the landing page, the essays and the header menu
+    # existed in the repository and nowhere a reader could reach them.
+    #
+    # What it renders is the tree at this commit, and whether the Java suite
+    # is green does not change whether a cross reference resolves — which is
+    # why it never needed the build, and why it can live away from it.
+    runs-on: ubuntu-latest
+    # Two seconds of mkdocs behind a pip install into a fresh venv. Fifteen
+    # is for the install and the network it needs, not for the render.
+    timeout-minutes: 15
+    # Stated rather than inherited. `pages: write` and `id-token: write` are
+    # what the deploy needs and are the reason this job is worth reading
+    # carefully: it is the only one here that can change what the world sees.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    env:
+      # Pinned, because it is the cache key and because a compiler upgrade
+      # rewrites every diagram — which is a commit, not a surprise on a push.
+      LINI_VERSION: "1.0.5"
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      # The site's Python tools are pinned in site/requirements.txt and are
+      # installed into a venv under build/, so this only has to provide the
+      # interpreter that venv is made from.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The diagram compiler is a Rust binary with no released artifact, so it
+      # is built once and cached by version. The site does NOT need it — the
+      # SVGs are committed — so this is here only to run the ratchet, and the
+      # cache is what keeps a docs job from paying a Rust build every push.
+      - name: Cache lini
+        id: lini
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/lini/bin/lini
+          key: lini-${{ env.LINI_VERSION }}-${{ runner.os }}
+      - name: Build lini
+        if: steps.lini.outputs.cache-hit != 'true'
+        run: cargo install lini --locked --version "$LINI_VERSION" --root ~/.local/lini
+      # A committed build output drifts the first time somebody edits the SVG
+      # instead of the .lini, and nothing else would ever say so.
+      - name: The diagrams match their sources
+        run: ./gradlew siteDiagramsCheck -Plini="$HOME/.local/lini/bin/lini"
+      - name: Build the site
+        run: ./gradlew site
+      - name: Upload the site
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/site
+      - name: Deploy to Pages
+        id: deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/deploy-pages@v4
