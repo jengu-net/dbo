@@ -213,6 +213,43 @@ public final class PgChangeFeed implements ChangeFeed {
 
     /** The local horizon: xmax when this database is write-quiet, else null. */
     /**
+     * Whether this feed has actually reached the position a cursor names.
+     *
+     * <p>For a position that arrived from somewhere else — carried in a face
+     * image, cut from this feed at some earlier moment. A cursor is only
+     * meaningful against the feed that minted it, and a feed that was rebuilt
+     * since is a different feed wearing the same name: its outbox starts over,
+     * so a position from the old one names somewhere it has not been. Standing
+     * a consumer there would skip everything published up to a number that was
+     * never reached, and skipping is silent.
+     *
+     * <p>A position this feed has passed is fine, and is the normal case: the
+     * image was cut a while ago and the feed has moved on since.
+     *
+     * @return false when the position is beyond this feed's head, so the
+     *         caller starts at the beginning instead
+     */
+    public boolean hasReached(String cursor) {
+        if (cursor == null) {
+            return true; // the beginning, which every feed has reached
+        }
+        Cursors.FeedCursor at;
+        try {
+            at = Cursors.decodeFeed(cursor);
+        } catch (RuntimeException notOneOfOurs) {
+            return false;
+        }
+        String head = headCursor();
+        if (head == null) {
+            // Nothing has ever been published here, so the only position this
+            // feed has reached is the beginning.
+            return false;
+        }
+        Cursors.FeedCursor now = Cursors.decodeFeed(head);
+        return at.xid() < now.xid() || (at.xid() == now.xid() && at.seq() <= now.seq());
+    }
+
+    /**
      * Where this feed stands now, as a cursor a consumer can be put at.
      *
      * <p>For cutting an image: the rows travel as bytes, so nothing about

@@ -2100,6 +2100,7 @@ cloud.jengu.dbo.policy.TenantPolicies.Retention                        toString(
 cloud.jengu.dbo.postgres.PgChangeFeed                                  ack(String,String):void
 cloud.jengu.dbo.postgres.PgChangeFeed                                  class
 cloud.jengu.dbo.postgres.PgChangeFeed                                  cursorOf(String):String
+cloud.jengu.dbo.postgres.PgChangeFeed                                  hasReached(String):boolean
 cloud.jengu.dbo.postgres.PgChangeFeed                                  headCursor():String
 cloud.jengu.dbo.postgres.PgChangeFeed                                  lag(String):long
 cloud.jengu.dbo.postgres.PgChangeFeed                                  new(DataSource,String)

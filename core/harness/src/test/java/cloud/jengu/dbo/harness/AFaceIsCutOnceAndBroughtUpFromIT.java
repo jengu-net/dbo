@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -245,6 +246,34 @@ class AFaceIsCutOnceAndBroughtUpFromIT {
             assertEquals(java.util.List.of(), listed.toList(),
                     "nothing was cut and a file was written anyway");
         }
+    }
+
+    @Test
+    @Timeout(600)
+    @DisplayName("a position the face never reached is not stood at")
+    @Proving(DboPromises.VER_AN_IMAGE_FROM_ANOTHER_RELEASE_IS_REFUSED)
+    void aPositionTheFaceNeverReachedIsNotStoodAt() throws Exception {
+        cloud.jengu.dbo.postgres.PgChangeFeed face = new cloud.jengu.dbo.postgres.PgChangeFeed(
+                rootSource(), Domains.DEFINITIONS);
+        String cutAt = face.headCursor();
+        assertTrue(cutAt != null, "the face published nothing, so there is nothing to test");
+
+        // The face has been where its own image says, which is the normal case
+        // and the one that must keep working.
+        assertTrue(face.hasReached(cutAt),
+                "a face does not recognise the position its own image was cut at");
+        assertTrue(face.hasReached(null), "every feed has reached the beginning");
+
+        // A root rebuilt from its packages starts its feed over, and an image
+        // that outlived it names somewhere the new one has never been. Nothing
+        // in the manifest says so: the release, the packages and the SQL all
+        // still agree.
+        cloud.jengu.dbo.postgres.PgChangeFeed rebuilt = new cloud.jengu.dbo.postgres.PgChangeFeed(
+                emptyDatabaseWithTheSchema("face_image_rebuilt"), Domains.DEFINITIONS);
+        assertFalse(rebuilt.hasReached(cutAt),
+                "a feed that has published nothing claimed to have reached a position from "
+                        + "another database, so a tenant would stand past everything the "
+                        + "rebuilt face publishes and skip it in silence");
     }
 
     // ------------------------------------------------------------- helpers

@@ -103,10 +103,11 @@ final class FaceBringUp {
         FaceImage.Acceptance.Accepted accepted = (FaceImage.Acceptance.Accepted) answer;
         try {
             long marked = markAsComingFromTheFace(into, dependency, declaredTypes);
-            standAtTheCut(upstream.definitionsFeed(), consumer, accepted.manifest().cursor());
+            String stood = standAtTheCut(upstream.definitionsFeed(), consumer,
+                    accepted.manifest().cursor());
             return new Outcome(true, "brought its face up from the image at " + image
                     + ": rows=" + accepted.rows() + " marked=" + marked
-                    + " cutAt=" + accepted.manifest().cutAt(), false);
+                    + " cutAt=" + accepted.manifest().cutAt() + stood, false);
         } catch (SQLException e) {
             // The rows are in and their provenance is not. Saying so is the
             // only honest move: a tenant serving definitions that claim to be
@@ -153,14 +154,31 @@ final class FaceBringUp {
     }
 
     /**
-     * Puts the stream where the image was cut.
+     * Puts the stream where the image was cut, if the face has been there.
      *
      * <p>A null position means the face had published nothing when it was cut,
      * which reads as the beginning — and the beginning is right, since there
      * is nothing behind it to skip.
+     *
+     * <p>A position the face has NOT reached means the image outlived the
+     * database it was cut from: a root rebuilt from its packages starts its
+     * feed over, and a position from the old one names somewhere the new one
+     * has never been. Nothing in the manifest catches that — the release, the
+     * packages and the SQL all still agree — so it is caught here, against the
+     * feed itself. The tenant starts at the beginning and reads the face it
+     * already holds, which costs a drain and skips nothing; standing where the
+     * image said would skip whatever the rebuilt face published, in silence.
+     *
+     * @return what was done, for the line that says how the tenant came up
      */
-    private static void standAtTheCut(ChangeFeed feed, String consumer, String cursor) {
+    private static String standAtTheCut(ChangeFeed feed, String consumer, String cursor) {
+        if (feed instanceof cloud.jengu.dbo.postgres.PgChangeFeed pg && !pg.hasReached(cursor)) {
+            feed.resetConsumer(consumer, null);
+            return " — but the face has not reached the position the image was cut at, so it "
+                    + "was cut from a database this one is not; reading from the beginning";
+        }
         feed.resetConsumer(consumer, cursor);
         LOG.debug("stream {} stands where the face was cut", consumer);
+        return "";
     }
 }
