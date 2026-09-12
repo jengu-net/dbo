@@ -98,11 +98,11 @@ The tenant is twelve lines of JSON, and it is the whole model:
 ```
 
 `face` is which standard is mapped onto the engine — [the engine has no FHIR in
-it](why/index.md). `identity` says how this type is identified, which decides
+it](../why/index.md). `identity` says how this type is identified, which decides
 what a conditional write means. `handling` is the declaration the engine
 enforces: versioned, audited, retained, exportable. And `code` got its own
 database, which is [why a forgotten filter returns
-nothing](why/personal-data.md).
+nothing](../why/personal-data.md).
 
 ## Two things here that a deployment must not copy
 
@@ -128,7 +128,7 @@ Nothing is left behind: the database is on a tmpfs, so the next run starts from
 nothing exactly as this one did.
 
 <div class="further" markdown>
-Next: [why any of this is shaped the way it is](why/index.md), or
-[what operating it actually involves](docs/arc42-008-crosscutting/running-it/README.md)
+Next: [why any of this is shaped the way it is](../why/index.md), or
+[what operating it actually involves](../docs/arc42-008-crosscutting/running-it/README.md)
 in the specification.
 </div>

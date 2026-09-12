@@ -21,7 +21,7 @@ honour. It is a set of things the operator cannot do.</p>
 
 <div class="cta" markdown>
 [Why it is shaped this way](why/){ .btn .primary }
-[Run it in a minute](quickstart/){ .btn }
+[Run it in a minute](technical/quickstart/){ .btn }
 [Source on GitHub](https://github.com/jengu-net/dbo){ .btn }
 </div>
 </div>
@@ -111,11 +111,11 @@ faces</a>, then <a href="why/work/">work</a>.</p>
 
 ## Pre-1.0, and specific about what that means.
 
-What is built, what proves it, and what is only specified are kept in one place
-rather than implied by the absence of a warning. Two FHIR versions serve
-concurrently over one engine today; the shape that lets a second domain join
-them is in place and the wiring is not.
+Two FHIR versions serve concurrently over one engine today; the shape that lets
+a second domain join them is in place and the wiring is not. Which behaviours
+are promised, and which of those a test already proves, is a catalogue the
+build checks rather than a page somebody remembers to update.
 
-[What is built and what is not →](https://github.com/jengu-net/dbo/blob/main/docs/plans/implementation-status.md)
+[What is promised, and what proves it →](docs/arc42-006-runtime/req-catalogue/)
 </div>
 </section>

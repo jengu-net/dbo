@@ -91,6 +91,6 @@ being precise about missing.
 The mechanics — what the engine requires from a face, how a version is chosen
 at bring-up, and the three groups an obligation falls into — are in
 [The engine and its faces](README.md).
-What is built and what is only specified is the
-[implementation status page](https://github.com/jengu-net/dbo/blob/main/docs/plans/implementation-status.md).
+Which behaviours are promised, and which of those a test already proves, is
+[the REQ catalogue](../../arc42-006-runtime/req-catalogue.md).
 </div>

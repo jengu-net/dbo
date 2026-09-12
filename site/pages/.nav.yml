@@ -5,13 +5,12 @@
 # file rather than an edit here. Material shows them across the header when
 # there is room and folds them into the drawer when there is not.
 #
-# Quickstart sits second, before the essays, because the fastest way to find
-# out what something is can be to run it — and because that page is the one
-# whose commands are executed on every build, so it is the least likely thing
-# here to be lying.
+# Quickstart is inside Technical rather than beside it: running the thing is
+# one of the things somebody planning a deployment does, and a header that
+# offers it as a peer of the argument puts a command prompt where a reader
+# deciding whether to care expects a reason.
 nav:
   - Home: index.md
-  - Quickstart: quickstart.md
   - Why: why
   - Faces: faces
   - Technical: technical

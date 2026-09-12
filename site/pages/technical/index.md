@@ -2,10 +2,14 @@
 title: Technical
 eyebrow: Technical
 standfirst: >-
-  What it needs from an environment, and how any number quoted about it was
-  arrived at.
+  How to have it running, what it needs from an environment, and how any
+  number quoted about it was arrived at.
 template: essay.html
 ---
+
+**[A store running, in about a minute](quickstart.md).** Docker and nothing
+else. Every command on that page is executed on every build, so it is the least
+likely thing here to be lying.
 
 **[What it needs to run](environment.md).** The dependencies are short and the
 absences are deliberate: one language runtime, one database, no broker, no

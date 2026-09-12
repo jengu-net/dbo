@@ -698,13 +698,15 @@ val siteAssemble by tasks.registering(Sync::class) {
         into("docs")
         // tasks/ is the live agenda and plans/ is what is proposed rather
         // than what is; both stay readable in the repository and neither is
-        // part of the published specification. index.html and _config.yml
-        // belong to the Jekyll site this replaces.
+        // part of the published specification. The consequence, which outlived
+        // the Jekyll config that used to state it: a page that IS published
+        // must not reach either tree with a relative link, because such a link
+        // resolves in the repository and 404s here. The few that need to point
+        // there use an absolute repository URL instead.
         // A `why-` page is an essay that lives with the concept it argues, and
         // it is collected to /why/ below rather than rendered twice here. A
         // concept's diagrams are compiler sources, not pages.
-        exclude("tasks/**", "plans/**", "index.html", "_config.yml",
-                "**/why-*.md", "**/diagrams/**")
+        exclude("tasks/**", "plans/**", "**/why-*.md", "**/diagrams/**")
     }
     from(layout.projectDirectory.file("docs/favicon.ico")) { into("assets") }
 
