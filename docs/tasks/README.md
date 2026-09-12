@@ -93,6 +93,7 @@ can tell a wait from a stall. Close the table with the critical path, so
 | [Medplum → dbo](medplum-to-dbo.md) | the store's answers are delivered; the migration is the consumer's and is tracked there | none open here |
 | [The face contract](face-contract.md) | one slice open, and the document closes with it | [#112](https://github.com/jengu-net/dbo/issues/112) |
 | [IHE profiles the store should serve](ihe-profiles.md) | analysis only; SVCM next | none filed |
+| [UBL is a face, described in FHIR's own tools](ubl-face.md) | two spikes green; nothing built; generating the models is next | none filed |
 | [The tenant lifecycle](tenant-lifecycle.md) | built; the queue is gone and change is a transition, not a retraction — open on the consumer half | [#188](https://github.com/jengu-net/dbo/issues/188) |
 | [Eventing is unreachable](eventing-is-unreachable.md) | built and closed as done; nothing constructs it | [#184](https://github.com/jengu-net/dbo/issues/184) |
 
