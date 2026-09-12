@@ -137,7 +137,13 @@ definitions from it through the ordinary chain. Those records are a domain of
 their own — their own schema, their own feed, their own cursor — so what a
 face gave a tenant is a thing the database can name and hand over, and a
 subscriber does not read a root's clinical traffic on the way to the next
-profile. Every structure a tenant holds
+profile. Being namable, it is also cuttable: a face is cut once into an
+image of that schema and later tenants — roots and subscribers alike — load
+it rather than reading the same face again, which took a face root's bring-up
+from about thirty seconds to ten. An image says what release it was cut from
+and is refused by name when that disagrees, because a wrong one fails nowhere:
+the rows load and the tenant serves, from a specification that is not this
+one. Every structure a tenant holds
 is taken apart on arrival into element rows in the tenant's own database —
 cardinality, types, fixed and pattern values, bindings, each located by a
 jsonpath with choice keys and slice members already resolved — so a checker
