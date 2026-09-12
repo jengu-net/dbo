@@ -91,6 +91,60 @@ public final class FaceWarmup {
         Path image = directory.resolve(face + ".faceimage");
         Path partial = directory.resolve(face + ".faceimage.cutting");
 
+        try (AutoCloseable held = whileNobodyElseIsCutting(directory, face)) {
+            if (Files.isReadable(image)) {
+                // Somebody cut it while this one waited, which is the point of
+                // having waited.
+                return new Outcome.NotYet("another bring-up cut this face while this one "
+                        + "waited; there is one to come up from now");
+            }
+            return cutHoldingTheLock(manager, rootCode, directory);
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("the face could not be cut", e);
+        }
+    }
+
+    /**
+     * One cutting of one face at a time, across processes.
+     *
+     * <p>On the directory rather than on a database, because the directory is
+     * the thing they share: tenants coming up are spread across databases and
+     * across JVMs, and a lock inside one of those databases lets all the
+     * others miss together and each read the whole face through the chain —
+     * which is the cost this exists to remove. Waiting for somebody else's cut
+     * takes seconds. Not waiting takes a minute, each.
+     */
+    static AutoCloseable whileNobodyElseIsCutting(Path directory, String face)
+            throws IOException {
+        Files.createDirectories(directory);
+        java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(
+                directory.resolve(face + ".faceimage.lock"),
+                java.nio.file.StandardOpenOption.CREATE,
+                java.nio.file.StandardOpenOption.WRITE);
+        java.nio.channels.FileLock lock = channel.lock();
+        return () -> {
+            try (java.nio.channels.FileChannel closing = channel) {
+                lock.release();
+            }
+        };
+    }
+
+    /** As {@link #cut}, for a caller already holding the directory's lock. */
+    static Outcome cutHoldingTheLock(TenantRuntimeManager manager, String rootCode, Path directory)
+            throws IOException {
+        TenantRuntimeManager.TenantRuntime root = manager.runtime(rootCode).orElse(null);
+        if (root == null) {
+            return new Outcome.NotYet("tenant '" + rootCode + "' is not serving");
+        }
+        DataSource source = manager.databaseOf(rootCode).orElse(null);
+        if (source == null) {
+            return new Outcome.NotYet("tenant '" + rootCode + "' has no database yet");
+        }
+        String face = root.spec().face();
+        Path image = directory.resolve(face + ".faceimage");
+        Path partial = directory.resolve(face + ".faceimage.cutting");
         try (Connection lock = source.getConnection()) {
             if (!taken(lock)) {
                 return new Outcome.NotYet("another cutting of this face is already running");

@@ -216,7 +216,11 @@ class AFaceIsCutOnceAndBroughtUpFromIT {
         // half there. Nothing of that may survive the cutting.
         try (var listed = Files.list(kept)) {
             assertEquals(java.util.List.of("r4.faceimage"),
-                    listed.map(f -> f.getFileName().toString()).sorted().toList(),
+                    listed.map(f -> f.getFileName().toString())
+                            // The lock is how one cutting at a time is kept to
+                            // one; it is not something the cutting left behind.
+                            .filter(name -> !name.endsWith(".lock"))
+                            .sorted().toList(),
                     "the cutting left something behind beside the image it wrote");
         }
 

@@ -83,7 +83,9 @@ class ATenantComesUpFromTheFaceImageIT {
                 .formatted(ROOT));
         UntilServed.scan(manager, ROOT);
 
-        // One reads the chain, because no image is kept yet.
+        // One reads the chain. Said explicitly rather than relied on: the build
+        // keeps images for every other suite, and this one is the comparison.
+        manager.faceImagesIn(null);
         Files.writeString(dir.resolve(READ_THE_CHAIN + ".json"), subscriber(READ_THE_CHAIN));
         long began = System.currentTimeMillis();
         UntilServed.scan(manager, READ_THE_CHAIN);
@@ -201,7 +203,9 @@ class ATenantComesUpFromTheFaceImageIT {
 
         try (var after = Files.list(kept)) {
             assertEquals(java.util.List.of("r4.faceimage"),
-                    after.map(f -> f.getFileName().toString()).sorted().toList(),
+                    after.map(f -> f.getFileName().toString())
+                            .filter(name -> !name.endsWith(".lock"))
+                            .sorted().toList(),
                     "the first tenant to want this face did not leave one behind, so the "
                             + "next one reads the whole face through the chain as well");
         }
@@ -224,7 +228,61 @@ class ATenantComesUpFromTheFaceImageIT {
                         + "ms, no better than the " + chainMillis + "ms of reading the chain");
     }
 
+    @Test
+    @Timeout(900)
+    @DisplayName("the second face root on a face loads it instead of reading the packages again")
+    @Proving(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE)
+    void theSecondRootLoadsTheFaceInsteadOfReadingIt() throws Exception {
+        // Most of what brings a face up is roots, not subscribers, and a root
+        // reading the packages through is the same half minute every root on
+        // the face has already spent.
+        Path kept = Files.createTempDirectory("dbo-image-roots");
+        manager.faceImagesIn(kept);
+
+        Files.writeString(dir.resolve("juur-esimene.json"), root("juur-esimene"));
+        long began = System.currentTimeMillis();
+        UntilServed.scan(manager, "juur-esimene");
+        long firstMillis = System.currentTimeMillis() - began;
+
+        Files.writeString(dir.resolve("juur-teine.json"), root("juur-teine"));
+        began = System.currentTimeMillis();
+        UntilServed.scan(manager, "juur-teine");
+        long secondMillis = System.currentTimeMillis() - began;
+
+        System.out.printf("METRICS faceRoot readPackagesMs=%d fromImageMs=%d%n",
+                firstMillis, secondMillis);
+
+        assertEquals(count("juur-esimene", "SELECT count(*) FROM "
+                        + Domains.tables(Domains.DEFINITIONS) + "_data"),
+                count("juur-teine", "SELECT count(*) FROM "
+                        + Domains.tables(Domains.DEFINITIONS) + "_data"),
+                "the root that loaded its face holds a different amount of it than the one "
+                        + "that read the packages");
+
+        // A root exists to be streamed from, so what it published has to be
+        // there too — a root holding every definition and offering none would
+        // leave its subscribers reading an empty feed.
+        assertTrue(count("juur-teine", "SELECT count(*) FROM "
+                        + Domains.tables(Domains.DEFINITIONS) + "_outbox") > 1000,
+                "the loaded root publishes nothing, so nothing can take its face from it");
+
+        assertTrue(secondMillis < firstMillis,
+                "the second root took " + secondMillis + "ms against the first's "
+                        + firstMillis + "ms, so it read the packages again");
+    }
+
     // ------------------------------------------------------------- the face
+
+    private static String root(String code) {
+        return """
+                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
+                .formatted(code);
+    }
 
     private static String subscriber(String code) {
         return """

@@ -100,6 +100,74 @@ public final class TenantRuntimeManager implements AutoCloseable {
             cloud.jengu.dbo.sync.Lanes replication) {}
 
     /**
+     * A face root gets its face from an image, or reads the packages and
+     * leaves one behind.
+     *
+     * <p>Decided inside the lock rather than around it, because the decision
+     * is the expensive part. Several roots coming up together would otherwise
+     * all look, all miss, and all read the same packages through — and then
+     * cut the same image on top of each other, having already spent what the
+     * image was for. Holding the lock across looking, loading and cutting
+     * means the first pays and the rest wait seconds and load.
+     */
+    private void faceRootTakesItsFace(TenantSpec spec, cloud.jengu.dbo.core.api.ObjectStore engine,
+            FhirStoreFacade store, TenantRuntime runtime, javax.sql.DataSource dataSource) {
+        java.nio.file.Path directory = faceImages;
+        if (directory == null) {
+            FaceRoot.load(spec, engine, store, runtime.grain());
+            return;
+        }
+        try (AutoCloseable held = FaceWarmup.whileNobodyElseIsCutting(directory, spec.face())) {
+            String notFromAnImage = FaceBringUp.aRootFrom(directory, spec.face(), dataSource);
+            if (notFromAnImage == null) {
+                store.shapesChanged();
+                caughtUpOnItsOwnFace(runtime);
+                return;
+            }
+            LOG.info("face root {} is reading its packages: {}", spec.code(), notFromAnImage);
+            FaceRoot.load(spec, engine, store, runtime.grain());
+            // Published to the runtimes map only later, and cutting reads it
+            // from there — so the root is registered for the length of the cut
+            // and taken out again if anything about this bring-up fails.
+            runtimes.put(spec.code(), runtime);
+            try {
+                FaceWarmup.Outcome cut = FaceWarmup.cutHoldingTheLock(this, spec.code(), directory);
+                if (cut instanceof FaceWarmup.Outcome.NotYet notYet) {
+                    LOG.info("face {} was not cut: {}", spec.face(), notYet.why());
+                }
+            } finally {
+                runtimes.remove(spec.code());
+            }
+        } catch (java.io.IOException | RuntimeException couldNotCut) {
+            LOG.warn("face {} could not be cut, so roots on it read their packages: {}",
+                    spec.face(), couldNotCut.toString());
+        } catch (Exception unexpected) {
+            throw new IllegalStateException("the face could not be taken", unexpected);
+        }
+    }
+
+    /** What the watch on a tenant's own definitions is called. */
+    private static String shapesConsumer(String code) {
+        return "shapes." + code;
+    }
+
+    /**
+     * Puts the tenant's own watch at the head of its own face.
+     *
+     * <p>An image carries what the face published as well as what it holds, so
+     * a tenant that loaded one has a feed full of definitions it already has
+     * and has just built its view from. The watch exists to catch a profile
+     * arriving by a path the facade cannot see; left at the beginning it would
+     * instead find a whole face, rebuild a view that is already current and
+     * reindex every type for no change at all.
+     */
+    private void caughtUpOnItsOwnFace(TenantRuntime runtime) {
+        if (runtime.definitionsFeed() instanceof PgChangeFeed own) {
+            own.resetConsumer(shapesConsumer(runtime.spec().code()), own.headCursor());
+        }
+    }
+
+    /**
      * Cuts this face, if there is no image of it worth using.
      *
      * <p>On the first tenant that asks for it rather than on every root that
@@ -199,7 +267,22 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * taken its face by one route or the other, and changing the answer
      * underneath it would only affect the next one.
      */
-    private volatile java.nio.file.Path faceImages;
+    private volatile java.nio.file.Path faceImages = whereTheDeploymentSaid();
+
+    /**
+     * The image mount as the deployment names it, or null when it names none.
+     *
+     * <p>A path is a deployment fact like the database's host, so it arrives
+     * the way those do rather than through a constructor every caller has to
+     * learn about. A deployment that says nothing gets the behaviour it had
+     * before there were images, which is the right default: images are an
+     * optimisation with an operator's disk behind them, and taking one without
+     * being asked is not this store's to decide.
+     */
+    private static java.nio.file.Path whereTheDeploymentSaid() {
+        String named = System.getProperty("dbo.face.images");
+        return named == null || named.isBlank() ? null : java.nio.file.Path.of(named);
+    }
     private final Map<String, cloud.jengu.dbo.auth.IdentityHub> zoneHubs = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.policy.RetentionSweep> sweeps = new ConcurrentHashMap<>();
     /**
@@ -1619,7 +1702,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // Filled before it is published: a dependent that wires against
             // an empty root would stream nothing and serve with no definitions
             // to validate against.
-            FaceRoot.load(spec, engine, store, runtime.grain());
+            //
+            // From an image when there is one for this release, because a root
+            // reading the packages through is the same half minute every root
+            // on this face has already spent. The vocabulary a root would put
+            // in its own tables on the way past is in the image too — it lives
+            // in the schema the image is of — so nothing is left to replay.
+            faceRootTakesItsFace(spec, engine, store, runtime, db.dataSource());
         }
         // The engine's own vocabularies land after the face's definitions,
         // because publishing one validates it, and validating needs the
@@ -1801,6 +1890,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     name + ".definitions", face.get().name(), face.get().types());
         }
         if (image.fromImage()) {
+            caughtUpOnItsOwnFace(runtime);
             LOG.info("tenant {} {}", spec.code(), image.said());
         } else {
             LOG.info("tenant {} is reading its face through the chain: {}",
@@ -1907,7 +1997,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // is closing.
                 break;
             }
-            String consumer = "shapes." + runtime.spec().code();
+            String consumer = shapesConsumer(runtime.spec().code());
             try {
                 boolean moved = false;
                 boolean searchMoved = false;

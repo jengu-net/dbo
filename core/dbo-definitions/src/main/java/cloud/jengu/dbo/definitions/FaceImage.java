@@ -67,11 +67,18 @@ public final class FaceImage {
 
     /**
      * What a tenant's relationship to a feed is written in, and therefore what
-     * an image must not carry: where this tenant's own subscribers had got to,
-     * what it has published to them, and where its dependencies stand.
+     * an image must not carry: where its readers had got to, and where its
+     * dependencies stand.
+     *
+     * <p>The outbox is NOT among them, though it was at first. A consumer row
+     * records where somebody READ to, and inheriting one puts a reader
+     * somewhere it has never been. The outbox records what a tenant
+     * PUBLISHED, and for a face root that is the face itself — so a root
+     * brought up from an image without one would hold every definition and
+     * offer none of them, and its subscribers would read an empty feed and
+     * come up with nothing. Same failure, opposite direction.
      */
     private static final Set<String> NOT_THE_FACE = Set.of(
-            Domains.DEFINITIONS + "_outbox",
             Domains.DEFINITIONS + "_consumer",
             Domains.DEFINITIONS + "_sync_origin",
             Domains.DEFINITIONS + "_sync_shadow",
@@ -226,6 +233,7 @@ public final class FaceImage {
                                     + table.getKey() + " FROM STDIN WITH (FORMAT csv)",
                             new java.io.ByteArrayInputStream(table.getValue()));
                 }
+                realignTheOutbox(c);
                 c.commit();
             } catch (SQLException e) {
                 rollbackQuietly(c);
@@ -235,6 +243,23 @@ public final class FaceImage {
             throw new IOException("the image could not be loaded", e);
         }
         return new Acceptance.Accepted(manifest, loaded);
+    }
+
+    /**
+     * Puts the outbox's sequence past what was loaded.
+     *
+     * <p>Rows arrive carrying the numbers they had where they were cut, and
+     * the sequence behind the column knows nothing about them: left alone it
+     * hands out numbers that already exist, and the first definition this
+     * tenant publishes collides with one of its own.
+     */
+    private static void realignTheOutbox(Connection c) throws SQLException {
+        String outbox = Domains.tables(Domains.DEFINITIONS) + "_outbox";
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT setval(pg_get_serial_sequence('" + outbox + "', 'seq'),"
+                        + " COALESCE((SELECT max(seq) FROM " + outbox + "), 0) + 1, false)")) {
+            ps.execute();
+        }
     }
 
     /** Which part of an image disagrees with this release, said in full. */

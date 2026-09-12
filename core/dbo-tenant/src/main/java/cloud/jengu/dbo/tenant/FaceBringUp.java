@@ -118,6 +118,41 @@ final class FaceBringUp {
     }
 
     /**
+     * Loads a face root's own face from an image, in place of reading the
+     * packages a release carries.
+     *
+     * <p>A root has no upstream and nothing to mark: the definitions are its
+     * own, as they would be if it had read them. What it does have that a
+     * subscriber does not is readers — a root exists to be streamed from —
+     * which is why the image carries what the root published as well as what
+     * it holds.
+     *
+     * @return why it did not, or null when the root came up from the image
+     */
+    static String aRootFrom(Path directory, String face, DataSource into) {
+        if (directory == null) {
+            return "no image directory is configured";
+        }
+        Path image = directory.resolve(face + ".faceimage");
+        if (!Files.isReadable(image)) {
+            return "no image of face '" + face + "' is kept yet";
+        }
+        FaceImage.Facts expected = new FaceImage.Facts(FaceRootPackages.carried(face), face,
+                FaceFunctions.installedIn(into), DefinitionStore.SHAPE);
+        try (InputStream bytes = Files.newInputStream(image)) {
+            FaceImage.Acceptance answer = FaceImage.accept(into, expected, bytes);
+            if (answer instanceof FaceImage.Acceptance.Refused refused) {
+                return refused.why();
+            }
+            LOG.info("face root took its face from the image at {}: rows={}", image,
+                    ((FaceImage.Acceptance.Accepted) answer).rows());
+            return null;
+        } catch (IOException unreadable) {
+            return "the image at " + image + " could not be read: " + unreadable.getMessage();
+        }
+    }
+
+    /**
      * Writes what the stream would have written as each row arrived.
      *
      * <p>The version recorded is the row's own, because a definition copied

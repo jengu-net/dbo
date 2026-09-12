@@ -233,6 +233,15 @@ val promiseProjection by tasks.registering(JavaExec::class) {
         rootProject.file("docs/arc42-003-context/user-stories").absolutePath)
 }
 tasks.withType<Test>().configureEach {
+    // Faces are cut once and brought up from, here as in production. One
+    // directory for the whole build rather than one per class: a face is the
+    // same face whichever root cut it, so the first suite that wants one pays
+    // for it and every suite after reads it. An image from an earlier build
+    // whose definitions, expander or SQL have moved is refused by its own
+    // manifest and cut again, so this never has to be cleaned by hand.
+    systemProperty("dbo.face.images",
+            layout.buildDirectory.dir("face-images").get().asFile.absolutePath)
+
     useJUnitPlatform()
     // The ledger is an INPUT, not just a file the test happens to open: without
     // this Gradle calls the task up to date after the ledger changes, and the
