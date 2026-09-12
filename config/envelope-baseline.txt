@@ -21,6 +21,6 @@
 # The records are written by the test, because a version ships its
 # conformance resources and not its examples. One document per shape the
 # rules have to get right, rather than a large borrowed corpus.
-Encounter compared=2 agreed=2 differing=
-Observation compared=3 agreed=1 differing=date(only in force)
-Patient compared=3 agreed=0 differing=deceased(only in force)
+Encounter compared=3 agreed=3 differing=
+Observation compared=5 agreed=5 differing=
+Patient compared=4 agreed=3 differing=deceased

@@ -157,21 +157,55 @@ $$;
 -- held saying so rather than dropped.
 CREATE OR REPLACE FUNCTION dbo.envelope(p_doc jsonb, p_type text)
 RETURNS jsonb LANGUAGE sql STABLE AS $$
-  SELECT COALESCE(jsonb_object_agg(key, values), '{}'::jsonb)
+  SELECT COALESCE(jsonb_object_agg(key, vals), '{}'::jsonb)
     FROM (
-      SELECT pair.key, jsonb_agg(pair.value) AS values
-        FROM definitions.definition_parameter p,
-             LATERAL jsonb_array_elements_text(p.paths) AS path,
-             LATERAL jsonb_path_query(p_doc, path::jsonpath) AS hit,
-             -- The key a search asks under is the code with its hyphens
-             -- folded, which is what the envelope has always been keyed by:
-             -- an envelope path is a json key and a search names it.
-             LATERAL dbo.envelope_pairs(replace(p.code, '-', '_'), p.kind, hit) AS pair
-       WHERE p.base = p_type
-         AND p.unenforceable IS NULL
-         AND (p.predicate IS NULL
-              OR jsonb_path_match(hit, p.predicate::jsonpath, '{}'::jsonb, true))
-       GROUP BY pair.key) keyed
+      SELECT key, jsonb_agg(value ORDER BY code, ord, ci) AS vals
+        FROM (
+          SELECT pair.key, pair.value, p.code, found.ord, pair.ci
+            FROM definitions.definition_parameter p,
+                 -- What the expression finds, each thing once and in the
+                 -- order the document says it. A parameter shared between
+                 -- types is a union of branches, and a union says each of
+                 -- its members once — two names with the same given name are
+                 -- one value to search by, while two codings that happen to
+                 -- share a system are two codings and contribute twice.
+                 LATERAL (
+                   SELECT walked.hit, MIN(walked.ord) AS ord
+                     FROM (SELECT q.hit,
+                                  row_number() OVER (ORDER BY path.pi, q.hi) AS ord
+                             FROM jsonb_array_elements_text(p.paths)
+                                      WITH ORDINALITY AS path(path, pi),
+                                  LATERAL jsonb_path_query(p_doc, path::jsonpath)
+                                      WITH ORDINALITY AS q(hit, hi)) walked
+                    GROUP BY walked.hit) found,
+                 -- The key a search asks under is the code with its hyphens
+                 -- folded, which is what the envelope has always been keyed
+                 -- by: an envelope path is a json key and a search names it.
+                 LATERAL dbo.envelope_pairs(replace(p.code, '-', '_'), p.kind, found.hit)
+                     WITH ORDINALITY AS pair(key, value, ci)
+           WHERE p.base = p_type
+             AND p.unenforceable IS NULL
+
+          UNION ALL
+
+          -- A parameter that asks rather than selects, whose answer IS the
+          -- value. `Patient.deceased.exists() and Patient.deceased != false`
+          -- is a token parameter over a question, and a document that says
+          -- nothing about it is findable as false rather than not findable.
+          SELECT replace(p.code, '-', '_'),
+                 jsonb_build_object('t', 'tokc', 'v',
+                     CASE WHEN COALESCE(jsonb_path_match(p_doc, p.predicate::jsonpath,
+                                                         '{}'::jsonb, true), false)
+                          THEN 'true' ELSE 'false' END),
+                 p.code, 1, 1
+            FROM definitions.definition_parameter p
+           WHERE p.base = p_type
+             AND p.unenforceable IS NULL
+             AND p.predicate IS NOT NULL
+             AND COALESCE(jsonb_array_length(p.paths), 0) = 0
+             AND p.kind = 'token'
+        ) either
+       GROUP BY key) keyed
 $$;
 
 -- Where this document points, as the rows an edge is stored as.

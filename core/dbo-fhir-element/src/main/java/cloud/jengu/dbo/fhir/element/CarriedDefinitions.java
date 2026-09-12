@@ -211,6 +211,20 @@ public final class CarriedDefinitions {
      * its files until one is asked for by name.
      */
     static List<NpmPackage.PackageResourceInformation> indexed(Carried carried, String... types) {
+        // Held, because it is asked for once per type a tenant registers and
+        // the answer is about the package rather than about the asking: a
+        // package is immutable under its id, and listing one whole to answer
+        // about three types was time a bring-up spent doing the same work
+        // over and over while another tenant waited behind it.
+        return LISTED.computeIfAbsent(carried.id() + " " + String.join(" ", types),
+                ignored -> listed(carried, types));
+    }
+
+    private static final java.util.Map<String, List<NpmPackage.PackageResourceInformation>>
+            LISTED = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static List<NpmPackage.PackageResourceInformation> listed(
+            Carried carried, String... types) {
         try {
             // The package folder only. A package carries side folders too —
             // examples, other renderings — and their index lists definitions

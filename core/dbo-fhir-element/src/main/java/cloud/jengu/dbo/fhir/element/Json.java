@@ -22,6 +22,15 @@ final class Json {
         return String.valueOf(value);
     }
 
+    /** The same, absent rather than fatal: not every object states a field. */
+    static String text(Object node, String field) {
+        if (!(node instanceof Map<?, ?> map)) {
+            return null;
+        }
+        Object value = map.get(field);
+        return value == null ? null : String.valueOf(value);
+    }
+
     @SuppressWarnings("unchecked")
     static List<Object> array(Object node, String field) {
         Object value = ((Map<?, ?>) node).get(field);

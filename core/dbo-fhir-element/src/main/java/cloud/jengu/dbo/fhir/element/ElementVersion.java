@@ -57,6 +57,8 @@ public final class ElementVersion {
     private final String fhirVersion;
     private volatile SimpleWorkerContext context;
     private volatile List<SearchParameter> carriedParameters;
+    private final Map<String, Map<String, List<String>>> choices =
+            new ConcurrentHashMap<>();
     private final ElementPayloads payloads;
     private final PayloadFraming framing;
     private final DomainFace face;
@@ -444,6 +446,85 @@ public final class ElementVersion {
         } catch (java.io.IOException e) {
             throw new java.io.UncheckedIOException(
                     "cannot derive a tenant context from the shared " + code + " context", e);
+        }
+    }
+
+    /**
+     * The choice elements one type defines, and the keys JSON spells each
+     * under.
+     *
+     * <p>A choice is one element that may hold one of several types, and the
+     * type is in the key: a definition says {@code Observation.effective[x]}
+     * and a document says {@code effectiveDateTime}. An expression names the
+     * element, because FHIRPath walks a model where the choice is one step —
+     * so a path compiled from the name alone selects nothing at all, and the
+     * search it belongs to answers empty rather than wrong.
+     *
+     * <p>Read off the JSON of one definition rather than through a worker
+     * context, for the reason the parameters are: this runs when a tenant
+     * comes up, and the context is two hundred megabytes and seconds of it.
+     * One definition, found by its url, because a tenant registers a handful
+     * of types and reading the package whole to answer about three of them
+     * costs a bring-up more than the whole of what it saves.
+     *
+     * <p>Keyed by the full element path, which already carries the type.
+     */
+    Map<String, List<String>> choicesOf(String typeName) {
+        return choices.computeIfAbsent(typeName, type -> {
+            Map<String, List<String>> read = new LinkedHashMap<>();
+            for (CarriedDefinitions.Carried carried
+                    : CarriedDefinitions.definitionPackages(code)) {
+                for (var indexed
+                        : CarriedDefinitions.indexed(carried, "StructureDefinition")) {
+                    String url = indexed.getUrl();
+                    if (url == null || !url.endsWith("/" + type)) {
+                        continue;
+                    }
+                    try (java.io.InputStream in = CarriedDefinitions.read(indexed)) {
+                        choicesIn(Json.parse(new String(in.readAllBytes(),
+                                java.nio.charset.StandardCharsets.UTF_8)), read);
+                    } catch (java.io.IOException e) {
+                        throw new java.io.UncheckedIOException("cannot read " + carried.id(), e);
+                    }
+                }
+            }
+            return Map.copyOf(read);
+        });
+    }
+
+    /**
+     * The choices one definition states, from its snapshot.
+     *
+     * <p>Base definitions only. A profile constrains a choice rather than
+     * declaring one, and taking its narrowed type list as the answer would
+     * mean a tenant that holds a profile stops finding documents that use a
+     * type the base allows.
+     */
+    private static void choicesIn(Object definition, Map<String, List<String>> into) {
+        if ("constraint".equals(Json.text(definition, "derivation"))) {
+            return;
+        }
+        Object snapshot = definition instanceof Map<?, ?> map ? map.get("snapshot") : null;
+        if (snapshot == null) {
+            return;
+        }
+        for (Object element : Json.array(snapshot, "element")) {
+            String path = Json.text(element, "path");
+            if (path == null || !path.endsWith("[x]")) {
+                continue;
+            }
+            String base = path.substring(0, path.length() - 3);
+            List<String> keys = new ArrayList<>();
+            for (Object type : Json.array(element, "type")) {
+                String named = Json.text(type, "code");
+                if (named != null && !named.isEmpty()) {
+                    keys.add(base.substring(base.lastIndexOf('.') + 1)
+                            + Character.toUpperCase(named.charAt(0)) + named.substring(1));
+                }
+            }
+            if (!keys.isEmpty()) {
+                into.putIfAbsent(base, List.copyOf(keys));
+            }
         }
     }
 

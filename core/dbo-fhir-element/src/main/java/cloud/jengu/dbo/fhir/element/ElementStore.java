@@ -804,7 +804,7 @@ public final class ElementStore implements FhirStoreFacade {
             for (SearchParameter parameter : ElementVersion.union(
                     version.parametersFor(typeName),
                     authoredHere.getOrDefault(typeName, List.of()))) {
-                compiled.add(compiledFrom(typeName, parameter));
+                compiled.add(compiledFrom(typeName, parameter, version.choicesOf(typeName)));
             }
         }
         definitions.replaceParameters(compiled);
@@ -812,7 +812,8 @@ public final class ElementStore implements FhirStoreFacade {
 
     /** One parameter, as this store would run it. */
     private static cloud.jengu.dbo.definitions.DefinitionParameter compiledFrom(
-            String typeName, SearchParameter parameter) {
+            String typeName, SearchParameter parameter,
+            java.util.Map<String, List<String>> choices) {
         String kind = parameter.hasType() ? parameter.getType().toCode() : null;
         String expression = parameter.getExpression();
         if (!cloud.jengu.dbo.definitions.DefinitionParameter.extractable(kind)) {
@@ -820,7 +821,8 @@ public final class ElementStore implements FhirStoreFacade {
                     parameter.getCode(), typeName, kind, expression, List.of(), null,
                     kind + " values are not taken apart by this store, here or anywhere else");
         }
-        ExpressionPaths.Selection selection = ExpressionPaths.selection(expression, typeName);
+        ExpressionPaths.Selection selection =
+                ExpressionPaths.selection(expression, typeName, choices);
         return new cloud.jengu.dbo.definitions.DefinitionParameter(
                 parameter.getCode(), typeName, kind, expression,
                 selection.paths(), selection.predicate(), selection.why());

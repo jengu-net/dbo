@@ -127,6 +127,19 @@ final class ExpressionPaths {
      * parameter over {@code deceased.exists()} means.
      */
     static Selection selection(String expression, String resourceType) {
+        return selection(expression, resourceType, java.util.Map.of());
+    }
+
+    /**
+     * The same, with the version's choice elements in hand.
+     *
+     * <p>A choice is one element in the model an expression is written
+     * against and several keys in the document it runs over, so the paths are
+     * spelled out afterwards: {@code Observation.effective} is compiled once
+     * and comes out as one path per type the element may take.
+     */
+    static Selection selection(String expression, String resourceType,
+            java.util.Map<String, List<String>> choices) {
         if (expression == null || expression.isBlank()) {
             return Selection.refused("it states no expression");
         }
@@ -138,7 +151,8 @@ final class ExpressionPaths {
         }
         Untranslatable notAPath;
         try {
-            return new Selection(paths(parsed, resourceType), null, null);
+            return new Selection(spelledOut(paths(parsed, resourceType), resourceType, choices),
+                    null, null);
         } catch (Untranslatable why) {
             notAPath = why;
         }
@@ -293,6 +307,54 @@ final class ExpressionPaths {
             at = at.getInner();
         }
         return List.of(path);
+    }
+
+    /**
+     * A path whose last step is a choice, written once per key it may use.
+     *
+     * <p>Only the last step, and only when nothing filters it. A choice
+     * anywhere but the end has to be narrowed to be walked through — the
+     * expression says {@code value as Quantity} and that is a step this
+     * compiler already spells concretely — so the end is where an unnarrowed
+     * one is, and a path this does not recognise is left exactly as it was.
+     */
+    private static List<String> spelledOut(List<String> paths, String resourceType,
+            java.util.Map<String, List<String>> choices) {
+        if (resourceType == null || choices.isEmpty()) {
+            return paths;
+        }
+        List<String> out = new ArrayList<>();
+        for (String path : paths) {
+            out.addAll(spelledOut(path, resourceType, choices));
+        }
+        return out;
+    }
+
+    private static List<String> spelledOut(String path, String resourceType,
+            java.util.Map<String, List<String>> choices) {
+        if (!path.endsWith("[*]") || path.indexOf('?') >= 0) {
+            return List.of(path);
+        }
+        StringBuilder dotted = new StringBuilder(resourceType);
+        int at = 0;
+        while (true) {
+            int key = path.indexOf(".\"", at);
+            if (key < 0) {
+                break;
+            }
+            int end = path.indexOf('"', key + 2);
+            if (end < 0) {
+                return List.of(path);
+            }
+            dotted.append('.').append(path, key + 2, end);
+            at = end + 1;
+        }
+        List<String> keys = choices.get(dotted.toString());
+        if (keys == null) {
+            return List.of(path);
+        }
+        String upToTheKey = path.substring(0, path.lastIndexOf(".\"") + 2);
+        return keys.stream().map(key -> upToTheKey + key + "\"[*]").toList();
     }
 
     /** {@code value as Quantity}: the choice under the key that type spells. */

@@ -56,6 +56,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * system and one without, a folded string, a date at three precisions, a
  * period, a reference, a number, a uri.
  *
+ * <p><b>What the record still names is the choice a question asks about.</b>
+ * A parameter can be a question rather than a path — {@code deceased} is
+ * whether a patient is dead, not a value read out of one — and its answer is
+ * compiled as a predicate. A predicate over a choice element still names the
+ * element the way the model spells it, so the one that asks after
+ * {@code Patient.deceased} does not see a {@code deceasedDateTime}. The paths
+ * are spelled out per key and the predicates are not, yet.
+ *
  * <p><b>The number may rise and may not fall.</b> A key the two disagree about
  * is a search that answers differently depending on which side built the
  * index, and the difference shows up as an empty result rather than as a
@@ -293,6 +301,51 @@ class TheTwoEnvelopesAreComparedOnRecordsIT {
                 {"resourceType":"Encounter","status":"planned",
                  "class":{"code":"IMP"},
                  "period":{"start":"2023"}}""");
+        // Crowded ones, because most of what a parameter has to get right is
+        // a repeat, a nested element or a second choice in the same document.
+        all.add("""
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"%s","value":"4"}],
+                 "name":[{"family":"Kuusk","given":["Jaan"]},
+                         {"family":"Kuusk-Mets","given":["Jaan","Peeter"]}],
+                 "telecom":[{"system":"email","value":"Jaan@Example.Test"},
+                            {"system":"phone","value":"+37244444"}],
+                 "address":[{"city":"Tallinn","postalCode":"10111","country":"EE",
+                             "line":["Pikk 1"]}],
+                 "gender":"male","birthDate":"2000-07-14",
+                 "deceasedDateTime":"2024-11-02T08:00:00+02:00",
+                 "communication":[{"language":{"coding":[
+                     {"system":"urn:ietf:bcp:47","code":"et"}]}}]}"""
+                .formatted(MRN));
+        all.add("""
+                {"resourceType":"Observation","status":"final",
+                 "category":[{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/observation-category",
+                                         "code":"vital-signs"}]}],
+                 "code":{"coding":[{"system":"http://loinc.org","code":"85354-9"}]},
+                 "subject":{"reference":"Patient/abc"},
+                 "effectiveDateTime":"2023-08-09",
+                 "component":[
+                   {"code":{"coding":[{"system":"http://loinc.org","code":"8480-6"}]},
+                    "valueQuantity":{"value":120,"unit":"mmHg"}},
+                   {"code":{"coding":[{"system":"http://loinc.org","code":"8462-4"}]},
+                    "valueQuantity":{"value":80,"unit":"mmHg"}}]}""");
+        all.add("""
+                {"resourceType":"Observation","status":"final",
+                 "code":{"coding":[{"system":"http://loinc.org","code":"3141-9"}]},
+                 "subject":{"identifier":{"system":"%s","value":"9"}},
+                 "effectiveDateTime":"2019",
+                 "valueString":"a written value"}"""
+                .formatted(MRN));
+        all.add("""
+                {"resourceType":"Encounter","status":"in-progress",
+                 "class":{"system":"http://terminology.hl7.org/CodeSystem/v3-ActCode",
+                          "code":"EMER"},
+                 "type":[{"coding":[{"system":"urn:type","code":"walk-in"}],
+                          "text":"Walk in"}],
+                 "subject":{"reference":"Patient/abc"},
+                 "participant":[{"individual":{"reference":"Practitioner/p1"}}],
+                 "period":{"start":"2024-02-29T10:00:00Z","end":"2024-02-29T11:30:00Z"},
+                 "reasonCode":[{"coding":[{"system":"urn:reason","code":"pain"}]}]}""");
         return all;
     }
 
