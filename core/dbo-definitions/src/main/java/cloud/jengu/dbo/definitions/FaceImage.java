@@ -75,7 +75,15 @@ public final class FaceImage {
             Domains.DEFINITIONS + "_consumer",
             Domains.DEFINITIONS + "_sync_origin",
             Domains.DEFINITIONS + "_sync_shadow",
-            Domains.DEFINITIONS + "_sync_dlq");
+            Domains.DEFINITIONS + "_sync_dlq",
+            // The shape marker belongs with them for the same reason the
+            // installed-SQL register does: it says which expander took THIS
+            // database's rows apart, and a database has one as soon as its
+            // store is built — before any face arrives. Carried in an image
+            // it would be the first thing already in the way, and the answer
+            // it holds is in the manifest anyway, where it is checked before
+            // a single row is loaded.
+            "definition_shape");
 
     private FaceImage() {}
 

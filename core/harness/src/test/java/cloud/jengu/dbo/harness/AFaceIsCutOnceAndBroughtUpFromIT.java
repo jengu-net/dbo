@@ -291,7 +291,10 @@ class AFaceIsCutOnceAndBroughtUpFromIT {
         // What is about this tenant rather than about the face does not travel,
         // and comparing it would be comparing the two tenants instead.
         counts.keySet().removeIf(t -> t.contains("_outbox") || t.contains("_consumer")
-                || t.contains("_sync_"));
+                || t.contains("_sync_")
+                // The shape marker is about the database, not the face: every
+                // store writes its own as it is built, before any face arrives.
+                || t.equals("definition_shape"));
         return counts;
     }
 

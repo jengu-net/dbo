@@ -3267,6 +3267,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            close():v
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            codes():Set
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            databaseOf(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            erase(String):void
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            faceImagesIn(Path):cloud.jengu.dbo.tenant.TenantRuntimeManager
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            manages(Path):String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener)
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener,cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig)

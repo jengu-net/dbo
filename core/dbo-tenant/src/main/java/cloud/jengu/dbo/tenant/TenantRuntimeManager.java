@@ -156,6 +156,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, cloud.jengu.dbo.pdi.PersonVault> vaults = new ConcurrentHashMap<>();
     private volatile cloud.jengu.dbo.auth.IdentityHub identityHub;
     private final Map<String, javax.sql.DataSource> tenantDataSources = new ConcurrentHashMap<>();
+
+    /**
+     * Where the operator keeps the images faces were cut into, or null when it
+     * keeps none and every tenant reads its face through the chain.
+     *
+     * <p>Set before serving begins and not after: a tenant already up has
+     * taken its face by one route or the other, and changing the answer
+     * underneath it would only affect the next one.
+     */
+    private volatile java.nio.file.Path faceImages;
     private final Map<String, cloud.jengu.dbo.auth.IdentityHub> zoneHubs = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.policy.RetentionSweep> sweeps = new ConcurrentHashMap<>();
     /**
@@ -338,6 +348,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * below all of that, and moving them through the record path would be
      * loading a specification one row at a time.
      */
+    /**
+     * Where images of faces are kept, for tenants to come up from.
+     *
+     * <p>A mount the operator provides, like a secret: this store cuts images
+     * and accepts them, and never decides where they live or how long they
+     * are kept.
+     */
+    public TenantRuntimeManager faceImagesIn(java.nio.file.Path directory) {
+        this.faceImages = directory;
+        return this;
+    }
+
     public Optional<javax.sql.DataSource> databaseOf(String code) {
         return Optional.ofNullable(tenantDataSources.get(code));
     }
@@ -1726,6 +1748,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     + ": the face chain was declared and not wired");
         }
         long began = System.currentTimeMillis();
+        // The bytes first, when there are any to be had. What the streams do
+        // afterwards is the same thing either way — read what the face has
+        // published since they last looked — and after an image that is
+        // whatever was published since it was cut.
+        FaceBringUp.Outcome image = FaceBringUp.from(faceImages, spec.face(),
+                tenantDataSources.get(spec.code()), root,
+                name + ".definitions", face.get().name(), face.get().types());
+        if (image.fromImage()) {
+            LOG.info("tenant {} {}", spec.code(), image.said());
+        } else {
+            LOG.info("tenant {} is reading its face through the chain: {}",
+                    spec.code(), image.said());
+        }
         int carried = 0;
         for (cloud.jengu.dbo.sync.ContentSyncEngine stream : chain) {
             int events;
@@ -1735,8 +1770,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
             } while (events > 0);
         }
         runtime.store().shapesChanged();
-        LOG.info("tenant {} took its face from {}: events={} in {}ms", spec.code(),
-                face.get().name(), carried, System.currentTimeMillis() - began);
+        LOG.info("tenant {} took its face from {}: image={} events={} in {}ms", spec.code(),
+                face.get().name(), image.fromImage(), carried,
+                System.currentTimeMillis() - began);
     }
 
     /**
