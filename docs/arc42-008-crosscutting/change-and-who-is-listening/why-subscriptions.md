@@ -1,5 +1,6 @@
 ---
-title: One place to look when something is behind
+title: "One feed for every consumer"
+headline: "Paging, subscribing and catching up are one thing"
 eyebrow: Why DBO
 standfirst: >-
   Paging through results, subscribing to changes, keeping a dependent copy

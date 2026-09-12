@@ -15,6 +15,14 @@
 -#}
 {% extends "main.html" %}
 
+{#- The tab, and the preview a pasted link renders, should carry the claim
+    rather than the menu label: a URL travels without the menu around it, and
+    "Real tenant isolation" says much less on its own than the sentence the
+    page opens with. -#}
+{% block htmltitle %}
+  <title>{{ (page.meta.headline if page.meta and page.meta.headline else page.title) ~ " - " ~ config.site_name }}</title>
+{% endblock %}
+
 {#-
   The section list stays. It was removed once, for a wider prose column, and
   that was the wrong trade: the drawer that holds it on a narrow screen then

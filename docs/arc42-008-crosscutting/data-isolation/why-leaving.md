@@ -1,5 +1,6 @@
 ---
-title: A tenant leaves and takes everything with it
+title: "Take everything with you"
+headline: "A tenant leaves and takes everything with it"
 eyebrow: Why DBO
 standfirst: >-
   One sealed archive, which the party operating the store cannot read and

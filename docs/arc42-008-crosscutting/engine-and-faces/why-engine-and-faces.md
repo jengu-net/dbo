@@ -1,11 +1,12 @@
 ---
-title: A tenant declares the standard it speaks
+title: "Any standard, one engine"
+headline: "A tenant declares the standard it speaks"
 eyebrow: Why DBO
 standfirst: >-
   One line of a tenant's spec says FHIR R4, and that is where the domain lives.
   The engine underneath knows records, custody, history and erasure, and has
   never heard of a patient.
-why: 1
+why: 4
 template: essay.html
 ---
 

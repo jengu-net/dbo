@@ -1,11 +1,12 @@
 ---
-title: A tenant is a database
+title: "Real tenant isolation"
+headline: "A tenant is a database"
 eyebrow: Why DBO
 standfirst: >-
   Not a filter over a shared one. That difference decides what happens on the
   day somebody writes a query with a bug in it, and what "we have removed your
   data" is actually worth.
-why: 3
+why: 2
 template: essay.html
 ---
 

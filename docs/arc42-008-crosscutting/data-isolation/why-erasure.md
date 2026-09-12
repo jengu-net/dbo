@@ -1,11 +1,12 @@
 ---
-title: A person can be forgotten without rewriting history
+title: "Erasure that reaches backups"
+headline: "A person can be forgotten without rewriting history"
 eyebrow: Why DBO
 standfirst: >-
   Two requirements point in opposite directions, and most systems quietly pick
   one. Every version kept immutably is what makes an audit trail worth
   anything; a person may still require that their data be gone.
-why: 6
+why: 7
 template: essay.html
 ---
 

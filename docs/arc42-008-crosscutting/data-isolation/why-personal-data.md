@@ -1,12 +1,13 @@
 ---
-title: The operator cannot read what it hosts
+title: "Encrypted with the person's key"
+headline: "The operator cannot read what it hosts"
 eyebrow: Why DBO
 standfirst: >-
   Identifying material is encrypted where it is written, with a key belonging
   to that person. So every copy the store makes of itself carries ciphertext
   because of where the encryption happens, not because each path was written
   correctly.
-why: 4
+why: 6
 template: essay.html
 ---
 

@@ -1,11 +1,12 @@
 ---
-title: Evidence that outlives the infrastructure
+title: "Audit nobody else holds"
+headline: "Evidence that outlives the infrastructure"
 eyebrow: Why DBO
 standfirst: >-
   Who read this, who changed it, on whose authority, and when — kept as
   ordinary records in the tenant's own store, append-only against everyone with
   the vendor included, and still answerable years after the machines are gone.
-why: 9
+why: 11
 template: essay.html
 ---
 

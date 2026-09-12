@@ -1,11 +1,12 @@
 ---
-title: Who works here is who may act
+title: "Auth from your own records"
+headline: "Who works here is who may act"
 eyebrow: Why DBO
 standfirst: >-
   The records a tenant keeps anyway say who works here, in what role, from when
   until when. Those are read as grants — so there is one surface to secure, and
   revoking access is ending a period on an ordinary record.
-why: 8
+why: 9
 template: essay.html
 ---
 

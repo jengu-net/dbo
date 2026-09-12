@@ -1,5 +1,6 @@
 ---
-title: A jurisdiction is a tenant
+title: "A new country without a release"
+headline: "A jurisdiction is a tenant"
 eyebrow: Why DBO
 standfirst: >-
   Which identifier systems establish that a person is who they say they are,
