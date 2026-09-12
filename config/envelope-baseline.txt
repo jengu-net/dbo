@@ -1,0 +1,26 @@
+# The envelope in force, and the one the database builds from the same
+# bytes. One line per resource type:
+#
+#   <type> compared=<n> agreed=<n> differing=<keys>
+#
+# GENERATED. Re-record with:
+#     ./gradlew :core:harness:test --tests '*TheTwoEnvelopesAreCompared*' \
+#         -Ddbo.envelope.record=true
+#
+# `agreed` may rise and may not fall. What a document can be found by is
+# the whole of what a search answers, so moving where the envelope is
+# built is worth nothing unless what it builds is the same — and a
+# difference is a document that quietly stops being findable, which reads
+# as an empty result rather than as a fault.
+#
+# The keys named on each line are the work left, not decoration: each is a
+# way of asking that the two sides answer differently today. Nothing is
+# served from the database's envelope until a type's line says it agrees
+# about all of them.
+#
+# The records are written by the test, because a version ships its
+# conformance resources and not its examples. One document per shape the
+# rules have to get right, rather than a large borrowed corpus.
+Encounter compared=2 agreed=2 differing=
+Observation compared=3 agreed=1 differing=date(only in force)
+Patient compared=3 agreed=0 differing=deceased(only in force)

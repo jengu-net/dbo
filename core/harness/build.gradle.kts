@@ -251,6 +251,15 @@ tasks.withType<Test>().configureEach {
     // The same, for the ledger that records what production names.
     systemProperty("dbo.reach.ledger", rootProject.file("config/reach-ledger.txt").absolutePath)
     inputs.file(rootProject.file("config/reach-ledger.txt"))
+    // And for the record of what the two envelopes agree about. Re-recording
+    // is asked for on the command line, so it has to be handed to the test JVM
+    // on purpose: a -D the build does not forward reaches the daemon and not
+    // the fork, which looks exactly like a fix that did not take.
+    systemProperty("dbo.envelope.baseline",
+            rootProject.file("config/envelope-baseline.txt").absolutePath)
+    inputs.file(rootProject.file("config/envelope-baseline.txt"))
+    systemProperty("dbo.envelope.record",
+            providers.systemProperty("dbo.envelope.record").getOrElse("false"))
     for (module in reachModules) {
         dependsOn(":$module:jar")
         systemProperty(

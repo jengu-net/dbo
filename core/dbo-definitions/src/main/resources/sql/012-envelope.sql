@@ -131,14 +131,17 @@ BEGIN
     END IF;
 
   ELSIF p_kind = 'reference' THEN
-    v_text := COALESCE(p_hit ->> 'reference', v_text);
-    IF v_text IS NOT NULL AND position('/' in v_text) > 0 THEN
+    -- A reference is an edge, and edges are their own table: what a search
+    -- by reference reads is a join, not a key in this document's envelope.
+    -- What DOES belong here is the logical reference — a pointer by business
+    -- identifier rather than by id, which the :identifier modifier asks
+    -- about and which has nowhere else to live.
+    IF p_hit ? 'identifier' AND p_hit #>> '{identifier,system}' IS NOT NULL THEN
       RETURN QUERY
-        SELECT p_key, jsonb_build_object(
-                 't', 'ref',
-                 'tt', regexp_replace(
-                           substring(v_text from '^(.*)/[^/]*$'), '^.*/', ''),
-                 'ti', substring(v_text from '[^/]*$'));
+        SELECT p_key || '_identifier', form
+          FROM jsonb_array_elements(
+                   dbo.token_forms(p_hit #>> '{identifier,system}',
+                                   p_hit #>> '{identifier,value}')) form;
     END IF;
   END IF;
   RETURN;
@@ -160,10 +163,47 @@ RETURNS jsonb LANGUAGE sql STABLE AS $$
         FROM definitions.definition_parameter p,
              LATERAL jsonb_array_elements_text(p.paths) AS path,
              LATERAL jsonb_path_query(p_doc, path::jsonpath) AS hit,
-             LATERAL dbo.envelope_pairs(p.code, p.kind, hit) AS pair
+             -- The key a search asks under is the code with its hyphens
+             -- folded, which is what the envelope has always been keyed by:
+             -- an envelope path is a json key and a search names it.
+             LATERAL dbo.envelope_pairs(replace(p.code, '-', '_'), p.kind, hit) AS pair
        WHERE p.base = p_type
          AND p.unenforceable IS NULL
          AND (p.predicate IS NULL
               OR jsonb_path_match(hit, p.predicate::jsonpath, '{}'::jsonb, true))
        GROUP BY pair.key) keyed
+$$;
+
+-- Where this document points, as the rows an edge is stored as.
+--
+-- Separate from the envelope because that is where a reference lives: a
+-- search by reference is answered by a join against the edges of a document
+-- rather than by a key in it, and the two are written by the same statement
+-- from the same bytes.
+--
+-- The type is the last step before the id, so a reference written absolutely
+-- points at the same thing as one written relatively: `Patient/1` and
+-- `https://elsewhere.test/fhir/Patient/1` are one edge, which is the reading
+-- a chained search already depends on.
+CREATE OR REPLACE FUNCTION dbo.reference_edges(p_doc jsonb, p_type text)
+RETURNS TABLE (ref_type text, target_type text, target_id text)
+LANGUAGE sql STABLE AS $$
+  SELECT DISTINCT replace(p.code, '-', '_'),
+         regexp_replace(substring(pointed from '^(.*)/[^/]*$'), '^.*/', ''),
+         substring(pointed from '[^/]*$')
+    FROM definitions.definition_parameter p,
+         LATERAL jsonb_array_elements_text(p.paths) AS path,
+         LATERAL jsonb_path_query(p_doc, path::jsonpath) AS hit,
+         LATERAL (SELECT COALESCE(hit ->> 'reference',
+                                  CASE jsonb_typeof(hit)
+                                    WHEN 'string' THEN hit #>> '{}'
+                                    ELSE NULL
+                                  END) AS pointed) one
+   WHERE p.base = p_type
+     AND p.kind = 'reference'
+     AND p.unenforceable IS NULL
+     AND (p.predicate IS NULL
+          OR jsonb_path_match(hit, p.predicate::jsonpath, '{}'::jsonb, true))
+     AND pointed IS NOT NULL
+     AND position('/' in pointed) > 0
 $$;

@@ -154,11 +154,22 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
         assertEquals(JSON.readTree("[{\"t\":\"date\",\"v\":\"2021-05-06T00:00:00.000Z\"}]"),
                 pairs("k", "date", "{\"start\":\"2021-05-06\",\"end\":\"2021-06-01\"}"));
 
-        // A reference is what it points at, split.
-        assertEquals(JSON.readTree("[{\"t\":\"ref\",\"tt\":\"Patient\",\"ti\":\"123\"}]"),
-                pairs("k", "reference", "{\"reference\":\"Patient/123\"}"));
-        assertEquals(JSON.readTree("[{\"t\":\"ref\",\"tt\":\"Patient\",\"ti\":\"123\"}]"),
-                pairs("k", "reference", "\"https://example.test/fhir/Patient/123\""));
+        // A reference contributes nothing to the envelope, because an edge is
+        // not a key: a search by reference is answered by a join against the
+        // edges a document has, and putting one here as well would index a
+        // dimension nothing reads.
+        assertEquals(JSON.readTree("{}"),
+                keyed("k", "reference", "{\"reference\":\"Patient/123\"}"));
+
+        // What a reference DOES contribute is the logical one — a pointer by
+        // business identifier, which the :identifier modifier asks about and
+        // which has nowhere else to live.
+        assertEquals(JSON.readTree("{\"k_identifier\":["
+                        + "{\"t\":\"tok\",\"s\":\"urn:s\",\"v\":\"9\"},"
+                        + "{\"t\":\"toks\",\"v\":\"urn:s\"},"
+                        + "{\"t\":\"tokc\",\"v\":\"9\"}]}"),
+                keyed("k", "reference",
+                        "{\"identifier\":{\"system\":\"urn:s\",\"value\":\"9\"}}"));
 
         // A number is a number, and something that is not one contributes
         // nothing rather than a wrong answer.
