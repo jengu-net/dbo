@@ -256,8 +256,39 @@ public final class ElementVersion {
             return (type, payload) -> DefinitionEnvelopes.extract(parameters, type, payload, canonical);
         }
         List<SearchParameter> parameters = union(parametersFor(typeName), alsoAuthoredHere);
-        return (type, payload) -> extract(through.get(), parameters, payload, canonical);
+        EnvelopeExtractor inTheJvm =
+                (type, payload) -> extract(through.get(), parameters, payload, canonical);
+        if (canonical) {
+            // A canonical type's identity is its url, and claiming it is the
+            // engine's reading of the tenant's declaration rather than
+            // anything the parameters say. Until that crosses too, this type
+            // is extracted here.
+            return inTheJvm;
+        }
+        return new EnvelopeExtractor() {
+            @Override
+            public cloud.jengu.dbo.core.api.Envelope extract(String type, byte[] payload) {
+                return inTheJvm.extract(type, payload);
+            }
+
+            @Override
+            public java.util.Optional<InTheStatement> inTheStatement() {
+                return java.util.Optional.of(WHERE_THE_BYTES_ARE);
+            }
+        };
     }
+
+    /**
+     * The release's own functions, which build what this extractor builds.
+     *
+     * <p>Held to that record for record: both are run over the same stored
+     * documents and the envelopes, the claims and the edges are compared, so
+     * the claim that either may be used is a comparison rather than an
+     * assertion.
+     */
+    private static final EnvelopeExtractor.InTheStatement WHERE_THE_BYTES_ARE =
+            new EnvelopeExtractor.InTheStatement(
+                    "dbo.envelope", "dbo.identifiers", "dbo.reference_edges");
 
     /** This version's own payloads, over the carried context. */
     ElementPayloads payloads() {

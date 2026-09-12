@@ -5,6 +5,7 @@ import cloud.jengu.dbo.core.UuidV7;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.Domains;
 import cloud.jengu.dbo.core.api.Envelope;
+import cloud.jengu.dbo.core.api.EnvelopeExtractor;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
 import cloud.jengu.dbo.core.api.Caller;
 import cloud.jengu.dbo.core.api.Handling;
@@ -1270,6 +1271,7 @@ public final class PgObjectStore implements ObjectStore {
         schema.applyIndexes(registry);
         String domain = type.domain();
         String d = Domains.tables(domain);
+        EnvelopeExtractor.InTheStatement here = type.extractor().inTheStatement().orElse(null);
         int total = 0;
         UUID after = null;
         while (true) {
@@ -1277,11 +1279,23 @@ public final class PgObjectStore implements ObjectStore {
             record Row(UUID id, byte[] payload, String storedVersion, String shapeJson) {}
             List<Row> batch = inTx(c -> {
                 List<Row> rows = new ArrayList<>();
-                String sql = cursor == null
-                        ? "SELECT id, payload, payload_version, shape FROM %s_data WHERE type = ? AND NOT deleted ORDER BY id LIMIT ?"
-                        : "SELECT id, payload, payload_version, shape FROM %s_data WHERE type = ? AND NOT deleted AND id > ? ORDER BY id LIMIT ?";
+                // The payload is not selected where it will not be read.
+                // Carrying every one back to decide not to look at it is the
+                // whole cost of a reindex, paid for nothing — and a row still
+                // at an older payload version IS looked at, because reading
+                // it up to the current one is the JVM's.
+                String column = here == null ? "payload"
+                        : "CASE WHEN payload_version = ? THEN NULL::bytea ELSE payload END";
+                String sql = (cursor == null
+                        ? "SELECT id, " + column + ", payload_version, shape FROM %s_data"
+                          + " WHERE type = ? AND NOT deleted ORDER BY id LIMIT ?"
+                        : "SELECT id, " + column + ", payload_version, shape FROM %s_data"
+                          + " WHERE type = ? AND NOT deleted AND id > ? ORDER BY id LIMIT ?");
                 try (PreparedStatement ps = c.prepareStatement(sql.formatted(d))) {
                     int p = 1;
+                    if (here != null) {
+                        ps.setString(p++, type.payloadVersion());
+                    }
                     ps.setString(p++, typeName);
                     if (cursor != null) {
                         ps.setObject(p++, cursor);
@@ -1294,17 +1308,35 @@ public final class PgObjectStore implements ObjectStore {
                     }
                 }
                 for (Row row : rows) {
-                    byte[] current = upgraded(type, new StoredObject(row.id().toString(), typeName,
-                            0, Instant.EPOCH, row.payload(), false, row.storedVersion())).payload();
-                    Envelope envelope = type.extractor().extract(typeName, current);
-                    // rebuilt from the row: the stamp survives a reindex
-                    // because it never depended on the payload
-                    shapeIntoEnvelope(envelope, shapeOf(row.shapeJson()));
-                    try (PreparedStatement up = c.prepareStatement(
-                            "UPDATE %s_data SET envelope = ?::jsonb WHERE id = ?".formatted(d))) {
-                        up.setString(1, JsonbCodec.envelopeJson(envelope.paths()));
-                        up.setObject(2, row.id());
-                        up.executeUpdate();
+                    Envelope envelope;
+                    if (here != null && type.payloadVersion().equals(row.storedVersion())) {
+                        // Derived where it already is. The payload never
+                        // leaves the database and the answer never comes
+                        // back: what returns is the claims and the edges,
+                        // which are a handful of short strings and have to
+                        // be adjudicated against every other record.
+                        derivedInTheStatement(c, d, here, row.id(), shapeOf(row.shapeJson()));
+                        envelope = new Envelope();
+                        readDerived(c, d, here, typeName, row.id(), envelope);
+                    } else {
+                        // A row still at an older payload version is read up
+                        // to the current one on its way past, and that
+                        // reading is the JVM's — so this one goes the long
+                        // way round, as it did before there was a short one.
+                        byte[] current = upgraded(type, new StoredObject(row.id().toString(),
+                                typeName, 0, Instant.EPOCH, row.payload(), false,
+                                row.storedVersion())).payload();
+                        envelope = type.extractor().extract(typeName, current);
+                        // rebuilt from the row: the stamp survives a reindex
+                        // because it never depended on the payload
+                        shapeIntoEnvelope(envelope, shapeOf(row.shapeJson()));
+                        try (PreparedStatement up = c.prepareStatement(
+                                "UPDATE %s_data SET envelope = ?::jsonb WHERE id = ?"
+                                        .formatted(d))) {
+                            up.setString(1, JsonbCodec.envelopeJson(envelope.paths()));
+                            up.setObject(2, row.id());
+                            up.executeUpdate();
+                        }
                     }
                     replaceIdentifiers(c, type, row.id(), envelope.identifiers());
                     // a reindex rewrites edges for rows that already have them
@@ -1386,6 +1418,66 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     /** The stamp's search dimension: one token per profile, system|code = profile|version. */
+    /**
+     * The envelope written by the statement that has the bytes.
+     *
+     * <p>The shape stamp joins it here, as a value rather than as something
+     * the function works out: it says which pack versions the accept was
+     * judged against, and that is a fact of the accept event and not of the
+     * payload. A reindex keeps it for the same reason it always did.
+     */
+    private void derivedInTheStatement(Connection c, String d,
+            EnvelopeExtractor.InTheStatement here, UUID id, java.util.List<String> shape)
+            throws SQLException {
+        Envelope stamp = new Envelope();
+        shapeIntoEnvelope(stamp, shape);
+        try (PreparedStatement ps = c.prepareStatement((
+                "UPDATE %s_data SET envelope = " + here.envelope()
+                + "(convert_from(payload, 'UTF8')::jsonb, type) || ?::jsonb WHERE id = ?")
+                .formatted(d))) {
+            ps.setString(1, JsonbCodec.envelopeJson(stamp.paths()));
+            ps.setObject(2, id);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * The claims and the edges, read back rather than carried out.
+     *
+     * <p>These two come home because they are not the record's own: an
+     * identifier is a claim on a name somebody else may also make, and the
+     * engine holds every other record to it; an edge is written to a table a
+     * chained search joins against. What comes back is a few short strings
+     * per record, which is nothing beside a payload.
+     */
+    private void readDerived(Connection c, String d, EnvelopeExtractor.InTheStatement here,
+            String typeName, UUID id, Envelope into) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement((
+                "SELECT i.system, i.value FROM %s_data r,"
+                + " LATERAL " + here.identifiers()
+                + "(convert_from(r.payload, 'UTF8')::jsonb, r.type) i WHERE r.id = ?")
+                .formatted(d))) {
+            ps.setObject(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    into.identifier(rs.getString(1), rs.getString(2));
+                }
+            }
+        }
+        try (PreparedStatement ps = c.prepareStatement((
+                "SELECT e.ref_type, e.target_type, e.target_id FROM %s_data r,"
+                + " LATERAL " + here.referenceEdges()
+                + "(convert_from(r.payload, 'UTF8')::jsonb, r.type) e WHERE r.id = ?")
+                .formatted(d))) {
+            ps.setObject(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    into.reference(rs.getString(1), rs.getString(2), rs.getString(3));
+                }
+            }
+        }
+    }
+
     private static void shapeIntoEnvelope(Envelope envelope, java.util.List<String> shape) {
         if (shape == null) {
             return;

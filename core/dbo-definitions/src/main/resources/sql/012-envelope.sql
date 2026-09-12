@@ -156,7 +156,21 @@ $$;
 -- A parameter that did not compile selects nothing here, which is why it is
 -- held saying so rather than dropped.
 CREATE OR REPLACE FUNCTION dbo.envelope(p_doc jsonb, p_type text)
-RETURNS jsonb LANGUAGE sql STABLE AS $$
+RETURNS jsonb LANGUAGE plpgsql STABLE AS $fn$
+DECLARE
+  v_envelope jsonb;
+BEGIN
+  -- Refused rather than empty. A type with no compiled parameters yields an
+  -- envelope with nothing in it, which is a record that answers no search and
+  -- says so to nobody — and an engine that writes it has stored something
+  -- findable only by chance. The rows are compiled when a tenant's types
+  -- change, so their absence is a bring-up that has not happened rather than
+  -- a document with nothing in it.
+  IF NOT EXISTS (SELECT 1 FROM definitions.definition_parameter WHERE base = p_type) THEN
+    RAISE EXCEPTION 'no compiled parameters for %, so an envelope built here would be '
+                    'empty rather than absent', p_type;
+  END IF;
+
   SELECT COALESCE(jsonb_object_agg(key, vals), '{}'::jsonb)
     FROM (
       SELECT key, jsonb_agg(value ORDER BY code, ord, ci) AS vals
@@ -229,7 +243,10 @@ RETURNS jsonb LANGUAGE sql STABLE AS $$
              AND p.kind = 'token'
         ) either
        GROUP BY key) keyed
-$$;
+    INTO v_envelope;
+  RETURN v_envelope;
+END;
+$fn$;
 
 -- Where this document points, as the rows an edge is stored as.
 --

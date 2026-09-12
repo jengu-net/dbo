@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -241,6 +242,103 @@ class TheTwoEnvelopesAreComparedOnRecordsIT {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 out.add(rs.getString(1));
+            }
+        }
+        return out;
+    }
+
+    @Test
+    @Timeout(900)
+    @DisplayName("a reindex derives where the bytes are, and lands what the writes landed")
+    @Proving(DboPromises.SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE)
+    void aReindexDerivesWhereTheBytesAre() throws Exception {
+        // What it derives is what the writes derived. The envelopes here
+        // were built by the JVM at write time; the rebuild builds them from
+        // the bytes in the database, and a reindex that changed one would be
+        // a record findable by something different afterwards.
+        Map<String, String> envelopes = envelopesById();
+        List<String> identifiers = identifiersInForce();
+        List<String> edges = edgesInForce();
+
+        var engine = manager.runtime(TENANT).orElseThrow().engine();
+        for (String type : List.of("Patient", "Observation", "Encounter")) {
+            assertTrue(engine.rebuildEnvelopes(type) > 0, "the rebuild touched no " + type);
+        }
+
+        assertEquals(envelopes, envelopesById(),
+                "a reindex derived a different envelope from the same bytes");
+        assertEquals(identifiers, identifiersInForce(),
+                "a reindex derived different claims from the same bytes");
+
+        // The edges are held the way the comparison holds them: nothing
+        // lost. A reindex finds MORE of them, and that is the point rather
+        // than a fault — the extractor in force drops a reference parameter
+        // whose expression its evaluator cannot run, and the compiled form
+        // runs it. What it must never do is drop one, because an edge that
+        // goes missing is a chained search that goes quiet.
+        List<String> missing = new ArrayList<>(edges);
+        missing.removeAll(edgesInForce());
+        assertEquals(List.of(), missing, "a reindex lost an edge the write had stored");
+    }
+
+    @Test
+    @Timeout(900)
+    @DisplayName("a reindex whose parameters are not compiled refuses, rather than emptying "
+            + "every envelope it touches")
+    @Proving(DboPromises.SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE)
+    void aReindexWithoutParametersRefuses() throws Exception {
+        // Two things at once, and the second is why this is here at all. An
+        // envelope built from no parameters has nothing in it, and a record
+        // carrying one answers no search while looking perfectly stored — so
+        // the function refuses instead. And a reindex that refuses BECAUSE
+        // of that is a reindex that went through the function: the seam is
+        // taken by the face a tenant actually gets, not merely offered.
+        var engine = manager.runtime(TENANT).orElseThrow().engine();
+        withoutTheParametersFor("Encounter", () -> {
+            IllegalStateException refused = assertThrows(IllegalStateException.class,
+                    () -> engine.rebuildEnvelopes("Encounter"),
+                    "a reindex with nothing compiled to index by did not refuse, so either "
+                            + "the envelopes were emptied or nothing derives where the bytes are");
+            assertTrue(String.valueOf(refused.getCause()).contains("no compiled parameters"),
+                    "refused for another reason: " + refused.getCause());
+        });
+    }
+
+    /** The rows put back, whatever the body does, because the tenant lives on. */
+    private static void withoutTheParametersFor(String type, Runnable body) throws Exception {
+        try (Connection c = tenantSource().getConnection()) {
+            c.setAutoCommit(true);
+            try (PreparedStatement kept = c.prepareStatement(
+                    "CREATE TEMP TABLE kept AS SELECT * FROM definitions.definition_parameter"
+                    + " WHERE base = ?")) {
+                kept.setString(1, type);
+                kept.execute();
+            }
+            try (PreparedStatement gone = c.prepareStatement(
+                    "DELETE FROM definitions.definition_parameter WHERE base = ?")) {
+                gone.setString(1, type);
+                gone.executeUpdate();
+            }
+            try {
+                body.run();
+            } finally {
+                try (PreparedStatement back = c.prepareStatement(
+                        "INSERT INTO definitions.definition_parameter SELECT * FROM kept")) {
+                    back.executeUpdate();
+                }
+            }
+        }
+    }
+
+    /** Every record's envelope, by id, so a difference names the record. */
+    private static Map<String, String> envelopesById() throws Exception {
+        Map<String, String> out = new TreeMap<>();
+        try (Connection c = tenantSource().getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT id::text, envelope::text FROM state.r4_data WHERE NOT deleted");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                out.put(rs.getString(1), JSON.readTree(rs.getString(2)).toString());
             }
         }
         return out;
