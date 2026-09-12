@@ -810,10 +810,17 @@ public final class ElementStore implements FhirStoreFacade {
         List<cloud.jengu.dbo.definitions.DefinitionParameter> compiled = new ArrayList<>();
         for (FhirTypeConfig type : types) {
             String typeName = type.typeName();
+            // What this type's elements may hold, read once from the
+            // definition that IS the type: an expression names a choice
+            // element and a document names one of its keys, and a token
+            // parameter over an Identifier claims a name where the same two
+            // fields on a ContactPoint do not.
+            java.util.Map<String, List<String>> elementTypes =
+                    version.elementTypesOf(typeName);
             for (SearchParameter parameter : ElementVersion.union(
                     version.parametersFor(typeName),
                     authoredHere.getOrDefault(typeName, List.of()))) {
-                compiled.add(compiledFrom(typeName, parameter, version.choicesOf(typeName)));
+                compiled.add(compiledFrom(typeName, parameter, elementTypes));
             }
         }
         definitions.replaceParameters(compiled, from);
@@ -844,19 +851,19 @@ public final class ElementStore implements FhirStoreFacade {
     /** One parameter, as this store would run it. */
     private static cloud.jengu.dbo.definitions.DefinitionParameter compiledFrom(
             String typeName, SearchParameter parameter,
-            java.util.Map<String, List<String>> choices) {
+            java.util.Map<String, List<String>> elementTypes) {
         String kind = parameter.hasType() ? parameter.getType().toCode() : null;
         String expression = parameter.getExpression();
         if (!cloud.jengu.dbo.definitions.DefinitionParameter.extractable(kind)) {
             return new cloud.jengu.dbo.definitions.DefinitionParameter(
-                    parameter.getCode(), typeName, kind, expression, List.of(), null,
+                    parameter.getCode(), typeName, kind, expression, List.of(), null, null,
                     kind + " values are not taken apart by this store, here or anywhere else");
         }
         ExpressionPaths.Selection selection =
-                ExpressionPaths.selection(expression, typeName, choices);
+                ExpressionPaths.selection(expression, typeName, elementTypes);
         return new cloud.jengu.dbo.definitions.DefinitionParameter(
                 parameter.getCode(), typeName, kind, expression,
-                selection.paths(), selection.predicate(), selection.why());
+                selection.paths(), selection.predicate(), selection.endsAt(), selection.why());
     }
 
     private static Set<String> codesOf(List<SearchParameter> parameters) {

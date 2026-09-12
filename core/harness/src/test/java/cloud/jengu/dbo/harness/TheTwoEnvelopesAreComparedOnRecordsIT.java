@@ -142,7 +142,15 @@ class TheTwoEnvelopesAreComparedOnRecordsIT {
                 String type = rs.getString(1);
                 int[] tally = perType.computeIfAbsent(type, ignored -> new int[2]);
                 tally[0]++;
-                JsonNode inForce = JSON.readTree(rs.getString(2));
+                // The shape stamp is the engine's, not the extractor's: it
+                // says which pack versions the accept was judged against,
+                // and it joins the envelope after extraction from the accept
+                // event rather than from the bytes. Comparing it here would
+                // be comparing the engine with itself.
+                com.fasterxml.jackson.databind.node.ObjectNode inForce =
+                        (com.fasterxml.jackson.databind.node.ObjectNode)
+                                JSON.readTree(rs.getString(2));
+                inForce.remove("_shape");
                 JsonNode built = JSON.readTree(rs.getString(4));
                 if (inForce.equals(built)) {
                     tally[1]++;
@@ -170,6 +178,13 @@ class TheTwoEnvelopesAreComparedOnRecordsIT {
         assertEquals(List.of(), missing,
                 "the database builds no edge for a reference the write stored");
 
+        // The identifiers are the third thing a write derives, and the one a
+        // conditional write is adjudicated on. Held outright: an identifier
+        // the database does not build is a record that cannot be written to
+        // by the name its author knows it by.
+        assertEquals(identifiersInForce(), identifiersTheDatabaseBuilds(),
+                "the identifiers the database builds are not the ones the write stored");
+
         String observed = asLines(perType, differingKeys);
         Path baseline = BASELINE.toAbsolutePath().normalize();
         if (!Files.exists(baseline) || Boolean.getBoolean("dbo.envelope.record")) {
@@ -179,6 +194,24 @@ class TheTwoEnvelopesAreComparedOnRecordsIT {
             return;
         }
         assertNoWorseThan(Files.readString(baseline), observed);
+    }
+
+    /** What the write stored: one row per identifier claimed. */
+    private static List<String> identifiersInForce() throws Exception {
+        return lines("""
+                SELECT i.type || ' ' || COALESCE(i.system, '') || '|' || i.value
+                  FROM state.r4_identifier i JOIN state.r4_data d ON d.id = i.object_id
+                 WHERE NOT d.deleted ORDER BY 1""");
+    }
+
+    /** The same, built from the bytes by the database. */
+    private static List<String> identifiersTheDatabaseBuilds() throws Exception {
+        return lines("""
+                SELECT d.type || ' ' || COALESCE(i.system, '') || '|' || i.value
+                  FROM state.r4_data d,
+                       LATERAL dbo.identifiers(
+                           convert_from(d.payload, 'UTF8')::jsonb, d.type) i
+                 WHERE NOT d.deleted ORDER BY 1""");
     }
 
     /** What the write stored: one row per edge, as a sortable line. */
@@ -301,6 +334,16 @@ class TheTwoEnvelopesAreComparedOnRecordsIT {
                 {"resourceType":"Encounter","status":"planned",
                  "class":{"code":"IMP"},
                  "period":{"start":"2023"}}""");
+        // What the engine indexes on its own: no parameter expresses a
+        // profile or a tag, and a search by either answers empty rather than
+        // wrong when nothing wrote them.
+        all.add("""
+                {"resourceType":"Patient",
+                 "meta":{"profile":["http://hl7.org/fhir/StructureDefinition/Patient"],
+                         "tag":[{"system":"urn:tags","code":"synced"},{"code":"bare"}]},
+                 "identifier":[{"system":"%s","value":"5"}],
+                 "name":[{"family":"Lepik"}]}"""
+                .formatted(MRN));
         // Crowded ones, because most of what a parameter has to get right is
         // a repeat, a nested element or a second choice in the same document.
         all.add("""

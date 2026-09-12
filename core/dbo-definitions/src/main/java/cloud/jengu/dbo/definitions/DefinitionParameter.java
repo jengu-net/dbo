@@ -21,6 +21,12 @@ import java.util.List;
  * running: for reading, when somebody asks why a search answers the way it
  * does and what the specification actually said.
  *
+ * <p>What the values ARE is kept too, because two token parameters can look
+ * identical in a document and mean different things: an {@code Identifier} is
+ * a claim on a name somebody else may also make, and a {@code ContactPoint}
+ * carrying the same two fields is not. Only the definition tells them apart,
+ * and this is where that reading is held.
+ *
  * @param code          what a caller types: {@code identifier}, {@code birthdate}
  * @param base          the resource type it asks about
  * @param kind          token, string, date, reference, number, uri, and the
@@ -28,6 +34,9 @@ import java.util.List;
  * @param expression    the parameter as written, for a person
  * @param paths         where the values are, as this store selects them
  * @param predicate     which of them count, or null when all of them do
+ * @param endsAt        what the values ARE, as the definition names the type
+ *                      — {@code Identifier}, {@code ContactPoint} — or null
+ *                      where the definition does not say one thing
  * @param unenforceable why it cannot be run here, or null when it can
  */
 public record DefinitionParameter(
@@ -37,6 +46,7 @@ public record DefinitionParameter(
         String expression,
         List<String> paths,
         String predicate,
+        String endsAt,
         String unenforceable) {
 
     public DefinitionParameter {

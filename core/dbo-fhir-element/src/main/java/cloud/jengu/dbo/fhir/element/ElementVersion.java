@@ -57,7 +57,7 @@ public final class ElementVersion {
     private final String fhirVersion;
     private volatile SimpleWorkerContext context;
     private volatile List<SearchParameter> carriedParameters;
-    private final Map<String, Map<String, List<String>>> choices =
+    private final Map<String, Map<String, List<String>>> elementTypes =
             new ConcurrentHashMap<>();
     private final ElementPayloads payloads;
     private final PayloadFraming framing;
@@ -450,27 +450,28 @@ public final class ElementVersion {
     }
 
     /**
-     * The choice elements one type defines, and the keys JSON spells each
-     * under.
+     * What each element of one type may hold, as its definition states it.
      *
-     * <p>A choice is one element that may hold one of several types, and the
-     * type is in the key: a definition says {@code Observation.effective[x]}
-     * and a document says {@code effectiveDateTime}. An expression names the
-     * element, because FHIRPath walks a model where the choice is one step —
-     * so a path compiled from the name alone selects nothing at all, and the
-     * search it belongs to answers empty rather than wrong.
+     * <p>Two questions are answered from the one reading, because they are
+     * the same fact. A choice is one element that may hold one of several
+     * types and the type is in the key — a definition says
+     * {@code Observation.effective[x]} and a document says
+     * {@code effectiveDateTime} — so a path compiled from the name alone
+     * selects nothing at all. And a token parameter over an
+     * {@code Identifier} makes a claim on a name while one over a
+     * {@code ContactPoint} does not, and in JSON the two are the same two
+     * fields; only the definition tells them apart.
      *
      * <p>Read off the JSON of one definition rather than through a worker
-     * context, for the reason the parameters are: this runs when a tenant
-     * comes up, and the context is two hundred megabytes and seconds of it.
-     * One definition, found by its url, because a tenant registers a handful
-     * of types and reading the package whole to answer about three of them
-     * costs a bring-up more than the whole of what it saves.
+     * context, for the reason the parameters are: this runs when a tenant's
+     * types change, and the context is two hundred megabytes and seconds of
+     * it. One definition, found by its url.
      *
-     * <p>Keyed by the full element path, which already carries the type.
+     * <p>Keyed by the element path as the definition writes it, choice
+     * marker and all, which already carries the type.
      */
-    Map<String, List<String>> choicesOf(String typeName) {
-        return choices.computeIfAbsent(typeName, type -> {
+    Map<String, List<String>> elementTypesOf(String typeName) {
+        return elementTypes.computeIfAbsent(typeName, type -> {
             Map<String, List<String>> read = new LinkedHashMap<>();
             for (CarriedDefinitions.Carried carried
                     : CarriedDefinitions.definitionPackages(code)) {
@@ -481,7 +482,7 @@ public final class ElementVersion {
                         continue;
                     }
                     try (java.io.InputStream in = CarriedDefinitions.read(indexed)) {
-                        choicesIn(Json.parse(new String(in.readAllBytes(),
+                        typesIn(Json.parse(new String(in.readAllBytes(),
                                 java.nio.charset.StandardCharsets.UTF_8)), read);
                     } catch (java.io.IOException e) {
                         throw new java.io.UncheckedIOException("cannot read " + carried.id(), e);
@@ -493,14 +494,14 @@ public final class ElementVersion {
     }
 
     /**
-     * The choices one definition states, from its snapshot.
+     * What one definition says its elements may hold, from its snapshot.
      *
-     * <p>Base definitions only. A profile constrains a choice rather than
-     * declaring one, and taking its narrowed type list as the answer would
+     * <p>Base definitions only. A profile constrains an element rather than
+     * declaring it, and taking its narrowed type list as the answer would
      * mean a tenant that holds a profile stops finding documents that use a
      * type the base allows.
      */
-    private static void choicesIn(Object definition, Map<String, List<String>> into) {
+    private static void typesIn(Object definition, Map<String, List<String>> into) {
         if ("constraint".equals(Json.text(definition, "derivation"))) {
             return;
         }
@@ -510,20 +511,18 @@ public final class ElementVersion {
         }
         for (Object element : Json.array(snapshot, "element")) {
             String path = Json.text(element, "path");
-            if (path == null || !path.endsWith("[x]")) {
+            if (path == null) {
                 continue;
             }
-            String base = path.substring(0, path.length() - 3);
-            List<String> keys = new ArrayList<>();
+            List<String> codes = new ArrayList<>();
             for (Object type : Json.array(element, "type")) {
                 String named = Json.text(type, "code");
                 if (named != null && !named.isEmpty()) {
-                    keys.add(base.substring(base.lastIndexOf('.') + 1)
-                            + Character.toUpperCase(named.charAt(0)) + named.substring(1));
+                    codes.add(named);
                 }
             }
-            if (!keys.isEmpty()) {
-                into.putIfAbsent(base, List.copyOf(keys));
+            if (!codes.isEmpty()) {
+                into.putIfAbsent(path, List.copyOf(codes));
             }
         }
     }

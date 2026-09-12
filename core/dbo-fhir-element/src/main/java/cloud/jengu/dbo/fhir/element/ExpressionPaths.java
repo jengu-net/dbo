@@ -57,10 +57,10 @@ final class ExpressionPaths {
      * — the predicate whose answer is the one value. Or the reason it is
      * neither.
      */
-    record Selection(List<String> paths, String predicate, String why) {
+    record Selection(List<String> paths, String predicate, String why, String endsAt) {
 
         static Selection refused(String why) {
-            return new Selection(List.of(), null, why);
+            return new Selection(List.of(), null, why, null);
         }
 
         boolean enforceable() {
@@ -136,10 +136,12 @@ final class ExpressionPaths {
      * <p>A choice is one element in the model an expression is written
      * against and several keys in the document it runs over, so the paths are
      * spelled out afterwards: {@code Observation.effective} is compiled once
-     * and comes out as one path per type the element may take.
+     * and comes out as one path per type the element may take. The same
+     * reading says what the values are, which is how a claim on a name is
+     * told from a telephone number.
      */
     static Selection selection(String expression, String resourceType,
-            java.util.Map<String, List<String>> choices) {
+            java.util.Map<String, List<String>> elementTypes) {
         if (expression == null || expression.isBlank()) {
             return Selection.refused("it states no expression");
         }
@@ -151,13 +153,15 @@ final class ExpressionPaths {
         }
         Untranslatable notAPath;
         try {
-            return new Selection(spelledOut(paths(parsed, resourceType), resourceType, choices),
-                    null, null);
+            List<String> walked = paths(parsed, resourceType);
+            return new Selection(spelledOut(walked, resourceType, elementTypes), null, null,
+                    endsAt(walked, resourceType, elementTypes));
         } catch (Untranslatable why) {
             notAPath = why;
         }
         try {
-            return new Selection(List.of(), bool(pastTheType(parsed, resourceType), "$"), null);
+            return new Selection(List.of(), bool(pastTheType(parsed, resourceType), "$"), null,
+                    null);
         } catch (Untranslatable notAQuestionEither) {
             return Selection.refused(notAPath.getMessage());
         }
@@ -319,21 +323,68 @@ final class ExpressionPaths {
      * one is, and a path this does not recognise is left exactly as it was.
      */
     private static List<String> spelledOut(List<String> paths, String resourceType,
-            java.util.Map<String, List<String>> choices) {
-        if (resourceType == null || choices.isEmpty()) {
+            java.util.Map<String, List<String>> elementTypes) {
+        if (resourceType == null || elementTypes.isEmpty()) {
             return paths;
         }
         List<String> out = new ArrayList<>();
         for (String path : paths) {
-            out.addAll(spelledOut(path, resourceType, choices));
+            String dotted = dotted(path, resourceType);
+            List<String> types = dotted == null ? null : elementTypes.get(dotted + "[x]");
+            if (types == null) {
+                out.add(path);
+                continue;
+            }
+            String upToTheKey = path.substring(0, path.lastIndexOf(".\"") + 2);
+            String name = dotted.substring(dotted.lastIndexOf('.') + 1);
+            for (String type : types) {
+                out.add(upToTheKey + name + Character.toUpperCase(type.charAt(0))
+                        + type.substring(1) + "\"[*]");
+            }
         }
         return out;
     }
 
-    private static List<String> spelledOut(String path, String resourceType,
-            java.util.Map<String, List<String>> choices) {
+    /**
+     * What the values a parameter selects ARE, when the definition says one
+     * thing and says it for every branch.
+     *
+     * <p>Asked because two token parameters can look identical in a document
+     * and mean different things: an {@code Identifier} is a claim on a name
+     * somebody else may also make, and a {@code ContactPoint} carrying the
+     * same two fields is not. Null where the branches disagree or the
+     * element is not one this reading covers, which is the answer "this does
+     * not say" rather than a guess.
+     */
+    private static String endsAt(List<String> paths, String resourceType,
+            java.util.Map<String, List<String>> elementTypes) {
+        if (resourceType == null || paths.isEmpty() || elementTypes.isEmpty()) {
+            return null;
+        }
+        String only = null;
+        for (String path : paths) {
+            String dotted = dotted(path, resourceType);
+            List<String> types = dotted == null ? null : elementTypes.get(dotted);
+            if (types == null || types.size() != 1) {
+                return null;
+            }
+            if (only == null) {
+                only = types.get(0);
+            } else if (!only.equals(types.get(0))) {
+                return null;
+            }
+        }
+        return only;
+    }
+
+    /**
+     * The element path a compiled path walks to, or null where this cannot
+     * say: a filtered step is a narrowing rather than a step, and reading its
+     * keys as element names would name an element nobody wrote.
+     */
+    private static String dotted(String path, String resourceType) {
         if (!path.endsWith("[*]") || path.indexOf('?') >= 0) {
-            return List.of(path);
+            return null;
         }
         StringBuilder dotted = new StringBuilder(resourceType);
         int at = 0;
@@ -344,17 +395,12 @@ final class ExpressionPaths {
             }
             int end = path.indexOf('"', key + 2);
             if (end < 0) {
-                return List.of(path);
+                return null;
             }
             dotted.append('.').append(path, key + 2, end);
             at = end + 1;
         }
-        List<String> keys = choices.get(dotted.toString());
-        if (keys == null) {
-            return List.of(path);
-        }
-        String upToTheKey = path.substring(0, path.lastIndexOf(".\"") + 2);
-        return keys.stream().map(key -> upToTheKey + key + "\"[*]").toList();
+        return dotted.length() == resourceType.length() ? null : dotted.toString();
     }
 
     /** {@code value as Quantity}: the choice under the key that type spells. */

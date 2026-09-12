@@ -61,11 +61,13 @@ public final class DefinitionStore {
             }
             try (PreparedStatement ps = c.prepareStatement("""
                     INSERT INTO definitions.definition_parameter
-                        (code, base, kind, expression, paths, predicate, unenforceable)
-                    VALUES (?, ?, ?, ?, ?::jsonb, ?, ?)
+                        (code, base, kind, expression, paths, predicate, ends_at,
+                         unenforceable)
+                    VALUES (?, ?, ?, ?, ?::jsonb, ?, ?, ?)
                     ON CONFLICT (base, code) DO UPDATE SET
                       kind = EXCLUDED.kind, expression = EXCLUDED.expression,
                       paths = EXCLUDED.paths, predicate = EXCLUDED.predicate,
+                      ends_at = EXCLUDED.ends_at,
                       unenforceable = EXCLUDED.unenforceable""")) {
                 int batched = 0;
                 for (DefinitionParameter parameter : parameters) {
@@ -75,7 +77,8 @@ public final class DefinitionStore {
                     ps.setString(4, parameter.expression());
                     ps.setString(5, Json.arrayOf(parameter.paths()));
                     ps.setString(6, parameter.predicate());
-                    ps.setString(7, parameter.unenforceable());
+                    ps.setString(7, parameter.endsAt());
+                    ps.setString(8, parameter.unenforceable());
                     ps.addBatch();
                     if (++batched % BATCH == 0) {
                         ps.executeBatch();
@@ -125,14 +128,15 @@ public final class DefinitionStore {
         List<DefinitionParameter> out = new java.util.ArrayList<>();
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     SELECT code, base, kind, expression, paths, predicate, unenforceable
+                     SELECT code, base, kind, expression, paths, predicate, ends_at,
+                            unenforceable
                        FROM definitions.definition_parameter WHERE base = ? ORDER BY code""")) {
             ps.setString(1, base);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     out.add(new DefinitionParameter(rs.getString(1), rs.getString(2),
                             rs.getString(3), rs.getString(4), Json.stringsOf(rs.getString(5)),
-                            rs.getString(6), rs.getString(7)));
+                            rs.getString(6), rs.getString(7), rs.getString(8)));
                 }
             }
         } catch (SQLException e) {
@@ -159,7 +163,7 @@ public final class DefinitionStore {
      * read by the checks of another are wrong in a way nothing reports, so
      * the number travels with the bytes and is compared before they load.
      */
-    public static final int SHAPE = 5;
+    public static final int SHAPE = 6;
 
     private final DataSource ds;
 
@@ -526,6 +530,7 @@ public final class DefinitionStore {
                       expression    text,
                       paths         jsonb NOT NULL,
                       predicate     text,
+                      ends_at       text,
                       unenforceable text,
                       PRIMARY KEY (base, code)
                     )""",
@@ -576,6 +581,10 @@ public final class DefinitionStore {
         }
         try (PreparedStatement ps = c.prepareStatement("ALTER TABLE definitions.definition_shape"
                 + " ADD COLUMN IF NOT EXISTS parameters_from text")) {
+            ps.execute();
+        }
+        try (PreparedStatement ps = c.prepareStatement("ALTER TABLE"
+                + " definitions.definition_parameter ADD COLUMN IF NOT EXISTS ends_at text")) {
             ps.execute();
         }
         try (PreparedStatement ps = c.prepareStatement(

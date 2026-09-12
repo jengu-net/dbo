@@ -188,6 +188,29 @@ RETURNS jsonb LANGUAGE sql STABLE AS $$
 
           UNION ALL
 
+          -- What the engine indexes on its own. No parameter a version
+          -- publishes expresses a profile or a tag — they are asked after by
+          -- name at the search surface — and nothing wrote them for a long
+          -- time, so a search by either answered empty, which looks like
+          -- nobody matching and is not.
+          SELECT '_profile', jsonb_build_object('t', 'str', 'v', named.url #>> '{}'),
+                 '', named.n, 1
+            FROM jsonb_path_query(p_doc, '$."meta"."profile"[*]')
+                     WITH ORDINALITY AS named(url, n)
+           WHERE jsonb_typeof(named.url) = 'string'
+             AND length(named.url #>> '{}') > 0
+
+          UNION ALL
+
+          SELECT '_tag', form.value, '', tag.n, form.k
+            FROM jsonb_path_query(p_doc, '$."meta"."tag"[*]')
+                     WITH ORDINALITY AS tag(one, n),
+                 LATERAL jsonb_array_elements(
+                     dbo.token_forms(tag.one ->> 'system', tag.one ->> 'code'))
+                     WITH ORDINALITY AS form(value, k)
+
+          UNION ALL
+
           -- A parameter that asks rather than selects, whose answer IS the
           -- value. `Patient.deceased.exists() and Patient.deceased != false`
           -- is a token parameter over a question, and a document that says
@@ -240,4 +263,36 @@ LANGUAGE sql STABLE AS $$
           OR jsonb_path_match(hit, p.predicate::jsonpath, '{}'::jsonb, true))
      AND pointed IS NOT NULL
      AND position('/' in pointed) > 0
+$$;
+
+-- What this document claims to be known as, as the rows a claim is stored as.
+--
+-- An identifier is a claim on a name somebody else may also make, so it is
+-- adjudicated rather than merely indexed: the rows it becomes are what a
+-- conditional write is decided on, and they live in their own table beside
+-- the envelope for that reason. Which of them are identity-bearing is the
+-- engine's question, asked of the type's registration, not this one.
+--
+-- A claim needs a system. Identifier.system is 0..1, so a legal document can
+-- carry a value without one — still searchable as a token, which the envelope
+-- holds, and not an exclusive claim, because the same digits in two
+-- namespaces are two different things.
+--
+-- Told apart by what the parameter says its values ARE, not by their shape:
+-- an Identifier and a ContactPoint are the same two fields in JSON, and a
+-- telephone number read as a claim would be a patient found by somebody
+-- else's phone.
+CREATE OR REPLACE FUNCTION dbo.identifiers(p_doc jsonb, p_type text)
+RETURNS TABLE (system text, value text)
+LANGUAGE sql STABLE AS $$
+  SELECT DISTINCT hit ->> 'system', hit ->> 'value'
+    FROM definitions.definition_parameter p,
+         LATERAL jsonb_array_elements_text(p.paths) AS path,
+         LATERAL jsonb_path_query(p_doc, path::jsonpath) AS hit
+   WHERE p.base = p_type
+     AND p.ends_at = 'Identifier'
+     AND p.unenforceable IS NULL
+     AND jsonb_typeof(hit) = 'object'
+     AND hit ->> 'system' IS NOT NULL
+     AND hit ->> 'value' IS NOT NULL
 $$;
