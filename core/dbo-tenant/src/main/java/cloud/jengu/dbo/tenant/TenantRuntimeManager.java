@@ -118,7 +118,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return;
         }
         try (AutoCloseable held = FaceWarmup.whileNobodyElseIsCutting(directory, spec.face())) {
-            String notFromAnImage = FaceBringUp.aRootFrom(directory, spec.face(), dataSource);
+            String notFromAnImage = FaceBringUp.aRootFrom(directory, spec.face(), spec.face(),
+                    dataSource);
             if (notFromAnImage == null) {
                 store.shapesChanged();
                 caughtUpOnItsOwnFace(runtime);
@@ -1735,6 +1736,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // upstream.
         runtimes.put(spec.code(), runtime);
         mounting.remove(spec.code());
+        cutWhatOthersWillComeUpFrom(spec);
         listener.tenantUp(runtime);
     }
 
@@ -1845,6 +1847,65 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private static final java.util.List<cloud.jengu.dbo.core.api.PayloadConverter> CONVERTERS =
             java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter(),
                     new cloud.jengu.dbo.fhir.r4.R5ToR4Converter());
+
+    /**
+     * Which image would bring this tenant up.
+     *
+     * <p>A tenant taking a zone written for another face wants the projection
+     * that converted it — which holds the face and that zone together, already
+     * across — and falls back to the face's own image when no such projection
+     * has left one. Everyone else wants the face.
+     *
+     * <p>One projection only. A tenant taking two converted zones cannot come
+     * up from either image alone, since an image is loaded into an empty
+     * schema and the second would be refused; loading the face is still worth
+     * more than loading nothing.
+     */
+    private String imageWantedBy(TenantSpec spec) {
+        String only = null;
+        for (TenantSpec.Dependency dependency : spec.dependencies()) {
+            TenantRuntime named = runtimes.get(dependency.name());
+            if (named == null) {
+                continue;
+            }
+            String from = ZoneProjections.servedBy(spec, dependency, named.spec().face());
+            if (!from.equals(dependency.name())) {
+                if (only != null) {
+                    return spec.face(); // two of them; neither is the whole answer
+                }
+                only = from;
+            }
+        }
+        return only == null ? spec.face() : only;
+    }
+
+    /**
+     * A projection leaves an image behind, once it holds what it converts.
+     *
+     * <p>Cut here rather than on demand, because the tenants that want it
+     * cannot make it: an image of a converted zone can only come from the
+     * tenant that did the converting. A face is different — anybody on the
+     * face can cut one — which is why that is cut by whoever first wants it.
+     *
+     * <p>After the projection is published, so the cutting can find it, and
+     * only when there is not one already for this release.
+     */
+    private void cutWhatOthersWillComeUpFrom(TenantSpec spec) {
+        java.nio.file.Path directory = faceImages;
+        if (directory == null || spec.faceRoot() || !FaceWarmup.cuttable(spec)) {
+            return;
+        }
+        try {
+            FaceWarmup.Outcome outcome = FaceWarmup.cut(this, spec.code(), directory);
+            if (outcome instanceof FaceWarmup.Outcome.Cut cut) {
+                LOG.info("projection {} left an image for the tenants of its zone: rows={}",
+                        spec.code(), cut.manifest().rows());
+            }
+        } catch (java.io.IOException | RuntimeException couldNotCut) {
+            LOG.warn("projection {} could not be cut, so its tenants read the zone through "
+                    + "the chain: {}", spec.code(), couldNotCut.toString());
+        }
+    }
 
     /**
      * A tenant is not served a zone that does not survive the trip to its face.
@@ -1986,14 +2047,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // afterwards is the same thing either way — read what the face has
         // published since they last looked — and after an image that is
         // whatever was published since it was cut.
-        FaceBringUp.Outcome image = FaceBringUp.from(faceImages, spec.face(),
+        // A tenant taking a zone that had to be converted wants the image of
+        // the projection that converted it: the face AND that zone, already
+        // across. Anyone else wants the face.
+        String wanted = imageWantedBy(spec);
+        FaceBringUp.Outcome image = FaceBringUp.from(faceImages, wanted, spec.face(),
                 tenantDataSources.get(spec.code()), root,
                 name + ".definitions", face.get().name(), face.get().types());
-        if (!image.fromImage() && image.worthCutting()) {
+        if (!image.fromImage() && image.worthCutting() && wanted.equals(spec.face())) {
             // The first tenant to want this face cuts it, and pays a few
-            // seconds so that it and everyone after it need not pay fifty.
+            // seconds so that it and everyone after it need not pay fifty. A
+            // projection's image is cut by the projection once it holds the
+            // zone; nobody else is in a position to make one.
             cutTheFaceFor(spec, face.get().name(), image);
-            image = FaceBringUp.from(faceImages, spec.face(),
+            image = FaceBringUp.from(faceImages, wanted, spec.face(),
                     tenantDataSources.get(spec.code()), root,
                     name + ".definitions", face.get().name(), face.get().types());
         }

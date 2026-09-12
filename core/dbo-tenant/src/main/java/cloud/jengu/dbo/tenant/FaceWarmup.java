@@ -57,6 +57,41 @@ public final class FaceWarmup {
 
     private FaceWarmup() {}
 
+    /**
+     * What an image of this tenant's definitions is called.
+     *
+     * <p>A face root's image is the face, because that is all it holds and
+     * every tenant on the face wants exactly it. A projection's is the
+     * projection, because what it holds is the face AND a zone converted into
+     * it — more than the face, and useful only to the tenants of that zone on
+     * that face.
+     */
+    static String imageNameOf(TenantSpec spec) {
+        return spec.faceRoot() ? spec.face() : spec.code();
+    }
+
+    /**
+     * Whether an image of this tenant is anybody's to come up from.
+     *
+     * <p>A face root holds a face, and a projection holds a face with a zone
+     * converted into it; both are the same for everyone who wants them. An
+     * ordinary tenant's definitions are its own — including one that takes a
+     * zone, which is most of them — and handing those to another tenant would
+     * be handing over somebody's configuration.
+     *
+     * <p>So the test is being the projection OF something, not merely taking
+     * one: a tenant is a projection when it is the one named for the zone it
+     * takes and the face it stands on.
+     */
+    static boolean cuttable(TenantSpec spec) {
+        if (spec.faceRoot()) {
+            return true;
+        }
+        return spec.dependencies().stream()
+                .anyMatch(d -> !d.face()
+                        && spec.code().equals(ZoneProjections.codeFor(d.name(), spec.face())));
+    }
+
     /** What was cut, or why nothing was. */
     public sealed interface Outcome {
         record Cut(Path image, FaceImage.Manifest manifest, long millis) implements Outcome {}
@@ -77,21 +112,21 @@ public final class FaceWarmup {
         if (root == null) {
             return new Outcome.NotYet("tenant '" + rootCode + "' is not serving");
         }
-        if (!root.spec().faceRoot()) {
-            return new Outcome.NotYet("tenant '" + rootCode + "' is not a face root, so what it "
-                    + "holds is its own rather than the face's");
+        if (!cuttable(root.spec())) {
+            return new Outcome.NotYet("tenant '" + rootCode + "' holds its own definitions "
+                    + "rather than a face's or a zone's, so an image of them is nobody's to "
+                    + "come up from");
         }
         DataSource source = manager.databaseOf(rootCode).orElse(null);
         if (source == null) {
             return new Outcome.NotYet("tenant '" + rootCode + "' has no database yet");
         }
 
-        String face = root.spec().face();
+        String named = imageNameOf(root.spec());
         Files.createDirectories(directory);
-        Path image = directory.resolve(face + ".faceimage");
-        Path partial = directory.resolve(face + ".faceimage.cutting");
+        Path image = directory.resolve(named + ".faceimage");
 
-        try (AutoCloseable held = whileNobodyElseIsCutting(directory, face)) {
+        try (AutoCloseable held = whileNobodyElseIsCutting(directory, named)) {
             if (Files.isReadable(image)) {
                 // Somebody cut it while this one waited, which is the point of
                 // having waited.
@@ -143,8 +178,9 @@ public final class FaceWarmup {
             return new Outcome.NotYet("tenant '" + rootCode + "' has no database yet");
         }
         String face = root.spec().face();
-        Path image = directory.resolve(face + ".faceimage");
-        Path partial = directory.resolve(face + ".faceimage.cutting");
+        String named = imageNameOf(root.spec());
+        Path image = directory.resolve(named + ".faceimage");
+        Path partial = directory.resolve(named + ".faceimage.cutting");
         try (Connection lock = source.getConnection()) {
             if (!taken(lock)) {
                 return new Outcome.NotYet("another cutting of this face is already running");
@@ -193,11 +229,13 @@ public final class FaceWarmup {
      * @return why it is not ready, or null when nothing is outstanding
      */
     private static String stillQueued(TenantRuntimeManager manager, String rootCode) {
-        boolean serving = manager.tenantStates().stream()
-                .anyMatch(t -> t.code().equals(rootCode)
-                        && t.state() == TenantState.State.SERVING);
-        if (!serving) {
-            return "the root is not serving yet, so what it holds is part of a face";
+        // Published rather than reported. A tenant is in the runtimes map
+        // exactly when its bring-up finished, and the state map catches up a
+        // moment later in the scan — so asking the report refuses to cut the
+        // tenant that has this instant finished, which is the one case a
+        // projection cutting its own image needs.
+        if (manager.runtime(rootCode).isEmpty()) {
+            return "the tenant is not up yet, so what it holds is part of a face";
         }
         for (cloud.jengu.dbo.sync.ContentSyncEngine stream : manager.streamsOf(rootCode)) {
             int carried = 0;

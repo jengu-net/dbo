@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.core.api.Domains;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
@@ -51,6 +52,7 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
 
     static PostgreSQLContainer<?> postgres;
     static Path dir;
+    static Path images;
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
 
@@ -65,7 +67,8 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
         new java.security.SecureRandom().nextBytes(kek);
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
-        manager.faceImagesIn(Files.createTempDirectory("dbo-zone-images"));
+        images = Files.createTempDirectory("dbo-zone-images");
+        manager.faceImagesIn(images);
 
         // The face the zone will be converted INTO has to be somewhere, or the
         // projection has nothing to judge a converted definition against.
@@ -291,6 +294,37 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
                 "the zone's definitions stream is degraded: " + zoneStream.deadLetters());
     }
 
+    @org.junit.jupiter.api.Order(7)
+    @Test
+    @Timeout(900)
+    @DisplayName("the projection leaves an image, and it carries the zone as well as the face")
+    @Proving(DboPromises.ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION)
+    void theProjectionLeavesAnImageCarryingTheZoneAndTheFace() throws Exception {
+        // A tenant of this zone on this face wants what the projection holds:
+        // the face AND the zone converted into it. The face's own image
+        // carries only half of that, and nobody but the projection can make
+        // the other half — so the projection leaves one behind.
+        java.nio.file.Path projected = images.resolve(ON_R4 + ".faceimage");
+        assertTrue(java.nio.file.Files.exists(projected),
+                "the projection left nothing behind, so every tenant of this zone reads the "
+                        + "converted zone through the chain: "
+                        + java.util.Arrays.toString(images.toFile().list()));
+        assertTrue(java.nio.file.Files.size(projected) > 1_000_000,
+                "what it left is too small to be a face with a zone in it: "
+                        + java.nio.file.Files.size(projected));
+
+        // And it needs no sealing, which is why it can be a file at all: an
+        // image is of the definitions schema, and records are not in it. The
+        // zone's observations reached this projection and are not in its
+        // definitions.
+        assertEquals(0, definitionsHolding(ON_R4, "Observation"),
+                "a record is in the schema the image is cut from, so the image carries "
+                        + "somebody's data and may not travel as plain bytes");
+        assertTrue(holds(ON_R4, "r4") > 0,
+                "the projection holds no records at all, so the assertion above proves "
+                        + "nothing about where records go");
+    }
+
     /**
      * One observation into the zone, carried until everything is quiet.
      *
@@ -313,6 +347,20 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
             // each round carries what the last one made visible downstream
         }
         manager.syncRound();
+    }
+
+    /** How many of that type are in this tenant's DEFINITIONS schema. */
+    private static long definitionsHolding(String tenant, String type) throws Exception {
+        try (java.sql.Connection c = databaseOf(tenant).getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                     "SELECT count(*) FROM " + Domains.tables(Domains.DEFINITIONS)
+                             + "_data WHERE type = ?")) {
+            ps.setString(1, type);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
     }
 
     /** How many observations this tenant holds. */

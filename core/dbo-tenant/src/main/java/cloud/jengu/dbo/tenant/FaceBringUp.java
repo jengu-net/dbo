@@ -73,15 +73,15 @@ final class FaceBringUp {
      * @param upstream  the root this tenant takes its face from
      * @param consumer  the name the stream reads the root's feed under
      */
-    static Outcome from(Path directory, String face, DataSource into,
+    static Outcome from(Path directory, String named, String face, DataSource into,
             TenantRuntimeManager.TenantRuntime upstream, String consumer, String dependency,
             java.util.Set<String> declaredTypes) {
         if (directory == null) {
             return new Outcome(false, "no image directory is configured", false);
         }
-        Path image = directory.resolve(face + ".faceimage");
+        Path image = directory.resolve(named + ".faceimage");
         if (!Files.isReadable(image)) {
-            return new Outcome(false, "no image of face '" + face + "' is kept yet", true);
+            return new Outcome(false, "no image called '" + named + "' is kept yet", true);
         }
 
         FaceImage.Facts expected = new FaceImage.Facts(FaceRootPackages.carried(face), face,
@@ -129,13 +129,13 @@ final class FaceBringUp {
      *
      * @return why it did not, or null when the root came up from the image
      */
-    static String aRootFrom(Path directory, String face, DataSource into) {
+    static String aRootFrom(Path directory, String named, String face, DataSource into) {
         if (directory == null) {
             return "no image directory is configured";
         }
-        Path image = directory.resolve(face + ".faceimage");
+        Path image = directory.resolve(named + ".faceimage");
         if (!Files.isReadable(image)) {
-            return "no image of face '" + face + "' is kept yet";
+            return "no image called '" + named + "' is kept yet";
         }
         FaceImage.Facts expected = new FaceImage.Facts(FaceRootPackages.carried(face), face,
                 FaceFunctions.installedIn(into), DefinitionStore.SHAPE);
