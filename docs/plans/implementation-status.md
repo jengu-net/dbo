@@ -156,7 +156,10 @@ The rules an element carries are compiled when its definition arrives, by the
 toolchain's own expression parser, into paths the database can run, and held as
 rows with their key, severity and the expression they came from. What cannot be
 compiled is a row saying which part stopped it, never an absence: of the
-distinct expressions R4 publishes 126 of 213 compile, and R5 153 of 308. They
+distinct expressions R4 publishes 142 of 213 compile, and R5 174 of 308. What
+is left needs machinery this has not got — projecting with `select`, counting
+to a number rather than to none or some, following a reference, binding the
+root document — and each is named on the row it stopped. They
 run: a broken rule is reported by its own key, with severity as the rule states
 it, and one that cannot be run against a particular document is reported by
 nobody rather than as broken.

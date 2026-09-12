@@ -129,7 +129,48 @@ final class InvariantPaths {
         if (other.getOperation() != null) {
             throw new Untranslatable("it compares to something that is itself a comparison");
         }
+        String counted = counting(node, other, against, operator);
+        if (counted != null) {
+            return counted;
+        }
         return "(" + valueOf(node, against) + " " + operator + " " + valueOf(other, against) + ")";
+    }
+
+    /**
+     * How many of a thing there are, where the answer is really whether there
+     * are any.
+     *
+     * <p>jsonpath cannot count, and most counting in the specification is not
+     * counting: {@code x.count() = 0} is "none of them" and
+     * {@code x.count() > 0} is "some of them", which it can say exactly. A
+     * count compared to anything else is left to the residue rather than
+     * approximated, because a rule about how many is not satisfied by a rule
+     * about whether.
+     */
+    private static String counting(ExpressionNode node, ExpressionNode other, String against,
+            String operator) {
+        ExpressionNode at = node;
+        StringBuilder path = new StringBuilder(against);
+        while (at != null && at.getKind() == ExpressionNode.Kind.Name) {
+            path.append('.').append(Json.quoted(at.getName())).append("[*]");
+            at = at.getInner();
+        }
+        if (at == null || at.getKind() != ExpressionNode.Kind.Function
+                || at.getFunction() != ExpressionNode.Function.Count || at.getInner() != null
+                || other.getKind() != ExpressionNode.Kind.Constant) {
+            return null;
+        }
+        String howMany = other.getConstant() == null ? null : other.getConstant().primitiveValue();
+        boolean none = "0".equals(howMany);
+        boolean one = "1".equals(howMany);
+        return switch (operator) {
+            case "==" -> none ? "!exists(" + path + ")" : null;
+            case "!=" -> none ? "exists(" + path + ")" : null;
+            case ">" -> none ? "exists(" + path + ")" : null;
+            case ">=" -> one ? "exists(" + path + ")" : null;
+            case "<" -> one ? "!exists(" + path + ")" : null;
+            default -> null;
+        };
     }
 
     private static String boolOf(ExpressionNode node, String against) {
@@ -163,6 +204,13 @@ final class InvariantPaths {
                 if (at.getInner() == null) {
                     return applied(at, path, against);
                 }
+                if (asksAQuestion(at)) {
+                    // a question, and then something asked OF that answer:
+                    // `x.exists().not()` is the commonest invariant shape
+                    // there is, and stopping at the first function refused
+                    // every one of them.
+                    return askedOf(applied(at, path, against), at.getInner());
+                }
                 path = midway(at, path);
             } else {
                 throw new Untranslatable("it walks through something this compiler cannot read");
@@ -182,6 +230,9 @@ final class InvariantPaths {
     private static String midway(ExpressionNode function, String path) {
         return switch (function.getFunction()) {
             case Where -> path + " ? (" + condition(function, "@") + ")";
+            // the specification's own debugging aid: it says what went past
+            // and changes nothing about what is true
+            case Trace -> path;
             case First -> {
                 if (!function.getParameters().isEmpty()) {
                     throw new Untranslatable("first() is given something to do");
@@ -192,6 +243,39 @@ final class InvariantPaths {
             default -> throw new Untranslatable("it carries on past " + function.getName()
                     + "(), which this compiler cannot narrow by");
         };
+    }
+
+    /** Whether this function answers true or false rather than narrowing a path. */
+    private static boolean asksAQuestion(ExpressionNode function) {
+        return switch (function.getFunction()) {
+            case Empty, Exists, All, Matches, HasValue -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * What is asked of an answer.
+     *
+     * <p>{@code not()} turns it over. {@code trace()} is the specification's
+     * own debugging aid and changes nothing about what is true, so it is
+     * walked through rather than refused.
+     */
+    private static String askedOf(String answer, ExpressionNode next) {
+        ExpressionNode at = next;
+        String so = answer;
+        while (at != null) {
+            if (at.getKind() != ExpressionNode.Kind.Function) {
+                throw new Untranslatable("it reads into the answer to a question");
+            }
+            so = switch (at.getFunction()) {
+                case Not -> "!(" + so + ")";
+                case Trace -> so;
+                default -> throw new Untranslatable("it asks " + at.getName()
+                        + "() of an answer, which this compiler cannot express");
+            };
+            at = at.getInner();
+        }
+        return so;
     }
 
     /** The one condition a function takes, compiled against the item under test. */
@@ -213,6 +297,8 @@ final class InvariantPaths {
             // everything there satisfies it, which is nothing there failing it
             case All -> "!exists(" + path + " ? (!(" + condition(function, "@") + ")))";
             case Matches -> path + " like_regex " + regex(function);
+            // a primitive with a value is a primitive that is there
+            case HasValue -> "exists(" + path + ")";
             default -> throw new Untranslatable("it asks " + function.getName()
                     + "(), which this compiler cannot express");
         };
@@ -256,6 +342,10 @@ final class InvariantPaths {
         String value = node.getConstant() == null ? null : node.getConstant().primitiveValue();
         if (value == null) {
             throw new Untranslatable("it compares against a value this compiler cannot read");
+        }
+        if ("%ucum".equals(value) || "ucum".equals(value)) {
+            // the one variable that is a constant: the units system's url
+            return Json.quoted("http://unitsofmeasure.org");
         }
         if (node.getConstant().fhirType() != null
                 && node.getConstant().fhirType().startsWith("%")) {
