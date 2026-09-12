@@ -74,7 +74,7 @@ class AShutdownIsQuietIT {
     @AfterAll
     void down() {
         if (provisioner != null) {
-            provisioner.close();
+            SuiteDatabases.retire(provisioner);
         }
     }
 

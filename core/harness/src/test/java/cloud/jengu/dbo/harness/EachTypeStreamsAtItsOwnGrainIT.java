@@ -73,7 +73,7 @@ class EachTypeStreamsAtItsOwnGrainIT {
     @AfterAll
     void down() {
         manager.close();
-        provisioner.close();
+        SuiteDatabases.retire(provisioner);
     }
 
     @Test

@@ -122,7 +122,7 @@ class DelegationIT {
     @AfterAll
     void down() {
         manager.close();
-        provisioner.close();
+        SuiteDatabases.retire(provisioner);
     }
 
     private String base() {

@@ -140,7 +140,7 @@ class FederatedAuthIT {
     @AfterAll
     void down() {
         manager.close();
-        provisioner.close();
+        SuiteDatabases.retire(provisioner);
         if (stubBroker != null) {
             stubBroker.stop(0);
         }

@@ -57,7 +57,7 @@ class SpecDeclaredSyncIT {
     @AfterAll
     void down() {
         manager.close();
-        provisioner.close();
+        SuiteDatabases.retire(provisioner);
     }
 
     private static final String CANONICAL_TYPES = """

@@ -132,7 +132,7 @@ class HumanAuthIT {
     @AfterAll
     void down() {
         manager.close();
-        provisioner.close();
+        SuiteDatabases.retire(provisioner);
     }
 
     private static org.postgresql.ds.PGSimpleDataSource tenantDs(String code) throws Exception {

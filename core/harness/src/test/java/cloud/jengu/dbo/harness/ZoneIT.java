@@ -144,7 +144,7 @@ class ZoneIT {
     @AfterAll
     void down() {
         manager.close();
-        provisioner.close();
+        SuiteDatabases.retire(provisioner);
         if (stubBrokers != null) {
             stubBrokers.stop(0);
         }

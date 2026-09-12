@@ -94,7 +94,7 @@ class ReplicationDrivenOverHttpIT {
             manager.close();
         }
         if (provisioner != null) {
-            provisioner.close();
+            SuiteDatabases.retire(provisioner);
         }
     }
 

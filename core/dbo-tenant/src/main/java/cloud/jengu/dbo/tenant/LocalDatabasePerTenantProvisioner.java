@@ -202,10 +202,16 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     @Override
     public void deprovision(String tenantCode) {
         release(tenantCode);
-        String dbName = TenantSpec.databaseName(tenantCode);
-        if (!tenantCode.matches("[a-z][a-z0-9_]{0,15}")) {
+        // Checked against what a code IS, rather than a second, narrower idea
+        // of one. This used to demand no hyphen and at most sixteen
+        // characters, while a spec accepts a hyphen and a hundred and
+        // twenty-eight — so a tenant with an ordinary name could be
+        // provisioned and never dropped, and erasure-by-drop failed on the
+        // codes most tenants actually have.
+        if (!TenantSpec.isCode(tenantCode)) {
             throw new IllegalArgumentException("invalid tenant code: " + tenantCode);
         }
+        String dbName = TenantSpec.databaseName(tenantCode);
         try (Connection c = adminConnection();
              PreparedStatement ps = c.prepareStatement(
                      "DROP DATABASE IF EXISTS " + dbName + " WITH (FORCE)")) {
@@ -322,7 +328,13 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
         return adminUrl.substring(0, lastSlash + 1) + dbName + suffix;
     }
 
+    /** The tenants this provisioner has made a database for. */
+    public java.util.Set<String> provisioned() {
+        return java.util.Set.copyOf(pools.keySet());
+    }
+
     @Override
+
     public void close() {
         pools.values().forEach(HikariDataSource::close);
         pools.clear();

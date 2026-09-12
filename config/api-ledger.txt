@@ -3193,6 +3193,7 @@ cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               close():v
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               deprovision(String):void
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               new(String,String,String)
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               provision(cloud.jengu.dbo.tenant.TenantSpec):cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase
+cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               provisioned():Set
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               release(String):void
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               rpClientId(String):void
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               rpClientSecret(String):String
@@ -3328,6 +3329,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      equals(Ob
 cloud.jengu.dbo.tenant.TenantSpec                                      face():String
 cloud.jengu.dbo.tenant.TenantSpec                                      faceRoot():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      hashCode():int
+cloud.jengu.dbo.tenant.TenantSpec                                      isCode(String):boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      managedBy():String
 cloud.jengu.dbo.tenant.TenantSpec                                      mandatorySteps():List
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List)

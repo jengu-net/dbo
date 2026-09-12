@@ -25,6 +25,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -55,7 +56,7 @@ class TenantRuntimeIT {
     @AfterAll
     void down() {
         manager.close();
-        provisioner.close();
+        SuiteDatabases.retire(provisioner);
     }
 
     private static String specA() {
@@ -256,6 +257,30 @@ class TenantRuntimeIT {
             assertEquals(0, rs.getLong(1), "erasure-by-drop must remove the database");
         }
         assertFalse(manager.codes().contains("aiakas"));
+    }
+
+    /**
+     * The codes tenants actually have, not the short ones tests pick.
+     *
+     * <p>A spec accepts a hyphen and up to a hundred and twenty-eight
+     * characters; the drop used to demand no hyphen and at most sixteen. So a
+     * tenant with an ordinary name could be provisioned and never erased, and
+     * every test of erasure had happened to use a name short and plain enough
+     * to slip through the narrower rule.
+     */
+    @Test
+    @Order(5)
+    @Proving(DboPromises.TEN_ERASURE_BY_DROP)
+    void erasureTakesTheCodesASpecAccepts() {
+        // Nothing of this name was provisioned, so what is being asked is
+        // whether the drop will CONSIDER the name at all — it refused before
+        // it ever reached the database.
+        provisioner.deprovision("mingi-pikem-nimi");
+        provisioner.deprovision("a-tenant-whose-code-is-considerably-longer-than-sixteen");
+
+        IllegalArgumentException notACode = assertThrows(IllegalArgumentException.class,
+                () -> provisioner.deprovision("Not A Code"));
+        assertTrue(notACode.getMessage().contains("Not A Code"), notACode.getMessage());
     }
 
     /**

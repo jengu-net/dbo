@@ -43,7 +43,7 @@ class ProvisionedSecretIT {
 
     @AfterAll
     void down() {
-        provisioner.close();
+        SuiteDatabases.retire(provisioner);
     }
 
     @Test

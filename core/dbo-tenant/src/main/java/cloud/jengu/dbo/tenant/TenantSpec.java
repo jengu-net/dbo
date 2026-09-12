@@ -134,6 +134,18 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
     // Postgres-safe identifier. Underscores stay accepted for old specs.
     private static final Pattern CODE = Pattern.compile("[a-z][a-z0-9_-]{0,127}");
 
+    /**
+     * Whether a string is a tenant code at all.
+     *
+     * <p>Said once, here, because a second opinion about what a code may look
+     * like is a tenant that can be made and not unmade: the drop refused
+     * every code with a hyphen in it — most of them — while the spec had
+     * accepted them all along.
+     */
+    public static boolean isCode(String code) {
+        return code != null && CODE.matcher(code).matches();
+    }
+
     public TenantSpec {
         if (code == null || !CODE.matcher(code).matches()) {
             throw new IllegalArgumentException("invalid tenant code: " + code);

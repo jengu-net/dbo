@@ -97,7 +97,7 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
             manager.close();
         }
         if (provisioner != null) {
-            provisioner.close();
+            SuiteDatabases.retire(provisioner);
         }
     }
 
