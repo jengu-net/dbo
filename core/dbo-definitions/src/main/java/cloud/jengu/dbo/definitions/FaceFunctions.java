@@ -54,7 +54,9 @@ public final class FaceFunctions {
             "/sql/008-bindings.sql",
             "/sql/009-references.sql",
             "/sql/010-invariants.sql",
-            "/sql/011-validate.sql");
+            "/sql/011-validate.sql",
+            // the index, built from the parameters compiled beside the elements
+            "/sql/012-envelope.sql");
 
     /**
      * What the scripts read, and what therefore has to be there before they
@@ -73,7 +75,8 @@ public final class FaceFunctions {
             "definitions.definition_invariant",
             "definitions.term_valueset",
             "definitions.term_system",
-            "definitions.term_concept");
+            "definitions.term_concept",
+            "definitions.definition_parameter");
 
     private FaceFunctions() {}
 

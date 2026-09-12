@@ -134,9 +134,10 @@ class TheFaceSqlShipsWithTheReleaseIT {
                 "SELECT nspname FROM pg_namespace WHERE nspname = 'dbo'"),
                 "the functions have no schema of their own, so code and data share one");
         assertEquals(List.of("binding_in", "binding_issues", "cardinality_in",
-                        "cardinality_issues", "coded_values", "descends_from", "in_value_set",
-                        "instances", "invariant_holds", "invariant_in", "invariant_issues",
-                        "located", "record_exists", "reference_in", "reference_issues",
+                        "cardinality_issues", "coded_values", "date_key", "descends_from",
+                        "envelope", "envelope_pairs", "in_value_set", "instances",
+                        "invariant_holds", "invariant_in", "invariant_issues", "located",
+                        "record_exists", "reference_in", "reference_issues", "token_forms",
                         "validate", "value_in", "value_issues", "walked"), query(
                 "SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace"
                 + " WHERE n.nspname = 'dbo' ORDER BY p.proname"),

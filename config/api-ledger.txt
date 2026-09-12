@@ -2463,6 +2463,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SRCH_CUST
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_DECLARED_INDEXES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_HONEST_CAPABILITY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_STRICT_BY_DEFAULT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_TIER1_PARITY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_TYPED_ORDERING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_ANY_TYPE:cloud.jengu.dbo.promises.DboPromises
