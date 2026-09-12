@@ -216,7 +216,7 @@ public final class PgObjectStore implements ObjectStore {
             created[i] = version == null;
             versions[i] = created[i] ? 1 : version + 1;
             guardWrite(type, request, created[i], caller);
-            derived[i] = type.extractor().inTheStatement().orElse(null);
+            derived[i] = derivedIn(c, type);
             envelopes[i] = new Envelope();
             if (derived[i] == null) {
                 envelopes[i] = type.extractor().extract(type.typeName(), request.payload());
@@ -528,7 +528,7 @@ public final class PgObjectStore implements ObjectStore {
             now = request.recordedAt();
         }
 
-        EnvelopeExtractor.InTheStatement here = type.extractor().inTheStatement().orElse(null);
+        EnvelopeExtractor.InTheStatement here = derivedIn(c, type);
         // The shape dimension derives from the ROW, not from the payload:
         // the extractor stays a pure function of bytes, and the stamp joins
         // the envelope here — the same place reindex re-adds it from the
@@ -1291,13 +1291,13 @@ public final class PgObjectStore implements ObjectStore {
         schema.applyIndexes(registry);
         String domain = type.domain();
         String d = Domains.tables(domain);
-        EnvelopeExtractor.InTheStatement here = type.extractor().inTheStatement().orElse(null);
         int total = 0;
         UUID after = null;
         while (true) {
             final UUID cursor = after;
             record Row(UUID id, byte[] payload, String storedVersion, String shapeJson) {}
             List<Row> batch = inTx(c -> {
+                EnvelopeExtractor.InTheStatement here = derivedIn(c, type);
                 List<Row> rows = new ArrayList<>();
                 // The payload is not selected where it will not be read.
                 // Carrying every one back to decide not to look at it is the
@@ -1438,6 +1438,52 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     /** The stamp's search dimension: one token per profile, system|code = profile|version. */
+    /** Whether a database can run what a face says it can, asked once per set. */
+    private final java.util.Map<EnvelopeExtractor.InTheStatement, Boolean> derivable =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Where this write derives what it stores by, or null for the JVM.
+     *
+     * <p>A face saying its extraction can run in the database is an offer,
+     * and whether it can is a fact about THIS database rather than about the
+     * face. A store can be stood up over a database the release's functions
+     * were never installed into — a test engine, a store built for one
+     * narrow job — and a statement calling a function that is not there
+     * fails the write rather than the feature.
+     *
+     * <p>Asked once per set of names and remembered. A database that gains
+     * the functions later keeps the extractor it had until the tenant next
+     * comes up, which is the same pass that installs them.
+     */
+    private EnvelopeExtractor.InTheStatement derivedIn(Connection c, TypeRegistration type)
+            throws SQLException {
+        EnvelopeExtractor.InTheStatement here = type.extractor().inTheStatement().orElse(null);
+        if (here == null) {
+            return null;
+        }
+        Boolean held = derivable.get(here);
+        if (held == null) {
+            held = installed(c, here);
+            derivable.put(here, held);
+        }
+        return held ? here : null;
+    }
+
+    private static boolean installed(Connection c, EnvelopeExtractor.InTheStatement here)
+            throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT to_regprocedure(?) IS NOT NULL AND to_regprocedure(?) IS NOT NULL"
+                + " AND to_regprocedure(?) IS NOT NULL")) {
+            ps.setString(1, here.envelope() + "(jsonb,text)");
+            ps.setString(2, here.identifiers() + "(jsonb,text)");
+            ps.setString(3, here.referenceEdges() + "(jsonb,text)");
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getBoolean(1);
+            }
+        }
+    }
+
     /**
      * The statement that stores a document, deriving what it stores by.
      *
