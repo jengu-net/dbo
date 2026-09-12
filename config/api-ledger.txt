@@ -2427,6 +2427,7 @@ cloud.jengu.dbo.promises.DboPromises                                   VAL_THE_D
 cloud.jengu.dbo.promises.DboPromises                                   VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VAL_UNRESOLVABLE_IS_NOT_INVALID:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_AN_ELEMENT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   VER_AN_EXPRESSION_THAT_YIELDS_A_VALUE_IS_COMPILED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_BALLOT_RECORDED_PER_VERSION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_BALLOT_SERVED_AS_AUTHORED:cloud.jengu.dbo.promises.DboPromises

@@ -175,6 +175,7 @@ public enum DboFeatures implements Feature {
 
     VER_MIGRATED("version plurality across personalities — migrated whole from hand-written prose; each promise below carries its own proof status.",
             List.of(DboPromises.VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN,
+                    DboPromises.VER_AN_EXPRESSION_THAT_YIELDS_A_VALUE_IS_COMPILED,
                     DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES,
                     DboPromises.VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE,
                     DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE,

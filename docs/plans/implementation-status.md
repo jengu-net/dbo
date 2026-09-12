@@ -164,7 +164,13 @@ The rules an element carries are compiled when its definition arrives, by the
 toolchain's own expression parser, into paths the database can run, and held as
 rows with their key, severity and the expression they came from. What cannot be
 compiled is a row saying which part stopped it, never an absence: of the
-distinct expressions R4 publishes 142 of 213 compile, and R5 174 of 308. What
+distinct expressions R4 publishes 146 of 213 compile, and R5 182 of 308. The
+same compiler expresses a path that yields values rather than a truth — a
+choice narrowed by type is the key that type spells, a reference tested by
+type is its own spelling, a branch about another type is passed over — and
+measured by compiling every search expression the versions publish, per
+parameter and base, it selects for 1,669 of R4's 1,671 and 1,928 of R5's
+1,929. Nothing selects with it yet. What
 is left needs machinery this has not got — projecting with `select`, counting
 to a number rather than to none or some, following a reference, binding the
 root document — and each is named on the row it stopped. They

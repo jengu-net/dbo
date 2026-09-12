@@ -1013,6 +1013,14 @@ public enum DboPromises implements Promise {
             + "root holds is findable by canonical url like any other record. It exists so "
             + "that a version can be subscribed to like a zone rather than loaded into a "
             + "node."),
+    VER_AN_EXPRESSION_THAT_YIELDS_A_VALUE_IS_COMPILED(
+            "The compiler expresses a path that yields a value or a collection — a search "
+            + "expression, a rule's operand, a map's source — not only one that answers true "
+            + "or false. A choice narrowed by type is the key that type spells; a reference "
+            + "tested by type is the type its own spelling names; a branch about another "
+            + "type is passed over; and what cannot be selected is refused naming the part "
+            + "that stopped it. Measured by compiling every search expression the carried "
+            + "versions publish, per parameter and base, rather than by classifying them."),
     VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES(
             "A structure arriving at a tenant by any path — a feed, the face, a restore — "
             + "is expanded once into element rows the database checks against: what may "

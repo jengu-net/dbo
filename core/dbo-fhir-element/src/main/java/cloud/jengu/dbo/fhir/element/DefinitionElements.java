@@ -114,7 +114,7 @@ public final class DefinitionElements {
             if (key == null) {
                 continue;
             }
-            InvariantPaths.Compiled compiled = InvariantPaths.of(expression);
+            ExpressionPaths.Predicate compiled = ExpressionPaths.predicate(expression);
             rules.add(new DefinitionInvariant(id, key,
                     text(constraint, "severity"), expression,
                     compiled.path(), compiled.why()));

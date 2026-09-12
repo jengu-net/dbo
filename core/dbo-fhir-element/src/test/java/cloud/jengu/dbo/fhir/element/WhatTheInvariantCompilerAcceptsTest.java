@@ -39,7 +39,7 @@ class WhatTheInvariantCompilerAcceptsTest {
             Map<String, Integer> refusedBecause = new TreeMap<>();
             int compiled = 0;
             for (String expression : byExpression.keySet()) {
-                InvariantPaths.Compiled result = InvariantPaths.of(expression);
+                ExpressionPaths.Predicate result = ExpressionPaths.predicate(expression);
                 if (result.enforceable()) {
                     compiled++;
                     assertTrue(result.path().length() > 1,
@@ -70,24 +70,24 @@ class WhatTheInvariantCompilerAcceptsTest {
     @DisplayName("the shapes it does handle, one by one")
     void theShapesItHandles() {
         assertEquals("!exists($.\"contained\"[*].\"contained\"[*])",
-                InvariantPaths.of("contained.contained.empty()").path());
+                ExpressionPaths.predicate("contained.contained.empty()").path());
         assertEquals("(exists($.\"name\"[*]) || exists($.\"identifier\"[*]))",
-                InvariantPaths.of("name.exists() or identifier.exists()").path());
+                ExpressionPaths.predicate("name.exists() or identifier.exists()").path());
         assertEquals("$.\"value\"[*] like_regex \"^[A-Z]{3}$\"",
-                InvariantPaths.of("value.matches('^[A-Z]{3}$')").path());
+                ExpressionPaths.predicate("value.matches('^[A-Z]{3}$')").path());
         assertEquals("($.\"status\" == \"final\")",
-                InvariantPaths.of("status = 'final'").path());
+                ExpressionPaths.predicate("status = 'final'").path());
     }
 
     @Test
     @DisplayName("what it cannot express, it says which part stopped it")
     @Proving(DboPromises.VAL_AN_INVARIANT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME)
     void whatItCannotExpressItNames() {
-        InvariantPaths.Compiled distinct = InvariantPaths.of("linkId.isDistinct()");
+        ExpressionPaths.Predicate distinct = ExpressionPaths.predicate("linkId.isDistinct()");
         assertTrue(distinct.why() != null && distinct.why().contains("isDistinct"),
                 "the refusal does not name the function: " + distinct.why());
 
-        InvariantPaths.Compiled variable = InvariantPaths.of("%resource.id.exists()");
+        ExpressionPaths.Predicate variable = ExpressionPaths.predicate("%resource.id.exists()");
         assertTrue(variable.why() != null, "a variable compiled to something");
     }
 

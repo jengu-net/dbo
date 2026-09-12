@@ -313,6 +313,7 @@ public enum DboStories implements Story {
                     DboPromises.VER_TRANSITION_BY_CONVERTERS,
                     DboPromises.VER_DEFINITIONS_TRAVEL_WITH_THE_FACE,
                     DboPromises.VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN,
+                    DboPromises.VER_AN_EXPRESSION_THAT_YIELDS_A_VALUE_IS_COMPILED,
                     DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES,
                     DboPromises.VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE,
                     DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE,
