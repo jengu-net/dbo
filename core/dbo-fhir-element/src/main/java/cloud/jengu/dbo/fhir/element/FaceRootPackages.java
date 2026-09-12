@@ -45,6 +45,35 @@ public final class FaceRootPackages {
     /** The types a terminology package contributes: its systems and value sets, not its own structures. */
     private static final Set<String> TERMINOLOGY_TYPES = Set.of("CodeSystem", "ValueSet");
 
+    /**
+     * What this release carries for a face, as one value.
+     *
+     * <p>An image of a face is only the same face if it was cut from the same
+     * packages, and a build number does not say that: two builds carry the
+     * same specification, and one that bumps a package carries a different
+     * one under the same number. This names the packages and their versions,
+     * which is the thing that decides what a face actually holds — and a
+     * tenant accepting an image can work it out from its own classpath, which
+     * is what a fact in a manifest has to be checkable against.
+     */
+    public static String carried(String face) {
+        java.util.List<String> named = new java.util.ArrayList<>();
+        for (CarriedDefinitions.Carried carried : CarriedDefinitions.definitionPackages(face)) {
+            named.add(carried.name() + "@" + carried.version());
+        }
+        java.util.Collections.sort(named);
+        try {
+            java.security.MessageDigest digest =
+                    java.security.MessageDigest.getInstance("SHA-256");
+            for (String one : named) {
+                digest.update(one.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+            return java.util.HexFormat.of().formatHex(digest.digest()).substring(0, 32);
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 is not available", impossible);
+        }
+    }
+
     public static List<Definition> definitionsFor(String face, Set<String> types) {
         List<Definition> out = new ArrayList<>();
         // The terminology package carries value sets and code systems the core

@@ -189,6 +189,64 @@ class AFaceIsCutOnceAndBroughtUpFromIT {
         assertTrue(refused.why().contains("already holds rows"), refused.why());
     }
 
+    @Test
+    @Timeout(600)
+    @DisplayName("warmup cuts the face where the operator keeps it, and leaves nothing partial")
+    @Proving(DboPromises.VER_AN_IMAGE_IS_CUT_ONLY_WHEN_COMPLETE)
+    void warmupCutsTheFaceWhereTheOperatorKeepsIt() throws Exception {
+        Path kept = Files.createTempDirectory("dbo-face-images");
+
+        cloud.jengu.dbo.tenant.FaceWarmup.Outcome outcome =
+                cloud.jengu.dbo.tenant.FaceWarmup.cut(manager, ROOT, kept);
+
+        cloud.jengu.dbo.tenant.FaceWarmup.Outcome.Cut done = assertInstanceOf(
+                cloud.jengu.dbo.tenant.FaceWarmup.Outcome.Cut.class, outcome,
+                outcome instanceof cloud.jengu.dbo.tenant.FaceWarmup.Outcome.NotYet notYet
+                        ? notYet.why() : "");
+        assertTrue(Files.exists(done.image()), "warmup said it cut a face and wrote no file");
+        assertEquals("r4", done.manifest().facts().face());
+        assertTrue(done.manifest().rows() > 1000,
+                "the face it cut holds " + done.manifest().rows() + " rows");
+        assertTrue(done.manifest().cursor() != null && !done.manifest().cursor().isBlank(),
+                "the image does not say where the face stood, so a tenant brought up from it "
+                        + "would not know what it still has to catch up on");
+
+        // Written through a temporary name so a reader never opens one that is
+        // half there. Nothing of that may survive the cutting.
+        try (var listed = Files.list(kept)) {
+            assertEquals(java.util.List.of("r4.faceimage"),
+                    listed.map(f -> f.getFileName().toString()).sorted().toList(),
+                    "the cutting left something behind beside the image it wrote");
+        }
+
+        // And what warmup wrote is an image, on this release's own terms.
+        assertInstanceOf(FaceImage.Acceptance.Accepted.class,
+                FaceImage.accept(emptyDatabaseWithTheSchema("face_image_warmed"),
+                        done.manifest().facts(),
+                        new java.io.ByteArrayInputStream(Files.readAllBytes(done.image()))),
+                "warmup wrote something this release would not accept");
+    }
+
+    @Test
+    @Timeout(600)
+    @DisplayName("what is not a face root is not cut into a face")
+    @Proving(DboPromises.VER_AN_IMAGE_IS_CUT_ONLY_WHEN_COMPLETE)
+    void whatIsNotAFaceRootIsNotCut() throws Exception {
+        Path kept = Files.createTempDirectory("dbo-face-images-refused");
+
+        cloud.jengu.dbo.tenant.FaceWarmup.Outcome outcome =
+                cloud.jengu.dbo.tenant.FaceWarmup.cut(manager, "a-tenant-nobody-declared", kept);
+
+        cloud.jengu.dbo.tenant.FaceWarmup.Outcome.NotYet notYet = assertInstanceOf(
+                cloud.jengu.dbo.tenant.FaceWarmup.Outcome.NotYet.class, outcome,
+                "a tenant that is not serving was cut into a face anyway");
+        assertTrue(notYet.why().contains("a-tenant-nobody-declared"), notYet.why());
+        try (var listed = Files.list(kept)) {
+            assertEquals(java.util.List.of(), listed.toList(),
+                    "nothing was cut and a file was written anyway");
+        }
+    }
+
     // ------------------------------------------------------------- helpers
 
     private void assertRefused(FaceImage.Facts expected, String namesThePart, String because)

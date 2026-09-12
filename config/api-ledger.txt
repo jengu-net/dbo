@@ -1533,6 +1533,7 @@ cloud.jengu.dbo.fhir.element.ElementVersion                            indexesFo
 cloud.jengu.dbo.fhir.element.ElementVersion                            of(String):cloud.jengu.dbo.fhir.element.ElementVersion
 cloud.jengu.dbo.fhir.element.ElementVersion                            payloadVersion():String
 cloud.jengu.dbo.fhir.element.ElementVersion                            whyNotEvaluable(SimpleWorkerContext,String):Optional
+cloud.jengu.dbo.fhir.element.FaceRootPackages                          carried(String):String
 cloud.jengu.dbo.fhir.element.FaceRootPackages                          class
 cloud.jengu.dbo.fhir.element.FaceRootPackages                          definitionsFor(String,Set):List
 cloud.jengu.dbo.fhir.element.FaceRootPackages.Definition               document():byte[]
@@ -2099,6 +2100,7 @@ cloud.jengu.dbo.policy.TenantPolicies.Retention                        toString(
 cloud.jengu.dbo.postgres.PgChangeFeed                                  ack(String,String):void
 cloud.jengu.dbo.postgres.PgChangeFeed                                  class
 cloud.jengu.dbo.postgres.PgChangeFeed                                  cursorOf(String):String
+cloud.jengu.dbo.postgres.PgChangeFeed                                  headCursor():String
 cloud.jengu.dbo.postgres.PgChangeFeed                                  lag(String):long
 cloud.jengu.dbo.postgres.PgChangeFeed                                  new(DataSource,String)
 cloud.jengu.dbo.postgres.PgChangeFeed                                  read(String,int):cloud.jengu.dbo.core.api.feed.FeedChunk
@@ -3157,6 +3159,23 @@ cloud.jengu.dbo.tenant.ErasureHandler                                  handle(Ht
 cloud.jengu.dbo.tenant.ErasureHandler                                  new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.tenant.PersonErasure,Function)
 cloud.jengu.dbo.tenant.FaceRequirements                                class
 cloud.jengu.dbo.tenant.FaceRequirements                                refuseUnservable(cloud.jengu.dbo.tenant.TenantSpec,cloud.jengu.dbo.core.face.DomainFace):void
+cloud.jengu.dbo.tenant.FaceWarmup                                      class
+cloud.jengu.dbo.tenant.FaceWarmup                                      cut(cloud.jengu.dbo.tenant.TenantRuntimeManager,String,Path):cloud.jengu.dbo.tenant.FaceWarmup.Outcome
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome                              interface
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.Cut                          equals(Object):boolean
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.Cut                          hashCode():int
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.Cut                          image():Path
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.Cut                          manifest():cloud.jengu.dbo.definitions.FaceImage.Manifest
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.Cut                          millis():long
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.Cut                          new(Path,cloud.jengu.dbo.definitions.FaceImage.Manifest,long)
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.Cut                          record
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.Cut                          toString():String
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.NotYet                       equals(Object):boolean
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.NotYet                       hashCode():int
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.NotYet                       new(String)
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.NotYet                       record
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.NotYet                       toString():String
+cloud.jengu.dbo.tenant.FaceWarmup.Outcome.NotYet                       why():String
 cloud.jengu.dbo.tenant.FleetHandler                                    SCOPE:String
 cloud.jengu.dbo.tenant.FleetHandler                                    class
 cloud.jengu.dbo.tenant.FleetHandler                                    handle(HttpExchange):void
@@ -3246,6 +3265,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            broughtUp
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            class
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            close():void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            codes():Set
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            databaseOf(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            erase(String):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            manages(Path):String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener)

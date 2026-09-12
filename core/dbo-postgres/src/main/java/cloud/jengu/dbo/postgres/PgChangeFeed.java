@@ -212,6 +212,41 @@ public final class PgChangeFeed implements ChangeFeed {
     }
 
     /** The local horizon: xmax when this database is write-quiet, else null. */
+    /**
+     * Where this feed stands now, as a cursor a consumer can be put at.
+     *
+     * <p>For cutting an image: the rows travel as bytes, so nothing about
+     * their arrival goes through the feed, and the tenant that loads them has
+     * to be told where the face it just received had got to. Everything after
+     * this position it reads for itself.
+     *
+     * <p>Behind the same barrier a read uses, so the position names only
+     * transactions that have finished. A cursor taken past an unfinished one
+     * would hand the loading tenant a gap it can never go back for.
+     *
+     * @return the cursor, or null when the feed has delivered nothing — which
+     *         a consumer reads as the beginning, and is right: there is
+     *         nothing behind it to skip
+     */
+    public String headCursor() {
+        try (Connection c = ds.getConnection()) {
+            String horizon = localHorizon(c);
+            try (PreparedStatement ps = c.prepareStatement(("""
+                    SELECT o.xact_id::text, o.seq FROM %s_outbox o
+                    WHERE %s ORDER BY o.xact_id DESC, o.seq DESC LIMIT 1""")
+                    .formatted(tables, BARRIER))) {
+                ps.setString(1, horizon);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next()
+                            ? Cursors.encodeFeed(Long.parseLong(rs.getString(1)), rs.getLong(2))
+                            : null;
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("the feed's position could not be read", e);
+        }
+    }
+
     private String localHorizon(Connection c) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(LOCAL_HORIZON);
              ResultSet rs = ps.executeQuery()) {

@@ -327,6 +327,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return Set.copyOf(runtimes.keySet());
     }
 
+    /**
+     * A tenant's own database, for the few things that are about the storage
+     * rather than about what is stored — cutting a face out of one, loading
+     * one into another.
+     *
+     * <p>Not a general door onto a tenant's rows: everything that reads or
+     * writes records goes through the store, which is where handling, policy
+     * and the audit trail are. This exists because an image is bytes moved
+     * below all of that, and moving them through the record path would be
+     * loading a specification one row at a time.
+     */
+    public Optional<javax.sql.DataSource> databaseOf(String code) {
+        return Optional.ofNullable(tenantDataSources.get(code));
+    }
+
     public Optional<TenantRuntime> runtime(String code) {
         return Optional.ofNullable(runtimes.get(code));
     }
