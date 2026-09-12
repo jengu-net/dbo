@@ -718,6 +718,12 @@ public final class ElementStore implements FhirStoreFacade {
                 }
             }
         }
+        // The rows BEFORE the reindex, because a reindex derives from them
+        // now: one that ran first would rebuild every record by the
+        // parameters as they were, and the search the tenant just authored
+        // would answer about rows written since and no others — which is a
+        // search that silently omits a tenant's history.
+        compileParametersHeld(authored);
         int rebuilt = 0;
         // Every type this tenant serves, not only the ones with parameters
         // now: a withdrawn parameter has to take its extraction with it, and a
@@ -744,11 +750,11 @@ public final class ElementStore implements FhirStoreFacade {
             LOG.info("tenant search parameters changed: type={} authored={} reindexed={}",
                     typeName, codesOf(mine), rebuilt);
         }
-        // Published last: until here the parameter is neither advertised nor
+        // Advertised last: until here the parameter is neither offered nor
         // accepted, which is the only state in which the statement and the
-        // surface agree.
+        // surface agree. The rows are not the advertisement — they are what
+        // the extraction reads — so they go first and this stays last.
         authoredHere = Map.copyOf(authored);
-        compileParametersHeld();
         return rebuilt;
     }
 
@@ -798,12 +804,16 @@ public final class ElementStore implements FhirStoreFacade {
      * anybody reading an empty result.
      */
     private void compileParametersHeld() {
+        compileParametersHeld(authoredHere);
+    }
+
+    private void compileParametersHeld(Map<String, List<SearchParameter>> authored) {
         // Only when what they are compiled FROM has moved. A pass over every
         // expression a version publishes for every type this tenant
         // registers is seconds, and it was being paid on every bring-up —
         // including one from a face image, which then saved nothing, because
         // the rows it carried were rewritten with the same rows.
-        String from = whatTheParametersComeFrom();
+        String from = whatTheParametersComeFrom(authored);
         if (from.equals(definitions.parametersFrom())) {
             return;
         }
@@ -819,7 +829,7 @@ public final class ElementStore implements FhirStoreFacade {
                     version.elementTypesOf(typeName);
             for (SearchParameter parameter : ElementVersion.union(
                     version.parametersFor(typeName),
-                    authoredHere.getOrDefault(typeName, List.of()))) {
+                    authored.getOrDefault(typeName, List.of()))) {
                 compiled.add(compiledFrom(typeName, parameter, elementTypes));
             }
         }
@@ -835,13 +845,13 @@ public final class ElementStore implements FhirStoreFacade {
      * move on its own, so it is named here — code and expression, since a
      * parameter rewritten under the same code is a different parameter.
      */
-    private String whatTheParametersComeFrom() {
+    private String whatTheParametersComeFrom(Map<String, List<SearchParameter>> authored) {
         StringBuilder from = new StringBuilder()
                 .append(cloud.jengu.dbo.definitions.DefinitionStore.SHAPE);
         types.stream().map(FhirTypeConfig::typeName).sorted()
                 .forEach(name -> from.append(' ').append(name));
-        for (String typeName : new java.util.TreeSet<>(authoredHere.keySet())) {
-            for (String code : codesOf(authoredHere.get(typeName))) {
+        for (String typeName : new java.util.TreeSet<>(authored.keySet())) {
+            for (String code : codesOf(authored.get(typeName))) {
                 from.append(' ').append(typeName).append('/').append(code);
             }
         }
