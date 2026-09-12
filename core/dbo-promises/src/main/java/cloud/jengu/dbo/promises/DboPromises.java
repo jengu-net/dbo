@@ -1115,6 +1115,15 @@ public enum DboPromises implements Promise {
             + "comes up the way tenants came up before there were images. The check exists "
             + "because a wrong image fails nowhere — the rows load, the tenant serves, and "
             + "it answers from a specification or an expander that is not this one."),
+    ZONE_AN_UNSERVABLE_ZONE_IS_SAID_AT_BRING_UP(
+            "A tenant whose zone did not survive the trip to its face does not come up, and "
+            + "says which definition was lost and what it was built on. Refused rather than "
+            + "degraded: the tenant would otherwise serve the part of the zone that "
+            + "survived, which looks exactly like serving the zone. A zone is a set of "
+            + "rules somebody is relying on being applied, and most of one is not a smaller "
+            + "promise but a different one nobody agreed to. A tenant on the zone's own "
+            + "face is unaffected, because nothing was converted and nothing can have been "
+            + "lost."),
     ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME(
             "A definition converted to another face is judged on that face rather than "
             + "trusted because it converted. Converting downward loses what the older "

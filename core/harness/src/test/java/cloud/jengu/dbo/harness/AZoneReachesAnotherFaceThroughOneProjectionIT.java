@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@org.junit.jupiter.api.TestMethodOrder(org.junit.jupiter.api.MethodOrderer.OrderAnnotation.class)
 class AZoneReachesAnotherFaceThroughOneProjectionIT {
 
     private static final String R4_ROOT = "r4-juur";
@@ -102,6 +103,7 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
         }
     }
 
+    @org.junit.jupiter.api.Order(1)
     @Test
     @Timeout(900)
     @DisplayName("a zone on another face is converted once, by a tenant nobody declared")
@@ -120,6 +122,7 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
                         + "is a hop, a database and a second copy for no conversion");
     }
 
+    @org.junit.jupiter.api.Order(2)
     @Test
     @Timeout(900)
     @DisplayName("the tenant reads the projection while still declaring the zone")
@@ -163,6 +166,7 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
                 "a tenant on the zone's own face was routed through a projection anyway");
     }
 
+    @org.junit.jupiter.api.Order(3)
     @Test
     @Timeout(900)
     @DisplayName("what the zone publishes arrives on the other face, converted once")
@@ -182,6 +186,7 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
                 "the tenant on the other face never received the zone's record");
     }
 
+    @org.junit.jupiter.api.Order(4)
     @Test
     @Timeout(900)
     @DisplayName("a definition the older face cannot stand up is named, not passed on")
@@ -218,6 +223,40 @@ class AZoneReachesAnotherFaceThroughOneProjectionIT {
                         one.base().contains("ActorDefinition")),
                 "the report does not say what it lost, which is the part somebody can act "
                         + "on: " + lost);
+    }
+
+    @org.junit.jupiter.api.Order(5)
+    @Test
+    @Timeout(900)
+    @DisplayName("a tenant is not served a zone that did not survive the trip to its face")
+    @Proving(DboPromises.ZONE_AN_UNSERVABLE_ZONE_IS_SAID_AT_BRING_UP)
+    void aTenantIsNotServedAZoneThatDidNotSurvive() throws Exception {
+        // The zone lost a definition on the way to R4 in the test before this
+        // one, which is why these are ordered: what is being asked here is
+        // what a tenant arriving AFTER that is told.
+
+        Files.writeString(dir.resolve("hiljem-tulija.json"), tenant("hiljem-tulija", "r4"));
+        for (int pass = 0; pass < 5; pass++) {
+            manager.scanOnce();
+        }
+
+        assertFalse(manager.codes().contains("hiljem-tulija"),
+                "a tenant came up serving most of a zone, which looks exactly like serving "
+                        + "the zone and is not");
+        String why = manager.troubles().get("hiljem-tulija");
+        assertTrue(why != null && why.contains(ZONE),
+                "the refusal does not name the zone that could not be served: " + why);
+        assertTrue(why.contains("only-in-r5"),
+                "the refusal does not name the definition that was lost, which is the part "
+                        + "somebody can act on: " + why);
+
+        // And a tenant on the zone's own face is unaffected: nothing was
+        // converted, so nothing can have been lost.
+        Files.writeString(dir.resolve("hiljem-r5.json"), tenant("hiljem-r5", "r5"));
+        UntilServed.scan(manager, "hiljem-r5");
+        assertTrue(manager.codes().contains("hiljem-r5"),
+                "a tenant on the zone's own face was refused for a loss that only happens "
+                        + "on the way to another one");
     }
 
     /**

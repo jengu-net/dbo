@@ -1709,6 +1709,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         wireDependencies(spec, runtime, db.dataSource());
         readyOnItsFace(spec, runtime);
+        readyOnItsZones(spec);
         if (spec.faceRoot()) {
             // Filled before it is published: a dependent that wires against
             // an empty root would stream nothing and serve with no definitions
@@ -1844,6 +1845,48 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private static final java.util.List<cloud.jengu.dbo.core.api.PayloadConverter> CONVERTERS =
             java.util.List.of(new cloud.jengu.dbo.fhir.r5.R4ToR5Converter(),
                     new cloud.jengu.dbo.fhir.r4.R5ToR4Converter());
+
+    /**
+     * A tenant is not served a zone that does not survive the trip to its face.
+     *
+     * <p>A zone reaching a face it was not written in is converted at a
+     * projection, and a definition that came out of that standing on nothing
+     * is named there. This is where the naming costs something: a tenant whose
+     * zone lost a definition on the way is refused, and told which one.
+     *
+     * <p><b>Refused rather than degraded.</b> The tenant would otherwise come
+     * up, serve, and enforce the part of the zone that survived — which looks
+     * exactly like enforcing the zone, and is the failure this whole path
+     * exists to prevent. A zone is a set of rules somebody is relying on being
+     * applied; most of one is not a smaller promise, it is a different one
+     * nobody agreed to.
+     *
+     * <p>Only for a zone reached through a projection. A zone on the tenant's
+     * own face is carried as written, so nothing about it can have been lost
+     * in a conversion that never happened.
+     */
+    private void readyOnItsZones(TenantSpec spec) {
+        for (TenantSpec.Dependency dependency : spec.dependencies()) {
+            TenantRuntime named = runtimes.get(dependency.name());
+            if (named == null) {
+                continue;
+            }
+            String from = ZoneProjections.servedBy(spec, dependency, named.spec().face());
+            if (from.equals(dependency.name())) {
+                continue; // carried as written, nothing converted
+            }
+            java.util.List<ConvertedDefinitions.Unfounded> lost = whatTheVersionCouldNotCarry(from);
+            if (!lost.isEmpty()) {
+                throw new IllegalStateException(spec.code() + " declares zone '"
+                        + dependency.name() + "', which is written for face '"
+                        + named.spec().face() + "' and does not survive the trip to '"
+                        + spec.face() + "': " + ConvertedDefinitions.said(lost)
+                        + ". The zone is unservable on this face until that is resolved "
+                        + "where it is published; serving most of a zone would be serving "
+                        + "rules nobody agreed to.");
+            }
+        }
+    }
 
     /**
      * Says, once, what a tenant holds that it cannot validate anything
