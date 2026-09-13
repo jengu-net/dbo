@@ -3178,6 +3178,7 @@ cloud.jengu.dbo.telemetry.Telemetry                                    interface
 cloud.jengu.dbo.telemetry.Telemetry                                    level(String,long,cloud.jengu.dbo.telemetry.Labels):void
 cloud.jengu.dbo.telemetry.Telemetry                                    none():cloud.jengu.dbo.telemetry.Telemetry
 cloud.jengu.dbo.telemetry.Telemetry                                    observed(String,Duration,cloud.jengu.dbo.telemetry.Labels):void
+cloud.jengu.dbo.telemetry.Telemetry                                    sent(String,String):boolean
 cloud.jengu.dbo.telemetry.Telemetry.Discarding                         class
 cloud.jengu.dbo.telemetry.Telemetry.Discarding                         counted(String,long,cloud.jengu.dbo.telemetry.Labels):void
 cloud.jengu.dbo.telemetry.Telemetry.Discarding                         level(String,long,cloud.jengu.dbo.telemetry.Labels):void
@@ -3870,6 +3871,12 @@ cloud.jengu.dbo.work.SealedWork                                        new(cloud
 cloud.jengu.dbo.work.SealedWork                                        payload():List
 cloud.jengu.dbo.work.SealedWork                                        record
 cloud.jengu.dbo.work.SealedWork                                        toString():String
+cloud.jengu.dbo.work.SpansReported                                     class
+cloud.jengu.dbo.work.SpansReported                                     close():void
+cloud.jengu.dbo.work.SpansReported                                     new(Supplier,String,BiPredicate,Duration)
+cloud.jengu.dbo.work.SpansReported                                     report():boolean
+cloud.jengu.dbo.work.SpansReported                                     reportingSince(Instant):cloud.jengu.dbo.work.SpansReported
+cloud.jengu.dbo.work.SpansReported                                     start():cloud.jengu.dbo.work.SpansReported
 cloud.jengu.dbo.work.StepGrant                                         equals(Object):boolean
 cloud.jengu.dbo.work.StepGrant                                         hashCode():int
 cloud.jengu.dbo.work.StepGrant                                         new(String,String,cloud.jengu.dbo.work.ScopeClass)

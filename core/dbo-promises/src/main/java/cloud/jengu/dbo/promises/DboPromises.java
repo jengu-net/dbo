@@ -1646,7 +1646,14 @@ public enum DboPromises implements Promise {
             + "derived from the run's own key, so a collector that missed a window and "
             + "asked again gets the same spans instead of a second copy drawn beside the "
             + "first — and a span says which tenant and which step and never what the "
-            + "step was working on."),
+            + "step was working on. The same spans are also sent where the deployment "
+            + "reports its numbers, on an interval and without being asked, because the "
+            + "surface that serves them is mounted only where there is an authority to "
+            + "ask — and a deployment nobody can sign in to is exactly the one whose "
+            + "bring-ups and restores somebody wants to watch. The window walks forward "
+            + "only on a document the collector took, so a collector that was down is "
+            + "caught up with rather than skipped past, and runs already sent are not "
+            + "sent again."),
     MNT_ATTESTATION_READS_AS_FHIR(
             "An archive's attestation renders as a `Provenance` carrying FHIR's "
             + "`Signature`, so a customer's own tooling can check what it was handed "

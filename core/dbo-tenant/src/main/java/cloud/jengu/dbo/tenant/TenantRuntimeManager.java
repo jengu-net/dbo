@@ -336,6 +336,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
     private volatile long lastSweepMillis;
     private volatile Thread scanner;
+    private volatile cloud.jengu.dbo.work.SpansReported spans;
     private volatile Thread reconciler;
     private volatile boolean running;
 
@@ -2945,6 +2946,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // the other's queue: a tenant catching up delayed every bring-up in
         // the deployment, and a bring-up waiting on a secret stopped every
         // stream — both invisibly, because neither is anybody's failure.
+        // What this deployment did, sent where it reports to. A collector is
+        // absent on a developer's machine and the exporter then refuses, so
+        // this costs a rendering of nothing every interval and stops there.
+        //
+        // Here rather than on the maintenance surface because the surface is
+        // not always mounted: a deployment without an authority serves no
+        // system plane at all, and it is exactly such a deployment — a bench,
+        // an appliance somebody is measuring — whose bring-ups and restores
+        // somebody wants to watch.
+        cloud.jengu.dbo.telemetry.Telemetry reports = cloud.jengu.dbo.telemetry.Telemetry.installed();
+        spans = new cloud.jengu.dbo.work.SpansReported(this::managementStore, managementCode,
+                reports::sent, java.time.Duration.ofSeconds(seconds("dbo.telemetry.spans.seconds", 30)))
+                .start();
         scanner = Thread.ofVirtual().name("dbo-tenant-scanner").start(() -> {
             while (running) {
                 try {
@@ -3002,12 +3016,29 @@ public final class TenantRuntimeManager implements AutoCloseable {
         //
         // Nothing was wrong beyond the noise, which is the reason to fix it:
         // a teardown that logs like a crash is where a real crash goes to hide.
+        cloud.jengu.dbo.work.SpansReported reporting = spans;
+        if (reporting != null) {
+            reporting.close();
+        }
         stopped(scanner);
         stopped(reconciler);
         for (String code : Set.copyOf(runtimes.keySet())) {
             takeDown(code, null);
         }
         sharedServer.stop(0);
+    }
+
+    /** A configured number of seconds, or the default when it is absent or nonsense. */
+    private static long seconds(String property, long byDefault) {
+        String said = System.getProperty(property);
+        if (said == null || said.isBlank()) {
+            return byDefault;
+        }
+        try {
+            return Math.max(1, Long.parseLong(said.trim()));
+        } catch (NumberFormatException mistyped) {
+            return byDefault;
+        }
     }
 
     /**

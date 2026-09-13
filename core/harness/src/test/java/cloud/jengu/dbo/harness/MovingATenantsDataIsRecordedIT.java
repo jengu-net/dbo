@@ -206,6 +206,60 @@ class MovingATenantsDataIsRecordedIT {
                 "a span carried something that looks like a record's identity");
     }
 
+    @Test
+    @Timeout(600)
+    @DisplayName("a deployment reports its history without being asked, holds the window when "
+            + "the collector refuses, and does not send the same spans twice")
+    @Proving(DboPromises.MNT_MOVING_DATA_IS_RECORDED)
+    void theHistoryIsReportedWithoutBeingAsked() {
+        var sent = new java.util.ArrayList<String>();
+        var signals = new java.util.ArrayList<String>();
+        var accepting = new java.util.concurrent.atomic.AtomicBoolean(false);
+        var store = manager.runtime(management).orElseThrow().engine();
+        var reporting = new cloud.jengu.dbo.work.SpansReported(() -> java.util.Optional.of(store),
+                management, (document, signal) -> {
+                    sent.add(document);
+                    signals.add(signal);
+                    return accepting.get();
+                }, java.time.Duration.ofHours(1));
+
+        // The window starts when the reporter does, so a deployment that has
+        // been up for a week does not open by posting a week.
+        assertFalse(reporting.report(), "a refused document was reported as landed");
+        assertTrue(sent.isEmpty(), "the reporter posted spans from before it started: " + sent);
+
+        // Now with the runs this test's fixture already made inside the window.
+        var since = new cloud.jengu.dbo.work.SpansReported(() -> java.util.Optional.of(store),
+                management, (document, signal) -> {
+                    sent.add(document);
+                    signals.add(signal);
+                    return accepting.get();
+                }, java.time.Duration.ofHours(1));
+        since.reportingSince(java.time.Instant.now().minus(java.time.Duration.ofHours(1)));
+
+        assertFalse(since.report(), "a refused document was reported as landed");
+        assertEquals(1, sent.size(), "the reporter posted more than the one window");
+        assertEquals(java.util.List.of("traces"), signals, "spans went out as the wrong signal");
+        assertTrue(sent.get(0).contains("dbo.tenant.bringup/serve"),
+                "the bring-up was not in what went out");
+
+        // REFUSED, so not reported. A collector that was down is caught up
+        // with rather than skipped past, which is the whole reason the
+        // exporter answers instead of assuming.
+        accepting.set(true);
+        assertTrue(since.report(), "the second attempt did not land");
+        assertTrue(sent.get(1).contains("dbo.tenant.bringup/serve"),
+                "the window moved past spans the collector never took");
+
+        // And having landed, the same runs are not posted again.
+        sent.clear();
+        since.report();
+        assertTrue(sent.stream().noneMatch(d -> d.contains("dbo.tenant.bringup/serve")),
+                "the same bring-up went out twice: " + sent);
+        since.close();
+        reporting.close();
+    }
+
     // ----------------------------------------------------------- the asking
 
     private Runs runs() {

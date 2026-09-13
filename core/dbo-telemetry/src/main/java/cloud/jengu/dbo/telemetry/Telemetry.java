@@ -40,6 +40,26 @@ public interface Telemetry {
     /** Something is currently this many. Absence of a value is not zero. */
     void level(String name, long value, Labels labels);
 
+    /**
+     * A document this node rendered, sent as {@code signal}, answering
+     * whether the collector took it.
+     *
+     * <p><b>Why an exporter carries this at all.</b> Counters are emitted a
+     * number at a time and an exporter batches them; a trace is not — it is
+     * projected from records that already exist, in whatever shape the
+     * protocol wants, by the part of the runtime that can read them. All an
+     * exporter adds is somewhere to put it and the credentials to get there,
+     * which is exactly what a caller with the records does not have.
+     *
+     * <p>Refusing is the default, so an exporter that only counts is
+     * complete, and a caller reads the answer rather than assuming: a
+     * document that did not land has not been reported and the records it
+     * came from are still there to render again.
+     */
+    default boolean sent(String document, String signal) {
+        return false;
+    }
+
     /** Discards everything, and is the default rather than a fallback. */
     static Telemetry none() {
         return Discarding.INSTANCE;

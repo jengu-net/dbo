@@ -114,6 +114,47 @@ public final class OtlpTelemetry implements Telemetry {
         }
     }
 
+    /**
+     * A document somebody else rendered, posted where this exporter points.
+     *
+     * <p>For spans, which this does not aggregate and should not: a span is
+     * a record the store already holds, rendered by whoever owns that
+     * record. What is shared is the endpoint, the headers and the silence —
+     * a deployment configures one place to report to, not one per signal,
+     * and a collector that refuses is a state change logged once rather than
+     * a failure per interval.
+     *
+     * <p>The path is swapped rather than appended, because an endpoint is
+     * configured as the metrics one by the protocol's own variable names and
+     * the traces path is its sibling.
+     */
+    @Override
+    public boolean sent(String document, String signal) {
+        if (endpoint == null) {
+            return false;
+        }
+        URI where = URI.create(endpoint.toString()
+                .replaceAll("/v1/metrics$", "/v1/" + signal));
+        HttpRequest.Builder request = HttpRequest.newBuilder(where)
+                .timeout(Duration.ofSeconds(5))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(document, StandardCharsets.UTF_8));
+        headers.forEach(request::header);
+        try {
+            HttpResponse<Void> answered = http.send(request.build(),
+                    HttpResponse.BodyHandlers.discarding());
+            boolean accepted = answered.statusCode() / 100 == 2;
+            state(accepted, accepted ? null : "the collector answered " + answered.statusCode());
+            return accepted;
+        } catch (java.io.IOException | RuntimeException unreachable) {
+            state(false, "the collector did not answer: " + unreachable.getMessage());
+            return false;
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+    }
+
     /** Whether a deployment pointed this at anything. */
     public boolean exporting() {
         return endpoint != null;
