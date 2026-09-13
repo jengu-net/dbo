@@ -44,8 +44,9 @@ final class UntilServed {
      * <p>Two things it does not do, written down because a check nobody can
      * see the edges of is one somebody eventually deletes. It sees only
      * classes that come through here, so a class provisioning by hand is
-     * unguarded — the failure mode is a collision going unnoticed, never a
-     * false alarm. And it holds one map in one JVM: the suite runs as a single
+     * unguarded here — that half is covered by
+     * {@link ATenantCodeBelongsToOneClassTest}, which reads the sources and so
+     * needs neither this door nor a full run. And it holds one map in one JVM: the suite runs as a single
      * fork today, and turning on a fork per class would leave this quietly
      * true and quietly useless.
      */

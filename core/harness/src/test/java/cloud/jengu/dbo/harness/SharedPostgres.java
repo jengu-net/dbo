@@ -18,6 +18,10 @@ import java.sql.Statement;
  * the tenant manager gives its tenants class-unique CODES, because tenant
  * database names are derived from them and the server is now shared.
  *
+ * <p>That last rule was stated here and broken anyway, so it is enforced
+ * now rather than remembered: {@link ATenantCodeBelongsToOneClassTest}
+ * reads the sources and refuses a code two classes declare.
+ *
  * <p>The container is deliberately never stopped: it is reaped by Ryuk when
  * the JVM exits, and stopping it from any one class's {@code @AfterAll}
  * would pull the floor out from under the classes still running.
