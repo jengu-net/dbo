@@ -87,11 +87,18 @@ start_one() {
     PORT=$(port_of "$WHICH")
     case "$WHICH" in
         dbo)
+            # The appliance reports where the bench's collector is, when one
+            # is configured. Its own history — bring-ups, backups, restores —
+            # goes out as spans on the same connection, because with no
+            # authority there is no surface to ask for them on.
             cd /opt/dbo
             DBO_TENANT_DIR=/opt/dbo/tenants DBO_HTTP_PORT=$PORT \
             DBO_ADMIN_JDBC_URL=jdbc:postgresql://127.0.0.1:5432/postgres \
             DBO_ADMIN_USER=dbobench DBO_ADMIN_PASSWORD=$PGPASS \
             DBO_AUTH_DISABLED=true DBO_LOG_LEVEL=warn \
+            DBO_MANAGEMENT_SPEC=${DBO_MANAGEMENT_SPEC:-/opt/dbo/haldur.json} \
+            OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=${OTLP_ENDPOINT:-} \
+            OTEL_EXPORTER_OTLP_HEADERS=${OTLP_HEADERS:-} \
             nohup bin/dbo-server > "$LOG" 2>&1 &
             echo $! > "$PIDFILE"
             ;;
