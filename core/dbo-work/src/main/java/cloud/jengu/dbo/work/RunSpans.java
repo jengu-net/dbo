@@ -42,7 +42,7 @@ public final class RunSpans {
 
     /** One run, rendered: when it opened, when it stopped, and under what. */
     public record Span(String traceId, String spanId, String parentSpanId, String name,
-            Instant began, Instant ended, String tenant, Map<String, Long> tally,
+            Instant began, Instant ended, String tenant, String key, Map<String, Long> tally,
             String outcome) {}
 
     /**
@@ -96,6 +96,7 @@ public final class RunSpans {
                     // pretending it ended.
                     ended.get(run.key()),
                     tenant,
+                    run.key(),
                     run.tally(),
                     run.holder().wire()));
         }
@@ -137,7 +138,12 @@ public final class RunSpans {
                     .append(span.ended().getEpochSecond() * 1_000_000_000L
                             + span.ended().getNano()).append("\"")
                     .append(",\"attributes\":[")
-                    .append(attribute("dbo.tenant", span.tenant()))
+                    // WHERE the history lives, and WHAT the run was about.
+                    // They are not the same tenant and a span that carried
+                    // only the first said every bring-up in the deployment
+                    // was the managing tenant's own.
+                    .append(attribute("dbo.deployment", span.tenant()))
+                    .append(',').append(attribute("dbo.run.key", span.key()))
                     .append(',').append(attribute("dbo.holder", span.outcome()));
             for (Map.Entry<String, Long> counted : span.tally().entrySet()) {
                 out.append(",{\"key\":\"dbo.tally.").append(escaped(counted.getKey()))

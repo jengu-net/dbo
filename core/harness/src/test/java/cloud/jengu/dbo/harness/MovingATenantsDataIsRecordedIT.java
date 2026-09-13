@@ -215,6 +215,12 @@ class MovingATenantsDataIsRecordedIT {
         assertEquals(document, traces(token()).body(),
                 "asking twice rendered different spans for the same runs");
 
+        // Which run, and not only where its history lives: the bring-up of a
+        // tenant is recorded in the managing tenant's store, so a span
+        // carrying only that said every bring-up was the manager's own.
+        assertTrue(document.contains("dbo.run.key") && document.contains("/" + MOVED),
+                "no span says which run it renders");
+
         // The rule the run's labels already keep: a span says which tenant
         // and which step, never what the step was working on.
         assertFalse(document.contains(MOVED + "-"),

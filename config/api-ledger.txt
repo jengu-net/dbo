@@ -3750,8 +3750,9 @@ cloud.jengu.dbo.work.RunSpans.Span                                     began():I
 cloud.jengu.dbo.work.RunSpans.Span                                     ended():Instant
 cloud.jengu.dbo.work.RunSpans.Span                                     equals(Object):boolean
 cloud.jengu.dbo.work.RunSpans.Span                                     hashCode():int
+cloud.jengu.dbo.work.RunSpans.Span                                     key():String
 cloud.jengu.dbo.work.RunSpans.Span                                     name():String
-cloud.jengu.dbo.work.RunSpans.Span                                     new(String,String,String,String,Instant,Instant,String,Map,String)
+cloud.jengu.dbo.work.RunSpans.Span                                     new(String,String,String,String,Instant,Instant,String,String,Map,String)
 cloud.jengu.dbo.work.RunSpans.Span                                     outcome():String
 cloud.jengu.dbo.work.RunSpans.Span                                     parentSpanId():String
 cloud.jengu.dbo.work.RunSpans.Span                                     record
