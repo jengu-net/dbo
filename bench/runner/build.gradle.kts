@@ -20,6 +20,11 @@ dependencies {
     // connection per call and the benchmark measures connection setup.
     implementation("com.zaxxer:HikariCP:7.1.0")
     implementation(project(":core:dbo-telemetry"))
+    // The machinery under measurement: every activity in a deployment is a
+    // step run, so a bench that only wrote and read measured the store and
+    // not the thing the store is there to carry.
+    implementation(project(":core:dbo-work"))
+    implementation(project(":core:dbo-runner"))
     // On the RUNTIME classpath only: the runner asks Telemetry for whatever
     // this deployment installed, and an exporter with no endpoint configured
     // is inert. So a run reports where it is told to and stays silent where

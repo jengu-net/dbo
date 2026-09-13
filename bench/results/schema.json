@@ -130,6 +130,24 @@
         "tenantsBeforeDegradation": {
           "type": "integer",
           "description": "How many tenants one JVM holds before latency leaves its band. A product limit an edge deployment has to be told."
+        },
+        "stepPhasesMs": {
+          "type": "object",
+          "description": "Where a step run's time went. Every activity in a deployment is a step run, and a run is not one duration: retrieve is fetching what it works on \u2014 on a person's record also decrypting it \u2014 execute is the service's own time, write is closing the run and releasing the claim. Which phase dominates decides what to do about a slow deployment; the whole hides that.",
+          "properties": {
+            "retrieve": {
+              "$ref": "#/$defs/latency"
+            },
+            "execute": {
+              "$ref": "#/$defs/latency"
+            },
+            "write": {
+              "$ref": "#/$defs/latency"
+            },
+            "whole": {
+              "$ref": "#/$defs/latency"
+            }
+          }
         }
       }
     },

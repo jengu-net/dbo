@@ -104,10 +104,37 @@ public final class Bench {
             drive(tenants, config.duration, write, lookup, failures);
             lag.stop();
 
+            // The machinery, after the store. Every activity in a deployment
+            // is a step run, and a run is three phases that a single duration
+            // hides: what it retrieved, what it did, what it wrote.
+            System.out.println("==> step phases (" + config.steps + " runs per tenant)");
+            StepPhases phases = new StepPhases();
+            for (Tenant tenant : tenants) {
+                List<String> references = new ArrayList<>();
+                for (int i = 0; i < config.steps; i++) {
+                    String reference = tenant.created(patient(
+                            "step-" + tenant.code + "-" + tenant.nextSequence()));
+                    if (reference != null) {
+                        references.add(reference);
+                    }
+                }
+                int closed = phases.drive(tenant.code, tenant.dataSource, tenant.objects,
+                        references, Duration.ofSeconds(120), Telemetry.installed());
+                if (closed < references.size()) {
+                    // Not a failure of the store: it is this measurement that
+                    // is incomplete, and a percentile over some of the runs is
+                    // not the percentile it claims to be.
+                    phases.incomplete();
+                    System.out.println("    " + tenant.code + ": only " + closed + " of "
+                            + references.size() + " runs closed in time");
+                }
+            }
+            System.out.print(phases.summary());
+
             thermal.stop();
             complete = true;
 
-            String json = result(startedAt, thermal, write, lookup, lag, failures, true);
+            String json = result(startedAt, thermal, write, lookup, lag, failures, phases, true);
             Files.writeString(config.out, json);
             System.out.println("==> wrote " + config.out);
             System.out.println(summary(write, lookup, lag, thermal, failures));
@@ -292,14 +319,16 @@ public final class Bench {
         private final java.util.concurrent.atomic.AtomicLong sequence =
                 new java.util.concurrent.atomic.AtomicLong();
         private final HikariDataSource dataSource;
+        private final PgObjectStore objects;
         private final FhirHttpServer server;
         private final String base;
         private final HttpClient http;
 
-        private Tenant(String code, HikariDataSource dataSource,
+        private Tenant(String code, HikariDataSource dataSource, PgObjectStore objects,
                 FhirHttpServer server, String base) {
             this.code = code;
             this.dataSource = dataSource;
+            this.objects = objects;
             this.server = server;
             this.base = base;
             this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -333,10 +362,16 @@ public final class Bench {
             R4Personality personality = new R4Personality(List.of(
                     FhirTypeConfig.identifier("Patient", EID),
                     FhirTypeConfig.internal("Observation")));
-            R4Store store = new R4Store(
-                    new PgObjectStore(ds, personality.registrations()), personality, base);
+            // The work types beside the clinical ones, in the same database:
+            // a deployment's runs live where its records do, and a bench that
+            // put them elsewhere would measure two instances rather than one.
+            java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> registrations =
+                    new ArrayList<>(personality.registrations());
+            registrations.addAll(cloud.jengu.dbo.work.WorkModel.registrations());
+            PgObjectStore objects = new PgObjectStore(ds, registrations);
+            R4Store store = new R4Store(objects, personality, base);
             FhirHttpServer server = new FhirHttpServer(store, null, "127.0.0.1", port, "/fhir");
-            return new Tenant(code, ds, server, base);
+            return new Tenant(code, ds, objects, server, base);
         }
 
         long nextSequence() {
@@ -349,6 +384,34 @@ public final class Bench {
                             .header("Content-Type", "application/fhir+json")
                             .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                     HttpResponse.BodyHandlers.discarding()).statusCode();
+        }
+
+        /**
+         * The same write, keeping what it made.
+         *
+         * <p>A run's slot is filled with a reference, and the only party that
+         * knows what the write became is the response that made it — so the
+         * seed for the step phases reads the Location it was given rather
+         * than searching for what it just wrote.
+         */
+        String created(String body) throws Exception {
+            HttpResponse<Void> answered = http.send(
+                    HttpRequest.newBuilder(URI.create(base + "/Patient"))
+                            .timeout(Duration.ofSeconds(30))
+                            .header("Content-Type", "application/fhir+json")
+                            .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
+                    HttpResponse.BodyHandlers.discarding());
+            String location = answered.headers().firstValue("Location").orElse(null);
+            if (answered.statusCode() / 100 != 2 || location == null) {
+                return null;
+            }
+            String[] parts = location.split("/");
+            for (int i = 0; i < parts.length - 1; i++) {
+                if (parts[i].equals("Patient")) {
+                    return "Patient/" + parts[i + 1];
+                }
+            }
+            return null;
         }
 
         int lookup(String identifier) throws Exception {
@@ -373,10 +436,11 @@ public final class Bench {
     // ---------------------------------------------------------------- output
 
     private String result(Instant startedAt, Thermal thermal, Latency write,
-            Latency lookup, FeedLag lag, Failures failures, boolean completed) {
+            Latency lookup, FeedLag lag, Failures failures, StepPhases phases,
+            boolean completed) {
         // A run with failures in it is not a valid run. The numbers stay in the
         // file — they are evidence — but nothing may quote them as a result.
-        boolean valid = completed && thermal.clean() && failures.none();
+        boolean valid = completed && thermal.clean() && failures.none() && phases.complete();
         return Json.object(
                 Json.field("startedAt", startedAt.toString()),
                 Json.field("dboVersion", config.dboVersion),
@@ -388,7 +452,8 @@ public final class Bench {
                 Json.raw("measurements", Json.object(
                         Json.raw("write", write.json()),
                         Json.raw("tokenLookup", lookup.json()),
-                        Json.raw("feedLagMs", lag.json()))));
+                        Json.raw("feedLagMs", lag.json()),
+                        Json.raw("stepPhasesMs", phases.json()))));
     }
 
     /**
@@ -496,7 +561,7 @@ public final class Bench {
     // ----------------------------------------------------------------- input
 
     private record Config(String jdbcUrl, String user, String password, String profile,
-            int tenants, Duration duration, Path out, String dboVersion) {
+            int tenants, int steps, Duration duration, Path out, String dboVersion) {
 
         static Config parse(String[] args) {
             Map<String, String> a = new java.util.HashMap<>();
@@ -520,13 +585,14 @@ public final class Bench {
                     a.getOrDefault("password", "postgres"),
                     profile,
                     Integer.parseInt(a.getOrDefault("tenants", "10")),
+                    Integer.parseInt(a.getOrDefault("steps", "50")),
                     Duration.ofSeconds(Long.parseLong(a.getOrDefault("duration", "120"))),
                     Path.of(a.getOrDefault("out", "/tmp/dbo-bench/result.json")),
                     a.getOrDefault("dbo-version", "unknown"));
         }
 
         String describe() {
-            return "dbo bench: profile=" + profile + " tenants=" + tenants
+            return "dbo bench: profile=" + profile + " tenants=" + tenants + " steps=" + steps
                     + " duration=" + duration.toSeconds() + "s out=" + out;
         }
     }
