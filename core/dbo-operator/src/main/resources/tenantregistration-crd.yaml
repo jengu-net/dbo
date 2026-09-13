@@ -88,6 +88,49 @@ spec:
                             type: string
                           removeAfter:
                             type: string
+                # A tenant whose people are provisioned by an identity
+                # provider names the system it accepts them from.
+                scim:
+                  type: object
+                  properties:
+                    system:
+                      type: string
+                # Steps this tenant must have available before it serves.
+                mandatorySteps:
+                  type: array
+                  items:
+                    type: string
+                # The partner tenant that manages this one, where one does.
+                managedBy:
+                  type: string
+                # A face root reads a version's packages and publishes them as
+                # records; every other tenant subscribes to one.
+                faceRoot:
+                  type: boolean
+                # Which element of a type carries the organisation a record
+                # belongs to, per type.
+                organisations:
+                  type: object
+                  properties:
+                    perType:
+                      type: object
+                      additionalProperties:
+                        type: string
+                # What an audience may be shown, per audience.
+                disclosure:
+                  type: object
+                  properties:
+                    perAudience:
+                      type: object
+                      additionalProperties:
+                        type: object
+                        properties:
+                          types:
+                            type: array
+                            items:
+                              type: string
+                          reveals:
+                            type: string
                 types:
                   type: array
                   minItems: 1
