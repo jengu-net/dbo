@@ -239,6 +239,15 @@ tasks.withType<Test>().configureEach {
     // for it and every suite after reads it. An image from an earlier build
     // whose definitions, expander or SQL have moved is refused by its own
     // manifest and cut again, so this never has to be cleaned by hand.
+    // Where a class writes down which tenant codes it took. A directory
+    // rather than a map in one JVM, because the guard has to hold when the
+    // suite runs as several — which is exactly when a collision between two
+    // classes stops being visible in one place.
+    systemProperty("dbo.tenant.claims",
+            layout.buildDirectory.dir("tenant-claims").get().asFile.absolutePath)
+    doFirst {
+        delete(layout.buildDirectory.dir("tenant-claims"))
+    }
     systemProperty("dbo.face.images",
             layout.buildDirectory.dir("face-images").get().asFile.absolutePath)
 

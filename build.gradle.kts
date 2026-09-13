@@ -164,6 +164,12 @@ subprojects {
             (findProperty("dboTestGcLog") as String?)?.let {
                 jvmArgs("-Xlog:gc:file=$it-%p.log")
             }
+            // The other pool. Parallelism above is threads inside ONE test
+            // JVM, which share a heap and one Postgres container; this is
+            // JVMs, and each one pays for its own of both. Threads are the
+            // cheap axis and the one to reach for first — a fork is for
+            // isolation, not for speed.
+            (findProperty("dboTestForks") as String?)?.let { maxParallelForks = it.toInt() }
             (findProperty("dboTestParallelism") as String?)?.let {
                 systemProperty(
                     "junit.jupiter.execution.parallel.config.fixed.parallelism", it)
@@ -180,8 +186,8 @@ subprojects {
             // to dials that LOOKED set, and the cure is the task stating its
             // own effective numbers where a log reader sees them.
             doFirst {
-                logger.lifecycle("test jvm: maxHeapSize={} parallelismOverride={}",
-                        maxHeapSize,
+                logger.lifecycle("test jvm: maxHeapSize={} forks={} parallelismOverride={}",
+                        maxHeapSize, maxParallelForks,
                         systemProperties[
                             "junit.jupiter.execution.parallel.config.fixed.parallelism"]
                             ?: "none (junit-platform.properties)")

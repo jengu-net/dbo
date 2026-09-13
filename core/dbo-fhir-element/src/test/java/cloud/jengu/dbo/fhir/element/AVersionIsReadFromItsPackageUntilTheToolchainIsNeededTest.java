@@ -34,6 +34,14 @@ class AVersionIsReadFromItsPackageUntilTheToolchainIsNeededTest {
                 .filter(d -> d.url().endsWith("/StructureDefinition/Patient")).findFirst().orElseThrow();
         assertFalse(version.extractor("StructureDefinition", true)
                 .extract("StructureDefinition", patient.document()).paths().isEmpty());
+        // What a type's elements may hold is asked at every bring-up too —
+        // a choice spells itself out per key and a token parameter over an
+        // Identifier claims a name where a ContactPoint does not — and it is
+        // read from the definition's own JSON for this reason.
+        assertFalse(version.elementTypesOf("Patient").isEmpty());
+        assertTrue(version.elementTypesOf("Patient").containsKey("Patient.deceased[x]"),
+                "a choice this type declares was not read, so a path compiled from it "
+                        + "selects nothing");
         assertFalse(version.contextBuilt(), "one of those built the toolchain's context");
     }
 

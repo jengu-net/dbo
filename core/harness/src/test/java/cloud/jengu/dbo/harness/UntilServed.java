@@ -22,8 +22,17 @@ import java.util.function.Predicate;
  */
 final class UntilServed {
 
-    /** Enough passes that a chain of dependents resolves; short of forever. */
-    private static final int PASSES = 20;
+    /**
+     * Long enough that a chain of dependents resolves; short of forever.
+     *
+     * <p>A deadline rather than a count of passes. A pass costs whatever the
+     * machine is doing at the time — a tenant reading a face through the
+     * chain takes fifteen seconds on a quiet laptop and longer when three
+     * other classes are doing the same — so twenty passes is a different
+     * amount of patience on every run, and the runs where it is least are
+     * the ones with the most going on.
+     */
+    private static final java.time.Duration PATIENCE = java.time.Duration.ofSeconds(240);
 
     /**
      * Which class brought up which tenant, for this JVM.
@@ -64,15 +73,20 @@ final class UntilServed {
      * here, at first contact.
      */
     static Set<String> scan(TenantRuntimeManager manager, Predicate<Set<String>> served) {
+        long began = System.nanoTime();
+        long deadline = began + PATIENCE.toNanos();
         Set<String> up = Set.of();
-        for (int pass = 0; pass < PASSES; pass++) {
+        int passes = 0;
+        do {
             up = manager.scanOnce();
+            passes++;
             if (served.test(up)) {
                 return up;
             }
-        }
-        throw new AssertionError("not serving what the test needs after " + PASSES
-                + " passes; serving=" + up + " troubles=" + manager.troubles());
+        } while (System.nanoTime() < deadline);
+        throw new AssertionError("not serving what the test needs after " + passes
+                + " passes in " + java.time.Duration.ofNanos(System.nanoTime() - began).toSeconds()
+                + "s; serving=" + up + " troubles=" + manager.troubles());
     }
 
     /** Scans until every code named is being served. */
@@ -84,13 +98,49 @@ final class UntilServed {
     }
 
     /** Refuses a tenant code a different class already brought up. */
+    /**
+     * Who took this code first, or null for whoever is taking it now.
+     *
+     * <p>Written down where every fork can see it, not only where this one
+     * can. The suite may run as several JVMs, and a map in one of them is a
+     * guard that holds for the classes that happen to share a fork and says
+     * nothing about the pair that does not — which is the pair a collision
+     * is most likely to be, and the one nobody would find.
+     *
+     * <p>The file is created atomically, so the loser of a race reads the
+     * winner's name rather than overwriting it. Without a directory to write
+     * in this falls back to the map, which is what a store built by hand
+     * outside the build gets.
+     */
+    private static String claimed(String code, String here) {
+        String directory = System.getProperty("dbo.tenant.claims");
+        if (directory == null) {
+            return BROUGHT_UP.putIfAbsent(code, here);
+        }
+        java.nio.file.Path claim = java.nio.file.Path.of(directory, code + ".claim");
+        try {
+            java.nio.file.Files.createDirectories(claim.getParent());
+            java.nio.file.Files.writeString(claim, here,
+                    java.nio.file.StandardOpenOption.CREATE_NEW);
+            return null;
+        } catch (java.nio.file.FileAlreadyExistsException taken) {
+            try {
+                return java.nio.file.Files.readString(claim);
+            } catch (java.io.IOException unreadable) {
+                return null;
+            }
+        } catch (java.io.IOException cannotWrite) {
+            return BROUGHT_UP.putIfAbsent(code, here);
+        }
+    }
+
     private static void classUnique(String code) {
         String here = StackWalker.getInstance()
                 .walk(frames -> frames.map(StackWalker.StackFrame::getClassName)
                         .filter(name -> name.endsWith("IT") || name.endsWith("Test"))
                         .findFirst()
                         .orElse("unknown"));
-        String first = BROUGHT_UP.putIfAbsent(code, here);
+        String first = claimed(code, here);
         if (first != null && !first.equals(here)) {
             throw new AssertionError("tenant '" + code + "' is brought up by two classes — "
                     + first + " and " + here + ". The container is shared and a tenant's "

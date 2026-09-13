@@ -154,17 +154,40 @@ public final class FaceWarmup {
     static AutoCloseable whileNobodyElseIsCutting(Path directory, String face)
             throws IOException {
         Files.createDirectories(directory);
-        java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(
-                directory.resolve(face + ".faceimage.lock"),
-                java.nio.file.StandardOpenOption.CREATE,
-                java.nio.file.StandardOpenOption.WRITE);
-        java.nio.channels.FileLock lock = channel.lock();
+        Path named = directory.resolve(face + ".faceimage.lock");
+        // Held in this JVM first. A file lock is taken by a PROCESS, so two
+        // threads of one process asking for the same file do not queue —
+        // the second is refused outright, with an exception about
+        // overlapping rather than a wait. One runtime serves many tenants
+        // and two of them can share a face, so this is the ordinary case
+        // and not a test's peculiarity.
+        java.util.concurrent.locks.Lock here =
+                CUTTING.computeIfAbsent(named.toAbsolutePath().normalize().toString(),
+                        ignored -> new java.util.concurrent.locks.ReentrantLock());
+        here.lock();
+        java.nio.channels.FileChannel channel;
+        java.nio.channels.FileLock lock;
+        try {
+            channel = java.nio.channels.FileChannel.open(named,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.WRITE);
+            lock = channel.lock();
+        } catch (IOException | RuntimeException failed) {
+            here.unlock();
+            throw failed;
+        }
         return () -> {
             try (java.nio.channels.FileChannel closing = channel) {
                 lock.release();
+            } finally {
+                here.unlock();
             }
         };
     }
+
+    /** One lock per image file, so the queue inside this JVM is a queue. */
+    private static final java.util.Map<String, java.util.concurrent.locks.Lock> CUTTING =
+            new java.util.concurrent.ConcurrentHashMap<>();
 
     /** As {@link #cut}, for a caller already holding the directory's lock. */
     static Outcome cutHoldingTheLock(TenantRuntimeManager manager, String rootCode, Path directory)
@@ -180,7 +203,12 @@ public final class FaceWarmup {
         String face = root.spec().face();
         String named = imageNameOf(root.spec());
         Path image = directory.resolve(named + ".faceimage");
-        Path partial = directory.resolve(named + ".faceimage.cutting");
+        // Named for this cutter, not for the face: two processes that both
+        // get past the locks — a stale lock file, a filesystem that does not
+        // honour one — would otherwise write one file between them and move
+        // whichever half finished first into place.
+        Path partial = directory.resolve(named + ".faceimage.cutting."
+                + ProcessHandle.current().pid() + "." + Thread.currentThread().threadId());
         try (Connection lock = source.getConnection()) {
             if (!taken(lock)) {
                 return new Outcome.NotYet("another cutting of this face is already running");

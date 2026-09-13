@@ -104,9 +104,18 @@ class ADefinitionMovesOnItsOwnFeedIT {
 
         // A root holds the whole of what its version publishes, and the one
         // profile written above. All of it is in the one schema.
-        assertTrue(count(Domains.tables(Domains.DEFINITIONS) + "_data",
-                        "type = 'StructureDefinition' AND NOT deleted") > 100,
-                "the version's own profiles are not in the schema a face is cut from");
+        //
+        // Waited for rather than assumed: serving is what the scan promises,
+        // and a root goes on filling its definitions schema after it starts
+        // answering. On a quiet machine the two are indistinguishable and on
+        // a busy one they are seconds apart.
+        String held = Domains.tables(Domains.DEFINITIONS) + "_data";
+        Eventually.until("the version's own definitions reach the schema", () -> { },
+                () -> countOrZero(held, "type = 'StructureDefinition' AND NOT deleted") > 100);
+        assertTrue(count(held, "type = 'StructureDefinition' AND NOT deleted") > 100,
+                "the version's own profiles are not in the schema a face is cut from: "
+                        + count(held, "type = 'StructureDefinition' AND NOT deleted")
+                        + " of them");
         assertEquals(1, count(Domains.tables(Domains.DEFINITIONS) + "_data",
                         "type = 'StructureDefinition' AND NOT deleted"
                         + " AND envelope::text LIKE '%urn:test:profile:one%'"),
@@ -213,6 +222,15 @@ class ADefinitionMovesOnItsOwnFeedIT {
 
     private static List<String> typesOn(List<FeedItem> items) {
         return items.stream().map(FeedItem::typeName).distinct().toList();
+    }
+
+    /** The same, for a wait: a table not there yet is not an answer of none. */
+    private static long countOrZero(String qualifiedTable, String where) {
+        try {
+            return count(qualifiedTable, where);
+        } catch (Exception notYet) {
+            return 0;
+        }
     }
 
     private static long count(String qualifiedTable, String where) throws Exception {

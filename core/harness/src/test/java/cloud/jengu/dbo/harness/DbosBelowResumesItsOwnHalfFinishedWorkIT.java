@@ -286,6 +286,12 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
 
             cycleUntilTheWorkIsTaken(dying, "the dying process");
         }
+        // Taken is not the same as underway. The step runs on a thread of its
+        // own, so the cycle that took the work returns while the first part
+        // is still running — and on a loaded machine the gap between those
+        // two is wide enough to assert into.
+        Eventually.until("the work reaches its second part", () -> { },
+                gotAsFarAsTheSecondPart::get);
         assertTrue(gotAsFarAsTheSecondPart.get(),
                 "the work never reached its second part before the process went, so what "
                         + "the restart resumes below is not the scenario this test describes");
