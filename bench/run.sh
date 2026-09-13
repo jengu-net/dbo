@@ -55,7 +55,14 @@ fi
 
 # ------------------------------------------------------------------ the run
 echo "==> bench: profile=$PROFILE tenants=$TENANTS duration=${DURATION}s"
+# The database is the machine's, not the bench's. A board that already runs
+# PostgreSQL for other things is the interesting one to measure, and it does
+# not hand out the superuser — so where it is and who may write is input,
+# defaulting to what a freshly provisioned board has.
 "$DIST/bin/runner" \
+    --jdbc-url "${PG_URL:-jdbc:postgresql://127.0.0.1:5432/postgres}" \
+    --user "${PG_USER:-postgres}" \
+    --password "${PG_PASSWORD:-postgres}" \
     --profile "$PROFILE" \
     --tenants "$TENANTS" \
     --duration "$DURATION" \
