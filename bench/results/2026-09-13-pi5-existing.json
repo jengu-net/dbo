@@ -1,6 +1,6 @@
 {
-  "startedAt": "2026-09-13T13:58:31.306886822Z",
-  "dboVersion": "71f9d374",
+  "startedAt": "2026-09-13T14:44:29.185276784Z",
+  "dboVersion": "a8d0c25d",
   "machine": {
     "model": "Raspberry Pi 5 Model B Rev 1.0",
     "memoryKb": 8147588,
@@ -11,7 +11,7 @@
   },
   "thermal": {
     "available": true,
-    "maxSocTempC": 67.5,
+    "maxSocTempC": 65.9,
     "throttledSinceBoot": false,
     "underVoltageSinceBoot": false
   },
@@ -23,27 +23,61 @@
   },
   "measurements": {
     "write": {
-      "count": 2420,
-      "perSecond": 20.181,
-      "p50": 51.803,
-      "p95": 60.283,
-      "p99": 80.835,
-      "max": 855.99
+      "count": 2414,
+      "perSecond": 20.137,
+      "p50": 51.823,
+      "p95": 60.081,
+      "p99": 75.934,
+      "max": 803.669
     },
     "tokenLookup": {
-      "count": 2422,
-      "perSecond": 20.199,
-      "p50": 46.497,
-      "p95": 51.94,
-      "p99": 52.721,
-      "max": 64.048
+      "count": 2413,
+      "perSecond": 20.133,
+      "p50": 47.584,
+      "p95": 51.93,
+      "p99": 52.443,
+      "max": 75.426
     },
     "feedLagMs": {
-      "p50": 16.147,
-      "p99": 33.892,
-      "max": 820.56,
-      "samples": 2410
+      "p50": 15.92,
+      "p99": 36.712,
+      "max": 771.189,
+      "samples": 2416
     },
-    "coldStartMs": 7520
+    "stepPhasesMs": {
+      "retrieve": {
+        "count": 400,
+        "perSecond": 29.366,
+        "p50": 0.754,
+        "p95": 1.239,
+        "p99": 1.865,
+        "max": 7.211
+      },
+      "execute": {
+        "count": 400,
+        "perSecond": 29.366,
+        "p50": 0.019,
+        "p95": 0.023,
+        "p99": 0.037,
+        "max": 0.959
+      },
+      "write": {
+        "count": 400,
+        "perSecond": 29.366,
+        "p50": 10.727,
+        "p95": 14.837,
+        "p99": 20.021,
+        "max": 22.229
+      },
+      "whole": {
+        "count": 400,
+        "perSecond": 29.366,
+        "p50": 11.473,
+        "p95": 16.135,
+        "p99": 21.694,
+        "max": 29.514
+      }
+    },
+    "coldStartMs": 7410
   }
 }
