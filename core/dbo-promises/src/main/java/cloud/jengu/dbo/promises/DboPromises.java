@@ -1639,7 +1639,14 @@ public enum DboPromises implements Promise {
             + "recording what happened is not a condition of doing it. A move refused at "
             + "the door — unattested, unsigned — never opens a run, because a history "
             + "that says a tenant's data was touched when nothing was is worse than "
-            + "silence."),
+            + "silence. What a deployment did renders as spans on its own surface, "
+            + "nested the way it happened: a run already carries a key, a parent, a "
+            + "correlation, a trace and a history whose first version is when it opened, "
+            + "so the projection is a rename rather than a second record. The ids are "
+            + "derived from the run's own key, so a collector that missed a window and "
+            + "asked again gets the same spans instead of a second copy drawn beside the "
+            + "first — and a span says which tenant and which step and never what the "
+            + "step was working on."),
     MNT_ATTESTATION_READS_AS_FHIR(
             "An archive's attestation renders as a `Provenance` carrying FHIR's "
             + "`Signature`, so a customer's own tooling can check what it was handed "

@@ -174,6 +174,38 @@ class MovingATenantsDataIsRecordedIT {
                 "the sweep lost its tally when bring-up got a run of its own: " + sweep);
     }
 
+    @Test
+    @Timeout(600)
+    @DisplayName("the history renders as spans, nested the way it happened, and asking twice "
+            + "gives the same spans")
+    @Proving(DboPromises.MNT_MOVING_DATA_IS_RECORDED)
+    void theHistoryRendersAsSpans() throws Exception {
+        var answered = traces(token());
+        assertEquals(200, answered.statusCode(), answered.body());
+        String document = answered.body();
+
+        assertTrue(document.contains("\"resourceSpans\""), document.substring(0,
+                Math.min(200, document.length())));
+        assertTrue(document.contains("dbo.tenant.bringup/serve"),
+                "the bring-up is not among the spans: " + document.substring(0,
+                        Math.min(400, document.length())));
+        assertTrue(document.contains("\"parentSpanId\""),
+                "no span has a parent, so the tree came out flat");
+        assertTrue(document.contains("startTimeUnixNano") && document.contains("endTimeUnixNano"),
+                "a span without both ends is not a duration");
+
+        // Derived from the run's own key, so a collector that missed a window
+        // and asked again gets the answer it would have got rather than a
+        // second copy drawn beside the first.
+        assertEquals(document, traces(token()).body(),
+                "asking twice rendered different spans for the same runs");
+
+        // The rule the run's labels already keep: a span says which tenant
+        // and which step, never what the step was working on.
+        assertFalse(document.contains(MOVED + "-"),
+                "a span carried something that looks like a record's identity");
+    }
+
     // ----------------------------------------------------------- the asking
 
     private Runs runs() {
@@ -193,6 +225,16 @@ class MovingATenantsDataIsRecordedIT {
                                 Base64.getEncoder().encodeToString(OWNER_KEY))
                         .POST(java.net.http.HttpRequest.BodyPublishers.noBody()).build(),
                 java.net.http.HttpResponse.BodyHandlers.ofByteArray());
+    }
+
+    private java.net.http.HttpResponse<String> traces(String bearer) throws Exception {
+        return java.net.http.HttpClient.newHttpClient().send(
+                java.net.http.HttpRequest.newBuilder(java.net.URI.create(
+                                manager.baseUrl(MOVED).replace("/fhir", "/admin/traces")
+                                        + "?since=2020-01-01T00:00:00Z"))
+                        .header("Authorization", "Bearer " + bearer)
+                        .POST(java.net.http.HttpRequest.BodyPublishers.noBody()).build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
     }
 
     private java.net.http.HttpResponse<String> restoreWithoutAttestation(String bearer)

@@ -116,6 +116,7 @@ public final class MaintenanceHandler implements HttpHandler {
             switch (relative) {
                 case "archive" -> archive(exchange);
                 case "restore" -> restore(exchange);
+                case "traces" -> traces(exchange);
                 case "inventory" -> inventory(exchange);
                 case "projection" -> projection(exchange);
                 case "reshape" -> reshape(exchange);
@@ -159,6 +160,39 @@ public final class MaintenanceHandler implements HttpHandler {
             recorded.failed(failed.toString());
             throw failed;
         }
+    }
+
+    /**
+     * What this deployment did, as spans.
+     *
+     * <p>A pull rather than a push, because the runs are already durable: a
+     * collector that was down missed nothing and can ask again, and asking
+     * twice gives the same spans rather than two copies — the ids are
+     * derived from the run's own key.
+     *
+     * <p>System-plane like everything else here. A span carries which
+     * tenant, which step and what it tallied, and never a step's words about
+     * what it was working on; but a deployment's shape is still a
+     * deployment's business.
+     */
+    private void traces(HttpExchange exchange) throws IOException {
+        String since = exchange.getRequestURI().getQuery() == null ? null
+                : java.util.Arrays.stream(exchange.getRequestURI().getQuery().split("&"))
+                        .filter(one -> one.startsWith("since="))
+                        .map(one -> one.substring(6)).findFirst().orElse(null);
+        java.time.Instant from = since == null
+                ? java.time.Instant.now().minus(java.time.Duration.ofHours(1))
+                : java.time.Instant.parse(since);
+        var held = recording.store().orElse(null);
+        if (held == null) {
+            // Nobody managing, so there is no deployment history to render.
+            // An empty document rather than a 404: the question was valid and
+            // the answer is that nothing was recorded.
+            respond(exchange, 200, "{\"resourceSpans\":[]}");
+            return;
+        }
+        cloud.jengu.dbo.work.RunSpans spans = new cloud.jengu.dbo.work.RunSpans(held);
+        respond(exchange, 200, spans.asOtlp(spans.since(from, recording.tenant()), "dbo"));
     }
 
     /**

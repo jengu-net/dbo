@@ -1255,7 +1255,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // deployment will not serve leaves no history of coming up. What
         // follows hangs beneath it: the database, then whatever this tenant
         // is given of somebody else's rows.
-        MaintenanceRecording recording = new MaintenanceRecording(this::managementRuns,
+        MaintenanceRecording recording = new MaintenanceRecording(this::managementStore,
                 spec.code());
         MaintenanceRecording.Recorded bringUp = recording.open(
                 MaintenanceRecording.BRINGING_UP, "serve", spec.face(), null);
@@ -1504,7 +1504,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // handler that captured an absent store would record
                     // nothing for the life of the node.
                     .recordingInto(new MaintenanceRecording(
-                            this::managementRuns, spec.code())));
+                            this::managementStore, spec.code())));
             maintenanceContexts.put(spec.code(), adminPath);
             // Asking for a person's erasure. Its own door and its own
             // scope, beside maintenance rather than inside it: archiving and
@@ -2684,6 +2684,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * managing — a mechanic with no management tenant records nothing rather
      * than inventing somewhere to write.
      */
+    /** The managing tenant's store, or empty when nobody is managing. */
+    private Optional<ObjectStore> managementStore() {
+        return Optional.ofNullable(managementCode == null ? null : runStores.get(managementCode));
+    }
+
     private Optional<cloud.jengu.dbo.work.Runs> managementRuns() {
         ObjectStore store = managementCode == null ? null : runStores.get(managementCode);
         return Optional.ofNullable(store).map(cloud.jengu.dbo.work.Runs::new);

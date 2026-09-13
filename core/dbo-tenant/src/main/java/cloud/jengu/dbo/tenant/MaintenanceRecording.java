@@ -44,12 +44,23 @@ final class MaintenanceRecording {
      */
     static final String BRINGING_UP = "dbo.tenant.bringup";
 
-    private final Supplier<Optional<Runs>> runs;
+    private final Supplier<Optional<cloud.jengu.dbo.core.api.ObjectStore>> history;
     private final String tenant;
 
-    MaintenanceRecording(Supplier<Optional<Runs>> runs, String tenant) {
-        this.runs = runs;
+    MaintenanceRecording(Supplier<Optional<cloud.jengu.dbo.core.api.ObjectStore>> history,
+            String tenant) {
+        this.history = history;
         this.tenant = tenant;
+    }
+
+    /** Where this deployment's history is, for a reader rather than a writer. */
+    Optional<cloud.jengu.dbo.core.api.ObjectStore> store() {
+        return history.get();
+    }
+
+    /** Which tenant these records are about. */
+    String tenant() {
+        return tenant;
     }
 
     /** Nothing to write to, which is the ordinary case for a mechanic. */
@@ -80,7 +91,7 @@ final class MaintenanceRecording {
      */
     Recorded open(String process, String step, String kind, Recorded under) {
         try {
-            Runs held = runs.get().orElse(null);
+            Runs held = history.get().map(Runs::new).orElse(null);
             if (held == null) {
                 return Recorded.NOTHING;
             }
