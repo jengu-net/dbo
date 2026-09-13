@@ -55,32 +55,46 @@ public final class RunSpans {
      */
     public List<Span> since(Instant from, String tenant) {
         List<Span> spans = new ArrayList<>();
+        List<Run> opened = new ArrayList<>();
+        Map<String, Instant> began = new java.util.HashMap<>();
+        Map<String, Instant> ended = new java.util.HashMap<>();
+        Map<String, String> parents = new java.util.HashMap<>();
         for (StoredObject held : store.select(Criteria.of(WorkModel.TYPE))) {
             List<StoredObject> versions = store.history(WorkModel.TYPE, held.id());
             if (versions.isEmpty()) {
                 continue;
             }
-            Instant began = versions.get(0).lastUpdated();
-            if (began.isBefore(from)) {
+            Run run = Run.of(held);
+            // Every run's parentage, not only the window's, because the root
+            // a window's runs hang from may have opened before it — a restore
+            // an hour in is exactly the case this is for.
+            parents.put(run.key(), run.parent());
+            Instant opening = versions.get(0).lastUpdated();
+            if (opening.isBefore(from)) {
                 continue;
             }
-            Run run = Run.of(held);
+            opened.add(run);
+            began.put(run.key(), opening);
+            ended.put(run.key(), held.lastUpdated());
+        }
+        for (Run run : opened) {
             spans.add(new Span(
                     // The trace the work was handed, or the correlation that
-                    // identifies it, or its own key. A run that was never
-                    // given either still belongs to something, and that
-                    // something is itself.
-                    identifier(run.trace(), run.correlation(), run.key()),
+                    // identifies it, or the key of the run its parentage ends
+                    // at. Its own key only when it is that root itself: a
+                    // tree whose branches each invented a trace is not a
+                    // tree, it is one drawing per branch.
+                    identifier(run.trace(), run.correlation(), rootOf(run.key(), parents)),
                     identifier(run.key(), null, run.key()),
                     run.parent() == null ? null : identifier(run.parent(), null, run.parent()),
                     run.process() + "/" + run.step(),
-                    began,
+                    began.get(run.key()),
                     // The last version is when it stopped being written to,
                     // which for a closed run is when it closed and for one
                     // still open is now-ish. A span for unfinished work is
                     // honest about that through its outcome rather than by
                     // pretending it ended.
-                    held.lastUpdated(),
+                    ended.get(run.key()),
                     tenant,
                     run.tally(),
                     run.holder().wire()));
@@ -133,6 +147,26 @@ public final class RunSpans {
             out.append("]}");
         }
         return out.append("]}]}]}").toString();
+    }
+
+    /**
+     * The key a run's parentage ends at, following it as far as it is known.
+     *
+     * <p>A parent that is not in the store any more ends the walk and becomes
+     * the root, which keeps its children in one trace rather than scattering
+     * them. The depth cap is not for cycles a run can legitimately have —
+     * there are none — but because this reads rows and rows can be wrong.
+     */
+    private static String rootOf(String key, Map<String, String> parents) {
+        String at = key;
+        for (int depth = 0; depth < 64; depth++) {
+            String above = parents.get(at);
+            if (above == null || above.equals(at)) {
+                return at;
+            }
+            at = above;
+        }
+        return at;
     }
 
     private static String attribute(String key, String value) {

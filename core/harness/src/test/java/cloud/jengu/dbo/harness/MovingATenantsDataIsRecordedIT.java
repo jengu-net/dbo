@@ -191,6 +191,21 @@ class MovingATenantsDataIsRecordedIT {
                         Math.min(400, document.length())));
         assertTrue(document.contains("\"parentSpanId\""),
                 "no span has a parent, so the tree came out flat");
+
+        // ONE trace for the tree, not one per branch. A child carries no
+        // trace of its own, so falling back to its own key gave every phase
+        // of a bring-up a trace to itself — parents and children that a
+        // viewer then draws as unrelated single-span traces.
+        var spans = new cloud.jengu.dbo.work.RunSpans(
+                manager.runtime(management).orElseThrow().engine())
+                .since(java.time.Instant.now().minus(java.time.Duration.ofHours(1)), management);
+        var bringUp = spans.stream()
+                .filter(span -> span.name().startsWith("dbo.tenant.bringup/"))
+                .toList();
+        assertTrue(bringUp.size() > 1, "the bring-up rendered as fewer spans than it has phases");
+        assertEquals(1, bringUp.stream().map(cloud.jengu.dbo.work.RunSpans.Span::traceId)
+                        .distinct().count(),
+                "the phases of one bring-up came out as separate traces: " + bringUp);
         assertTrue(document.contains("startTimeUnixNano") && document.contains("endTimeUnixNano"),
                 "a span without both ends is not a duration");
 
