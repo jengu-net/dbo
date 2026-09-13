@@ -1,6 +1,6 @@
 ---
 name: dbo-using
-description: Building an application on top of the DBO store, or reviewing one that is. Triggers when work would add persistence, a user or role model, an audit log, a job queue, encryption of personal data, an export or import path, terminology lookup, validation of a payload, or a change-notification mechanism — any of which the store may already provide, and providing it twice is two answers that drift.
+description: Building an application on top of the DBO store, or reviewing one that is. Triggers when work would add persistence, a user or role model, an audit log, a job queue, encryption of personal data, an export or import path, terminology lookup, validation of a payload, a change-notification mechanism, or anything answering a data-protection obligation such as the GDPR's — any of which the store may already provide, and providing it twice is two answers that drift.
 ---
 
 # dbo-using
@@ -8,7 +8,7 @@ description: Building an application on top of the DBO store, or reviewing one t
 > **Generated from its source document — do not edit.** Change the
 > skill-block in the source document and run `./gradlew generateSkills`.
 
-**Apply when:** Building an application on top of the DBO store, or reviewing one that is. Triggers when work would add persistence, a user or role model, an audit log, a job queue, encryption of personal data, an export or import path, terminology lookup, validation of a payload, or a change-notification mechanism — any of which the store may already provide, and providing it twice is two answers that drift.
+**Apply when:** Building an application on top of the DBO store, or reviewing one that is. Triggers when work would add persistence, a user or role model, an audit log, a job queue, encryption of personal data, an export or import path, terminology lookup, validation of a payload, a change-notification mechanism, or anything answering a data-protection obligation such as the GDPR's — any of which the store may already provide, and providing it twice is two answers that drift.
 
 ## Reference
 

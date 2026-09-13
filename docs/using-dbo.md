@@ -36,21 +36,23 @@ the configuration, and the definitions the store validates against.
 | an authentication flow, token issuing and validation | a **per-tenant OIDC authority**, federated to a broker | [Authentication and authorisation](#authentication-and-authorisation-who-may-act) |
 | a user table, roles, and a permission matrix | **authorisation** from the tenant's own records | [Authentication and authorisation](#authentication-and-authorisation-who-may-act) |
 | a user-provisioning endpoint for your identity provider | **SCIM 2.0** at `/t/<code>/scim/v2` | [Authentication and authorisation](#authentication-and-authorisation-who-may-act) |
-| an audit log table and the code that writes it | **audit as records** — the trail | [The trail](#the-trail) |
+| an audit log table and the code that writes it | **audit as records** — the trail | [The trail](#the-trail-audit-as-records) |
 | a purpose or lawful-basis story you assemble for an auditor | the step *is* the purpose, and the trail records it | [Meeting the regulation](#meeting-the-regulation) |
 | a GDPR checklist implemented once per application | a mechanism per obligation | [Meeting the regulation](#meeting-the-regulation) |
-| field-level encryption and a key table | personal-data isolation | [Personal data](#personal-data) |
-| a "delete this person everywhere" script | erasure that reaches copies | [Erasure](#erasure) |
+| field-level encryption and a key table | personal-data isolation | [Personal data](#personal-data-encryption-and-the-vault) |
+| a "delete this person everywhere" script | erasure that reaches copies | [Erasure](#erasure-the-right-to-be-forgotten) |
 | an export job and an import job | one archive, both ways | [Export, import, backup](#export-import-backup) |
-| a job table, a worker loop, retries | **processes → steps → runs** | [Work](#work) |
-| a queue or broker between services | lanes and feeds | [Work](#work), [Feeds](#feeds) |
-| a change-notification table and pollers | the change feed with named consumers | [Feeds](#feeds) |
-| a terminology table and code lookups | terminology as rows | [Terminology](#terminology) |
+| a job table, a worker loop, retries | **processes → steps → runs** | [Work](#work-processes-steps-and-runs) |
+| a queue or broker between services | lanes and feeds | [Work](#work-processes-steps-and-runs), [Feeds](#feeds-change-events-paging-and-replication) |
+| a change-notification table and pollers | the change feed with named consumers | [Feeds](#feeds-change-events-paging-and-replication) |
+| a terminology table and code lookups | terminology as rows | [Terminology](#terminology-code-systems-and-value-sets) |
 | a validator, or per-endpoint field checks | validation from declared definitions | [Validation](#validation) |
 | a search endpoint per query shape | declared search | [Search](#search) |
-| a country/config table read at startup | zones and applied configuration | [Jurisdiction](#jurisdiction), [Configuration](#configuration) |
-| a version-migration script for stored payloads | payload converters on read | [Records](#records) |
-| a "who changed what when" screen | history, every version kept | [Records](#records) |
+| a country/config table read at startup | zones and applied configuration | [Jurisdiction](#jurisdiction-zones), [Configuration](#configuration) |
+| a webhook or push-notification delivery service | the **feed** — subscription delivery does not run | [What is not there](#what-is-not-there) |
+| file or document storage | **nothing yet** — blob storage is not built | [What is not there](#what-is-not-there) |
+| a version-migration script for stored payloads | payload converters on read | [Records](#records-storage-versions-and-history) |
+| a "who changed what when" screen | history, every version kept | [Records](#records-storage-versions-and-history) |
 
 ---
 
@@ -73,7 +75,7 @@ property of where the data is, not of a predicate somebody remembered.
 
 → [a tenant is a database](arc42-008-crosscutting/data-isolation/README.md)
 
-## Records
+## Records: storage, versions and history
 
 **What it is.** An opaque payload with a derived, searchable envelope. Every
 version is kept; each links to the one before it, so an edited history fails
@@ -131,7 +133,7 @@ only one of the two was updated.
 
 → [who may act](arc42-008-crosscutting/who-may-act/README.md)
 
-## Work
+## Work: processes, steps and runs
 
 **What it is.** A **process** is named work with **steps**; a **step** is the
 unit everything attaches to — what it consumes, what it produces, who may
@@ -158,7 +160,7 @@ record was read.
 
 → [processes and work](arc42-008-crosscutting/processes-and-work/README.md)
 
-## Feeds
+## Feeds: change events, paging and replication
 
 **What it is.** One primitive serves paging and synchronisation: an ordered,
 replayable sequence with a durable cursor. Every durable consumer is a name
@@ -213,7 +215,7 @@ specification when it moves.
 
 → [the engine and its faces](arc42-008-crosscutting/engine-and-faces/README.md)
 
-## Terminology
+## Terminology: code systems and value sets
 
 **What it is.** A concept per row rather than a resource per code system, so a
 large code system loads and answers quickly. A tenant holds its own; a shell
@@ -227,7 +229,7 @@ which is a different answer from *invalid*.
 logic — plus the decision, made once per application, about what to do with a
 code you cannot resolve.
 
-## Personal data
+## Personal data: encryption and the vault
 
 **What it is.** Identifying material is encrypted **inside the payload**, with
 a key belonging to that person, in the same atomic write. So history, feeds,
@@ -245,7 +247,7 @@ plaintext into a log, an export or a replica.
 
 → [data isolation](arc42-008-crosscutting/data-isolation/README.md)
 
-## Erasure
+## Erasure: the right to be forgotten
 
 **What it is.** Erasing a person destroys the key rather than chasing rows, so
 it reaches copies nobody can recall — including archives already written. The
@@ -259,7 +261,7 @@ what happened, which a deletion never could.
 holding a copy, and the unanswerable question of what to do about last
 month's backup tape.
 
-## The trail
+## The trail: audit as records
 
 **What it is.** Audit entries are ordinary records in the tenant's own audit
 domain, with their own feed. The trail is open upward and closed downward:
@@ -276,7 +278,7 @@ to it like any other feed.
 to it on every path, the retention job, and the argument about whether an
 administrator could have edited it.
 
-## Jurisdiction
+## Jurisdiction: zones
 
 **What it is.** A **zone** is a tenant whose records are a country's rules:
 which identity brokers exist, which identifier systems people are resolved by,
@@ -327,7 +329,7 @@ leaves, written against a schema that has since moved.
 ## Meeting the regulation
 
 **What it is.** The store's concepts are the ones European data-protection law
-asks of any system holding personal data — purpose, custody, declared handling,
+— the GDPR among them — asks of any system holding personal data — purpose, custody, declared handling,
 history, tenancy, erasure. Each obligation has a **mechanism** rather than a
 procedure somebody performs.
 
@@ -397,8 +399,9 @@ applies-when: >-
   Building an application on top of the DBO store, or reviewing one that is.
   Triggers when work would add persistence, a user or role model, an audit
   log, a job queue, encryption of personal data, an export or import path,
-  terminology lookup, validation of a payload, or a change-notification
-  mechanism — any of which the store may already provide, and providing it
+  terminology lookup, validation of a payload, a change-notification
+  mechanism, or anything answering a data-protection obligation such as the
+  GDPR's — any of which the store may already provide, and providing it
   twice is two answers that drift.
 reference: docs/using-dbo.md
 ```
