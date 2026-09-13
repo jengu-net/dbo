@@ -42,6 +42,14 @@ services:
       ZO_ROOT_USER_EMAIL: ${DBO_O2_EMAIL:?set it in .env}
       ZO_ROOT_USER_PASSWORD: ${DBO_O2_PASSWORD:?set it in .env}
       ZO_DATA_DIR: /data
+      # Days, and the reason there is a number here at all: a stream created
+      # with no setting of its own inherits this, and the shipped default is
+      # effectively forever. An instance meant to outlive a reboot and be
+      # forgotten about will quietly fill a disk — an accidental host-log
+      # shipper put eleven gigabytes here in under an hour — and a
+      # development machine's history stops being worth anything long before
+      # a month is out anyway. A stream that deserves longer says so itself.
+      ZO_COMPACT_DATA_RETENTION_DAYS: "30"
     ports:
       # Bound to the loopback on purpose. This holds whatever a development
       # machine has measured, under one root credential, and a port on every

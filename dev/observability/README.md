@@ -39,6 +39,25 @@ is for, and it cannot half-work.
 only** — changing them later edits nothing, because the account already
 exists. To start over, `docker compose down -v` and bring it back up.
 
+## How long it keeps things
+
+Thirty days by default, set in `compose.yaml`. The shipped default is
+effectively forever, which is the wrong posture for an instance that is meant
+to outlive a reboot and then be forgotten about: a development machine's
+history stops being worth much long before a month is out, and a disk filling
+quietly is the failure that goes unnoticed longest.
+
+A stream that deserves a different answer sets its own, which overrides the
+default:
+
+```bash
+curl -X PUT -u "$EMAIL:$PASSWORD" -H 'Content-Type: application/json' \
+  'http://localhost:5080/api/default/streams/<stream>/settings?type=logs' \
+  -d '{"data_retention": 7}'
+```
+
+A stream left at `0` inherits the default rather than keeping data forever.
+
 ## Pointing the test suite at it
 
 The seam reads the protocol's own environment variables, so nothing in the
