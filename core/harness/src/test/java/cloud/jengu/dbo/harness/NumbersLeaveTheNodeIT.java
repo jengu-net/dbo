@@ -133,4 +133,64 @@ class NumbersLeaveTheNodeIT {
         assertFalse(unconfigured.exporting(), "no endpoint: counted, sent nowhere");
         assertFalse(unconfigured.flush());
     }
+
+    @Test
+    @DisplayName("the batch says which process it came from: the service a deployment named, and "
+            + "an instance minted per JVM so two reporters of one name are two series")
+    @Proving(DboPromises.OPS_NUMBERS_LEAVE_THE_NODE)
+    void theResourceNamesTheReporter() {
+        OtlpTelemetry unnamed = new OtlpTelemetry(endpoint, null, "60");
+        try {
+            unnamed.counted("dbo.busy", 1, Labels.none());
+            assertTrue(unnamed.flush(), "the collector accepted the batch");
+            String batch = received.get(received.size() - 1);
+            assertTrue(batch.contains("\"key\":\"service.name\"")
+                            && batch.contains("\"stringValue\":\"dbo\""),
+                    "a node nobody renamed is the store's own name: " + batch);
+            assertTrue(batch.contains("\"key\":\"service.instance.id\""),
+                    "and it says which process it is: " + batch);
+        } finally {
+            unnamed.close();
+        }
+
+        // Two reporters in one JVM share its instance, because the instance
+        // is the process. What must not collide is two PROCESSES, which is
+        // what the per-JVM mint answers and what no assertion inside one JVM
+        // can show — so what is checked here is that the id is stable within
+        // a process, the half that would otherwise make every flush a new
+        // series.
+        OtlpTelemetry again = new OtlpTelemetry(endpoint, null, "60");
+        try {
+            again.counted("dbo.busy", 1, Labels.none());
+            assertTrue(again.flush());
+            assertEquals(instanceIn(received.get(received.size() - 2)),
+                    instanceIn(received.get(received.size() - 1)),
+                    "one process is one instance, however many exporters it opens");
+        } finally {
+            again.close();
+        }
+
+        System.setProperty("dbo.telemetry.otlp.service", "dbo-tests");
+        OtlpTelemetry named = new OtlpTelemetry(endpoint, null, "60");
+        try {
+            named.counted("dbo.busy", 1, Labels.none());
+            assertTrue(named.flush());
+            assertTrue(received.get(received.size() - 1)
+                            .contains("\"stringValue\":\"dbo-tests\""),
+                    "a deployment that named itself is called that: "
+                            + received.get(received.size() - 1));
+        } finally {
+            named.close();
+            System.clearProperty("dbo.telemetry.otlp.service");
+        }
+    }
+
+    /** The instance id out of a batch, which is what two batches are compared on. */
+    private static String instanceIn(String batch) {
+        String at = "\"key\":\"service.instance.id\",\"value\":{\"stringValue\":\"";
+        int from = batch.indexOf(at);
+        assertTrue(from >= 0, "the batch names its instance: " + batch);
+        from += at.length();
+        return batch.substring(from, batch.indexOf('"', from));
+    }
 }

@@ -1,0 +1,87 @@
+# A local observability instance that stays up.
+#
+# ─── What this is for, and what it is not ───────────────────────────
+#
+# Somewhere for a development machine's numbers to land and be looked at
+# later. It is deliberately long-lived: the data outlives a container, the
+# container outlives a reboot, and a reading taken on Tuesday is still there
+# on Thursday. That is the whole difference from the quickstart, whose every
+# byte is on tmpfs so that a second run behaves like the first.
+#
+# It is not part of any deployment and nothing in the store depends on it.
+# A node with no collector counts and sends nowhere, which is what a node has
+# always done — so this being down is not a failure of anything.
+#
+# ─── Running it ─────────────────────────────────────────────────────
+#
+#   cp env.example .env      # once, then edit the password
+#   docker compose up -d     # and it stays up from here, reboots included
+#
+# The console is at http://localhost:5080 under the credentials in .env.
+#
+# The image is pinned by digest rather than to `latest`, for the reason the
+# quickstart pins to a commit: somebody who types no version should not
+# receive an arbitrary one, and upgrading should be a change somebody made on
+# purpose. This digest is v1.0.0. To move it, pull the tag, read the new digest,
+# and write it here.
+
+name: dbo-observability
+
+services:
+  openobserve:
+    image: openobserve/openobserve@sha256:d581789cb03b5f061ed56a3e864b5e4bbc86bbf6d317ec863372e98ee49b30d5
+    # Comes back after a reboot, and after a crash, but stops staying up once
+    # somebody stops it on purpose — `unless-stopped` rather than `always`,
+    # because a container that fights being switched off is a nuisance.
+    restart: unless-stopped
+    environment:
+      # Both are checked on first boot and the rules are strict: the email
+      # needs a real domain, and the password needs upper, lower, digit and
+      # symbol across at least eight characters. A value that fails either
+      # makes the process exit rather than start unconfigured.
+      ZO_ROOT_USER_EMAIL: ${DBO_O2_EMAIL:?set it in .env}
+      ZO_ROOT_USER_PASSWORD: ${DBO_O2_PASSWORD:?set it in .env}
+      ZO_DATA_DIR: /data
+      # Days, and the reason there is a number here at all: a stream created
+      # with no setting of its own inherits this, and the shipped default is
+      # effectively forever. An instance meant to outlive a reboot and be
+      # forgotten about will quietly fill a disk — an accidental host-log
+      # shipper put eleven gigabytes here in under an hour — and a
+      # development machine's history stops being worth anything long before
+      # a month is out anyway. A stream that deserves longer says so itself.
+      ZO_COMPACT_DATA_RETENTION_DAYS: "30"
+    ports:
+      # Bound to the loopback on purpose. This holds whatever a development
+      # machine has measured, under one root credential, and a port on every
+      # interface is how that becomes visible to a coffee shop.
+      - "127.0.0.1:5080:5080"
+    volumes:
+      # A named volume, which is the point: `docker compose down` leaves the
+      # history alone, and only `down -v` throws it away.
+      - data:/data
+    healthcheck:
+      test: ["CMD", "/openobserve", "--help"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Reads the development console's log and posts it to the instance beside
+  # it. Separate from the store on purpose: a node does not know who is
+  # reading it, and a console that had to be told where to log would be a
+  # development posture that no deployment shares.
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.115.1
+    restart: unless-stopped
+    depends_on: [openobserve]
+    command: ["--config=/etc/collector.yaml"]
+    environment:
+      O2_AUTH: Basic ${DBO_O2_TOKEN:?set it in .env}
+    volumes:
+      - ./collector.yaml:/etc/collector.yaml:ro
+      # The console writes here when it is running; absent, the receiver just
+      # finds nothing, which is the ordinary state of a machine not running one.
+      - ../../karaf/build/dbo-console/karaf/data/log:/logs:ro
+
+volumes:
+  data:

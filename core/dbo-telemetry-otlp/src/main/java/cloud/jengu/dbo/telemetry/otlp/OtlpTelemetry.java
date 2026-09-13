@@ -49,6 +49,33 @@ public final class OtlpTelemetry implements Telemetry {
     static final String ENDPOINT = "dbo.telemetry.otlp.endpoint";
     static final String HEADERS = "dbo.telemetry.otlp.headers";
     static final String INTERVAL = "dbo.telemetry.otlp.interval.seconds";
+    static final String SERVICE = "dbo.telemetry.otlp.service";
+    static final String INSTANCE = "dbo.telemetry.otlp.instance";
+
+    /**
+     * What this process calls itself when nothing said otherwise.
+     *
+     * <p>One store, one name, and a deployment that runs more than one kind
+     * of node says so rather than being guessed at.
+     */
+    static final String DEFAULT_SERVICE = "dbo";
+
+    /**
+     * This process, distinctly from any other reporting the same name.
+     *
+     * <p>Minted per JVM rather than left absent, and that is the opposite of
+     * what a trace context gets, for a reason worth keeping straight: a trace
+     * context belongs to a chain somebody else started, so inventing one
+     * fabricates a relationship. An instance id names THIS process and
+     * nothing else, so there is no one else's fact to get wrong — and the
+     * protocol asks for a fresh one per process for exactly this case.
+     *
+     * <p>Without it every reporter sharing a name is one series, and a count
+     * is cumulative: two processes counting from zero against one identity
+     * read as a single counter that keeps falling over. Several test JVMs on
+     * one machine are the ordinary way to meet that.
+     */
+    private static final String PROCESS_INSTANCE = java.util.UUID.randomUUID().toString();
     /** Seconds; the classic latency ladder, which is what a request or a step takes. */
     static final double[] BOUNDS = {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30};
 
@@ -69,6 +96,8 @@ public final class OtlpTelemetry implements Telemetry {
     private final Map<String, Histogram> histograms = new ConcurrentHashMap<>();
     private final long startedNanos = System.currentTimeMillis() * 1_000_000L;
     private final URI endpoint;
+    private final String service;
+    private final String instance;
     private final Map<String, String> headers;
     private final HttpClient http;
     private final AtomicBoolean closed = new AtomicBoolean();
@@ -88,6 +117,13 @@ public final class OtlpTelemetry implements Telemetry {
                 : URI.create(endpoint.endsWith("/v1/metrics") || endpoint.contains("/v1/metrics")
                         ? endpoint : endpoint.replaceAll("/+$", "") + "/v1/metrics");
         this.headers = parseHeaders(headers);
+        // Read here rather than taken as parameters, so the explicit
+        // constructor a proof or an embedder uses is identified the same way
+        // the ServiceLoader one is, and neither has to remember to pass it.
+        String named = property(SERVICE, "OTEL_SERVICE_NAME", null);
+        this.service = named == null || named.isBlank() ? DEFAULT_SERVICE : named.trim();
+        String said = property(INSTANCE, "OTEL_SERVICE_INSTANCE_ID", null);
+        this.instance = said == null || said.isBlank() ? PROCESS_INSTANCE : said.trim();
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
         if (this.endpoint != null) {
             long seconds = 10;
@@ -202,8 +238,12 @@ public final class OtlpTelemetry implements Telemetry {
                     + startedNanos + "\",\"timeUnixNano\":\"" + now + "\"," + histogram.render()
                     + "}]}}");
         }
-        return "{\"resourceMetrics\":[{\"resource\":{\"attributes\":[{\"key\":\"service.name\","
-                + "\"value\":{\"stringValue\":\"dbo\"}}]},\"scopeMetrics\":[{\"scope\":{\"name\":"
+        return "{\"resourceMetrics\":[{\"resource\":{\"attributes\":["
+                + "{\"key\":\"service.name\",\"value\":{\"stringValue\":"
+                + quoted(service) + "}},"
+                + "{\"key\":\"service.instance.id\",\"value\":{\"stringValue\":"
+                + quoted(instance) + "}}"
+                + "]},\"scopeMetrics\":[{\"scope\":{\"name\":"
                 + "\"cloud.jengu.dbo\"},\"metrics\":[" + metrics + "]}]}]}";
     }
 

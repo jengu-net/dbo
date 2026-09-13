@@ -21,7 +21,7 @@ honour. It is a set of things the operator cannot do.</p>
 
 <div class="cta" markdown>
 [Why it is shaped this way](why/){ .btn .primary }
-[Run it in a minute](technical/quickstart/){ .btn }
+[Run it in a minute](technical/quickstart-docker/){ .btn }
 [Source on GitHub](https://github.com/jengu-net/dbo){ .btn }
 </div>
 </div>

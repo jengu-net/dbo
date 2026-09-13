@@ -176,15 +176,56 @@ subprojects {
                     systemProperty("junit.jupiter.execution.parallel.enabled", "false")
                 }
             }
+            // Where a development machine's numbers go, when it has
+            // somewhere to put them (dev/observability). Absent, this does
+            // nothing at all: no endpoint means the exporter is installed and
+            // idle, which is what a node without a collector has always done
+            // — so CI and a machine with no instance running are untouched.
+            //
+            // Set on the forked JVM as an ENVIRONMENT variable, not a system
+            // property, and that distinction is load-bearing: the suite that
+            // proves the exporter sets dbo.telemetry.otlp.endpoint itself and
+            // CLEARS it afterwards, so a system property set here would be
+            // wiped part-way through a run and every later step would report
+            // nowhere. The seam reads the framework, then system properties,
+            // then the protocol's own environment variables; the test owns
+            // the middle one, this owns the last, and neither disturbs the
+            // other. The dial itself stays a project property for the reason
+            // the others are — a daemon keeps the environment it was born
+            // with.
+            (findProperty("dboTelemetryEndpoint") as String?)?.let { endpoint ->
+                environment("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", endpoint)
+                (findProperty("dboTelemetryHeaders") as String?)?.let {
+                    environment("OTEL_EXPORTER_OTLP_HEADERS", it)
+                }
+                // Seconds. Short because a test JVM is short-lived and its
+                // flusher is a virtual thread, so nothing waits for it at
+                // exit: what has not been posted when the suite ends is lost.
+                // Counts are cumulative, so each post carries the running
+                // total and the loss is bounded by one interval rather than
+                // accumulating.
+                environment("OTEL_METRIC_EXPORT_INTERVAL",
+                    (findProperty("dboTelemetryInterval") as String?) ?: "2")
+                // A suite is not a node, and a dashboard that mixes them is
+                // answering a question nobody asked. The instance id the
+                // exporter mints per JVM keeps each forked worker's
+                // cumulative counts a series of their own; this is what
+                // separates the whole run from a store somebody is actually
+                // running on the same machine.
+                environment("OTEL_SERVICE_NAME",
+                    (findProperty("dboTelemetryService") as String?) ?: "dbo-tests")
+            }
             // Say what actually applies, in the plain log: five CI runs died
             // to dials that LOOKED set, and the cure is the task stating its
             // own effective numbers where a log reader sees them.
             doFirst {
-                logger.lifecycle("test jvm: maxHeapSize={} parallelismOverride={}",
+                logger.lifecycle("test jvm: maxHeapSize={} parallelismOverride={} telemetry={}",
                         maxHeapSize,
                         systemProperties[
                             "junit.jupiter.execution.parallel.config.fixed.parallelism"]
-                            ?: "none (junit-platform.properties)")
+                            ?: "none (junit-platform.properties)",
+                        environment["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"]
+                            ?: "none (counted and sent nowhere)")
             }
         }
     }
