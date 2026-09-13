@@ -69,7 +69,10 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
     /** Per type, so the crowded ones do not decide the number for the rest. */
     private static final int PER_TYPE = 25;
 
-    private static final Path BASELINE = Path.of("..", "..", "config", "envelope-baseline.txt");
+    /** Handed over by the build, which is also what makes it an input. */
+    private static final Path BASELINE =
+            Path.of(System.getProperty("dbo.definition.envelope.baseline",
+                    "../../config/definition-envelope-baseline.txt"));
     private static final ObjectMapper JSON = new ObjectMapper();
 
     static PostgreSQLContainer<?> postgres;
@@ -204,6 +207,121 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
         assertTrue(built.has("status"), "status is a published parameter and is not here: "
                 + built);
     }
+
+    @Test
+    @Timeout(900)
+    @DisplayName("the two agree about the definitions a version publishes, and the record says "
+            + "about how many")
+    @Proving(DboPromises.SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE)
+    void theTwoAgreeAboutTheDefinitionsAVersionPublishes() throws Exception {
+        // The definition types are extracted by a narrow hand-written path of
+        // their own — a definition arriving is the one write that cannot wait
+        // for a context able to parse it — so this is a second contract
+        // beside the one the ordinary types keep, and the two have to be held
+        // to the same place. Not because a definition is about to be indexed
+        // in the database: a face root writes six and a half thousand of them
+        // at once and the hand-written path is what makes that cheap. Because
+        // two extractors that disagree are two answers to one search, and
+        // which one a tenant gets would depend on how its face was loaded.
+        Map<String, int[]> perType = new TreeMap<>();
+        Map<String, Set<String>> differing = new TreeMap<>();
+        try (Connection c = tenantSource().getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     SELECT type, envelope,
+                            dbo.envelope(convert_from(payload, 'UTF8')::jsonb, type)
+                       FROM definitions.definitions_data WHERE NOT deleted""");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String type = rs.getString(1);
+                int[] tally = perType.computeIfAbsent(type, ignored -> new int[2]);
+                tally[0]++;
+                JsonNode inForce = JSON.readTree(rs.getString(2));
+                JsonNode built = JSON.readTree(rs.getString(3));
+                if (inForce.equals(built)) {
+                    tally[1]++;
+                    continue;
+                }
+                Set<String> keys = differing.computeIfAbsent(type, i -> new java.util.TreeSet<>());
+                Set<String> all = new java.util.TreeSet<>();
+                inForce.fieldNames().forEachRemaining(all::add);
+                built.fieldNames().forEachRemaining(all::add);
+                for (String key : all) {
+                    JsonNode a = inForce.get(key);
+                    JsonNode b = built.get(key);
+                    if (a == null) {
+                        keys.add(key + "(only the database)");
+                    } else if (b == null) {
+                        keys.add(key + "(only in force)");
+                    } else if (!a.equals(b)) {
+                        keys.add(key);
+                    }
+                }
+            }
+        }
+        assertTrue(perType.values().stream().mapToInt(t -> t[0]).sum() > 5000,
+                "a face is the whole of what a version publishes, and this compared " + perType);
+
+        StringBuilder observed = new StringBuilder();
+        perType.forEach((type, tally) -> observed.append(type)
+                .append(" compared=").append(tally[0])
+                .append(" agreed=").append(tally[1])
+                .append(" differing=")
+                .append(String.join("|", differing.getOrDefault(type, Set.of())))
+                .append('\n'));
+        Path baseline = BASELINE.toAbsolutePath().normalize();
+        if (!Files.exists(baseline) || Boolean.getBoolean("dbo.envelope.record")) {
+            Files.writeString(baseline, PREAMBLE + observed);
+            System.out.println("definition envelope baseline recorded: " + baseline);
+            System.out.println(observed);
+            return;
+        }
+        List<String> worse = new ArrayList<>();
+        Map<String, int[]> was = new TreeMap<>();
+        for (String line : Files.readString(baseline).split("\n")) {
+            if (line.isBlank() || line.startsWith("#")) {
+                continue;
+            }
+            String[] parts = line.trim().split(" ");
+            was.put(parts[0], new int[] {number(parts[1]), number(parts[2])});
+        }
+        perType.forEach((type, tally) -> {
+            int[] before = was.get(type);
+            if (before != null && tally[1] < before[1]) {
+                worse.add(type + ": agreed about " + before[1] + " of " + before[0] + ", now "
+                        + tally[1] + " of " + tally[0]);
+            }
+        });
+        assertEquals(List.of(), worse,
+                "the two extractors agree about fewer definitions than they did. Re-record with "
+                        + "-Ddbo.envelope.record=true only when meant.\n" + observed);
+    }
+
+    private static int number(String part) {
+        return Integer.parseInt(part.substring(part.indexOf('=') + 1));
+    }
+
+    private static final String PREAMBLE = """
+            # The definitions a version publishes, extracted twice and compared.
+            # One line per definition type:
+            #
+            #   <type> compared=<n> agreed=<n> differing=<keys>
+            #
+            # GENERATED. Re-record with:
+            #     ./gradlew :core:harness:test \\
+            #         --tests '*TheEnvelopeIsTheSameFromEitherSide*' \\
+            #         -Ddbo.envelope.record=true
+            #
+            # These types are extracted by a narrow hand-written path of their
+            # own, because a definition arriving is the one write that cannot
+            # wait for a context able to parse it. That makes two extractors
+            # over one kind of record, and two that disagree are two answers to
+            # one search — so `agreed` may rise and may not fall.
+            #
+            # What is NOT here is a plan to move them. A face root writes six
+            # and a half thousand definitions at once and the hand-written path
+            # is what makes that cheap; the database costs about three seconds
+            # over the whole face, which buys nothing a search can see.
+            """;
 
     // ------------------------------------------------------------- the two
 

@@ -173,29 +173,26 @@ BEGIN
 
   SELECT COALESCE(jsonb_object_agg(key, vals), '{}'::jsonb)
     FROM (
-      SELECT key, jsonb_agg(value ORDER BY code, ord, ci) AS vals
-        FROM (
-          SELECT pair.key, pair.value, p.code, found.ord, pair.ci
+      -- Each value once under its key, in the order the document first said
+      -- it. A search asks whether a record carries a value and answers by
+      -- containment, so carrying it twice is the same answer — and the two
+      -- sides deriving one envelope have to agree about which they built,
+      -- which they cannot if one of them counts.
+      SELECT key, jsonb_agg(value ORDER BY rn) AS vals
+        FROM (SELECT key, value, MIN(rn) AS rn
+                FROM (SELECT key, value,
+                             row_number() OVER (ORDER BY code, pi, hi, ci) AS rn
+                        FROM (
+          SELECT pair.key, pair.value, p.code, path.pi, hit.hi, pair.ci
             FROM definitions.definition_parameter p,
-                 -- What the expression finds, each thing once and in the
-                 -- order the document says it. A parameter shared between
-                 -- types is a union of branches, and a union says each of
-                 -- its members once — two names with the same given name are
-                 -- one value to search by, while two codings that happen to
-                 -- share a system are two codings and contribute twice.
-                 LATERAL (
-                   SELECT walked.hit, MIN(walked.ord) AS ord
-                     FROM (SELECT q.hit,
-                                  row_number() OVER (ORDER BY path.pi, q.hi) AS ord
-                             FROM jsonb_array_elements_text(p.paths)
-                                      WITH ORDINALITY AS path(path, pi),
-                                  LATERAL jsonb_path_query(p_doc, path::jsonpath)
-                                      WITH ORDINALITY AS q(hit, hi)) walked
-                    GROUP BY walked.hit) found,
+                 LATERAL jsonb_array_elements_text(p.paths)
+                     WITH ORDINALITY AS path(path, pi),
+                 LATERAL jsonb_path_query(p_doc, path::jsonpath)
+                     WITH ORDINALITY AS hit(hit, hi),
                  -- The key a search asks under is the code with its hyphens
                  -- folded, which is what the envelope has always been keyed
                  -- by: an envelope path is a json key and a search names it.
-                 LATERAL dbo.envelope_pairs(replace(p.code, '-', '_'), p.kind, found.hit)
+                 LATERAL dbo.envelope_pairs(replace(p.code, '-', '_'), p.kind, hit)
                      WITH ORDINALITY AS pair(key, value, ci)
            WHERE p.base = p_type
              AND p.unenforceable IS NULL
@@ -208,7 +205,7 @@ BEGIN
           -- time, so a search by either answered empty, which looks like
           -- nobody matching and is not.
           SELECT '_profile', jsonb_build_object('t', 'str', 'v', named.url #>> '{}'),
-                 '', named.n, 1
+                 '', 1, named.n, 1
             FROM jsonb_path_query(p_doc, '$."meta"."profile"[*]')
                      WITH ORDINALITY AS named(url, n)
            WHERE jsonb_typeof(named.url) = 'string'
@@ -216,7 +213,7 @@ BEGIN
 
           UNION ALL
 
-          SELECT '_tag', form.value, '', tag.n, form.k
+          SELECT '_tag', form.value, '', 1, tag.n, form.k
             FROM jsonb_path_query(p_doc, '$."meta"."tag"[*]')
                      WITH ORDINALITY AS tag(one, n),
                  LATERAL jsonb_array_elements(
@@ -234,14 +231,15 @@ BEGIN
                      CASE WHEN COALESCE(jsonb_path_match(p_doc, p.predicate::jsonpath,
                                                          '{}'::jsonb, true), false)
                           THEN 'true' ELSE 'false' END),
-                 p.code, 1, 1
+                 p.code, 1, 1, 1
             FROM definitions.definition_parameter p
            WHERE p.base = p_type
              AND p.unenforceable IS NULL
              AND p.predicate IS NOT NULL
              AND COALESCE(jsonb_array_length(p.paths), 0) = 0
              AND p.kind = 'token'
-        ) either
+                      ) either) ordered
+               GROUP BY key, value) once
        GROUP BY key) keyed
     INTO v_envelope;
   RETURN v_envelope;

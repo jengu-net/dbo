@@ -258,6 +258,9 @@ tasks.withType<Test>().configureEach {
     systemProperty("dbo.envelope.baseline",
             rootProject.file("config/envelope-baseline.txt").absolutePath)
     inputs.file(rootProject.file("config/envelope-baseline.txt"))
+    systemProperty("dbo.definition.envelope.baseline",
+            rootProject.file("config/definition-envelope-baseline.txt").absolutePath)
+    inputs.file(rootProject.file("config/definition-envelope-baseline.txt"))
     systemProperty("dbo.envelope.record",
             providers.systemProperty("dbo.envelope.record").getOrElse("false"))
     for (module in reachModules) {
