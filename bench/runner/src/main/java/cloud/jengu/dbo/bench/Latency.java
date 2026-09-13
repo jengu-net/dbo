@@ -58,6 +58,28 @@ final class Latency {
     }
 
     String json() {
+        return json(true);
+    }
+
+    /**
+     * The same, without a rate.
+     *
+     * <p>A rate is the count over the wall clock this recorder covered,
+     * which means something only while the recorder is covering the work. A
+     * measurement read back from records afterwards fills it in a tight loop,
+     * and the rate that comes out — a hundred thousand tenant provisionings
+     * a second — is not a small error, it is an answer to a question nobody
+     * asked.
+     */
+    String json(boolean rate) {
+        if (!rate) {
+            return Json.object(
+                    Json.field("count", count),
+                    Json.field("p50", round(millis(0.5))),
+                    Json.field("p95", round(millis(0.95))),
+                    Json.field("p99", round(millis(0.99))),
+                    Json.field("max", round(maxMillis())));
+        }
         return Json.object(
                 Json.field("count", count),
                 Json.field("perSecond", round(perSecond())),

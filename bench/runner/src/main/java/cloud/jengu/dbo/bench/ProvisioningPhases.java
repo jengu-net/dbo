@@ -118,9 +118,9 @@ final class ProvisioningPhases {
 
     String json() {
         StringBuilder out = new StringBuilder("{\"toServingMs\":")
-                .append(toServing.json());
+                .append(toServing.json(false));
         byPhase.forEach((phase, took) -> out.append(",\"").append(phase).append("\":")
-                .append(took.json()));
+                .append(took.json(false)));
         return out.append('}').toString();
     }
 
