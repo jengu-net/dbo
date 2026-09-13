@@ -150,11 +150,11 @@ citations say it is.
 | `REQ-DBO-FEED-KEYSET-CURSORS` | Cursors are keyset positions, never offsets; a page is stable under concurrent writes. | PROVEN |
 | `REQ-DBO-FEED-NAMED-CONSUMERS` | Every durable consumer holds a named cursor in the store; progress, lag and replay are uniformly observable. | PROVEN |
 | `REQ-DBO-EVT-TRANSACTIONAL-OUTBOX` | Every change event originates as an outbox row committed with the write. (R8, §6) | PROVEN |
-| `REQ-DBO-EVT-FHIR-SUBSCRIPTIONS` | Topic-based FHIR Subscriptions (R5/R6 style, backported to the R4 personality) are a core capability. (R8) | PROVEN |
-| `REQ-DBO-EVT-DURABLE-DELIVERY` | Subscription delivery is durable, tenant-scoped and replayable, with retries, backoff and dead-lettering. (R8, §9) | PROVEN |
-| `REQ-DBO-EVT-IN-PROCESS-SURFACE` | Co-located consumers get the same topics with identical semantics through the in-process/OSGi surface. (R8) | PROVEN |
+| `REQ-DBO-EVT-FHIR-SUBSCRIPTIONS` | Topic-based FHIR Subscriptions (R5/R6 style, backported to the R4 personality) are a core capability. (R8) | PLANNED |
+| `REQ-DBO-EVT-DURABLE-DELIVERY` | Subscription delivery is durable, tenant-scoped and replayable, with retries, backoff and dead-lettering. (R8, §9) | PLANNED |
+| `REQ-DBO-EVT-IN-PROCESS-SURFACE` | Co-located consumers get the same topics with identical semantics through the in-process/OSGi surface. (R8) | PLANNED |
 
-Coverage: {PROVEN=50} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=47, PLANNED=3} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet

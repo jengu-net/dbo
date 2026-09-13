@@ -37,7 +37,20 @@ import java.util.function.BooleanSupplier;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Proof matrix: durable rest-hook delivery over the change feed via DBOS. */
+/**
+ * Durable rest-hook delivery over the change feed via DBOS — over an engine
+ * this class builds.
+ *
+ * <p><b>It cites no EVT promise, and that is the point.</b> Nothing outside a
+ * test constructs {@code SubscriptionEngine}: neither the composition root nor
+ * the HTTP surface knows subscriptions exist, which the reach ledger records.
+ * What runs here is therefore the engine working, not a tenant delivering, and
+ * a citation would make the catalogue say the second because the first is
+ * true. The promises carry a TODO naming what is missing instead.
+ *
+ * <p>What this class proves stays worth having: the day the engine is mounted,
+ * these are the tests that say it behaves — and the citations go back on.
+ */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SubscriptionsIT {
 
@@ -165,7 +178,6 @@ class SubscriptionsIT {
     /** REQ-DBO-EVT-DURABLE-DELIVERY: endpoint failing twice recovers → delivered exactly once. */
     @Test
     @Timeout(120)
-    @Proving(DboPromises.EVT_DURABLE_DELIVERY)
     void deliveryRetriesUntilTheEndpointRecovers() throws Exception {
         failuresRemaining.put("/hook2", new AtomicInteger(2));
         subscription("Observation?code=http://loinc.org|SUB-2", "/hook2");
@@ -180,7 +192,7 @@ class SubscriptionsIT {
     /** Crash-before-ack simulation: re-dispatch does not double-deliver (workflow-id dedupe). */
     @Test
     @Timeout(120)
-    @Proving({DboPromises.EVT_DURABLE_DELIVERY, DboPromises.FEED_ONE_PRIMITIVE,
+    @Proving({DboPromises.FEED_ONE_PRIMITIVE,
             DboPromises.FEED_PUSH_ACK_RESUME, DboPromises.WF_POSTGRES_SUBSTRATE})
     void redispatchAfterCrashDoesNotDoubleDeliver() throws Exception {
         String cursorBefore = feed.cursorOf("subscriptions.dispatch");
@@ -200,7 +212,6 @@ class SubscriptionsIT {
     /** Exhausted retries dead-letter visibly; other subscriptions are unaffected. */
     @Test
     @Timeout(120)
-    @Proving(DboPromises.EVT_DURABLE_DELIVERY)
     void permanentFailureDeadLettersWithoutBlockingOthers() throws Exception {
         failuresRemaining.put("/hook4-broken", new AtomicInteger(Integer.MAX_VALUE));
         String brokenSub = subscription("Observation?code=http://loinc.org|SUB-4", "/hook4-broken");
@@ -227,7 +238,6 @@ class SubscriptionsIT {
     /** REQ-DBO-EVT-IN-PROCESS-SURFACE: a local listener sees the same matched events. */
     @Test
     @Timeout(120)
-    @Proving(DboPromises.EVT_IN_PROCESS_SURFACE)
     void inProcessListenerSeesTheSameTopics() throws Exception {
         List<String> local = new CopyOnWriteArrayList<>();
         engine.addLocalListener((sub, payload) -> {

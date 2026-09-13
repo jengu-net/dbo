@@ -11,8 +11,6 @@ import cloud.jengu.dbo.fhir.r5.R5Store;
 import cloud.jengu.dbo.fhir.r5.R5Subscriptions;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
-import cloud.jengu.dbo.promises.DboPromises;
-import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.subscriptions.RestHookTransport;
 import cloud.jengu.dbo.subscriptions.SubscriptionEngine;
 import cloud.jengu.dbo.subscriptions.TopicSpec;
@@ -41,7 +39,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Topic-based subscriptions — R5-native and R4-backported. */
+/**
+ * Topic-based subscriptions — R5-native and R4-backported, over an engine this
+ * class builds.
+ *
+ * <p>It cites no promise, for the reason {@link SubscriptionsIT} states: the
+ * engine is constructed by nothing outside a test, so what runs here is the
+ * engine working rather than a tenant delivering.
+ */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TopicSubscriptionsIT {
 
@@ -197,7 +202,6 @@ class TopicSubscriptionsIT {
     /** Filtered topic: matching create → event #1 bundle; non-match silent; update → event #2. */
     @Test
     @Timeout(120)
-    @Proving(DboPromises.EVT_FHIR_SUBSCRIPTIONS)
     void r5FilteredTopicDeliversNumberedNotificationBundles() throws Exception {
         r5Topic(TOPIC_FILTERED, "\"create\",\"update\"", "code");
         r5Subscription(TOPIC_FILTERED, "/t1", "code", "http://loinc.org|T-1", "full-resource");
@@ -268,7 +272,6 @@ class TopicSubscriptionsIT {
     /** The R4 backport: configured topic + criteria=url + filter extension → backport bundle. */
     @Test
     @Timeout(120)
-    @Proving(DboPromises.EVT_FHIR_SUBSCRIPTIONS)
     void r4BackportDeliversParametersStatusBundle() throws Exception {
         r4.create("""
                 {"resourceType":"Subscription","status":"active","reason":"topic delivery test",

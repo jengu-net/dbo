@@ -1401,12 +1401,25 @@ public enum DboPromises implements Promise {
     EVT_TRANSACTIONAL_OUTBOX(
             "Every change event originates as an outbox row committed with the write. "
             + "(R8, §6)"),
+    /** TODO: prove it in a test (#184). TopicSubscriptionsIT builds a
+     * SubscriptionEngine and drives it, which proves the engine rather than a
+     * tenant: nothing outside a test constructs one, and neither dbo-tenant nor
+     * dbo-rest contains the string `subscri`. No tenant has ever served a
+     * Subscription of any shape. */
     EVT_FHIR_SUBSCRIPTIONS(
             "Topic-based FHIR Subscriptions (R5/R6 style, backported to the R4 "
             + "personality) are a core capability. (R8)"),
+    /** TODO: prove it in a test (#184). Retries, backoff and dead-lettering are
+     * exercised in SubscriptionsIT against an engine the test built. No tenant has
+     * ever delivered a notification, so nothing has ever retried one either. */
     EVT_DURABLE_DELIVERY(
             "Subscription delivery is durable, tenant-scoped and replayable, with "
             + "retries, backoff and dead-lettering. (R8, §9)"),
+    /** TODO: prove it in a test (#184). The sharpest of the three: the proof
+     * called addLocalListener on an engine the test constructed, and in a
+     * container there is no engine to add a listener to — so the surface this
+     * promises does not exist in any form, rather than existing and going
+     * unused. */
     EVT_IN_PROCESS_SURFACE(
             "Co-located consumers get the same topics with identical semantics through "
             + "the in-process/OSGi surface. (R8)"),

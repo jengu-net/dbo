@@ -257,13 +257,27 @@ same instance no longer delays a quiet tenant's feed.
 
 ### EVT — eventing and subscriptions
 
+**No tenant has ever delivered a notification.** The engine is whole, tested
+and installed as a bundle, and nothing outside a test constructs one: neither
+the composition root nor the HTTP surface contains the string `subscri`. So
+what follows describes something that exists and is not reachable.
+
 `dbo-subscriptions` is personality-agnostic; DBOS delivers. Matching is by
 search, exactly-once comes from composing the feed position with the workflow
 id, and the dead-letter queue is data like everything else. Topic-based
 subscriptions run in the same engine: R5-native from stored
 `SubscriptionTopic` records, and backported to R4 through configured topics.
+All of that is exercised against an engine a test builds.
 
-*Complete.*
+The in-process surface is the sharpest of them: its proof added a listener to
+an engine the test had constructed, and in a container there is no engine to
+add one to — so that surface does not exist in any form rather than existing
+and going unused.
+
+*The outbox is built and proven: every change originates as a row committed
+with the write, and a mounted tenant's feed carries what its HTTP surface
+wrote. The other three read PLANNED and carry a TODO saying what is missing.
+Mounting the engine is a design with its own sequence and is not started.*
 
 ### TERM — terminology
 
@@ -414,7 +428,7 @@ never superuser, and its deletion policies distinguish "stop serving" from
 
 ## Specified, not built
 
-Fifteen promises read `PLANNED`, and they fall into four groups. **SCAL**
+Eighteen promises read `PLANNED`, and they fall into five groups. **SCAL**
 (routing: durable assignment, single-writer tenants, transparent routing,
 two-hop locality, no shared-state broker) has no implementation at all. **WF**
 is down to one — platform-coordinated hops — because no tenant-to-tenant hop
@@ -422,7 +436,9 @@ exists to prove anything about; the two plane promises are proven by the
 sealed-work proofs. **OPS** keeps blob storage and migration-as-deployment;
 the telemetry exporter and the fleet read are built. **TEN** keeps the shared
 tier and quotas, **AUTH** the private surface, **FEED** the lean wire option,
-and **PROC** the three named above. What a process, a step and a run are, and how work reaches
+and **PROC** the three named above. **EVT** is three of them — subscriptions,
+durable delivery and the in-process surface — which read PROVEN until the
+reach ledger showed that the engine proving them is constructed by nothing. What a process, a step and a run are, and how work reaches
 whoever performs it, is in
 [`processes-and-work.md`](../arc42-008-crosscutting/processes-and-work/README.md); how
 those concepts are rendered for a reader of a standard is in

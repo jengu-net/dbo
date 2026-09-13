@@ -300,9 +300,9 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ | Promise | Status | Proven by |
 |---|---|---|---|
 | REQ-DBO-EVT-TRANSACTIONAL-OUTBOX | Every change event originates as an outbox row committed with the write. (R8, §6) | PROVEN | cloud.jengu.dbo.harness.TheClinicRecordsCareAndAccountsForItIT#oneFeedCarriesItAll |
-| REQ-DBO-EVT-FHIR-SUBSCRIPTIONS | Topic-based FHIR Subscriptions (R5/R6 style, backported to the R4 personality) are a core capability. (R8) | PROVEN | cloud.jengu.dbo.harness.TopicSubscriptionsIT#r4BackportDeliversParametersStatusBundle<br>cloud.jengu.dbo.harness.TopicSubscriptionsIT#r5FilteredTopicDeliversNumberedNotificationBundles |
-| REQ-DBO-EVT-DURABLE-DELIVERY | Subscription delivery is durable, tenant-scoped and replayable, with retries, backoff and dead-lettering. (R8, §9) | PROVEN | cloud.jengu.dbo.harness.SubscriptionsIT#deliveryRetriesUntilTheEndpointRecovers<br>cloud.jengu.dbo.harness.SubscriptionsIT#permanentFailureDeadLettersWithoutBlockingOthers<br>cloud.jengu.dbo.harness.SubscriptionsIT#redispatchAfterCrashDoesNotDoubleDeliver |
-| REQ-DBO-EVT-IN-PROCESS-SURFACE | Co-located consumers get the same topics with identical semantics through the in-process/OSGi surface. (R8) | PROVEN | cloud.jengu.dbo.harness.SubscriptionsIT#inProcessListenerSeesTheSameTopics |
+| REQ-DBO-EVT-FHIR-SUBSCRIPTIONS | Topic-based FHIR Subscriptions (R5/R6 style, backported to the R4 personality) are a core capability. (R8) | PLANNED |  |
+| REQ-DBO-EVT-DURABLE-DELIVERY | Subscription delivery is durable, tenant-scoped and replayable, with retries, backoff and dead-lettering. (R8, §9) | PLANNED |  |
+| REQ-DBO-EVT-IN-PROCESS-SURFACE | Co-located consumers get the same topics with identical semantics through the in-process/OSGi surface. (R8) | PLANNED |  |
 
 ## WF — durable work & planes
 
