@@ -131,10 +131,23 @@ public final class Bench {
             }
             System.out.print(phases.summary());
 
+            // And what it costs to make a tenant in the first place, which
+            // is the figure an edge deployment is asked for and the one that
+            // is several sizes in a trench coat.
+            System.out.println("==> provisioning (" + config.provisions + " tenants)");
+            ProvisioningPhases provisioning = new ProvisioningPhases();
+            if (config.provisions > 0) {
+                provisioning.drive(new ProvisioningPhases.Config(
+                        config.jdbcUrl, config.user, config.password),
+                        config.provisions, Duration.ofSeconds(180));
+                System.out.print(provisioning.summary());
+            }
+
             thermal.stop();
             complete = true;
 
-            String json = result(startedAt, thermal, write, lookup, lag, failures, phases, true);
+            String json = result(startedAt, thermal, write, lookup, lag, failures, phases,
+                    provisioning, true);
             Files.writeString(config.out, json);
             System.out.println("==> wrote " + config.out);
             System.out.println(summary(write, lookup, lag, thermal, failures));
@@ -437,10 +450,11 @@ public final class Bench {
 
     private String result(Instant startedAt, Thermal thermal, Latency write,
             Latency lookup, FeedLag lag, Failures failures, StepPhases phases,
-            boolean completed) {
+            ProvisioningPhases provisioning, boolean completed) {
         // A run with failures in it is not a valid run. The numbers stay in the
         // file — they are evidence — but nothing may quote them as a result.
-        boolean valid = completed && thermal.clean() && failures.none() && phases.complete();
+        boolean valid = completed && thermal.clean() && failures.none() && phases.complete()
+                && provisioning.complete();
         return Json.object(
                 Json.field("startedAt", startedAt.toString()),
                 Json.field("dboVersion", config.dboVersion),
@@ -453,7 +467,8 @@ public final class Bench {
                         Json.raw("write", write.json()),
                         Json.raw("tokenLookup", lookup.json()),
                         Json.raw("feedLagMs", lag.json()),
-                        Json.raw("stepPhasesMs", phases.json()))));
+                        Json.raw("stepPhasesMs", phases.json()),
+                        Json.raw("provisioningMs", provisioning.json()))));
     }
 
     /**
@@ -561,7 +576,8 @@ public final class Bench {
     // ----------------------------------------------------------------- input
 
     private record Config(String jdbcUrl, String user, String password, String profile,
-            int tenants, int steps, Duration duration, Path out, String dboVersion) {
+            int tenants, int steps, int provisions, Duration duration, Path out,
+            String dboVersion) {
 
         static Config parse(String[] args) {
             Map<String, String> a = new java.util.HashMap<>();
@@ -586,6 +602,7 @@ public final class Bench {
                     profile,
                     Integer.parseInt(a.getOrDefault("tenants", "10")),
                     Integer.parseInt(a.getOrDefault("steps", "50")),
+                    Integer.parseInt(a.getOrDefault("provisions", "3")),
                     Duration.ofSeconds(Long.parseLong(a.getOrDefault("duration", "120"))),
                     Path.of(a.getOrDefault("out", "/tmp/dbo-bench/result.json")),
                     a.getOrDefault("dbo-version", "unknown"));
@@ -593,6 +610,7 @@ public final class Bench {
 
         String describe() {
             return "dbo bench: profile=" + profile + " tenants=" + tenants + " steps=" + steps
+                    + " provisions=" + provisions
                     + " duration=" + duration.toSeconds() + "s out=" + out;
         }
     }

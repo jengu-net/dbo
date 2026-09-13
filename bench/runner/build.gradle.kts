@@ -25,6 +25,10 @@ dependencies {
     // not the thing the store is there to carry.
     implementation(project(":core:dbo-work"))
     implementation(project(":core:dbo-runner"))
+    // Bringing a tenant up is the act being measured, so the measurement
+    // uses the manager and the provisioner a deployment uses. A cheaper
+    // stand-in would measure a fixture.
+    implementation(project(":core:dbo-tenant"))
     // On the RUNTIME classpath only: the runner asks Telemetry for whatever
     // this deployment installed, and an exporter with no endpoint configured
     // is inert. So a run reports where it is told to and stays silent where

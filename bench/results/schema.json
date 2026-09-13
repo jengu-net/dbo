@@ -148,6 +148,13 @@
               "$ref": "#/$defs/latency"
             }
           }
+        },
+        "provisioningMs": {
+          "type": "object",
+          "description": "What a tenant costs to bring up, phase by phase, read from the deployment's own bring-up runs rather than timed from outside. toServingMs is wall clock from the declaration appearing to the tenant answering; the rest are the phases beneath it \u2014 serve is the whole, database is creating it, face and zone are synchronising definitions from wherever they come from, vocabulary is loading one. A total tells an operator that provisioning takes half a minute and nothing about which half to attack.",
+          "additionalProperties": {
+            "$ref": "#/$defs/latency"
+          }
         }
       }
     },

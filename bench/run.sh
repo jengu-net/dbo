@@ -10,6 +10,7 @@ set -eu
 PROFILE=ram
 TENANTS=10
 STEPS=50
+PROVISIONS=3
 DURATION=120
 BENCH_DIR=/tmp/dbo-bench
 DIST="${DIST:-./bench/runner/build/install/runner}"
@@ -20,8 +21,9 @@ while [ $# -gt 0 ]; do
         --profile)  PROFILE=$2; shift 2 ;;
         --tenants)  TENANTS=$2; shift 2 ;;
         --steps)    STEPS=$2; shift 2 ;;
+        --provisions) PROVISIONS=$2; shift 2 ;;
         --duration) DURATION=$2; shift 2 ;;
-        *) echo "usage: $0 [--profile ram|nvme|existing] [--tenants N] [--steps N] [--duration SECONDS]" >&2; exit 2 ;;
+        *) echo "usage: $0 [--profile ram|nvme|existing] [--tenants N] [--steps N] [--provisions N] [--duration SECONDS]" >&2; exit 2 ;;
     esac
 done
 
@@ -85,7 +87,7 @@ else
 fi
 
 # ------------------------------------------------------------------ the run
-echo "==> bench: profile=$PROFILE tenants=$TENANTS steps=$STEPS duration=${DURATION}s"
+echo "==> bench: profile=$PROFILE tenants=$TENANTS steps=$STEPS provisions=$PROVISIONS duration=${DURATION}s"
 # The database is the machine's, not the bench's. A board that already runs
 # PostgreSQL for other things is the interesting one to measure, and it does
 # not hand out the superuser — so where it is and who may write is input,
@@ -97,6 +99,7 @@ echo "==> bench: profile=$PROFILE tenants=$TENANTS steps=$STEPS duration=${DURAT
     --profile "$PROFILE" \
     --tenants "$TENANTS" \
     --steps "$STEPS" \
+    --provisions "$PROVISIONS" \
     --duration "$DURATION" \
     --dbo-version "$DBO_VERSION" \
     --out "$BENCH_DIR/result.json"
