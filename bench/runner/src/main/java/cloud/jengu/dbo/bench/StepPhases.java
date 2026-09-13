@@ -142,6 +142,12 @@ final class StepPhases {
                     "bench-" + tenant,
                     new Executor("bench-" + tenant, "1.0", "cloud.jengu.bench", Scope.BASELINE),
                     objects));
+            // STARTED, because attaching a lane is telling the runner where
+            // work is and not asking it to go and do any. A runner that was
+            // registered, attached and never started polls nothing and says
+            // nothing about it — which reads exactly like work that is not
+            // arriving.
+            runner.start();
 
             Instant until = Instant.now().plus(patience);
             while (Instant.now().isBefore(until)
