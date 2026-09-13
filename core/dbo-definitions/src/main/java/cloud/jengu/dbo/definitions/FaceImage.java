@@ -90,7 +90,15 @@ public final class FaceImage {
             // it would be the first thing already in the way, and the answer
             // it holds is in the manifest anyway, where it is checked before
             // a single row is loaded.
-            "definition_shape");
+            "definition_shape",
+            // And the compiled parameters, which are that same argument a
+            // second time. What a type can be asked is the version's own
+            // parameters and whatever this tenant authored — neither of which
+            // needs a face — so the rows are there as soon as the store is
+            // built, and an image carrying them was refused by every tenant it
+            // was offered to. Nothing is lost by leaving them out: a tenant
+            // that comes up from an image compiled them on the way in.
+            "definition_parameter");
 
     private FaceImage() {}
 

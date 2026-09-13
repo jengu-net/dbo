@@ -327,7 +327,14 @@ class AFaceIsCutOnceAndBroughtUpFromIT {
                 || t.contains("_sync_")
                 // The shape marker is about the database, not the face: every
                 // store writes its own as it is built, before any face arrives.
-                || t.equals("definition_shape"));
+                || t.equals("definition_shape")
+                // And the compiled parameters, for the same reason. They are
+                // the version's own and whatever a tenant authored, so a store
+                // has them before a face arrives and an image does not carry
+                // them. This target has no store — it is a schema and an image
+                // — so it holds none, and comparing them here would compare a
+                // bare database against a running tenant.
+                || t.equals("definition_parameter"));
         return counts;
     }
 
