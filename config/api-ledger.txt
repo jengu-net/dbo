@@ -3173,6 +3173,7 @@ cloud.jengu.dbo.telemetry.Labels                                       none():cl
 cloud.jengu.dbo.telemetry.Labels                                       of(cloud.jengu.dbo.telemetry.Label,String):cloud.jengu.dbo.telemetry.Labels
 cloud.jengu.dbo.telemetry.Labels                                       toString():String
 cloud.jengu.dbo.telemetry.Telemetry                                    counted(String,long,cloud.jengu.dbo.telemetry.Labels):void
+cloud.jengu.dbo.telemetry.Telemetry                                    flushed():boolean
 cloud.jengu.dbo.telemetry.Telemetry                                    installed():cloud.jengu.dbo.telemetry.Telemetry
 cloud.jengu.dbo.telemetry.Telemetry                                    interface
 cloud.jengu.dbo.telemetry.Telemetry                                    level(String,long,cloud.jengu.dbo.telemetry.Labels):void

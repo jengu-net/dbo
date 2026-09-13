@@ -176,6 +176,12 @@ public final class OtlpTelemetry implements Telemetry {
         gauges.computeIfAbsent(key(name, labels), k -> new Gauge(name, labels)).value.set(value);
     }
 
+    /** The seam's word for it: a process about to exit posts what it holds. */
+    @Override
+    public boolean flushed() {
+        return flush();
+    }
+
     /** Renders what accumulated and posts it. Public so a proof can flush on demand. */
     public boolean flush() {
         if (endpoint == null) {

@@ -176,6 +176,12 @@ final class StepPhases {
             }
         }
 
+        // FLUSHED, because this phase is seconds long and an exporter
+        // batches on an interval: the whole measurement fitted inside one
+        // interval and left with the process, and the collector showed no
+        // gap — a series that never arrived looks like one nobody emitted.
+        reporting.flushed();
+
         record(observed.get("dbo.run.retrieve"), retrieve);
         record(observed.get("dbo.run.execute"), execute);
         record(observed.get("dbo.run.write"), write);

@@ -60,6 +60,26 @@ public interface Telemetry {
         return false;
     }
 
+    /**
+     * Everything held, posted now, answering whether it landed.
+     *
+     * <p>An exporter batches on an interval because a post per measurement
+     * would cost more than the thing being measured. That is right while a
+     * process keeps running and wrong at the end of one: a short-lived
+     * process — a benchmark, a job, a one-shot import — can do all of its
+     * work and exit inside a single interval, and every number it took goes
+     * with it. Nothing says so, which is the worst part: the collector shows
+     * no gap, because a series that never arrived looks like a series nobody
+     * emitted.
+     *
+     * <p>Refusing is the default, so an exporter that holds nothing is
+     * complete and a caller that flushes costs nothing where there is
+     * nothing to flush.
+     */
+    default boolean flushed() {
+        return false;
+    }
+
     /** Discards everything, and is the default rather than a fallback. */
     static Telemetry none() {
         return Discarding.INSTANCE;
