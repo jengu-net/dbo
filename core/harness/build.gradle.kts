@@ -255,7 +255,14 @@ tasks.withType<Test>().configureEach {
         // A measurement is not a check. What it answers is a curve, and a
         // curve cannot pass or fail — so it is asked for by name rather
         // than run by everybody who runs the suite.
-        excludeTags("measurement")
+        //
+        // Excluded from the suites and NOT from the task that exists to run
+        // it: this block configures every Test task in the project, and a
+        // tag both included and excluded is excluded, silently, leaving a
+        // task that runs nothing and says BUILD SUCCESSFUL for it.
+        if (name != "nodeProfile") {
+            excludeTags("measurement")
+        }
     }
     // The ledger is an INPUT, not just a file the test happens to open: without
     // this Gradle calls the task up to date after the ledger changes, and the

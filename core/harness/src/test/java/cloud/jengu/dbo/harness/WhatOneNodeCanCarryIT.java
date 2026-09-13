@@ -69,8 +69,20 @@ class WhatOneNodeCanCarryIT {
     /** One measurement per level, and the levels a small machine can show. */
     private static final int[] LEVELS = {1, 2, 4, 8, 16};
 
-    /** Per level, so every level pays the same and the numbers compare. */
-    private static final int OPERATIONS = 600;
+    /**
+     * Per level, as TIME rather than as a count.
+     *
+     * <p>A fixed number of operations is a shorter measurement the faster
+     * the machine is, which is backwards: the first attempt at this gave
+     * every level six hundred operations, and at two thousand a second that
+     * is a sixth of a second per level — a window in which one garbage
+     * collection is the whole result. Six seconds is long enough that the
+     * levels stop crossing over each other.
+     */
+    private static final java.time.Duration PER_LEVEL = java.time.Duration.ofSeconds(6);
+
+    /** Not counted: the first pass pays for plans and classes. */
+    private static final java.time.Duration WARM_UP = java.time.Duration.ofSeconds(2);
 
     private static final Path PROFILE =
             Path.of(System.getProperty("dbo.node.profile", "../../config/one-node-profile.txt"));
@@ -144,9 +156,9 @@ class WhatOneNodeCanCarryIT {
         said.append(machineLine()).append('\n');
         said.append("corpus patients=").append(PATIENTS)
                 .append(" observations=").append(OBSERVATIONS)
-                .append(" mix=7read:2search:1write operations=").append(OPERATIONS).append('\n');
-        said.append("connections perTenant=")
-                .append(System.getProperty("dbo.connections.per.tenant", "default")).append('\n');
+                .append(" mix=7read:2search:1write perLevelSeconds=")
+                .append(PER_LEVEL.toSeconds()).append('\n');
+        said.append("connections perTenant=").append(connectionsInForce()).append('\n');
         for (Level level : levels) {
             said.append(level.said()).append('\n');
         }
@@ -169,6 +181,13 @@ class WhatOneNodeCanCarryIT {
             return;
         }
         heldAgainst(recorded, machineLine(), levels);
+    }
+
+    /** What the pool was actually set to, which is half of what a level means. */
+    private static int connectionsInForce() {
+        String said = System.getProperty("dbo.connections.per.tenant");
+        return said != null ? Integer.parseInt(said)
+                : Math.max(2, Math.min(8, Runtime.getRuntime().availableProcessors()));
     }
 
     /** The machine, said the same way every time, because it gates comparison. */
@@ -306,9 +325,9 @@ class WhatOneNodeCanCarryIT {
             // Warmed first, and not counted: the first pass through a path
             // pays for its plans and its classes, which is a fact about
             // starting rather than about serving.
-            run(pool, store, concurrency, Math.min(OPERATIONS, 120));
+            run(pool, store, concurrency, WARM_UP);
             long began = System.nanoTime();
-            Taken taken = run(pool, store, concurrency, OPERATIONS);
+            Taken taken = run(pool, store, concurrency, PER_LEVEL);
             return new Level(concurrency, taken.nanos(), System.nanoTime() - began,
                     taken.failures());
         } finally {
@@ -320,18 +339,22 @@ class WhatOneNodeCanCarryIT {
     private record Taken(long[] nanos, int failures) {}
 
     private Taken run(ExecutorService pool, cloud.jengu.dbo.fhir.common.FhirStoreFacade store,
-            int concurrency, int operations) throws Exception {
+            int concurrency, java.time.Duration forHowLong) throws Exception {
         List<Callable<long[]>> work = new ArrayList<>();
-        int each = Math.max(1, operations / concurrency);
+        long until = System.nanoTime() + forHowLong.toNanos();
         for (int worker = 0; worker < concurrency; worker++) {
             work.add(() -> {
-                long[] mine = new long[each];
-                for (int i = 0; i < each; i++) {
+                List<Long> mine = new ArrayList<>();
+                while (System.nanoTime() < until) {
                     long at = System.nanoTime();
                     one(store);
-                    mine[i] = System.nanoTime() - at;
+                    mine.add(System.nanoTime() - at);
                 }
-                return mine;
+                long[] taken = new long[mine.size()];
+                for (int i = 0; i < taken.length; i++) {
+                    taken[i] = mine.get(i);
+                }
+                return taken;
             });
         }
         List<Future<long[]>> answers = pool.invokeAll(work);
@@ -392,8 +415,15 @@ class WhatOneNodeCanCarryIT {
         Level quietest = levels.get(0);
         Level best = quietest;
         for (Level level : levels) {
-            boolean tailHeld = level.at(95) <= Math.max(2 * quietest.at(95), quietest.at(95) + 20);
-            if (tailHeld && level.throughput() > best.throughput()) {
+            // Twice the quiet tail and no slack beside it. A slack term is
+            // how the first version of this recommended sixteen on a tail
+            // that had tripled: on a fast path the quiet tail is small
+            // enough that any constant added to it swallows the rule.
+            boolean tailHeld = level.at(95) <= 2 * Math.max(1, quietest.at(95));
+            // And a tenth more work to justify the wait, because two
+            // measurements of one machine differ by less than that.
+            boolean worthIt = level.throughput() > best.throughput() * 1.1;
+            if (tailHeld && worthIt) {
                 best = level;
             }
         }

@@ -1,0 +1,29 @@
+# What one node carries, measured on the machine named below.
+#
+# GENERATED. Re-measure with:
+#     ./gradlew :core:harness:nodeProfile
+#
+# Two records are worth comparing only when their machine lines
+# agree: the same cores, the same heap, the same architecture.
+# Everything else here is fixed on purpose — the corpus, the mix
+# of operations and how many of them — because a benchmark that
+# varies with the run measures the run.
+#
+# The operations go through the store the server calls and not
+# through HTTP, so these are dbo's own milliseconds. On one small
+# box a real client is another machine, and its cost is not this
+# one's to carry.
+#
+# The suggestion at the end is the last level whose tail had not
+# doubled and which still carried more per second than the level
+# before it. Past there a node is not doing more work; it is
+# doing the same work while somebody waits.
+machine cores=8 heap=2048m os=Mac OS X arch=aarch64
+corpus patients=400 observations=800 mix=7read:2search:1write perLevelSeconds=6
+connections perTenant=8
+level concurrency=1 ops=8237 perSecond=1371.2 p50ms=0 p95ms=4 p99ms=5 failed=0
+level concurrency=2 ops=12919 perSecond=2152.0 p50ms=0 p95ms=5 p99ms=8 failed=0
+level concurrency=4 ops=12899 perSecond=1784.1 p50ms=0 p95ms=9 p99ms=18 failed=0
+level concurrency=8 ops=665 perSecond=101.3 p50ms=1 p95ms=838 p99ms=1186 failed=0
+level concurrency=16 ops=647 perSecond=93.7 p50ms=4 p95ms=1275 p99ms=1714 failed=0
+suggested concurrency=2 connectionsPerTenant=2 becauseThroughputPerSecond=2152 atP95ms=5 againstQuietestP95ms=4
