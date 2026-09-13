@@ -3,6 +3,7 @@
 # it was arrived at.
 nav:
   - index.md
-  - quickstart.md
+  - quickstart-docker.md
+  - quickstart-karaf.md
   - environment.md
   - performance.md
