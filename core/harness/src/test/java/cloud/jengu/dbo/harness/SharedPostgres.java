@@ -34,7 +34,22 @@ public final class SharedPostgres {
                 // concurrent classes × per-tenant pools exhaust the default
                 // 100 quickly, and exhaustion presents as "too many clients"
                 // from whichever class happened to be unlucky
-                .withCommand("postgres", "-c", "max_connections=400");
+                .withCommand("postgres", "-c", "max_connections=400",
+                        // Durability off, because there is nothing here to be
+                        // durable ABOUT: the container is reaped when the JVM
+                        // exits and every database in it was made by a test
+                        // that is finished with it. What it costs while it is
+                        // on is a disk flush per commit, and this suite is
+                        // write-shaped — a face root writes six and a half
+                        // thousand definitions and a terminology before it
+                        // answers anything, and it does that sixty-one times.
+                        //
+                        // A crash leaves the cluster unrecoverable rather than
+                        // merely behind, which is the whole of the trade: a
+                        // suite that died would be re-run, not repaired.
+                        "-c", "fsync=off",
+                        "-c", "synchronous_commit=off",
+                        "-c", "full_page_writes=off");
         container.start();
         Runtime.getRuntime().addShutdownHook(new Thread(SharedPostgres::dropSuiteDatabases));
         return container;

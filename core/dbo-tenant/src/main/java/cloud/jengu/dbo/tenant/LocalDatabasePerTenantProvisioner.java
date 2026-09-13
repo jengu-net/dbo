@@ -29,11 +29,49 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     private final Map<String, String> rpSecrets = new ConcurrentHashMap<>();
     private volatile java.util.List<String> rpRedirectUris = java.util.List.of();
     private volatile String rpClientId;
+    private volatile int connectionsPerTenant = connectionsPerTenantByDefault();
 
     public LocalDatabasePerTenantProvisioner(String adminUrl, String user, String password) {
         this.adminUrl = adminUrl;
         this.user = user;
         this.password = password;
+    }
+
+    /**
+     * How many statements one tenant may have in flight at once.
+     *
+     * <p>Per TENANT, so a node serving twelve of them wants a hundred
+     * connections of a server whose default is a hundred, and the thirteenth
+     * tenant is refused rather than slowed. That makes this a number about
+     * the node and the server together, not about a tenant — and it was a
+     * constant, the same on four slow cores as on a large machine.
+     *
+     * <p>Set it from a measurement of the box it runs on. There is no value
+     * that is right everywhere: below the number of cores a tenant cannot
+     * use the machine, and far above it the queue moves from this pool into
+     * the server, where it is harder to see and shared with everybody else.
+     */
+    public LocalDatabasePerTenantProvisioner connectionsPerTenant(int connections) {
+        if (connections < 1) {
+            throw new IllegalArgumentException("a tenant with no connections serves nothing: "
+                    + connections);
+        }
+        this.connectionsPerTenant = connections;
+        return this;
+    }
+
+    /**
+     * The default, which is the smaller of eight and what the machine has —
+     * a pool larger than the cores under it queues inside the database
+     * instead of in front of it, and the eight was chosen when every machine
+     * this ran on had at least that many.
+     */
+    private static int connectionsPerTenantByDefault() {
+        String said = System.getProperty("dbo.connections.per.tenant");
+        if (said != null) {
+            return Integer.parseInt(said);
+        }
+        return Math.max(2, Math.min(8, Runtime.getRuntime().availableProcessors()));
     }
 
     @Override
@@ -76,7 +114,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             config.setJdbcUrl(tenantUrl(dbName));
             config.setUsername(user);
             config.setPassword(password);
-            config.setMaximumPoolSize(8);
+            config.setMaximumPoolSize(connectionsPerTenant);
             config.setPoolName("dbo-tenant-" + code);
             return new HikariDataSource(config);
         });

@@ -251,7 +251,12 @@ tasks.withType<Test>().configureEach {
     systemProperty("dbo.face.images",
             layout.buildDirectory.dir("face-images").get().asFile.absolutePath)
 
-    useJUnitPlatform()
+    useJUnitPlatform {
+        // A measurement is not a check. What it answers is a curve, and a
+        // curve cannot pass or fail — so it is asked for by name rather
+        // than run by everybody who runs the suite.
+        excludeTags("measurement")
+    }
     // The ledger is an INPUT, not just a file the test happens to open: without
     // this Gradle calls the task up to date after the ledger changes, and the
     // one check that would have spoken never runs.
@@ -411,5 +416,44 @@ tasks.withType<Test>().configureEach {
         // a failed assertion's MESSAGE is the diagnosis (FeedIT names the
         // pinning transactions in it) — a bare line number is not
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+}
+
+/**
+ * What this machine carries, per level of concurrency.
+ *
+ * <p>Its own task because it is a measurement: it takes minutes, it writes a
+ * record rather than asserting one, and the answer belongs to the machine it
+ * ran on. `./verify` does not run it and should not.
+ */
+tasks.register<Test>("nodeProfile") {
+    group = "verification"
+    description = "Measures what one node carries and writes config/one-node-profile.txt"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    maxHeapSize = (findProperty("dboTestHeap") as String?) ?: "2g"
+    useJUnitPlatform {
+        includeTags("measurement")
+    }
+    // One at a time, whatever the suite is set to: a measurement sharing its
+    // machine with three other classes measures the sharing.
+    systemProperty("junit.jupiter.execution.parallel.enabled", "false")
+    systemProperty("dbo.node.profile",
+            rootProject.file("config/one-node-profile.txt").absolutePath)
+    (findProperty("dboConnectionsPerTenant") as String?)?.let {
+        systemProperty("dbo.connections.per.tenant", it)
+    }
+    // Per invocation, like the other record flags: a system property would
+    // land on the daemon and re-record every run after the one that meant it.
+    systemProperty("dbo.node.profile.record",
+            providers.gradleProperty("dboNodeProfileRecord").getOrElse("false"))
+    systemProperty("dbo.repo.root", rootProject.projectDir.absolutePath)
+    systemProperty("dbo.face.images",
+            layout.buildDirectory.dir("face-images").get().asFile.absolutePath)
+    systemProperty("dbo.tenant.claims",
+            layout.buildDirectory.dir("tenant-claims").get().asFile.absolutePath)
+    outputs.upToDateWhen { false }
+    testLogging {
+        showStandardStreams = true
     }
 }

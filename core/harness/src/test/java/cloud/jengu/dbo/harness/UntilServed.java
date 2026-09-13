@@ -31,8 +31,13 @@ final class UntilServed {
      * other classes are doing the same — so twenty passes is a different
      * amount of patience on every run, and the runs where it is least are
      * the ones with the most going on.
+     *
+     * <p>Ninety seconds, which is a chain of several bring-ups and not four
+     * minutes of a suite's wall clock. A deadline is what a tenant that WILL
+     * come up needs; one that never will costs this much every time it is
+     * asked, and three of them cost more than the suite can spare.
      */
-    private static final java.time.Duration PATIENCE = java.time.Duration.ofSeconds(240);
+    private static final java.time.Duration PATIENCE = java.time.Duration.ofSeconds(90);
 
     /**
      * Which class brought up which tenant, for this JVM.
