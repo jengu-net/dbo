@@ -36,9 +36,22 @@ if [ -x "$SERVER_DIST/bin/dbo-server" ]; then
     "$SERVER_DIST/bin/dbo-server" > "$BENCH_DIR/coldstart.log" 2>&1 &
     SERVER_PID=$!
     # Poll rather than sleep: a fixed sleep measures the sleep.
-    until curl -sf -o /dev/null http://127.0.0.1:8090/fhir/metadata 2>/dev/null; do
+    #
+    # WHERE to poll is input, because what a deployment answers on depends on
+    # what it serves: a single-tenant one answers at /fhir, and one with
+    # tenants answers only under /t/<code>. Polling the wrong one is not a
+    # slow start, it is a wait that never ends — which is what this did, for
+    # twenty minutes, against a server that had been up for two seconds.
+    COLD_URL="${COLD_URL:-http://127.0.0.1:8090/fhir/metadata}"
+    COLD_WAIT="${COLD_WAIT:-180}"
+    until curl -sf -o /dev/null "$COLD_URL" 2>/dev/null; do
         if ! kill -0 "$SERVER_PID" 2>/dev/null; then
             echo "    server exited before answering; see $BENCH_DIR/coldstart.log" >&2
+            break
+        fi
+        if [ $(( ( $(date +%s%N) - START ) / 1000000000 )) -ge "$COLD_WAIT" ]; then
+            echo "    no answer at $COLD_URL in ${COLD_WAIT}s; cold start not measured" >&2
+            kill "$SERVER_PID" 2>/dev/null || true
             break
         fi
         sleep 0.1
