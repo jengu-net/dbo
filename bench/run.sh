@@ -19,9 +19,25 @@ while [ $# -gt 0 ]; do
         --profile)  PROFILE=$2; shift 2 ;;
         --tenants)  TENANTS=$2; shift 2 ;;
         --duration) DURATION=$2; shift 2 ;;
-        *) echo "usage: $0 [--profile ram|nvme] [--tenants N] [--duration SECONDS]" >&2; exit 2 ;;
+        *) echo "usage: $0 [--profile ram|nvme|existing] [--tenants N] [--duration SECONDS]" >&2; exit 2 ;;
     esac
 done
+
+# Milliseconds, on a board whose date has no nanoseconds.
+#
+# BusyBox's date silently drops %N rather than refusing it, so the shape
+# `date +%s%N` came back as plain seconds and the arithmetic that divided by a
+# million reported every cold start as 0ms — a measurement that was not slow
+# or missing but wrong, and stayed wrong because zero looks like a field
+# nobody filled in. /proc/uptime is there on any Linux and carries hundredths.
+now_ms() {
+    if [ -r /proc/uptime ]; then
+        awk '{printf "%d", $1 * 1000}' /proc/uptime
+    else
+        t=$(date +%s%N)
+        if [ ${#t} -ge 19 ]; then echo $(( t / 1000000 )); else echo $(( t * 1000 )); fi
+    fi
+}
 
 mkdir -p "$BENCH_DIR"
 DBO_VERSION="$(cat "$BENCH_DIR/version" 2>/dev/null || echo unknown)"
@@ -32,7 +48,7 @@ DBO_VERSION="$(cat "$BENCH_DIR/version" 2>/dev/null || echo unknown)"
 COLD_START_MS=null
 if [ -x "$SERVER_DIST/bin/dbo-server" ]; then
     echo "==> cold start"
-    START=$(date +%s%N)
+    START=$(now_ms)
     "$SERVER_DIST/bin/dbo-server" > "$BENCH_DIR/coldstart.log" 2>&1 &
     SERVER_PID=$!
     # Poll rather than sleep: a fixed sleep measures the sleep.
@@ -49,7 +65,7 @@ if [ -x "$SERVER_DIST/bin/dbo-server" ]; then
             echo "    server exited before answering; see $BENCH_DIR/coldstart.log" >&2
             break
         fi
-        if [ $(( ( $(date +%s%N) - START ) / 1000000000 )) -ge "$COLD_WAIT" ]; then
+        if [ $(( ( $(now_ms) - START ) / 1000 )) -ge "$COLD_WAIT" ]; then
             echo "    no answer at $COLD_URL in ${COLD_WAIT}s; cold start not measured" >&2
             kill "$SERVER_PID" 2>/dev/null || true
             break
@@ -57,7 +73,7 @@ if [ -x "$SERVER_DIST/bin/dbo-server" ]; then
         sleep 0.1
     done
     if kill -0 "$SERVER_PID" 2>/dev/null; then
-        COLD_START_MS=$(( ( $(date +%s%N) - START ) / 1000000 ))
+        COLD_START_MS=$(( $(now_ms) - START ))
         echo "    ${COLD_START_MS}ms"
         kill "$SERVER_PID" 2>/dev/null || true
         wait "$SERVER_PID" 2>/dev/null || true

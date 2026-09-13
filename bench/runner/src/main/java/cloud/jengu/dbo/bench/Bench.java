@@ -504,8 +504,15 @@ public final class Bench {
                 a.put(args[i].replaceFirst("^--", ""), args[i + 1]);
             }
             String profile = a.getOrDefault("profile", "ram");
-            if (!profile.equals("ram") && !profile.equals("nvme")) {
-                throw new IllegalArgumentException("--profile must be ram or nvme");
+            // "existing" is neither of the two the provisioning script makes,
+            // and saying so is the point: a result that claimed "ram" while
+            // running on a shared PostgreSQL somebody else's databases also
+            // live in is a claim of comparability it has no right to. A run
+            // that names what it actually was cannot be averaged in with the
+            // provisioned ones by accident.
+            if (!profile.equals("ram") && !profile.equals("nvme")
+                    && !profile.equals("existing")) {
+                throw new IllegalArgumentException("--profile must be ram, nvme or existing");
             }
             return new Config(
                     a.getOrDefault("jdbc-url", "jdbc:postgresql://127.0.0.1:5432/postgres"),
