@@ -5,7 +5,7 @@ description: Changing anything that has to survive being loaded in the OSGi cont
 
 # dbo-runtime-proof
 
-> **Generated from the constraints documents — do not edit.** Change the
+> **Generated from its source document — do not edit.** Change the
 > skill-block in the source document and run `./gradlew generateSkills`.
 
 **Apply when:** Changing anything that has to survive being loaded in the OSGi container: a bundle's dependencies or its hand-written Import-Package, a new reference to a sibling package, a module added to the runtime module list, a service registration, the logging provider, or anything reached only on first use. Also whenever a change is about to be reported as working on the strength of a successful build.

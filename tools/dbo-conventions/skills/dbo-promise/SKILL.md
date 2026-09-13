@@ -5,7 +5,7 @@ description: Adding or changing any behaviour of the store, fixing a defect, or 
 
 # dbo-promise
 
-> **Generated from the constraints documents — do not edit.** Change the
+> **Generated from its source document — do not edit.** Change the
 > skill-block in the source document and run `./gradlew generateSkills`.
 
 **Apply when:** Adding or changing any behaviour of the store, fixing a defect, or editing the promise catalogue, a promise constant, a Proving citation, or the requirement catalogue document. Triggers on any work that would add a requirement or make an existing one true.

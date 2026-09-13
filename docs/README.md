@@ -14,6 +14,11 @@ permalink: /documentation.html
 
 # DBO documentation
 
+**Building something on this store?** Start with
+[using-dbo.md](using-dbo.md) — every capability, how an application reaches
+it, and what it would otherwise have to write itself. The rest of this tree
+is the specification: why the store is shaped this way, and what it promises.
+
 Structured per [arc42](https://arc42.org/).
 
 - [arc42-001-introduction](arc42-001-introduction/README.md) — goals, quality

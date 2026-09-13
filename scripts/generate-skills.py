@@ -97,13 +97,25 @@ def parse_meta(text: str) -> dict:
     return out
 
 
-def extract_rules(body: str) -> str:
-    """Everything after the **Rules** marker, which is the imperative half."""
-    m = re.search(r"\*\*Rules\*\*\s*\n(?P<rules>.*)", body, re.DOTALL)
-    return (m.group("rules") if m else "").strip()
+def extract_rules(body: str) -> tuple[str, str]:
+    """
+    Everything after the marker, and which marker it was.
+
+    Two shapes, because two kinds of skill are worth projecting. **Rules** is
+    the imperative half of a constraint on how work is done here. **Reference**
+    is what the store offers somebody building on it — a capability map rather
+    than a prohibition, and rendering it under a heading that says Rules would
+    misdescribe every line of it.
+    """
+    for marker in ("Rules", "Reference"):
+        m = re.search(r"\*\*" + marker + r"\*\*\s*\n(?P<body>.*)", body, re.DOTALL)
+        if m:
+            return marker, m.group("body").strip()
+    return "Rules", ""
 
 
-def render_skill(name: str, meta: dict, rules: str, up: str) -> str:
+def render_skill(name: str, meta: dict, rules: tuple[str, str], up: str) -> str:
+    heading, body = rules
     desc = meta.get("applies-when", "").strip()
     ref = meta.get("reference", "").strip()
     return (
@@ -112,11 +124,11 @@ def render_skill(name: str, meta: dict, rules: str, up: str) -> str:
         f"description: {desc}\n"
         "---\n\n"
         f"# {name}\n\n"
-        "> **Generated from the constraints documents — do not edit.** Change the\n"
+        "> **Generated from its source document — do not edit.** Change the\n"
         "> skill-block in the source document and run `./gradlew generateSkills`.\n\n"
         f"**Apply when:** {desc}\n\n"
-        "## Rules\n\n"
-        f"{rules}\n\n"
+        f"## {heading}\n\n"
+        f"{body}\n\n"
         "---\n\n"
         f"Where this is stated and argued: [`{ref}`]({up}{ref})\n"
     )
@@ -127,14 +139,17 @@ def render_readme(blocks) -> str:
     return (
         f"# {PLUGIN} — generated skills\n\n"
         "> **Nothing in this folder is hand-edited.** Every skill is projected\n"
-        "> from a skill-block in a constraints document by\n"
+        "> from a skill-block in the document that owns the text, by\n"
         "> `scripts/generate-skills.py`. To change one, edit the block in its\n"
         "> source document and run `./gradlew generateSkills`.\n\n"
-        "These are the rules that a green build does not enforce. This store's\n"
-        "characteristic defect compiles, resolves, publishes and then dies on\n"
-        "first use, so the rules that catch it are the ones nothing else will.\n"
-        "Each skill is a thin projection: when it applies, what it requires,\n"
-        "and a link to the document that argues it.\n\n"
+        "Two kinds, and the difference matters when you read one. Most are\n"
+        "**rules a green build does not enforce**: this store's characteristic\n"
+        "defect compiles, resolves, publishes and then dies on first use, so\n"
+        "the rules that catch it are the ones nothing else will. One is a\n"
+        "**reference** for somebody building on the store rather than in it —\n"
+        "what it already provides, and what an application would otherwise\n"
+        "write itself. Each skill is a thin projection: when it applies, what\n"
+        "it says, and a link to the document that argues it.\n\n"
         "## Skills\n\n"
         f"{rows}\n\n"
         "## Installing\n\n"
@@ -203,8 +218,9 @@ def main() -> int:
                       "so nothing would ever trigger it")
                 return 1
             rules = extract_rules(m.group("body"))
-            if not rules:
-                print(f"  ERROR {md.relative_to(ROOT)}: skill '{name}' states no rules")
+            if not rules[1]:
+                print(f"  ERROR {md.relative_to(ROOT)}: skill '{name}' states neither rules "
+                      "nor a reference, so it would project an empty skill")
                 return 1
             blocks.append((name, meta, rules, md))
 

@@ -5,7 +5,7 @@ description: Writing or reviewing a comment, a Javadoc block, a test display nam
 
 # dbo-comments
 
-> **Generated from the constraints documents — do not edit.** Change the
+> **Generated from its source document — do not edit.** Change the
 > skill-block in the source document and run `./gradlew generateSkills`.
 
 **Apply when:** Writing or reviewing a comment, a Javadoc block, a test display name, a commit message, or any prose inside this repository's source or its specification tree.

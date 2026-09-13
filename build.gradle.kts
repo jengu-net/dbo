@@ -461,6 +461,11 @@ val generateSkills by tasks.registering(Exec::class) {
     workingDir = rootDir
     commandLine("python3", "scripts/generate-skills.py")
     inputs.dir(layout.projectDirectory.dir("docs/arc42-002-constraints"))
+    // The generator reads every markdown file under docs/, and a skill-block
+    // that lives outside the constraints tree is invisible to an inputs
+    // declaration that names only that tree: the task stays up to date while
+    // its source moves, which is the staleness the projection exists to stop.
+    inputs.file(layout.projectDirectory.file("docs/using-dbo.md"))
     inputs.file(layout.projectDirectory.file("scripts/generate-skills.py"))
     outputs.dir(layout.projectDirectory.dir("tools/dbo-conventions"))
     outputs.file(layout.projectDirectory.file("CLAUDE.md"))

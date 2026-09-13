@@ -5,7 +5,7 @@ description: Finishing any new toolset, service, surface, lane, registered type 
 
 # dbo-reachability
 
-> **Generated from the constraints documents — do not edit.** Change the
+> **Generated from its source document — do not edit.** Change the
 > skill-block in the source document and run `./gradlew generateSkills`.
 
 **Apply when:** Finishing any new toolset, service, surface, lane, registered type or capability, and before calling such work done. Triggers on a type that only a test constructs, on a new object type that something writes, and on reviewing work that is reported as complete because its tests pass.

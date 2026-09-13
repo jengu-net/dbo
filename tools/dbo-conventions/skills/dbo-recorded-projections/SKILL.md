@@ -5,7 +5,7 @@ description: Changing anything a generated artefact is derived from: a promise c
 
 # dbo-recorded-projections
 
-> **Generated from the constraints documents — do not edit.** Change the
+> **Generated from its source document — do not edit.** Change the
 > skill-block in the source document and run `./gradlew generateSkills`.
 
 **Apply when:** Changing anything a generated artefact is derived from: a promise constant or a Proving citation, any public or protected signature in a package a bundle exports — including adding a constant to an exported enum or a component to an exported record — or a skill-block or marked prose region in a constraints document. Also whenever a build fails saying a projection, ledger or catalogue disagrees with its source.
