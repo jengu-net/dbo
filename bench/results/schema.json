@@ -42,9 +42,10 @@
         "profile": {
           "enum": [
             "ram",
-            "nvme"
+            "nvme",
+            "existing"
           ],
-          "description": "ram = PGDATA on tmpfs: a CPU and concurrency ceiling, NOT a storage figure, because fsync is free. nvme = what a deployment feels."
+          "description": "ram = PGDATA on tmpfs: a CPU and concurrency ceiling, NOT a storage figure, because fsync is free. nvme = what a deployment feels. existing = a PostgreSQL the bench did not provision, on a disk it does not have to itself: comparable with its own earlier runs and with nothing else."
         },
         "postgres": {
           "type": "string"

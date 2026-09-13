@@ -1,0 +1,49 @@
+{
+  "startedAt": "2026-09-13T13:58:31.306886822Z",
+  "dboVersion": "71f9d374",
+  "machine": {
+    "model": "Raspberry Pi 5 Model B Rev 1.0",
+    "memoryKb": 8147588,
+    "kernel": "Linux 6.12.85-0-rpi",
+    "profile": "existing",
+    "postgres": "17.10",
+    "jdk": "Alpine 21.0.11"
+  },
+  "thermal": {
+    "available": true,
+    "maxSocTempC": 67.5,
+    "throttledSinceBoot": false,
+    "underVoltageSinceBoot": false
+  },
+  "valid": true,
+  "tenants": 2,
+  "failures": {
+    "total": 0,
+    "byStatus": {}
+  },
+  "measurements": {
+    "write": {
+      "count": 2420,
+      "perSecond": 20.181,
+      "p50": 51.803,
+      "p95": 60.283,
+      "p99": 80.835,
+      "max": 855.99
+    },
+    "tokenLookup": {
+      "count": 2422,
+      "perSecond": 20.199,
+      "p50": 46.497,
+      "p95": 51.94,
+      "p99": 52.721,
+      "max": 64.048
+    },
+    "feedLagMs": {
+      "p50": 16.147,
+      "p99": 33.892,
+      "max": 820.56,
+      "samples": 2410
+    },
+    "coldStartMs": 7520
+  }
+}
