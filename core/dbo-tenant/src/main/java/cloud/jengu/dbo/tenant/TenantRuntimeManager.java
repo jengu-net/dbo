@@ -1402,10 +1402,26 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // purpose, so none of this was visible in a number anybody read. It
         // stopped being invisible the day it quadrupled under memory pressure
         // and surfaced as a closed connection pool.
+        // A phase of its own, like the database and the vocabulary. It was
+        // the one bring-up cost that existed only in a log line, and it is
+        // not small: building the facade reads the face's definitions, and
+        // on a slow board it is seconds. A phase nobody records is a phase
+        // that shows up as the difference between the whole and the parts,
+        // which is where somebody has to guess.
+        MaintenanceRecording.Recorded facade = recording.open(
+                MaintenanceRecording.BRINGING_UP, "facade", spec.face(), bringUp);
         long facadeAt = System.currentTimeMillis();
         boolean versionHeldAsRecords = spec.faceRoot()
                 || spec.dependencies().stream().anyMatch(TenantSpec.Dependency::face);
-        FhirStoreFacade store = declared.store(engine, base, db.dataSource(), versionHeldAsRecords);
+        FhirStoreFacade store;
+        try {
+            store = declared.store(engine, base, db.dataSource(), versionHeldAsRecords);
+            facade.closed();
+        } catch (RuntimeException | Error noFacade) {
+            facade.failed(noFacade.toString());
+            bringUp.failed("the facade was not built");
+            throw noFacade;
+        }
         long facadeMillis = System.currentTimeMillis() - facadeAt;
 
         // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is per tenant,

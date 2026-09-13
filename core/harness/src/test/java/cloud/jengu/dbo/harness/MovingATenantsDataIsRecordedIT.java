@@ -161,6 +161,14 @@ class MovingATenantsDataIsRecordedIT {
                 "the database was created outside the bring-up that asked for it, so a reader "
                         + "has to guess which tenant it belongs to: " + database.parent());
 
+        // The one phase that used to exist only in a log line, and not a
+        // small one: building the facade reads the face's definitions.
+        // Unrecorded, it showed up as the difference between the whole and
+        // the parts, which is where somebody has to guess.
+        Run facade = runs().byKey("dbo.tenant.bringup/facade/" + MOVED).orElseThrow(() ->
+                new AssertionError("building the facade left no run of its own"));
+        assertEquals(bringUp.key(), facade.parent());
+
         Run vocabulary = runs().byKey("dbo.tenant.bringup/vocabulary/" + MOVED).orElseThrow(() ->
                 new AssertionError("publishing the vocabulary left no run of its own"));
         assertEquals(bringUp.key(), vocabulary.parent());
