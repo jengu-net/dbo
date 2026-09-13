@@ -242,11 +242,6 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             }
             java.util.List<String> ddls = new java.util.ArrayList<>(java.util.List.of(
                     "ALTER DATABASE " + dbName + " SET idle_in_transaction_session_timeout = '60s'"));
-            // Personal data passes through this database in the clear, in
-            // flight; the one way it could land is the server logging a
-            // statement's parameters. Pinned here, before the pool opens, so
-            // every session the store ever holds on it sees the pin.
-            ddls.addAll(LogDiscipline.pins(dbName));
             if (transactionTimeoutSupported) {
                 ddls.add("ALTER DATABASE " + dbName + " SET transaction_timeout = '300s'");
                 // The ROLE setting is role-global, not per tenant: every
@@ -260,8 +255,49 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             for (String ddl : ddls) {
                 applyWithRetry(c, ddl);
             }
+            pinLogDiscipline(c, dbName);
         } catch (SQLException e) {
             throw new IllegalStateException("timeout settings failed for " + dbName, e);
+        }
+    }
+
+    /**
+     * The database is told not to write a statement's parameters down —
+     * where this store is allowed to tell it.
+     *
+     * <p>Personal data passes through this database in the clear, in flight;
+     * the one way it could land is the server logging a statement's
+     * parameters. Pinned before the pool opens, so every session the store
+     * ever holds on it sees the pin.
+     *
+     * <p><b>A server that refuses is not a tenant that fails.</b> The setting
+     * is superuser-only, and a managed Postgres does not hand this store
+     * superuser — so the pin rode in the timeout DDL list until a deployment
+     * on an ordinary role could not mount a single tenant, over a refusal
+     * reported as "timeout settings failed" because that is the list it was
+     * in. Where it cannot be pinned it is checked instead, at every bring-up,
+     * against what the sessions will actually see: an isolated tenant refuses
+     * a database that would write its people down and any other is told. That
+     * is the decision, and it is taken there rather than here, because here
+     * the only thing known is what this role may change.
+     *
+     * <p>Its own message either way. A pin that fails when the server said it
+     * could be set is a surprise worth stopping for, and worth stopping for
+     * under a name that mentions logging.
+     */
+    private static void pinLogDiscipline(Connection c, String dbName) {
+        try {
+            if (!LogDiscipline.pinnable(c)) {
+                return;
+            }
+            for (String ddl : LogDiscipline.pins(dbName)) {
+                applyWithRetry(c, ddl);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "the log-parameter pin failed on " + dbName + ", on a server that said it "
+                            + "was settable — personal data passes through this database in the "
+                            + "clear and the pin is what keeps the server from writing it down", e);
         }
     }
 

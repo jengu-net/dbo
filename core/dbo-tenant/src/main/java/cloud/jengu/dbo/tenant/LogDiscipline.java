@@ -33,7 +33,46 @@ final class LogDiscipline {
 
     private LogDiscipline() {}
 
-    /** What the pin sets, on every database this store provisions itself. */
+    /**
+     * Whether this session may pin at all, asked rather than found out.
+     *
+     * <p>Both settings are {@code SUSET}: a superuser may change them and an
+     * ordinary role may not, which is what a managed Postgres hands the store
+     * — RDS, Cloud SQL, or any deployment that keeps superuser for itself.
+     * The refusal is a fact about the server rather than a failure to
+     * provision, so it is asked for by name here instead of discovered by a
+     * statement the server logs an ERROR for on every tenant on every boot.
+     * That is the same argument the timeout probe beside this one makes about
+     * {@code transaction_timeout}.
+     *
+     * <p>Reading is never the part that is refused — {@code pg_settings} shows
+     * an ordinary role the value and the {@code superuser} context together,
+     * which is the server saying "you may look at this and not change it". So
+     * a store that cannot pin can always still {@link #leak check}, and what
+     * to do about a server that would write personal data down stays one
+     * decision, taken at bring-up.
+     */
+    static boolean pinnable(Connection c) throws SQLException {
+        // current_setting rather than pg_settings: is_superuser is a preset
+        // parameter and that view does not carry one, so asking it the way
+        // every other setting here is asked answers null for a superuser and
+        // pins nothing anywhere.
+        try (PreparedStatement ps = c.prepareStatement("SELECT current_setting('is_superuser')");
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next() && "on".equals(rs.getString(1))) {
+                return true;
+            }
+        }
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT context FROM pg_settings WHERE name = 'log_parameter_max_length'");
+             ResultSet rs = ps.executeQuery()) {
+            // A server without the setting at all is not one to pin on, and
+            // is not one that can log a parameter either.
+            return rs.next() && !"superuser".equals(rs.getString(1));
+        }
+    }
+
+    /** What the pin sets, on every database this store may pin. */
     static List<String> pins(String dbName) {
         return List.of(
                 "ALTER DATABASE " + dbName + " SET log_parameter_max_length = 0",

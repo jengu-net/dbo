@@ -87,9 +87,11 @@ A tenant's database is part of the store's runtime, and personal data
 passes through it in the clear only in flight, to be validated, extracted or
 converted; it lands nowhere the person's key does not cover. The one way it
 could land is the server logging a statement's parameters, so every database
-the store provisions is pinned not to, an isolated tenant refuses to come up
-on a database that would, and the pin is checked at every bring-up rather than
-assumed.
+the store is allowed to pin is pinned not to. A managed server keeps that
+setting for its superuser and hands the store an ordinary role, which is a
+server to check rather than a store that cannot run: what the sessions will
+actually see is read at every bring-up, and an isolated tenant refuses to come
+up on a database that would write its people down.
 
 `dbo-pdi` encrypts identifying elements inside the payload with per-person
 keys, in the same atomic engine write. History, envelopes, feeds, archives

@@ -117,9 +117,12 @@ public enum DboPromises implements Promise {
             + "runtime, and personal data passes through it in the clear only in flight — "
             + "validated, extracted, converted — never landing anywhere the person's key does "
             + "not cover. The one way it could land is the server logging a statement's "
-            + "parameters, so every database the store provisions is pinned not to, an "
-            + "isolated tenant refuses to come up on a database that would, and the pin is "
-            + "checked at every bring-up rather than assumed."),
+            + "parameters, so every database the store is allowed to pin is pinned not to — "
+            + "a managed server keeps that setting for its superuser and hands this store an "
+            + "ordinary role, which is a server to check rather than a store that cannot run. "
+            + "What the sessions will actually see is checked at every bring-up rather than "
+            + "assumed, and an isolated tenant refuses to come up on a database that would "
+            + "write its people down."),
 
     PDI_SHRED_LEDGER("Erasures are recorded without personal data and re-applied on every "
             + "restore before serving resumes — an old archive cannot silently resurrect "
