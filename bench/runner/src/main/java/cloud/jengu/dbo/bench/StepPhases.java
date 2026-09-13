@@ -13,6 +13,7 @@ import cloud.jengu.dbo.telemetry.Labels;
 import cloud.jengu.dbo.telemetry.Telemetry;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
+import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
@@ -149,6 +150,21 @@ final class StepPhases {
                     Thread.sleep(50);
                 } catch (InterruptedException interrupted) {
                     Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        // A run that did not close said why, on itself. Reading it back is
+        // the difference between "0 of 5 closed" — which sends somebody to
+        // the runner's source — and the sentence the step or the lane
+        // actually wrote, which is silent everywhere else: a released run is
+        // a record, not a log line.
+        if (counted(observed, "dbo.run.duration") < references.size()) {
+            for (int i = 0; i < references.size(); i++) {
+                Run left = runs.byKey(STEP + "/" + tenant + "/" + i).orElse(null);
+                if (left != null && left.item() != null) {
+                    System.out.println("    " + left.key() + ": " + left.item().message());
                     break;
                 }
             }
