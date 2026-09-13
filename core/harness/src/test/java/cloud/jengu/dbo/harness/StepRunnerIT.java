@@ -82,6 +82,78 @@ class StepRunnerIT {
     }
 
     @Test
+    @DisplayName("a run says where its time went: retrieving what it works on, doing the work, "
+            + "and writing the outcome")
+    @Proving(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE)
+    void aRunSaysWhereItsTimeWent() {
+        Run work = runs.pipeline(PROCESS, "validate", PROCESS + "/validate/phases",
+                List.of(WorkModel.DOMAIN));
+
+        Map<String, java.util.List<Duration>> observed = new java.util.concurrent.ConcurrentHashMap<>();
+        cloud.jengu.dbo.telemetry.Telemetry recording =
+                new cloud.jengu.dbo.telemetry.Telemetry() {
+                    @Override
+                    public void counted(String name, long delta,
+                            cloud.jengu.dbo.telemetry.Labels labels) {
+                    }
+
+                    @Override
+                    public void observed(String name, Duration took,
+                            cloud.jengu.dbo.telemetry.Labels labels) {
+                        observed.computeIfAbsent(name,
+                                ignored -> new java.util.concurrent.CopyOnWriteArrayList<>())
+                                .add(took);
+                    }
+
+                    @Override
+                    public void level(String name, long value,
+                            cloud.jengu.dbo.telemetry.Labels labels) {
+                    }
+                };
+
+        try (StepRunner runner = new StepRunner(Duration.ofMinutes(5), Duration.ofMillis(50),
+                recording)) {
+            runner.register(new StepService() {
+
+                @Override
+                public String step() {
+                    return PROCESS + ".validate";
+                }
+
+                @Override
+                public Outcome perform(Work work) {
+                    // Long enough that the phase cannot be confused with the
+                    // clock's own resolution, and short enough to be nobody's
+                    // afternoon.
+                    try {
+                        Thread.sleep(40);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return Outcome.done(Map.of("validated", 1L));
+                }
+            });
+            runner.attach(lane("t-phases", "runner-phases"));
+            Eventually.cycling(runner, "the run reached the service",
+                    () -> observed.containsKey("dbo.run.duration"));
+        }
+
+        assertTrue(observed.containsKey("dbo.run.retrieve"),
+                "nothing said how long fetching the run's inputs took, which on a person's "
+                        + "record is also how long opening it took: " + observed.keySet());
+        assertTrue(observed.containsKey("dbo.run.execute"), observed.keySet().toString());
+        assertTrue(observed.containsKey("dbo.run.write"), observed.keySet().toString());
+
+        // The step slept, so execution is the part that must dominate — if a
+        // phase were mislabelled this is what would say so.
+        Duration executed = observed.get("dbo.run.execute").get(0);
+        assertTrue(executed.toMillis() >= 35,
+                "the execute phase did not contain the step's own work: " + executed);
+        assertTrue(observed.get("dbo.run.duration").get(0).compareTo(executed) >= 0,
+                "a part came out longer than the whole it is part of");
+    }
+
+    @Test
     @DisplayName("a registered service consumes: claimed, performed, closed with the tally — "
             + "and the vitals ride the declaration")
     @Proving({DboPromises.PROC_STEP_SERVICE_EMBEDDABLE, DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS})

@@ -209,7 +209,15 @@ public final class StepRunner implements AutoCloseable {
         java.util.concurrent.atomic.AtomicReference<Run> latest =
                 new java.util.concurrent.atomic.AtomicReference<>(claimed);
         try {
-            Work work = new Work(claimed, lane.inputs(claimed), new Work.Progress() {
+            // Fetching what the step works on, which for a person's record is
+            // also where it is decrypted: the vault opens it on the way out
+            // of the store, so the two cannot be told apart from here. A
+            // phase that says "retrieve" and means "retrieve and decrypt" is
+            // honest; one that claimed to separate them would not be.
+            long retrieveAt = System.nanoTime();
+            var inputs = lane.inputs(claimed);
+            long retrieved = System.nanoTime() - retrieveAt;
+            Work work = new Work(claimed, inputs, new Work.Progress() {
                 @Override
                 public void checkpoint(java.util.Map<String, Long> counts) {
                     latest.set(lane.checkpoint(latest.get(), counts, holdFor));
@@ -220,16 +228,23 @@ public final class StepRunner implements AutoCloseable {
                     latest.set(lane.milestone(latest.get(), milestone, counts, holdFor));
                 }
             });
+            long executeAt = System.nanoTime();
             Outcome outcome = service.perform(work);
+            long executed = System.nanoTime() - executeAt;
+            long writeAt = System.nanoTime();
             if (outcome instanceof Outcome.Done done) {
                 Run reported = done.tally().isEmpty() ? latest.get()
                         : lane.checkpoint(latest.get(), done.tally(), holdFor);
                 lane.closed(reported);
                 sign.done(System.nanoTime() - began);
                 report(lane, claimed, "closed", System.nanoTime() - began);
+                phases(lane, claimed, "closed", retrieved, executed,
+                        System.nanoTime() - writeAt);
             } else if (outcome instanceof Outcome.Failed failed) {
                 lane.released(latest.get(), failed.reason());
                 sign.failed(failed.reason());
+                phases(lane, claimed, "released", retrieved, executed,
+                        System.nanoTime() - writeAt);
                 // "released", not the reason: the reason is the step's own
                 // words and belongs on the run, in the store of the tenant
                 // whose work it was. An outcome is a word from a fixed set,
@@ -280,6 +295,34 @@ public final class StepRunner implements AutoCloseable {
             LOG.warn("declaration failed: tenant={} step={} {}",
                     lane.tenant(), step, declineFailed.getMessage());
         }
+    }
+
+    /**
+     * Where a run's time actually went.
+     *
+     * <p>One duration answers that a step got slower and nothing about
+     * which part of it did, and on a small machine the parts have entirely
+     * different causes: fetching and opening a record is storage and a
+     * cipher, the step's own work is whatever the step does, and writing the
+     * outcome is the store again. A step that doubled is a different problem
+     * depending on which of the three moved.
+     *
+     * <p>Under the same labels as the whole, so the parts and the total can
+     * be read together and a part cannot be attributed to a step the total
+     * was not about. What is NOT here is the wait before any of it — the
+     * interval between a run being offered and being claimed is the lane's,
+     * not the step's, and belongs where the lane can see it.
+     */
+    private void phases(Lane lane, Run run, String outcome,
+            long retrieved, long executed, long written) {
+        Labels labels = Labels.of(Label.TENANT, lane.tenant())
+                .and(Label.PROCESS, run.process())
+                .and(Label.STEP, run.step())
+                .and(Label.EXECUTOR, lane.identity().name())
+                .and(Label.OUTCOME, outcome);
+        telemetry.observed("dbo.run.retrieve", Duration.ofNanos(retrieved), labels);
+        telemetry.observed("dbo.run.execute", Duration.ofNanos(executed), labels);
+        telemetry.observed("dbo.run.write", Duration.ofNanos(written), labels);
     }
 
     /**
