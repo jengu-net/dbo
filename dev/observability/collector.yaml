@@ -1,0 +1,34 @@
+# Reads the development console's log file and posts the lines to the local
+# instance beside it. A collector rather than a shipper inside the store,
+# because nothing in the store should know where its output is being read.
+#
+# Lines are shipped as they are, and that is deliberate. A console's log is in
+# Karaf's format rather than the store's JSON — the JSON binding is a
+# framework extension and can only attach at framework init, which a running
+# Karaf is past — and a parser for that format turned out to cost more than it
+# was worth: an operator that fails on one line stops the reader for the whole
+# file, so a startup preamble in the JDK's format or one stack trace silently
+# ends the stream. Searching the line is enough for what this is for.
+
+receivers:
+  filelog:
+    include: [/logs/karaf.log]
+    start_at: beginning
+
+processors:
+  batch:
+    timeout: 2s
+
+exporters:
+  otlphttp:
+    logs_endpoint: http://openobserve:5080/api/default/v1/logs
+    headers:
+      Authorization: ${env:O2_AUTH}
+      stream-name: dbo_console
+
+service:
+  pipelines:
+    logs:
+      receivers: [filelog]
+      processors: [batch]
+      exporters: [otlphttp]

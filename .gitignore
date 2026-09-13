@@ -15,3 +15,6 @@ bin/.gitignore
 
 # Per-machine assistant settings; they name paths outside this repository.
 .claude/settings.local.json
+
+# The local observability instance's root credential.
+dev/observability/.env
