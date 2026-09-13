@@ -293,7 +293,7 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
         });
         assertEquals(List.of(), worse,
                 "the two extractors agree about fewer definitions than they did. Re-record with "
-                        + "-Ddbo.envelope.record=true only when meant.\n" + observed);
+                        + "-PdboEnvelopeRecord=true only when meant.\n" + observed);
     }
 
     private static int number(String part) {
@@ -309,7 +309,7 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
             # GENERATED. Re-record with:
             #     ./gradlew :core:harness:test \\
             #         --tests '*TheEnvelopeIsTheSameFromEitherSide*' \\
-            #         -Ddbo.envelope.record=true
+            #         -PdboEnvelopeRecord=true
             #
             # These types are extracted by a narrow hand-written path of their
             # own, because a definition arriving is the one write that cannot

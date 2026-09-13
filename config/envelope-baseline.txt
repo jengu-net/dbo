@@ -5,7 +5,7 @@
 #
 # GENERATED. Re-record with:
 #     ./gradlew :core:harness:test --tests '*TheTwoEnvelopesAreCompared*' \
-#         -Ddbo.envelope.record=true
+#         -PdboEnvelopeRecord=true
 #
 # `agreed` may rise and may not fall. What a document can be found by is
 # the whole of what a search answers, so moving where the envelope is

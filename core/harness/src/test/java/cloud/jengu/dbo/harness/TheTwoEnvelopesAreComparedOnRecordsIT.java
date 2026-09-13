@@ -390,7 +390,7 @@ class TheTwoEnvelopesAreComparedOnRecordsIT {
         }
         assertEquals(List.of(), worse,
                 "the database agrees with the envelope in force about fewer records than it "
-                        + "did. Re-record with -Ddbo.envelope.record=true only when meant.\n"
+                        + "did. Re-record with -PdboEnvelopeRecord=true only when meant.\n"
                         + observed);
     }
 
@@ -575,7 +575,7 @@ class TheTwoEnvelopesAreComparedOnRecordsIT {
             #
             # GENERATED. Re-record with:
             #     ./gradlew :core:harness:test --tests '*TheTwoEnvelopesAreCompared*' \\
-            #         -Ddbo.envelope.record=true
+            #         -PdboEnvelopeRecord=true
             #
             # `agreed` may rise and may not fall. What a document can be found by is
             # the whole of what a search answers, so moving where the envelope is

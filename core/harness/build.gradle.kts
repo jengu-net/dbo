@@ -261,8 +261,12 @@ tasks.withType<Test>().configureEach {
     systemProperty("dbo.definition.envelope.baseline",
             rootProject.file("config/definition-envelope-baseline.txt").absolutePath)
     inputs.file(rootProject.file("config/definition-envelope-baseline.txt"))
+    // A PROJECT property, not a system one. A system property set with -D
+    // lands on the Gradle daemon and stays there for its life, so the run
+    // after a deliberate re-record re-recorded too — which turns a ratchet
+    // into a file that agrees with whatever it was just shown.
     systemProperty("dbo.envelope.record",
-            providers.systemProperty("dbo.envelope.record").getOrElse("false"))
+            providers.gradleProperty("dboEnvelopeRecord").getOrElse("false"))
     for (module in reachModules) {
         dependsOn(":$module:jar")
         systemProperty(

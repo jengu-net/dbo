@@ -183,16 +183,27 @@ BEGIN
                 FROM (SELECT key, value,
                              row_number() OVER (ORDER BY code, pi, hi, ci) AS rn
                         FROM (
-          SELECT pair.key, pair.value, p.code, path.pi, hit.hi, pair.ci
+          SELECT pair.key, pair.value, p.code, 1 AS pi, found.ord AS hi, pair.ci
             FROM definitions.definition_parameter p,
-                 LATERAL jsonb_array_elements_text(p.paths)
-                     WITH ORDINALITY AS path(path, pi),
-                 LATERAL jsonb_path_query(p_doc, path::jsonpath)
-                     WITH ORDINALITY AS hit(hit, hi),
+                 -- What the expression finds, each thing once. Not only
+                 -- because the values are deduplicated anyway: a profile
+                 -- names one context a thousand times, and running the typed
+                 -- rules over each of those and sorting what comes out took
+                 -- a face from three seconds to half an hour. Collapsing the
+                 -- repeats before the work is what makes the work small.
+                 LATERAL (
+                   SELECT walked.hit, MIN(walked.ord) AS ord
+                     FROM (SELECT q.hit,
+                                  row_number() OVER (ORDER BY path.pi, q.hi) AS ord
+                             FROM jsonb_array_elements_text(p.paths)
+                                      WITH ORDINALITY AS path(path, pi),
+                                  LATERAL jsonb_path_query(p_doc, path::jsonpath)
+                                      WITH ORDINALITY AS q(hit, hi)) walked
+                    GROUP BY walked.hit) found,
                  -- The key a search asks under is the code with its hyphens
                  -- folded, which is what the envelope has always been keyed
                  -- by: an envelope path is a json key and a search names it.
-                 LATERAL dbo.envelope_pairs(replace(p.code, '-', '_'), p.kind, hit)
+                 LATERAL dbo.envelope_pairs(replace(p.code, '-', '_'), p.kind, found.hit)
                      WITH ORDINALITY AS pair(key, value, ci)
            WHERE p.base = p_type
              AND p.unenforceable IS NULL

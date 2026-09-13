@@ -6,7 +6,7 @@
 # GENERATED. Re-record with:
 #     ./gradlew :core:harness:test \
 #         --tests '*TheEnvelopeIsTheSameFromEitherSide*' \
-#         -Ddbo.envelope.record=true
+#         -PdboEnvelopeRecord=true
 #
 # These types are extracted by a narrow hand-written path of their
 # own, because a definition arriving is the one write that cannot
@@ -18,8 +18,8 @@
 # and a half thousand definitions at once and the hand-written path
 # is what makes that cheap; the database costs about three seconds
 # over the whole face, which buys nothing a search can see.
-CodeSystem compared=1272 agreed=1267 differing=identifier
+CodeSystem compared=1272 agreed=1272 differing=
 NamingSystem compared=4 agreed=0 differing=url(only in force)
 SearchParameter compared=1400 agreed=1400 differing=
 StructureDefinition compared=740 agreed=740 differing=
-ValueSet compared=3263 agreed=3255 differing=identifier
+ValueSet compared=3263 agreed=3263 differing=
