@@ -144,6 +144,36 @@ class MovingATenantsDataIsRecordedIT {
                 "this class needs a managing tenant to say anything about one");
     }
 
+    @Test
+    @Timeout(600)
+    @DisplayName("a tenant coming up is a run with the phases beneath it, and the sweep keeps "
+            + "its tally")
+    @Proving(DboPromises.MNT_MOVING_DATA_IS_RECORDED)
+    void aBringUpIsATreeAndNotAList() {
+        Run bringUp = runs().byKey("dbo.tenant.bringup/serve/" + MOVED).orElseThrow(() ->
+                new AssertionError("a tenant came up and the deployment's history has no run "
+                        + "for it, so how long it took is whatever the log says"));
+        assertEquals("dbo.tenant.bringup", bringUp.process());
+
+        Run database = runs().byKey("dbo.tenant.bringup/database/" + MOVED).orElseThrow(() ->
+                new AssertionError("creating the database left no run of its own"));
+        assertEquals(bringUp.key(), database.parent(),
+                "the database was created outside the bring-up that asked for it, so a reader "
+                        + "has to guess which tenant it belongs to: " + database.parent());
+
+        Run vocabulary = runs().byKey("dbo.tenant.bringup/vocabulary/" + MOVED).orElseThrow(() ->
+                new AssertionError("publishing the vocabulary left no run of its own"));
+        assertEquals(bringUp.key(), vocabulary.parent());
+
+        // The sweep is a different question — what is this deployment
+        // serving — and answering it per tenant would be answering a
+        // question nobody asked.
+        Run sweep = runs().byKey("dbo.tenant.serving/serve/deployment").orElseThrow(() ->
+                new AssertionError("the serving sweep stopped recording its rollup"));
+        assertFalse(sweep.tally().isEmpty(),
+                "the sweep lost its tally when bring-up got a run of its own: " + sweep);
+    }
+
     // ----------------------------------------------------------- the asking
 
     private Runs runs() {

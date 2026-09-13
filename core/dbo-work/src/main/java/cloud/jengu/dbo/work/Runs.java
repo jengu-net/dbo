@@ -130,6 +130,27 @@ public final class Runs {
     }
 
     /**
+     * A run beneath another, carrying its chain.
+     *
+     * <p>Some work is a tree and saying it flat loses the shape. A tenant
+     * coming up creates a database, then takes a face and takes a zone, and
+     * those last two are moves of somebody else's rows into this tenant —
+     * children of the bring-up that asked for them, not four things that
+     * happened to follow each other. Read flat, the order is a guess; read
+     * as a tree, it is what happened.
+     *
+     * <p>The correlation and the trace come from the parent for the reason
+     * an item's do: they identify the work, not the step, and a child that
+     * started its own would be a second piece of work as far as anything
+     * reading them is concerned.
+     */
+    public Run under(Run parent, String process, String step, String key) {
+        return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.PIPELINE,
+                Holder.AUTOMATION, parent.key(), parent.correlation(), parent.trace(), Map.of(),
+                null, parent.domains(), null, Run.Produced.NOTHING, null)));
+    }
+
+    /**
      * A run of a <b>declared</b> step.
      *
      * <p>The run records the step's version alongside the executor's, because

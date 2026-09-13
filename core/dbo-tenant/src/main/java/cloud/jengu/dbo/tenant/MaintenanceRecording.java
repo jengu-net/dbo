@@ -33,6 +33,17 @@ final class MaintenanceRecording {
     /** Moving a tenant's data about: the archive that leaves and the one that lands. */
     static final String PROCESS = "dbo.tenant.archive";
 
+    /**
+     * Bringing a tenant up: what a deployment does before it can serve one.
+     *
+     * <p>Its own pipeline run per tenant rather than more tally on the
+     * serving sweep. The sweep answers "what is this deployment serving",
+     * which is one question about all of them and stays as it is; this
+     * answers "what happened when THIS tenant came up", which is a different
+     * question and has a shape — a database, then a face, then a zone.
+     */
+    static final String BRINGING_UP = "dbo.tenant.bringup";
+
     private final Supplier<Optional<Runs>> runs;
     private final String tenant;
 
@@ -55,6 +66,19 @@ final class MaintenanceRecording {
      * rather than refusing the operation.
      */
     Recorded open(String step, String kind) {
+        return open(PROCESS, step, kind, null);
+    }
+
+    /**
+     * The same, under a named process and optionally beneath a parent.
+     *
+     * <p>Taking a face and taking a zone are restores whose source is
+     * another tenant and whose scope is one schema: the same COPY out and
+     * COPY in as an archive, guarded by a manifest instead of two
+     * signatures. So they are recorded as what they are rather than as a
+     * bring-up's private vocabulary.
+     */
+    Recorded open(String process, String step, String kind, Recorded under) {
         try {
             Runs held = runs.get().orElse(null);
             if (held == null) {
@@ -63,7 +87,10 @@ final class MaintenanceRecording {
             // Keyed the way the deployment's other histories are —
             // process, step, scope — because a key is what an operator asks
             // by, and one shaped differently is one nobody finds.
-            Run run = held.pipeline(PROCESS, step, PROCESS + "/" + step + "/" + tenant);
+            String key = process + "/" + step + "/" + tenant;
+            Run run = under != null && under.run != null
+                    ? held.under(under.run, process, step, key)
+                    : held.pipeline(process, step, key);
             Recorded recorded = new Recorded(held, run);
             // After the run exists, and not as part of making it: a counter
             // name is validated as a path, and one this refused used to

@@ -1251,7 +1251,25 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // database exists. An absent capability used to surface where it was
         // first needed — mid-request, or as a quiet degradation.
         FaceRequirements.refuseUnservable(spec, version.face());
-        TenantDatabaseProvisioner.TenantDatabase db = provisioner.provision(spec);
+        // Opened after the refusals and before the database, so a spec this
+        // deployment will not serve leaves no history of coming up. What
+        // follows hangs beneath it: the database, then whatever this tenant
+        // is given of somebody else's rows.
+        MaintenanceRecording recording = new MaintenanceRecording(this::managementRuns,
+                spec.code());
+        MaintenanceRecording.Recorded bringUp = recording.open(
+                MaintenanceRecording.BRINGING_UP, "serve", spec.face(), null);
+        MaintenanceRecording.Recorded creating = recording.open(
+                MaintenanceRecording.BRINGING_UP, "database", spec.face(), bringUp);
+        TenantDatabaseProvisioner.TenantDatabase db;
+        try {
+            db = provisioner.provision(spec);
+            creating.closed();
+        } catch (RuntimeException notProvisioned) {
+            creating.failed(notProvisioned.toString());
+            bringUp.failed("the database was not provisioned");
+            throw notProvisioned;
+        }
         tenantDataSources.put(spec.code(), db.dataSource());
         String base = baseUrl(spec.code());
         cloud.jengu.dbo.rest.RequestAuthenticator guard = null;
@@ -1717,7 +1735,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         wireDependencies(spec, runtime, db.dataSource());
         readyOnItsFace(spec, runtime);
-        readyOnItsZones(spec);
+        // Taking a zone is a restore whose source is another tenant: the same
+        // rows out and in, guarded by what the zone declares rather than by
+        // two signatures over an archive.
+        MaintenanceRecording.Recorded zone = spec.dependencies().isEmpty() ? null
+                : recording.open(MaintenanceRecording.BRINGING_UP, "zone", spec.face(), bringUp);
+        try {
+            readyOnItsZones(spec);
+            if (zone != null) {
+                zone.closed();
+            }
+        } catch (RuntimeException | Error notReady) {
+            if (zone != null) {
+                zone.failed(notReady.toString());
+            }
+            bringUp.failed("the zone it depends on did not arrive");
+            throw notReady;
+        }
         if (spec.faceRoot()) {
             // Filled before it is published: a dependent that wires against
             // an empty root would stream nothing and serve with no definitions
@@ -1728,7 +1762,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // on this face has already spent. The vocabulary a root would put
             // in its own tables on the way past is in the image too — it lives
             // in the schema the image is of — so nothing is left to replay.
-            faceRootTakesItsFace(spec, engine, store, runtime, db.dataSource());
+            // And taking a face is the same move at the scope of one schema:
+            // a COPY dump of the definitions carried from a sibling and
+            // loaded here, with a manifest where an archive has signatures.
+            MaintenanceRecording.Recorded face = recording.open(
+                    MaintenanceRecording.BRINGING_UP, "face", spec.face(), bringUp);
+            try {
+                faceRootTakesItsFace(spec, engine, store, runtime, db.dataSource());
+                face.closed();
+            } catch (RuntimeException | Error noFace) {
+                face.failed(noFace.toString());
+                bringUp.failed("the face did not load");
+                throw noFace;
+            }
         }
         // The engine's own vocabularies land after the face's definitions,
         // because publishing one validates it, and validating needs the
@@ -1736,9 +1782,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // or a subscriber has just drained. Published before them, the view
         // was built from the carried packages instead, at every mount.
         long vocabularyAt = System.currentTimeMillis();
+        MaintenanceRecording.Recorded vocabulary = recording.open(
+                MaintenanceRecording.BRINGING_UP, "vocabulary", spec.face(), bringUp);
         publishVocabularies(spec.code(), engine, store, terminology, version);
+        vocabulary.closed();
         LOG.info("tenant bring-up cost: code={} facade={}ms vocabulary={}ms",
                 spec.code(), facadeMillis, System.currentTimeMillis() - vocabularyAt);
+        // Closed where the runtime is published, which is the moment the
+        // tenant is somebody's to use. A bring-up that fell over before here
+        // stands as owed, naming the phase it reached.
+        bringUp.closed();
         // Published only now: wired, mounted, and safe to be somebody's
         // upstream.
         runtimes.put(spec.code(), runtime);
