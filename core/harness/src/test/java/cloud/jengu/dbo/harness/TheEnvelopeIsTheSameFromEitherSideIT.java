@@ -194,7 +194,226 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
                 + built);
     }
 
+    @Test
+    @Timeout(900)
+    @DisplayName("over every document this face carries, the database builds the envelope, the "
+            + "claims and the edges the engine stored")
+    void theThreePartsAreWhatTheEngineStored() throws Exception {
+        // Not against the extractor called directly, but against what actually
+        // landed: the envelope column, the identifier rows and the reference
+        // rows a real write left behind. That is the comparison worth making,
+        // because it is the one the engine will stop doing.
+        Map<String, int[]> perType = new TreeMap<>();
+        List<String> differences = new ArrayList<>();
+
+        try (Connection c = tenantSource().getConnection()) {
+            for (String type : List.of("StructureDefinition", "SearchParameter",
+                    "ValueSet", "CodeSystem")) {
+                for (Stored stored : carried(c, type)) {
+                    int[] counted = perType.computeIfAbsent(type, k -> new int[2]);
+                    counted[0]++;
+                    String why = disagreement(c, stored);
+                    if (why != null) {
+                        counted[1]++;
+                        if (differences.size() < 10) {
+                            differences.add(type + " " + stored.id() + ": " + why);
+                        }
+                    }
+                }
+            }
+        }
+
+        Map<String, String> compared = new TreeMap<>();
+        perType.forEach((type, counted) ->
+                compared.put(type, counted[0] + " compared, " + counted[1] + " differing"));
+        assertEquals(4, perType.size(),
+                "a type this face carries contributed no document, so the comparison is "
+                        + "narrower than it reads: " + compared);
+        assertTrue(perType.values().stream().allMatch(counted -> counted[0] == PER_TYPE),
+                "a type contributed fewer documents than were asked for, so the face is not "
+                        + "carrying what this assumed: " + compared);
+        // Recorded rather than demanded. The two sides are not the same yet and
+        // saying so is the point: what a document is found by is the whole of
+        // what a search answers, so this number has to reach zero per type
+        // before a type is served from the database's side — and until it does,
+        // it may fall and may not rise.
+        Map<String, Integer> differing = new TreeMap<>();
+        perType.forEach((type, counted) -> differing.put(type, counted[1]));
+        Map<String, Integer> was = recorded();
+        List<String> risen = new ArrayList<>();
+        differing.forEach((type, now) -> {
+            Integer before = was.get(type);
+            if (before != null && now > before) {
+                risen.add(type + " " + before + " -> " + now);
+            }
+        });
+        record(perType);
+        assertEquals(List.of(), risen,
+                "more documents disagree than did before, so something that was findable "
+                        + "from the database's envelope no longer is. The first few: "
+                        + differences);
+    }
+
     // ------------------------------------------------------------- the two
+    /** One document as the engine left it. */
+    private record Stored(String id, String type, String payload, String envelope) {}
+
+    /** A page of what this face carries, per type, so no type decides the number. */
+    private static List<Stored> carried(Connection c, String type) throws Exception {
+        List<Stored> stored = new ArrayList<>();
+        try (PreparedStatement ps = c.prepareStatement("""
+                SELECT id::text, type, convert_from(payload, 'UTF8'), envelope::text
+                  FROM %s_data WHERE type = ? AND NOT deleted
+                 ORDER BY id LIMIT ?""".formatted(Domains.tables(Domains.DEFINITIONS)))) {
+            ps.setString(1, type);
+            ps.setInt(2, PER_TYPE);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    stored.add(new Stored(rs.getString(1), rs.getString(2), rs.getString(3),
+                            rs.getString(4)));
+                }
+            }
+        }
+        return stored;
+    }
+
+    /**
+     * What the database makes of one document against what the engine stored,
+     * or null when they agree.
+     *
+     * <p>The canonical claim is taken off the engine's side rather than added
+     * to the database's: which types are identified by their own url is
+     * registration's knowledge, so the function does not have it and says so.
+     */
+    private static String disagreement(Connection c, Stored stored) throws Exception {
+        JsonNode parts;
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT dbo.envelope_parts(?::jsonb, ?)")) {
+            ps.setString(1, stored.payload());
+            ps.setString(2, stored.type());
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                parts = JSON.readTree(rs.getString(1));
+            }
+        }
+        JsonNode built = parts.get("envelope");
+        JsonNode kept = JSON.readTree(stored.envelope());
+        if (!built.equals(kept)) {
+            // Which keys, not merely that they differ: an envelope is thirty
+            // keys and "differs" sends the reader back to the database to ask
+            // the question this already knows the answer to.
+            Set<String> onlyBuilt = new java.util.TreeSet<>();
+            built.fieldNames().forEachRemaining(onlyBuilt::add);
+            Set<String> onlyKept = new java.util.TreeSet<>();
+            kept.fieldNames().forEachRemaining(onlyKept::add);
+            Set<String> shared = new java.util.TreeSet<>(onlyBuilt);
+            shared.retainAll(onlyKept);
+            onlyBuilt.removeAll(shared);
+            onlyKept.removeAll(shared);
+            Set<String> valued = new java.util.TreeSet<>();
+            for (String key : shared) {
+                if (!built.get(key).equals(kept.get(key))) {
+                    valued.add(key + " database=" + built.get(key) + " engine=" + kept.get(key));
+                }
+            }
+            return "envelope differs; onlyInDatabase=" + onlyBuilt + " onlyInEngine=" + onlyKept
+                    + " differingValues=" + valued;
+        }
+        Set<String> claimed = new java.util.TreeSet<>();
+        for (JsonNode one : parts.get("identifiers")) {
+            claimed.add(one.get("system").asText() + "|" + one.get("value").asText());
+        }
+        if (!claimed.equals(storedClaims(c, stored))) {
+            return "claims differ: database=" + claimed + " engine=" + storedClaims(c, stored);
+        }
+        Set<String> pointed = new java.util.TreeSet<>();
+        for (JsonNode one : parts.get("references")) {
+            pointed.add(one.get("refType").asText() + " -> " + one.get("targetType").asText()
+                    + "/" + one.get("targetId").asText());
+        }
+        if (!pointed.equals(storedEdges(c, stored))) {
+            return "edges differ: database=" + pointed + " engine=" + storedEdges(c, stored);
+        }
+        return null;
+    }
+
+    private static Set<String> storedClaims(Connection c, Stored stored) throws Exception {
+        Set<String> claims = new java.util.TreeSet<>();
+        try (PreparedStatement ps = c.prepareStatement("""
+                SELECT system, value FROM %s_identifier
+                 WHERE object_id = ?::uuid AND system <> ?"""
+                .formatted(Domains.tables(Domains.DEFINITIONS)))) {
+            ps.setString(1, stored.id());
+            ps.setString(2, cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    claims.add(rs.getString(1) + "|" + rs.getString(2));
+                }
+            }
+        }
+        return claims;
+    }
+
+    private static Set<String> storedEdges(Connection c, Stored stored) throws Exception {
+        Set<String> edges = new java.util.TreeSet<>();
+        try (PreparedStatement ps = c.prepareStatement("""
+                SELECT ref_type, target_type, target_id FROM %s_reference WHERE owner_id = ?::uuid"""
+                .formatted(Domains.tables(Domains.DEFINITIONS)))) {
+            ps.setString(1, stored.id());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    edges.add(rs.getString(1) + " -> " + rs.getString(2) + "/" + rs.getString(3));
+                }
+            }
+        }
+        return edges;
+    }
+
+    /** What disagreed last time, per type, or nothing on a first run. */
+    private static Map<String, Integer> recorded() throws Exception {
+        Path baseline = baseline();
+        if (!Files.exists(baseline)) {
+            return Map.of();
+        }
+        Map<String, Integer> was = new TreeMap<>();
+        for (String line : Files.readAllLines(baseline)) {
+            if (line.isBlank() || line.startsWith("#")) {
+                continue;
+            }
+            String[] parts = line.trim().split("\\s+");
+            was.put(parts[0], Integer.parseInt(parts[2].substring("differing=".length())));
+        }
+        return was;
+    }
+
+    private static Path baseline() {
+        return Files.isDirectory(BASELINE.getParent()) ? BASELINE
+                : Path.of("config", "envelope-baseline.txt");
+    }
+
+    /** What was compared, so a later run can see the corpus shrink. */
+    private static void record(Map<String, int[]> perType) throws Exception {
+        StringBuilder out = new StringBuilder("""
+                # What the database's envelope, claims and edges agree with the engine about,
+                # over the documents a face carries. One line per resource type:
+                #
+                #   <type> compared=<n> differing=<n>
+                #
+                # GENERATED by TheEnvelopeIsTheSameFromEitherSideIT.
+                #
+                # `differing` may fall and may not rise. It is not zero: the database keys an
+                # envelope by the parameter's own code where the engine underscores it, it
+                # carries parameters the definition path does not extract, and one hit reached
+                # by two compiled paths appears twice. A type is served from the database's
+                # envelope when its number here is zero and not before — a difference is not a
+                # wrong answer but a missing one, and an empty result reads like there being
+                # nothing to find.
+                """);
+        perType.forEach((type, counted) -> out.append(type).append(" compared=")
+                .append(counted[0]).append(" differing=").append(counted[1]).append('\n'));
+        Files.writeString(baseline(), out.toString());
+    }
+
 
     /** What one hit contributes under one key, as the database builds it. */
     private static JsonNode pairs(String key, String kind, String hit) throws Exception {

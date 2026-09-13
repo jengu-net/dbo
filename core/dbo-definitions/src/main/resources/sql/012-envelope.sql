@@ -167,3 +167,77 @@ RETURNS jsonb LANGUAGE sql STABLE AS $$
               OR jsonb_path_match(hit, p.predicate::jsonpath, '{}'::jsonb, true))
        GROUP BY pair.key) keyed
 $$;
+
+-- The three parts a write needs, from one walk.
+--
+-- The envelope is what a search asks by; the identifiers are the exclusive
+-- claims a record makes; the reference edges are what it points at. All three
+-- come off the same hits, which is the whole reason to compute them here: the
+-- document is walked once, in the statement that stores it, instead of three
+-- times over an object tree in another process.
+--
+-- ONE PART IS NOT HERE, and deliberately. A canonical type is identified by
+-- its own url, and which types those are is something the registration knows
+-- and the document does not — a url in a document that is not of such a type
+-- is an ordinary value. So that claim stays with the engine, which is where
+-- the knowledge is, and this returns what can be read from the document
+-- against the parameters the tenant holds.
+CREATE OR REPLACE FUNCTION dbo.envelope_parts(p_doc jsonb, p_type text)
+RETURNS jsonb LANGUAGE sql STABLE AS $$
+  WITH selected AS (
+    SELECT p.code, p.kind, h AS hit
+      FROM definitions.definition_parameter p,
+           LATERAL jsonb_array_elements_text(p.paths) AS path,
+           LATERAL jsonb_path_query(p_doc, path::jsonpath) AS h
+     WHERE p.base = p_type
+       AND p.unenforceable IS NULL
+       AND (p.predicate IS NULL
+            OR jsonb_path_match(h, p.predicate::jsonpath, '{}'::jsonb, true))
+  ),
+  keyed AS (
+    SELECT pair.key, jsonb_agg(pair.value) AS values
+      FROM selected,
+           LATERAL dbo.envelope_pairs(selected.code, selected.kind, selected.hit) AS pair
+     GROUP BY pair.key
+  ),
+  -- An Identifier with a system is an exclusive claim; without one it is
+  -- still searchable as a token and claims nothing, because the same digits
+  -- in two namespaces are two different things.
+  claimed AS (
+    SELECT selected.hit ->> 'system' AS system, selected.hit ->> 'value' AS value
+      FROM selected
+     WHERE selected.kind = 'token'
+       AND selected.hit ? 'value'
+       AND selected.hit ->> 'system' IS NOT NULL
+  ),
+  -- `Patient/123`, and `http://host/fhir/Patient/123`, are both an edge to
+  -- Patient 123: the type is the segment before the id, wherever the string
+  -- began. A reference with nothing before its last slash names no type and
+  -- is no edge.
+  pointed AS (
+    SELECT code,
+           substring(v from '^(.*)/[^/]*$') AS before,
+           substring(v from '[^/]*$') AS target_id
+      FROM (SELECT selected.code,
+                   COALESCE(selected.hit ->> 'reference',
+                            CASE WHEN jsonb_typeof(selected.hit) = 'string'
+                                 THEN selected.hit #>> '{}' END) AS v
+              FROM selected
+             WHERE selected.kind = 'reference') referenced
+     WHERE v IS NOT NULL
+  )
+  SELECT jsonb_build_object(
+           'envelope',
+           (SELECT COALESCE(jsonb_object_agg(key, values), '{}'::jsonb) FROM keyed),
+           'identifiers',
+           (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                                'system', system, 'value', value)), '[]'::jsonb)
+              FROM claimed),
+           'references',
+           (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                                'refType', code,
+                                'targetType', regexp_replace(before, '^.*/', ''),
+                                'targetId', target_id)), '[]'::jsonb)
+              FROM pointed
+             WHERE before IS NOT NULL AND before <> ''))
+$$;
