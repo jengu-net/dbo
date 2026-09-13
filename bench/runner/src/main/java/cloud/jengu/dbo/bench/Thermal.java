@@ -28,12 +28,21 @@ final class Thermal {
     private volatile boolean throttled;
     private volatile boolean underVoltage;
     private volatile boolean available;
+    /** The latched word as it stood before the run, or -1 for not read. */
+    private volatile long latchedAtStart = -1;
 
     Thermal() {
         sampler = Thread.ofVirtual().name("thermal").unstarted(this::sample);
     }
 
     void start() {
+        // What the board had ALREADY latched, before this run touched it.
+        // Bits 16-19 record that a condition happened at some point since
+        // BOOT, so a Pi that browned out once while somebody plugged a disk
+        // in reports every run after it as invalid — and a bench that cries
+        // wolf about its own results is one nobody reads. What a run is
+        // answerable for is what changed while it ran.
+        latchedAtStart = latched();
         sampler.start();
     }
 
@@ -82,8 +91,10 @@ final class Thermal {
         if (eq >= 0) {
             try {
                 long value = Long.decode(throttleRaw.substring(eq + 1).trim());
-                underVoltage |= ((value >> 16) & 1) == 1;
-                throttled |= ((value >> 17) & 1) == 1 || ((value >> 18) & 1) == 1;
+                // Against what was latched before, not against zero.
+                long since = latchedAtStart < 0 ? value : value & ~latchedAtStart;
+                underVoltage |= ((since >> 16) & 1) == 1;
+                throttled |= ((since >> 17) & 1) == 1 || ((since >> 18) & 1) == 1;
             } catch (NumberFormatException ignored) {
                 // a mask we cannot read is not a mask we may assume is clean,
                 // but neither is it evidence of throttling; leave the flags
@@ -98,6 +109,23 @@ final class Thermal {
                     maxTempC = c;
                 }
             }
+        }
+    }
+
+    /** The latched word alone, for the before-and-after comparison. */
+    private static long latched() {
+        String raw = run("vcgencmd", "get_throttled");
+        if (raw == null) {
+            return -1;
+        }
+        int eq = raw.indexOf('=');
+        if (eq < 0) {
+            return -1;
+        }
+        try {
+            return Long.decode(raw.substring(eq + 1).trim());
+        } catch (NumberFormatException unreadable) {
+            return -1;
         }
     }
 

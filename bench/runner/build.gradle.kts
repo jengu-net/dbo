@@ -19,5 +19,11 @@ dependencies {
     // The same pool production uses. Without it PGSimpleDataSource opens a
     // connection per call and the benchmark measures connection setup.
     implementation("com.zaxxer:HikariCP:7.1.0")
+    implementation(project(":core:dbo-telemetry"))
+    // On the RUNTIME classpath only: the runner asks Telemetry for whatever
+    // this deployment installed, and an exporter with no endpoint configured
+    // is inert. So a run reports where it is told to and stays silent where
+    // it is not, without the runner knowing which.
+    runtimeOnly(project(":core:dbo-telemetry-otlp"))
     runtimeOnly("org.slf4j:slf4j-simple:2.0.18")
 }

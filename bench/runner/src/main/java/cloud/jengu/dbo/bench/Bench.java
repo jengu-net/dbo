@@ -9,6 +9,9 @@ import cloud.jengu.dbo.fhir.r4.R4Store;
 import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.rest.FhirHttpServer;
+import cloud.jengu.dbo.telemetry.Label;
+import cloud.jengu.dbo.telemetry.Labels;
+import cloud.jengu.dbo.telemetry.Telemetry;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -130,7 +133,13 @@ public final class Bench {
             Failures failures) throws InterruptedException {
         AtomicBoolean stop = new AtomicBoolean(false);
         CountDownLatch done = new CountDownLatch(tenants.size());
+        // Reported as they happen, not summarised at the end, because the
+        // question this bench is for is WHEN throughput fell — and the
+        // answer only means something beside the machine's own temperature
+        // and the database's own counters, on one timeline.
+        Telemetry telemetry = Telemetry.installed();
         for (Tenant tenant : tenants) {
+            Labels labels = Labels.of(Label.TENANT, tenant.code);
             Thread.ofVirtual().name("bench-" + tenant.code).start(() -> {
                 try {
                     while (!stop.get()) {
@@ -144,6 +153,8 @@ public final class Bench {
                         long elapsed = System.nanoTime() - t0;
                         if (status == 201) {
                             write.record(elapsed);
+                            telemetry.observed("dbo.bench.write",
+                                    Duration.ofNanos(elapsed), labels);
                         } else {
                             // Counted, never ignored. A run that drops its
                             // failures publishes the latency of the requests
@@ -161,6 +172,8 @@ public final class Bench {
                         long lookupElapsed = System.nanoTime() - t1;
                         if (lookupStatus == 200) {
                             lookup.record(lookupElapsed);
+                            telemetry.observed("dbo.bench.lookup",
+                                    Duration.ofNanos(lookupElapsed), labels);
                         } else {
                             failures.record(lookupStatus);
                         }
