@@ -78,7 +78,12 @@ final class StepPhases {
         Runs runs = new Runs(objects);
         Declarations declarations = new Declarations(objects,
                 new PgChangeFeed(dataSource, WorkModel.DOMAIN), Duration.ofSeconds(30));
-        StepDeclaration step = StepDeclaration.of(STEP, "1.0", "r4").taking("subject", PATIENT);
+        // Declared over the WORK domain, which is the domain a run is
+        // written in and the one the lane's feed carries: a step declared
+        // over the face's domain produces runs the lane never sees, and a
+        // runner that polls forever looks exactly like a slow one.
+        StepDeclaration step = StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
+                .taking("subject", PATIENT);
 
         for (int i = 0; i < references.size(); i++) {
             runs.of(step, RunKind.PIPELINE, tenant + "/" + i,
