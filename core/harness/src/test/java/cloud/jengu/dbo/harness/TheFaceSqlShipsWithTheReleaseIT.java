@@ -135,7 +135,8 @@ class TheFaceSqlShipsWithTheReleaseIT {
                 "the functions have no schema of their own, so code and data share one");
         assertEquals(List.of("binding_in", "binding_issues", "cardinality_in",
                         "cardinality_issues", "coded_values", "date_key", "descends_from",
-                        "envelope", "envelope_pairs", "in_value_set", "instances",
+                        "envelope", "envelope_pairs", "envelope_parts", "in_value_set",
+                        "instances",
                         "invariant_holds", "invariant_in", "invariant_issues", "located",
                         "record_exists", "reference_in", "reference_issues", "token_forms",
                         "validate", "value_in", "value_issues", "walked"), query(
