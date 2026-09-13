@@ -33,12 +33,16 @@ the configuration, and the definitions the store validates against.
 | you might be building | the store already has | section |
 |---|---|---|
 | a per-customer database and its provisioning | tenants | [Tenancy](#tenancy) |
-| a user table, roles, and a permission matrix | authority from the tenant's own records | [Who may act](#who-may-act) |
-| an audit log table and the code that writes it | the trail as records | [The trail](#the-trail) |
+| an authentication flow, token issuing and validation | a **per-tenant OIDC authority**, federated to a broker | [Authentication and authorisation](#authentication-and-authorisation-who-may-act) |
+| a user table, roles, and a permission matrix | **authorisation** from the tenant's own records | [Authentication and authorisation](#authentication-and-authorisation-who-may-act) |
+| a user-provisioning endpoint for your identity provider | **SCIM 2.0** at `/t/<code>/scim/v2` | [Authentication and authorisation](#authentication-and-authorisation-who-may-act) |
+| an audit log table and the code that writes it | **audit as records** — the trail | [The trail](#the-trail) |
+| a purpose or lawful-basis story you assemble for an auditor | the step *is* the purpose, and the trail records it | [Meeting the regulation](#meeting-the-regulation) |
+| a GDPR checklist implemented once per application | a mechanism per obligation | [Meeting the regulation](#meeting-the-regulation) |
 | field-level encryption and a key table | personal-data isolation | [Personal data](#personal-data) |
 | a "delete this person everywhere" script | erasure that reaches copies | [Erasure](#erasure) |
 | an export job and an import job | one archive, both ways | [Export, import, backup](#export-import-backup) |
-| a job table, a worker loop, retries | work: processes, steps, runs | [Work](#work) |
+| a job table, a worker loop, retries | **processes → steps → runs** | [Work](#work) |
 | a queue or broker between services | lanes and feeds | [Work](#work), [Feeds](#feeds) |
 | a change-notification table and pollers | the change feed with named consumers | [Feeds](#feeds) |
 | a terminology table and code lookups | terminology as rows | [Terminology](#terminology) |
@@ -90,7 +94,7 @@ converter chain on read instead.
 
 → [records you can rely on](arc42-008-crosscutting/records-you-can-rely-on/README.md)
 
-## Who may act
+## Authentication and authorisation (who may act)
 
 **What it is.** The organisational records a tenant keeps anyway are the
 grants. A person's access derives from an active role record; revoking it is
@@ -105,10 +109,25 @@ in somebody's name, and delegation records for work that outlives a token. A
 deployment-level hub federates to a national identity provider so one ceremony
 serves every tenant in a zone.
 
+**Authentication is shared; authorisation never is.** The store authenticates
+nobody in production. What each tenant does with a verified identity is its
+own: it resolves the person in **its own records** and mints its own token, and
+a token from one tenant fails at another's signature check before a claim is
+read. So the same verified person is granted at one tenant and refused at the
+next — that is the design rather than a misconfiguration, and it is the
+sentence to weigh before placing an identity provider.
+
+**People are provisioned over SCIM 2.0** at `/t/<code>/scim/v2`. A `User` lands
+as a Person claiming the external id, with a linked practitioner capacity;
+`active=false` deactivates rather than deletes; replace honours the ETag and a
+stale one is refused; a second `User` claiming one external id is a conflict
+naming it. The directory stays the identity provider's and the records stay the
+tenant's, with no synchronisation job between them.
+
 **What you would otherwise write.** A user directory, a role table, the
-synchronisation between it and the clinical records, and the incident where
-somebody who left last year still had access because only one of the two was
-updated.
+synchronisation between it and the clinical records, a provisioning endpoint,
+and the incident where somebody who left last year still had access because
+only one of the two was updated.
 
 → [who may act](arc42-008-crosscutting/who-may-act/README.md)
 
@@ -305,6 +324,41 @@ restored consumer stands at the head of the restored feed.
 **What you would otherwise write.** An export job exercised only when somebody
 leaves, written against a schema that has since moved.
 
+## Meeting the regulation
+
+**What it is.** The store's concepts are the ones European data-protection law
+asks of any system holding personal data — purpose, custody, declared handling,
+history, tenancy, erasure. Each obligation has a **mechanism** rather than a
+procedure somebody performs.
+
+| what the regulation asks for | what answers it here |
+|---|---|
+| a purpose for each processing of personal data | access is granted to a **step**, and the step is the purpose — there is no way to reach the data without performing the work that needed it |
+| records of processing | the **trail**: who read what, on whose authority, as append-only records in the tenant's own store |
+| right of access | the person's records, read through the ordinary surface |
+| data portability | a **store-independent export**, hash-verified, importable elsewhere |
+| right to erasure | destroying the person's **key**, which reaches copies nobody can recall, replayed on every restore |
+| restriction of processing | a flag in the vault, honoured by the machinery |
+| protection by design and by default | properties rather than policies: the operator **cannot** read what it hosts |
+| a processor that does not read the data | provisioning, backup, restore and upgrade all work without the key |
+| jurisdictional variation | a **zone**: a country's rules are records, not a release |
+
+**How to reach it.** Set `pdi` on the tenant; declare steps for the work that
+touches personal data; let the trail be written by performing that work rather
+than by calling an audit function.
+
+**What you would otherwise write.** A consent or purpose table, an audit writer
+on every path, an erasure script with a list of every system holding a copy, an
+export job, and the argument about whether an administrator could have edited
+the log.
+
+**What this is not.** Compliance is a property of a deployment and of the
+organisation running it — its contracts, its retention decisions, its staff.
+The store does not make anybody compliant, and nothing here should be read as
+saying it does. What it removes is the part that is otherwise per-application
+code, and that would otherwise be somebody's good intention rather than a
+property of the system.
+
 ## Running it
 
 **What it is.** One PostgreSQL database per tenant and nothing else to
@@ -394,6 +448,25 @@ reference: docs/using-dbo.md
   another.
 - **Backup is export and restore is import**, one sealed archive, verifiable
   without trusting either party.
+- **Processes → steps → runs.** A step declares what it consumes, produces and
+  who may perform it; access is granted to the step, so performing one records
+  why the data was reached. A job table with a worker loop is this, rebuilt
+  without the proof.
+- **Audit is records, not logging.** Contribute what happened; who and when are
+  stamped from the credential. Append-only against everyone, the vendor
+  included. Do not write an audit table or an audit writer per path.
+- **Authentication is shared; authorisation never is.** The store authenticates
+  nobody in production; each tenant resolves the verified person in its own
+  records and mints its own token, and a token from one tenant is unintelligible
+  at another. Do not build a cross-tenant session.
+- **SCIM 2.0 provisions people** at `/t/<code>/scim/v2` — a `User` lands as a
+  Person with a linked practitioner capacity, `active=false` deactivates, ETags
+  are honoured. Do not write an identity-provider synchronisation job.
+- **Each regulatory obligation has a mechanism.** Purpose is the step; records
+  of processing are the trail; erasure destroys the key; portability is the
+  ordinary export; jurisdiction is a zone. Do not implement a data-protection
+  checklist per application — and do not read this as a compliance claim: it
+  says where the mechanism is, not anything about a deployment.
 - **MUST check the requirement catalogue before relying on a capability**:
   `docs/arc42-006-runtime/req-catalogue.md` is generated and a promise reads
   PROVEN only when a test cites it. Subscription delivery, tier-2 search,

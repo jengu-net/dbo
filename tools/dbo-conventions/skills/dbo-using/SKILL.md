@@ -57,6 +57,25 @@ description: Building an application on top of the DBO store, or reviewing one t
   another.
 - **Backup is export and restore is import**, one sealed archive, verifiable
   without trusting either party.
+- **Processes → steps → runs.** A step declares what it consumes, produces and
+  who may perform it; access is granted to the step, so performing one records
+  why the data was reached. A job table with a worker loop is this, rebuilt
+  without the proof.
+- **Audit is records, not logging.** Contribute what happened; who and when are
+  stamped from the credential. Append-only against everyone, the vendor
+  included. Do not write an audit table or an audit writer per path.
+- **Authentication is shared; authorisation never is.** The store authenticates
+  nobody in production; each tenant resolves the verified person in its own
+  records and mints its own token, and a token from one tenant is unintelligible
+  at another. Do not build a cross-tenant session.
+- **SCIM 2.0 provisions people** at `/t/<code>/scim/v2` — a `User` lands as a
+  Person with a linked practitioner capacity, `active=false` deactivates, ETags
+  are honoured. Do not write an identity-provider synchronisation job.
+- **Each regulatory obligation has a mechanism.** Purpose is the step; records
+  of processing are the trail; erasure destroys the key; portability is the
+  ordinary export; jurisdiction is a zone. Do not implement a data-protection
+  checklist per application — and do not read this as a compliance claim: it
+  says where the mechanism is, not anything about a deployment.
 - **MUST check the requirement catalogue before relying on a capability**:
   `docs/arc42-006-runtime/req-catalogue.md` is generated and a promise reads
   PROVEN only when a test cites it. Subscription delivery, tier-2 search,
