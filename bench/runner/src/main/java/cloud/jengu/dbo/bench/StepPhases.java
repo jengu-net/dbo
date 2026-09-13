@@ -200,10 +200,10 @@ final class StepPhases {
     /** The four, as the result document carries them. */
     String json() {
         return Json.object(
-                Json.field("retrieve", retrieve.json()),
-                Json.field("execute", execute.json()),
-                Json.field("write", write.json()),
-                Json.field("whole", whole.json()));
+                Json.raw("retrieve", retrieve.json()),
+                Json.raw("execute", execute.json()),
+                Json.raw("write", write.json()),
+                Json.raw("whole", whole.json()));
     }
 
     String summary() {
