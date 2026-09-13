@@ -2327,6 +2327,7 @@ cloud.jengu.dbo.promises.DboPromises                                   MNT_BACKU
 cloud.jengu.dbo.promises.DboPromises                                   MNT_BOTH_PARTIES_ATTEST:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_HISTORY_BY_SCHEMA:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_IMPORT_REFUSES_UNATTESTED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   MNT_MOVING_DATA_IS_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_OWNER_KEY_ENCRYPTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_PORTABLE_STATE_EXPORT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_SNAPSHOT_CONSISTENT:cloud.jengu.dbo.promises.DboPromises
@@ -3238,6 +3239,7 @@ cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               bootstrap
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               bootstrapClientSecret(String,Duration):String
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               class
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               close():void
+cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               connectionsPerTenant(int):cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               deprovision(String):void
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               new(String,String,String)
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               provision(cloud.jengu.dbo.tenant.TenantSpec):cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase
@@ -3255,6 +3257,7 @@ cloud.jengu.dbo.tenant.MaintenanceHandler                              class
 cloud.jengu.dbo.tenant.MaintenanceHandler                              handle(HttpExchange):void
 cloud.jengu.dbo.tenant.MaintenanceHandler                              new(cloud.jengu.dbo.auth.TenantAuthority,DataSource,String,List,cloud.jengu.dbo.core.face.PortableRendering,String,cloud.jengu.dbo.maintenance.ImportLedger)
 cloud.jengu.dbo.tenant.MaintenanceHandler                              new(cloud.jengu.dbo.auth.TenantAuthority,DataSource,String,List,cloud.jengu.dbo.core.face.PortableRendering,String,cloud.jengu.dbo.maintenance.ImportLedger,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.common.FhirStoreFacade)
+cloud.jengu.dbo.tenant.MaintenanceHandler                              recordingInto(cloud.jengu.dbo.tenant.MaintenanceRecording):cloud.jengu.dbo.tenant.MaintenanceHandler
 cloud.jengu.dbo.tenant.PersonErasure                                   MILESTONES:List
 cloud.jengu.dbo.tenant.PersonErasure                                   PROCESS:String
 cloud.jengu.dbo.tenant.PersonErasure                                   STEP:String

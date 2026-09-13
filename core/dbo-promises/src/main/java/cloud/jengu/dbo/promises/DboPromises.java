@@ -1627,6 +1627,19 @@ public enum DboPromises implements Promise {
             + "recomputes and both signatures verify, or nothing is written. A refusal "
             + "names what was wrong with the archive rather than failing part-way through "
             + "it."),
+    MNT_MOVING_DATA_IS_RECORDED(
+            "Moving a tenant's data is a record and not a log line. A backup and a "
+            + "restore each open a run in the deployment's own history, saying which "
+            + "tenant and what kind of archive, closed when the bytes are where they "
+            + "were going and released with the shape of the failure when they are not — "
+            + "so a supervisor sees an unfinished move as owed rather than as nothing. "
+            + "Both go to the managing tenant, because a restore may be creating the "
+            + "tenant it restores and has nowhere else to write; a deployment with "
+            + "nobody managing records nothing and moves the data anyway, since "
+            + "recording what happened is not a condition of doing it. A move refused at "
+            + "the door — unattested, unsigned — never opens a run, because a history "
+            + "that says a tenant's data was touched when nothing was is worse than "
+            + "silence."),
     MNT_ATTESTATION_READS_AS_FHIR(
             "An archive's attestation renders as a `Provenance` carrying FHIR's "
             + "`Signature`, so a customer's own tooling can check what it was handed "

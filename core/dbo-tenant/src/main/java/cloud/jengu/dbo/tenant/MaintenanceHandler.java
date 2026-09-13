@@ -60,6 +60,22 @@ public final class MaintenanceHandler implements HttpHandler {
         this(authority, dataSource, domain, types, rendering, basePath, ledger, null, null);
     }
 
+    /** Where a move is written down, for a deployment that has somewhere. */
+    private MaintenanceRecording recording = MaintenanceRecording.none();
+
+    /**
+     * Says where to record what this handler moves.
+     *
+     * <p>Set rather than constructed, because the managing tenant's store is
+     * not necessarily up when a tenant's own admin surface is mounted, and a
+     * handler that demanded it would order the bring-up around its own
+     * bookkeeping.
+     */
+    public MaintenanceHandler recordingInto(MaintenanceRecording where) {
+        this.recording = where == null ? MaintenanceRecording.none() : where;
+        return this;
+    }
+
     /**
      * The same, able to run a reshape: the engine to write through and
      * the face to convert with. Both absent — a tenant whose face declares no
@@ -124,14 +140,24 @@ public final class MaintenanceHandler implements HttpHandler {
                 Optional.ofNullable(exchange.getRequestHeaders().getFirst(KIND_HEADER))
                         .orElse(TenantExport.Kind.BACKUP.wire()));
 
-        // The response opens before the archive is built, so the bytes flow
-        // as they are sealed. A failure after this point cannot become a
-        // status code, which is why every guard above runs first.
+        // Recorded before the first byte, because the record is the thing an
+        // operator asks about afterwards and a backup that failed halfway is
+        // exactly the case where there is no response left to read. Opened
+        // where the deployment's own history lives rather than in the
+        // tenant's: a restore can precede the tenant it restores, and the two
+        // belong in one place or neither is answerable.
+        MaintenanceRecording.Recorded recorded = recording.open("backup", kind.wire());
         exchange.getResponseHeaders().set("Content-Type", "application/octet-stream");
         exchange.getResponseHeaders().set(KIND_HEADER, kind.wire());
         exchange.sendResponseHeaders(200, 0);
         try (OutputStream out = exchange.getResponseBody()) {
             TenantExport.export(dataSource, domain, ownerKey, out, types, kind, rendering);
+            recorded.closed();
+        } catch (IOException | RuntimeException failed) {
+            // The response is already open, so this cannot become a status
+            // code. The run is the only place it can be said.
+            recorded.failed(failed.toString());
+            throw failed;
         }
     }
 
@@ -311,11 +337,26 @@ public final class MaintenanceHandler implements HttpHandler {
 
     private void restore(HttpExchange exchange) throws IOException {
         byte[] ownerKey = ownerKey(exchange);
-        TenantImport.restoreFidelity(dataSource, domain, exchange.getRequestBody(), ownerKey,
-                attestation(exchange),
-                publicKey(exchange, VENDOR_KEY_HEADER),
-                publicKey(exchange, TENANT_KEY_HEADER),
-                ledger);
+        // Opened after the guards and before the archive is read, so a
+        // restore that dies mid-stream leaves a run that is owed rather than
+        // nothing at all. A refused one — no attestation, a bad key — never
+        // started, and is a status code rather than a record.
+        // Read BEFORE the run is opened. These refuse an unattested or
+        // unsigned restore, and a refusal at the door is a status code rather
+        // than history: a run written for a move that never began would say a
+        // tenant's data was touched when nothing was.
+        var attestation = attestation(exchange);
+        var vendorKey = publicKey(exchange, VENDOR_KEY_HEADER);
+        var tenantKey = publicKey(exchange, TENANT_KEY_HEADER);
+        MaintenanceRecording.Recorded recorded = recording.open("restore", "fidelity");
+        try {
+            TenantImport.restoreFidelity(dataSource, domain, exchange.getRequestBody(), ownerKey,
+                    attestation, vendorKey, tenantKey, ledger);
+            recorded.closed();
+        } catch (IOException | RuntimeException failed) {
+            recorded.failed(failed.toString());
+            throw failed;
+        }
         respond(exchange, 200, "{\"status\":\"restored\"}");
     }
 
