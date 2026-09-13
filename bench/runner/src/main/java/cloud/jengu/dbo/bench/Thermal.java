@@ -37,8 +37,21 @@ final class Thermal {
         sampler.start();
     }
 
+    /**
+     * Stoppable whether or not it was ever started.
+     *
+     * <p>The run stops this from a {@code finally}, and a failure before the
+     * sampler starts — provisioning a tenant, above all — reaches that
+     * {@code finally} with an unstarted thread. Joining one throws, and the
+     * throw REPLACES the exception that was already on its way out: the bench
+     * then reports that a thread was not started, at the one moment somebody
+     * needs to know why a tenant would not come up.
+     */
     void stop() {
         running.set(false);
+        if (sampler.getState() == Thread.State.NEW) {
+            return;
+        }
         try {
             sampler.join(java.time.Duration.ofSeconds(5));
         } catch (InterruptedException e) {
