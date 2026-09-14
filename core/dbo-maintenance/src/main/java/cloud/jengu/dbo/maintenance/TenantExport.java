@@ -248,7 +248,8 @@ public final class TenantExport {
                 DigestingZip zip = null;
                 try (OutputStream sealed = SealedArchive.sealing(ownerMasterKey, out)) {
                     zip = new DigestingZip(new ZipOutputStream(sealed));
-                    result = writeArchive(c, domain, zip, grounded(types, kind), kind, rendering);
+                    result = writeArchive(c, domain, zip, grounded(types, kind),
+                            declaredDomains(types, domain), kind, rendering);
                     // The manifest can only be written once every digest is
                     // known, so it goes last — which is also why verification
                     // needs its own pass before an import writes anything.
@@ -519,6 +520,28 @@ public final class TenantExport {
         zip.closeEntry();
     }
 
+    /**
+     * The domains a portable element carries: those a supplied registration
+     * names, with the one asked for first.
+     *
+     * <p>Derived from the declarations rather than discovered from the
+     * database, which is the difference that matters here. {@link #domainsOf}
+     * finds every domain a tenant has, and a portable export must carry only
+     * what something declared and declared as travelling — a domain nothing
+     * here declares has no handling to be judged by, and carrying it would be
+     * the one direction this element must never take.
+     */
+    private static List<String> declaredDomains(List<TypeRegistration> types, String domain) {
+        List<String> domains = new ArrayList<>();
+        domains.add(domain);
+        for (TypeRegistration type : types) {
+            if (!domains.contains(type.domain())) {
+                domains.add(type.domain());
+            }
+        }
+        return domains;
+    }
+
     /** The type names that must not appear in any archive. */
     private static Set<String> grounded(List<TypeRegistration> types, Kind kind) {
         Set<String> never = new java.util.LinkedHashSet<>();
@@ -534,7 +557,7 @@ public final class TenantExport {
     }
 
     private static ExportResult writeArchive(Connection c, String domain, DigestingZip out,
-            Set<String> grounded, Kind kind,
+            Set<String> grounded, List<String> declaredDomains, Kind kind,
             cloud.jengu.dbo.core.face.PortableRendering rendering)
             throws SQLException, IOException {
         DigestingZip zip = out;
@@ -547,16 +570,31 @@ public final class TenantExport {
         }
 
         // ---- portable state element, one ndjson per type
+        // EVERY domain a registration names, not the one asked for. This
+        // element read a single table until a tenant's definitions moved into
+        // a domain and schema of their own, and a portable export then
+        // silently stopped carrying the vocabulary its own records point at:
+        // well-formed FHIR, a correct manifest, and no way to resolve a code.
+        // The fidelity element below learnt this earlier and says so there.
+        //
+        // Safe to widen because `grounded` is computed over the registrations
+        // the caller supplied, and those span every domain a tenant has — a
+        // credential or an audit entry is excluded by its own declared
+        // handling wherever it lives.
         Map<String, Long> counts = new LinkedHashMap<>();
+        Map<String, String> carriedFrom = new LinkedHashMap<>();
         List<String> types = new ArrayList<>();
-        try (PreparedStatement ps = c.prepareStatement(
-                "SELECT DISTINCT type FROM %s_data WHERE NOT deleted ORDER BY type"
-                        .formatted(Domains.tables(domain)));
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                String type = rs.getString(1);
-                if (!grounded.contains(type)) {
-                    types.add(type);
+        for (String held : declaredDomains) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT DISTINCT type FROM %s_data WHERE NOT deleted ORDER BY type"
+                            .formatted(Domains.tables(held)));
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String type = rs.getString(1);
+                    if (!grounded.contains(type) && !carriedFrom.containsKey(type)) {
+                        types.add(type);
+                        carriedFrom.put(type, held);
+                    }
                 }
             }
         }
@@ -576,7 +614,8 @@ public final class TenantExport {
                                      FROM %s_identifier i
                                      WHERE i.object_id = d.id AND i.identity), '')
                     FROM %s_data d WHERE d.type = ? AND NOT d.deleted ORDER BY d.id"""
-                    .formatted(Domains.tables(domain), Domains.tables(domain)))) {
+                    .formatted(Domains.tables(carriedFrom.get(type)),
+                               Domains.tables(carriedFrom.get(type))))) {
                 ps.setString(1, type);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
@@ -609,7 +648,7 @@ public final class TenantExport {
                 try (PreparedStatement ps = c.prepareStatement("""
                         SELECT d.id, d.version_id, d.payload
                         FROM %s_data d WHERE d.type = ? AND NOT d.deleted
-                        ORDER BY d.id""".formatted(Domains.tables(domain)))) {
+                        ORDER BY d.id""".formatted(Domains.tables(carriedFrom.get(type))))) {
                     ps.setString(1, type);
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
