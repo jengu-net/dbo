@@ -132,14 +132,45 @@ public final class ConfigApplication {
      * declarations of which one moved is <i>read 700, applied 1, unchanged
      * 699</i>; reporting it as <i>applied 700</i> describes a rewrite of the
      * zone, which is what it used to be.
+     *
+     * <p><b>The cards come back with the tally.</b> A caller told <i>skipped
+     * 370</i> and nothing else knows something is wrong and cannot know what:
+     * the cards are written where a person can read them and the declarer is
+     * the person who has to act on them. Carried rather than fetched, and
+     * uncapped, because the answer is bounded by the ask — a card is a name
+     * and a reason, and the declaration that produced it was that same name
+     * and a payload, so no set can be answered with more than it sent.
+     *
+     * <p><b>The run is named beside them, and it is not the same thing.</b>
+     * The cards here are this pass's refusals; the run is the sweep, which is
+     * per scope and outlives the pass, and what is open on it is everything
+     * still unfixed rather than everything this pass found. A declarer that
+     * crashed, or whose account could not be written, has nothing else to ask
+     * by.
      */
     public record Outcome(long read, long applied, long unchanged, long skipped,
-            long withdrawn) {
+            long withdrawn, String run, List<Card> cards) {
 
         public Outcome(long read, long applied, long skipped) {
-            this(read, applied, 0, skipped, 0);
+            this(read, applied, 0, skipped, 0, null, List.of());
         }
+
+        /**
+         * A pass that did not happen — nothing read, nothing applied, nothing
+         * carded, and no run to name because none was opened. Distinct from a
+         * pass that read a set and found nothing to do, which names its run.
+         */
+        public static final Outcome NOTHING = new Outcome(0, 0, 0, 0, 0, null, List.of());
     }
+
+    /**
+     * One declaration nobody could apply, as the declarer named it.
+     *
+     * <p>The name is the declarer's own — the file, as they spelled it. Not
+     * this store's id for what the declaration would have become: they have
+     * never seen it, and cannot open a file by it.
+     */
+    public record Card(String declaration, String reason) {}
 
     /**
      * How one declared thing is applied where it lands.
@@ -294,6 +325,7 @@ public final class ConfigApplication {
         long applied = 0;
         long unchanged = 0;
         long skipped = 0;
+        java.util.List<Card> cards = new java.util.ArrayList<>();
         for (Declared declared : declarations) {
             try {
                 if (applier.apply(declared) == Applier.Verdict.UNCHANGED) {
@@ -307,6 +339,7 @@ public final class ConfigApplication {
                 // apply it until somebody changes it. A store that was
                 // unavailable is a retry and nobody's card.
                 pass.item(declared.name(), Failure.of(refused), String.valueOf(refused.getMessage()));
+                cards.add(new Card(declared.name(), String.valueOf(refused.getMessage())));
             }
         }
         long withdrawn = 0;
@@ -336,6 +369,10 @@ public final class ConfigApplication {
                     skipped++;
                     pass.item(gone.value(), Failure.of(refused), String.valueOf(
                             refused.getMessage()));
+                    // Named by identity rather than by a file, because nobody
+                    // declared this one: it is what the read stopped naming,
+                    // and the declarer's name for it is the thing that is gone.
+                    cards.add(new Card(gone.value(), String.valueOf(refused.getMessage())));
                 }
             }
         }
@@ -355,7 +392,8 @@ public final class ConfigApplication {
             // re-evaluates and closes it, which is the design rather than a
             // consolation.
         }
-        return new Outcome(declarations.size(), applied, unchanged, skipped, withdrawn);
+        return new Outcome(declarations.size(), applied, unchanged, skipped, withdrawn,
+                sweep.id(), List.copyOf(cards));
     }
 
     /**

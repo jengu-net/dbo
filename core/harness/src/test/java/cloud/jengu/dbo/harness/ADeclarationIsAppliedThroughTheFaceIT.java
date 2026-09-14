@@ -437,6 +437,58 @@ class ADeclarationIsAppliedThroughTheFaceIT {
         assertTrue(lookup.contains("Alpha prime"), lookup);
     }
 
+    /**
+     * The tally says how many nobody could apply. It cannot say which, and the
+     * declarer is the one who has to open the file — so the cards come back
+     * with it, each naming the declaration the way the declarer named it.
+     */
+    @Test
+    @Order(11)
+    @Proving(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS)
+    @DisplayName("a declarer reads the cards of the pass it just ran, each naming the "
+            + "declaration as the declarer named it")
+    void theAnswerCarriesTheCardsOfThePass() throws Exception {
+        String named = "zone/vocab/broken-status.json";
+        HttpResponse<String> answered = hand("{\"declarations\":["
+                + "{\"type\":\"ValueSet\",\"name\":\"" + named + "\","
+                + "\"payload\":{\"resourceType\":\"ValueSet\",\"url\":\""
+                + SYSTEM + "/vs-broken\",\"status\":\"unicorn\"}}]}");
+
+        assertEquals(200, answered.statusCode(), answered.body());
+        assertTrue(answered.body().contains("\"skipped\":1"),
+                "a declaration the engine refuses has to be skipped rather than applied: "
+                        + answered.body());
+        // The whole point: the name is the declarer's own. Answered with this
+        // store's id for what the declaration would have become, a declarer
+        // has nothing to open.
+        assertTrue(answered.body().contains(named),
+                "the tally said one was skipped and the answer does not say which: "
+                        + answered.body());
+        assertTrue(answered.body().contains("\"run\""),
+                "a pass that carded something has to name the run it carded it on, because "
+                        + "the cards outlive the answer: " + answered.body());
+    }
+
+    /**
+     * And the field is not noise. A pass that refused nothing says so with an
+     * empty list rather than by leaving it out — absence is what a store that
+     * never sent it looks like, and a declarer cannot tell those apart.
+     */
+    @Test
+    @Order(12)
+    @Proving(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS)
+    @DisplayName("a pass that refused nothing answers with no cards, and says so")
+    void aCleanPassCarriesAnEmptyCardList() throws Exception {
+        HttpResponse<String> answered = hand("{\"declarations\":["
+                + codeSystem("2", "Beta") + "]}");
+
+        assertEquals(200, answered.statusCode(), answered.body());
+        assertTrue(answered.body().contains("\"skipped\":0"), answered.body());
+        assertTrue(answered.body().contains("\"cards\":[]"),
+                "a clean pass has to say it carded nothing, rather than omitting the field: "
+                        + answered.body());
+    }
+
     /** What the engine holds for this declaration, by its version. */
     private String versionOf(String type, String url) {
         return manager.runtime(ZONE).orElseThrow().engine()

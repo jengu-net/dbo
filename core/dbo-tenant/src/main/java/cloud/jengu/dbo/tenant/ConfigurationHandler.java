@@ -113,17 +113,31 @@ public final class ConfigurationHandler implements HttpHandler {
             // declared something and wants to know whether it took reads
             // applied; one that wants to know whether anybody has to fix
             // something reads skipped, and then reads the run.
-            respond(exchange, 200, Map.of(
-                    "process", ConfigApplication.PROCESS,
-                    "step", ConfigApplication.STEP,
-                    "read", outcome.read(),
-                    "applied", outcome.applied(),
-                    // Said apart from applied: a caller polling a repository
-                    // reads this to know its last post changed nothing, which
-                    // "applied" cannot tell it.
-                    "unchanged", outcome.unchanged(),
-                    "skipped", outcome.skipped(),
-                    "withdrawn", outcome.withdrawn()));
+            java.util.Map<String, Object> answer = new java.util.LinkedHashMap<>();
+            answer.put("process", ConfigApplication.PROCESS);
+            answer.put("step", ConfigApplication.STEP);
+            answer.put("read", outcome.read());
+            answer.put("applied", outcome.applied());
+            // Said apart from applied: a caller polling a repository
+            // reads this to know its last post changed nothing, which
+            // "applied" cannot tell it.
+            answer.put("unchanged", outcome.unchanged());
+            answer.put("skipped", outcome.skipped());
+            answer.put("withdrawn", outcome.withdrawn());
+            if (outcome.run() != null) {
+                answer.put("run", outcome.run());
+            }
+            // Always present, empty included. A field that appears only when
+            // something went wrong is one a caller learns to read by its
+            // absence, and absence is also what a version that never sent it
+            // looks like.
+            java.util.List<Object> cards = new java.util.ArrayList<>();
+            for (ConfigApplication.Card card : outcome.cards()) {
+                cards.add(Map.of("declaration", String.valueOf(card.declaration()),
+                        "reason", String.valueOf(card.reason())));
+            }
+            answer.put("cards", cards);
+            respond(exchange, 200, answer);
         } catch (RuntimeException failed) {
             // The run carries what actually happened. This says only that the
             // ask did not complete, because a body describing an application

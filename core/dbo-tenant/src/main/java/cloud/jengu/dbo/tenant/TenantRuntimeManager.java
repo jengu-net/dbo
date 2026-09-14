@@ -592,7 +592,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         } catch (RuntimeException unreadable) {
             // Said already, in the ledger and the log. The tenants already
             // declared are unaffected, and the records stand as they were.
-            lastApplication = new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0, 0);
+            lastApplication = cloud.jengu.dbo.sync.ConfigApplication.Outcome.NOTHING;
         }
         Set<String> declared = java.util.concurrent.ConcurrentHashMap.newKeySet();
         // Together, not one after another. Bring-up is minutes of somebody
@@ -2725,11 +2725,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private cloud.jengu.dbo.sync.ConfigApplication.Outcome recordDeclarations() {
         if (managementCode == null) {
-            return new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0, 0);
+            return cloud.jengu.dbo.sync.ConfigApplication.Outcome.NOTHING;
         }
         ObjectStore management = runStores.get(managementCode);
         if (management == null) {
-            return new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0, 0);
+            return cloud.jengu.dbo.sync.ConfigApplication.Outcome.NOTHING;
         }
         try {
             cloud.jengu.dbo.sync.ConfigApplication applied =
@@ -2772,7 +2772,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /** What the last application of the declarations did. */
     private volatile cloud.jengu.dbo.sync.ConfigApplication.Outcome lastApplication =
-            new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0, 0);
+            cloud.jengu.dbo.sync.ConfigApplication.Outcome.NOTHING;
 
     /**
      * The ledger's name for "the declarations themselves could not be read".
