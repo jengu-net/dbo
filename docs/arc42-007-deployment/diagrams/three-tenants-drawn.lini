@@ -1,0 +1,136 @@
+{
+  // One node, three tenants, and the two kinds of thing that are not inside it.
+  //
+  // The top band separates them because they are separated in the design: an
+  // application ASKS the store and holds a person's or a system's token; a
+  // participant is OFFERED work and holds an enrolment. Drawing them as one
+  // row of outsiders would lose the distinction the access rules rest on.
+  //
+  // The columns are deliberately independent all the way down: a reader
+  // should be able to put a finger on any column and find nothing that
+  // crosses to its neighbour. The managing tenant sits in the same row as the
+  // other two, because it IS one of them — that is the claim, and putting it
+  // in a band of its own would quietly deny it.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed. So every piece of text that must
+  // sit left is wrapped, and its container aligns to start.
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12.5; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |sealed::panel|  { fill: --seal-soft; stroke: --seal; }
+  |dashed::box|    { radius: 9; fill: none; stroke: --faint; stroke-width: 1.5;
+                     stroke-style: dashed; padding: 14; align: start; }
+  |line-item::box| { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                     height: 26; padding: 0 12; align: start; justify: center; }
+  |lt::t|          { font-size: 12; }
+  |has::t|         { font-weight: semibold; color: --seal; }
+  |miss::t|        { color: --faint; }
+  |body::t|        { color: --muted; }
+
+  |down::line|  { points: 0 0, 0 26; stroke: --accent; stroke-width: 1.75;
+                  marker-end: arrow; }
+  |updown::line| { points: 0 26, 0 0; stroke: --accent; stroke-width: 1.75;
+                   marker-end: arrow; }
+  |ghostbox::box| { radius: 8; fill: none; stroke: --faint; stroke-width: 1.25;
+                    stroke-style: dashed; padding: 10 12; align: start; }
+
+  layout: flow; direction: column; align: start; width: 760;
+  padding: 4; gap: 0; clearance: 2;
+}
+
+|eyebrow| "A clinic, a laboratory, and the operator's own tenant"
+|block| { height: 10 } []
+
+// ---- outside ---------------------------------------------------------------
+|block| { layout: flow; direction: row; align: start; gap: 12; width: 760 } [
+  |panel| { width: 374; height: 114; padding: 12 14 } [ |col| { width: 346; gap: 6 } [
+    |cap| "applications — they ask the store"
+    |line-item| { width: 346 } [ |lt| "the clinic's own application, over FHIR" ]
+    |line-item| { width: 346 } [ |lt| "a host that embeds the store in its JVM" ] ] ]
+  |panel| { width: 374; height: 114; padding: 12 14 } [ |col| { width: 346; gap: 6 } [
+    |cap| "participants — they are offered work"
+    |line-item| { width: 346 } [ |lt| "a bench instrument, behind a router" ]
+    |line-item| { width: 346 } [ |lt| "a supplier's own system, elsewhere" ] ] ]
+]
+
+|block| { height: 4 } []
+|block| { layout: flow; direction: row; align: start; gap: 12; width: 760 } [
+  |block| { width: 374; height: 34 } [ |down| { pin: center } ]
+  |block| { width: 374; height: 34 } [ |updown| { pin: center } ]
+]
+|block| { height: 2 } []
+|block| { layout: flow; direction: row; align: start; gap: 12; width: 760 } [
+  |col| { width: 374; gap: 0 } [
+    |small| "a token from that tenant's own issuer" ]
+  |col| { width: 374; gap: 0 } [
+    |small| "an enrolment, and work it asked for" ] ]
+|block| { height: 12 } []
+
+// ---- the node --------------------------------------------------------------
+|dashed| { width: 760; height: 138; padding: 12 } [ |col| { width: 736; gap: 8 } [
+  |cap| "one node — one process, one port"
+  |block| { layout: grid; columns: repeat(3, 240); gap: 8 } [
+    |panel| { width: 240; height: 80; padding: 10 12 } [ |col| { width: 216; gap: 3 } [
+      |cap| "tenant: the clinic"
+      |small| "its own issuer and keys"
+      |small| "served at its own path" ] ]
+    |panel| { width: 240; height: 80; padding: 10 12 } [ |col| { width: 216; gap: 3 } [
+      |cap| "tenant: the laboratory"
+      |small| "its own issuer and keys"
+      |small| "served at its own path" ] ]
+    |sealed| { width: 240; height: 80; padding: 10 12 } [ |col| { width: 216; gap: 3 } [
+      |has| "tenant: managing"
+      |small| "what this deployment was"
+      |small| "told to serve, as records" ] ]
+  ] ] ]
+
+|block| { height: 4 } []
+|block| { layout: grid; columns: repeat(3, 248); gap: 8 } [
+  |block| { width: 248; height: 34 } [ |down| { pin: center } ]
+  |block| { width: 248; height: 34 } [ |down| { pin: center } ]
+  |block| { width: 248; height: 34 } [ |down| { pin: center } ]
+]
+|block| { height: 2 } []
+|col| { width: 760; gap: 0 } [
+  |small| "a connection handed to each, and never a credential the operator holds" ]
+|block| { height: 10 } []
+
+// ---- the databases ---------------------------------------------------------
+|block| { layout: grid; columns: repeat(3, 248); gap: 8 } [
+  |sealed| { width: 248; height: 74; padding: 10 12 } [ |col| { width: 224; gap: 3 } [
+    |has| "database: the clinic"
+    |small| "records, history, trail, vault" ] ]
+  |sealed| { width: 248; height: 74; padding: 10 12 } [ |col| { width: 224; gap: 3 } [
+    |has| "database: the laboratory"
+    |small| "records, history, trail, vault" ] ]
+  |sealed| { width: 248; height: 74; padding: 10 12 } [ |col| { width: 224; gap: 3 } [
+    |has| "database: managing"
+    |small| "declarations, and its own trail" ] ]
+]
+
+|block| { height: 14 } []
+|dashed| { width: 760; height: 60; padding: 12 16 } [ |col| { width: 728; gap: 3 } [
+  |miss| "what is not drawn because it does not exist: a read across the columns, for anybody"
+  |miss| "including the operator; a broker beside the databases; a call from the node outwards" ] ]

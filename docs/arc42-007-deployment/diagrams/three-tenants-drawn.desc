@@ -1,0 +1,12 @@
+A clinic, a laboratory, and the operator's own tenant
+Above the deployment, two kinds of thing that are not inside it. Applications
+ask the store: the clinic's own application over FHIR, and a host that embeds
+the store in its own JVM, each carrying a token from that tenant's own issuer.
+Participants are offered work: a bench instrument behind a router and a
+supplier's own system elsewhere, each holding an enrolment and taking work it
+asked for. In the middle, one node running one process on one port, with a
+service set per tenant - the clinic, the laboratory, and the managing tenant
+holding what this deployment was told to serve - each with its own issuer and
+keys. Beneath, one database each, holding that tenant's records, history, trail
+and vault. Nothing crosses between the columns, for anybody, the operator
+included.

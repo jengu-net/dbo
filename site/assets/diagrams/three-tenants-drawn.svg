@@ -1,0 +1,296 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-387.5 -281 774.25 562" width="774.25" height="562" class="lini lini-scope-14c38b78" role="img" aria-labelledby="three-tenants-drawn-title three-tenants-drawn-desc">
+  <title id="three-tenants-drawn-title">A clinic, a laboratory, and the operator's own tenant</title>
+  <desc id="three-tenants-drawn-desc">Above the deployment, two kinds of thing that are not inside it. Applications ask the store: the clinic's own application over FHIR, and a host that embeds the store in its own JVM, each carrying a token from that tenant's own issuer. Participants are offered work: a bench instrument behind a router and a supplier's own system elsewhere, each holding an enrolment and taking work it asked for. In the middle, one node running one process on one port, with a service set per tenant - the clinic, the laboratory, and the managing tenant holding what this deployment was told to serve - each with its own issuer and keys. Beneath, one database each, holding that tenant's records, history, trail and vault. Nothing crosses between the columns, for anybody, the operator included.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-14c38b78 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-14c38b78[data-theme="dark"], [data-theme="dark"] .lini-scope-14c38b78 { color-scheme: dark; }
+      .lini-scope-14c38b78[data-theme="light"], [data-theme="light"] .lini-scope-14c38b78 { color-scheme: light; }
+    }
+    .lini-scope-14c38b78 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-14c38b78 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-14c38b78 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-14c38b78 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-14c38b78 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-14c38b78 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-14c38b78 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-14c38b78 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-14c38b78 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-14c38b78 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-14c38b78 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-14c38b78 .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-14c38b78 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-14c38b78 .lini-lt { font-size: 12px; }
+    .lini-scope-14c38b78 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-14c38b78 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-14c38b78 .lini-down { stroke: var(--lini-accent); stroke-width: 1.75; }
+    .lini-scope-14c38b78 .lini-updown { stroke: var(--lini-accent); stroke-width: 1.75; }
+    .lini-scope-14c38b78 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-181.5285,-271.5)">
+      <rect x="-201.2215" y="-5.5" width="402.443" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">A CLINIC, A LABORATORY, AND THE OPERATOR&apos;S OWN TENANT</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.75,-261)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-198.25)">
+      <rect x="-382.75" y="-57.75" width="765.5" height="115.5" rx="0" ry="0"/>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(-194.375,0)">
+        <rect x="-187.625" y="-57" width="375.25" height="114" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-173.625" y="-39.75" width="347.25" height="79.5" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-72.225,-33.25)">
+            <rect x="-101.4" y="-6.5" width="202.8" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">applications — they ask the store</text>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,-7.125)">
+            <rect x="-173" y="-13" width="346" height="26" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-56.48,0)">
+              <rect x="-104.52" y="-6" width="209.04" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the clinic&apos;s own application, over FHIR</text>
+            </g>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,26.125)">
+            <rect x="-173" y="-13" width="346" height="26" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-52.292,0)">
+              <rect x="-108.708" y="-6" width="217.416" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a host that embeds the store in its JVM</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(194.375,0)">
+        <rect x="-187.625" y="-57" width="375.25" height="114" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-173.625" y="-39.75" width="347.25" height="79.5" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-60.642,-33.25)">
+            <rect x="-112.983" y="-6.5" width="225.966" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">participants — they are offered work</text>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,-7.125)">
+            <rect x="-173" y="-13" width="346" height="26" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-61.244,0)">
+              <rect x="-99.756" y="-6" width="199.512" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a bench instrument, behind a router</text>
+            </g>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,26.125)">
+            <rect x="-173" y="-13" width="346" height="26" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-63.29,0)">
+              <rect x="-97.71" y="-6" width="195.42" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a supplier&apos;s own system, elsewhere</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.75,-138.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(-2.75,-119.5)">
+      <rect x="-380" y="-17" width="760" height="34" rx="0" ry="0"/>
+      <g class="lini-node lini-block" transform="translate(-193,0)">
+        <rect x="-187" y="-17" width="374" height="34" rx="0" ry="0"/>
+        <g class="lini-node lini-down lini-line" transform="translate(0,-13)">
+          <line x1="0" y1="0" x2="0" y2="22.5"/>
+          <polygon class="lini-marker lini-marker-arrow" points="0,26 -4,18 4,18" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(193,0)">
+        <rect x="-187" y="-17" width="374" height="34" rx="0" ry="0"/>
+        <g class="lini-node lini-updown lini-line" transform="translate(0,-13)">
+          <line x1="0" y1="26" x2="0" y2="3.5"/>
+          <polygon class="lini-marker lini-marker-arrow" points="0,0 4,8 -4,8" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.75,-101.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(-2.75,-94.25)">
+      <rect x="-380" y="-6.25" width="760" height="12.5" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-193,0)">
+        <rect x="-187" y="-6.25" width="374" height="12.5" rx="0" ry="0"/>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-79.1375,0)">
+          <rect x="-107.8625" y="-6.25" width="215.725" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">a token from that tenant&apos;s own issuer</text>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(193,0)">
+        <rect x="-187" y="-6.25" width="374" height="12.5" rx="0" ry="0"/>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-84.475,0)">
+          <rect x="-102.525" y="-6.25" width="205.05" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">an enrolment, and work it asked for</text>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.75,-82)">
+    </g>
+    <g class="lini-node lini-dashed lini-box lini-block" transform="translate(-2,-6.25)">
+      <rect x="-380" y="-69" width="760" height="138" rx="9" ry="9"/>
+      <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+        <rect x="-368" y="-51.25" width="736" height="102.5" rx="0" ry="0"/>
+        <g class="lini-node lini-cap lini-t lini-block" transform="translate(-263.285,-44.75)">
+          <rect x="-104.715" y="-6.5" width="209.43" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">one node — one process, one port</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(0,10.5)">
+          <rect x="-368" y="-40.75" width="736" height="81.5" rx="0" ry="0"/>
+          <g class="lini-node lini-panel lini-box lini-block" transform="translate(-248,0)">
+            <rect x="-120" y="-40" width="240" height="80" rx="9" ry="9"/>
+            <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+              <rect x="-108" y="-22" width="216" height="44" rx="0" ry="0"/>
+              <g class="lini-node lini-cap lini-t lini-block" transform="translate(-56.9165,-15.5)">
+                <rect x="-51.0835" y="-6.5" width="102.167" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">tenant: the clinic</text>
+              </g>
+              <g class="lini-node lini-small lini-t lini-block" transform="translate(-41.4875,0.25)">
+                <rect x="-66.5125" y="-6.25" width="133.025" height="12.5" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">its own issuer and keys</text>
+              </g>
+              <g class="lini-node lini-small lini-t lini-block" transform="translate(-43.825,15.75)">
+                <rect x="-64.175" y="-6.25" width="128.35" height="12.5" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">served at its own path</text>
+              </g>
+            </g>
+          </g>
+          <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,0)">
+            <rect x="-120" y="-40" width="240" height="80" rx="9" ry="9"/>
+            <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+              <rect x="-108" y="-22" width="216" height="44" rx="0" ry="0"/>
+              <g class="lini-node lini-cap lini-t lini-block" transform="translate(-40.5495,-15.5)">
+                <rect x="-67.4505" y="-6.5" width="134.901" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">tenant: the laboratory</text>
+              </g>
+              <g class="lini-node lini-small lini-t lini-block" transform="translate(-41.4875,0.25)">
+                <rect x="-66.5125" y="-6.25" width="133.025" height="12.5" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">its own issuer and keys</text>
+              </g>
+              <g class="lini-node lini-small lini-t lini-block" transform="translate(-43.825,15.75)">
+                <rect x="-64.175" y="-6.25" width="128.35" height="12.5" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">served at its own path</text>
+              </g>
+            </g>
+          </g>
+          <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(248,0)">
+            <rect x="-120" y="-40" width="240" height="80" rx="9" ry="9"/>
+            <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+              <rect x="-108" y="-22" width="216" height="44" rx="0" ry="0"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-54.258,-15.5)">
+                <rect x="-53.742" y="-6.5" width="107.484" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">tenant: managing</text>
+              </g>
+              <g class="lini-node lini-small lini-t lini-block" transform="translate(-32.0875,0.25)">
+                <rect x="-75.9125" y="-6.25" width="151.825" height="12.5" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">what this deployment was</text>
+              </g>
+              <g class="lini-node lini-small lini-t lini-block" transform="translate(-37.75,15.75)">
+                <rect x="-70.25" y="-6.25" width="140.5" height="12.5" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">told to serve, as records</text>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.75,65.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(-2.75,84.5)">
+      <rect x="-380" y="-17" width="760" height="34" rx="0" ry="0"/>
+      <g class="lini-node lini-block" transform="translate(-256,0)">
+        <rect x="-124" y="-17" width="248" height="34" rx="0" ry="0"/>
+        <g class="lini-node lini-down lini-line" transform="translate(0,-13)">
+          <line x1="0" y1="0" x2="0" y2="22.5"/>
+          <polygon class="lini-marker lini-marker-arrow" points="0,26 -4,18 4,18" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(0,0)">
+        <rect x="-124" y="-17" width="248" height="34" rx="0" ry="0"/>
+        <g class="lini-node lini-down lini-line" transform="translate(0,-13)">
+          <line x1="0" y1="0" x2="0" y2="22.5"/>
+          <polygon class="lini-marker lini-marker-arrow" points="0,26 -4,18 4,18" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(256,0)">
+        <rect x="-124" y="-17" width="248" height="34" rx="0" ry="0"/>
+        <g class="lini-node lini-down lini-line" transform="translate(0,-13)">
+          <line x1="0" y1="0" x2="0" y2="22.5"/>
+          <polygon class="lini-marker lini-marker-arrow" points="0,26 -4,18 4,18" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.75,102.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-2.75,109.75)">
+      <rect x="-380" y="-6.25" width="760" height="12.5" rx="0" ry="0"/>
+      <g class="lini-node lini-small lini-t lini-block" transform="translate(-172.7875,0)">
+        <rect x="-207.2125" y="-6.25" width="414.425" height="12.5" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">a connection handed to each, and never a credential the operator holds</text>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.75,121)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(-2.75,163.75)">
+      <rect x="-380" y="-37.75" width="760" height="75.5" rx="0" ry="0"/>
+      <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(-256,0)">
+        <rect x="-124" y="-37" width="248" height="74" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-112" y="-14.25" width="224" height="28.5" rx="0" ry="0"/>
+          <g class="lini-node lini-has lini-t lini-block" transform="translate(-52.681,-7.75)">
+            <rect x="-59.319" y="-6.5" width="118.638" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">database: the clinic</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-34.4688,8)">
+            <rect x="-77.5312" y="-6.25" width="155.0625" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">records, history, trail, vault</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,0)">
+        <rect x="-124" y="-37" width="248" height="74" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-112" y="-14.25" width="224" height="28.5" rx="0" ry="0"/>
+          <g class="lini-node lini-has lini-t lini-block" transform="translate(-36.314,-7.75)">
+            <rect x="-75.686" y="-6.5" width="151.372" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">database: the laboratory</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-34.4688,8)">
+            <rect x="-77.5312" y="-6.25" width="155.0625" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">records, history, trail, vault</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(256,0)">
+        <rect x="-124" y="-37" width="248" height="74" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-112" y="-14.25" width="224" height="28.5" rx="0" ry="0"/>
+          <g class="lini-node lini-has lini-t lini-block" transform="translate(-50.0225,-7.75)">
+            <rect x="-61.9775" y="-6.5" width="123.955" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">database: managing</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-27.225,8)">
+            <rect x="-84.775" y="-6.25" width="169.55" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">declarations, and its own trail</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.75,208.5)">
+    </g>
+    <g class="lini-node lini-dashed lini-box lini-block" transform="translate(-2,246.25)">
+      <rect x="-380" y="-30" width="760" height="60" rx="9" ry="9"/>
+      <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+        <rect x="-364" y="-14.5" width="728" height="29" rx="0" ry="0"/>
+        <g class="lini-node lini-miss lini-t lini-block" transform="translate(-112.2095,-8)">
+          <rect x="-251.7905" y="-6.5" width="503.581" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">what is not drawn because it does not exist: a read across the columns, for anybody</text>
+        </g>
+        <g class="lini-node lini-miss lini-t lini-block" transform="translate(-109.213,8)">
+          <rect x="-254.787" y="-6.5" width="509.574" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">including the operator; a broker beside the databases; a call from the node outwards</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

@@ -1,0 +1,10 @@
+Inside one tenant's database
+On the left, the vault: names, national identifiers and contact details, each
+sealed with a key belonging to that one person. On the right, everything else -
+records, their history, the runs and the audit trail - where a person appears
+as a pseudonym and nothing else. Below, what each party can read: a participant
+sees what its claimed run named and nothing behind it; the operator sees that
+work ran, how long it took and one word for how it ended, with no name and no
+payload; an auditor of the tenant sees who acted, on what, when and under which
+run, as a pseudonym until the vault is consulted. Turning a pseudonym back into
+a person is a recorded read of the vault.

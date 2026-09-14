@@ -1,0 +1,104 @@
+{
+  // One tenant opened up, and what each party can actually read.
+  //
+  // The three readers along the bottom are the point. Each is entitled to
+  // something real, and none of the three is thereby entitled to the person —
+  // a sentence that only becomes believable when you can see where the name
+  // is and where it is not.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed. So every piece of text that must
+  // sit left is wrapped, and its container aligns to start.
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12.5; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |sealed::panel|  { fill: --seal-soft; stroke: --seal; }
+  |dashed::box|    { radius: 9; fill: none; stroke: --faint; stroke-width: 1.5;
+                     stroke-style: dashed; padding: 14; align: start; }
+  |line-item::box| { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                     height: 26; padding: 0 12; align: start; justify: center; }
+  |lt::t|          { font-size: 12; }
+  |has::t|         { font-weight: semibold; color: --seal; }
+  |miss::t|        { color: --faint; }
+  |body::t|        { color: --muted; }
+
+  |across::line| { points: 0 0, 40 0; stroke: --accent; stroke-width: 1.75;
+                   marker-end: arrow; }
+
+  layout: flow; direction: column; align: start; width: 760;
+  padding: 4; gap: 0; clearance: 2;
+}
+
+|eyebrow| "Inside one tenant's database"
+|block| { height: 10 } []
+
+|block| { layout: flow; direction: row; align: start; gap: 12; width: 760 } [
+  |sealed| { width: 240; height: 128; padding: 12 14 } [ |col| { width: 212; gap: 5 } [
+    |has| "the vault"
+    |small| "names, national identifiers,"
+    |small| "contact details"
+    |block| { height: 2 } []
+    |small| "each sealed with a key"
+    |small| "belonging to that one person" ] ]
+
+  |block| { width: 56; height: 128 } [ |across| { pin: center } ]
+
+  |panel| { width: 440; height: 128; padding: 12 14 } [ |col| { width: 412; gap: 5 } [
+    |cap| "everything else"
+    |small| "records, their history, the runs, the audit trail"
+    |block| { height: 2 } []
+    |lt| "a person appears here as a pseudonym and nothing else,"
+    |lt| "so being entitled to the work is not being entitled to the person" ] ]
+]
+
+|block| { height: 16 } []
+|col| { width: 760; gap: 4 } [ |cap| "what each party can read" ]
+|block| { height: 8 } []
+
+|block| { layout: grid; columns: repeat(3, 248); gap: 8 } [
+  |panel| { width: 248; height: 112; padding: 12 14 } [ |col| { width: 220; gap: 4 } [
+    |cap| "a participant"
+    |small| "what its claimed run named,"
+    |small| "and nothing behind it"
+    |block| { height: 2 } []
+    |miss| "no name" ] ]
+  |panel| { width: 248; height: 112; padding: 12 14 } [ |col| { width: 220; gap: 4 } [
+    |cap| "the operator"
+    |small| "that work ran, how long,"
+    |small| "and one word for how it ended"
+    |block| { height: 2 } []
+    |miss| "no name, and no payload" ] ]
+  |panel| { width: 248; height: 112; padding: 12 14 } [ |col| { width: 220; gap: 4 } [
+    |cap| "an auditor of the tenant"
+    |small| "who acted, on what, when,"
+    |small| "and under which run"
+    |block| { height: 2 } []
+    |miss| "a pseudonym, until the vault" ] ]
+]
+
+|block| { height: 16 } []
+|col| { width: 760; gap: 5 } [
+  |body| "Turning a pseudonym back into a person is a read of the vault, by somebody entitled"
+  |body| "to it, and that read is itself recorded — because learning who somebody is is a"
+  |body| "disclosure. Erasing them destroys the key, and every column above keeps its rows." ]

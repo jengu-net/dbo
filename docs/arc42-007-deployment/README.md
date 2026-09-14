@@ -18,6 +18,10 @@ Three, and the engine behind them is the same build in all three.
 - **A fleet.** Specified below; **no implementation exists**. A deployment today
   is one node and its databases.
 
+A worked example of the second shape — two organisations, the managing tenant,
+the applications in front of them and the participants outside — is drawn on
+the site under Technical, where a reader planning a deployment is standing.
+
 ## Performance is a requirement, not a later phase
 
 R7 states it as founding, and two consequences are structural rather than

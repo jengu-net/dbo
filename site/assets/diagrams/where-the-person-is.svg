@@ -1,0 +1,203 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-386.25 -187 771.75 374" width="771.75" height="374" class="lini lini-scope-8c5adea2" role="img" aria-labelledby="where-the-person-is-title where-the-person-is-desc">
+  <title id="where-the-person-is-title">Inside one tenant's database</title>
+  <desc id="where-the-person-is-desc">On the left, the vault: names, national identifiers and contact details, each sealed with a key belonging to that one person. On the right, everything else - records, their history, the runs and the audit trail - where a person appears as a pseudonym and nothing else. Below, what each party can read: a participant sees what its claimed run named and nothing behind it; the operator sees that work ran, how long it took and one word for how it ended, with no name and no payload; an auditor of the tenant sees who acted, on what, when and under which run, as a pseudonym until the vault is consulted. Turning a pseudonym back into a person is a recorded read of the vault.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-8c5adea2 { color-scheme: light dark; --lini-accent: #a8641b; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-8c5adea2[data-theme="dark"], [data-theme="dark"] .lini-scope-8c5adea2 { color-scheme: dark; }
+      .lini-scope-8c5adea2[data-theme="light"], [data-theme="light"] .lini-scope-8c5adea2 { color-scheme: light; }
+    }
+    .lini-scope-8c5adea2 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-8c5adea2 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8c5adea2 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8c5adea2 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-8c5adea2 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-8c5adea2 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-8c5adea2 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-8c5adea2 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-8c5adea2 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-8c5adea2 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-8c5adea2 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-8c5adea2 .lini-lt { font-size: 12px; }
+    .lini-scope-8c5adea2 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-8c5adea2 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-8c5adea2 .lini-body { color: var(--lini-muted); }
+    .lini-scope-8c5adea2 .lini-across { stroke: var(--lini-accent); stroke-width: 1.75; }
+    .lini-scope-8c5adea2 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-276.4805,-177.5)">
+      <rect x="-105.0195" y="-5.5" width="210.039" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">INSIDE ONE TENANT&apos;S DATABASE</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-167)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-97.25)">
+      <rect x="-381.5" y="-64.75" width="763" height="129.5" rx="0" ry="0"/>
+      <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(-260.75,0)">
+        <rect x="-120" y="-64" width="240" height="128" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-106" y="-45" width="212" height="90" rx="0" ry="0"/>
+          <g class="lini-node lini-has lini-t lini-block" transform="translate(-79.051,-38.5)">
+            <rect x="-26.949" y="-6.5" width="53.898" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the vault</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-28.2188,-20.75)">
+            <rect x="-77.7812" y="-6.25" width="155.5625" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">names, national identifiers,</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-62.775,-3.25)">
+            <rect x="-43.225" y="-6.25" width="86.45" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">contact details</text>
+          </g>
+          <g class="lini-node lini-block" transform="translate(-106,9)">
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-41.0125,21.25)">
+            <rect x="-64.9875" y="-6.25" width="129.975" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">each sealed with a key</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-21.8938,38.75)">
+            <rect x="-84.1062" y="-6.25" width="168.2125" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">belonging to that one person</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-100,-0.75)">
+        <rect x="-28" y="-64" width="56" height="128" rx="0" ry="0"/>
+        <g class="lini-node lini-across lini-line" transform="translate(-20,0)">
+          <line x1="0" y1="0" x2="36.5" y2="0"/>
+          <polygon class="lini-marker lini-marker-arrow" points="40,0 32,4 32,-4" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(160.75,0)">
+        <rect x="-220" y="-64" width="440" height="128" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-206" y="-35.75" width="412" height="71.5" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-158.927,-29.25)">
+            <rect x="-47.073" y="-6.5" width="94.146" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">everything else</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-76.6063,-11.5)">
+            <rect x="-129.3937" y="-6.25" width="258.7875" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">records, their history, the runs, the audit trail</text>
+          </g>
+          <g class="lini-node lini-block" transform="translate(-206,0.75)">
+          </g>
+          <g class="lini-node lini-lt lini-t lini-block" transform="translate(-48.404,12.75)">
+            <rect x="-157.596" y="-6" width="315.192" height="12" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a person appears here as a pseudonym and nothing else,</text>
+          </g>
+          <g class="lini-node lini-lt lini-t lini-block" transform="translate(-30.836,29.75)">
+            <rect x="-175.164" y="-6" width="350.328" height="12" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">so being entitled to the work is not being entitled to the person</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-24.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-1.5,-10)">
+      <rect x="-380" y="-6.5" width="760" height="13" rx="0" ry="0"/>
+      <g class="lini-node lini-cap lini-t lini-block" transform="translate(-302.169,0)">
+        <rect x="-77.831" y="-6.5" width="155.662" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">what each party can read</text>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,0.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(-1.5,61.25)">
+      <rect x="-380" y="-56.75" width="760" height="113.5" rx="0" ry="0"/>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(-256,0)">
+        <rect x="-124" y="-56" width="248" height="112" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-110" y="-34.5" width="220" height="69" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-71.1105,-28)">
+            <rect x="-38.8895" y="-6.5" width="77.779" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a participant</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-28.6937,-11.25)">
+            <rect x="-81.3063" y="-6.25" width="162.6125" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">what its claimed run named,</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-48.625,5.25)">
+            <rect x="-61.375" y="-6.25" width="122.75" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">and nothing behind it</text>
+          </g>
+          <g class="lini-node lini-block" transform="translate(-110,16.5)">
+          </g>
+          <g class="lini-node lini-miss lini-t lini-block" transform="translate(-84.0065,28)">
+            <rect x="-25.9935" y="-6.5" width="51.987" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">no name</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,0)">
+        <rect x="-124" y="-56" width="248" height="112" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-110" y="-34.5" width="220" height="69" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-71.0715,-28)">
+            <rect x="-38.9285" y="-6.5" width="77.857" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the operator</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-39.9125,-11.25)">
+            <rect x="-70.0875" y="-6.25" width="140.175" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">that work ran, how long,</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-21.0187,5.25)">
+            <rect x="-88.9813" y="-6.25" width="177.9625" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">and one word for how it ended</text>
+          </g>
+          <g class="lini-node lini-block" transform="translate(-110,16.5)">
+          </g>
+          <g class="lini-node lini-miss lini-t lini-block" transform="translate(-34.8015,28)">
+            <rect x="-75.1985" y="-6.5" width="150.397" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">no name, and no payload</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(256,0)">
+        <rect x="-124" y="-56" width="248" height="112" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-110" y="-34.5" width="220" height="69" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-37.4145,-28)">
+            <rect x="-72.5855" y="-6.5" width="145.171" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">an auditor of the tenant</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-32.4688,-11.25)">
+            <rect x="-77.5312" y="-6.25" width="155.0625" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">who acted, on what, when,</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-50.7813,5.25)">
+            <rect x="-59.2187" y="-6.25" width="118.4375" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">and under which run</text>
+          </g>
+          <g class="lini-node lini-block" transform="translate(-110,16.5)">
+          </g>
+          <g class="lini-node lini-miss lini-t lini-block" transform="translate(-25.175,28)">
+            <rect x="-84.825" y="-6.5" width="169.65" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a pseudonym, until the vault</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,126)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-1.5,158.5)">
+      <rect x="-380" y="-24.5" width="760" height="49" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-126.5585,-18)">
+        <rect x="-253.4415" y="-6.5" width="506.883" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Turning a pseudonym back into a person is a read of the vault, by somebody entitled</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-146.4095,0)">
+        <rect x="-233.5905" y="-6.5" width="467.181" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">to it, and that read is itself recorded — because learning who somebody is is a</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-131.1865,18)">
+        <rect x="-248.8135" y="-6.5" width="497.627" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">disclosure. Erasing them destroys the key, and every column above keeps its rows.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>
