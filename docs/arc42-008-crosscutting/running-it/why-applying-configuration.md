@@ -3,10 +3,9 @@ title: "One configuration, every environment"
 headline: "What you tested is what you apply"
 eyebrow: Why DBO
 standfirst: >-
-  Value sets, profiles, search parameters, which tenants a deployment serves,
-  whether a step is automated. One declared set, read from a repository and
-  applied to a tenant — and then to the next tenant, and to the appliance after
-  that, without being rewritten for either.
+  A bad declaration does not take the rest with it, a card closes by
+  re-evaluation rather than by a button, and a source that cannot be read says
+  so instead of answering with an empty set.
 why: 3
 template: essay.html
 ---
@@ -16,11 +15,13 @@ own, test has a copy of development from some months ago, and production has
 whatever was applied by hand the last time something was urgent. Nobody can say
 what differs between them, because there is no single thing to compare.
 
-Here a declared set is a thing in its own right. Where it is read from — a git
-repository, a directory, a mounted ConfigMap, a lane from a cloud — is a detail
-of reading, and reading is all a source does. What a declaration means, where
-it lands and what it costs to apply belong to the applying, and the applying is
-the same operation wherever it runs.
+Here a declared set is a thing in its own right, applied to a new tenant, an
+old one and an appliance alike — [One Declared Set,
+Applied](../patterns/pattern-one-declared-set-applied.md). Where it is read from
+— a git repository, a directory, a mounted ConfigMap, a lane from a cloud — is
+a detail of reading, and reading is all a source does. What a declaration
+means, where it lands and what it costs to apply belong to the applying, and
+the applying is the same operation wherever it runs.
 
 ## The same set, applied in more than one place
 
@@ -46,7 +47,7 @@ you intend to promote cannot be believed that way.
 
 So applying a declared set is **a sweep** — a run, in the same list as the
 domain work, with the same counts and the same holders as anything else the
-store is doing.
+store is doing, and found rather than started if one is already open.
 
 --8<-- "assets/diagrams/a-pass-says-what-it-did.svg"
 

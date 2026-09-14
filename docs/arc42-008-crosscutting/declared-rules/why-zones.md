@@ -3,16 +3,18 @@ title: "A new country without a release"
 headline: "A jurisdiction is a tenant"
 eyebrow: Why DBO
 standfirst: >-
-  Which identifier systems establish that a person is who they say they are,
-  and which brokers may authenticate one, are properties of a country. Building
-  them into an application is how a product becomes unexportable.
+  A jurisdiction's facts are held as a tenant whose content is declarations —
+  versioned, audited, and streamed to the tenants below it by the same
+  machinery that carries everything else.
 why: 12
 template: essay.html
 ---
 
 A health system that works in one country and needs a development project to
 work in the next one is not a portable product. It is a product with a very
-expensive sales cycle.
+expensive sales cycle. That a country's facts belong in a declaration rather
+than in the code is [A Country Is a Zone](../patterns/pattern-a-country-is-a-zone.md);
+what follows is the particular shape that takes here.
 
 The facts that vary are not deployment trivia. They decide who can be
 authenticated and by what name: which national identity brokers exist and how
@@ -73,15 +75,15 @@ onto that same session without invalidating anybody else's.
 > Outer declares the set. Inner chooses within it, and may narrow — never
 > widen.
 
-It is worth naming because the same shape governs three things that look
+The rule itself is [Two Parties Bound the
+Claim](../patterns/pattern-two-parties-bound-the-claim.md). What is worth saying
+here is how far it reaches: the same shape governs three things that look
 unrelated. A zone declares brokers and a tenant narrows them. A step declares
 who may override it and precedence selects only among those. A credential and a
 step intersect to decide what a participant may claim.
 
-In every case the permissive direction requires an act by the party with
-standing, and the restrictive direction is always available to the party
-underneath. That is what makes a shared deployment safe to join: **nothing an
-inner party declares can grant it more than the outer party allowed.**
+That is what makes a shared deployment safe to join: **nothing an inner party
+declares can grant it more than the outer party allowed.**
 
 --8<-- "assets/diagrams/outer-declares-inner-narrows.svg"
 

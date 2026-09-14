@@ -3,10 +3,9 @@ title: "Encrypted with the person's key"
 headline: "The operator cannot read what it hosts"
 eyebrow: Why DBO
 standfirst: >-
-  Identifying material is encrypted where it is written, with a key belonging
-  to that person. So every copy the store makes of itself carries ciphertext
-  because of where the encryption happens, not because each path was written
-  correctly.
+  The second wall is not separation but encryption. The party running the
+  deployment can provision, monitor, back up, restore and upgrade the system
+  without being able to read a person's data in it.
 why: 6
 template: essay.html
 ---
@@ -20,14 +19,10 @@ encryption, and not by discipline.
 
 Identifying material — names, national identifiers, contact details — is
 encrypted **inside the payload**, with a key belonging to that person, in the
-same atomic write that stores the record.
-
-The usual approach is to separate identity from content by discipline: this
-module never stores a name, that runtime never sees a national code. Discipline
-is exactly what fails under maintenance, at three in the morning, in the one
-code path nobody remembered. Encrypting in the write means history, change
-feeds, exports, archives and replicas carry ciphertext **by construction**
-rather than because every path that produces them was written correctly.
+same atomic write that stores the record. Sealing at the write rather than on
+each way out is [The Person Is a Key](../patterns/pattern-the-person-is-a-key.md),
+and what it buys is that history, change feeds, exports, archives and replicas
+carry ciphertext by construction.
 
 ## What this means for whoever operates it
 

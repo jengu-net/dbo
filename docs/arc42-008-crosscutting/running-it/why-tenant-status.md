@@ -3,21 +3,18 @@ title: "Tenants come and go routinely"
 headline: "A tenant's whole life is an operation"
 eyebrow: Why DBO
 standfirst: >-
-  Declared, provisioned, brought up, served, and one day taken away. Only the
-  middle of that is a state a running node reports, and the state worth knowing
-  about is the one a list of served tenants leaves out.
+  Taking a customer on and letting one go are the two operations a multi-tenant
+  store is judged by, and in most of them both are projects. Here they are
+  moves in a sequence the runtime already performs.
 why: 1
 template: essay.html
 ---
 
-Taking a customer on and letting one go are the two operations a multi-tenant
-store is judged by, and in most of them both are projects. Here they are moves
-in a sequence the runtime already performs, and the only part of that sequence
-anybody has to watch is the middle.
-
 Ask such a system what it is serving and you usually get a list. The list is
 true. It is also the wrong shape, because everything interesting is what the
-list left out.
+list left out — which is [Status Is a Lifecycle, Not a
+List](../patterns/pattern-status-is-a-lifecycle-not-a-list.md), and the rest of
+this page is what the sequence is made of here.
 
 --8<-- "assets/diagrams/declared-and-actual.svg"
 

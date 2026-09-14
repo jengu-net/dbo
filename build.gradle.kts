@@ -606,8 +606,16 @@ fun reframeCollected(page: File, text: String, docsRoot: File, patternsDir: File
         when {
             target.name.startsWith("why-") && target.extension == "md" ->
                 "](" + target.name.removePrefix("why-") + anchor + ")"
-            target.path.startsWith(patternsDir.path) && target.extension == "md" ->
-                "](" + (if (target.name == "README.md") "index.md" else target.name) + anchor + ")"
+            // A pattern is collected too, so a link to one is a link between two
+            // collected sections. From inside /patterns/ that is the bare name;
+            // from anywhere else — an essay, say — it has to cross into the
+            // section, or it would resolve against the section the page landed
+            // in and 404 there.
+            target.path.startsWith(patternsDir.path) && target.extension == "md" -> {
+                val name = if (target.name == "README.md") "index.md" else target.name
+                val here = page.canonicalPath.startsWith(patternsDir.path)
+                "](" + (if (here) name else "../patterns/" + name) + anchor + ")"
+            }
             target.path.startsWith(docsRoot.path) ->
                 "](../docs/" + target.relativeTo(docsRoot).path.replace(File.separatorChar, '/') +
                     anchor + ")"

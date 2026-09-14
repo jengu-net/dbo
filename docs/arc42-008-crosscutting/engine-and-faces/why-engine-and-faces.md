@@ -31,9 +31,10 @@ European regulation asks of *any* system holding personal data, in almost this
 order: know what you hold, know who may change it, prove what happened,
 separate identity, erase on request, let people leave with their data.
 
-A domain standard answers none of those. It says what a record looks like.
-The two are different jobs, and building the second on top of the first is
-what leaves every application re-answering the first.
+A domain standard answers none of those. It says what a record looks like. That
+the two are different jobs, and that stacking them the other way leaves every
+application re-answering the first, is
+[Engine and Faces](../patterns/pattern-engine-and-faces.md).
 
 <div class="takeaway" markdown>
 Mechanism in the engine, policy in the face. *A birth date reduces to its year*

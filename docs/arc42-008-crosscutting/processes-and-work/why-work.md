@@ -3,10 +3,9 @@ title: "Access granted to the work"
 headline: "Work is why data is accessed"
 eyebrow: Why DBO
 standfirst: >-
-  Every read or change of a regulated record needs a reason, and a permission
-  is not one.
-  The reason is a step of some process — so that is what access is granted to,
-  and performing it leaves the proof.
+  Three words carry it: a process, a step, and a run. A run is an ordinary
+  record in the tenant's own store, which is where its history, its audit
+  trail, its owner and its survival of a restart all come from.
 why: 8
 template: essay.html
 ---
@@ -19,25 +18,24 @@ what the regulation is about.
 
 Outside, nobody reads or changes a record for no reason. The reason is a step
 of some process: a sample is validated, a consignment is cleared, a passport is
-published. And the step knows exactly what it needs — these documents, for
-this decision, and no others.
+published. Granting access to that step rather than to a person, so that the
+record of the work is the record of the reason, is
+[Work Is the Reason](../patterns/pattern-work-is-the-reason.md).
 
 ## Access is granted to a step, not to somebody
 
-So the step is where the reason already lives, and this store makes it the
-mechanism rather than the paperwork. A step declares what it consumes and who
-may perform it. A participant claims a run of it, and what arrives is what that
-run named:
+A step declares what it consumes and who may perform it. A participant claims a
+run of it, and what arrives is what that run named:
 
 > A claimed run's inputs arrive with the work, resolved by the party that holds
 > the objects; the runner's only read takes the run, a run the asking identity
 > has not claimed is refused, and a run without slots delivers exactly nothing.
 
 There is no general read behind that to fall back on, and the claim itself is
-bounded twice over: what a participant may take is the intersection of what its
-credential covers and what the step admits, and a lane's entitlement is stated
-when the lane is provisioned — there is no implicit unrestricted, so the reach
-of a remote participant never depends on a parameter somebody forgot.
+bounded twice over — [Two Parties Bound the
+Claim](../patterns/pattern-two-parties-bound-the-claim.md) — with a lane's
+entitlement stated when the lane is provisioned rather than defaulted, so the
+reach of a remote participant never depends on a parameter somebody forgot.
 
 Then the part that makes it auditable rather than merely careful. Performing
 the step leaves a record, because a run is a record. That record is the proof
@@ -59,8 +57,9 @@ person at a screen deciding something.
 
 Some of those places sit behind a router with no public address. Some are
 offline for a weekend. Some belong to organisations that are not on speaking
-terms. So the store never reaches out to any of them, and the design follows
-from that constraint rather than working around it.
+terms. So the store never reaches out to any of them, which is
+[Nobody Is Pushed](../patterns/pattern-nobody-is-pushed.md), and the design
+follows from that constraint rather than working around it.
 
 ## Three words carry most of it
 
@@ -77,16 +76,14 @@ A **run** is one attempt at one step.
 A run is an ordinary record in the tenant's own store.
 
 That sounds like an implementation detail and is not. Because a run is a
-record, it has history, an audit trail and an owner — every record here does.
-It can be listed, counted and read by whoever is entitled to, through the same
-interface as everything else, with nothing special built for looking at work.
-And it survives a restart of anything at all, because it was never in flight to
-begin with.
+record, it has history, an audit trail and an owner, and it survives a restart
+of anything at all, because it was never in flight to begin with. Why those
+four arrive rather than being built is [The Run Is a
+Record](../patterns/pattern-the-run-is-a-record.md).
 
-Each of those four is something a system that holds work elsewhere — a queue,
-a scheduler's own table — has to go and answer for itself, separately. Here
-they arrive with the record, because the store already gives them to every
-record it holds.
+What it buys here is that work is visible through the same interface as
+everything else, to whoever is entitled to it, with nothing special built for
+looking at it.
 
 --8<-- "assets/diagrams/work-is-a-record.svg"
 
@@ -97,27 +94,16 @@ record it holds.
 Work is the store, holding a different kind of record.
 </div>
 
-## Nobody is pushed. Everybody pulls
-
-The store does not call out to a laboratory instrument or an inspector's
-handheld. Participants ask what is available to them, take it, and report back.
-An organisation behind a hostile network, or one that is simply asleep, does
-not need a hole opened towards it and does not fall out of step by being
-unreachable.
-
-Taking work is a claim, and a claim is checked against two things at once: the
-credential the participant holds, and what the step declares about who may
-perform it. Neither alone is enough. That intersection is the same shape that
-governs jurisdiction and override elsewhere in the store — the outer party
-declares the set, the inner one chooses within it and may narrow, never widen.
-
 ## The number nobody else can tell you
 
 When work is offered and no automated executor takes it, it falls through to a
 person. That is expected, and often correct: some steps should be somebody's
 decision.
 
-What matters is that the fall-through is **counted**, per step and per zone.
+What matters is that the fall-through is **counted**, per step and per zone —
+[Falls to a Person, and Is
+Counted](../patterns/pattern-falls-to-a-person-and-is-counted.md).
+
 That number is your automation backlog stated as a fact rather than as an
 opinion — the list of exactly which stages of which processes are still costing
 somebody's afternoon, ranked by how often. Most organisations arrive at that
@@ -129,11 +115,13 @@ A **pipeline** runs over a known set of items and closes when every item has
 reached a terminal state.
 
 A **sweep** converges on a condition and closes when it finds nothing left to
-do. A sweep is *found* rather than started, which is the part worth
-understanding: if the process crashes halfway through, the next attempt resumes
-the same run instead of opening a second one running beside the first. Erasing
-a person is a sweep, and "started twice" would be a very bad property for it to
-have.
+do, and is *found* rather than started — [A Sweep Is Found, Not
+Started](../patterns/pattern-a-sweep-is-found-not-started.md).
+
+Which shape a process is is a modelling decision with teeth. Erasing a person
+is a sweep, and "started twice" would be a very bad property for it to have. A
+reconciler modelled as a pipeline never ends, and its queue for a person fills
+with work that is merely still converging.
 
 <div class="further" markdown>
 The full treatment — the vocabulary, executor resolution and its precedence

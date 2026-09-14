@@ -3,9 +3,9 @@ title: "Auth from your own records"
 headline: "Who works here is who may act"
 eyebrow: Why DBO
 standfirst: >-
-  The records a tenant keeps anyway say who works here, in what role, from when
-  until when. Those are read as grants — so there is one surface to secure, and
-  revoking access is ending a period on an ordinary record.
+  One surface, and each tenant its own authority. A token minted by another
+  tenant fails at signature verification before any claim is read, and a token
+  issued for a person carries no name.
 why: 9
 template: essay.html
 ---
@@ -28,16 +28,12 @@ authority, the same history and the same audit as everything else.
 
 ## The organisation model is already the authorisation model
 
-The records a tenant keeps anyway say who works here, in what role, in which
-part of the organisation, from when until when. Those are read as grants.
-
-A human's access derives from an active `PractitionerRole`. Revoking it is
-ending a period on an ordinary record — not a row deleted from a table nothing
-else can see.
-
-A second system listing the same people with the same roles is a system that
-drifts, and you find out about the drift when somebody who left last year still
-has access.
+Reading the records an organisation keeps anyway as the grants is
+[A Role Is a Period on a
+Record](../patterns/pattern-a-role-is-a-period-on-a-record.md). What is specific
+here is which records: a human's access derives from an active
+`PractitionerRole`, so revoking it is ending a period on that record rather
+than deleting a row from a table nothing else can see.
 
 ## Authentication is shared; authorisation never is
 

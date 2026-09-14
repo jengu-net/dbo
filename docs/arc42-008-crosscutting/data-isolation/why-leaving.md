@@ -3,9 +3,9 @@ title: "Take everything with you"
 headline: "A tenant leaves and takes everything with it"
 eyebrow: Why DBO
 standfirst: >-
-  One sealed archive, which the party operating the store cannot read and
-  somebody else can verify without asking anybody. Getting out is the path that
-  runs every night, not a project somebody scopes when the relationship ends.
+  An archive carries two detached signatures over its root, and objects enter a
+  store by one path only: the root recomputes and both verify, or nothing is
+  written. So leaving does not require the goodwill of the party you leave.
 why: 5
 template: essay.html
 ---
@@ -17,17 +17,13 @@ extract, and a period of trusting that what came out is what was in there.
 ## The way out is the way it already runs
 
 Backup and export are one mechanism here. Restore and import are another single
-one. Every backup is restorable by the everyday import path.
+one. Every backup is restorable by the everyday import path, which is
+[Leaving Is the Nightly Path](../patterns/pattern-leaving-is-the-nightly-path.md).
 
-That reads like tidiness and is the opposite. An export exercised only when
-somebody leaves is an export nobody has tested — it is written once, against a
-schema that then moves, and it is first run in anger on the day it matters. The
-route out of this store is the route with the most mileage on it, because it is
-the same route the nightly backup takes.
-
-The latest-state export is store-independent FHIR, hash-verified, importable
-into a fresh tenant. Not a dump of this store's internals that only this store
-can read back.
+What that means concretely is worth being specific about. The latest-state
+export is store-independent FHIR, hash-verified, importable into a fresh
+tenant — not a dump of this store's internals that only this store can read
+back.
 
 ## Sealed to the tenant, not to whoever runs it
 

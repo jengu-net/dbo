@@ -104,3 +104,9 @@ somebody can break, forget, or be compelled to set aside. A **property** is
 something the system does not permit. This store is built out of the second
 kind.
 </div>
+
+Each step of this argument also exists as a card, stated for anyone rather than
+for a reader of this store: what the problem is, what pulls against what, and
+the arrangement that resolves it. Those are [the
+patterns](../patterns/index.md), and they are the form to reach for when the
+question is how to solve the problem rather than whether this answer is sound.

@@ -3,9 +3,9 @@ title: "Rules the code cannot skip"
 headline: "A type declares it; the engine enforces it"
 eyebrow: Why DBO
 standfirst: >-
-  Append-only, versioned, auditable, retained for how long, identified by what.
-  Declared once per type and enforced by the engine — not left to the habits of
-  whatever code happens to write it.
+  Two organisations that compete will use a shared store only if they can rely
+  on what it holds. That reliance is five properties, each of which can fail on
+  its own while the others look fine.
 why: 10
 template: essay.html
 ---
@@ -21,6 +21,11 @@ rebuilt.
 Miss any one and the rest stop being worth much. A perfect index over a payload
 nobody can reproduce is a rumour. An immutable history of records whose
 identity was guessed is an immutable record of a mess.
+
+That the answers are declared once per type rather than left to each writer is
+[A Type Declares What It Is](../patterns/pattern-a-type-declares-what-it-is.md).
+What the five reliances actually are, and what this store declares to get
+them, is the rest of this page.
 
 --8<-- "assets/diagrams/a-type-declares-what-it-is.svg"
 
@@ -71,16 +76,10 @@ They are what the engine enforces: whether history is kept, whether a write may
 replace rather than append, how long the record is retained, whether it leaves
 in an export, what an audit entry has to say about it.
 
-The alternative is the arrangement most systems have, where those properties
-live in the code that happens to write each type. It works while one team
-writes everything. It stops the first time two do, and the way you find out is
-an auditor asking why one kind of record has history and its neighbour does
-not.
-
-## Audit is append-only against everyone
-
-Including the vendor. There is no interface that edits an audit entry, because
-an audit trail somebody can edit is a document rather than evidence.
+One label is not the tenant's to choose. Audit is append-only against everyone,
+the vendor included — there is no interface that edits an entry, because an
+audit trail somebody can edit is a document rather than evidence. That is
+[The Trail Is Records](../patterns/pattern-the-trail-is-records.md).
 
 <div class="further" markdown>
 The five reliances, the physical layout that makes the payload-and-derivation

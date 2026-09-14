@@ -3,9 +3,9 @@ title: "Real tenant isolation"
 headline: "A tenant is a database"
 eyebrow: Why DBO
 standfirst: >-
-  Not a filter over a shared one. That difference decides what happens on the
-  day somebody writes a query with a bug in it, and what "we have removed your
-  data" is actually worth.
+  The party running the deployment provisions tenants and never holds their
+  credentials. There is no cross-tenant surface for anybody, including it, and
+  the bill for that arrives in databases rather than in discipline.
 why: 2
 template: essay.html
 ---
@@ -14,9 +14,10 @@ Every shared store has to answer one question before an organisation will
 agree to use it at all: can anybody else see my data?
 
 The usual answer is a tenant column and a discipline about always filtering on
-it. It works, until it doesn't, and the failure is silent in both directions —
-the query returns rows and the caller has no way to know some of them were not
-theirs.
+it. Why that is the wrong kind of answer, and what a database each buys
+instead, is [The Tenant Is a
+Database](../patterns/pattern-the-tenant-is-a-database.md). What follows is what
+the choice implies for whoever runs the deployment, and what it costs.
 
 --8<-- "assets/diagrams/a-tenant-is-a-database.svg"
 

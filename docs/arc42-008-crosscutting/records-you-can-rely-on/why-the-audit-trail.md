@@ -3,9 +3,9 @@ title: "Audit nobody else holds"
 headline: "Evidence that outlives the infrastructure"
 eyebrow: Why DBO
 standfirst: >-
-  Who read this, who changed it, on whose authority, and when — kept as
-  ordinary records in the tenant's own store, append-only against everyone with
-  the vendor included, and still answerable years after the machines are gone.
+  Applications may contribute to the trail and cannot lie about two fields. A
+  hop that carried leaves a different entry from a participant that opened. And
+  the whole thing is served as AuditEvent, with no separate console to secure.
 why: 11
 template: essay.html
 ---
@@ -15,22 +15,17 @@ change feed, they are exported and restored with it, and they obey the same
 authority as everything else in it.
 
 So the question that decides whether evidence is worth anything — is it there
-when somebody finally asks — has a structural answer rather than an
-operational one. The usual arrangement writes audit to a log that leaves the
-tenant for an aggregator somebody else owns and retains on their own dial,
-which is three separate ways for it to be missing years later, when the machines
-that held it have been replaced twice.
+when somebody finally asks — has a structural answer rather than an operational
+one, which is [The Trail Is Records](../patterns/pattern-the-trail-is-records.md).
+What that looks like in this store is the rest of this page.
 
 ## Append-only, and the exemption is unconditional
 
 Audit entries are **exempt from the tenant's own write discipline**. Whatever a
 tenant declares for its other types, an audit entry has no update and no
 tombstone under any policy. Retention's sweep is the only thing that can remove
-one, and every removal is itself audited — without retaining what was removed.
-
-There is no interface that edits an entry, for anybody, including the party
-running the deployment. An audit trail somebody can edit is a document rather
-than evidence.
+one, and every removal is itself audited — without retaining what was
+removed.
 
 <div class="takeaway" markdown>
 The actor on an entry comes from the tenant authority's validated token — the
@@ -50,7 +45,8 @@ somebody else's name.
 
 ## Carrying is not reading
 
-One trail, and the target of an entry says what kind it is.
+One trail, and the target of an entry says what kind it is —
+[Carrying Is Not Reading](../patterns/pattern-carrying-is-not-reading.md).
 
 A hop that **carried** work leaves a travel entry, about the task. A participant
 that **opened** a payload leaves an access entry, about the document — landing
@@ -72,7 +68,8 @@ technically available and practically absent — and the failure has a particula
 shape: a bounded read of a busy trail returns the last few things that happened,
 so a rare entry sitting in the store reads as one that never happened.
 
-So the trail is asked, not scanned. Six ways to narrow: **who** acted, **what**
+So the trail is asked, not scanned — [Asked, Not
+Scanned](../patterns/pattern-asked-not-scanned.md). Six ways to narrow: **who** acted, **what**
 record it was about, **what action**, **when**, **which run** it belonged to —
 that last one turns a journey across organisations into a single question — and
 **what kind of event** it was.
@@ -110,8 +107,8 @@ This is where two requirements usually collide. Append-only says nothing may be
 removed; the right to erasure says a person may require exactly that.
 
 They coexist here because [shredding destroys a key rather than rewriting
-anything](../data-isolation/why-personal-data.md). The entries remain, complete and in order — the
-person evaporates from them. What happened is still provable years later; who
+anything](../patterns/pattern-erasure-destroys-a-key.md). The entries remain,
+complete and in order — the person evaporates from them. What happened is still provable years later; who
 it happened to is gone.
 
 Audit entries are pseudonymous to begin with, re-identifiable only through the

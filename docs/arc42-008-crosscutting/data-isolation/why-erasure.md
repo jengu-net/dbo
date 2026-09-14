@@ -3,9 +3,9 @@ title: "Erasure that reaches backups"
 headline: "A person can be forgotten without rewriting history"
 eyebrow: Why DBO
 standfirst: >-
-  Two requirements point in opposite directions, and most systems quietly pick
-  one. Every version kept immutably is what makes an audit trail worth
-  anything; a person may still require that their data be gone.
+  A destroyed key reaches the backup on tape in somebody else's building, the
+  archive handed to a departing tenant, and the replica in another
+  jurisdiction — by not travelling to any of them.
 why: 7
 template: essay.html
 ---
@@ -22,7 +22,8 @@ quietly, and hoping the question is not asked precisely.
 
 Identifying material is encrypted inside the payload, with a key belonging to
 that person, in the same atomic write that stores the record. Erasure destroys
-that key.
+that key, which is [Erasure Destroys a
+Key](../patterns/pattern-erasure-destroys-a-key.md).
 
 History stays byte-immutable. Archives already taken stay valid as files. And
 the person's data is cryptographically gone — from the live store, from
@@ -55,9 +56,11 @@ bytes are wherever they were. Nothing opens them.
 Access, portability and erasure are operations the machinery performs, not
 tasks a person carries out and then attests to having carried out.
 
-Erasure in particular is asked for as work and answered by a run: what was
+Erasure in particular is asked for as work and answered by a run — what was
 found, how far it got, what it could not reach and why. A receipt the system
-produced, rather than an email from somebody saying it was handled.
+produced, rather than an email from somebody saying it was handled. Asking
+twice joins the run already open rather than starting a second, which is
+[A Sweep Is Found, Not Started](../patterns/pattern-a-sweep-is-found-not-started.md).
 
 That difference matters most exactly when it is tested. An auditor asking what
 happened to a person's data gets the run, its trail and its outcome — the same
