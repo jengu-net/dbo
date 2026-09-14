@@ -922,6 +922,16 @@ public final class TenantAuthority {
      * The ids a person is linked to, of one kind. A person may hold several of
      * the same kind — two practitioner records at two organisations is
      * ordinary — so this returns all of them.
+     *
+     * <p><b>Id only, unlike the two hops after it.</b> A role names its
+     * practitioner and its organisation by identity because a declaration
+     * cannot do otherwise; a Person's link is written by this authority, which
+     * has the id in hand at the moment it writes it, so there is nothing here
+     * that a declarer would have had to name another way. The asymmetry is
+     * deliberate and it is not a rule: if a Person is ever declared rather
+     * than authored here, this is the hop that has to learn the same trick,
+     * and a link resolving to nothing is how it will present — a person who
+     * signs in and holds no practitioner at all.
      */
     public List<String> linkedOfType(String personId, String resourceType) {
         Optional<StoredObject> person = subjectStore.get("Person", personId);
@@ -943,9 +953,7 @@ public final class TenantAuthority {
     private void grantsFromPractitioner(String practitionerId,
             java.util.Set<String> scopes, java.util.Set<String> roles,
             java.util.Set<String> organisations, boolean[] tenantWide) {
-        for (StoredObject role : subjectStore.select(
-                cloud.jengu.dbo.core.api.Criteria.of("PractitionerRole")
-                        .referencing("practitioner", "Practitioner", practitionerId))) {
+        for (StoredObject role : rolesHeldBy(practitionerId)) {
             Object payload = Json.parse(new String(role.payload(), StandardCharsets.UTF_8));
             if (!periodActive(payload)) {
                 continue;
@@ -989,6 +997,69 @@ public final class TenantAuthority {
     }
 
     /**
+     * Every role this practitioner holds, named either way.
+     *
+     * <p><b>A relation can be named by identity, and a declaration can only
+     * name it that way.</b> Nothing on a declaring side has seen this store's
+     * ids — that is what declaring means — so a declared role says
+     * {@code practitioner: {identifier: {system, value}}}, which is the
+     * FHIR logical reference and which this store already indexes at
+     * {@code <code>_identifier}. Asking only the id edge made such a role
+     * apply cleanly, be findable by {@code :identifier}, and grant nothing:
+     * a green pass, no card, and a person who can sign in and may do nothing.
+     *
+     * <p><b>Resolved on the read, never written into the record.</b> Rewriting
+     * a logical reference into an id one at the moment it arrives would make
+     * the stored bytes differ from the declaration for ever, so every pass
+     * would find every relation changed and write a new version of it — the
+     * unchanged verdict lost exactly where a configuration set is densest. It
+     * would also be stored truth no author wrote, and an id resolved once is a
+     * snapshot that nothing re-checks: a target withdrawn and declared again
+     * has a new id, and every reference frozen before that points at a record
+     * that is gone.
+     *
+     * <p>Deriving it here costs a lookup and has none of that. It also removes
+     * a constraint rather than adding one: a role declared before the
+     * practitioner it names resolves to nothing at that moment and to the
+     * practitioner as soon as it arrives, so a declared set needs no order.
+     */
+    private List<StoredObject> rolesHeldBy(String practitionerId) {
+        // Keyed by id, because a role naming the practitioner BOTH ways is one
+        // role and counting it twice would double nothing but the work.
+        java.util.Map<String, StoredObject> found = new java.util.LinkedHashMap<>();
+        for (StoredObject role : subjectStore.select(Criteria.of("PractitionerRole")
+                .referencing("practitioner", "Practitioner", practitionerId))) {
+            found.put(role.id(), role);
+        }
+        for (Identifier claim : identifiersOf("Practitioner", practitionerId)) {
+            for (StoredObject role : subjectStore.select(Criteria.of("PractitionerRole")
+                    .eq("practitioner_identifier",
+                            EnvelopeValue.token(claim.system(), claim.value())))) {
+                found.put(role.id(), role);
+            }
+        }
+        return List.copyOf(found.values());
+    }
+
+    /** Every identifier a record carries, as the store would claim it by. */
+    private List<Identifier> identifiersOf(String typeName, String id) {
+        Optional<StoredObject> record = subjectStore.get(typeName, id);
+        if (record.isEmpty()) {
+            return List.of();
+        }
+        List<Identifier> claims = new java.util.ArrayList<>();
+        Object payload = Json.parse(new String(record.get().payload(), StandardCharsets.UTF_8));
+        for (Object ident : Json.array(payload, "identifier")) {
+            String system = Json.strOpt(ident, "system");
+            String value = Json.strOpt(ident, "value");
+            if (system != null && value != null) {
+                claims.add(new Identifier(system, value));
+            }
+        }
+        return claims;
+    }
+
+    /**
      * The active grant for a role — at one organisation, or tenant-wide.
      *
      * <p>The organisation half of the claim is tried by every name the
@@ -1028,13 +1099,46 @@ public final class TenantAuthority {
         return Optional.empty();
     }
 
-    /** The Organization id a PractitionerRole holds its role at, or null. */
-    private static String organisationOf(Object practitionerRolePayload) {
+    /**
+     * The Organization a PractitionerRole holds its role at, or null.
+     *
+     * <p>Named by id or by identity, for the reason {@link #rolesHeldBy} is:
+     * a declared role cannot carry an id. Without this half a declared role
+     * resolves to no organisation, and a role at no organisation is read as
+     * held everywhere — so the scoping a declaration asked for would be
+     * silently the opposite of what it said.
+     *
+     * <p>An organisation this store does not hold YET reads as none, the same
+     * as an id reference to a record that is absent. That is the existing
+     * shape rather than a new one, and the next sign-in after the set is
+     * complete reads it correctly — nothing is cached, which is the point of
+     * resolving on the read.
+     */
+    private String organisationOf(Object practitionerRolePayload) {
         Object organisation = ((Map<?, ?>) practitionerRolePayload).get("organization");
-        String reference = organisation == null ? null : Json.strOpt(organisation, "reference");
-        return reference != null && reference.startsWith("Organization/")
-                ? reference.substring("Organization/".length())
-                : null;
+        if (organisation == null) {
+            return null;
+        }
+        String reference = Json.strOpt(organisation, "reference");
+        if (reference != null && reference.startsWith("Organization/")) {
+            return reference.substring("Organization/".length());
+        }
+        Object identifier = organisation instanceof Map<?, ?> named
+                ? named.get("identifier") : null;
+        if (identifier == null) {
+            return null;
+        }
+        String system = Json.strOpt(identifier, "system");
+        String value = Json.strOpt(identifier, "value");
+        if (system == null || value == null) {
+            return null;
+        }
+        // To the id, because everything below here — the grant's qualifier,
+        // the descendant walk — already speaks ids, and giving them a second
+        // language to understand is how the two drift apart.
+        return subjectStore.getByIdentifier("Organization",
+                        List.of(new Identifier(system, value)))
+                .stream().findFirst().map(StoredObject::id).orElse(null);
     }
 
     private static boolean periodActive(Object practitionerRolePayload) {
