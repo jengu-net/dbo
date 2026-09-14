@@ -274,7 +274,7 @@ public final class Runs {
      * fact about their rule, and a run is where it stays readable.
      */
     public Run selected(Run run, Scope at, Executor executor, String note) {
-        return update(run, state(run).withAssignment(new Run.Assignment(at, executor, note)));
+        return update(run, snapshot -> snapshot.withAssignment(new Run.Assignment(at, executor, note)));
     }
 
     /**
@@ -288,7 +288,7 @@ public final class Runs {
      * this is the automation backlog.
      */
     public Run fellThrough(Run run, Scope at, String reason) {
-        Run recorded = update(run, state(run).withAssignment(
+        Run recorded = update(run, snapshot -> snapshot.withAssignment(
                 new Run.Assignment(at, null, reason)));
         return held(recorded, Holder.PERSON);
     }
@@ -342,10 +342,10 @@ public final class Runs {
      */
     public Run checkpoint(Run run, Map<String, Long> counts, java.time.Instant until) {
         Run tallied = counts.isEmpty() ? run : tally(run, counts);
-        return update(tallied, state(tallied).withAssignment(new Run.Assignment(
-                tallied.assignment() == null ? null : tallied.assignment().at(),
-                tallied.assignment() == null ? null : tallied.assignment().executor(),
-                tallied.assignment() == null ? null : tallied.assignment().note(), until)));
+        return update(tallied, snapshot -> snapshot.withAssignment(new Run.Assignment(
+                snapshot.assignment() == null ? null : snapshot.assignment().at(),
+                snapshot.assignment() == null ? null : snapshot.assignment().executor(),
+                snapshot.assignment() == null ? null : snapshot.assignment().note(), until)));
     }
 
     /**
@@ -368,7 +368,7 @@ public final class Runs {
     public Run milestone(Run run, String name, Map<String, Long> counts,
             java.time.Instant until) {
         String stepId = run.process() + "." + run.step();
-        Run.Milestone reached = new Run.Milestone(name, 0, 0);
+        Run.Milestone reached;
         Optional<cloud.jengu.dbo.core.process.StepDeclaration> declaration = steps.byId(stepId);
         if (declaration.isPresent() && !declaration.get().milestones().isEmpty()) {
             List<String> declared = declaration.get().milestones();
@@ -377,13 +377,19 @@ public final class Runs {
                 throw new NotAMilestone(stepId, name, declared);
             }
             reached = new Run.Milestone(name, position + 1, declared.size());
+        } else {
+            reached = new Run.Milestone(name, 0, 0);
         }
         Run tallied = counts.isEmpty() ? run : tally(run, counts);
-        return update(tallied, state(tallied).withMilestone(reached)
+        // The deadline moves; whose the work is does not. Read from the
+        // snapshot rather than from the run this was called with, so an
+        // advance that had to try again carries forward what the other writer
+        // did instead of restoring what was true before them.
+        return update(tallied, snapshot -> snapshot.withMilestone(reached)
                 .withAssignment(new Run.Assignment(
-                        tallied.assignment() == null ? null : tallied.assignment().at(),
-                        tallied.assignment() == null ? null : tallied.assignment().executor(),
-                        tallied.assignment() == null ? null : tallied.assignment().note(),
+                        snapshot.assignment() == null ? null : snapshot.assignment().at(),
+                        snapshot.assignment() == null ? null : snapshot.assignment().executor(),
+                        snapshot.assignment() == null ? null : snapshot.assignment().note(),
                         until)));
     }
 
@@ -403,8 +409,9 @@ public final class Runs {
      * failure this exists to prevent.
      */
     public Run released(Run run, String because) {
-        return update(run, state(run).withAssignment(new Run.Assignment(
-                run.assignment() == null ? null : run.assignment().at(), null, because, null)));
+        return update(run, snapshot -> snapshot.withAssignment(new Run.Assignment(
+                snapshot.assignment() == null ? null : snapshot.assignment().at(),
+                null, because, null)));
     }
 
     /** Claims that have lapsed, so somebody can take them again. */
@@ -441,16 +448,22 @@ public final class Runs {
      * re-entering itself.
      */
     public Run produced(Run run, String typeName, String id, long versionId) {
-        Run.Produced before = run.produced();
-        List<String> versions = new ArrayList<>(before.versions());
-        Map<String, Long> watermark = new LinkedHashMap<>(before.watermark());
-        if (versions.size() < NAMED_VERSIONS) {
-            versions.add(typeName + "/" + id + "/" + versionId);
-        } else {
-            watermark.merge(typeName, versionId, Math::max);
-        }
-        return update(run, state(run).withProduced(new Run.Produced(List.copyOf(versions),
-                Map.copyOf(watermark), before.counted() + 1)));
+        // Accumulated from the snapshot, not from the run this was handed. An
+        // advance that has to try again must add to what the other writer
+        // produced; computed once outside, a retry would write this version
+        // onto a list that no longer has theirs in it.
+        return update(run, snapshot -> {
+            Run.Produced before = snapshot.produced();
+            List<String> versions = new ArrayList<>(before.versions());
+            Map<String, Long> watermark = new LinkedHashMap<>(before.watermark());
+            if (versions.size() < NAMED_VERSIONS) {
+                versions.add(typeName + "/" + id + "/" + versionId);
+            } else {
+                watermark.merge(typeName, versionId, Math::max);
+            }
+            return snapshot.withProduced(new Run.Produced(List.copyOf(versions),
+                    Map.copyOf(watermark), before.counted() + 1));
+        });
     }
 
     /**
@@ -482,14 +495,15 @@ public final class Runs {
      */
     public Run reopen(Run run, String because) {
         requireAction(run, "reopen");
-        return update(run, state(run).withHolder(Holder.AUTOMATION).withAssignment(
-                new Run.Assignment(run.assignment() == null ? null : run.assignment().at(),
+        return update(run, snapshot -> snapshot.withHolder(Holder.AUTOMATION).withAssignment(
+                new Run.Assignment(
+                        snapshot.assignment() == null ? null : snapshot.assignment().at(),
                         null, because, null)));
     }
 
     /** Moves a run to a holder — the only field anybody reads first. */
     public Run held(Run run, Holder holder) {
-        return update(run, state(run).withHolder(holder));
+        return update(run, snapshot -> snapshot.withHolder(holder));
     }
 
     /**
@@ -502,7 +516,7 @@ public final class Runs {
     public Run tally(Run run, Map<String, Long> counts) {
         counts.keySet().forEach(name ->
                 cloud.jengu.dbo.core.api.Paths.requireValid("tally_" + name));
-        return update(run, state(run).withTally(counts));
+        return update(run, snapshot -> snapshot.withTally(counts));
     }
 
     /**
@@ -510,7 +524,7 @@ public final class Runs {
      * (REQ-DBO-PROC-CORRELATION-TRAVELS-OPAQUE).
      */
     public Run correlated(Run run, String correlation) {
-        return update(run, state(run).withCorrelation(correlation));
+        return update(run, snapshot -> snapshot.withCorrelation(correlation));
     }
 
     /**
@@ -528,7 +542,7 @@ public final class Runs {
      * rather than a gap to fill.
      */
     public Run traced(Run run, String traceContext) {
-        return update(run, state(run).withTrace(traceContext));
+        return update(run, snapshot -> snapshot.withTrace(traceContext));
     }
 
     /** A run by the store's id, which is what a feed event names. */
@@ -745,13 +759,74 @@ public final class Runs {
                 "a run was written as " + result.id() + " and cannot be read back"));
     }
 
-    private Run update(Run run, State state) {
+    /**
+     * How many times an advance re-reads and tries again before it gives up.
+     *
+     * <p>Small on purpose. A conflict here is two writers meeting, not a queue:
+     * the appliance that authored a run is the only one that advances it, so
+     * the other writer is a sweep of this appliance's own or a lane delivering
+     * a mirrored version, and either resolves in the next read. A number large
+     * enough to outlast real contention would be large enough to hold a
+     * request open while something else is wrong.
+     */
+    private static final int ATTEMPTS = 4;
+
+    /**
+     * Advances a run, re-reading and re-applying if somebody wrote first.
+     *
+     * <p><b>The change is a function of what is there, not a payload computed
+     * before the read.</b> That is the whole of why this can retry: a
+     * pre-computed payload replayed onto a newer version silently discards
+     * whatever the other writer did, so a retry would be a clobber wearing a
+     * retry's clothes. Applied to the snapshot each time, the advance lands on
+     * top of what happened meanwhile.
+     *
+     * <p>{@link #claim} does the same conditional write and catches its
+     * conflict deliberately — losing a claim IS the answer. This did not catch
+     * anything at all, and everything a pass does to its own record comes
+     * through here, so a second writer at the wrong moment threw out of the
+     * pass, past the loop that turns a refused item into a card, and out of
+     * whatever door was asking. The work had happened; only the account of it
+     * was lost, which is the worst way round.
+     */
+    private Run update(Run run, java.util.function.UnaryOperator<State> change) {
         refuseIfAuthoredElsewhere(run, "advanced");
-        StoredObject stored = store.get(WorkModel.TYPE, run.id()).orElseThrow(
-                () -> new IllegalStateException("run " + run.key() + " has gone"));
-        store.put(new PutRequest(WorkModel.TYPE, stored.id(), stored.versionId(),
-                state.payload()));
-        return byKey(state.key()).orElseThrow();
+        Run current = run;
+        for (int attempt = 1; ; attempt++) {
+            StoredObject stored = store.get(WorkModel.TYPE, current.id()).orElseThrow(
+                    () -> new IllegalStateException("run " + run.key() + " has gone"));
+            State state = change.apply(state(current));
+            try {
+                store.put(new PutRequest(WorkModel.TYPE, stored.id(), stored.versionId(),
+                        state.payload()));
+                return byKey(state.key()).orElseThrow();
+            } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
+                if (attempt == ATTEMPTS) {
+                    throw new Contended(run.key(), lost);
+                }
+                // Read what they wrote, and apply this advance on top of it.
+                current = byKey(run.key()).orElseThrow(
+                        () -> new IllegalStateException("run " + run.key() + " has gone"));
+            }
+        }
+    }
+
+    /**
+     * An advance that kept losing the race for its own record.
+     *
+     * <p>Its own type rather than the engine's conflict, because the two mean
+     * different things to whoever catches it: a conflict says a write did not
+     * land, and this says the WORK is fine and the account of it is not. A
+     * caller holding a result somebody is waiting for should answer with the
+     * result — a tally the store admits it could not keep is worth more than a
+     * failure about an application that largely happened.
+     */
+    public static final class Contended extends IllegalStateException {
+        public Contended(String key, Throwable cause) {
+            super("run '" + key + "' was written by somebody else on every attempt to advance "
+                    + "it; what it records is behind, and what it recorded about is not",
+                    cause);
+        }
     }
 
     /** The payload shape, in one place, so no caller authors a run by hand. */

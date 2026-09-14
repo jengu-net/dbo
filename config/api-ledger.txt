@@ -3811,6 +3811,8 @@ cloud.jengu.dbo.work.Runs                                              sweep(Str
 cloud.jengu.dbo.work.Runs                                              sweep(String,String,String,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              tally(cloud.jengu.dbo.work.Run,Map):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              traced(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs.Contended                                    class
+cloud.jengu.dbo.work.Runs.Contended                                    new(String,Throwable)
 cloud.jengu.dbo.work.Runs.NotAMilestone                                class
 cloud.jengu.dbo.work.Runs.NotAdmitted                                  class
 cloud.jengu.dbo.work.Runs.NotAnAction                                  class

@@ -339,12 +339,22 @@ public final class ConfigApplication {
                 }
             }
         }
-        pass.counted("read", declarations.size())
-                .counted("applied", applied)
-                .counted("unchanged", unchanged)
-                .counted("skipped", skipped)
-                .counted("withdrawn", withdrawn)
-                .done();
+        try {
+            pass.counted("read", declarations.size())
+                    .counted("applied", applied)
+                    .counted("unchanged", unchanged)
+                    .counted("skipped", skipped)
+                    .counted("withdrawn", withdrawn)
+                    .done();
+        } catch (Runs.Contended behind) {
+            // The declarations are applied. What could not be written is the
+            // account of them, and answering with a failure would describe an
+            // application that largely happened as one that did not — while
+            // the run somebody would open to find out is the record that could
+            // not be written. The sweep stays open, so the next pass
+            // re-evaluates and closes it, which is the design rather than a
+            // consolation.
+        }
         return new Outcome(declarations.size(), applied, unchanged, skipped, withdrawn);
     }
 
