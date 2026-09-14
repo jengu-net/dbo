@@ -51,6 +51,7 @@ class ADeclarationIsAppliedThroughTheFaceIT {
     static final String ZONE = "through-the-face";
     static final String SYSTEM = "https://zone.test/cs/declared";
     static final String BENCH_SYSTEM = "https://zone.test/benches";
+    static final String OID_BEARING = "https://zone.test/cs/with-oid";
 
     static PostgreSQLContainer<?> postgres;
     static Path dir;
@@ -111,6 +112,19 @@ class ADeclarationIsAppliedThroughTheFaceIT {
                 + "{\"resourceType\":\"ValueSet\",\"url\":\"" + SYSTEM + "/vs\",\"version\":\"1\","
                 + "\"status\":\"" + status + "\",\"compose\":{\"include\":[{\"system\":\""
                 + SYSTEM + "\"}]}}}";
+    }
+
+    /**
+     * The same vocabulary as a real jurisdiction publishes one: identified by
+     * its url, and CARRYING the national OID it is also known by.
+     */
+    private static String codeSystemWithOid(String display) {
+        return "{\"type\":\"CodeSystem\",\"name\":\"terminology/with-oid.json\",\"payload\":"
+                + "{\"resourceType\":\"CodeSystem\",\"url\":\"" + OID_BEARING + "\","
+                + "\"identifier\":[{\"system\":\"urn:ietf:rfc:3986\","
+                + "\"value\":\"urn:oid:1.2.3.4\"}],"
+                + "\"version\":\"1\",\"status\":\"active\",\"content\":\"complete\","
+                + "\"concept\":[{\"code\":\"a\",\"display\":\"" + display + "\"}]}}";
     }
 
     /** A projected record: the lane's to write, and the lane's to take away. */
@@ -341,6 +355,56 @@ class ADeclarationIsAppliedThroughTheFaceIT {
         assertTrue(refused.body().contains("marker"),
                 "and the refusal has to say what would make the claim keepable: "
                         + refused.body());
+    }
+
+    /**
+     * A vocabulary identified by its url, carrying the OID it is also known
+     * by, is applied — and is the same record when it is declared again.
+     *
+     * <p>An envelope carries every identifier a resource bears and, for a
+     * canonical type, the canonical identity beside them; the resource's own
+     * tokens come first. Claiming the first of them claimed a national OID as
+     * the identity of a type claimed by its url, the engine refused it —
+     * rightly, that is not what the type is claimed under — and the door
+     * answered {@code skipped} with the reason only in the run. Declarations
+     * without an identifier went in, which is what made it look like something
+     * about the awkward ones rather than about all of them: a jurisdiction's
+     * 459 arrived as 89.
+     */
+    @Test
+    @Order(9)
+    @Proving({DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
+            DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP})
+    @DisplayName("a canonical declaration carrying an identifier is claimed by its url, not by "
+            + "the identifier it happens to list first")
+    void aCanonicalDeclarationCarryingAnIdentifierIsApplied() throws Exception {
+        HttpResponse<String> applied = hand("{\"declarations\":["
+                + codeSystemWithOid("Alpha") + "]}");
+
+        assertEquals(200, applied.statusCode(), applied.body());
+        assertTrue(applied.body().contains("\"applied\":1"),
+                "a declaration the face accepts was refused at the door: " + applied.body());
+
+        // Declared again, changed, so it is an upsert rather than a create —
+        // the half that says the claim landed on the right identity.
+        HttpResponse<String> again = hand("{\"declarations\":["
+                + codeSystemWithOid("Alpha prime") + "]}");
+        assertEquals(200, again.statusCode(), again.body());
+        assertTrue(again.body().contains("\"applied\":1"), again.body());
+
+        assertEquals(1, manager.runtime(ZONE).orElseThrow().engine()
+                        .getByIdentifier("CodeSystem",
+                                List.of(new cloud.jengu.dbo.core.api.Identifier(
+                                        cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM,
+                                        OID_BEARING))).size(),
+                "declared twice and held twice: the second pass claimed a different identity "
+                        + "than the first");
+
+        // And it is a vocabulary, not just a row: the grain is unaffected by
+        // which identity the claim was made under.
+        String lookup = read("/CodeSystem/$lookup?system="
+                + URLEncoder.encode(OID_BEARING, StandardCharsets.UTF_8) + "&code=a");
+        assertTrue(lookup.contains("Alpha prime"), lookup);
     }
 
     /** What the engine holds for this declaration, by its version. */
