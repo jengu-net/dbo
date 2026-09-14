@@ -1479,7 +1479,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // a reshape writes through the tenant's own engine, so it
                     // is audited, policy-guarded and re-stamped exactly like
                     // any other write
-                    runtime.engine(), runtime.store()));
+                    runtime.engine(), runtime.store(), runtime.grain()));
             maintenanceContexts.put(spec.code(), adminPath);
             // Asking for a person's erasure. Its own door and its own
             // scope, beside maintenance rather than inside it: archiving and

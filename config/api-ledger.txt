@@ -1866,6 +1866,7 @@ cloud.jengu.dbo.maintenance.TenantExport                               export(Da
 cloud.jengu.dbo.maintenance.TenantExport                               export(DataSource,String,byte[],OutputStream,List):cloud.jengu.dbo.maintenance.TenantExport.ExportResult
 cloud.jengu.dbo.maintenance.TenantExport                               export(DataSource,String,byte[],OutputStream,List,cloud.jengu.dbo.maintenance.TenantExport.Kind):cloud.jengu.dbo.maintenance.TenantExport.ExportResult
 cloud.jengu.dbo.maintenance.TenantExport                               export(DataSource,String,byte[],OutputStream,List,cloud.jengu.dbo.maintenance.TenantExport.Kind,cloud.jengu.dbo.core.face.PortableRendering):cloud.jengu.dbo.maintenance.TenantExport.ExportResult
+cloud.jengu.dbo.maintenance.TenantExport                               export(DataSource,String,byte[],OutputStream,List,cloud.jengu.dbo.maintenance.TenantExport.Kind,cloud.jengu.dbo.core.face.PortableRendering,cloud.jengu.dbo.core.face.GrainCodec):cloud.jengu.dbo.maintenance.TenantExport.ExportResult
 cloud.jengu.dbo.maintenance.TenantExport.ExportResult                  equals(Object):boolean
 cloud.jengu.dbo.maintenance.TenantExport.ExportResult                  hashCode():int
 cloud.jengu.dbo.maintenance.TenantExport.ExportResult                  new(long,long)
@@ -1883,6 +1884,7 @@ cloud.jengu.dbo.maintenance.TenantExport.Kind                          wire():St
 cloud.jengu.dbo.maintenance.TenantImport                               class
 cloud.jengu.dbo.maintenance.TenantImport                               comparingBytes():cloud.jengu.dbo.core.face.DocumentEquivalence
 cloud.jengu.dbo.maintenance.TenantImport                               importVerified(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.maintenance.TenantImport.ArchiveSource,byte[],cloud.jengu.dbo.maintenance.ArchiveAttestation,byte[],byte[],cloud.jengu.dbo.maintenance.TenantImport.HistoryMode,cloud.jengu.dbo.maintenance.ImportLedger,cloud.jengu.dbo.core.face.DocumentEquivalence):cloud.jengu.dbo.maintenance.TenantImport.PortableResult
+cloud.jengu.dbo.maintenance.TenantImport                               importVerified(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.maintenance.TenantImport.ArchiveSource,byte[],cloud.jengu.dbo.maintenance.ArchiveAttestation,byte[],byte[],cloud.jengu.dbo.maintenance.TenantImport.HistoryMode,cloud.jengu.dbo.maintenance.ImportLedger,cloud.jengu.dbo.core.face.DocumentEquivalence,cloud.jengu.dbo.core.face.GrainCodec):cloud.jengu.dbo.maintenance.TenantImport.PortableResult
 cloud.jengu.dbo.maintenance.TenantImport                               restoreFidelity(DataSource,String,InputStream,byte[],cloud.jengu.dbo.maintenance.ArchiveAttestation,byte[],byte[],cloud.jengu.dbo.maintenance.ImportLedger):void
 cloud.jengu.dbo.maintenance.TenantImport.ArchiveSource                 interface
 cloud.jengu.dbo.maintenance.TenantImport.ArchiveSource                 open():InputStream
@@ -3245,6 +3247,7 @@ cloud.jengu.dbo.tenant.MaintenanceHandler                              class
 cloud.jengu.dbo.tenant.MaintenanceHandler                              handle(HttpExchange):void
 cloud.jengu.dbo.tenant.MaintenanceHandler                              new(cloud.jengu.dbo.auth.TenantAuthority,DataSource,String,List,cloud.jengu.dbo.core.face.PortableRendering,String,cloud.jengu.dbo.maintenance.ImportLedger)
 cloud.jengu.dbo.tenant.MaintenanceHandler                              new(cloud.jengu.dbo.auth.TenantAuthority,DataSource,String,List,cloud.jengu.dbo.core.face.PortableRendering,String,cloud.jengu.dbo.maintenance.ImportLedger,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.common.FhirStoreFacade)
+cloud.jengu.dbo.tenant.MaintenanceHandler                              new(cloud.jengu.dbo.auth.TenantAuthority,DataSource,String,List,cloud.jengu.dbo.core.face.PortableRendering,String,cloud.jengu.dbo.maintenance.ImportLedger,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.common.FhirStoreFacade,cloud.jengu.dbo.core.face.GrainCodec)
 cloud.jengu.dbo.tenant.PersonErasure                                   MILESTONES:List
 cloud.jengu.dbo.tenant.PersonErasure                                   PROCESS:String
 cloud.jengu.dbo.tenant.PersonErasure                                   STEP:String

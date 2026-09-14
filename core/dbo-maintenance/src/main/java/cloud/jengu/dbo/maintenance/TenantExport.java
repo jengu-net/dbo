@@ -231,6 +231,36 @@ public final class TenantExport {
     public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
             OutputStream out, List<TypeRegistration> types, Kind kind,
             cloud.jengu.dbo.core.face.PortableRendering rendering) throws IOException {
+        return export(ds, domain, ownerMasterKey, out, types, kind, rendering, null);
+    }
+
+    /**
+     * As above, and told how the face makes a stored form whole again.
+     *
+     * <p>Some of what a tenant holds is stored in pieces: a CodeSystem is a
+     * shell and its concepts are rows in the native form, because a vocabulary
+     * kept as one document answers nothing. The face already knows how to put
+     * such a thing back together for anything LEAVING this store — that is
+     * what {@link cloud.jengu.dbo.core.face.GrainCodec#forTransport} is, and
+     * replication has carried whole CodeSystems downstream through it all
+     * along. An export is the other thing that leaves.
+     *
+     * <p>It goes in the interchange element and nowhere else. The internal
+     * element carries the stored bytes untouched, for the reason the identity
+     * codes travel beside an object rather than inside it: rewriting a payload
+     * there would change the bytes the version chain and both signatures are
+     * over, and the archive would arrive self-contradicting.
+     *
+     * <p>And not through {@link cloud.jengu.dbo.core.face.PortableRendering},
+     * though it is the seam already here: that one is the projection every
+     * client already sees, and a read of a CodeSystem answers the shell. An
+     * export that quietly rendered more than a read does would be a second
+     * answer to what this store holds.
+     */
+    public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
+            OutputStream out, List<TypeRegistration> types, Kind kind,
+            cloud.jengu.dbo.core.face.PortableRendering rendering,
+            cloud.jengu.dbo.core.face.GrainCodec grain) throws IOException {
         Names.requireDomain(domain);
         if (kind == Kind.PORTABLE_EXPORT && rendering == null) {
             throw new IllegalArgumentException("a portable export needs the face's interchange "
@@ -249,7 +279,7 @@ public final class TenantExport {
                 try (OutputStream sealed = SealedArchive.sealing(ownerMasterKey, out)) {
                     zip = new DigestingZip(new ZipOutputStream(sealed));
                     result = writeArchive(c, domain, zip, grounded(types, kind),
-                            declaredDomains(types, domain), kind, rendering);
+                            declaredDomains(types, domain), kind, rendering, grain);
                     // The manifest can only be written once every digest is
                     // known, so it goes last — which is also why verification
                     // needs its own pass before an import writes anything.
@@ -558,7 +588,8 @@ public final class TenantExport {
 
     private static ExportResult writeArchive(Connection c, String domain, DigestingZip out,
             Set<String> grounded, List<String> declaredDomains, Kind kind,
-            cloud.jengu.dbo.core.face.PortableRendering rendering)
+            cloud.jengu.dbo.core.face.PortableRendering rendering,
+            cloud.jengu.dbo.core.face.GrainCodec grain)
             throws SQLException, IOException {
         DigestingZip zip = out;
         long fence;
@@ -651,8 +682,15 @@ public final class TenantExport {
                         ORDER BY d.id""".formatted(Domains.tables(carriedFrom.get(type))))) {
                     ps.setString(1, type);
                     try (ResultSet rs = ps.executeQuery()) {
+                        boolean whole = grain != null && grain.handles(type);
                         while (rs.next()) {
-                            zip.write((rendering.render(rs.getBytes(3),
+                            // Made whole first, rendered second: what leaves
+                            // has to be the thing a reader expects, and the
+                            // rendering only puts the id and version back.
+                            byte[] payload = whole
+                                    ? grain.forTransport(type, rs.getBytes(3))
+                                    : rs.getBytes(3);
+                            zip.write((rendering.render(payload,
                                     rs.getObject(1).toString(), rs.getLong(2)) + "\n")
                                     .getBytes(StandardCharsets.UTF_8));
                             lines++;

@@ -102,6 +102,25 @@ public final class TenantImport {
             byte[] vendorPublicKey, byte[] tenantPublicKey, HistoryMode history,
             ImportLedger ledger, cloud.jengu.dbo.core.face.DocumentEquivalence equivalence)
             throws IOException {
+        return importVerified(target, source, ownerMasterKey, attestation, vendorPublicKey,
+                tenantPublicKey, history, ledger, equivalence, null);
+    }
+
+    /**
+     * The same, told how the face puts back what is stored in pieces.
+     *
+     * <p>Without it a restored tenant holds every CodeSystem it was sent
+     * and can answer no question with one: the shell is the record, and
+     * the concepts belong in the native form. The archive carries them in
+     * the interchange element, which is the wire form this codec's own
+     * destination phase already consumes for replication.
+     */
+    public static PortableResult importVerified(ObjectStore target, ArchiveSource source,
+            byte[] ownerMasterKey, ArchiveAttestation attestation,
+            byte[] vendorPublicKey, byte[] tenantPublicKey, HistoryMode history,
+            ImportLedger ledger, cloud.jengu.dbo.core.face.DocumentEquivalence equivalence,
+            cloud.jengu.dbo.core.face.GrainCodec grain)
+            throws IOException {
         Objects.requireNonNull(ledger, "an import records what it accepted, or does not happen");
         // Pass one: read to the tag, digest every entry, check the signatures.
         String root;
@@ -114,7 +133,7 @@ public final class TenantImport {
         PortableResult result;
         try (InputStream sealed = source.open();
              InputStream plain = SealedArchive.opening(sealed, ownerMasterKey)) {
-            result = applyPortable(target, plain, history, equivalence);
+            result = applyPortable(target, plain, history, equivalence, grain);
         }
         // Recorded after the objects land: a root recorded for an import that
         // then failed would be a claim about data the tenant does not have.
@@ -143,13 +162,37 @@ public final class TenantImport {
     }
 
     private static PortableResult applyPortable(ObjectStore target, InputStream plain,
-            HistoryMode history, cloud.jengu.dbo.core.face.DocumentEquivalence equivalence)
+            HistoryMode history, cloud.jengu.dbo.core.face.DocumentEquivalence equivalence,
+            cloud.jengu.dbo.core.face.GrainCodec grain)
             throws IOException {
         long imported = 0;
         long skipped = 0;
         try (ZipInputStream zip = new ZipInputStream(plain)) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
+                // What is stored in pieces is put back from the interchange
+                // element, because the internal one carries the shell: a
+                // CodeSystem's concepts are rows in the native form, and the
+                // stored bytes are what the version chain is over. The
+                // engine accepted that shell a moment ago, from state/ — the
+                // archive writes it first — which is the order this phase
+                // requires: parts land only after the write they belong to.
+                if (grain != null && entry.getName().startsWith("fhir/")
+                        && entry.getName().endsWith(".ndjson")) {
+                    String type = entry.getName()
+                            .substring("fhir/".length(), entry.getName().length() - ".ndjson".length());
+                    if (grain.handles(type)) {
+                        BufferedReader whole = new BufferedReader(new InputStreamReader(
+                                new NonClosing(zip), StandardCharsets.UTF_8));
+                        String one;
+                        while ((one = whole.readLine()) != null) {
+                            if (!one.isBlank()) {
+                                grain.keep(type, one.getBytes(StandardCharsets.UTF_8));
+                            }
+                        }
+                    }
+                    continue;
+                }
                 if (!entry.getName().startsWith("state/") || !entry.getName().endsWith(".ndjson")) {
                     continue;
                 }

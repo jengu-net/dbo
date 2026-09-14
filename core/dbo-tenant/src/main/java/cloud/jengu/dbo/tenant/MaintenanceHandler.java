@@ -49,6 +49,8 @@ public final class MaintenanceHandler implements HttpHandler {
     private final DataSource dataSource;
     private final String domain;
     private final List<TypeRegistration> types;
+    /** How the face makes a stored form whole for anything leaving the store. */
+    private final cloud.jengu.dbo.core.face.GrainCodec grain;
     private final cloud.jengu.dbo.core.face.PortableRendering rendering;
     private final String basePath;
     private final cloud.jengu.dbo.maintenance.ImportLedger ledger;
@@ -57,7 +59,8 @@ public final class MaintenanceHandler implements HttpHandler {
             String domain, List<TypeRegistration> types,
             cloud.jengu.dbo.core.face.PortableRendering rendering, String basePath,
             cloud.jengu.dbo.maintenance.ImportLedger ledger) {
-        this(authority, dataSource, domain, types, rendering, basePath, ledger, null, null);
+        this(authority, dataSource, domain, types, rendering, basePath, ledger,
+                null, null, null);
     }
 
     /**
@@ -72,6 +75,26 @@ public final class MaintenanceHandler implements HttpHandler {
             cloud.jengu.dbo.maintenance.ImportLedger ledger,
             cloud.jengu.dbo.core.api.ObjectStore engine,
             cloud.jengu.dbo.fhir.common.FhirStoreFacade facade) {
+        this(authority, dataSource, domain, types, rendering, basePath, ledger, engine,
+                facade, null);
+    }
+
+    /**
+     * The same, told how the face makes a stored form whole again.
+     *
+     * <p>An export is a thing leaving this store, and some of what a tenant
+     * holds is stored in pieces — a CodeSystem is a shell beside its concepts.
+     * The grain codec is what puts such a thing back together for a reader,
+     * and is the same one replication already uses.
+     */
+    public MaintenanceHandler(TenantAuthority authority, DataSource dataSource,
+            String domain, List<TypeRegistration> types,
+            cloud.jengu.dbo.core.face.PortableRendering rendering, String basePath,
+            cloud.jengu.dbo.maintenance.ImportLedger ledger,
+            cloud.jengu.dbo.core.api.ObjectStore engine,
+            cloud.jengu.dbo.fhir.common.FhirStoreFacade facade,
+            cloud.jengu.dbo.core.face.GrainCodec grain) {
+        this.grain = grain;
         this.engine = engine;
         this.facade = facade;
         this.authority = authority;
@@ -131,7 +154,8 @@ public final class MaintenanceHandler implements HttpHandler {
         exchange.getResponseHeaders().set(KIND_HEADER, kind.wire());
         exchange.sendResponseHeaders(200, 0);
         try (OutputStream out = exchange.getResponseBody()) {
-            TenantExport.export(dataSource, domain, ownerKey, out, types, kind, rendering);
+            TenantExport.export(dataSource, domain, ownerKey, out, types, kind,
+                    rendering, grain);
         }
     }
 
