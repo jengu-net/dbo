@@ -138,15 +138,48 @@ public class ElementFhirVersion implements FhirVersion {
             return registrations(version.code());
         }
 
+        /**
+         * The extractor a type asked for.
+         *
+         * <p>A type may say its envelope is computed where the bytes are; the
+         * face still supplies the in-process one, because that is what the
+         * database's answer is compared against and what a store with no such
+         * function falls back to. Wired HERE and not only on the personalities:
+         * this is what a served tenant's registrations are built from, and a
+         * version that honoured the declaration somewhere else would be a
+         * feature no tenant could reach.
+         */
+        private cloud.jengu.dbo.core.api.EnvelopeExtractor asDeclared(FhirTypeConfig type,
+                cloud.jengu.dbo.core.api.EnvelopeExtractor inProcess) {
+            if (type.extraction() != FhirTypeConfig.Extraction.IN_THE_DATABASE) {
+                return inProcess;
+            }
+            return new cloud.jengu.dbo.core.api.DatabaseExtractor() {
+
+                @Override
+                public String functionName() {
+                    return "dbo.envelope_parts";
+                }
+
+                @Override
+                public cloud.jengu.dbo.core.api.Envelope extract(String typeName,
+                        byte[] payload) {
+                    return inProcess.extract(typeName, payload);
+                }
+            };
+        }
+
         @Override
         public List<TypeRegistration> registrations(String domain) {
             List<TypeRegistration> out = new ArrayList<>();
             for (FhirTypeConfig type : types) {
+                cloud.jengu.dbo.core.api.EnvelopeExtractor inProcess = version.extractor(
+                        type.typeName(),
+                        type.identityClass() == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL,
+                        List.of(), this::through);
                 out.add(new TypeRegistration(type.typeName(), domain, type.identityClass(),
                         type.identitySystems(), type.handling(),
-                        version.extractor(type.typeName(),
-                                type.identityClass() == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL,
-                                List.of(), this::through),
+                        asDeclared(type, inProcess),
                         indexes(type.typeName()),
                         payloadVersion));
             }

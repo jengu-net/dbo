@@ -240,7 +240,16 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                         + "may leave). There is no default: guessing would be a silent "
                         + "decision about somebody's data");
             }
-            return config.handledAs(switch (handling) {
+            String extractor = Json.strOpt(t, "extractor");
+            if (extractor != null && !"database".equals(extractor)
+                    && !"in-process".equals(extractor)) {
+                throw new IllegalArgumentException(code + "/" + name
+                        + ": unknown extractor " + extractor + " — say 'database' to have the "
+                        + "envelope computed where the bytes are, or leave it out");
+            }
+            FhirTypeConfig placed = "database".equals(extractor)
+                    ? config.inTheDatabase() : config;
+            return placed.handledAs(switch (handling) {
                 case "operational" -> Handling.operational();
                 case "projected-config" -> Handling.projectedConfig();
                 case "replicated" -> Handling.replicated();

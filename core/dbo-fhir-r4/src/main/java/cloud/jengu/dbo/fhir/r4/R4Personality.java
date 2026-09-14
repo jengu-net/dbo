@@ -104,7 +104,27 @@ public final class R4Personality {
     public List<TypeRegistration> registrations(String domain) {
         List<TypeRegistration> out = new ArrayList<>();
         for (FhirTypeConfig t : types.values()) {
-            EnvelopeExtractor extractor = (typeName, payload) -> withTccl(() -> extract(typeName, payload));
+            EnvelopeExtractor inProcess =
+                    (typeName, payload) -> withTccl(() -> extract(typeName, payload));
+            // A type may say its envelope is computed where the bytes are. The
+            // face still supplies the in-process one, because that is what the
+            // database's answer was compared against and what a store with no
+            // such function falls back to.
+            EnvelopeExtractor extractor =
+                    t.extraction() == FhirTypeConfig.Extraction.IN_THE_DATABASE
+                            ? new cloud.jengu.dbo.core.api.DatabaseExtractor() {
+                                @Override
+                                public String functionName() {
+                                    return "dbo.envelope_parts";
+                                }
+
+                                @Override
+                                public cloud.jengu.dbo.core.api.Envelope extract(
+                                        String typeName, byte[] payload) {
+                                    return inProcess.extract(typeName, payload);
+                                }
+                            }
+                            : inProcess;
             List<IndexSpec> indexes = defaultIndexes(t.typeName());
             out.add(new TypeRegistration(t.typeName(), domain, t.identityClass(),
                     t.identitySystems(), t.handling(), extractor, indexes, PAYLOAD_VERSION));

@@ -20,7 +20,39 @@ import java.util.Set;
  * into one answer here.
  */
 public record FhirTypeConfig(String typeName, IdentityClass identityClass,
-                             Set<String> identitySystems, Handling handling) {
+                             Set<String> identitySystems, Handling handling,
+                             Extraction extraction) {
+
+    /** Where this type's envelope, claims and edges are computed. */
+    public enum Extraction {
+
+        /** In this process, by the face's own extractor. The ordinary answer. */
+        IN_PROCESS,
+
+        /**
+         * In the database, by the function the release installs there.
+         *
+         * <p>Declared per type rather than switched on for a whole face, and
+         * never a default. What a document is found by is the whole of what a
+         * search answers, so a type computed one way where the other was meant
+         * goes quietly unfindable rather than loudly wrong — and an empty
+         * result is indistinguishable from there being nothing to find. A
+         * tenant asks for this when the two sides have been compared over what
+         * it holds, which is what config/envelope-baseline.txt records.
+         */
+        IN_THE_DATABASE
+    }
+
+    public FhirTypeConfig(String typeName, IdentityClass identityClass,
+            Set<String> identitySystems, Handling handling) {
+        this(typeName, identityClass, identitySystems, handling, Extraction.IN_PROCESS);
+    }
+
+    /** The same type, computed in the database instead of here. */
+    public FhirTypeConfig inTheDatabase() {
+        return new FhirTypeConfig(typeName, identityClass, identitySystems, handling,
+                Extraction.IN_THE_DATABASE);
+    }
 
     public static FhirTypeConfig identifier(String typeName, String... systems) {
         return new FhirTypeConfig(typeName, IdentityClass.IDENTIFIER, Set.of(systems),
@@ -43,8 +75,16 @@ public record FhirTypeConfig(String typeName, IdentityClass identityClass,
                 Handling.replicated());
     }
 
-    /** The same type, handled differently — a zone's override, or a test's. */
+    /**
+     * The same type, handled differently — a zone's override, or a test's.
+     *
+     * <p>Carries the extraction forward. Rebuilding through the short
+     * constructor would reset it to {@code IN_PROCESS}, and a tenant that
+     * asked for the other one would be served the ordinary answer without
+     * anything saying so.
+     */
     public FhirTypeConfig handledAs(Handling replacement) {
-        return new FhirTypeConfig(typeName, identityClass, identitySystems, replacement);
+        return new FhirTypeConfig(typeName, identityClass, identitySystems, replacement,
+                extraction);
     }
 }

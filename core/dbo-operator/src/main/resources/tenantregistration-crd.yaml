@@ -147,6 +147,15 @@ spec:
                       identity:
                         type: string
                         enum: [identifier, canonical, internal]
+                      extractor:
+                        description: >-
+                          where this type's envelope is computed. Left out, in
+                          this process by the face's own extractor; 'database'
+                          to compute it where the bytes are, which a tenant
+                          asks for only once the two have been compared over
+                          what it holds.
+                        type: string
+                        enum: [in-process, database]
                       handling:
                         type: string
                         enum: [operational, projected-config, mirrored,
