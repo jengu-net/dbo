@@ -147,4 +147,9 @@ public final class R4Store implements FhirStoreFacade {
     public boolean knowsType(String typeName) {
         return served.knowsType(typeName);
     }
+
+    @Override
+    public String noSuchType(String typeName, String path) {
+        return served.noSuchType(typeName, path);
+    }
 }

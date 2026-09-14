@@ -385,8 +385,7 @@ public final class FhirHttpServer implements AutoCloseable {
             var operation = operations.get(segments[0] + "/" + segments[1]);
             if (operation != null) {
                 if (!store.knowsType(segments[0])) {
-                    respond(exchange, 404, store.operationOutcome("not-supported",
-                            "unknown resource type: " + segments[0]));
+                    respond(exchange, 404, store.noSuchType(segments[0], segments[0]));
                     return;
                 }
                 var answer = operation.answer(segments[0], query, readBody(exchange));
@@ -417,8 +416,7 @@ public final class FhirHttpServer implements AutoCloseable {
         }
 
         if (!store.knowsType(segments[0])) {
-            respond(exchange, 404, store.operationOutcome("not-supported",
-                    "unknown resource type or endpoint: " + relative));
+            respond(exchange, 404, store.noSuchType(segments[0], relative));
             return;
         }
         String type = segments[0];

@@ -1356,6 +1356,7 @@ cloud.jengu.dbo.fhir.common.FhirStoreFacade                            historyBu
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            interface
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            internalFault(String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            knowsType(String):boolean
+cloud.jengu.dbo.fhir.common.FhirStoreFacade                            noSuchType(String,String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            operationOutcome(String,String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            operations():List
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            read(String,String):String
@@ -1543,6 +1544,7 @@ cloud.jengu.dbo.fhir.element.ElementStore                              expandDef
 cloud.jengu.dbo.fhir.element.ElementStore                              historyBundle(String,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              internalFault(String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              knowsType(String):boolean
+cloud.jengu.dbo.fhir.element.ElementStore                              noSuchType(String,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              operationOutcome(String,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              operations():List
 cloud.jengu.dbo.fhir.element.ElementStore                              putCanonical(String):cloud.jengu.dbo.core.api.PutResult
@@ -1637,6 +1639,7 @@ cloud.jengu.dbo.fhir.r4.R4Store                                        delete(St
 cloud.jengu.dbo.fhir.r4.R4Store                                        historyBundle(String,String):String
 cloud.jengu.dbo.fhir.r4.R4Store                                        knowsType(String):boolean
 cloud.jengu.dbo.fhir.r4.R4Store                                        new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.r4.R4Personality,String)
+cloud.jengu.dbo.fhir.r4.R4Store                                        noSuchType(String,String):String
 cloud.jengu.dbo.fhir.r4.R4Store                                        operationOutcome(String,String):String
 cloud.jengu.dbo.fhir.r4.R4Store                                        operations():List
 cloud.jengu.dbo.fhir.r4.R4Store                                        putCanonical(String):cloud.jengu.dbo.core.api.PutResult
@@ -1723,6 +1726,7 @@ cloud.jengu.dbo.fhir.r5.R5Store                                        delete(St
 cloud.jengu.dbo.fhir.r5.R5Store                                        historyBundle(String,String):String
 cloud.jengu.dbo.fhir.r5.R5Store                                        knowsType(String):boolean
 cloud.jengu.dbo.fhir.r5.R5Store                                        new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.r5.R5Personality,String)
+cloud.jengu.dbo.fhir.r5.R5Store                                        noSuchType(String,String):String
 cloud.jengu.dbo.fhir.r5.R5Store                                        operationOutcome(String,String):String
 cloud.jengu.dbo.fhir.r5.R5Store                                        operations():List
 cloud.jengu.dbo.fhir.r5.R5Store                                        putCanonical(String):cloud.jengu.dbo.core.api.PutResult

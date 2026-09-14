@@ -233,4 +233,31 @@ public interface FhirStoreFacade {
 
     /** True when the type is configured in this store's personality. */
     boolean knowsType(String typeName);
+
+    /**
+     * Why this path names no type here.
+     *
+     * <p>"Unknown" answered two situations that want opposite actions: a name
+     * that is not a resource type at all, which is the caller's to fix, and a
+     * type this tenant has not declared, which is a line in a declaration and
+     * nothing wrong with the caller's code at all.
+     *
+     * <p>An embedder cannot act on the two together. It reads the refusal as
+     * this store having nothing to say about that type, so the sync logs a
+     * line and carries on, the catalogue it was projecting is simply absent,
+     * and the first sign is a process that should have advanced and has not —
+     * weeks later.
+     *
+     * <p>What a store can say without reading anything is what it does serve,
+     * and that is enough to tell the two apart from outside.
+     *
+     * <p>The default keeps a facade that has not thought about it no worse
+     * than it was.
+     *
+     * @param typeName the first path segment, as asked for
+     * @param path     what to name in the refusal when nothing better is known
+     */
+    default String noSuchType(String typeName, String path) {
+        return operationOutcome("not-supported", "unknown resource type or endpoint: " + path);
+    }
 }

@@ -489,6 +489,58 @@ class ADeclarationIsAppliedThroughTheFaceIT {
                         + answered.body());
     }
 
+    /**
+     * A refusal that says only "unknown" reads as this store having nothing to
+     * say about the type. An embedder skips the entry and carries on, so the
+     * catalogue it was projecting is absent, and the first sign is a process
+     * that should have advanced and has not — weeks later.
+     */
+    @Test
+    @Order(13)
+    @Proving(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS)
+    @DisplayName("a type this tenant does not serve is refused with what it does serve, so a "
+            + "caller can tell a store that will not hold it from one that cannot")
+    void aRefusalSaysWhatThisTenantDoesServe() throws Exception {
+        String refused = read("/ActivityDefinition");
+
+        assertTrue(refused.contains("ActivityDefinition is not one of them"),
+                "the refusal has to name the type it is refusing: " + refused);
+        // The count, not a count: a face serves what the declaration names and
+        // what it adds of its own, and pinning the exact number here would
+        // fail for a face that grew one while saying nothing about whether a
+        // caller can act on the refusal.
+        java.util.regex.Matcher serves = java.util.regex.Pattern
+                .compile("this tenant serves (\\d+) resource types").matcher(refused);
+        assertTrue(serves.find(),
+                "a caller told only 'unknown' cannot tell a type this store will not hold "
+                        + "from one it has never heard of: " + refused);
+        assertTrue(Integer.parseInt(serves.group(1)) >= 3,
+                "the refusal counts fewer types than the declaration names: " + refused);
+        assertTrue(refused.contains("/metadata"),
+                "the refusal has to say where the servable types are named, or a reader is "
+                        + "left where they started: " + refused);
+    }
+
+    /**
+     * Every type the surface serves is a type the capability statement names,
+     * and the other way about. A type in one and not the other is the case
+     * that costs weeks, because each side on its own looks right.
+     */
+    @Test
+    @Order(14)
+    @Proving(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS)
+    @DisplayName("the capability statement and the surface agree about which types exist")
+    void whatIsAdvertisedIsWhatIsServed() throws Exception {
+        String capability = read("/metadata");
+        for (String declared : java.util.List.of("CodeSystem", "ValueSet", "Device")) {
+            assertTrue(capability.contains("\"type\":\"" + declared + "\""),
+                    declared + " is served and the capability statement does not name it: "
+                            + capability);
+        }
+        assertFalse(capability.contains("\"type\":\"ActivityDefinition\""),
+                "the capability statement names a type the surface refuses: " + capability);
+    }
+
     /** What the engine holds for this declaration, by its version. */
     private String versionOf(String type, String url) {
         return manager.runtime(ZONE).orElseThrow().engine()

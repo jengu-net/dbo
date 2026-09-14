@@ -1620,4 +1620,29 @@ public final class ElementStore implements FhirStoreFacade {
     public boolean knowsType(String typeName) {
         return types.stream().anyMatch(t -> t.typeName().equals(typeName));
     }
+
+    /**
+     * Answered from what this tenant declares, which is the one thing a
+     * refusal can be certain of without reading anything.
+     *
+     * <p>It deliberately does not say whether the name is a resource type
+     * elsewhere. The cheap sources cannot tell a resource from a datatype —
+     * the rows hold the definitions this tenant was given rather than the
+     * version's catalogue, and the package index names both — so the store
+     * would be saying "declare it" about things that cannot be declared. The
+     * one source that could answer is the loaded context, and a refusal that
+     * builds the whole specification to explain itself costs more than the
+     * request it refuses.
+     *
+     * <p>Saying what IS served answers the question underneath anyway: a
+     * reader told this store holds these and not that can see at once whether
+     * they mistyped or never declared it, and neither answer is guessed.
+     */
+    @Override
+    public String noSuchType(String typeName, String path) {
+        return operationOutcome("not-supported", "unknown resource type or endpoint: " + path
+                + " — this tenant serves " + types.size() + " resource types and "
+                + typeName + " is not one of them. A tenant serves the types its declaration "
+                + "names; /metadata names every one of them.");
+    }
 }
