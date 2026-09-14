@@ -3,6 +3,9 @@ package cloud.jengu.dbo.sync;
 import cloud.jengu.dbo.core.api.Handling;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PutRequest;
+import cloud.jengu.dbo.core.api.StoredObject;
+import cloud.jengu.dbo.core.face.DocumentEquivalence;
+import cloud.jengu.dbo.core.face.GrainCodec;
 import cloud.jengu.dbo.work.Failure;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
@@ -61,11 +64,55 @@ public final class ConfigApplication {
     private final ObjectStore store;
     private final Runs runs;
     private final String domain;
+    private final GrainCodec grain;
+    private final DocumentEquivalence equivalence;
 
+    /**
+     * Applying onto the engine alone, which is all this ever had.
+     *
+     * <p>What a declaration means is then the bytes and nothing else: a type
+     * whose stored form is smaller than the thing itself is stored whole, and
+     * a declaration identical to the one on record is written again.
+     */
     public ConfigApplication(ObjectStore store, Runs runs, String domain) {
+        this(store, runs, domain, null, null);
+    }
+
+    /**
+     * Applying with the two answers the engine cannot give.
+     *
+     * <p>The engine is type-blind on purpose, and a declared set needs two
+     * things it therefore cannot know:
+     *
+     * <ul>
+     *   <li><b>What one of these is made of.</b> A vocabulary's stored form is
+     *       a shell, and its concepts live where {@code $lookup} can reach
+     *       them. Written the ordinary way it is stored whole and answers
+     *       nothing. {@link GrainCodec} is where a face says which of its
+     *       types work that way, so nothing here carries a list of the types
+     *       that are special.</li>
+     *   <li><b>Whether this is the same declaration again.</b> "The same
+     *       object" is a domain question — key order, {@code 1.50} against
+     *       {@code 1.5} — and the engine's answer, comparing bytes, calls a
+     *       reordered serialisation a change. Re-applying a set is then a new
+     *       version of every record in it, on a feed everything downstream is
+     *       watching.</li>
+     * </ul>
+     *
+     * <p>Both are nullable, and absent they mean what this always did: stored
+     * whole, and written every time.
+     *
+     * @param grain       what a face says about its own grain, or null
+     * @param equivalence how this face decides two documents say the same
+     *                    thing, or null to compare bytes
+     */
+    public ConfigApplication(ObjectStore store, Runs runs, String domain,
+            GrainCodec grain, DocumentEquivalence equivalence) {
         this.store = store;
         this.runs = runs;
         this.domain = domain;
+        this.grain = grain;
+        this.equivalence = equivalence;
     }
 
     /**
@@ -76,11 +123,21 @@ public final class ConfigApplication {
      */
     public record Declared(String typeName, String name, byte[] payload) {}
 
-    /** What a pass did, for the caller that has to answer for it. */
-    public record Outcome(long read, long applied, long skipped, long withdrawn) {
+    /**
+     * What a pass did, for the caller that has to answer for it.
+     *
+     * <p><b>Applied and unchanged are both successes</b>, and they are counted
+     * apart because they cost differently and because a person reading the run
+     * is usually asking which one happened. A pass over seven hundred
+     * declarations of which one moved is <i>read 700, applied 1, unchanged
+     * 699</i>; reporting it as <i>applied 700</i> describes a rewrite of the
+     * zone, which is what it used to be.
+     */
+    public record Outcome(long read, long applied, long unchanged, long skipped,
+            long withdrawn) {
 
         public Outcome(long read, long applied, long skipped) {
-            this(read, applied, skipped, 0);
+            this(read, applied, 0, skipped, 0);
         }
     }
 
@@ -104,7 +161,27 @@ public final class ConfigApplication {
     @FunctionalInterface
     public interface Applier {
 
-        void apply(Declared declared);
+        /**
+         * What became of one declared thing where it lands.
+         *
+         * <p>Two ways of succeeding rather than one, because an applier is the
+         * only thing that can tell them apart: whoever wrote the record knows
+         * whether anything moved, and the pass above can only count what it is
+         * told.
+         */
+        enum Verdict {
+
+            /** It was written. */
+            APPLIED,
+
+            /**
+             * What is here already says this, so nothing was written — no
+             * version, no history row, nothing on the feed.
+             */
+            UNCHANGED
+        }
+
+        Verdict apply(Declared declared);
 
         /**
          * What this applier holds from this scope, by identity — the other
@@ -215,11 +292,15 @@ public final class ConfigApplication {
         }
         Runs.Pass pass = runs.pass(sweep);
         long applied = 0;
+        long unchanged = 0;
         long skipped = 0;
         for (Declared declared : declarations) {
             try {
-                applier.apply(declared);
-                applied++;
+                if (applier.apply(declared) == Applier.Verdict.UNCHANGED) {
+                    unchanged++;
+                } else {
+                    applied++;
+                }
             } catch (RuntimeException refused) {
                 skipped++;
                 // A declaration the engine refuses is a person's — no pass will
@@ -260,10 +341,11 @@ public final class ConfigApplication {
         }
         pass.counted("read", declarations.size())
                 .counted("applied", applied)
+                .counted("unchanged", unchanged)
                 .counted("skipped", skipped)
                 .counted("withdrawn", withdrawn)
                 .done();
-        return new Outcome(declarations.size(), applied, skipped, withdrawn);
+        return new Outcome(declarations.size(), applied, unchanged, skipped, withdrawn);
     }
 
     /**
@@ -286,21 +368,98 @@ public final class ConfigApplication {
      * things really are anonymous, and refusing them here would refuse the
      * only shape that ever worked.
      */
-    public void intoTheStore(Declared declared) {
-        java.util.List<cloud.jengu.dbo.core.api.Identifier> named =
-                identityOf(declared);
+    public Applier.Verdict intoTheStore(Declared declared) {
+        String type = declared.typeName();
+        // What was declared is the whole thing, always — a declaration is a
+        // file somebody wrote, not a stored form. Whether the engine is given
+        // all of it is the face's answer, and the only one that knows.
+        byte[] whole = declared.payload();
+        boolean grained = grain != null && grain.handles(type);
+        byte[] forTheEngine = grained ? grain.storedFormOf(type, whole) : whole;
+
+        java.util.List<cloud.jengu.dbo.core.api.Identifier> named = identityOf(declared);
         if (named.isEmpty()) {
-            store.put(PutRequest.create(declared.typeName(), declared.payload()),
-                    Handling.Authority.CONFIG_LANE);
-            return;
+            store.put(PutRequest.create(type, forTheEngine), Handling.Authority.CONFIG_LANE);
+            // Only now: the parts with their own home go there once the engine
+            // has accepted the record they belong to, never before it and
+            // never when it refused (GrainCodec#keep).
+            if (grained) {
+                grain.keep(type, whole);
+            }
+            return Applier.Verdict.APPLIED;
         }
         cloud.jengu.dbo.core.api.Identifier claim = named.get(0);
+        if (alreadySaysThis(type, claim, whole, grained)) {
+            return Applier.Verdict.UNCHANGED;
+        }
         store.putConditional(
                 cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM.equals(claim.system())
                         ? cloud.jengu.dbo.core.api.IdentityRef.canonical(claim.value())
                         : cloud.jengu.dbo.core.api.IdentityRef.identifier(
                                 claim.system(), claim.value()),
-                PutRequest.create(declared.typeName(), declared.payload()));
+                PutRequest.create(type, forTheEngine));
+        if (grained) {
+            grain.keep(type, whole);
+        }
+        return Applier.Verdict.APPLIED;
+    }
+
+    /**
+     * Whether the record this declaration names already says exactly this.
+     *
+     * <p><b>Compared whole, not as stored.</b> For a type kept at its own
+     * grain the shell is metadata, and two vocabularies with different
+     * concepts can carry the same shell — so comparing what the engine holds
+     * would call a changed vocabulary unchanged, which is the one mistake here
+     * that loses data rather than costing a write. The stored form is made
+     * whole again ({@link GrainCodec#forTransport}) and that is what the
+     * declaration is held against.
+     *
+     * <p><b>Where that answers "no" and cannot answer otherwise.</b> A type
+     * whose whole form is a PROJECTION rather than the document somebody
+     * declared — a CodeSystem assembled from concept rows — comes back
+     * carrying what the projection derives, {@code count} among it, which no
+     * declaration ever wrote. Source and projection then differ for a reason
+     * that is not a change, every time, so such a type is applied on every
+     * pass. That is the safe direction and the expensive one: nothing is lost,
+     * and a vocabulary is re-kept on a pass where nothing moved.
+     *
+     * <p>Answering it properly is the face's, not this method's: only the
+     * thing that took the vocabulary apart can say whether it already holds
+     * this one, and it can do it without assembling anything. Guessing here
+     * instead — trusting the declared {@code version}, say — buys the skip by
+     * making an edit that did not bump a version disappear silently, which is
+     * a worse failure than a write nobody needed.
+     *
+     * <p>Unreadable either side is not sameness. A declaration this face
+     * cannot parse falls through to the write, which refuses it, and the
+     * refusal is the card — said once, where it belongs.
+     */
+    private boolean alreadySaysThis(String type, cloud.jengu.dbo.core.api.Identifier claim,
+            byte[] declared, boolean grained) {
+        StoredObject here;
+        try {
+            java.util.List<StoredObject> found = store.getByIdentifier(type,
+                    java.util.List.of(claim));
+            if (found.isEmpty()) {
+                return false;
+            }
+            here = found.get(0);
+        } catch (RuntimeException unreadable) {
+            // An unknown type, a store that would refuse the read: the write
+            // below meets the same thing and turns it into the card.
+            return false;
+        }
+        try {
+            byte[] whatIsHere = grained
+                    ? grain.forTransport(type, here.payload())
+                    : here.payload();
+            return equivalence != null
+                    ? equivalence.same(whatIsHere, declared)
+                    : java.util.Arrays.equals(whatIsHere, declared);
+        } catch (RuntimeException cannotTell) {
+            return false;
+        }
     }
 
     /**

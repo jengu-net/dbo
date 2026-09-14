@@ -592,7 +592,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         } catch (RuntimeException unreadable) {
             // Said already, in the ledger and the log. The tenants already
             // declared are unaffected, and the records stand as they were.
-            lastApplication = new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0);
+            lastApplication = new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0, 0);
         }
         Set<String> declared = java.util.concurrent.ConcurrentHashMap.newKeySet();
         // Together, not one after another. Bring-up is minutes of somebody
@@ -1457,10 +1457,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
             String configurationPath = "/t/" + spec.code() + "/configuration";
             sharedServer.createContext(configurationPath, new ConfigurationHandler(authority,
                     () -> spec.code().equals(managementCode) ? applyDeclarations() : null,
+                    // Applied through the face, not onto the engine alone. A
+                    // vocabulary handed over here has to land at the grain
+                    // $lookup answers from, and a declaration identical to the
+                    // one on record is a read: both are the face's answers to
+                    // give, and the engine is type-blind by design.
                     (correlation, declarations) -> new cloud.jengu.dbo.sync.ConfigApplication(
                             runStores.get(spec.code()),
                             new cloud.jengu.dbo.work.Runs(runStores.get(spec.code())),
-                            version.domain())
+                            version.domain(),
+                            runtime.grain(),
+                            version.face().capability(
+                                    cloud.jengu.dbo.core.face.DocumentEquivalence.class)
+                                    .orElse(null))
                             .apply(spec.code(), correlation, declarations)));
             configurationContexts.put(spec.code(), configurationPath);
         }
@@ -2652,11 +2661,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private cloud.jengu.dbo.sync.ConfigApplication.Outcome recordDeclarations() {
         if (managementCode == null) {
-            return new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0);
+            return new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0, 0);
         }
         ObjectStore management = runStores.get(managementCode);
         if (management == null) {
-            return new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0);
+            return new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0, 0);
         }
         try {
             cloud.jengu.dbo.sync.ConfigApplication applied =
@@ -2699,7 +2708,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /** What the last application of the declarations did. */
     private volatile cloud.jengu.dbo.sync.ConfigApplication.Outcome lastApplication =
-            new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0);
+            new cloud.jengu.dbo.sync.ConfigApplication.Outcome(0, 0, 0, 0, 0);
 
     /**
      * The ledger's name for "the declarations themselves could not be read".
@@ -2727,8 +2736,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return new cloud.jengu.dbo.sync.ConfigApplication.Applier() {
 
             @Override
-            public void apply(cloud.jengu.dbo.sync.ConfigApplication.Declared declared) {
-                application.intoTheStore(declared);
+            public cloud.jengu.dbo.sync.ConfigApplication.Applier.Verdict apply(
+                    cloud.jengu.dbo.sync.ConfigApplication.Declared declared) {
+                return application.intoTheStore(declared);
             }
 
             @Override
@@ -3093,7 +3103,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * One definition, into the tenant. A throw is the pass's card; the one
      * refusal that is not a card is caught here.
      */
-    private static void publishOne(cloud.jengu.dbo.core.api.ObjectStore engine,
+    private static cloud.jengu.dbo.sync.ConfigApplication.Applier.Verdict publishOne(
+            cloud.jengu.dbo.core.api.ObjectStore engine,
             FhirStoreFacade store, FhirTerminology terminology, boolean holdsConceptsNatively,
             cloud.jengu.dbo.sync.ConfigApplication.Declared declaration) {
         String definition = new String(declaration.payload(),
@@ -3114,11 +3125,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // boot for definitions that have not moved — so the stored
                 // version decides, and it is derived from the vocabulary
                 // rather than from dbo's release number.
-                if (!publishedVersionOf(engine, definition).equals(fieldOf(definition,
+                if (publishedVersionOf(engine, definition).equals(fieldOf(definition,
                         "\"version\""))) {
-                    terminology.ingestCodeSystem(definition);
+                    return cloud.jengu.dbo.sync.ConfigApplication.Applier.Verdict.UNCHANGED;
                 }
-                return;
+                terminology.ingestCodeSystem(definition);
+                return cloud.jengu.dbo.sync.ConfigApplication.Applier.Verdict.APPLIED;
             }
             // Asked before written. A conditional create is a full
             // validate and a write every time, and a definition that has
@@ -3131,12 +3143,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM,
                             declaration.name())))
                     .isEmpty()) {
-                return;
+                return cloud.jengu.dbo.sync.ConfigApplication.Applier.Verdict.UNCHANGED;
             }
             // Identity-keyed on the canonical url, so a race between two
             // bring-ups rewrites the same record rather than a second one
             // (REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS).
             store.conditionalCreate(definition, java.util.Map.of("url", declaration.name()));
+            return cloud.jengu.dbo.sync.ConfigApplication.Applier.Verdict.APPLIED;
         } catch (cloud.jengu.dbo.core.api.HandlingRefusedException refused) {
             // Anticipated, not wrong, and deliberately not a card: on a tenant
             // whose CodeSystem is somebody else's publication, the engine's
@@ -3147,6 +3160,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
             LOG.info("the face's vocabulary is not this tenant's to write ({}); "
                     + "it arrives from the source tenant through the replication lane",
                     refused.getMessage());
+            // Swallowed, so nothing was written and nothing needs writing:
+            // unchanged is what the pass should count, not a phantom apply.
+            return cloud.jengu.dbo.sync.ConfigApplication.Applier.Verdict.UNCHANGED;
         }
     }
 

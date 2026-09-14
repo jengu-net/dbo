@@ -93,6 +93,10 @@ public final class ConfigurationHandler implements HttpHandler {
                     "step", ConfigApplication.STEP,
                     "read", outcome.read(),
                     "applied", outcome.applied(),
+                    // Said apart from applied: a caller polling a repository
+                    // reads this to know its last post changed nothing, which
+                    // "applied" cannot tell it.
+                    "unchanged", outcome.unchanged(),
                     "skipped", outcome.skipped(),
                     "withdrawn", outcome.withdrawn()));
         } catch (RuntimeException failed) {
