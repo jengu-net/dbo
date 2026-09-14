@@ -255,6 +255,90 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
                         + differences);
     }
 
+    /**
+     * The seam: a type may say its extractor lives in the database, and the
+     * engine then asks the database rather than this process.
+     *
+     * <p>Registered here with an identity that is NOT canonical, and that is
+     * the seam's one limit rather than the test dodging something. A canonical
+     * type is identified by its own url, which is the registration's knowledge
+     * and not the document's — a url in a document that is not of such a type
+     * is an ordinary value — so a function reading the document alone cannot
+     * produce that claim, and a canonical type needs it added by whoever calls
+     * the function. Every type this corpus carries is canonical, so serving
+     * one from the database is the step after this and not this one.
+     *
+     * <p>What is proven here is the seam itself: the Java extractor is not
+     * called, and what lands is what it would have produced.
+     */
+    @Test
+    @Timeout(300)
+    @DisplayName("a type whose extractor is a database function is written without this process "
+            + "extracting anything, and lands the same")
+    void aDatabaseExtractorIsAskedInsteadOfThisProcess() throws Exception {
+        int[] askedInJava = {0};
+        List<cloud.jengu.dbo.core.api.TypeRegistration> registrations = new ArrayList<>();
+        for (cloud.jengu.dbo.core.api.TypeRegistration one
+                : new cloud.jengu.dbo.fhir.r4.R4Personality(List.of(
+                        cloud.jengu.dbo.fhir.common.FhirTypeConfig.canonical("ValueSet")))
+                .registrations()) {
+            if (!"ValueSet".equals(one.typeName())) {
+                registrations.add(one);
+                continue;
+            }
+            cloud.jengu.dbo.core.api.EnvelopeExtractor inJava = one.extractor();
+            cloud.jengu.dbo.core.api.DatabaseExtractor inTheDatabase =
+                    new cloud.jengu.dbo.core.api.DatabaseExtractor() {
+                        @Override
+                        public String functionName() {
+                            return "dbo.envelope_parts";
+                        }
+
+                        @Override
+                        public cloud.jengu.dbo.core.api.Envelope extract(String typeName,
+                                byte[] payload) {
+                            askedInJava[0]++;
+                            return inJava.extract(typeName, payload);
+                        }
+                    };
+            registrations.add(new cloud.jengu.dbo.core.api.TypeRegistration(one.typeName(),
+                    one.domain(), cloud.jengu.dbo.core.api.IdentityClass.INTERNAL,
+                    java.util.Set.of(), one.handling(), inTheDatabase, one.indexes(),
+                    one.payloadVersion()));
+        }
+
+        cloud.jengu.dbo.postgres.PgObjectStore store =
+                new cloud.jengu.dbo.postgres.PgObjectStore(tenantSource(), registrations);
+        byte[] declared = ("{\"resourceType\":\"ValueSet\",\"status\":\"active\","
+                + "\"url\":\"https://seam.test/vs\",\"name\":\"Seam\"}")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        var written = store.put(cloud.jengu.dbo.core.api.PutRequest.create("ValueSet", declared));
+
+        assertEquals(0, askedInJava[0],
+                "the type says its extractor is a database function and this process extracted "
+                        + "it anyway, which is the whole of what the seam is for");
+
+        // And what landed is what the other side would have produced. Asked of
+        // the row rather than of the function again, so this is what a reader
+        // would actually be answered from.
+        JsonNode stored;
+        try (Connection c = tenantSource().getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT envelope::text FROM %s_data WHERE id = ?"
+                             .formatted(Domains.tables(Domains.DEFINITIONS)))) {
+            ps.setObject(1, java.util.UUID.fromString(written.id()));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                stored = JSON.readTree(rs.getString(1));
+            }
+        }
+        assertTrue(stored.has("url"),
+                "the database extracted nothing a search could ask by: " + stored);
+        assertEquals("https://seam.test/vs", stored.get("url").get(0).get("v").asText(),
+                "the url landed as something other than what was declared: " + stored);
+    }
+
     // ------------------------------------------------------------- the two
     /** One document as the engine left it. */
     private record Stored(String id, String type, String payload, String envelope) {}

@@ -453,6 +453,8 @@ cloud.jengu.dbo.core.api.Criteria.StartsWith                           path():St
 cloud.jengu.dbo.core.api.Criteria.StartsWith                           prefix():String
 cloud.jengu.dbo.core.api.Criteria.StartsWith                           record
 cloud.jengu.dbo.core.api.Criteria.StartsWith                           toString():String
+cloud.jengu.dbo.core.api.DatabaseExtractor                             functionName():String
+cloud.jengu.dbo.core.api.DatabaseExtractor                             interface
 cloud.jengu.dbo.core.api.DateKeys                                      FORMAT:DateTimeFormatter
 cloud.jengu.dbo.core.api.DateKeys                                      class
 cloud.jengu.dbo.core.api.DateKeys                                      of(Instant):String

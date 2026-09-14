@@ -518,7 +518,7 @@ public final class PgObjectStore implements ObjectStore {
             now = request.recordedAt();
         }
 
-        Envelope envelope = type.extractor().extract(type.typeName(), request.payload());
+        Envelope envelope = envelopeOf(c, type, request.payload());
         // The shape dimension derives from the ROW, not from the payload:
         // the extractor stays a pure function of bytes, and the stamp joins
         // the envelope here — the same place reindex re-adds it from the
@@ -571,6 +571,58 @@ public final class PgObjectStore implements ObjectStore {
         }
 
         return new PutResult(id, newVersion, created);
+    }
+
+    /**
+     * The envelope, the claims and the edges — from the database when the type
+     * says its extractor lives there, and from this process otherwise.
+     *
+     * <p>One statement and one walk. The parts come back as rows rather than
+     * as a document to parse, because this module holds the JDBC driver and
+     * nothing else, and a JSON reader written here to read what SQL already
+     * knows how to shape is a second parser to keep correct.
+     */
+    private Envelope envelopeOf(Connection c, TypeRegistration type, byte[] payload)
+            throws SQLException {
+        if (!(type.extractor() instanceof cloud.jengu.dbo.core.api.DatabaseExtractor inTheDatabase)) {
+            return type.extractor().extract(type.typeName(), payload);
+        }
+        Envelope envelope = new Envelope();
+        // MATERIALIZED so the function runs once: the whole point of asking
+        // for three parts together is that the document is walked once, and an
+        // inlined CTE would walk it per branch of the union.
+        try (PreparedStatement ps = c.prepareStatement("""
+                WITH parts AS MATERIALIZED (SELECT %s(?::jsonb, ?) AS p)
+                SELECT 'v'::text, o.key, one::text, NULL::text
+                  FROM parts, jsonb_each(p -> 'envelope') AS o(key, arr),
+                       jsonb_array_elements(o.arr) AS one
+                UNION ALL
+                SELECT 'i'::text, x.system, x.value, NULL::text
+                  FROM parts, jsonb_to_recordset(p -> 'identifiers')
+                       AS x(system text, value text)
+                UNION ALL
+                SELECT 'r'::text, r."refType", r."targetType", r."targetId"
+                  FROM parts, jsonb_to_recordset(p -> 'references')
+                       AS r("refType" text, "targetType" text, "targetId" text)"""
+                .formatted(inTheDatabase.functionName()))) {
+            ps.setString(1, new String(payload, java.nio.charset.StandardCharsets.UTF_8));
+            ps.setString(2, type.typeName());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    switch (rs.getString(1)) {
+                        case "v" -> envelope.value(rs.getString(2),
+                                JsonbCodec.decodeValue(rs.getString(3)));
+                        case "i" -> envelope.identifier(rs.getString(2), rs.getString(3));
+                        case "r" -> envelope.reference(rs.getString(2), rs.getString(3),
+                                rs.getString(4));
+                        default -> throw new IllegalStateException(
+                                "the extractor answered with a part this engine does not know: "
+                                        + rs.getString(1));
+                    }
+                }
+            }
+        }
+        return envelope;
     }
 
     private void replaceIdentifiers(Connection c, TypeRegistration type, UUID id, List<Identifier> identifiers)
