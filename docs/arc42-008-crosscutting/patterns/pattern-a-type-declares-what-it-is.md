@@ -5,6 +5,7 @@ standfirst: >-
   Append-only, versioned, auditable, retained for how long, identified by
   what. Declared once per kind of record and enforced by the engine, not left
   to the habits of whatever code happens to write it.
+pattern: 3
 template: essay.html
 ---
 

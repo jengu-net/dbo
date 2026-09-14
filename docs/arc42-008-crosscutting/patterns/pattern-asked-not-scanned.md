@@ -5,6 +5,7 @@ standfirst: >-
   Evidence you cannot find is not evidence. So the store answers exactly what
   was asked, or refuses and says what would have worked. It never
   approximates.
+pattern: 13
 template: essay.html
 ---
 

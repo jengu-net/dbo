@@ -5,6 +5,7 @@ standfirst: >-
   Every version kept immutably is what makes an audit trail worth anything. A
   person may still require that their data be gone. Both are kept, because
   erasure destroys a key rather than rewriting anything.
+pattern: 18
 template: essay.html
 ---
 

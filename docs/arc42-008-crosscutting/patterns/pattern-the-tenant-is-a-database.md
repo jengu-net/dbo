@@ -5,6 +5,7 @@ standfirst: >-
   Each organisation's records live in a database of their own, not behind a
   filter over a shared one. That difference decides what happens the day
   somebody writes a query with a bug in it.
+pattern: 2
 template: essay.html
 ---
 

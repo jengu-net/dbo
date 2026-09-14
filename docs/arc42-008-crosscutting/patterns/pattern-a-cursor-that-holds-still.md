@@ -4,6 +4,7 @@ eyebrow: Pattern
 standfirst: >-
   Rows shift while you page. A position that counts from the start pushes that
   cost onto every caller; one that names where you stopped does not.
+pattern: 16
 template: essay.html
 ---
 

@@ -5,6 +5,7 @@ standfirst: >-
   When work is offered and no automated participant takes it, it falls through
   to a person. That is expected. What matters is that the fall-through is
   counted.
+pattern: 9
 template: essay.html
 ---
 

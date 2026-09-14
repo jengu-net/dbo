@@ -5,6 +5,7 @@ standfirst: >-
   One attempt at one step is an ordinary record in the tenant's own store. So
   it has history, an audit trail and an owner, and it survives a restart of
   anything, because it was never in flight.
+pattern: 5
 template: essay.html
 ---
 

@@ -5,6 +5,7 @@ standfirst: >-
   One sealed archive, which the party operating the store cannot read and
   somebody else can verify. Getting out is the path that runs every night, not
   a project scoped when the relationship ends.
+pattern: 19
 template: essay.html
 ---
 

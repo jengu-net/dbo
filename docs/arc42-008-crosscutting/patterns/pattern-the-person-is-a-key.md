@@ -5,6 +5,7 @@ standfirst: >-
   Identifying material is encrypted where it is written, with a key belonging
   to that person. So every copy the store makes of itself carries ciphertext
   because of where the encryption happens.
+pattern: 17
 template: essay.html
 ---
 

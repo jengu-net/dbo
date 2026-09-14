@@ -43,10 +43,12 @@ assumes the split it describes.
 
 ## All of the above, under names you can carry
 
-- [**The patterns**](patterns/README.md) — the same twenty-four ideas as a
-  pattern language: one name each, stated for a regulator, a security officer,
-  an administrator and the business, with what each one rests on. Written to
-  be referred to rather than read through.
+The same twenty-four ideas are also written as a **pattern language**, in
+`patterns/` beside this page: one name each, stated for a regulator, a
+security officer, an administrator and the business, with what each one rests
+on. Those pages are collected to their own section of the site rather than
+published here, which is why this paragraph names the directory instead of
+linking to it — the same arrangement the `why-` essays use.
 
 ## All of the above, in one spelling
 

@@ -5,6 +5,7 @@ standfirst: >-
   Declared, provisioned, brought up, served, and one day taken away. Only the
   middle of that is a state a running node reports, and the state worth
   knowing about is the one a list of served tenants leaves out.
+pattern: 24
 template: essay.html
 ---
 

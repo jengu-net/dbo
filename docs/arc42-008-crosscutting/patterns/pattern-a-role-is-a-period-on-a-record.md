@@ -4,6 +4,7 @@ eyebrow: Pattern
 standfirst: >-
   The records a tenant keeps anyway say who works there, in what role, from
   when until when. Those records are the grants.
+pattern: 8
 template: essay.html
 ---
 

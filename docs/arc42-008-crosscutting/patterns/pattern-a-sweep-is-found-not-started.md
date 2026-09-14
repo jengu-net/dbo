@@ -5,6 +5,7 @@ standfirst: >-
   Some work converges on a condition rather than running over a list. Asking
   for it twice finds the attempt already open, instead of opening a second one
   beside it.
+pattern: 10
 template: essay.html
 ---
 

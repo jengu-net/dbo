@@ -1,8 +1,8 @@
 # The header menu.
 #
-# Three of these are sections that drill down — Why, Faces, Technical — and
-# the plugin expands each from its directory, so adding a page to one is a
-# file rather than an edit here. Material shows them across the header when
+# Four of these are sections that drill down — Why, Faces, Patterns and
+# Technical — and the plugin expands each from its directory, so adding a page
+# to one is a file rather than an edit here. Material shows them across the header when
 # there is room and folds them into the drawer when there is not.
 #
 # Quickstart is inside Technical rather than beside it: running the thing is
@@ -13,5 +13,6 @@ nav:
   - Home: index.md
   - Why: why
   - Faces: faces
+  - Patterns: patterns
   - Technical: technical
   - Documentation: docs

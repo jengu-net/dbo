@@ -5,6 +5,7 @@ standfirst: >-
   Every change event is a row written in the same transaction as the change.
   There is no separate publish step, and no window in which the write
   succeeded and the notification did not.
+pattern: 14
 template: essay.html
 ---
 

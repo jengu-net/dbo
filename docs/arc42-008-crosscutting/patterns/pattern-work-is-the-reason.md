@@ -5,6 +5,7 @@ standfirst: >-
   Nobody reads a regulated record for no reason. The reason is a step of some
   process — so that is what access is granted to, and doing it leaves the
   proof.
+pattern: 4
 template: essay.html
 ---
 

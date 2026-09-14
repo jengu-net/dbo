@@ -5,6 +5,7 @@ standfirst: >-
   The store never reaches out to the laboratory, the border post or the
   supplier's system. Participants ask what is available to them, take it, and
   report back.
+pattern: 6
 template: essay.html
 ---
 

@@ -4,6 +4,7 @@ eyebrow: Pattern
 standfirst: >-
   A policy is a commitment somebody can break, forget, or be compelled to set
   aside. A property is something the system does not permit.
+pattern: 1
 template: essay.html
 ---
 

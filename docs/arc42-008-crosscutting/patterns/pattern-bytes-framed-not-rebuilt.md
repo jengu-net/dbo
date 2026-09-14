@@ -4,6 +4,7 @@ eyebrow: Pattern
 standfirst: >-
   Data crosses the line between engine and face as bytes, parsed once and
   framed rather than rebuilt. What is carried is not opened.
+pattern: 21
 template: essay.html
 ---
 

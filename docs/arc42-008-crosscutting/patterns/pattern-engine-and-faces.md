@@ -5,6 +5,7 @@ standfirst: >-
   The engine knows records, custody, history and erasure, and has never heard
   of a patient. A face is the standard a tenant declares, and it is a real
   server of that standard rather than a gateway.
+pattern: 20
 template: essay.html
 ---
 

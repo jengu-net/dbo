@@ -5,6 +5,7 @@ standfirst: >-
   A hop that carried work leaves a travel entry about the task. A participant
   that opened a payload leaves an access entry about the document. So the
   trail can say that nobody looked.
+pattern: 12
 template: essay.html
 ---
 

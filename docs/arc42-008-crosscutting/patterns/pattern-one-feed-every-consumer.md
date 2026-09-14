@@ -5,6 +5,7 @@ standfirst: >-
   Paging through results, subscribing to changes, keeping a dependent copy
   current, and reconciling an appliance that was offline all weekend are one
   primitive, so every consumer is a name and a position.
+pattern: 15
 template: essay.html
 ---
 

@@ -4,6 +4,7 @@ eyebrow: Pattern
 standfirst: >-
   What a participant may take is the intersection of what its credential
   covers and what the step admits. Neither alone is enough.
+pattern: 7
 template: essay.html
 ---
 

@@ -5,6 +5,7 @@ standfirst: >-
   Value sets, profiles, search parameters, which tenants a deployment serves,
   whether a step is automated. One declared set, read from a repository and
   applied to a tenant, then the next, then the appliance.
+pattern: 23
 template: essay.html
 ---
 
