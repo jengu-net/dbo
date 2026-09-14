@@ -132,12 +132,12 @@ before it can be.</p>
 
 ## The icons
 
-A pattern is remembered by its glyph, so each one has a tile. Every glyph is
-drawn from three marks and no others: an open amber stroke for the thing the
-pattern is about, a solid green fill for what the store guarantees, and a
-faint dashed outline for what is absent, refused, or merely claimed.
+A card is remembered by its glyph before its title, so each one has a tile.
+Every glyph is drawn from three marks and no others: an open stroke for the
+thing the pattern is about, a solid fill for what the arrangement guarantees,
+and a faint dashed outline for what is absent, refused, or merely claimed.
 
 --8<-- "assets/diagrams/pattern-icons.svg"
 
-<p class="diagram-caption">The sheet is also the preset: Lini has no import,
-so a pattern's own figure copies its header from this source.</p>
+<p class="diagram-caption">Twenty-four drawings made from three marks, which
+is what lets them read as one family rather than as twenty-four pictures.</p>
