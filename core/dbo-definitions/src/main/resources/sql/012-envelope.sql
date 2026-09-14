@@ -145,6 +145,39 @@ BEGIN
 END;
 $$;
 
+-- The key an envelope holds a parameter's values under.
+--
+-- A search parameter's code may carry a hyphen and an envelope path may not,
+-- so the engine folds one to an underscore and has since the first envelope
+-- was written. Said here too, because the two sides have to agree on it or
+-- every document of a type with one hyphenated parameter differs wholesale —
+-- the database writing a key nobody reads and missing the one everybody does.
+-- One function rather than the expression twice: a convention spelt out in
+-- two places is one that drifts in one of them.
+CREATE OR REPLACE FUNCTION dbo.envelope_key(p_code text)
+RETURNS text LANGUAGE sql IMMUTABLE AS $$
+  SELECT replace(p_code, '-', '_')
+$$;
+
+-- The keys no search parameter produces.
+--
+-- `_profile` and `_tag` are asked for like any other token or uri and are
+-- written by the engine straight off meta, because they are facts about the
+-- record rather than about its type — no parameter row names them, so a
+-- walk driven by parameters alone cannot find them. Without this, every
+-- document carrying a meta.profile is one a profile search stops finding.
+CREATE OR REPLACE FUNCTION dbo.envelope_meta(p_doc jsonb)
+RETURNS TABLE (key text, value jsonb) LANGUAGE sql IMMUTABLE AS $$
+  SELECT '_profile'::text,
+         jsonb_build_object('t', 'str', 'v', one #>> '{}')
+    FROM jsonb_array_elements(COALESCE(p_doc #> '{meta,profile}', '[]'::jsonb)) one
+  UNION ALL
+  SELECT '_tag'::text, form
+    FROM jsonb_array_elements(COALESCE(p_doc #> '{meta,tag}', '[]'::jsonb)) one,
+         LATERAL jsonb_array_elements(
+             dbo.token_forms(one ->> 'system', one ->> 'code')) form
+$$;
+
 -- Every value this document carries, by the key a search asks under.
 --
 -- Read from the compiled parameters this tenant holds, so what a document is
@@ -156,16 +189,20 @@ CREATE OR REPLACE FUNCTION dbo.envelope(p_doc jsonb, p_type text)
 RETURNS jsonb LANGUAGE sql STABLE AS $$
   SELECT COALESCE(jsonb_object_agg(key, values), '{}'::jsonb)
     FROM (
-      SELECT pair.key, jsonb_agg(pair.value) AS values
-        FROM definitions.definition_parameter p,
-             LATERAL jsonb_array_elements_text(p.paths) AS path,
-             LATERAL jsonb_path_query(p_doc, path::jsonpath) AS hit,
-             LATERAL dbo.envelope_pairs(p.code, p.kind, hit) AS pair
-       WHERE p.base = p_type
-         AND p.unenforceable IS NULL
-         AND (p.predicate IS NULL
-              OR jsonb_path_match(hit, p.predicate::jsonpath, '{}'::jsonb, true))
-       GROUP BY pair.key) keyed
+      SELECT key, jsonb_agg(value) AS values
+        FROM (
+          SELECT pair.key, pair.value
+            FROM definitions.definition_parameter p,
+                 LATERAL jsonb_array_elements_text(p.paths) AS path,
+                 LATERAL jsonb_path_query(p_doc, path::jsonpath) AS hit,
+                 LATERAL dbo.envelope_pairs(dbo.envelope_key(p.code), p.kind, hit) AS pair
+           WHERE p.base = p_type
+             AND p.unenforceable IS NULL
+             AND (p.predicate IS NULL
+                  OR jsonb_path_match(hit, p.predicate::jsonpath, '{}'::jsonb, true))
+          UNION ALL
+          SELECT key, value FROM dbo.envelope_meta(p_doc)) pairs
+       GROUP BY key) keyed
 $$;
 
 -- The three parts a write needs, from one walk.
@@ -185,7 +222,7 @@ $$;
 CREATE OR REPLACE FUNCTION dbo.envelope_parts(p_doc jsonb, p_type text)
 RETURNS jsonb LANGUAGE sql STABLE AS $$
   WITH selected AS (
-    SELECT p.code, p.kind, h AS hit
+    SELECT dbo.envelope_key(p.code) AS code, p.kind, h AS hit
       FROM definitions.definition_parameter p,
            LATERAL jsonb_array_elements_text(p.paths) AS path,
            LATERAL jsonb_path_query(p_doc, path::jsonpath) AS h
@@ -195,10 +232,14 @@ RETURNS jsonb LANGUAGE sql STABLE AS $$
             OR jsonb_path_match(h, p.predicate::jsonpath, '{}'::jsonb, true))
   ),
   keyed AS (
-    SELECT pair.key, jsonb_agg(pair.value) AS values
-      FROM selected,
-           LATERAL dbo.envelope_pairs(selected.code, selected.kind, selected.hit) AS pair
-     GROUP BY pair.key
+    SELECT key, jsonb_agg(value) AS values
+      FROM (SELECT pair.key, pair.value
+              FROM selected,
+                   LATERAL dbo.envelope_pairs(selected.code, selected.kind,
+                                              selected.hit) AS pair
+            UNION ALL
+            SELECT key, value FROM dbo.envelope_meta(p_doc)) pairs
+     GROUP BY key
   ),
   -- An Identifier with a system is an exclusive claim; without one it is
   -- still searchable as a token and claims nothing, because the same digits

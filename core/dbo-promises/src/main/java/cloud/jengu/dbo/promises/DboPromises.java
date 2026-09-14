@@ -1158,21 +1158,24 @@ public enum DboPromises implements Promise {
             + "can be found by is the whole of what a search answers, and a difference is "
             + "a document that quietly stops being findable, which reads as an empty "
             + "result rather than as a fault."),
-    /** TODO: prove it in a test (#214). The comparison exists and the two sides
-     * are not identical yet: the database keys an envelope by the parameter's own
-     * code where the engine underscores it, it carries parameters the definition
-     * path does not extract, and one hit reached by two compiled paths appears
-     * twice. config/envelope-baseline.txt records how many documents disagree per
-     * type, as a number that may fall and may not rise; this reads PROVEN when a
-     * type's number is zero and that type is served from it. */
-    SRCH_THE_DATABASE_ENVELOPE_IS_IDENTICAL_BEFORE_IT_IS_USED(
+    /** config/envelope-baseline.txt holds the count per type, at zero and
+     * ratcheted there: it may not rise. Serving a type from the database's
+     * envelope is the step after this one and is not taken yet — what is
+     * proven is that taking it would lose nothing. */
+    SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED(
             "The envelope, the exclusive claims and the reference edges come off one walk "
-            + "of the document in the database, and are what the engine stored — compared "
-            + "over the documents a face carries, per type, before a single type is served "
-            + "from them. A search answers from the envelope, so a difference is not a "
-            + "wrong answer but a missing one: the record is simply not found, and an "
-            + "empty result is indistinguishable from there being nothing to find. Which "
-            + "is why identity comes before use rather than after it."),
+            + "of the document in the database, and nothing the engine found is missing "
+            + "from them — compared over the documents a face carries, per type, before a "
+            + "single type is served from them. A search answers from the envelope, so a "
+            + "difference is not a wrong answer but a missing one: the record is simply "
+            + "not found, and an empty result is indistinguishable from there being "
+            + "nothing to find. Which is why this comes before use rather than after it. "
+            + "Losing nothing rather than matching byte for byte, because the envelope is "
+            + "asked by containment: a value held twice and a value held once are the "
+            + "same index, and each side duplicates differently for reasons of its own. "
+            + "The claims and the edges are equal and not merely contained — an exclusive "
+            + "claim nobody made would refuse somebody else's write, and an edge nobody "
+            + "declared would answer a search that should find nothing."),
     SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES(
             "Every way a tenant can be asked after a record — the version's own parameters "
             + "and whatever the tenant has authored — is compiled when the definition "
