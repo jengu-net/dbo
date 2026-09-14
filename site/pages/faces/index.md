@@ -12,6 +12,13 @@ The engine holds objects, identity, custody, declared handling, history,
 tenancy and erasure. None of those is clinical. A **face** is what turns that
 into a server somebody's existing client can talk to.
 
+--8<-- "assets/diagrams/engine-and-faces.svg"
+
+<p class="diagram-caption">Two of the three above are served today, and through
+one implementation rather than two: a version is a definition package and a
+code, not a fork. The third is drawn because the arrangement is only worth
+having if a domain outside medicine can take it.</p>
+
 ## What exists
 
 **[The FHIR face](fhir.md)** — R4 and R5, running side by side over one engine,
