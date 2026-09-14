@@ -217,37 +217,67 @@ class ADeclarationIsAppliedThroughTheFaceIT {
     }
 
     /**
-     * The boundary, said out loud rather than left to be discovered.
+     * The boundary that used to be here, now on the other side of it.
      *
-     * <p>A type whose whole form is assembled from somewhere else comes back
-     * carrying what the assembly derives — a {@code count} no declaration ever
-     * wrote — so a declaration and what is here differ every time for a reason
-     * that is not a change, and the pass applies it again. Safe and not free:
-     * a zone of vocabularies is re-kept on every tick that changed nothing.
-     *
-     * <p>Nothing here can fix it. Whether this store already holds this
-     * vocabulary is a question for the thing that took it apart, which can
-     * answer it without assembling anything; guessing from the declared
-     * version instead would make an edit that did not bump one disappear.
+     * <p>A vocabulary's whole form is ASSEMBLED, and the assembly carries what
+     * it derives — a concept count no declaration ever wrote. So a comparison
+     * made above the face held a written document against a computed one, said
+     * "changed" every time, and re-kept a zone of vocabularies on every tick
+     * that changed nothing. Only the thing that took the vocabulary apart can
+     * answer it, and it does now.
      */
     @Test
     @Order(4)
-    @Proving(DboPromises.TERM_NATIVE_FORM)
-    @DisplayName("a vocabulary kept at its own grain is applied again on a pass that changed "
-            + "nothing, because a projection is not the document somebody declared")
-    void aVocabularyIsAppliedAgainAndTheCostIsNamed() throws Exception {
+    @Proving({DboPromises.TERM_NATIVE_FORM,
+            DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS})
+    @DisplayName("a vocabulary declared again unchanged is a read, not another pass over its "
+            + "concepts")
+    void aVocabularyDeclaredAgainIsUnchanged() throws Exception {
         HttpResponse<String> again = hand("{\"declarations\":[" + codeSystem("1", "Alpha") + "]}");
 
         assertEquals(200, again.statusCode(), again.body());
-        assertTrue(again.body().contains("\"applied\":1"),
-                "if this now says unchanged, the face learnt to answer for its own grain and "
-                        + "this test is the one that should change: " + again.body());
+        assertTrue(again.body().contains("\"unchanged\":1"),
+                "the vocabulary had not moved and was taken apart again: " + again.body());
+        assertTrue(again.body().contains("\"applied\":0"), again.body());
 
-        // Applied again and still right, which is the half that matters: the
-        // re-application is a cost, never a corruption.
         String lookup = read("/CodeSystem/$lookup?system="
                 + URLEncoder.encode(SYSTEM, StandardCharsets.UTF_8) + "&code=a");
-        assertTrue(lookup.contains("Alpha"), lookup);
+        assertTrue(lookup.contains("Alpha"),
+                "skipped and lost: the concepts have to still be there: " + lookup);
+    }
+
+    /**
+     * The edit a cheaper answer would swallow.
+     *
+     * <p>Trusting the declared {@code version} would make this vanish: same
+     * url, same version, a corrected display. It would never land and nobody
+     * would be told — which is worse than the write it saves, because an
+     * absent permission or an absent write gets reported by whoever hits it
+     * and a silently ignored correction does not.
+     */
+    @Test
+    @Order(5)
+    @Proving({DboPromises.TERM_NATIVE_FORM,
+            DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS})
+    @DisplayName("a concept corrected without bumping the version still lands, because sameness "
+            + "is the concepts and not a number beside them")
+    void aCorrectionWithoutAVersionBumpStillLands() throws Exception {
+        HttpResponse<String> corrected = hand("{\"declarations\":["
+                + codeSystem("1", "Alpha corrected") + "]}");
+
+        assertEquals(200, corrected.statusCode(), corrected.body());
+        assertTrue(corrected.body().contains("\"applied\":1"),
+                "the version had not moved, so the correction was taken for the same "
+                        + "vocabulary and dropped: " + corrected.body());
+
+        String lookup = read("/CodeSystem/$lookup?system="
+                + URLEncoder.encode(SYSTEM, StandardCharsets.UTF_8) + "&code=a");
+        assertTrue(lookup.contains("Alpha corrected"),
+                "applied, and the concepts behind it did not move: " + lookup);
+
+        // And back, so the ordering of everything after this is undisturbed.
+        assertTrue(hand("{\"declarations\":[" + codeSystem("1", "Alpha") + "]}").body()
+                .contains("\"applied\":1"), "the vocabulary would not go back");
     }
 
     /**
@@ -260,7 +290,7 @@ class ADeclarationIsAppliedThroughTheFaceIT {
      * with the store insisting each time that something moved.
      */
     @Test
-    @Order(5)
+    @Order(6)
     @Proving({DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
             DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP})
     @DisplayName("the same declaration with its keys in another order is still the same "
@@ -293,7 +323,7 @@ class ADeclarationIsAppliedThroughTheFaceIT {
      * prevent it, because a list cannot say it is the same list.
      */
     @Test
-    @Order(6)
+    @Order(7)
     @Proving({DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
             DboPromises.PROC_CONFIG_READ_FROM_A_SOURCE})
     @DisplayName("a posted set that says which read it is, and is the read this scope already "
@@ -317,7 +347,7 @@ class ADeclarationIsAppliedThroughTheFaceIT {
      * being a record here, rather than standing until somebody notices.
      */
     @Test
-    @Order(7)
+    @Order(8)
     @Proving({DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
             DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED})
     @DisplayName("a posted read that says it is complete withdraws what it no longer names")
@@ -343,7 +373,7 @@ class ADeclarationIsAppliedThroughTheFaceIT {
      * would quietly mean nothing on the next pass.
      */
     @Test
-    @Order(8)
+    @Order(9)
     @Proving(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED)
     @DisplayName("a set claiming to be complete without saying which read it is, is refused")
     void completenessWithoutAReadIsRefused() throws Exception {
@@ -372,7 +402,7 @@ class ADeclarationIsAppliedThroughTheFaceIT {
      * 459 arrived as 89.
      */
     @Test
-    @Order(9)
+    @Order(10)
     @Proving({DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
             DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP})
     @DisplayName("a canonical declaration carrying an identifier is claimed by its url, not by "

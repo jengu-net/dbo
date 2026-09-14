@@ -70,6 +70,36 @@ public interface GrainCodec {
      */
     void keep(String typeName, byte[] transportedPayload);
 
+    /**
+     * Whether this store already holds exactly this, so nothing needs writing.
+     *
+     * <p><b>Only the codec can answer it for its own types.</b> A caller above
+     * the face compares what was declared against what comes back from
+     * {@link #forTransport}, and for a type whose whole form is ASSEMBLED that
+     * comparison holds a source against a projection: the projection carries
+     * what it derives — a concept count no declaration ever wrote — so the two
+     * differ every time for a reason that is not a change, and the thing is
+     * applied again on every pass. Safe, and not free: a zone of vocabularies
+     * re-kept on every tick that changed nothing.
+     *
+     * <p>The codec has what that comparison lacks. It knows which elements are
+     * derived, so it can normalise both sides the same way instead of holding
+     * a written document against a computed one, and it can reach the parts
+     * that live in their own home rather than inferring them from a count.
+     *
+     * <p><b>False is the answer whenever it cannot tell</b>, and the default.
+     * A wrong "no" costs a write nobody needed; a wrong "yes" is an edit that
+     * never lands and is never reported — so anything undecidable, unreadable
+     * or merely unimplemented has to read as not held. That is also why this
+     * is a default rather than an abstract method: a codec that has not
+     * thought about it behaves exactly as one that says no.
+     *
+     * @param transportedPayload the wire form, which is what a declaration is
+     */
+    default boolean alreadyHolds(String typeName, byte[] transportedPayload) {
+        return false;
+    }
+
     /** One accepted item of a chunk, for {@link #keep(List)}. */
     record Part(String typeName, byte[] transportedPayload) {}
 

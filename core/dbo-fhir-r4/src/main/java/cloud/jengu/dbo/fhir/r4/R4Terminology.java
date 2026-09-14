@@ -15,6 +15,7 @@ import org.hl7.fhir.r4.model.ValueSet;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -372,6 +373,71 @@ public final class R4Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
         CodeSystem cs = (CodeSystem) personality.ctxInternal().newJsonParser().parseResource(json);
         return personality.ctxInternal().newJsonParser().encodeResourceToString(shellOf(cs))
                 .getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Whether this store already holds exactly this vocabulary.
+     *
+     * <p><b>Both sides through the same normalisation, which is the whole
+     * trick.</b> A caller above the face compares the declaration against what
+     * {@link #forTransport} returns, and loses: the assembled resource carries
+     * a {@code count} that {@link #shellOf} computes and no author wrote, so a
+     * written document is being held against a computed one. Here both are put
+     * through {@code shellOf} — which derives the count on each and normalises
+     * the content mode on each — so what is left to compare is what somebody
+     * actually declared.
+     *
+     * <p><b>And the concepts, not a count of them.</b> Equal metadata with an
+     * equal number of concepts is not the same vocabulary: a display corrected
+     * without a version bump is exactly the edit a version-based answer would
+     * swallow, and swallowing it means the correction never lands and nobody
+     * is told. The flattened concepts are compared, sorted by code, because
+     * the stored side is rebuilt from rows and document order is not a fact
+     * about a vocabulary.
+     *
+     * <p>Anything it cannot read or resolve is "not held": a write nobody
+     * needed costs a version, and a wrong yes costs an edit.
+     */
+    @Override
+    public boolean alreadyHolds(String typeName, byte[] transportedPayload) {
+        // A ValueSet's stored form IS its whole form, so the ordinary
+        // comparison is exact for it and this has nothing to add.
+        if (!"CodeSystem".equals(typeName)) {
+            return false;
+        }
+        try {
+            CodeSystem declared = (CodeSystem) personality.ctxInternal().newJsonParser()
+                    .parseResource(new String(transportedPayload, StandardCharsets.UTF_8));
+            if (declared.getUrl() == null || declared.getUrl().isBlank()) {
+                return false;
+            }
+            Optional<String> assembled = codeSystemResource(declared.getUrl());
+            if (assembled.isEmpty()) {
+                return false;
+            }
+            CodeSystem here = (CodeSystem) personality.ctxInternal().newJsonParser()
+                    .parseResource(assembled.get());
+            String mine = personality.ctxInternal().newJsonParser()
+                    .encodeResourceToString(shellOf(declared));
+            String theirs = personality.ctxInternal().newJsonParser()
+                    .encodeResourceToString(shellOf(here));
+            return mine.equals(theirs) && sameConcepts(declared, here);
+        } catch (RuntimeException cannotTell) {
+            return false;
+        }
+    }
+
+    /** The concepts of each, flattened and ordered by code. */
+    private boolean sameConcepts(CodeSystem declared, CodeSystem here) {
+        List<Concept> mine = new ArrayList<>();
+        flatten(declared.getConcept(), null, mine);
+        List<Concept> theirs = new ArrayList<>();
+        flatten(here.getConcept(), null, theirs);
+        Comparator<Concept> byCode = Comparator.comparing(Concept::code,
+                Comparator.nullsFirst(Comparator.naturalOrder()));
+        mine.sort(byCode);
+        theirs.sort(byCode);
+        return mine.equals(theirs);
     }
 
     @Override

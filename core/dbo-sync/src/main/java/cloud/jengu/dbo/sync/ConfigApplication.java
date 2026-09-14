@@ -446,6 +446,13 @@ public final class ConfigApplication {
      */
     private boolean alreadySaysThis(String type, cloud.jengu.dbo.core.api.Identifier claim,
             byte[] declared, boolean grained) {
+        // Asked first, and only the codec can answer it: for a type whose
+        // whole form is assembled, what comes back carries what the assembly
+        // derives and a declaration never does, so the comparison below is a
+        // source held against a projection and says "changed" every time.
+        if (grained && grain.alreadyHolds(type, declared)) {
+            return true;
+        }
         StoredObject here;
         try {
             java.util.List<StoredObject> found = store.getByIdentifier(type,

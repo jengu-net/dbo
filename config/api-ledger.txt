@@ -1012,6 +1012,7 @@ cloud.jengu.dbo.core.face.DomainFace                                   name():St
 cloud.jengu.dbo.core.face.DomainFace                                   require(Class):Object
 cloud.jengu.dbo.core.face.DomainFace.CapabilityMissingException        class
 cloud.jengu.dbo.core.face.DomainFace.CapabilityMissingException        new(String,Class)
+cloud.jengu.dbo.core.face.GrainCodec                                   alreadyHolds(String,byte[]):boolean
 cloud.jengu.dbo.core.face.GrainCodec                                   forTransport(String,byte[]):byte[]
 cloud.jengu.dbo.core.face.GrainCodec                                   handles(String):boolean
 cloud.jengu.dbo.core.face.GrainCodec                                   interface
@@ -1635,6 +1636,7 @@ cloud.jengu.dbo.fhir.r4.R4Subscriptions                                class
 cloud.jengu.dbo.fhir.r4.R4Subscriptions                                criteriaCompiler(cloud.jengu.dbo.fhir.r4.R4Personality):Function
 cloud.jengu.dbo.fhir.r4.R4Subscriptions                                filterCompiler(cloud.jengu.dbo.fhir.r4.R4Personality):BiFunction
 cloud.jengu.dbo.fhir.r4.R4Subscriptions                                source(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.r4.R4Personality):cloud.jengu.dbo.subscriptions.SubscriptionSource
+cloud.jengu.dbo.fhir.r4.R4Terminology                                  alreadyHolds(String,byte[]):boolean
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  class
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  codeSystemResource(String):Optional
 cloud.jengu.dbo.fhir.r4.R4Terminology                                  expand(String,String,int,int):Optional
@@ -1718,6 +1720,7 @@ cloud.jengu.dbo.fhir.r5.R5Subscriptions                                composer(
 cloud.jengu.dbo.fhir.r5.R5Subscriptions                                criteriaCompiler(cloud.jengu.dbo.fhir.r5.R5Personality):Function
 cloud.jengu.dbo.fhir.r5.R5Subscriptions                                filterCompiler(cloud.jengu.dbo.fhir.r5.R5Personality):BiFunction
 cloud.jengu.dbo.fhir.r5.R5Subscriptions                                topicSource(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.r5.R5Personality):cloud.jengu.dbo.subscriptions.TopicSubscriptionSource
+cloud.jengu.dbo.fhir.r5.R5Terminology                                  alreadyHolds(String,byte[]):boolean
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  class
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  codeSystemResource(String):Optional
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  expand(String,String,int,int):Optional

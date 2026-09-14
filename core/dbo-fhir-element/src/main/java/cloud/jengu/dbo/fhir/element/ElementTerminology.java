@@ -405,6 +405,65 @@ final class ElementTerminology implements FhirTerminology {
         return json(shellOf(document, flat.size())).getBytes(StandardCharsets.UTF_8);
     }
 
+    /**
+     * Whether this store already holds exactly this vocabulary.
+     *
+     * <p>Both sides through the same normalisation. A caller above the face
+     * compares a declaration against what {@link #forTransport} returns and
+     * loses every time: the assembled resource carries a {@code count} that
+     * {@link #shellOf} computes and no author ever wrote, so a written
+     * document is being held against a computed one and the vocabulary is
+     * re-kept on every pass. Here each side is flattened and shelled the same
+     * way, so what is compared is what somebody declared.
+     *
+     * <p>The concepts themselves, not a count of them: equal metadata over an
+     * equal number of concepts is not the same vocabulary, and a display
+     * corrected without a version bump is exactly the edit that a cheaper
+     * answer would swallow — never landing, and never reported. Sorted by
+     * code, because the stored side is rebuilt from rows and document order is
+     * not a fact about a vocabulary.
+     *
+     * <p>Unreadable, unresolvable or merely unsure is "not held": a wrong no
+     * costs a write, a wrong yes costs an edit.
+     */
+    @Override
+    public boolean alreadyHolds(String typeName, byte[] transportedPayload) {
+        // A ValueSet's stored form IS its whole form, so the ordinary
+        // comparison is already exact for it.
+        if (!"CodeSystem".equals(typeName)) {
+            return false;
+        }
+        try {
+            Element declared = payloads().read(null, transportedPayload);
+            String url = declared.getNamedChildValue("url");
+            if (url == null || url.isBlank()) {
+                return false;
+            }
+            Optional<String> assembled = codeSystemResource(url);
+            if (assembled.isEmpty()) {
+                return false;
+            }
+            Element here = payloads().read(null,
+                    assembled.get().getBytes(StandardCharsets.UTF_8));
+            List<Concept> mine = new ArrayList<>();
+            flatten(declared, null, mine);
+            List<Concept> theirs = new ArrayList<>();
+            flatten(here, null, theirs);
+            if (!json(shellOf(declared, mine.size()))
+                    .equals(json(shellOf(here, theirs.size())))) {
+                return false;
+            }
+            java.util.Comparator<Concept> byCode = java.util.Comparator.comparing(
+                    Concept::code,
+                    java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder()));
+            mine.sort(byCode);
+            theirs.sort(byCode);
+            return mine.equals(theirs);
+        } catch (RuntimeException cannotTell) {
+            return false;
+        }
+    }
+
     @Override
     public void keep(String typeName, byte[] transportedPayload) {
         keep(List.of(new Part(typeName, transportedPayload)));
