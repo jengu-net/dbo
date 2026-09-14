@@ -592,7 +592,7 @@ public final class PgObjectStore implements ObjectStore {
         // for three parts together is that the document is walked once, and an
         // inlined CTE would walk it per branch of the union.
         try (PreparedStatement ps = c.prepareStatement("""
-                WITH parts AS MATERIALIZED (SELECT %s(?::jsonb, ?) AS p)
+                WITH parts AS MATERIALIZED (SELECT %s(?::jsonb, ?, ?) AS p)
                 SELECT 'v'::text, o.key, one::text, NULL::text
                   FROM parts, jsonb_each(p -> 'envelope') AS o(key, arr),
                        jsonb_array_elements(o.arr) AS one
@@ -607,6 +607,11 @@ public final class PgObjectStore implements ObjectStore {
                 .formatted(inTheDatabase.functionName()))) {
             ps.setString(1, new String(payload, java.nio.charset.StandardCharsets.UTF_8));
             ps.setString(2, type.typeName());
+            // Which types are identified by their own url is the registration's
+            // knowledge and never the document's; what that identity IS, is the
+            // face's. So the engine says which, and the function says what.
+            ps.setBoolean(3, type.identityClass()
+                    == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     switch (rs.getString(1)) {

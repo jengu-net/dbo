@@ -205,6 +205,33 @@ RETURNS jsonb LANGUAGE sql STABLE AS $$
        GROUP BY key) keyed
 $$;
 
+-- What a canonical resource is identified BY.
+--
+-- Its url for every canonical type but one. A NamingSystem answers "what is
+-- this identifier namespace", and in R4 it has no url at all — the element
+-- does not exist in that version — so its identity is the namespace it names,
+-- carried as the uniqueId of type uri, which every version this face serves
+-- has. Taken uniformly rather than "url where the version has one": the same
+-- namespace replicated between an r4 tenant and an r5 tenant has to be the
+-- same object, and it would not be if its identity changed with the version
+-- that happened to store it.
+--
+-- Here rather than in the engine, and that is the point of it being here. WHICH
+-- types are identified this way is the registration's knowledge and the engine
+-- has it; WHAT the identity is, is the face's, and the engine holding that
+-- would be the engine holding FHIR.
+CREATE OR REPLACE FUNCTION dbo.envelope_canonical(p_doc jsonb, p_type text)
+RETURNS text LANGUAGE sql IMMUTABLE AS $$
+  SELECT COALESCE(
+           p_doc ->> 'url',
+           CASE WHEN p_type = 'NamingSystem' THEN (
+             SELECT one ->> 'value'
+               FROM jsonb_array_elements(COALESCE(p_doc -> 'uniqueId', '[]'::jsonb)) one
+              WHERE one ->> 'type' = 'uri'
+              LIMIT 1)
+           END)
+$$;
+
 -- The three parts a write needs, from one walk.
 --
 -- The envelope is what a search asks by; the identifiers are the exclusive
@@ -219,7 +246,8 @@ $$;
 -- is an ordinary value. So that claim stays with the engine, which is where
 -- the knowledge is, and this returns what can be read from the document
 -- against the parameters the tenant holds.
-CREATE OR REPLACE FUNCTION dbo.envelope_parts(p_doc jsonb, p_type text)
+CREATE OR REPLACE FUNCTION dbo.envelope_parts(p_doc jsonb, p_type text,
+                                              p_canonical boolean DEFAULT false)
 RETURNS jsonb LANGUAGE sql STABLE AS $$
   WITH selected AS (
     SELECT dbo.envelope_key(p.code) AS code, p.kind, h AS hit
@@ -273,7 +301,15 @@ RETURNS jsonb LANGUAGE sql STABLE AS $$
            'identifiers',
            (SELECT COALESCE(jsonb_agg(jsonb_build_object(
                                 'system', system, 'value', value)), '[]'::jsonb)
-              FROM claimed),
+              FROM (SELECT system, value FROM claimed
+                    UNION ALL
+                    -- The identity a canonical type is claimed under. Asked for
+                    -- rather than inferred: a url in a document whose type is
+                    -- not identified that way is an ordinary value, and only
+                    -- the registration knows which is which.
+                    SELECT 'urn:dbo:canonical', dbo.envelope_canonical(p_doc, p_type)
+                     WHERE p_canonical
+                       AND dbo.envelope_canonical(p_doc, p_type) IS NOT NULL) claims),
            'references',
            (SELECT COALESCE(jsonb_agg(jsonb_build_object(
                                 'refType', code,

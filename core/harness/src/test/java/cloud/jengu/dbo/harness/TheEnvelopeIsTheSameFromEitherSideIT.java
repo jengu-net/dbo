@@ -259,17 +259,16 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
      * The seam: a type may say its extractor lives in the database, and the
      * engine then asks the database rather than this process.
      *
-     * <p>Registered here with an identity that is NOT canonical, and that is
-     * the seam's one limit rather than the test dodging something. A canonical
-     * type is identified by its own url, which is the registration's knowledge
-     * and not the document's — a url in a document that is not of such a type
-     * is an ordinary value — so a function reading the document alone cannot
-     * produce that claim, and a canonical type needs it added by whoever calls
-     * the function. Every type this corpus carries is canonical, so serving
-     * one from the database is the step after this and not this one.
+     * <p>Registered canonically, which is what this corpus carries and what
+     * the seam could not serve until the identity claim came from the function
+     * too. The split is the same one the engine makes everywhere else: it says
+     * WHICH types are identified by their own url, and the face's SQL says
+     * WHAT that identity is — a url in a document whose type is not identified
+     * that way is an ordinary value, and only the registration knows which is
+     * which.
      *
-     * <p>What is proven here is the seam itself: the Java extractor is not
-     * called, and what lands is what it would have produced.
+     * <p>So the record is found afterwards BY that identity, which is the half
+     * that says the claim was made and not merely that a row was written.
      */
     @Test
     @Timeout(300)
@@ -302,9 +301,8 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
                         }
                     };
             registrations.add(new cloud.jengu.dbo.core.api.TypeRegistration(one.typeName(),
-                    one.domain(), cloud.jengu.dbo.core.api.IdentityClass.INTERNAL,
-                    java.util.Set.of(), one.handling(), inTheDatabase, one.indexes(),
-                    one.payloadVersion()));
+                    one.domain(), one.identityClass(), one.identitySystems(),
+                    one.handling(), inTheDatabase, one.indexes(), one.payloadVersion()));
         }
 
         cloud.jengu.dbo.postgres.PgObjectStore store =
@@ -337,6 +335,15 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
                 "the database extracted nothing a search could ask by: " + stored);
         assertEquals("https://seam.test/vs", stored.get("url").get(0).get("v").asText(),
                 "the url landed as something other than what was declared: " + stored);
+
+        // And the claim: a canonical type is FOUND by its url, which is the
+        // half a row in the envelope does not say. Without it the record is
+        // written and unfindable by the one name it has.
+        assertEquals(1, store.getByIdentifier("ValueSet",
+                        List.of(new cloud.jengu.dbo.core.api.Identifier(
+                                cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM,
+                                "https://seam.test/vs"))).size(),
+                "the database wrote the record and not the identity it is claimed under");
     }
 
     // ------------------------------------------------------------- the two
@@ -366,14 +373,16 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
      * What the database makes of one document against what the engine stored,
      * or null when they agree.
      *
-     * <p>The canonical claim is taken off the engine's side rather than added
-     * to the database's: which types are identified by their own url is
-     * registration's knowledge, so the function does not have it and says so.
+     * <p>The canonical claim is compared like every other now. The engine says
+     * WHICH types are identified by their own url, because that is the
+     * registration's knowledge; the function says WHAT that identity is,
+     * because that is the face's. Every type this corpus carries is canonical,
+     * so it is asked for here.
      */
     private static String disagreement(Connection c, Stored stored) throws Exception {
         JsonNode parts;
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT dbo.envelope_parts(?::jsonb, ?)")) {
+                "SELECT dbo.envelope_parts(?::jsonb, ?, true)")) {
             ps.setString(1, stored.payload());
             ps.setString(2, stored.type());
             try (ResultSet rs = ps.executeQuery()) {
@@ -443,10 +452,9 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
         Set<String> claims = new java.util.TreeSet<>();
         try (PreparedStatement ps = c.prepareStatement("""
                 SELECT system, value FROM %s_identifier
-                 WHERE object_id = ?::uuid AND system <> ?"""
+                 WHERE object_id = ?::uuid"""
                 .formatted(Domains.tables(Domains.DEFINITIONS)))) {
             ps.setString(1, stored.id());
-            ps.setString(2, cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     claims.add(rs.getString(1) + "|" + rs.getString(2));
