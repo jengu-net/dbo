@@ -28,8 +28,9 @@ scales, what one more of it buys, and which parts of that are designed rather
 than written.
 
 **[A deployment, drawn](a-worked-deployment.md).** The smallest deployment
-that still shows every boundary: two organisations, the operator's own tenant,
-and two participants somewhere else — with what each party can actually reach.
+that still shows every boundary: two organisations, the three tenants behind
+them, the applications in front, and two participants somewhere else — with
+what each party can actually reach.
 
 **[How performance is measured](performance.md).** Not a benchmark page. A
 description of the method — the hardware, the two profiles, what makes a run
