@@ -175,6 +175,11 @@ class OneReadPerRequestTest {
         }
 
         @Override
+        public java.util.Collection<cloud.jengu.dbo.core.api.TypeRegistration> registrations() {
+            throw new UnsupportedOperationException("this stub counts reads; it registers nothing");
+        }
+
+        @Override
         public int reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration replacement) {
             throw new UnsupportedOperationException("this stub counts reads; it registers nothing");
         }

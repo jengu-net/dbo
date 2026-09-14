@@ -441,6 +441,11 @@ public final class PdiObjectStore implements ObjectStore {
     }
 
     @Override
+    public java.util.Collection<cloud.jengu.dbo.core.api.TypeRegistration> registrations() {
+        return inner.registrations();
+    }
+
+    @Override
     public int reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration replacement) {
         return inner.reindexUnder(replacement);
     }

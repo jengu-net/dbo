@@ -40,6 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ConfigAppliesAsASweepIT {
 
+    static final String PROJECTED_SYSTEM = "https://zone.test/projected";
+
     static PgObjectStore store;
     static Runs runs;
     static ConfigApplication configuration;
@@ -52,7 +54,23 @@ class ConfigAppliesAsASweepIT {
         ds.setPassword(SharedPostgres.get().getPassword());
         R4Personality personality = new R4Personality(List.of(
                 FhirTypeConfig.canonical("ValueSet")));
-        store = new PgObjectStore(ds, Registrations.withRuns(personality.registrations()));
+        // A projected type beside the operational one, because the whole
+        // question here is what separates them: a ValueSet a tenant may
+        // author, and a Projection only the lane may write.
+        java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> types =
+                new ArrayList<>(Registrations.withRuns(personality.registrations()));
+        types.add(new cloud.jengu.dbo.core.api.TypeRegistration("Projection",
+                R4Personality.DOMAIN, cloud.jengu.dbo.core.api.IdentityClass.IDENTIFIER,
+                java.util.Set.of(PROJECTED_SYSTEM),
+                cloud.jengu.dbo.core.api.Handling.projectedConfig(),
+                (typeName, payload) -> {
+                    String json = new String(payload, StandardCharsets.UTF_8);
+                    int at = json.indexOf("\"code\":\"") + 8;
+                    return new cloud.jengu.dbo.core.api.Envelope().identifier(PROJECTED_SYSTEM,
+                            json.substring(at, json.indexOf('"', at)));
+                },
+                List.of()));
+        store = new PgObjectStore(ds, types);
         runs = new Runs(store);
         configuration = new ConfigApplication(store, runs, R4Personality.DOMAIN);
     }
@@ -215,13 +233,19 @@ class ConfigAppliesAsASweepIT {
     }
 
     /**
-     * Nothing is removed by machinery that was never told how to remove it:
-     * a complete read that stops naming something reaches somebody as a card,
-     * and the record stays until they decide.
+     * Nothing is removed by machinery that cannot tell whose it is.
+     *
+     * <p>A ValueSet here is {@code operational} — the tenant's own people may
+     * author one — so every record of that type this read does not name
+     * includes the ones they wrote themselves. Counting those as undeclared
+     * would delete a tenant's work because a loader's read was complete, which
+     * is the mistake this scoping exists to make impossible. The type a lane
+     * owns outright is the one beside it, and it is withdrawn.
      */
     @Test
     @Proving(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED)
-    @DisplayName("an applier that cannot undo an application says so, and removes nothing")
+    @DisplayName("a type the tenant may author is nobody's to withdraw, however complete the "
+            + "read")
     void withdrawalWithoutAnUndoIsACardRatherThanADeletion() {
         ConfigApplication.Declared leaving = valueSet(200);
         ConfigSource declaring = () -> new ConfigSource.Fetch(List.of(leaving),
@@ -238,5 +262,48 @@ class ConfigAppliesAsASweepIT {
                 "an applier that cannot say what it holds withdraws nothing");
         assertEquals(held, store.count(Criteria.of("ValueSet")),
                 "and the record is still here");
+    }
+
+    /**
+     * The other half: a device decommissioned in a repository stops being a
+     * record here.
+     *
+     * <p>The store can say what it holds of a projected type honestly, because
+     * every record of one arrived through the lane and nobody else may write
+     * one. That is the whole condition, and it is why this answer is scoped to
+     * the handling rather than offered for everything.
+     */
+    @Test
+    @Proving(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED)
+    @DisplayName("a complete read that stops naming a projected record withdraws it, and what "
+            + "it was is still answerable")
+    void aProjectionNoLongerDeclaredIsWithdrawn() {
+        ConfigApplication.Declared device = new ConfigApplication.Declared("Projection",
+                "devices/bench-7.json",
+                "{\"code\":\"bench-7\",\"label\":\"Bench 7\"}".getBytes(StandardCharsets.UTF_8));
+        ConfigSource declaring = () -> new ConfigSource.Fetch(List.of(device),
+                ConfigSource.markerOf(List.of(device)), true);
+
+        assertEquals(1, configuration.applyFrom("zone/decommissioned", declaring).applied());
+        String id = store.getByIdentifier("Projection",
+                        List.of(new cloud.jengu.dbo.core.api.Identifier(PROJECTED_SYSTEM,
+                                "bench-7")))
+                .stream().findFirst().orElseThrow().id();
+
+        // The same scope, read complete, no longer naming it.
+        ConfigSource silent = () -> new ConfigSource.Fetch(List.of(), "decommissioned", true);
+        ConfigApplication.Outcome outcome = configuration.applyFrom("zone/decommissioned",
+                silent);
+
+        assertEquals(1, outcome.withdrawn(),
+                "the declaration stopped naming it and the record stayed");
+        assertEquals(0, store.count(Criteria.of("Projection")),
+                "withdrawn, and still counted as held");
+
+        // Withdrawn is a deleted version, not a vanished record: somebody
+        // asking what that bench was, and when it went, has an answer.
+        assertFalse(store.history("Projection", id).isEmpty(),
+                "the record was removed and took its own history with it, so nobody can say "
+                        + "what it had been");
     }
 }

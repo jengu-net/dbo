@@ -176,6 +176,11 @@ class EveryProfileATenantHoldsIsInViewTest {
         }
 
         @Override
+        public java.util.Collection<cloud.jengu.dbo.core.api.TypeRegistration> registrations() {
+            throw new UnsupportedOperationException("a shelf, not a registry");
+        }
+
+        @Override
         public int reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration replacement) {
             throw new UnsupportedOperationException("a shelf, not a registry");
         }

@@ -133,6 +133,7 @@ class ABindingIsAnsweredFromRecordsTest {
         @Override public FeedChunk<StoredObject> page(Criteria c, String cursor) { return new FeedChunk<>(List.of(), null, true); }
         @Override public int rebuildEnvelopes(String t) { return 0; }
         @Override public cloud.jengu.dbo.core.api.TypeRegistration registrationOf(String t) { throw new UnsupportedOperationException("a shelf"); }
+        @Override public java.util.Collection<cloud.jengu.dbo.core.api.TypeRegistration> registrations() { throw new UnsupportedOperationException("a shelf"); }
         @Override public int reindexUnder(cloud.jengu.dbo.core.api.TypeRegistration r) { throw new UnsupportedOperationException("a shelf"); }
     }
 }

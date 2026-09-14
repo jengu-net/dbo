@@ -222,7 +222,7 @@ public final class ConfigApplication {
      *                    interpreted; null when it gave none
      */
     public Outcome apply(String scope, String correlation, List<Declared> declarations) {
-        return apply(scope, correlation, declarations, this::intoTheStore);
+        return apply(scope, correlation, declarations, ownApplier());
     }
 
     /**
@@ -251,7 +251,7 @@ public final class ConfigApplication {
 
     /** As above, applying each declaration into the store. */
     public Outcome applyFrom(String scope, ConfigSource source) {
-        return applyFrom(scope, source, this::intoTheStore);
+        return applyFrom(scope, source, ownApplier());
     }
 
     /**
@@ -459,6 +459,125 @@ public final class ConfigApplication {
                     : java.util.Arrays.equals(whatIsHere, declared);
         } catch (RuntimeException cannotTell) {
             return false;
+        }
+    }
+
+    /**
+     * This store as an applier, with the two halves of a withdrawal it can
+     * honestly answer.
+     *
+     * <p>{@link #intoTheStore} alone is a method reference, and a method
+     * reference is only the writing half — which is why applying through it
+     * withdrew nothing however complete the read was.
+     */
+    private Applier ownApplier() {
+        return new Applier() {
+
+            @Override
+            public Verdict apply(Declared declared) {
+                return intoTheStore(declared);
+            }
+
+            @Override
+            public java.util.List<cloud.jengu.dbo.core.api.Identifier> held(String scope) {
+                return projectedHere();
+            }
+
+            @Override
+            public void withdraw(String scope,
+                    cloud.jengu.dbo.core.api.Identifier identity) {
+                withdrawProjected(identity);
+            }
+        };
+    }
+
+    /**
+     * Whether this type is one a store can honestly say it holds ALL of.
+     *
+     * <p>Two conditions, and the second is what makes the first safe. The lane
+     * owns it, so everything of this type here arrived through a lane; and
+     * nobody else may write it, so there is nothing of this type here that a
+     * tenant authored and would be deleted by machinery that cannot tell whose
+     * it is. Ownership alone was never enough — that is the count the
+     * {@link Applier#held} javadoc warns about.
+     *
+     * <p>Asked through {@code refusalFor} rather than by comparing
+     * classifications, so a type declared projected-config and then narrowed
+     * further — every change belonging to a run, say — still answers the same,
+     * and so that this reads the ONE rule the engine enforces rather than a
+     * second copy of it.
+     */
+    private static boolean onlyTheLanesToWrite(Handling handling) {
+        return handling.authority() == Handling.Authority.CONFIG_LANE
+                && handling.refusalFor(Handling.Authority.TENANT_USERS, false)
+                        == Handling.WriteRefusal.READ_ONLY_HERE;
+    }
+
+    /**
+     * Every projected record here, by the identity it declares.
+     *
+     * <p><b>The whole store's, not a scope's, and that is what completeness
+     * means.</b> Nothing here remembers which declarer wrote which record, and
+     * nothing needs to: a withdrawal only ever follows a source claiming its
+     * read is COMPLETE, and completeness is a claim about a scope — "this is
+     * all of them". A tenant posted to by two declarers has no source that can
+     * honestly make it, so neither of them gets to withdraw. Keeping a
+     * per-record note of who wrote it would let both claim it and would be a
+     * second bookkeeping to disagree with the first.
+     *
+     * <p><b>Every projected type, not the types the read happened to name.</b>
+     * A source declaring a zone's devices, departments and locations that
+     * stops declaring the last device has to be able to withdraw it, and
+     * scoping to the types still present in the read would make the last of
+     * anything unwithdrawable. So completeness is read as it is written — all
+     * of them, for this scope — and a source whose claim is narrower than that
+     * brings its own applier. The deployment's does: it reads one type out of
+     * a directory, so it answers for that type alone rather than for whatever
+     * else the managing tenant holds.
+     *
+     * <p>A record whose identity cannot be read is not listed, so it is never
+     * withdrawn. A thing that cannot be named cannot be named as missing
+     * either, and the safe direction here is the one that leaves it alone.
+     */
+    private java.util.List<cloud.jengu.dbo.core.api.Identifier> projectedHere() {
+        java.util.List<cloud.jengu.dbo.core.api.Identifier> names =
+                new java.util.ArrayList<>();
+        for (cloud.jengu.dbo.core.api.TypeRegistration type : store.registrations()) {
+            if (!onlyTheLanesToWrite(type.handling())) {
+                continue;
+            }
+            for (cloud.jengu.dbo.core.api.StoredObject record : store.select(
+                    cloud.jengu.dbo.core.api.Criteria.of(type.typeName()))) {
+                try {
+                    names.addAll(type.extractor()
+                            .extract(type.typeName(), record.payload()).identifiers());
+                } catch (RuntimeException unreadable) {
+                    // Not listed, so not withdrawn. See above.
+                }
+            }
+        }
+        return names;
+    }
+
+    /**
+     * One projection, taken away: deleted as the lane, which is the only
+     * caller the type permits.
+     *
+     * <p><b>A delete, and these keep history.</b> What is withdrawn is a
+     * deleted version rather than a vanished record, which is what leaves "who
+     * removed that device, and when" answerable afterwards — the question
+     * somebody asks precisely when a thing has stopped being there.
+     */
+    private void withdrawProjected(cloud.jengu.dbo.core.api.Identifier identity) {
+        for (cloud.jengu.dbo.core.api.TypeRegistration type : store.registrations()) {
+            if (!onlyTheLanesToWrite(type.handling())) {
+                continue;
+            }
+            for (cloud.jengu.dbo.core.api.StoredObject record : store.getByIdentifier(
+                    type.typeName(), java.util.List.of(identity))) {
+                store.delete(type.typeName(), record.id(), record.versionId(),
+                        Handling.Authority.CONFIG_LANE);
+            }
         }
     }
 

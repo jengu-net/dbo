@@ -2733,6 +2733,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private cloud.jengu.dbo.sync.ConfigApplication.Applier declarationsOf(
             cloud.jengu.dbo.sync.ConfigApplication application, ObjectStore management) {
+        // Still its own applier now that the ordinary one can answer for
+        // projected types, and for the reason that answer is written the way
+        // it is: the ordinary one reads a complete source as complete for the
+        // whole scope, every projected type of it. This source is a directory
+        // of ONE type, so its claim is narrower than that — and a managing
+        // tenant holding any other projected type would otherwise have it
+        // withdrawn by a read that was never about it.
         return new cloud.jengu.dbo.sync.ConfigApplication.Applier() {
 
             @Override

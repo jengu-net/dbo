@@ -1256,6 +1256,11 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     @Override
+    public java.util.Collection<TypeRegistration> registrations() {
+        return registry.all();
+    }
+
+    @Override
     public int reindexUnder(TypeRegistration replacement) {
         // The registration first, then the rebuild that honours it: the
         // rebuild reads the registry (and applies its declared indexes) on the

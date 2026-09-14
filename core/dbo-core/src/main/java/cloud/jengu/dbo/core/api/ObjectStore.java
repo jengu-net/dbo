@@ -138,6 +138,17 @@ public interface ObjectStore {
     TypeRegistration registrationOf(String typeName);
 
     /**
+     * Every type this store serves.
+     *
+     * <p>For a caller whose question is about a CLASS of type rather than a
+     * named one — what here is projected from a declaration, what travels in
+     * an export — and which therefore cannot start from a name. Asking by name
+     * would mean keeping a list of the names beside the store, and a list
+     * beside the thing it describes is one that goes stale without saying so.
+     */
+    java.util.Collection<TypeRegistration> registrations();
+
+    /**
      * Registers a type differently and rebuilds it under the new registration.
      *
      * <p>The two halves are one operation because either alone is a store that
