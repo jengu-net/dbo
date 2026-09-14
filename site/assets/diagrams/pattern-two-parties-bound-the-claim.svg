@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-386.25 -153.5 772.5 307" width="772.5" height="307" class="lini lini-scope-08280bcf" role="img" aria-labelledby="pattern-two-parties-bound-the-claim-title pattern-two-parties-bound-the-claim-desc">
+  <title id="pattern-two-parties-bound-the-claim-title">Neither side alone decides</title>
+  <desc id="pattern-two-parties-bound-the-claim-desc">Three panels. On the left, what a participant's credential covers: everything it was enrolled to do anywhere in the tenant. On the right, what the step admits: who may perform this stage, declared with the step rather than with the person. In the middle, sealed, what may actually be claimed: the overlap and nothing else, because a step cannot grant more than the participant already holds.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-08280bcf { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-08280bcf[data-theme="dark"], [data-theme="dark"] .lini-scope-08280bcf { color-scheme: dark; }
+      .lini-scope-08280bcf[data-theme="light"], [data-theme="light"] .lini-scope-08280bcf { color-scheme: light; }
+    }
+    .lini-scope-08280bcf { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-08280bcf .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-08280bcf .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-08280bcf .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-08280bcf .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-08280bcf .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-08280bcf .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-08280bcf .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-08280bcf .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-08280bcf .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-08280bcf .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-08280bcf .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-08280bcf .lini-body { color: var(--lini-muted); }
+    .lini-scope-08280bcf .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-08280bcf .lini-ring { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-08280bcf .lini-sdot { fill: var(--lini-seal); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-286.037,-144)">
+      <rect x="-96.213" y="-5.5" width="192.426" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">NEITHER SIDE ALONE DECIDES</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.25,-133.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-22)">
+      <rect x="-382.25" y="-106.5" width="764.5" height="213" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-265.5,-0.75)">
+        <rect x="-116.75" y="-105.75" width="233.5" height="211.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-116.75,-64.75)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,41)">
+          <rect x="-116" y="-64" width="232" height="128" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-100" y="-32.75" width="200" height="65.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-18.009,-26.25)">
+              <rect x="-81.991" y="-6.5" width="163.982" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">what the credential covers</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-23.4313,-8.5)">
+              <rect x="-76.5687" y="-6.25" width="153.1375" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">everything this participant</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-44.9813,9)">
+              <rect x="-55.0187" y="-6.25" width="110.0375" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">was enrolled to do,</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-33.2,26.5)">
+              <rect x="-66.8" y="-6.25" width="133.6" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">anywhere in the tenant</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+        <rect x="-128.75" y="-106.5" width="257.5" height="213" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-92,-69.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-ring lini-oval" transform="translate(-8,0)">
+            <ellipse cx="0" cy="0" rx="15" ry="15"/>
+          </g>
+          <g class="lini-node lini-ring lini-oval" transform="translate(8,0)">
+            <ellipse cx="0" cy="0" rx="15" ry="15"/>
+          </g>
+          <g class="lini-node lini-sdot lini-oval" transform="translate(0,0)">
+            <ellipse cx="0" cy="0" rx="5" ry="8"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-128.75,-28)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-128" y="-64" width="256" height="128" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-112" y="-36.5" width="224" height="73" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-47.208,-30)">
+              <rect x="-64.792" y="-6.5" width="129.584" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">what may be claimed</text>
+            </g>
+            <g class="lini-node lini-has lini-t lini-block" transform="translate(-23.379,-12)">
+              <rect x="-88.621" y="-6.5" width="177.242" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the overlap, and nothing else</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-112,0.5)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-23.9625,12.75)">
+              <rect x="-88.0375" y="-6.25" width="176.075" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a step cannot grant more than</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-28.9375,30.25)">
+              <rect x="-83.0625" y="-6.25" width="166.125" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the participant already holds</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(265.5,-0.75)">
+        <rect x="-116.75" y="-105.75" width="233.5" height="211.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-116.75,-64.75)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,41)">
+          <rect x="-116" y="-64" width="232" height="128" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-100" y="-32.75" width="200" height="65.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-35.3705,-26.25)">
+              <rect x="-64.6295" y="-6.5" width="129.259" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">what the step admits</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-16.9375,-8.5)">
+              <rect x="-83.0625" y="-6.25" width="166.125" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">who may perform this stage,</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-34.9562,9)">
+              <rect x="-65.0438" y="-6.25" width="130.0875" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">declared with the step</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-31.025,26.5)">
+              <rect x="-68.975" y="-6.25" width="137.95" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">and not with the person</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.25,92.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-2.25,125)">
+      <rect x="-380" y="-24.5" width="760" height="49" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-139.474,-18)">
+        <rect x="-240.526" y="-6.5" width="481.052" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The same shape governs jurisdiction, override and delegation everywhere in the</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-143.1595,0)">
+        <rect x="-236.8405" y="-6.5" width="473.681" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">store: the outer party declares the set, the inner one chooses within it and may</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-175.6335,18)">
+        <rect x="-204.3665" y="-6.5" width="408.733" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">narrow, never widen. There is no implicit unrestricted to fall back to.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -170.25 771 340.5" width="771" height="340.5" class="lini lini-scope-f6877f98" role="img" aria-labelledby="pattern-nobody-is-pushed-title pattern-nobody-is-pushed-desc">
+  <title id="pattern-nobody-is-pushed-title">Which direction the connection opens</title>
+  <desc id="pattern-nobody-is-pushed-desc">On the left, the store, holding what is available to each participant and opening nothing outward. On the right, three places that ask: one behind a router with no public address, one offline for a weekend, and one belonging to a rival organisation. Each asks what is available to it, takes it, and reports back. Beneath, drawn faint, is what is therefore not needed: an address to call, a hole in a firewall, a queue held open for a participant that is asleep, or a retry schedule aimed at a building.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-f6877f98 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-f6877f98[data-theme="dark"], [data-theme="dark"] .lini-scope-f6877f98 { color-scheme: dark; }
+      .lini-scope-f6877f98[data-theme="light"], [data-theme="light"] .lini-scope-f6877f98 { color-scheme: light; }
+    }
+    .lini-scope-f6877f98 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-f6877f98 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-f6877f98 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-f6877f98 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-f6877f98 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-f6877f98 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-f6877f98 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-f6877f98 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-f6877f98 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-f6877f98 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-f6877f98 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-f6877f98 .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-f6877f98 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-f6877f98 .lini-lt { font-size: 12px; }
+    .lini-scope-f6877f98 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-f6877f98 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-f6877f98 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-f6877f98 .lini-rec { fill: var(--lini-panel); stroke: var(--lini-accent); stroke-width: 2; }
+    .lini-scope-f6877f98 .lini-ghostline { stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-f6877f98 .lini-arrow { stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-f6877f98 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-239.5715,-160.75)">
+      <rect x="-141.9285" y="-5.5" width="283.857" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">WHICH DIRECTION THE CONNECTION OPENS</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-150.25)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-27.75)">
+      <rect x="-381.5" y="-117.5" width="763" height="235" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-262.75,0)">
+        <rect x="-118.75" y="-117.5" width="237.5" height="235" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-82,-80.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(16.5,0)">
+            <rect x="-12" y="-15" width="24" height="30" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(-21.5,0)">
+            <rect x="-7" y="-7" width="14" height="14" rx="7" ry="7"/>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-3.5,-6)">
+            <line x1="0" y1="0" x2="17.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="22,0 12,5 12,-5" style="fill: var(--lini-accent)"/>
+          </g>
+          <g class="lini-node lini-ghostline lini-line" transform="translate(-3.5,8)">
+            <line x1="22" y1="0" x2="0" y2="0"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-118.75,-39)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-118" y="-75" width="236" height="150" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-102" y="-39.5" width="204" height="79" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-74.089,-33)">
+              <rect x="-27.911" y="-6.5" width="55.822" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the store</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-37.5313,-14.25)">
+              <rect x="-64.4687" y="-6.25" width="128.9375" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">holds what is available</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-47.0188,4.25)">
+              <rect x="-54.9812" y="-6.25" width="109.9625" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">to each participant</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-102,18.5)">
+            </g>
+            <g class="lini-node lini-has lini-t lini-block" transform="translate(-30.591,33)">
+              <rect x="-71.409" y="-6.5" width="142.818" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">opens nothing outward</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-122,-1.5)">
+        <rect x="-22" y="-116" width="44" height="232" rx="0" ry="0"/>
+        <g class="lini-node lini-arrow lini-line" transform="translate(-16,28)">
+          <line x1="32" y1="0" x2="4.5" y2="0"/>
+          <polygon class="lini-marker lini-marker-arrow" points="0,0 10,-5 10,5" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(140.75,-0.75)">
+        <rect x="-240.75" y="-116.75" width="481.5" height="233.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-240.75,-75.75)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,41)">
+          <rect x="-240" y="-75" width="480" height="150" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-224" y="-41.375" width="448" height="82.75" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-160.001,-34.875)">
+              <rect x="-63.999" y="-6.5" width="127.998" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">three places that ask</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(0,-4.75)">
+              <rect x="-224" y="-15.625" width="448" height="31.25" rx="0" ry="0"/>
+              <g class="lini-node lini-line-item lini-box lini-block" transform="translate(-152,0)">
+                <rect x="-72" y="-15" width="144" height="30" rx="5" ry="5"/>
+                <g class="lini-node lini-lt lini-t lini-block" transform="translate(-19.19,0)">
+                  <rect x="-42.81" y="-6" width="85.62" height="12" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">behind a router</text>
+                </g>
+              </g>
+              <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,0)">
+                <rect x="-72" y="-15" width="144" height="30" rx="5" ry="5"/>
+                <g class="lini-node lini-lt lini-t lini-block" transform="translate(-9.854,0)">
+                  <rect x="-52.146" y="-6" width="104.292" height="12" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">offline all weekend</text>
+                </g>
+              </g>
+              <g class="lini-node lini-line-item lini-box lini-block" transform="translate(152,0)">
+                <rect x="-72" y="-15" width="144" height="30" rx="5" ry="5"/>
+                <g class="lini-node lini-lt lini-t lini-block" transform="translate(-6.65,0)">
+                  <rect x="-55.35" y="-6" width="110.7" height="12" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">a rival&apos;s own system</text>
+                </g>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-224,19.875)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-57.2875,35.125)">
+              <rect x="-166.7125" y="-6.25" width="333.425" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">each asks what is available to it, takes it, and reports back</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,98.75)">
+    </g>
+    <g class="lini-node lini-dashed lini-box lini-block" transform="translate(-0.75,137)">
+      <rect x="-380" y="-28.5" width="760" height="57" rx="9" ry="9"/>
+      <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+        <rect x="-364" y="-14.5" width="728" height="29" rx="0" ry="0"/>
+        <g class="lini-node lini-miss lini-t lini-block" transform="translate(-102.687,-8)">
+          <rect x="-261.313" y="-6.5" width="522.626" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">what is not needed: an address to call, a hole in somebody&apos;s firewall, a queue held open</text>
+        </g>
+        <g class="lini-node lini-miss lini-t lini-block" transform="translate(-156.0585,8)">
+          <rect x="-207.9415" y="-6.5" width="415.883" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">for a participant that is asleep, or a retry schedule aimed at a building</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

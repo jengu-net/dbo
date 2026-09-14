@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -182.5 771 365" width="771" height="365" class="lini lini-scope-dbfc4772" role="img" aria-labelledby="pattern-a-cursor-that-holds-still-title pattern-a-cursor-that-holds-still-desc">
+  <title id="pattern-a-cursor-that-holds-still-title">A row arrives while you are paging</title>
+  <desc id="pattern-a-cursor-that-holds-still-desc">Two columns showing the same insertion under both schemes. On the left, pages counted from the start: page two is items twenty-one to thirty, a row is inserted above, and page three repeats one the caller already had, so every caller deduplicates forever. On the right, a position that names the last item seen: the same insertion happens and the next page is still the next page.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-dbfc4772 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-dbfc4772[data-theme="dark"], [data-theme="dark"] .lini-scope-dbfc4772 { color-scheme: dark; }
+      .lini-scope-dbfc4772[data-theme="light"], [data-theme="light"] .lini-scope-dbfc4772 { color-scheme: light; }
+    }
+    .lini-scope-dbfc4772 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-dbfc4772 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-dbfc4772 .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-dbfc4772 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-dbfc4772 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-dbfc4772 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-dbfc4772 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-dbfc4772 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-dbfc4772 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-dbfc4772 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-dbfc4772 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-dbfc4772 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-dbfc4772 .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-dbfc4772 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-dbfc4772 .lini-lt { font-size: 12px; }
+    .lini-scope-dbfc4772 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-dbfc4772 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-dbfc4772 .lini-body { color: var(--lini-muted); }
+    .lini-scope-dbfc4772 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-dbfc4772 .lini-sdot { fill: var(--lini-seal); stroke: none; }
+    .lini-scope-dbfc4772 .lini-ghostline { stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-dbfc4772 .lini-bar { stroke: var(--lini-accent); stroke-width: 2.25; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-251.6945,-173)">
+      <rect x="-129.8055" y="-5.5" width="259.611" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">A ROW ARRIVES WHILE YOU ARE PAGING</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-162.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-22)">
+      <rect x="-381.5" y="-135.5" width="763" height="271" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,-0.75)">
+        <rect x="-184.75" y="-134.75" width="369.5" height="269.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-93.75)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-93" width="368" height="186" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-74.875" width="335.25" height="149.75" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-41.2585,-68.375)">
+              <rect x="-126.3665" y="-6.5" width="252.733" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">counted from the start — skip 20, take 10</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-40.25)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-81.433,0)">
+                <rect x="-73.567" y="-6.5" width="147.134" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">page two: items 21 to 30</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-5)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-85.372,0)">
+                <rect x="-69.628" y="-6.5" width="139.256" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">a row is inserted above</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,30.25)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-58.8,0)">
+                <rect x="-96.2" y="-6.5" width="192.4" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">page three repeats one you had</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,52.875)">
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-57.8465,68.375)">
+              <rect x="-109.7785" y="-6.5" width="219.557" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">so every caller deduplicates, forever</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,0)">
+        <rect x="-184.75" y="-135.5" width="369.5" height="271" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-98.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-ghostline lini-line" transform="translate(0,8.25)">
+            <line x1="-22" y1="0" x2="22" y2="0"/>
+          </g>
+          <g class="lini-node lini-ghostline lini-line" transform="translate(0,-3.75)">
+            <line x1="-22" y1="0" x2="22" y2="0"/>
+          </g>
+          <g class="lini-node lini-bar lini-line" style="stroke: var(--lini-seal); stroke-width: 3" transform="translate(0,2.25)">
+            <line x1="0" y1="-15" x2="0" y2="15"/>
+          </g>
+          <g class="lini-node lini-sdot lini-oval" transform="translate(0,-13.75)">
+            <ellipse cx="0" cy="0" rx="5" ry="5"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-57)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-93" width="368" height="186" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-74.625" width="335.25" height="149.25" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-64.6585,-68.125)">
+              <rect x="-102.9665" y="-6.5" width="205.933" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">counted from where you stopped</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-40)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-51.554,0)">
+                <rect x="-103.446" y="-6" width="206.892" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the position names the last item seen</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-4.75)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-90.728,0)">
+                <rect x="-64.272" y="-6" width="128.544" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">a row is inserted above</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel); stroke: var(--lini-seal)" transform="translate(0,30.5)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-50.7985,0)">
+                <rect x="-104.2015" y="-6.5" width="208.403" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the next page is still the next page</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,53.125)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-41.2875,68.375)">
+              <rect x="-126.3375" y="-6.25" width="252.675" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">and the position is opaque, so it can change</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,121.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-1.5,154)">
+      <rect x="-380" y="-24.5" width="760" height="49" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-120.5395,-18)">
+        <rect x="-259.4605" y="-6.5" width="518.921" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The work is designed out rather than worked around. In the platform measured before</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-131.245,0)">
+        <rect x="-248.755" y="-6.5" width="497.51" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">this was designed, the same defensive workaround appeared at roughly a hundred</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-352.5375,18)">
+        <rect x="-27.4625" y="-6.5" width="54.925" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">call sites.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

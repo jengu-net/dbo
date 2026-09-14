@@ -1,0 +1,366 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-387.75 -196.35 775.5 393.9" width="775.5" height="393.9" class="lini lini-scope-34204d72" role="img" aria-labelledby="the-pattern-map-title the-pattern-map-desc">
+  <title id="the-pattern-map-title">Every pattern, and what it rests on</title>
+  <desc id="the-pattern-map-desc">A graph of the twenty-four patterns. One sealed box at the top, Property Not Policy, rests on nothing. Five patterns descend from it — the tenant is a database, a type declares what it is, work is the reason, engine and faces, and the person is a key — and every remaining pattern descends in turn from those, so no pattern in the figure stands on its own. Reading upwards from any box gives the things that must already be true before that pattern can be.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-34204d72 { color-scheme: light dark; --lini-body: #2c3a47; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-link-font-weight: 400; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-34204d72[data-theme="dark"], [data-theme="dark"] .lini-scope-34204d72 { color-scheme: dark; }
+      .lini-scope-34204d72[data-theme="light"], [data-theme="light"] .lini-scope-34204d72 { color-scheme: light; }
+    }
+    .lini-scope-34204d72 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-34204d72 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-34204d72 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-34204d72 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-34204d72 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-34204d72 .lini-n { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; color: var(--lini-ink); font-size: 11px; }
+    .lini-scope-34204d72 .lini-lbl { color: var(--lini-ink); font-size: 11px; }
+    .lini-scope-34204d72 .lini-rlbl { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-34204d72 .lini-root { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-34204d72 .lini-link { fill: none; stroke: var(--lini-line); stroke-width: 1.25; stroke-dasharray: none; }
+    .lini-scope-34204d72 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+    .lini-scope-34204d72 .lini-link .lini-marker { fill: var(--lini-line); }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-root lini-n lini-box lini-block" data-id="prop" transform="translate(-325,-164.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-rlbl lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-35.3375" y="-13.2" width="70.675" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">Property, Not</tspan><tspan x="0" dy="13.2">Policy</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-spacer lini-block" transform="translate(-195,-164.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-spacer lini-block" transform="translate(-65,-164.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-spacer lini-block" transform="translate(65,-164.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-spacer lini-block" transform="translate(195,-164.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-spacer lini-block" transform="translate(325,-164.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="tdb" transform="translate(-325,-83.1)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-38.082" y="-13.2" width="76.164" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">The Tenant Is a</tspan><tspan x="0" dy="13.2">Database</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="type" transform="translate(-195,-83.1)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-41.338" y="-13.2" width="82.676" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">A Type Declares</tspan><tspan x="0" dy="13.2">What It Is</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="work" transform="translate(-65,-83.1)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-28.9025" y="-13.2" width="57.805" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">Work Is the</tspan><tspan x="0" dy="13.2">Reason</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="face" transform="translate(65,-83.1)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-44.242" y="-5.5" width="88.484" height="11" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Engine and Faces</text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="key" transform="translate(195,-83.1)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-38.137" y="-13.2" width="76.274" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">The Person Is a</tspan><tspan x="0" dy="13.2">Key</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-spacer lini-block" transform="translate(325,-83.1)">
+      <rect x="-54" y="-23" width="108" height="46" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="commit" transform="translate(-325,-1.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-41.5745" y="-13.2" width="83.149" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">Committed with</tspan><tspan x="0" dy="13.2">the Change</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="trail" transform="translate(-195,-1.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-26.895" y="-13.2" width="53.79" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">The Trail Is</tspan><tspan x="0" dy="13.2">Records</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="run" transform="translate(-65,-1.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-30.1345" y="-13.2" width="60.269" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">The Run Is a</tspan><tspan x="0" dy="13.2">Record</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="pull" transform="translate(65,-1.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-45.881" y="-5.5" width="91.762" height="11" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Nobody Is Pushed</text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="role" transform="translate(195,-1.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-43.7855" y="-13.2" width="87.571" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">A Role Is a Period</tspan><tspan x="0" dy="13.2">on a Record</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="bytes" transform="translate(325,-1.6)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-36.663" y="-13.2" width="73.326" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">Bytes Framed,</tspan><tspan x="0" dy="13.2">Not Rebuilt</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="feed" transform="translate(-325,80.7)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-41.9375" y="-13.2" width="83.875" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">One Feed, Every</tspan><tspan x="0" dy="13.2">Consumer</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="carry" transform="translate(-195,80.7)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-38.3405" y="-13.2" width="76.681" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">Carrying Is Not</tspan><tspan x="0" dy="13.2">Reading</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="sweep" transform="translate(-65,80.7)">
+      <rect x="-54" y="-23.8" width="108" height="47.6" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-28.2205" y="-19.8" width="56.441" height="39.6" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-9.262">A Sweep Is</tspan><tspan x="0" dy="13.2">Found, Not</tspan><tspan x="0" dy="13.2">Started</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="fall" transform="translate(65,80.7)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-42.735" y="-13.2" width="85.47" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">Falls to a Person,</tspan><tspan x="0" dy="13.2">and Is Counted</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="claim" transform="translate(195,80.7)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-42.031" y="-13.2" width="84.062" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">Two Parties</tspan><tspan x="0" dy="13.2">Bound the Claim</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="leave" transform="translate(325,80.7)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-35.0185" y="-13.2" width="70.037" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">Leaving Is the</tspan><tspan x="0" dy="13.2">Nightly Path</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="cursor" transform="translate(-325,163.8)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-35.3595" y="-13.2" width="70.719" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">A Cursor That</tspan><tspan x="0" dy="13.2">Holds Still</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="ask" transform="translate(-195,163.8)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-28.0885" y="-13.2" width="56.177" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">Asked, Not</tspan><tspan x="0" dy="13.2">Scanned</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="erase" transform="translate(-65,163.8)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-43.78" y="-13.2" width="87.56" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">Erasure Destroys</tspan><tspan x="0" dy="13.2">a Key</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="conf" transform="translate(65,163.8)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-35.2825" y="-13.2" width="70.565" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">One Declared</tspan><tspan x="0" dy="13.2">Set, Applied</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="zone" transform="translate(195,163.8)">
+      <rect x="-54" y="-23" width="108" height="46" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-35.8545" y="-13.2" width="71.709" height="26.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.662">A Country Is a</tspan><tspan x="0" dy="13.2">Zone</tspan></text>
+      </g>
+    </g>
+    <g class="lini-node lini-n lini-box lini-block" data-id="status" transform="translate(325,163.8)">
+      <rect x="-54" y="-23.8" width="108" height="47.6" rx="8" ry="8"/>
+      <g class="lini-node lini-lbl lini-t lini-block" transform="translate(0,0)">
+        <rect x="-39.292" y="-19.8" width="78.584" height="39.6" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0"><tspan x="0" y="-9.262">Status Is a</tspan><tspan x="0" dy="13.2">Lifecycle, Not a</tspan><tspan x="0" dy="13.2">List</tspan></text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="prop" data-to="tdb">
+      <path d="M -325 -140.85 L -325 -108.85"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-325,-106.35 -328,-112.35 -322,-112.35"/>
+    </g>
+    <g class="lini-link" data-from="prop" data-to="type">
+      <path d="M -270.25 -161.6 L -263.775 -161.6 A 2 2 0 0 1 -261.775 -159.6 L -261.775 -87.5 A 2 2 0 0 0 -259.775 -85.5 L -251.75 -85.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-249.25,-85.5 -255.25,-82.5 -255.25,-88.5"/>
+    </g>
+    <g class="lini-link" data-from="prop" data-to="work">
+      <path d="M -270.25 -163.6 L -263.775 -163.6 A 4 4 0 0 1 -259.775 -159.6 L -259.775 -125.225 A 5 5 0 0 0 -254.775 -120.225 L -131 -120.225 A 2 2 0 0 1 -129 -118.225 L -129 -87.5 A 2 2 0 0 0 -127 -85.5 L -121.75 -85.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-119.25,-85.5 -125.25,-82.5 -125.25,-88.5"/>
+    </g>
+    <g class="lini-link" data-from="prop" data-to="face">
+      <path d="M -270.25 -165.6 L -263.775 -165.6 A 6 6 0 0 1 -257.775 -159.6 L -257.775 -126.225 A 2 2 0 0 0 -255.775 -124.225 L -3 -124.225 A 4 4 0 0 1 1 -120.225 L 1 -87.6 A 2 2 0 0 0 3 -85.6 L 8.25 -85.6"/>
+      <polygon class="lini-marker lini-marker-arrow" points="10.75,-85.6 4.75,-82.6 4.75,-88.6"/>
+    </g>
+    <g class="lini-link" data-from="prop" data-to="key">
+      <path d="M -270.25 -167.6 L -263.775 -167.6 A 8 8 0 0 1 -255.775 -159.6 L -255.775 -130.225 A 2 2 0 0 0 -253.775 -128.225 L 127 -128.225 A 4 4 0 0 1 131 -124.225 L 131 -89.1 A 2 2 0 0 0 133 -87.1 L 138.25 -87.1"/>
+      <polygon class="lini-marker lini-marker-arrow" points="140.75,-87.1 134.75,-84.1 134.75,-90.1"/>
+    </g>
+    <g class="lini-link" data-from="tdb" data-to="commit">
+      <path d="M -325 -59.35 L -325 -27.35"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-325,-24.85 -328,-30.85 -322,-30.85"/>
+    </g>
+    <g class="lini-link" data-from="tdb" data-to="trail">
+      <path d="M -270.25 -83.5 L -263 -83.5 A 6 6 0 0 1 -257 -77.5 L -257 -3.6 A 2 2 0 0 0 -255 -1.6 L -251.75 -1.6"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-249.25,-1.6 -255.25,1.4 -255.25,-4.6"/>
+    </g>
+    <g class="lini-link" data-from="tdb" data-to="key">
+      <path d="M -270.25 -85.5 L -265.775 -85.5 A 2 2 0 0 0 -263.775 -87.5 L -263.775 -124.225 A 2 2 0 0 1 -261.775 -126.225 L 127 -126.225 A 2 2 0 0 1 129 -124.225 L 129 -89.1 A 4 4 0 0 0 133 -85.1 L 138.25 -85.1"/>
+      <polygon class="lini-marker lini-marker-arrow" points="140.75,-85.1 134.75,-82.1 134.75,-88.1"/>
+    </g>
+    <g class="lini-link" data-from="tdb" data-to="leave">
+      <path d="M -270.25 -81.5 L -263 -81.5 A 4 4 0 0 1 -259 -77.5 L -259 37.23 A 2 2 0 0 0 -257 39.23 L 255.2 39.23 A 4 4 0 0 1 259.2 43.23 L 259.2 77.7 A 4 4 0 0 0 263.2 81.7 L 268.25 81.7"/>
+      <polygon class="lini-marker lini-marker-arrow" points="270.75,81.7 264.75,84.7 264.75,78.7"/>
+    </g>
+    <g class="lini-link" data-from="tdb" data-to="status">
+      <path d="M -270.25 -79.5 L -263 -79.5 A 2 2 0 0 1 -261 -77.5 L -261 37.23 A 4 4 0 0 0 -257 41.23 L 255.2 41.23 A 2 2 0 0 1 257.2 43.23 L 257.2 160.8 A 2 2 0 0 0 259.2 162.8 L 268.25 162.8"/>
+      <polygon class="lini-marker lini-marker-arrow" points="270.75,162.8 264.75,165.8 264.75,159.8"/>
+    </g>
+    <g class="lini-link" data-from="type" data-to="trail">
+      <path d="M -195 -59.35 L -195 -27.35"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-195,-24.85 -198,-30.85 -192,-30.85"/>
+    </g>
+    <g class="lini-link" data-from="type" data-to="run">
+      <path d="M -140.25 -79.5 L -132 -79.5 A 2 2 0 0 1 -130 -77.5 L -130 -5.1 A 2 2 0 0 0 -128 -3.1 L -121.75 -3.1"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-119.25,-3.1 -125.25,-0.1 -125.25,-6.1"/>
+    </g>
+    <g class="lini-link" data-from="type" data-to="role">
+      <path d="M -140.25 -81.5 L -132 -81.5 A 4 4 0 0 1 -128 -77.5 L -128 -43.35 A 2 2 0 0 0 -126 -41.35 L 129.2 -41.35 A 2 2 0 0 1 131.2 -39.35 L 131.2 -4.6 A 2 2 0 0 0 133.2 -2.6 L 138.25 -2.6"/>
+      <polygon class="lini-marker lini-marker-arrow" points="140.75,-2.6 134.75,0.4 134.75,-5.6"/>
+    </g>
+    <g class="lini-link" data-from="type" data-to="face">
+      <path d="M -140.25 -85.5 L -133 -85.5 A 2 2 0 0 0 -131 -87.5 L -131 -120.225 A 2 2 0 0 1 -129 -122.225 L -3 -122.225 A 2 2 0 0 1 -1 -120.225 L -1 -87.6 A 4 4 0 0 0 3 -83.6 L 8.25 -83.6"/>
+      <polygon class="lini-marker lini-marker-arrow" points="10.75,-83.6 4.75,-80.6 4.75,-86.6"/>
+    </g>
+    <g class="lini-link" data-from="work" data-to="run">
+      <path d="M -65 -59.35 L -65 -27.35"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-65,-24.85 -68,-30.85 -62,-30.85"/>
+    </g>
+    <g class="lini-link" data-from="work" data-to="pull">
+      <path d="M -10.25 -81.6 L -2 -81.6 A 2 2 0 0 1 0 -79.6 L 0 -5.6 A 2 2 0 0 0 2 -3.6 L 8.25 -3.6"/>
+      <polygon class="lini-marker lini-marker-arrow" points="10.75,-3.6 4.75,-0.6 4.75,-6.6"/>
+    </g>
+    <g class="lini-link" data-from="work" data-to="trail">
+      <path d="M -119.75 -83.5 L -130 -83.5 A 2 2 0 0 0 -132 -81.5 L -132 -5.1 A 2 2 0 0 1 -134 -3.1 L -138.25 -3.1"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-140.75,-3.1 -134.75,-6.1 -134.75,-0.1"/>
+    </g>
+    <g class="lini-link" data-from="face" data-to="bytes">
+      <path d="M 119.75 -81.1 L 127.2 -81.1 A 4 4 0 0 1 131.2 -77.1 L 131.2 -45.35 A 2 2 0 0 0 133.2 -43.35 L 261.2 -43.35 A 2 2 0 0 1 263.2 -41.35 L 263.2 -4.6 A 2 2 0 0 0 265.2 -2.6 L 268.25 -2.6"/>
+      <polygon class="lini-marker lini-marker-arrow" points="270.75,-2.6 264.75,0.4 264.75,-5.6"/>
+    </g>
+    <g class="lini-link" data-from="face" data-to="zone">
+      <path d="M 119.75 -79.1 L 127.2 -79.1 A 2 2 0 0 1 129.2 -77.1 L 129.2 160.8 A 2 2 0 0 0 131.2 162.8 L 138.25 162.8"/>
+      <polygon class="lini-marker lini-marker-arrow" points="140.75,162.8 134.75,165.8 134.75,159.8"/>
+    </g>
+    <g class="lini-link" data-from="face" data-to="conf">
+      <path d="M 10.25 -81.6 L 10.25 -81.6 A 2 2 0 0 0 8.25 -79.6 L 8.25 160.8 A 2 2 0 0 0 10.25 162.8 L 10.25 162.8"/>
+      <polygon class="lini-marker lini-marker-arrow" points="10.75,162.8 4.75,165.8 4.75,159.8"/>
+    </g>
+    <g class="lini-link" data-from="key" data-to="erase">
+      <path d="M 140.25 -83.1 L 129.2 -83.1 A 2 2 0 0 0 127.2 -81.1 L 127.2 41.23 A 2 2 0 0 1 125.2 43.23 L 1 43.23 A 2 2 0 0 0 -1 45.23 L -1 161.8 A 2 2 0 0 1 -3 163.8 L -8.25 163.8"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-10.75,163.8 -4.75,160.8 -4.75,166.8"/>
+    </g>
+    <g class="lini-link" data-from="key" data-to="leave">
+      <path d="M 249.75 -83.1 L 259.2 -83.1 A 2 2 0 0 1 261.2 -81.1 L 261.2 77.7 A 2 2 0 0 0 263.2 79.7 L 268.25 79.7"/>
+      <polygon class="lini-marker lini-marker-arrow" points="270.75,79.7 264.75,82.7 264.75,76.7"/>
+    </g>
+    <g class="lini-link" data-from="commit" data-to="feed">
+      <path d="M -325 22.15 L -325 54.95"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-325,57.45 -328,51.45 -322,51.45"/>
+    </g>
+    <g class="lini-link" data-from="trail" data-to="carry">
+      <path d="M -195 22.15 L -195 54.95"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-195,57.45 -198,51.45 -192,51.45"/>
+    </g>
+    <g class="lini-link" data-from="trail" data-to="ask">
+      <path d="M -140.25 0.9 L -140.25 0.9 A 2 2 0 0 1 -138.25 2.9 L -138.25 161.8 A 2 2 0 0 1 -140.25 163.8 L -140.25 163.8"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-140.75,163.8 -134.75,160.8 -134.75,166.8"/>
+    </g>
+    <g class="lini-link" data-from="trail" data-to="erase">
+      <path d="M -140.25 -1.1 L -131 -1.1 A 2 2 0 0 1 -129 0.9 L -129 161.8 A 2 2 0 0 0 -127 163.8 L -121.75 163.8"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-119.25,163.8 -125.25,166.8 -125.25,160.8"/>
+    </g>
+    <g class="lini-link" data-from="run" data-to="sweep">
+      <path d="M -65 22.15 L -65 54.15"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-65,56.65 -68,50.65 -62,50.65"/>
+    </g>
+    <g class="lini-link" data-from="run" data-to="fall">
+      <path d="M -10.25 0.4 L -1 0.4 A 2 2 0 0 1 1 2.4 L 1 77.7 A 2 2 0 0 0 3 79.7 L 8.25 79.7"/>
+      <polygon class="lini-marker lini-marker-arrow" points="10.75,79.7 4.75,82.7 4.75,76.7"/>
+    </g>
+    <g class="lini-link" data-from="pull" data-to="claim">
+      <path d="M 119.75 -0.6 L 129.2 -0.6 A 2 2 0 0 1 131.2 1.4 L 131.2 78.7 A 2 2 0 0 0 133.2 80.7 L 138.25 80.7"/>
+      <polygon class="lini-marker lini-marker-arrow" points="140.75,80.7 134.75,83.7 134.75,77.7"/>
+    </g>
+    <g class="lini-link" data-from="pull" data-to="fall">
+      <path d="M 65 22.15 L 65 54.95"/>
+      <polygon class="lini-marker lini-marker-arrow" points="65,57.45 62,51.45 68,51.45"/>
+    </g>
+    <g class="lini-link" data-from="pull" data-to="feed">
+      <path d="M 10.25 -1.6 L 1 -1.6 A 2 2 0 0 0 -1 0.4 L -1 33.23 A 2 2 0 0 1 -3 35.23 L -261 35.23 A 2 2 0 0 0 -263 37.23 L -263 78.7 A 2 2 0 0 1 -265 80.7 L -268.25 80.7"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-270.75,80.7 -264.75,77.7 -264.75,83.7"/>
+    </g>
+    <g class="lini-link" data-from="role" data-to="claim">
+      <path d="M 195 22.15 L 195 54.95"/>
+      <polygon class="lini-marker lini-marker-arrow" points="195,57.45 192,51.45 198,51.45"/>
+    </g>
+    <g class="lini-link" data-from="bytes" data-to="carry">
+      <path d="M 270.25 -0.6 L 261.2 -0.6 A 2 2 0 0 0 259.2 1.4 L 259.2 35.23 A 2 2 0 0 1 257.2 37.23 L -129 37.23 A 2 2 0 0 0 -131 39.23 L -131 78.7 A 2 2 0 0 1 -133 80.7 L -138.25 80.7"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-140.75,80.7 -134.75,77.7 -134.75,83.7"/>
+    </g>
+    <g class="lini-link" data-from="feed" data-to="cursor">
+      <path d="M -325 104.45 L -325 138.05"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-325,140.55 -328,134.55 -322,134.55"/>
+    </g>
+    <g class="lini-link" data-from="sweep" data-to="erase">
+      <path d="M -65 105.25 L -65 138.05"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-65,140.55 -68,134.55 -62,134.55"/>
+    </g>
+    <g class="lini-link" data-from="sweep" data-to="conf">
+      <path d="M -10.25 81.7 L -1 81.7 A 2 2 0 0 1 1 83.7 L 1 162.8 A 2 2 0 0 0 3 164.8 L 8.25 164.8"/>
+      <polygon class="lini-marker lini-marker-arrow" points="10.75,164.8 4.75,167.8 4.75,161.8"/>
+    </g>
+    <g class="lini-link" data-from="claim" data-to="zone">
+      <path d="M 195 104.45 L 195 138.05"/>
+      <polygon class="lini-marker lini-marker-arrow" points="195,140.55 192,134.55 198,134.55"/>
+    </g>
+    <g class="lini-link" data-from="conf" data-to="status">
+      <path d="M 119.75 164.8 L 128 164.8 A 2 2 0 0 1 130 166.8 L 130 187.55 A 2 2 0 0 0 132 189.55 L 258 189.55 A 2 2 0 0 0 260 187.55 L 260 166.8 A 2 2 0 0 1 262 164.8 L 268.25 164.8"/>
+      <polygon class="lini-marker lini-marker-arrow" points="270.75,164.8 264.75,167.8 264.75,161.8"/>
+    </g>
+  </g>
+</svg>

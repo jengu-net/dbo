@@ -1,0 +1,6 @@
+A row arrives while you are paging
+Two columns showing the same insertion under both schemes. On the left, pages
+counted from the start: page two is items twenty-one to thirty, a row is
+inserted above, and page three repeats one the caller already had, so every
+caller deduplicates forever. On the right, a position that names the last item
+seen: the same insertion happens and the next page is still the next page.

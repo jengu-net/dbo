@@ -1,0 +1,6 @@
+One line, four positions
+One ordered, replayable sequence, with four consumers on it: a client paging
+through results, a subscriber, a dependent copy, and an appliance that is a
+long way back and is not thereby broken. Each consumer is a name and a
+position, so progress, lag and replay mean the same thing for all four and how
+far behind is one question with one answer.

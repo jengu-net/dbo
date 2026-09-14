@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -148 771 296" width="771" height="296" class="lini lini-scope-535f3bc2" role="img" aria-labelledby="pattern-erasure-destroys-a-key-title pattern-erasure-destroys-a-key-desc">
+  <title id="pattern-erasure-destroys-a-key-title">Both obligations, kept</title>
+  <desc id="pattern-erasure-destroys-a-key-desc">Two columns. On the left, erasure done by rewriting: entries are edited or removed, the chain no longer verifies, and the record of what happened is worth less than it was. On the right, erasure done by destroying a key: every entry stays, complete and in order, and the person evaporates from all of them. What happened is still provable; who it happened to is gone.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-535f3bc2 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-535f3bc2[data-theme="dark"], [data-theme="dark"] .lini-scope-535f3bc2 { color-scheme: dark; }
+      .lini-scope-535f3bc2[data-theme="light"], [data-theme="light"] .lini-scope-535f3bc2 { color-scheme: light; }
+    }
+    .lini-scope-535f3bc2 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-535f3bc2 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-535f3bc2 .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-535f3bc2 .lini-path { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-535f3bc2 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-535f3bc2 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-535f3bc2 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-535f3bc2 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-535f3bc2 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-535f3bc2 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-535f3bc2 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-535f3bc2 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-535f3bc2 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-535f3bc2 .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-535f3bc2 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-535f3bc2 .lini-lt { font-size: 12px; }
+    .lini-scope-535f3bc2 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-535f3bc2 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-535f3bc2 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-535f3bc2 .lini-glyph { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-535f3bc2 .lini-ring { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-535f3bc2 .lini-ghostline { stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-297.9445,-138.5)">
+      <rect x="-83.5555" y="-5.5" width="167.111" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">BOTH OBLIGATIONS, KEPT</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-128)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,10.5)">
+      <rect x="-381.5" y="-133.5" width="763" height="267" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,-0.75)">
+        <rect x="-184.75" y="-132.75" width="369.5" height="265.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-91.75)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-91" width="368" height="182" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-67.75" width="335.25" height="135.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-111.9915,-61.25)">
+              <rect x="-55.6335" y="-6.5" width="111.267" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">erase by rewriting</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-33.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-74.6405,0)">
+                <rect x="-80.3595" y="-6.5" width="160.719" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">entries edited, or removed</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,2.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-73.4705,0)">
+                <rect x="-81.5295" y="-6.5" width="163.059" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the chain no longer verifies</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,24.75)">
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-64.47,40.25)">
+              <rect x="-103.155" y="-6.5" width="206.31" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">so the record of what happened is</text>
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-70.6645,61.25)">
+              <rect x="-96.9605" y="-6.5" width="193.921" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">worth less than it was yesterday</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,0)">
+        <rect x="-184.75" y="-133.5" width="369.5" height="267" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-96.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-ring lini-oval" style="stroke: var(--lini-faint); stroke-width: 1.5" transform="translate(-19.5,-4.875)">
+            <ellipse cx="0" cy="0" rx="9" ry="9"/>
+          </g>
+          <g class="lini-node lini-ghostline lini-line" transform="translate(2.5,-4.875)">
+            <line x1="0" y1="0" x2="26" y2="0"/>
+          </g>
+          <g class="lini-node lini-glyph lini-path" style="stroke: var(--lini-seal); stroke-width: 3" transform="translate(0.5,-4.875)">
+            <path d="M 0 0 L 18 18 M 18 0 L 0 18"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-55)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-91" width="368" height="182" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-67.25" width="335.25" height="134.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-82.618,-60.75)">
+              <rect x="-85.007" y="-6.5" width="170.014" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">erase by destroying the key</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-32.625)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-42.506,0)">
+                <rect x="-112.494" y="-6" width="224.988" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">every entry stays, complete and in order</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel); stroke: var(--lini-seal)" transform="translate(0,2.625)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-35.27,0)">
+                <rect x="-119.73" y="-6.5" width="239.46" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the person evaporates from all of them</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,25.25)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-76.3063,40.5)">
+              <rect x="-91.3187" y="-6.25" width="182.6375" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">what happened is still provable;</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-89.2688,61)">
+              <rect x="-78.3562" y="-6.25" width="156.7125" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">who it happened to is gone</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

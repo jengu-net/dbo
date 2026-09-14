@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-386.125 -136.625 771.625 273.25" width="771.625" height="273.25" class="lini lini-scope-9d1bf2db" role="img" aria-labelledby="pattern-status-is-a-lifecycle-not-a-list-title pattern-status-is-a-lifecycle-not-a-list-desc">
+  <title id="pattern-status-is-a-lifecycle-not-a-list-title">The state a list leaves out</title>
+  <desc id="pattern-status-is-a-lifecycle-not-a-list-desc">Across the top, the five states a tenant passes through: declared, provisioned, brought up, served, and one day taken away. Beneath, two panels. What a running node reports is the tenants it is serving, and a tenant that never came up is simply absent from that list. What therefore has to be askable is why a particular tenant is not being served, and what it was waiting for when it stopped.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-9d1bf2db { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-9d1bf2db[data-theme="dark"], [data-theme="dark"] .lini-scope-9d1bf2db { color-scheme: dark; }
+      .lini-scope-9d1bf2db[data-theme="light"], [data-theme="light"] .lini-scope-9d1bf2db { color-scheme: light; }
+    }
+    .lini-scope-9d1bf2db { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-9d1bf2db .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-9d1bf2db .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-9d1bf2db .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-9d1bf2db .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-9d1bf2db .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-9d1bf2db .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-9d1bf2db .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-9d1bf2db .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-9d1bf2db .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-9d1bf2db .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-9d1bf2db .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-9d1bf2db .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-9d1bf2db .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-9d1bf2db .lini-lt { font-size: 12px; }
+    .lini-scope-9d1bf2db .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-9d1bf2db .lini-miss { color: var(--lini-faint); }
+    .lini-scope-9d1bf2db .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-9d1bf2db .lini-ring { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-9d1bf2db .lini-sdot { fill: var(--lini-seal); stroke: none; }
+    .lini-scope-9d1bf2db .lini-adot { fill: var(--lini-accent); stroke: none; }
+    .lini-scope-9d1bf2db .lini-bar { stroke: var(--lini-accent); stroke-width: 2.25; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-285.2205,-127.125)">
+      <rect x="-96.2795" y="-5.5" width="192.559" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">THE STATE A LIST LEAVES OUT</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-116.625)">
+    </g>
+    <g class="lini-node lini-tile lini-box lini-block" transform="translate(-344.75,-74.875)">
+      <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+      <g class="lini-node lini-bar lini-line" transform="translate(0,0)">
+        <line x1="-22" y1="0" x2="22" y2="0"/>
+      </g>
+      <g class="lini-node lini-adot lini-oval" transform="translate(-18,0)">
+        <ellipse cx="0" cy="0" rx="4" ry="4"/>
+      </g>
+      <g class="lini-node lini-adot lini-oval" transform="translate(-6,0)">
+        <ellipse cx="0" cy="0" rx="4" ry="4"/>
+      </g>
+      <g class="lini-node lini-sdot lini-oval" transform="translate(6,0)">
+        <ellipse cx="0" cy="0" rx="5" ry="5"/>
+      </g>
+      <g class="lini-node lini-ring lini-oval" style="fill: var(--lini-bg); stroke: var(--lini-faint); stroke-width: 1.5" transform="translate(18,0)">
+        <ellipse cx="0" cy="0" rx="4" ry="4"/>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-31.125)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(-1.5,-1.5)">
+      <rect x="-380" y="-22.625" width="760" height="45.25" rx="0" ry="0"/>
+      <g class="lini-node lini-line-item lini-box lini-block" transform="translate(-306,0)">
+        <rect x="-74" y="-22" width="148" height="44" rx="5" ry="5"/>
+        <g class="lini-node lini-lt lini-t lini-block" transform="translate(-49.412,0)">
+          <rect x="-24.588" y="-6" width="49.176" height="12" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">declared</text>
+        </g>
+      </g>
+      <g class="lini-node lini-line-item lini-box lini-block" transform="translate(-153,0)">
+        <rect x="-74" y="-22" width="148" height="44" rx="5" ry="5"/>
+        <g class="lini-node lini-lt lini-t lini-block" transform="translate(-41.168,0)">
+          <rect x="-32.832" y="-6" width="65.664" height="12" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">provisioned</text>
+        </g>
+      </g>
+      <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(0,0)">
+        <rect x="-74" y="-22" width="148" height="44" rx="5" ry="5"/>
+        <g class="lini-node lini-lt lini-t lini-block" transform="translate(-42.842,0)">
+          <rect x="-31.158" y="-6" width="62.316" height="12" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">brought up</text>
+        </g>
+      </g>
+      <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(153,0)">
+        <rect x="-74" y="-22" width="148" height="44" rx="5" ry="5"/>
+        <g class="lini-node lini-has lini-t lini-block" transform="translate(-52.966,0)">
+          <rect x="-21.034" y="-6.5" width="42.068" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">served</text>
+        </g>
+      </g>
+      <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(306,0)">
+        <rect x="-74" y="-22" width="148" height="44" rx="5" ry="5"/>
+        <g class="lini-node lini-miss lini-t lini-block" transform="translate(-39.6865,0)">
+          <rect x="-34.3135" y="-6.5" width="68.627" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">taken away</text>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,28.125)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,83.875)">
+      <rect x="-381.5" y="-48.75" width="763" height="97.5" rx="0" ry="0"/>
+      <g class="lini-node lini-dashed lini-box lini-block" transform="translate(-195.75,0)">
+        <rect x="-185" y="-48" width="370" height="96" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-169" y="-24.25" width="338" height="48.5" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-107.0615,-17.75)">
+            <rect x="-61.9385" y="-6.5" width="123.877" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">what a node reports</text>
+          </g>
+          <g class="lini-node lini-miss lini-t lini-block" transform="translate(-99.0145,0.25)">
+            <rect x="-69.9855" y="-6.5" width="139.971" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the tenants it is serving</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-38.0125,18)">
+            <rect x="-130.9875" y="-6.25" width="261.975" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a tenant that never came up is simply not in it</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(195.75,0)">
+        <rect x="-185" y="-48" width="370" height="96" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-169" y="-24.25" width="338" height="48.5" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-99.2485,-17.75)">
+            <rect x="-69.7515" y="-6.5" width="139.503" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">what has to be askable</text>
+          </g>
+          <g class="lini-node lini-has lini-t lini-block" transform="translate(-70.954,0.25)">
+            <rect x="-98.046" y="-6.5" width="196.092" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">why this one is not being served</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-42.8187,18)">
+            <rect x="-126.1813" y="-6.25" width="252.3625" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">and what it was waiting for when it stopped</text>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

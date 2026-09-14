@@ -1,0 +1,112 @@
+{
+  // A policy beside the property that replaced it.
+  //
+  // Drawn as two columns of the SAME height so neither reads as the bigger
+  // claim: what separates them is not weight but whether the last line can
+  // happen at all. The dashed column is what a commitment looks like; the
+  // sealed one is what is left when the commitment has been designed out.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed. So every piece of text that must
+  // sit left is wrapped, and its container aligns to start.
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12.5; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |sealed::panel|  { fill: --seal-soft; stroke: --seal; }
+  |dashed::box|    { radius: 9; fill: none; stroke: --faint; stroke-width: 1.5;
+                     stroke-style: dashed; padding: 14; align: start; }
+  |line-item::box| { radius: 5; fill: --bg; stroke: --line; stroke-width: 1.25;
+                     height: 26; padding: 0 12; align: start; justify: center; }
+  |lt::t|          { font-size: 12; }
+  |has::t|         { font-weight: semibold; color: --seal; }
+  |miss::t|        { color: --faint; }
+  |body::t|        { color: --muted; }
+
+  // ---- the pattern preset, copied from pattern-icons.lini -----------------
+  // Lini has no import, so the icon classes are restated here. A glyph is
+  // drawn from three marks and no others: an accent stroke for the thing the
+  // pattern is about, a seal fill for what the store guarantees, and a faint
+  // dashed outline for what is absent, refused, or merely claimed.
+  |tile::box|      { width: 72; height: 72; radius: 12; fill: --bg; stroke: --line;
+                     stroke-width: 1.5; layout: stack; padding: 0; }
+  |glyph::path|    { fill: none; stroke: --accent; stroke-width: 2.25; }
+  |ring::oval|     { fill: none; stroke: --accent; stroke-width: 2.25; }
+  |rec::box|       { radius: 3; fill: --panel; stroke: --accent; stroke-width: 2;
+                     padding: 0; }
+  |solid::box|     { radius: 2; fill: --seal; stroke: none; padding: 0; }
+  |sdot::oval|     { fill: --seal; stroke: none; }
+  |adot::oval|     { fill: --accent; stroke: none; }
+  |ghost::box|     { radius: 3; fill: none; stroke: --faint; stroke-width: 1.5;
+                     stroke-style: dashed; padding: 0; }
+  |ghostline::line| { stroke: --faint; stroke-width: 1.5; stroke-style: dashed; }
+  |bar::line|      { stroke: --accent; stroke-width: 2.25; }
+  |arrow::line|    { stroke: --accent; stroke-width: 2.25; marker-end: arrow; }
+  |strike::line|   { stroke: --faint; stroke-width: 1.5; }
+
+  layout: flow; direction: column; align: start; width: 760;
+  padding: 4; gap: 0; clearance: 2;
+}
+
+|eyebrow| "The same promise, made twice"
+|block| { height: 10 } []
+
+|block| { layout: flow; direction: row; align: start; gap: 24; width: 760 } [
+
+  |col| { width: 368; gap: 0 } [
+    |tile| [
+      |ghost| { width: 34; height: 34; }
+      |t| "?" { font-size: 20; color: --faint; font-weight: bold; } ]
+    |block| { height: 10 } []
+    |dashed| { width: 368; height: 196; padding: 16 } [ |col| { width: 334; gap: 9 } [
+      |cap| "as a policy"
+      |small| "\"Only the treating clinician reads"
+      |small| "a record, and only for care.\""
+      |block| { height: 4 } []
+      |line-item| { width: 334 } [ |lt| "written down" ]
+      |line-item| { width: 334 } [ |lt| "trained, and audited once a year" ]
+      |line-item| { width: 334; fill: none; stroke-style: dashed } [
+        |miss| "and set aside on a bad Tuesday" ] ] ]
+  ]
+
+  |col| { width: 368; gap: 0 } [
+    |tile| [
+      |ghost| { width: 34; height: 34; translate: 5 -5; }
+      |solid| { width: 30; height: 30; translate: -4 4; } ]
+    |block| { height: 10 } []
+    |sealed| { width: 368; height: 196; padding: 16 } [ |col| { width: 334; gap: 9 } [
+      |cap| "as a property"
+      |small| "A read is a step of a process, and"
+      |small| "a step names what it may reach."
+      |block| { height: 4 } []
+      |line-item| { width: 334; fill: --panel } [ |lt| "there is no general read behind it" ]
+      |line-item| { width: 334; fill: --panel } [ |lt| "so there is nothing to set aside" ]
+      |line-item| { width: 334; fill: --panel } [
+        |has| "and the attempt is the audit entry" ] ] ]
+  ]
+]
+
+|block| { height: 16 } []
+|col| { width: 760; gap: 5 } [
+  |body| "The test is the third line. A policy's last line is somebody's discipline;"
+  |body| "a property's last line is a thing the system will not do." ]

@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-386.125 -145.125 772.25 290.25" width="772.25" height="290.25" class="lini lini-scope-4ef1b8d1" role="img" aria-labelledby="pattern-one-declared-set-applied-title pattern-one-declared-set-applied-desc">
+  <title id="pattern-one-declared-set-applied-title">Written once, applied repeatedly</title>
+  <desc id="pattern-one-declared-set-applied-desc">On the left, one declared set held in a repository: value sets and profiles, search parameters, which tenants a deployment serves, and whether a step is automated. On the right, that same set applied as a run whose record is the receipt — to a tenant being brought up for the first time, to one that has been serving for two years, and to an appliance in a building. None of them needed it rewritten.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-4ef1b8d1 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-4ef1b8d1[data-theme="dark"], [data-theme="dark"] .lini-scope-4ef1b8d1 { color-scheme: dark; }
+      .lini-scope-4ef1b8d1[data-theme="light"], [data-theme="light"] .lini-scope-4ef1b8d1 { color-scheme: light; }
+    }
+    .lini-scope-4ef1b8d1 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-4ef1b8d1 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-4ef1b8d1 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-4ef1b8d1 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-4ef1b8d1 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-4ef1b8d1 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-4ef1b8d1 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-4ef1b8d1 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-4ef1b8d1 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-4ef1b8d1 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-4ef1b8d1 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-4ef1b8d1 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-4ef1b8d1 .lini-lt { font-size: 12px; }
+    .lini-scope-4ef1b8d1 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-4ef1b8d1 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-4ef1b8d1 .lini-rec { fill: var(--lini-panel); stroke: var(--lini-accent); stroke-width: 2; }
+    .lini-scope-4ef1b8d1 .lini-solid { fill: var(--lini-seal); stroke: none; }
+    .lini-scope-4ef1b8d1 .lini-arrow { stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-4ef1b8d1 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-261.093,-135.625)">
+      <rect x="-121.032" y="-5.5" width="242.064" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">WRITTEN ONCE, APPLIED REPEATEDLY</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.125,-125.125)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,10.5)">
+      <rect x="-382.125" y="-130.625" width="764.25" height="261.25" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-247.375,-5.125)">
+        <rect x="-134.75" y="-125.5" width="269.5" height="251" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-98,-88.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(-16.5,0)">
+            <rect x="-9" y="-12" width="18" height="24" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-0.5,-6)">
+            <line x1="0" y1="0" x2="10.5833" y2="-9.0714"/>
+            <polygon class="lini-marker lini-marker-arrow" points="14,-12 9.6614,-1.6958 3.1535,-9.2884" style="fill: var(--lini-accent)"/>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-0.5,0)">
+            <line x1="0" y1="0" x2="9.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="14,0 4,5 4,-5" style="fill: var(--lini-accent)"/>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-0.5,6)">
+            <line x1="0" y1="0" x2="10.5833" y2="9.0714"/>
+            <polygon class="lini-marker lini-marker-arrow" points="14,12 3.1535,9.2884 9.6614,1.6958" style="fill: var(--lini-accent)"/>
+          </g>
+          <g class="lini-node lini-solid lini-box lini-block" transform="translate(21.5,-12)">
+            <rect x="-5" y="-5" width="10" height="10" rx="2" ry="2"/>
+          </g>
+          <g class="lini-node lini-solid lini-box lini-block" transform="translate(21.5,0)">
+            <rect x="-5" y="-5" width="10" height="10" rx="2" ry="2"/>
+          </g>
+          <g class="lini-node lini-solid lini-box lini-block" transform="translate(21.5,12)">
+            <rect x="-5" y="-5" width="10" height="10" rx="2" ry="2"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-134.75,-47)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-134" y="-83" width="268" height="166" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-118" y="-43.5" width="236" height="87" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-19.4535,-37)">
+              <rect x="-98.5465" y="-6.5" width="197.093" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">one declared set, in a repository</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-53.2938,-18.25)">
+              <rect x="-64.7062" y="-6.25" width="129.4125" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">value sets and profiles</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-63.1875,0.25)">
+              <rect x="-54.8125" y="-6.25" width="109.625" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">search parameters</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-15.3562,18.75)">
+              <rect x="-102.6438" y="-6.25" width="205.2875" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">which tenants a deployment serves</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-35.0187,37.25)">
+              <rect x="-82.9813" y="-6.25" width="165.9625" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">whether a step is automated</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-90.625,-6.625)">
+        <rect x="-22" y="-124" width="44" height="248" rx="0" ry="0"/>
+        <g class="lini-node lini-arrow lini-line" transform="translate(-16,36)">
+          <line x1="0" y1="0" x2="27.5" y2="0"/>
+          <polygon class="lini-marker lini-marker-arrow" points="32,0 22,5 22,-5" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(156.75,0)">
+        <rect x="-225.375" y="-130.625" width="450.75" height="261.25" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-225.375,-89.625)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41)">
+          <rect x="-224.625" y="-88.875" width="449.25" height="177.75" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-208.625" y="-74.875" width="417.25" height="149.75" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-80.8935,-68.375)">
+              <rect x="-127.7315" y="-6.5" width="255.463" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">applied as a run, and the run is the receipt</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-40.25)">
+              <rect x="-208" y="-13" width="416" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-69.208,0)">
+                <rect x="-126.792" y="-6" width="253.584" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">to a tenant being brought up for the first time</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-5)">
+              <rect x="-208" y="-13" width="416" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-78.502,0)">
+                <rect x="-117.498" y="-6" width="234.996" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">to one that has been serving for two years</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,30.25)">
+              <rect x="-208" y="-13" width="416" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-119.116,0)">
+                <rect x="-76.884" y="-6" width="153.768" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">to an appliance in a building</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-208.625,52.875)">
+            </g>
+            <g class="lini-node lini-has lini-t lini-block" transform="translate(-107.082,68.375)">
+              <rect x="-101.543" y="-6.5" width="203.086" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">none of them needed it rewritten</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-386.875 -152.5 773.75 305" width="773.75" height="305" class="lini lini-scope-eb80aed4" role="img" aria-labelledby="pattern-falls-to-a-person-and-is-counted-title pattern-falls-to-a-person-and-is-counted-desc">
+  <title id="pattern-falls-to-a-person-and-is-counted-title">The queue nobody measures</title>
+  <desc id="pattern-falls-to-a-person-and-is-counted-desc">Three panels left to right. Work is offered to whatever is entitled to perform the step. Either an automated runner takes it, or nothing does. When nothing does it falls to a person, and the fall is counted, per step and per zone. That count is the automation backlog stated as a fact rather than as an opinion.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-eb80aed4 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-eb80aed4[data-theme="dark"], [data-theme="dark"] .lini-scope-eb80aed4 { color-scheme: dark; }
+      .lini-scope-eb80aed4[data-theme="light"], [data-theme="light"] .lini-scope-eb80aed4 { color-scheme: light; }
+    }
+    .lini-scope-eb80aed4 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-eb80aed4 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-eb80aed4 .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-eb80aed4 .lini-path { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-eb80aed4 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-eb80aed4 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-eb80aed4 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-eb80aed4 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-eb80aed4 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-eb80aed4 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-eb80aed4 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-eb80aed4 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-eb80aed4 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-eb80aed4 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-eb80aed4 .lini-lt { font-size: 12px; }
+    .lini-scope-eb80aed4 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-eb80aed4 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-eb80aed4 .lini-body { color: var(--lini-muted); }
+    .lini-scope-eb80aed4 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-eb80aed4 .lini-glyph { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-eb80aed4 .lini-ring { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-eb80aed4 .lini-solid { fill: var(--lini-seal); stroke: none; }
+    .lini-scope-eb80aed4 .lini-arrow { stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-eb80aed4 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-281.9435,-143)">
+      <rect x="-100.9315" y="-5.5" width="201.863" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">THE QUEUE NOBODY MEASURES</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.875,-132.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-23)">
+      <rect x="-382.875" y="-104.5" width="765.75" height="209" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-276.125,0)">
+        <rect x="-106.75" y="-104.5" width="213.5" height="209" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-70,-67.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-ring lini-oval" transform="translate(-9.9375,-4.5625)">
+            <ellipse cx="0" cy="0" rx="7" ry="7"/>
+          </g>
+          <g class="lini-node lini-glyph lini-path" transform="translate(-9.9375,13.4375)">
+            <path d="M 0 0 C 0 -10, 26 -10, 26 0"/>
+          </g>
+          <g class="lini-node lini-solid lini-box lini-block" transform="translate(10.0625,-6.5625)">
+            <rect x="-8" y="-8" width="16" height="16" rx="8" ry="8"/>
+          </g>
+          <g class="lini-node lini-t lini-block" style="color: var(--lini-panel); font-size: 9px; font-weight: bold" transform="translate(10.0625,-6.5625)">
+            <rect x="-2.601" y="-4.5" width="5.202" height="9" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">3</text>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-106.75,-26)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-106" y="-62" width="212" height="124" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-90" y="-24" width="180" height="48" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-43.5575,-17.5)">
+              <rect x="-46.4425" y="-6.5" width="92.885" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">work is offered</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-25.075,0.25)">
+              <rect x="-64.925" y="-6.25" width="129.85" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">to whatever is entitled</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-31.9438,17.75)">
+              <rect x="-58.0562" y="-6.25" width="116.1125" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">to perform this step</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-149.375,-1.5)">
+        <rect x="-20" y="-103" width="40" height="206" rx="0" ry="0"/>
+        <g class="lini-node lini-arrow lini-line" transform="translate(-16,41)">
+          <line x1="0" y1="0" x2="27.5" y2="0"/>
+          <polygon class="lini-marker lini-marker-arrow" points="32,0 22,5 22,-5" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(-10,-0.75)">
+        <rect x="-119.375" y="-103.75" width="238.75" height="207.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-119.375,-62.75)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,41)">
+          <rect x="-118.625" y="-62" width="237.25" height="124" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-102.625" y="-31.25" width="205.25" height="62.5" rx="0" ry="0"/>
+            <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,-17.625)">
+              <rect x="-102" y="-13" width="204" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-9.474,0)">
+                <rect x="-80.526" y="-6" width="161.052" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">an automated runner takes it</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,17.625)">
+              <rect x="-102" y="-13" width="204" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-42.485,0)">
+                <rect x="-47.515" y="-6.5" width="95.03" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">or nothing does</text>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(129.375,-1.5)">
+        <rect x="-20" y="-103" width="40" height="206" rx="0" ry="0"/>
+        <g class="lini-node lini-arrow lini-line" transform="translate(-16,41)">
+          <line x1="0" y1="0" x2="27.5" y2="0"/>
+          <polygon class="lini-marker lini-marker-arrow" points="32,0 22,5 22,-5" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(266.125,-0.75)">
+        <rect x="-116.75" y="-103.75" width="233.5" height="207.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-116.75,-62.75)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41)">
+          <rect x="-116" y="-62" width="232" height="124" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-100" y="-27.75" width="200" height="55.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-45.6535,-21.25)">
+              <rect x="-54.3465" y="-6.5" width="108.693" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">it falls to a person</text>
+            </g>
+            <g class="lini-node lini-has lini-t lini-block" transform="translate(-32.5755,-3.25)">
+              <rect x="-67.4245" y="-6.5" width="134.849" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">and the fall is counted</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-100,9.25)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-34.9813,21.5)">
+              <rect x="-65.0187" y="-6.25" width="130.0375" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">per step, and per zone</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.875,90.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-2.875,124)">
+      <rect x="-380" y="-24.5" width="760" height="49" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-150.1145,-18)">
+        <rect x="-229.8855" y="-6.5" width="459.771" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">That count is the automation backlog stated as a fact: which stages of which</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-143.8615,0)">
+        <rect x="-236.1385" y="-6.5" width="472.277" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">processes are still costing somebody an afternoon, ranked by how often. Most</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-246.8605,18)">
+        <rect x="-133.1395" y="-6.5" width="266.279" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">organisations buy that list. Here it is a query.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

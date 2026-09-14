@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -180.5 771 361" width="771" height="361" class="lini lini-scope-bff86596" role="img" aria-labelledby="pattern-a-type-declares-what-it-is-title pattern-a-type-declares-what-it-is-desc">
+  <title id="pattern-a-type-declares-what-it-is-title">Asked once, or asked everywhere</title>
+  <desc id="pattern-a-type-declares-what-it-is-desc">Two columns. On the left, the questions about a record's discipline answered by whoever happens to write each path into the store: the import job, the correction screen, the nightly clean-up, and the one written in a hurry. On the right, the same questions declared once on the type itself: whether a version may be replaced or only added to, whether every touch is audited, how long it is kept at least and at most, and what identifies one.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-bff86596 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-bff86596[data-theme="dark"], [data-theme="dark"] .lini-scope-bff86596 { color-scheme: dark; }
+      .lini-scope-bff86596[data-theme="light"], [data-theme="light"] .lini-scope-bff86596 { color-scheme: light; }
+    }
+    .lini-scope-bff86596 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-bff86596 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-bff86596 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-bff86596 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-bff86596 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-bff86596 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-bff86596 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-bff86596 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-bff86596 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-bff86596 .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-bff86596 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-bff86596 .lini-lt { font-size: 12px; }
+    .lini-scope-bff86596 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-bff86596 .lini-body { color: var(--lini-muted); }
+    .lini-scope-bff86596 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-bff86596 .lini-rec { fill: var(--lini-panel); stroke: var(--lini-accent); stroke-width: 2; }
+    .lini-scope-bff86596 .lini-solid { fill: var(--lini-seal); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-259.638,-171)">
+      <rect x="-121.862" y="-5.5" width="243.724" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">ASKED ONCE, OR ASKED EVERYWHERE</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-160.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-13)">
+      <rect x="-381.5" y="-142.5" width="763" height="285" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,-0.75)">
+        <rect x="-184.75" y="-141.75" width="369.5" height="283.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-100.75)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-100" width="368" height="200" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-82" width="335.25" height="164" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-84.555,-75.5)">
+              <rect x="-83.07" y="-6.5" width="166.14" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">decided by whoever writes</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,-60)">
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-37.375)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-112.217,0)">
+                <rect x="-42.783" y="-6.5" width="85.566" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the import job</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-2.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-89.7465,0)">
+                <rect x="-65.2535" y="-6.5" width="130.507" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the correction screen</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,33.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-94.5955,0)">
+                <rect x="-60.4045" y="-6.5" width="120.809" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the nightly clean-up</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,68.375)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-66.3855,0)">
+                <rect x="-88.6145" y="-6.5" width="177.229" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">and the one written in a hurry</text>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,0)">
+        <rect x="-184.75" y="-142.5" width="369.5" height="285" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-105.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(-2.5,1)">
+            <rect x="-15" y="-18" width="30" height="36" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-solid lini-box lini-block" transform="translate(9.5,-15)">
+            <rect x="-9" y="-5" width="18" height="10" rx="2" ry="2"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-64)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-100" width="368" height="200" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-82" width="335.25" height="164" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-85.5885,-75.5)">
+              <rect x="-82.0365" y="-6.5" width="164.073" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">declared once, on the type</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,-60)">
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-37.375)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-33.578,0)">
+                <rect x="-121.422" y="-6" width="242.844" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">may a version be replaced, or only added to</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-2.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-80.876,0)">
+                <rect x="-74.124" y="-6" width="148.248" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">is every touch of it audited</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,33.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-46.922,0)">
+                <rect x="-108.078" y="-6" width="216.156" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">how long is it kept, at least and at most</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,68.375)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-51.728,0)">
+                <rect x="-103.272" y="-6" width="206.544" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">what identifies one, and what it holds</text>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,137.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-1.5,161)">
+      <rect x="-380" y="-15.5" width="760" height="31" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-133.52,-9)">
+        <rect x="-246.48" y="-6.5" width="492.96" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The engine enforces the right-hand column on every path into the store, including</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-123.8805,9)">
+        <rect x="-256.1195" y="-6.5" width="512.239" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">the ones written after the declaration was made and by somebody who never read it.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

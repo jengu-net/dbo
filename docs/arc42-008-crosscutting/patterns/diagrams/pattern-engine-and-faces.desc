@@ -1,0 +1,6 @@
+Where the domain is, and is not
+Three faces across the top: a FHIR R4 face with ids, history, search and
+operations; a FHIR R5 face using topics instead of criteria; and a sibling
+model that is not a health standard at all. Beneath them one engine, whose
+whole vocabulary is record, custody, history, identity, erasure and leaving —
+not one of which is medical.

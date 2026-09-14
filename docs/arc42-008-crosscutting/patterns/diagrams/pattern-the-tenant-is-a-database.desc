@@ -1,0 +1,6 @@
+The same query with a bug in it
+Two arrangements side by side. On the left, one database holding four tenants
+A, B, C and D, kept apart by a predicate written by hand on every query. On the
+right, a database each: a query that forgets the predicate still reaches only
+tenant A, because nothing else is there. The difference decides what the
+sentence "your data is gone" is worth.

@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384.75 -149.25 770.25 298.5" width="770.25" height="298.5" class="lini lini-scope-d6be23cf" role="img" aria-labelledby="pattern-the-tenant-is-a-database-title pattern-the-tenant-is-a-database-desc">
+  <title id="pattern-the-tenant-is-a-database-title">The same query with a bug in it</title>
+  <desc id="pattern-the-tenant-is-a-database-desc">Two arrangements side by side. On the left, one database holding four tenants A, B, C and D, kept apart by a predicate written by hand on every query. On the right, a database each: a query that forgets the predicate still reaches only tenant A, because nothing else is there. The difference decides what the sentence "your data is gone" is worth.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-d6be23cf { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-d6be23cf[data-theme="dark"], [data-theme="dark"] .lini-scope-d6be23cf { color-scheme: dark; }
+      .lini-scope-d6be23cf[data-theme="light"], [data-theme="light"] .lini-scope-d6be23cf { color-scheme: light; }
+    }
+    .lini-scope-d6be23cf { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-d6be23cf .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-d6be23cf .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-d6be23cf .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-d6be23cf .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-d6be23cf .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-d6be23cf .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-d6be23cf .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-d6be23cf .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-d6be23cf .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-d6be23cf .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-d6be23cf .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-d6be23cf .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-d6be23cf .lini-lt { font-size: 12px; }
+    .lini-scope-d6be23cf .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-d6be23cf .lini-miss { color: var(--lini-faint); }
+    .lini-scope-d6be23cf .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-d6be23cf .lini-ring { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-d6be23cf .lini-rec { fill: var(--lini-panel); stroke: var(--lini-accent); stroke-width: 2; }
+    .lini-scope-d6be23cf .lini-bar { stroke: var(--lini-accent); stroke-width: 2.25; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-268.667,-139.75)">
+      <rect x="-112.083" y="-5.5" width="224.166" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">THE SAME QUERY WITH A BUG IN IT</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380.75,-129.25)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,10.5)">
+      <rect x="-380.75" y="-134.75" width="761.5" height="269.5" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196,0)">
+        <rect x="-184.75" y="-134.75" width="369.5" height="269.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-93.75)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-93" width="368" height="186" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-1,0)">
+            <rect x="-167" y="-54.125" width="334" height="108.25" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-68.863,-47.625)">
+              <rect x="-98.137" y="-6.5" width="196.274" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">one database, filtered by tenant</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(0,-16.5)">
+              <rect x="-167" y="-15.625" width="334" height="31.25" rx="0" ry="0"/>
+              <g class="lini-node lini-line-item lini-box lini-block" transform="translate(-127.5,0)">
+                <rect x="-39.5" y="-15" width="79" height="30" rx="5" ry="5"/>
+                <g class="lini-node lini-lt lini-t lini-block" transform="translate(-35.324,0)">
+                  <rect x="-4.176" y="-6" width="8.352" height="12" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">A</text>
+                </g>
+              </g>
+              <g class="lini-node lini-line-item lini-box lini-block" transform="translate(-42.5,0)">
+                <rect x="-39.5" y="-15" width="79" height="30" rx="5" ry="5"/>
+                <g class="lini-node lini-lt lini-t lini-block" transform="translate(-35.78,0)">
+                  <rect x="-3.72" y="-6" width="7.44" height="12" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">B</text>
+                </g>
+              </g>
+              <g class="lini-node lini-line-item lini-box lini-block" transform="translate(42.5,0)">
+                <rect x="-39.5" y="-15" width="79" height="30" rx="5" ry="5"/>
+                <g class="lini-node lini-lt lini-t lini-block" transform="translate(-35.06,0)">
+                  <rect x="-4.44" y="-6" width="8.88" height="12" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">C</text>
+                </g>
+              </g>
+              <g class="lini-node lini-line-item lini-box lini-block" transform="translate(127.5,0)">
+                <rect x="-39.5" y="-15" width="79" height="30" rx="5" ry="5"/>
+                <g class="lini-node lini-lt lini-t lini-block" transform="translate(-35.192,0)">
+                  <rect x="-4.308" y="-6" width="8.616" height="12" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">D</text>
+                </g>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167,9.125)">
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-48.96,25.625)">
+              <rect x="-118.04" y="-6.5" width="236.08" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the predicate is what keeps them apart</text>
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-59.737,47.625)">
+              <rect x="-107.263" y="-6.5" width="214.526" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">and it is written by hand, every time</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,-13.75)">
+        <rect x="-184" y="-121" width="368" height="242" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-147.25,-84.25)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(0,1.0625)">
+            <rect x="-16" y="-18" width="32" height="36" rx="6" ry="6"/>
+          </g>
+          <g class="lini-node lini-ring lini-oval" style="fill: var(--lini-panel)" transform="translate(0,-12.9375)">
+            <ellipse cx="0" cy="0" rx="16" ry="6"/>
+          </g>
+          <g class="lini-node lini-bar lini-line" transform="translate(0,-0.9375)">
+            <line x1="-16" y1="0" x2="16" y2="0"/>
+          </g>
+          <g class="lini-node lini-bar lini-line" transform="translate(0,9.0625)">
+            <line x1="-16" y1="0" x2="16" y2="0"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184,-42.5)">
+        </g>
+        <g class="lini-node lini-col lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-79.25" width="368" height="158.5" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-134.106,-72.75)">
+            <rect x="-49.894" y="-6.5" width="99.788" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a database each</text>
+          </g>
+          <g class="lini-node lini-block" transform="translate(0,-15.5)">
+            <rect x="-184" y="-42.75" width="368" height="85.5" rx="0" ry="0"/>
+            <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(-141,0)">
+              <rect x="-43" y="-42" width="86" height="84" rx="9" ry="9"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(0,0)">
+                <rect x="-4.6085" y="-6.5" width="9.217" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">A</text>
+              </g>
+            </g>
+            <g class="lini-node lini-panel lini-box lini-block" transform="translate(-47,0)">
+              <rect x="-43" y="-42" width="86" height="84" rx="9" ry="9"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(0,0)">
+                <rect x="-3.72" y="-6" width="7.44" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">B</text>
+              </g>
+            </g>
+            <g class="lini-node lini-panel lini-box lini-block" transform="translate(47,0)">
+              <rect x="-43" y="-42" width="86" height="84" rx="9" ry="9"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(0,0)">
+                <rect x="-4.44" y="-6" width="8.88" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">C</text>
+              </g>
+            </g>
+            <g class="lini-node lini-panel lini-box lini-block" transform="translate(141,0)">
+              <rect x="-43" y="-42" width="86" height="84" rx="9" ry="9"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(0,0)">
+                <rect x="-4.308" y="-6" width="8.616" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">D</text>
+              </g>
+            </g>
+          </g>
+          <g class="lini-node lini-block" transform="translate(-184,36.25)">
+          </g>
+          <g class="lini-node lini-has lini-t lini-block" transform="translate(-79.7465,51.75)">
+            <rect x="-104.2535" y="-6.5" width="208.507" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a query that forgets the predicate</text>
+          </g>
+          <g class="lini-node lini-has lini-t lini-block" transform="translate(-126.826,72.75)">
+            <rect x="-57.174" y="-6.5" width="114.348" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">still reaches only A</text>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

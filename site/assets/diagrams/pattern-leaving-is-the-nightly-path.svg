@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -148 771 296" width="771" height="296" class="lini lini-scope-753a83cc" role="img" aria-labelledby="pattern-leaving-is-the-nightly-path-title pattern-leaving-is-the-nightly-path-desc">
+  <title id="pattern-leaving-is-the-nightly-path-title">The exit, rehearsed or not</title>
+  <desc id="pattern-leaving-is-the-nightly-path-desc">Two columns. On the left, an export somebody scopes when the relationship ends: first run on the worst possible day, produced by the party being left, and unverifiable against what was actually held. On the right, the archive that already runs every night: backup and departure are the same path, the archive is sealed to the owner's key rather than the host's, and it can be verified without asking anybody.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-753a83cc { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-753a83cc[data-theme="dark"], [data-theme="dark"] .lini-scope-753a83cc { color-scheme: dark; }
+      .lini-scope-753a83cc[data-theme="light"], [data-theme="light"] .lini-scope-753a83cc { color-scheme: light; }
+    }
+    .lini-scope-753a83cc { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-753a83cc .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-753a83cc .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-753a83cc .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-753a83cc .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-753a83cc .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-753a83cc .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-753a83cc .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-753a83cc .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-753a83cc .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-753a83cc .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-753a83cc .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-753a83cc .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-753a83cc .lini-lt { font-size: 12px; }
+    .lini-scope-753a83cc .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-753a83cc .lini-miss { color: var(--lini-faint); }
+    .lini-scope-753a83cc .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-753a83cc .lini-rec { fill: var(--lini-panel); stroke: var(--lini-accent); stroke-width: 2; }
+    .lini-scope-753a83cc .lini-sdot { fill: var(--lini-seal); stroke: none; }
+    .lini-scope-753a83cc .lini-arrow { stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-753a83cc .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-285.617,-138.5)">
+      <rect x="-95.883" y="-5.5" width="191.766" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">THE EXIT, REHEARSED OR NOT</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-128)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,10.5)">
+      <rect x="-381.5" y="-133.5" width="763" height="267" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,-0.75)">
+        <rect x="-184.75" y="-132.75" width="369.5" height="265.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-91.75)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-91" width="368" height="182" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-67.75" width="335.25" height="135.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-48.5645,-61.25)">
+              <rect x="-119.0605" y="-6.5" width="238.121" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">an export somebody scopes at the end</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-33.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-52.4885,0)">
+                <rect x="-102.5115" y="-6.5" width="205.023" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">first run on the worst possible day</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,2.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-71.2605,0)">
+                <rect x="-83.7395" y="-6.5" width="167.479" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">by the party you are leaving</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,24.75)">
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-70.6125,40.25)">
+              <rect x="-97.0125" y="-6.5" width="194.025" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">and nobody can check it against</text>
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-99.5895,61.25)">
+              <rect x="-68.0355" y="-6.5" width="136.071" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">what was actually held</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,0)">
+        <rect x="-184.75" y="-133.5" width="369.5" height="267" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-96.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(-15.0625,0)">
+            <rect x="-14" y="-16" width="28" height="32" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-sdot lini-oval" transform="translate(-15.0625,0)">
+            <ellipse cx="0" cy="0" rx="4" ry="4"/>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(8.9375,0)">
+            <line x1="0" y1="0" x2="15.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="20,0 10,5 10,-5" style="fill: var(--lini-accent)"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-55)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-91" width="368" height="182" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-59.375" width="335.25" height="118.75" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-67.772,-52.875)">
+              <rect x="-99.853" y="-6.5" width="199.706" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the archive that runs every night</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-24.75)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-56.576,0)">
+                <rect x="-98.424" y="-6" width="196.848" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">backup and departure are one path</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,10.5)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-43.484,0)">
+                <rect x="-111.516" y="-6" width="223.032" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">sealed to the owner&apos;s key, not the host&apos;s</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel); stroke: var(--lini-seal)" transform="translate(0,45.75)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-51.6435,0)">
+                <rect x="-103.3565" y="-6.5" width="206.713" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">verifiable without asking anybody</text>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

@@ -1,0 +1,7 @@
+The window that does not exist
+Two columns. On the left, writing and then publishing: the row is committed,
+then a gap, then the broker is told or is not. That gap is how consumers end
+up permanently and subtly behind, not badly enough for anybody to notice. On
+the right, one transaction carrying both the change and its event, so there is
+no separate publish step and no interval in which one happened and the other
+did not.

@@ -1,0 +1,6 @@
+The same four lines, paid for twice or not at all
+Two columns. On the left, work held in a queue of its own: history only if
+somebody wrote it, an audit trail built separately, an owner modelled again,
+and the work in flight when the node died. On the right, the same four lines
+for a run that is an ordinary record: history, an audit trail, an owner, and
+never having been in flight. Nothing was added to get the right-hand column.

@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -155.75 770.25 311.5" width="770.25" height="311.5" class="lini lini-scope-8f909b3e" role="img" aria-labelledby="pattern-engine-and-faces-title pattern-engine-and-faces-desc">
+  <title id="pattern-engine-and-faces-title">Where the domain is, and is not</title>
+  <desc id="pattern-engine-and-faces-desc">Three faces across the top: a FHIR R4 face with ids, history, search and operations; a FHIR R5 face using topics instead of criteria; and a sibling model that is not a health standard at all. Beneath them one engine, whose whole vocabulary is record, custody, history, identity, erasure and leaving — not one of which is medical.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-8f909b3e { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-8f909b3e[data-theme="dark"], [data-theme="dark"] .lini-scope-8f909b3e { color-scheme: dark; }
+      .lini-scope-8f909b3e[data-theme="light"], [data-theme="light"] .lini-scope-8f909b3e { color-scheme: light; }
+    }
+    .lini-scope-8f909b3e { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-8f909b3e .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8f909b3e .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8f909b3e .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-8f909b3e .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-8f909b3e .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-8f909b3e .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-8f909b3e .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-8f909b3e .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-8f909b3e .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-8f909b3e .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-8f909b3e .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-8f909b3e .lini-lt { font-size: 12px; }
+    .lini-scope-8f909b3e .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-8f909b3e .lini-rec { fill: var(--lini-panel); stroke: var(--lini-accent); stroke-width: 2; }
+    .lini-scope-8f909b3e .lini-sdot { fill: var(--lini-seal); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-266.7255,-146.25)">
+      <rect x="-114.0245" y="-5.5" width="228.049" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">WHERE THE DOMAIN IS, AND IS NOT</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380.75,-135.75)">
+    </g>
+    <g class="lini-node lini-tile lini-box lini-block" transform="translate(-344,-94)">
+      <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+      <g class="lini-node lini-sdot lini-oval" transform="translate(0,5)">
+        <ellipse cx="0" cy="0" rx="11" ry="11"/>
+      </g>
+      <g class="lini-node lini-rec lini-box lini-block" transform="translate(0,-17)">
+        <rect x="-7" y="-5" width="14" height="10" rx="3" ry="3"/>
+      </g>
+      <g class="lini-node lini-rec lini-box lini-block" transform="translate(-20,17)">
+        <rect x="-7" y="-5" width="14" height="10" rx="3" ry="3"/>
+      </g>
+      <g class="lini-node lini-rec lini-box lini-block" transform="translate(20,17)">
+        <rect x="-7" y="-5" width="14" height="10" rx="3" ry="3"/>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380.75,-51.25)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(-0.75,-7.5)">
+      <rect x="-380" y="-37.75" width="760" height="75.5" rx="0" ry="0"/>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(-256,0)">
+        <rect x="-124" y="-37" width="248" height="74" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-110" y="-14.25" width="220" height="28.5" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-66.034,-7.75)">
+            <rect x="-43.966" y="-6.5" width="87.932" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a FHIR R4 face</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-21.3,8)">
+            <rect x="-88.7" y="-6.25" width="177.4" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">ids, history, search, operations</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,0)">
+        <rect x="-124" y="-37" width="248" height="74" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-110" y="-14.25" width="220" height="28.5" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-66.3265,-7.75)">
+            <rect x="-43.6735" y="-6.5" width="87.347" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a FHIR R5 face</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-39.4313,8)">
+            <rect x="-70.5687" y="-6.25" width="141.1375" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">topics instead of criteria</text>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-panel lini-box lini-block" transform="translate(256,0)">
+        <rect x="-124" y="-37" width="248" height="74" rx="9" ry="9"/>
+        <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+          <rect x="-110" y="-14.25" width="220" height="28.5" rx="0" ry="0"/>
+          <g class="lini-node lini-cap lini-t lini-block" transform="translate(-64.3505,-7.75)">
+            <rect x="-45.6495" y="-6.5" width="91.299" height="13" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a sibling model</text>
+          </g>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(-33.1688,8)">
+            <rect x="-76.8312" y="-6.25" width="153.6625" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">not a health standard at all</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380.75,36.25)">
+    </g>
+    <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,97)">
+      <rect x="-380" y="-54" width="760" height="108" rx="9" ry="9"/>
+      <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+        <rect x="-364" y="-27.125" width="728" height="54.25" rx="0" ry="0"/>
+        <g class="lini-node lini-cap lini-t lini-block" transform="translate(-211.3215,-20.625)">
+          <rect x="-152.6785" y="-6.5" width="305.357" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">one engine, and not one of these words is medical</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-5,11.5)">
+          <rect x="-359" y="-15.625" width="718" height="31.25" rx="0" ry="0"/>
+          <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(-302.5,0)">
+            <rect x="-56.5" y="-15" width="113" height="30" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-37.708,0)">
+              <rect x="-18.792" y="-6" width="37.584" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">record</text>
+            </g>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(-181.5,0)">
+            <rect x="-56.5" y="-15" width="113" height="30" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-33.922,0)">
+              <rect x="-22.578" y="-6" width="45.156" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">custody</text>
+            </g>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(-60.5,0)">
+            <rect x="-56.5" y="-15" width="113" height="30" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-37.138,0)">
+              <rect x="-19.362" y="-6" width="38.724" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">history</text>
+            </g>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(60.5,0)">
+            <rect x="-56.5" y="-15" width="113" height="30" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-35.218,0)">
+              <rect x="-21.282" y="-6" width="42.564" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">identity</text>
+            </g>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(181.5,0)">
+            <rect x="-56.5" y="-15" width="113" height="30" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-35.236,0)">
+              <rect x="-21.264" y="-6" width="42.528" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">erasure</text>
+            </g>
+          </g>
+          <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(302.5,0)">
+            <rect x="-56.5" y="-15" width="113" height="30" rx="5" ry="5"/>
+            <g class="lini-node lini-lt lini-t lini-block" transform="translate(-36.646,0)">
+              <rect x="-19.854" y="-6" width="39.708" height="12" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">leaving</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

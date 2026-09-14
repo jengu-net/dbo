@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -172.75 771 345.5" width="771" height="345.5" class="lini lini-scope-a36d3503" role="img" aria-labelledby="pattern-asked-not-scanned-title pattern-asked-not-scanned-desc">
+  <title id="pattern-asked-not-scanned-title">The answer you cannot check</title>
+  <desc id="pattern-asked-not-scanned-desc">At the top, the question asked: entries of a given kind, coded in a given system, where the code is indexed but the system is not. On the left, matching the code and quietly dropping the system: rows come back and they look exactly right, which means a wider question has been answered without the caller being able to tell. On the right, refusing instead, and naming which part is supported and which qualifier is not.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-a36d3503 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-a36d3503[data-theme="dark"], [data-theme="dark"] .lini-scope-a36d3503 { color-scheme: dark; }
+      .lini-scope-a36d3503[data-theme="light"], [data-theme="light"] .lini-scope-a36d3503 { color-scheme: light; }
+    }
+    .lini-scope-a36d3503 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-a36d3503 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-a36d3503 .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-a36d3503 .lini-path { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-a36d3503 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-a36d3503 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-a36d3503 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-a36d3503 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-a36d3503 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-a36d3503 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-a36d3503 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-a36d3503 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-a36d3503 .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-a36d3503 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-a36d3503 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-a36d3503 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-a36d3503 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-a36d3503 .lini-glyph { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-a36d3503 .lini-sdot { fill: var(--lini-seal); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-271.762,-163.25)">
+      <rect x="-109.738" y="-5.5" width="219.476" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">THE ANSWER YOU CANNOT CHECK</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-152.75)">
+    </g>
+    <g class="lini-node lini-panel lini-box lini-block" transform="translate(-0.75,-115)">
+      <rect x="-380" y="-32" width="760" height="64" rx="9" ry="9"/>
+      <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+        <rect x="-364" y="-14.25" width="728" height="28.5" rx="0" ry="0"/>
+        <g class="lini-node lini-cap lini-t lini-block" transform="translate(-175.37,-7.75)">
+          <rect x="-188.63" y="-6.5" width="377.26" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">asked: entries of kind tenant.suspended, coded in this system</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-209.0812,8)">
+          <rect x="-154.9188" y="-6.25" width="309.8375" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">the code is indexed. the system it was coded in is not.</text>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-74.25)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,51.25)">
+      <rect x="-381.5" y="-117.5" width="763" height="235" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,-0.75)">
+        <rect x="-184.75" y="-116.75" width="369.5" height="233.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-75.75)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-75" width="368" height="150" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-57.25" width="335.25" height="114.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-66.0365,-50.75)">
+              <rect x="-101.5885" y="-6.5" width="203.177" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">match the code, drop the system</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-22.625)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-105.509,0)">
+                <rect x="-49.491" y="-6.5" width="98.982" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">rows come back</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,12.625)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-88.1605,0)">
+                <rect x="-66.8395" y="-6.5" width="133.679" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">they look exactly right</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,35.25)">
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-62.767,50.75)">
+              <rect x="-104.858" y="-6.5" width="209.716" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a wider question, answered quietly</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,0)">
+        <rect x="-184.75" y="-117.5" width="369.5" height="235" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-80.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-glyph lini-path" transform="translate(-17,-6.8125)">
+            <path d="M 0 0 L 34 0 L 21 14 L 21 28 L 13 22 L 13 14 Z"/>
+          </g>
+          <g class="lini-node lini-sdot lini-oval" transform="translate(-3,-17.8125)">
+            <ellipse cx="0" cy="0" rx="4.5" ry="4.5"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-39)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-75" width="368" height="150" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-41.75" width="335.25" height="83.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-43.0915,-35.25)">
+              <rect x="-124.5335" y="-6.5" width="249.067" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">refuse, and say what would have worked</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel); stroke: var(--lini-seal)" transform="translate(0,-7.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-70.825,0)">
+                <rect x="-84.175" y="-6.5" width="168.35" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the parameter is supported</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel); stroke: var(--lini-seal)" transform="translate(0,28.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-99.932,0)">
+                <rect x="-55.068" y="-6.5" width="110.136" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the qualifier is not</text>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

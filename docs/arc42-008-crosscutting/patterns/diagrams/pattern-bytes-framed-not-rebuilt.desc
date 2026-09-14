@@ -1,0 +1,6 @@
+Parsed once, or parsed at every hop
+Two columns. On the left, a payload rebuilt at each layer: bytes to objects,
+objects to other objects, and back to bytes on the way out, so what comes out
+is a reconstruction. On the right, the payload framed and carried: the bytes
+as written are the truth, read once for whatever has to be indexed, and what
+is carried is not opened.

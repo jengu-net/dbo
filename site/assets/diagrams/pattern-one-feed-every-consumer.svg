@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-384.75 -215.25 769.5 430.5" width="769.5" height="430.5" class="lini lini-scope-5b6655f1" role="img" aria-labelledby="pattern-one-feed-every-consumer-title pattern-one-feed-every-consumer-desc">
+  <title id="pattern-one-feed-every-consumer-title">One line, four positions</title>
+  <desc id="pattern-one-feed-every-consumer-desc">One ordered, replayable sequence, with four consumers on it: a client paging through results, a subscriber, a dependent copy, and an appliance that is a long way back and is not thereby broken. Each consumer is a name and a position, so progress, lag and replay mean the same thing for all four and how far behind is one question with one answer.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-5b6655f1 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-5b6655f1[data-theme="dark"], [data-theme="dark"] .lini-scope-5b6655f1 { color-scheme: dark; }
+      .lini-scope-5b6655f1[data-theme="light"], [data-theme="light"] .lini-scope-5b6655f1 { color-scheme: light; }
+    }
+    .lini-scope-5b6655f1 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-5b6655f1 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-5b6655f1 .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-5b6655f1 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-5b6655f1 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-5b6655f1 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-5b6655f1 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-5b6655f1 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-5b6655f1 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-5b6655f1 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-5b6655f1 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-5b6655f1 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-5b6655f1 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-5b6655f1 .lini-body { color: var(--lini-muted); }
+    .lini-scope-5b6655f1 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-5b6655f1 .lini-sdot { fill: var(--lini-seal); stroke: none; }
+    .lini-scope-5b6655f1 .lini-adot { fill: var(--lini-accent); stroke: none; }
+    .lini-scope-5b6655f1 .lini-bar { stroke: var(--lini-accent); stroke-width: 2.25; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-293.074,-205.75)">
+      <rect x="-87.676" y="-5.5" width="175.352" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">ONE LINE, FOUR POSITIONS</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380.75,-195.25)">
+    </g>
+    <g class="lini-node lini-tile lini-box lini-block" transform="translate(-344,-153.5)">
+      <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+      <g class="lini-node lini-bar lini-line" transform="translate(0,0)">
+        <line x1="-22" y1="0" x2="22" y2="0"/>
+      </g>
+      <g class="lini-node lini-adot lini-oval" transform="translate(-16,0)">
+        <ellipse cx="0" cy="0" rx="2.5" ry="2.5"/>
+      </g>
+      <g class="lini-node lini-adot lini-oval" transform="translate(-8,0)">
+        <ellipse cx="0" cy="0" rx="2.5" ry="2.5"/>
+      </g>
+      <g class="lini-node lini-adot lini-oval" transform="translate(0,0)">
+        <ellipse cx="0" cy="0" rx="2.5" ry="2.5"/>
+      </g>
+      <g class="lini-node lini-adot lini-oval" transform="translate(8,0)">
+        <ellipse cx="0" cy="0" rx="2.5" ry="2.5"/>
+      </g>
+      <g class="lini-node lini-adot lini-oval" transform="translate(16,0)">
+        <ellipse cx="0" cy="0" rx="2.5" ry="2.5"/>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380.75,-109.75)">
+    </g>
+    <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,-13)">
+      <rect x="-380" y="-89" width="760" height="178" rx="9" ry="9"/>
+      <g class="lini-node lini-block" transform="translate(-2,0)">
+        <rect x="-362" y="-71" width="724" height="142" rx="0" ry="0"/>
+        <g class="lini-node lini-bar lini-line" style="stroke: var(--lini-line); stroke-width: 2.5" transform="translate(2.3063,-30)">
+          <line x1="-330" y1="0" x2="330" y2="0"/>
+        </g>
+        <g class="lini-node lini-sdot lini-oval" transform="translate(332.3062,-30)">
+          <ellipse cx="0" cy="0" rx="6" ry="6"/>
+        </g>
+        <g class="lini-node lini-block" transform="translate(302.3062,-50)">
+          <rect x="-25.5437" y="-6.25" width="51.0875" height="12.5" rx="0" ry="0"/>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(0,0)">
+            <rect x="-25.5437" y="-6.25" width="51.0875" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the head</text>
+          </g>
+        </g>
+        <g class="lini-node lini-adot lini-oval" transform="translate(-283.6938,-30)">
+          <ellipse cx="0" cy="0" rx="5.5" ry="5.5"/>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-283.6938,-2)">
+          <rect x="-54.6125" y="-13.25" width="109.225" height="26.5" rx="0" ry="0"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-54.6125" y="-13.25" width="109.225" height="26.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(0,-6.75)">
+              <rect x="-38.584" y="-6.5" width="77.168" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">an appliance</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(0,7)">
+              <rect x="-54.6125" y="-6.25" width="109.225" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">offline since Friday</text>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-adot lini-oval" transform="translate(-93.6937,-30)">
+          <ellipse cx="0" cy="0" rx="5.5" ry="5.5"/>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-93.6937,-2)">
+          <rect x="-59.9437" y="-13.25" width="119.8875" height="26.5" rx="0" ry="0"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-59.9437" y="-13.25" width="119.8875" height="26.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(0,-6.75)">
+              <rect x="-55.4775" y="-6.5" width="110.955" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a dependent copy</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(0,7)">
+              <rect x="-59.9437" y="-6.25" width="119.8875" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a zone&apos;s terminology</text>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-adot lini-oval" transform="translate(76.3063,-30)">
+          <ellipse cx="0" cy="0" rx="5.5" ry="5.5"/>
+        </g>
+        <g class="lini-node lini-block" transform="translate(76.3063,-2)">
+          <rect x="-60.7188" y="-13.25" width="121.4375" height="26.5" rx="0" ry="0"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-60.7188" y="-13.25" width="121.4375" height="26.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(0,-6.75)">
+              <rect x="-37.726" y="-6.5" width="75.452" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a subscriber</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(0,7)">
+              <rect x="-60.7188" y="-6.25" width="121.4375" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">resumes, never skips</text>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-adot lini-oval" transform="translate(248.3063,-30)">
+          <ellipse cx="0" cy="0" rx="5.5" ry="5.5"/>
+        </g>
+        <g class="lini-node lini-block" transform="translate(248.3063,-2)">
+          <rect x="-64.3063" y="-13.25" width="128.6125" height="26.5" rx="0" ry="0"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-64.3063" y="-13.25" width="128.6125" height="26.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(0,-6.75)">
+              <rect x="-44.668" y="-6.5" width="89.336" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a client paging</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(0,7)">
+              <rect x="-64.3063" y="-6.25" width="128.6125" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">through one result set</text>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(2.3063,50)">
+          <rect x="-163.6375" y="-6.25" width="327.275" height="12.5" rx="0" ry="0"/>
+          <g class="lini-node lini-small lini-t lini-block" transform="translate(0,0)">
+            <rect x="-163.6375" y="-6.25" width="327.275" height="12.5" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">each one is a name and a position on the same sequence</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380.75,84.75)">
+    </g>
+    <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,128.5)">
+      <rect x="-380" y="-35" width="760" height="70" rx="9" ry="9"/>
+      <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+        <rect x="-364" y="-15.25" width="728" height="30.5" rx="0" ry="0"/>
+        <g class="lini-node lini-has lini-t lini-block" transform="translate(-163.917,-8.75)">
+          <rect x="-200.083" y="-6.5" width="400.166" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">&quot;How far behind is it&quot; is one question with one answer, for all four.</text>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-93.1687,9)">
+          <rect x="-270.8313" y="-6.25" width="541.6625" height="12.5" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">The appliance is a long way back and nothing is wrong. It is behind by a distance you can read.</text>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-380.75,172.25)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-0.75,195.75)">
+      <rect x="-380" y="-15.5" width="760" height="31" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-133.9555,-9)">
+        <rect x="-246.0445" y="-6.5" width="492.089" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Four mechanisms would mean four sets of state and four failure modes — and the</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-166.6895,9)">
+        <rect x="-213.3105" y="-6.5" width="426.621" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">first hour of any incident spent working out which of the four is behind.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

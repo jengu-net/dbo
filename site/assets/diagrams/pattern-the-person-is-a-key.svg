@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -136 771 272" width="771" height="272" class="lini lini-scope-809a01f1" role="img" aria-labelledby="pattern-the-person-is-a-key-title pattern-the-person-is-a-key-desc">
+  <title id="pattern-the-person-is-a-key-title">Encrypted where it is written</title>
+  <desc id="pattern-the-person-is-a-key-desc">On the left, the write itself: identifying elements are sealed there, with a key belonging to that one person, and re-identification goes through a single recorded place. On the right, everything downstream — the backup, the export, the change feed, the dependent copy — each carrying ciphertext because of where the seal is placed rather than because four separate paths were each written correctly.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-809a01f1 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-809a01f1[data-theme="dark"], [data-theme="dark"] .lini-scope-809a01f1 { color-scheme: dark; }
+      .lini-scope-809a01f1[data-theme="light"], [data-theme="light"] .lini-scope-809a01f1 { color-scheme: light; }
+    }
+    .lini-scope-809a01f1 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-809a01f1 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-809a01f1 .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-809a01f1 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-809a01f1 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-809a01f1 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-809a01f1 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-809a01f1 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-809a01f1 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-809a01f1 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-809a01f1 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-809a01f1 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-809a01f1 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-809a01f1 .lini-lt { font-size: 12px; }
+    .lini-scope-809a01f1 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-809a01f1 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-809a01f1 .lini-ring { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-809a01f1 .lini-bar { stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-809a01f1 .lini-arrow { stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-809a01f1 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-274.1095,-126.5)">
+      <rect x="-107.3905" y="-5.5" width="214.781" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">ENCRYPTED WHERE IT IS WRITTEN</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-116)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,10.5)">
+      <rect x="-381.5" y="-121.5" width="763" height="243" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-230.75,0)">
+        <rect x="-150.75" y="-121.5" width="301.5" height="243" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-114,-84.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-ring lini-oval" transform="translate(-19.5,-1.6875)">
+            <ellipse cx="0" cy="0" rx="9" ry="9"/>
+          </g>
+          <g class="lini-node lini-bar lini-line" transform="translate(2.5,-1.6875)">
+            <line x1="0" y1="0" x2="26" y2="0"/>
+          </g>
+          <g class="lini-node lini-bar lini-line" style="stroke: var(--lini-seal); stroke-width: 3" transform="translate(6.5,2.3125)">
+            <line x1="0" y1="0" x2="0" y2="8"/>
+          </g>
+          <g class="lini-node lini-bar lini-line" style="stroke: var(--lini-seal); stroke-width: 3" transform="translate(14.5,2.3125)">
+            <line x1="0" y1="0" x2="0" y2="8"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-150.75,-43)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-150" y="-79" width="300" height="158" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-134" y="-58.25" width="268" height="116.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-89.566,-51.75)">
+              <rect x="-44.434" y="-6.5" width="88.868" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the write itself</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-43.4937,-33)">
+              <rect x="-90.5063" y="-6.25" width="181.0125" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">identifying elements are sealed</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-58.1813,-14.5)">
+              <rect x="-75.8187" y="-6.25" width="151.6375" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">here, with a key belonging</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-80.2688,4)">
+              <rect x="-53.7312" y="-6.25" width="107.4625" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">to that one person</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-134,18.25)">
+            </g>
+            <g class="lini-node lini-has lini-t lini-block" transform="translate(-41.2645,32.75)">
+              <rect x="-92.7355" y="-6.5" width="185.471" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">re-identification goes through</text>
+            </g>
+            <g class="lini-node lini-has lini-t lini-block" transform="translate(-53.2895,51.75)">
+              <rect x="-80.7105" y="-6.5" width="161.421" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">one place, and is recorded</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-58,-1.5)">
+        <rect x="-22" y="-120" width="44" height="240" rx="0" ry="0"/>
+        <g class="lini-node lini-arrow lini-line" transform="translate(-16,32)">
+          <line x1="0" y1="0" x2="27.5" y2="0"/>
+          <polygon class="lini-marker lini-marker-arrow" points="32,0 22,5 22,-5" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(172.75,-0.75)">
+        <rect x="-208.75" y="-120.75" width="417.5" height="241.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-208.75,-79.75)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,41)">
+          <rect x="-208" y="-79" width="416" height="158" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-192" y="-61" width="384" height="122" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-104.77,-54.5)">
+              <rect x="-87.23" y="-6.5" width="174.46" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">everything downstream of it</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(0,-4.75)">
+              <rect x="-192" y="-35.25" width="384" height="70.5" rx="0" ry="0"/>
+              <g class="lini-node lini-line-item lini-box lini-block" transform="translate(-98,-19.625)">
+                <rect x="-94" y="-15" width="188" height="30" rx="5" ry="5"/>
+                <g class="lini-node lini-lt lini-t lini-block" transform="translate(-52.746,0)">
+                  <rect x="-31.254" y="-6" width="62.508" height="12" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">the backup</text>
+                </g>
+              </g>
+              <g class="lini-node lini-line-item lini-box lini-block" transform="translate(98,-19.625)">
+                <rect x="-94" y="-15" width="188" height="30" rx="5" ry="5"/>
+                <g class="lini-node lini-lt lini-t lini-block" transform="translate(-54.93,0)">
+                  <rect x="-29.07" y="-6" width="58.14" height="12" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">the export</text>
+                </g>
+              </g>
+              <g class="lini-node lini-line-item lini-box lini-block" transform="translate(-98,19.625)">
+                <rect x="-94" y="-15" width="188" height="30" rx="5" ry="5"/>
+                <g class="lini-node lini-lt lini-t lini-block" transform="translate(-38.52,0)">
+                  <rect x="-45.48" y="-6" width="90.96" height="12" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">the change feed</text>
+                </g>
+              </g>
+              <g class="lini-node lini-line-item lini-box lini-block" transform="translate(98,19.625)">
+                <rect x="-94" y="-15" width="188" height="30" rx="5" ry="5"/>
+                <g class="lini-node lini-lt lini-t lini-block" transform="translate(-27.48,0)">
+                  <rect x="-56.52" y="-6" width="113.04" height="12" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">the dependent copy</text>
+                </g>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-192,39.5)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-41.9187,54.75)">
+              <rect x="-150.0813" y="-6.25" width="300.1625" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">each carries ciphertext because of where the seal is</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

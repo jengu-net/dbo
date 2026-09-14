@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-386.75 -170.25 773.5 340.5" width="773.5" height="340.5" class="lini lini-scope-26060ff6" role="img" aria-labelledby="pattern-carrying-is-not-reading-title pattern-carrying-is-not-reading-desc">
+  <title id="pattern-carrying-is-not-reading-title">Two kinds of entry, one trail</title>
+  <desc id="pattern-carrying-is-not-reading-desc">On the left, a sealed payload travelling: each hop that carries it leaves a travel entry, which is about the task and answers where this went. On the right, somebody opening it: that leaves an access entry on the document, which answers who read this — or leaves no entry at all, which is the trail saying nobody looked. Beneath, the one read deliberately not recorded: the machinery's own read to seal the payload, which yields only ciphertext and is therefore not a disclosure.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-26060ff6 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-26060ff6[data-theme="dark"], [data-theme="dark"] .lini-scope-26060ff6 { color-scheme: dark; }
+      .lini-scope-26060ff6[data-theme="light"], [data-theme="light"] .lini-scope-26060ff6 { color-scheme: light; }
+    }
+    .lini-scope-26060ff6 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-26060ff6 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-26060ff6 .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-26060ff6 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-26060ff6 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-26060ff6 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-26060ff6 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-26060ff6 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-26060ff6 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-26060ff6 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-26060ff6 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-26060ff6 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-26060ff6 .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-26060ff6 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-26060ff6 .lini-lt { font-size: 12px; }
+    .lini-scope-26060ff6 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-26060ff6 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-26060ff6 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-26060ff6 .lini-rec { fill: var(--lini-panel); stroke: var(--lini-accent); stroke-width: 2; }
+    .lini-scope-26060ff6 .lini-sdot { fill: var(--lini-seal); stroke: none; }
+    .lini-scope-26060ff6 .lini-bar { stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-26060ff6 .lini-arrow { stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-26060ff6 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-275.5905,-160.75)">
+      <rect x="-107.1595" y="-5.5" width="214.319" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">TWO KINDS OF ENTRY, ONE TRAIL</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.75,-150.25)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-27.75)">
+      <rect x="-382.75" y="-117.5" width="765.5" height="235" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-207.375,0)">
+        <rect x="-175.375" y="-117.5" width="350.75" height="235" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-138.625,-80.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(0,0)">
+            <rect x="-19" y="-13" width="38" height="26" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-bar lini-line" style="stroke-width: 2" transform="translate(-9,-6)">
+            <line x1="0" y1="0" x2="10" y2="7"/>
+          </g>
+          <g class="lini-node lini-bar lini-line" style="stroke-width: 2" transform="translate(9,-6)">
+            <line x1="0" y1="0" x2="-10" y2="7"/>
+          </g>
+          <g class="lini-node lini-sdot lini-oval" transform="translate(14,9)">
+            <ellipse cx="0" cy="0" rx="4.5" ry="4.5"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-175.375,-39)">
+        </g>
+        <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-174.625" y="-75" width="349.25" height="150" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-158.625" y="-57" width="317.25" height="114" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-78.4735,-50.5)">
+              <rect x="-80.1515" y="-6.5" width="160.303" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">the sealed payload travels</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,-22.375)">
+              <rect x="-158" y="-13" width="316" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-60.572,0)">
+                <rect x="-85.428" y="-6" width="170.856" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">a carrier takes it — travel entry</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,12.875)">
+              <rect x="-158" y="-13" width="316" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-68.138,0)">
+                <rect x="-77.862" y="-6" width="155.724" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">a second hop — travel entry</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-158.625,35.5)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-63.8438,50.75)">
+              <rect x="-94.7812" y="-6.25" width="189.5625" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">about the task: where did this go</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-block" transform="translate(-12,-1.5)">
+        <rect x="-20" y="-116" width="40" height="232" rx="0" ry="0"/>
+        <g class="lini-node lini-arrow lini-line" transform="translate(-16,40)">
+          <line x1="0" y1="0" x2="27.5" y2="0"/>
+          <polygon class="lini-marker lini-marker-arrow" points="32,0 22,5 22,-5" style="fill: var(--lini-accent)"/>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(195.375,-0.75)">
+        <rect x="-187.375" y="-116.75" width="374.75" height="233.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-187.375,-75.75)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41)">
+          <rect x="-186.625" y="-75" width="373.25" height="150" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+            <rect x="-170.625" y="-57" width="341.25" height="114" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-112.216,-50.5)">
+              <rect x="-58.409" y="-6.5" width="116.818" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">somebody opens it</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel); stroke: var(--lini-seal)" transform="translate(0,-22.375)">
+              <rect x="-170" y="-13" width="340" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-63.2235,0)">
+                <rect x="-94.7765" y="-6.5" width="189.553" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">access entry, on the document</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,12.875)">
+              <rect x="-170" y="-13" width="340" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-54.9815,0)">
+                <rect x="-103.0185" y="-6.5" width="206.037" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">or no entry at all — nobody looked</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-170.625,35.5)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-68.9,50.75)">
+              <rect x="-101.725" y="-6.25" width="203.45" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">about the document: who read this</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-382.75,98.75)">
+    </g>
+    <g class="lini-node lini-dashed lini-box lini-block" transform="translate(-2,137)">
+      <rect x="-380" y="-28.5" width="760" height="57" rx="9" ry="9"/>
+      <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+        <rect x="-364" y="-14.5" width="728" height="29" rx="0" ry="0"/>
+        <g class="lini-node lini-miss lini-t lini-block" transform="translate(-92.742,-8)">
+          <rect x="-271.258" y="-6.5" width="542.516" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">and one read that is deliberately not recorded: the machinery&apos;s own, to seal the payload —</text>
+        </g>
+        <g class="lini-node lini-miss lini-t lini-block" transform="translate(-104.39,8)">
+          <rect x="-259.61" y="-6.5" width="519.22" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">a read that yields ciphertext is not a disclosure, and logging it would bury the real ones</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

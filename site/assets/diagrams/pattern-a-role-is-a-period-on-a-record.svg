@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -168.5 771 337" width="771" height="337" class="lini lini-scope-b1e614f4" role="img" aria-labelledby="pattern-a-role-is-a-period-on-a-record-title pattern-a-role-is-a-period-on-a-record-desc">
+  <title id="pattern-a-role-is-a-period-on-a-record-title">One record, read as a grant</title>
+  <desc id="pattern-a-role-is-a-period-on-a-record-desc">Two columns. On the left, the usual arrangement: a record saying who works here, a separate directory saying who may log in, and the day somebody who left last year is still in the second one. On the right, one record carrying a period — a nurse, in this department, from March until the end of August — read directly as the grant. Revoking access is ending the period, on a record that already had history.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-b1e614f4 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-b1e614f4[data-theme="dark"], [data-theme="dark"] .lini-scope-b1e614f4 { color-scheme: dark; }
+      .lini-scope-b1e614f4[data-theme="light"], [data-theme="light"] .lini-scope-b1e614f4 { color-scheme: light; }
+    }
+    .lini-scope-b1e614f4 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-b1e614f4 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-b1e614f4 .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-b1e614f4 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-b1e614f4 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-b1e614f4 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-b1e614f4 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-b1e614f4 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-b1e614f4 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-b1e614f4 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-b1e614f4 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-b1e614f4 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-b1e614f4 .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-b1e614f4 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-b1e614f4 .lini-lt { font-size: 12px; }
+    .lini-scope-b1e614f4 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-b1e614f4 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-b1e614f4 .lini-body { color: var(--lini-muted); }
+    .lini-scope-b1e614f4 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-b1e614f4 .lini-ring { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-b1e614f4 .lini-bar { stroke: var(--lini-accent); stroke-width: 2.25; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-277.845,-159)">
+      <rect x="-103.655" y="-5.5" width="207.31" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">ONE RECORD, READ AS A GRANT</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-148.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-13)">
+      <rect x="-381.5" y="-130.5" width="763" height="261" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,-0.75)">
+        <rect x="-184.75" y="-129.75" width="369.5" height="259.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-88.75)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-88" width="368" height="176" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-67.75" width="335.25" height="135.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-87.649,-61.25)">
+              <rect x="-79.976" y="-6.5" width="159.952" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">two places to keep in step</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-33.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-44.7665,0)">
+                <rect x="-110.2335" y="-6.5" width="220.467" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the record that says who works here</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,2.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-40.314,0)">
+                <rect x="-114.686" y="-6.5" width="229.372" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the directory that says who may log in</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,24.75)">
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-45.4705,40.25)">
+              <rect x="-122.1545" y="-6.5" width="244.309" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">and the day somebody who left last year</text>
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-96.3005,61.25)">
+              <rect x="-71.3245" y="-6.5" width="142.649" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">is still in the second one</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,0)">
+        <rect x="-184.75" y="-130.5" width="369.5" height="261" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-93.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-bar lini-line" style="stroke: var(--lini-line); stroke-width: 2" transform="translate(0,10)">
+            <line x1="-22" y1="0" x2="22" y2="0"/>
+          </g>
+          <g class="lini-node lini-bar lini-line" style="stroke: var(--lini-seal); stroke-width: 4" transform="translate(0,10)">
+            <line x1="-14" y1="0" x2="10" y2="0"/>
+          </g>
+          <g class="lini-node lini-bar lini-line" transform="translate(-14,10)">
+            <line x1="0" y1="-6" x2="0" y2="6"/>
+          </g>
+          <g class="lini-node lini-bar lini-line" transform="translate(10,10)">
+            <line x1="0" y1="-6" x2="0" y2="6"/>
+          </g>
+          <g class="lini-node lini-ring lini-oval" transform="translate(-2,-10)">
+            <ellipse cx="0" cy="0" rx="6" ry="6"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-52)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-88" width="368" height="176" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-67.25" width="335.25" height="134.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-75.6045,-60.75)">
+              <rect x="-92.0205" y="-6.5" width="184.041" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">one record, with a period on it</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-32.625)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-80.564,0)">
+                <rect x="-74.436" y="-6" width="148.872" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">a nurse, in this department</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel); stroke: var(--lini-seal)" transform="translate(0,2.625)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-47.7045,0)">
+                <rect x="-107.2955" y="-6.5" width="214.591" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">from March until the end of August</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,25.25)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-60.3937,40.5)">
+              <rect x="-107.2313" y="-6.25" width="214.4625" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">revoking access is ending the period,</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-67.7125,61)">
+              <rect x="-99.9125" y="-6.25" width="199.825" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">and the record already had history</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,125.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-1.5,149)">
+      <rect x="-380" y="-15.5" width="760" height="31" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-132.3175,-9)">
+        <rect x="-247.6825" y="-6.5" width="495.365" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The records a tenant keeps anyway are the grants. So there is no second directory</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-204.552,9)">
+        <rect x="-175.448" y="-6.5" width="350.896" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">to reconcile, and no drift to discover on the day it matters.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

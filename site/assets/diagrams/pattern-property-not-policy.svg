@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -185.375 771 370.75" width="771" height="370.75" class="lini lini-scope-ca64d8bc" role="img" aria-labelledby="pattern-property-not-policy-title pattern-property-not-policy-desc">
+  <title id="pattern-property-not-policy-title">The same promise, made twice</title>
+  <desc id="pattern-property-not-policy-desc">Two columns of equal size. On the left, the promise as a policy: a dashed panel saying only the treating clinician reads a record and only for care, written down, trained, audited once a year, and set aside on a bad Tuesday. On the right, the same promise as a property: a sealed panel saying a read is a step of a process and a step names what it may reach, so there is no general read behind it, nothing to set aside, and the attempt is itself the audit entry.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-ca64d8bc { color-scheme: light dark; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-ca64d8bc[data-theme="dark"], [data-theme="dark"] .lini-scope-ca64d8bc { color-scheme: dark; }
+      .lini-scope-ca64d8bc[data-theme="light"], [data-theme="light"] .lini-scope-ca64d8bc { color-scheme: light; }
+    }
+    .lini-scope-ca64d8bc { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-ca64d8bc .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-ca64d8bc .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-ca64d8bc .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-ca64d8bc .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-ca64d8bc .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-ca64d8bc .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-ca64d8bc .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-ca64d8bc .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-ca64d8bc .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-ca64d8bc .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-ca64d8bc .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-ca64d8bc .lini-lt { font-size: 12px; }
+    .lini-scope-ca64d8bc .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-ca64d8bc .lini-miss { color: var(--lini-faint); }
+    .lini-scope-ca64d8bc .lini-body { color: var(--lini-muted); }
+    .lini-scope-ca64d8bc .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-ca64d8bc .lini-solid { fill: var(--lini-seal); stroke: none; }
+    .lini-scope-ca64d8bc .lini-ghost { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-274.6215,-175.875)">
+      <rect x="-106.8785" y="-5.5" width="213.757" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">THE SAME PROMISE, MADE TWICE</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-165.375)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-13)">
+      <rect x="-381.5" y="-147.375" width="763" height="294.75" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,0)">
+        <rect x="-184.75" y="-147.375" width="369.5" height="294.75" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-110.625)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-ghost lini-box lini-block" transform="translate(0,0)">
+            <rect x="-17" y="-17" width="34" height="34" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-t lini-block" style="color: var(--lini-faint); font-size: 20px; font-weight: bold" transform="translate(0,0)">
+            <rect x="-5.12" y="-10" width="10.24" height="20" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">?</text>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-68.875)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-104.875" width="368" height="209.75" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-88.875" width="335.25" height="177.75" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-135.775,-82.375)">
+              <rect x="-31.85" y="-6.5" width="63.7" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">as a policy</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-73.425,-60.625)">
+              <rect x="-94.2" y="-6.25" width="188.4" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">&quot;Only the treating clinician reads</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-87.3188,-39.125)">
+              <rect x="-80.3062" y="-6.25" width="160.6125" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a record, and only for care.&quot;</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,-21.875)">
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,2.75)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-117.86,0)">
+                <rect x="-37.14" y="-6" width="74.28" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">written down</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" transform="translate(0,39)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-65.39,0)">
+                <rect x="-89.61" y="-6" width="179.22" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">trained, and audited once a year</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,75.25)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-61.257,0)">
+                <rect x="-93.743" y="-6.5" width="187.486" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">and set aside on a bad Tuesday</text>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,0)">
+        <rect x="-184.75" y="-147.375" width="369.5" height="294.75" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-110.625)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-ghost lini-box lini-block" transform="translate(3.125,-3.125)">
+            <rect x="-17" y="-17" width="34" height="34" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-solid lini-box lini-block" transform="translate(-5.875,5.875)">
+            <rect x="-15" y="-15" width="30" height="30" rx="2" ry="2"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-68.875)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-104.875" width="368" height="209.75" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-88.875" width="335.25" height="177.75" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-126.8895,-82.375)">
+              <rect x="-40.7355" y="-6.5" width="81.471" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">as a property</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-72.3375,-60.625)">
+              <rect x="-95.2875" y="-6.25" width="190.575" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">A read is a step of a process, and</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-74.5187,-39.125)">
+              <rect x="-93.1063" y="-6.25" width="186.2125" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a step names what it may reach.</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,-21.875)">
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,2.75)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-63.494,0)">
+                <rect x="-91.506" y="-6" width="183.012" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">there is no general read behind it</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,39)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-69.932,0)">
+                <rect x="-85.068" y="-6" width="170.136" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">so there is nothing to set aside</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,75.25)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-52.0855,0)">
+                <rect x="-102.9145" y="-6.5" width="205.829" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">and the attempt is the audit entry</text>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,142.375)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-1.5,165.875)">
+      <rect x="-380" y="-15.5" width="760" height="31" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-178.1295,-9)">
+        <rect x="-201.8705" y="-6.5" width="403.741" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The test is the third line. A policy&apos;s last line is somebody&apos;s discipline;</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-222.0825,9)">
+        <rect x="-157.9175" y="-6.5" width="315.835" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">a property&apos;s last line is a thing the system will not do.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

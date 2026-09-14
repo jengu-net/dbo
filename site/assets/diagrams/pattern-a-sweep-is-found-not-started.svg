@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -152 771 304" width="771" height="304" class="lini lini-scope-f0535feb" role="img" aria-labelledby="pattern-a-sweep-is-found-not-started-title pattern-a-sweep-is-found-not-started-desc">
+  <title id="pattern-a-sweep-is-found-not-started-title">The crash, and the attempt after it</title>
+  <desc id="pattern-a-sweep-is-found-not-started-desc">Two columns showing the same interruption twice. On the left, work that is started each time it is asked for: run one is interrupted halfway, run two opens beside it, and there are now two accounts of one erasure. On the right, work that is found if one is already open: run one is interrupted halfway, and asking again resumes the same run, which closes when it finds nothing left to do.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-f0535feb { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-f0535feb[data-theme="dark"], [data-theme="dark"] .lini-scope-f0535feb { color-scheme: dark; }
+      .lini-scope-f0535feb[data-theme="light"], [data-theme="light"] .lini-scope-f0535feb { color-scheme: light; }
+    }
+    .lini-scope-f0535feb { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-f0535feb .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-f0535feb .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-f0535feb .lini-path { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-f0535feb .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-f0535feb .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-f0535feb .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-f0535feb .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-f0535feb .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-f0535feb .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-f0535feb .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-f0535feb .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-f0535feb .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-f0535feb .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-f0535feb .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-f0535feb .lini-lt { font-size: 12px; }
+    .lini-scope-f0535feb .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-f0535feb .lini-miss { color: var(--lini-faint); }
+    .lini-scope-f0535feb .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-f0535feb .lini-glyph { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-f0535feb .lini-sdot { fill: var(--lini-seal); stroke: none; }
+    .lini-scope-f0535feb .lini-arrow { stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-f0535feb .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-253.1405,-142.5)">
+      <rect x="-128.3595" y="-5.5" width="256.719" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">THE CRASH, AND THE ATTEMPT AFTER IT</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-132)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,10.5)">
+      <rect x="-381.5" y="-137.5" width="763" height="275" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,-0.75)">
+        <rect x="-184.75" y="-136.75" width="369.5" height="273.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-95.75)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-95" width="368" height="190" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-67.75" width="335.25" height="135.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-69.397,-61.25)">
+              <rect x="-98.228" y="-6.5" width="196.456" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">started, each time it is asked for</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-33.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-63.3305,0)">
+                <rect x="-91.6695" y="-6.5" width="183.339" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">run one — interrupted halfway</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,2.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-72.4955,0)">
+                <rect x="-82.5045" y="-6.5" width="165.009" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">run two — opened beside it</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,24.75)">
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-43.6505,40.25)">
+              <rect x="-123.9745" y="-6.5" width="247.949" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">two accounts of one erasure, and neither</text>
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-61.4605,61.25)">
+              <rect x="-106.1645" y="-6.5" width="212.329" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">of them is the answer to &quot;is it done&quot;</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,0)">
+        <rect x="-184.75" y="-137.5" width="369.5" height="275" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-100.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-glyph lini-path" transform="translate(-0.1035,0.1035)">
+            <path d="M 14 -8 A 16 16 0 1 1 8 -14"/>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(5.8965,-13.8965)">
+            <line x1="0" y1="0" x2="2.2558" y2="1.5038"/>
+            <polygon class="lini-marker lini-marker-arrow" points="6,4 -5.094,2.6132 0.453,-5.7073" style="fill: var(--lini-accent)"/>
+          </g>
+          <g class="lini-node lini-sdot lini-oval" transform="translate(-0.1035,0.1035)">
+            <ellipse cx="0" cy="0" rx="4" ry="4"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-59)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-95" width="368" height="190" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-67.25" width="335.25" height="134.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-81.357,-60.75)">
+              <rect x="-86.268" y="-6.5" width="172.536" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">found, if one is already open</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-32.625)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-70.382,0)">
+                <rect x="-84.618" y="-6" width="169.236" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">run one — interrupted halfway</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel); stroke: var(--lini-seal)" transform="translate(0,2.625)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-42.017,0)">
+                <rect x="-112.983" y="-6.5" width="225.966" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">asked again — the same run resumes</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,25.25)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-52.9938,40.5)">
+              <rect x="-114.6312" y="-6.25" width="229.2625" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">one account, which closes when it finds</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-117.3188,61)">
+              <rect x="-50.3062" y="-6.25" width="100.6125" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">nothing left to do</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

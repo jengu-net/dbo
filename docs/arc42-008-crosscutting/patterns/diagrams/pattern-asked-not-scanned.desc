@@ -1,0 +1,7 @@
+The answer you cannot check
+At the top, the question asked: entries of a given kind, coded in a given
+system, where the code is indexed but the system is not. On the left, matching
+the code and quietly dropping the system: rows come back and they look exactly
+right, which means a wider question has been answered without the caller being
+able to tell. On the right, refusing instead, and naming which part is
+supported and which qualifier is not.

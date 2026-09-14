@@ -1,0 +1,7 @@
+The state a list leaves out
+Across the top, the five states a tenant passes through: declared,
+provisioned, brought up, served, and one day taken away. Beneath, two panels.
+What a running node reports is the tenants it is serving, and a tenant that
+never came up is simply absent from that list. What therefore has to be
+askable is why a particular tenant is not being served, and what it was
+waiting for when it stopped.

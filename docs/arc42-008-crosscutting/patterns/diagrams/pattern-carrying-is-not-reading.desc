@@ -1,0 +1,8 @@
+Two kinds of entry, one trail
+On the left, a sealed payload travelling: each hop that carries it leaves a
+travel entry, which is about the task and answers where this went. On the
+right, somebody opening it: that leaves an access entry on the document, which
+answers who read this — or leaves no entry at all, which is the trail saying
+nobody looked. Beneath, the one read deliberately not recorded: the
+machinery's own read to seal the payload, which yields only ciphertext and is
+therefore not a disclosure.

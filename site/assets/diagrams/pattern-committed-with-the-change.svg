@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -181.5 771 363" width="771" height="363" class="lini lini-scope-16c459e7" role="img" aria-labelledby="pattern-committed-with-the-change-title pattern-committed-with-the-change-desc">
+  <title id="pattern-committed-with-the-change-title">The window that does not exist</title>
+  <desc id="pattern-committed-with-the-change-desc">Two columns. On the left, writing and then publishing: the row is committed, then a gap, then the broker is told or is not. That gap is how consumers end up permanently and subtly behind, not badly enough for anybody to notice. On the right, one transaction carrying both the change and its event, so there is no separate publish step and no interval in which one happened and the other did not.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-16c459e7 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-16c459e7[data-theme="dark"], [data-theme="dark"] .lini-scope-16c459e7 { color-scheme: dark; }
+      .lini-scope-16c459e7[data-theme="light"], [data-theme="light"] .lini-scope-16c459e7 { color-scheme: light; }
+    }
+    .lini-scope-16c459e7 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-16c459e7 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-16c459e7 .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-16c459e7 .lini-path { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-16c459e7 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-16c459e7 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-16c459e7 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-16c459e7 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-16c459e7 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-16c459e7 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-16c459e7 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-16c459e7 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-16c459e7 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-16c459e7 .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-16c459e7 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-16c459e7 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-16c459e7 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-16c459e7 .lini-body { color: var(--lini-muted); }
+    .lini-scope-16c459e7 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-16c459e7 .lini-glyph { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-16c459e7 .lini-rec { fill: var(--lini-panel); stroke: var(--lini-accent); stroke-width: 2; }
+    .lini-scope-16c459e7 .lini-sdot { fill: var(--lini-seal); stroke: none; }
+    .lini-scope-16c459e7 .lini-ghostline { stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-265.7545,-172)">
+      <rect x="-115.7455" y="-5.5" width="231.491" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">THE WINDOW THAT DOES NOT EXIST</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-161.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-22)">
+      <rect x="-381.5" y="-134.5" width="763" height="269" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,0)">
+        <rect x="-184.75" y="-134.5" width="369.5" height="269" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-93.5)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-92.75" width="368" height="185.5" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-76.75" width="335.25" height="153.5" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-110.75,-70.25)">
+              <rect x="-56.875" y="-6.5" width="113.75" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">write, then publish</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-42.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-90.6825,0)">
+                <rect x="-64.3175" y="-6.5" width="128.635" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the row is committed</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-0.625,-15.5)">
+              <rect x="-167" y="-5" width="334" height="10" rx="0" ry="0"/>
+              <g class="lini-node lini-ghostline lini-line" transform="translate(0,0)">
+                <line x1="-167" y1="0" x2="167" y2="0"/>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,11.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-75.986,0)">
+                <rect x="-79.014" y="-6.5" width="158.028" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the broker is told, or is not</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,33.75)">
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-36.286,49.25)">
+              <rect x="-131.339" y="-6.5" width="262.678" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">consumers that are permanently and subtly</text>
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-74.792,70.25)">
+              <rect x="-92.833" y="-6.5" width="185.666" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">behind — not enough to notice</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,-4)">
+        <rect x="-184.75" y="-130.5" width="369.5" height="261" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-93.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(-7,0)">
+            <rect x="-11" y="-14" width="22" height="28" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-sdot lini-oval" transform="translate(13,0)">
+            <ellipse cx="0" cy="0" rx="5" ry="5"/>
+          </g>
+          <g class="lini-node lini-glyph lini-path" transform="translate(-21,-18)">
+            <path d="M 0 0 L -4 0 L -4 36 L 0 36"/>
+          </g>
+          <g class="lini-node lini-glyph lini-path" transform="translate(21,-18)">
+            <path d="M 0 0 L 4 0 L 4 36 L 0 36"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-52)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-88" width="368" height="176" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-49.625" width="335.25" height="99.25" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-119.486,-43.125)">
+              <rect x="-48.139" y="-6.5" width="96.278" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">one transaction</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel); stroke: var(--lini-seal)" transform="translate(0,-15)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-13.807,0)">
+                <rect x="-141.193" y="-6.5" width="282.386" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the change and its event, committed together</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,7.625)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-47.875,22.875)">
+              <rect x="-119.75" y="-6.25" width="239.5" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">no separate publish step, so no interval in</text>
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-44.6562,43.375)">
+              <rect x="-122.9688" y="-6.25" width="245.9375" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">which one happened and the other did not</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,120.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-1.5,153)">
+      <rect x="-380" y="-24.5" width="760" height="49" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-136.9,-18)">
+        <rect x="-243.1" y="-6.5" width="486.2" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Distribution then runs on the store&apos;s own database. A broker is one more thing to</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-134.1895,0)">
+        <rect x="-245.8105" y="-6.5" width="491.621" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">run, secure, back up and reason about at two in the morning — and the ordering it</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-234.3415,18)">
+        <rect x="-145.6585" y="-6.5" width="291.317" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">would give is already available where the data is.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

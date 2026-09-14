@@ -41,6 +41,13 @@ assumes the split it describes.
 - [**Running it**](running-it/README.md) (§11) — embedding, deployment shape, backup
   as export, upgrades.
 
+## All of the above, under names you can carry
+
+- [**The patterns**](patterns/README.md) — the same twenty-four ideas as a
+  pattern language: one name each, stated for a regulator, a security officer,
+  an administrator and the business, with what each one rests on. Written to
+  be referred to rather than read through.
+
 ## All of the above, in one spelling
 
 - [**The FHIR face**](the-fhir-face/README.md) — every concept on this page as a FHIR

@@ -1,0 +1,7 @@
+The crash, and the attempt after it
+Two columns showing the same interruption twice. On the left, work that is
+started each time it is asked for: run one is interrupted halfway, run two
+opens beside it, and there are now two accounts of one erasure. On the right,
+work that is found if one is already open: run one is interrupted halfway, and
+asking again resumes the same run, which closes when it finds nothing left to
+do.

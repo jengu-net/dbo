@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -171.5 771 343" width="771" height="343" class="lini lini-scope-fdbd251a" role="img" aria-labelledby="pattern-bytes-framed-not-rebuilt-title pattern-bytes-framed-not-rebuilt-desc">
+  <title id="pattern-bytes-framed-not-rebuilt-title">Parsed once, or parsed at every hop</title>
+  <desc id="pattern-bytes-framed-not-rebuilt-desc">Two columns. On the left, a payload rebuilt at each layer: bytes to objects, objects to other objects, and back to bytes on the way out, so what comes out is a reconstruction. On the right, the payload framed and carried: the bytes as written are the truth, read once for whatever has to be indexed, and what is carried is not opened.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-fdbd251a { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-fdbd251a[data-theme="dark"], [data-theme="dark"] .lini-scope-fdbd251a { color-scheme: dark; }
+      .lini-scope-fdbd251a[data-theme="light"], [data-theme="light"] .lini-scope-fdbd251a { color-scheme: light; }
+    }
+    .lini-scope-fdbd251a { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-fdbd251a .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-fdbd251a .lini-path { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-fdbd251a .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-fdbd251a .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-fdbd251a .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-fdbd251a .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-fdbd251a .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-fdbd251a .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-fdbd251a .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-fdbd251a .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-fdbd251a .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-fdbd251a .lini-lt { font-size: 12px; }
+    .lini-scope-fdbd251a .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-fdbd251a .lini-miss { color: var(--lini-faint); }
+    .lini-scope-fdbd251a .lini-body { color: var(--lini-muted); }
+    .lini-scope-fdbd251a .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-fdbd251a .lini-glyph { fill: none; stroke: var(--lini-accent); stroke-width: 2.25; }
+    .lini-scope-fdbd251a .lini-solid { fill: var(--lini-seal); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-248.7295,-162)">
+      <rect x="-132.7705" y="-5.5" width="265.541" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">PARSED ONCE, OR PARSED AT EVERY HOP</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-151.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-13)">
+      <rect x="-381.5" y="-133.5" width="763" height="267" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,-0.75)">
+        <rect x="-184.75" y="-132.75" width="369.5" height="265.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-91.75)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-91" width="368" height="182" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-74.875" width="335.25" height="149.75" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-106.7915,-68.375)">
+              <rect x="-60.8335" y="-6.5" width="121.667" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">rebuilt at each layer</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-40.25)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-106.185,0)">
+                <rect x="-48.815" y="-6.5" width="97.63" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">bytes to objects</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-5)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-82.6355,0)">
+                <rect x="-72.3645" y="-6.5" width="144.729" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">objects to other objects</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,30.25)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-55.0105,0)">
+                <rect x="-99.9895" y="-6.5" width="199.979" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">and back to bytes on the way out</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,52.875)">
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-61.4865,68.375)">
+              <rect x="-106.1385" y="-6.5" width="212.277" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">what comes out is a reconstruction</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,0)">
+        <rect x="-184.75" y="-133.5" width="369.5" height="267" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-96.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-glyph lini-path" transform="translate(-18,-16)">
+            <path d="M 8 0 L 0 0 L 0 32 L 8 32"/>
+          </g>
+          <g class="lini-node lini-glyph lini-path" transform="translate(10,-16)">
+            <path d="M 0 0 L 8 0 L 8 32 L 0 32"/>
+          </g>
+          <g class="lini-node lini-solid lini-box lini-block" transform="translate(0,0)">
+            <rect x="-11" y="-7" width="22" height="14" rx="2" ry="2"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-55)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-91" width="368" height="182" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-59.375" width="335.25" height="118.75" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-107.0775,-52.875)">
+              <rect x="-60.5475" y="-6.5" width="121.095" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">framed, and carried</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-24.75)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-59.732,0)">
+                <rect x="-95.268" y="-6" width="190.536" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">the payload is the truth, as written</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,10.5)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-50.078,0)">
+                <rect x="-104.922" y="-6" width="209.844" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">read once, for what has to be indexed</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel); stroke: var(--lini-seal)" transform="translate(0,45.75)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-66.7885,0)">
+                <rect x="-88.2115" y="-6.5" width="176.423" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">what is carried is not opened</text>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,128.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-1.5,152)">
+      <rect x="-380" y="-15.5" width="760" height="31" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-144.5245,-9)">
+        <rect x="-235.4755" y="-6.5" width="470.951" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">This is what lets custody and disclosure stay different events: a hop that never</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-195.1465,9)">
+        <rect x="-184.8535" y="-6.5" width="369.707" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">opened the payload has nothing to record about its contents.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -155 771 310" width="771" height="310" class="lini lini-scope-1ff984b0" role="img" aria-labelledby="pattern-the-trail-is-records-title pattern-the-trail-is-records-desc">
+  <title id="pattern-the-trail-is-records-title">Where the evidence is kept</title>
+  <desc id="pattern-the-trail-is-records-desc">Two columns. On the left, the audit trail shipped to an aggregator: somebody else owns the store, it is retained on their dial rather than yours, and one day the contract ends — three ways for the evidence to be missing on the day somebody asks. On the right, the trail as records in the tenant's own store: on its change feed like everything else, exported and restored with it, and with no interface that edits an entry, for anybody, including the party running the deployment.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-1ff984b0 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-1ff984b0[data-theme="dark"], [data-theme="dark"] .lini-scope-1ff984b0 { color-scheme: dark; }
+      .lini-scope-1ff984b0[data-theme="light"], [data-theme="light"] .lini-scope-1ff984b0 { color-scheme: light; }
+    }
+    .lini-scope-1ff984b0 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-1ff984b0 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-1ff984b0 .lini-oval { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-1ff984b0 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-1ff984b0 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-1ff984b0 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-1ff984b0 .lini-small { color: var(--lini-muted); font-size: 12.5px; }
+    .lini-scope-1ff984b0 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-1ff984b0 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-1ff984b0 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-1ff984b0 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-1ff984b0 .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-1ff984b0 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-1ff984b0 .lini-lt { font-size: 12px; }
+    .lini-scope-1ff984b0 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-1ff984b0 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-1ff984b0 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-1ff984b0 .lini-rec { fill: var(--lini-panel); stroke: var(--lini-accent); stroke-width: 2; }
+    .lini-scope-1ff984b0 .lini-sdot { fill: var(--lini-seal); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-285.8755,-145.5)">
+      <rect x="-95.6245" y="-5.5" width="191.249" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">WHERE THE EVIDENCE IS KEPT</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-135)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,10.5)">
+      <rect x="-381.5" y="-140.5" width="763" height="281" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,-0.75)">
+        <rect x="-184.75" y="-139.75" width="369.5" height="279.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-98.75)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-98" width="368" height="196" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-74.875" width="335.25" height="149.75" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-89.7875,-68.375)">
+              <rect x="-77.8375" y="-6.5" width="155.675" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">shipped to an aggregator</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-40.25)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-62.8495,0)">
+                <rect x="-92.1505" y="-6.5" width="184.301" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">somebody else owns the store</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,-5)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-60.9385,0)">
+                <rect x="-94.0615" y="-6.5" width="188.123" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">retained on their dial, not yours</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: none; stroke-dasharray: 5.5,4.375" transform="translate(0,30.25)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-63.0185,0)">
+                <rect x="-91.9815" y="-6.5" width="183.963" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">and one day the contract ends</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,52.875)">
+            </g>
+            <g class="lini-node lini-miss lini-t lini-block" transform="translate(-43.527,68.375)">
+              <rect x="-124.098" y="-6.5" width="248.196" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">three ways for it to be missing on the day</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,0)">
+        <rect x="-184.75" y="-140.5" width="369.5" height="281" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-103.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(0,-16)">
+            <rect x="-11" y="-6" width="22" height="12" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(0,0)">
+            <rect x="-11" y="-6" width="22" height="12" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(0,16)">
+            <rect x="-11" y="-6" width="22" height="12" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-sdot lini-oval" transform="translate(0,-8)">
+            <ellipse cx="0" cy="0" rx="2.5" ry="2.5"/>
+          </g>
+          <g class="lini-node lini-sdot lini-oval" transform="translate(0,8)">
+            <ellipse cx="0" cy="0" rx="2.5" ry="2.5"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-62)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-98" width="368" height="196" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-74.625" width="335.25" height="149.25" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-66.459,-68.125)">
+              <rect x="-101.166" y="-6.5" width="202.332" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">records in the tenant&apos;s own store</text>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-40)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-47.246,0)">
+                <rect x="-107.754" y="-6" width="215.508" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">on its change feed, like everything else</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel)" transform="translate(0,-4.75)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-lt lini-t lini-block" transform="translate(-73.52,0)">
+                <rect x="-81.48" y="-6" width="162.96" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">exported and restored with it</text>
+              </g>
+            </g>
+            <g class="lini-node lini-line-item lini-box lini-block" style="fill: var(--lini-panel); stroke: var(--lini-seal)" transform="translate(0,30.5)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-47.4965,0)">
+                <rect x="-107.5035" y="-6.5" width="215.007" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">no interface edits one, for anybody</text>
+              </g>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,53.125)">
+            </g>
+            <g class="lini-node lini-small lini-t lini-block" transform="translate(-42.0563,68.375)">
+              <rect x="-125.5687" y="-6.25" width="251.1375" height="12.5" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">including the party running the deployment</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

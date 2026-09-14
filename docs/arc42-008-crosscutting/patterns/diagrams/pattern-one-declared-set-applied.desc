@@ -1,0 +1,7 @@
+Written once, applied repeatedly
+On the left, one declared set held in a repository: value sets and profiles,
+search parameters, which tenants a deployment serves, and whether a step is
+automated. On the right, that same set applied as a run whose record is the
+receipt — to a tenant being brought up for the first time, to one that has
+been serving for two years, and to an appliance in a building. None of them
+needed it rewritten.

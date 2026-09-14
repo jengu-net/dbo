@@ -1,0 +1,245 @@
+{
+  // Every pattern's icon, on one sheet.
+  //
+  // This file is also the preset: the header below is the one a pattern
+  // figure copies verbatim, because Lini has no import. A tile is a fixed
+  // square with a glyph stacked at its centre; a glyph is drawn from three
+  // things only — an accent stroke, a seal fill, and a faint ghost — so
+  // twenty-four icons read as one family rather than twenty-four drawings.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened; and
+  // dbo.css maps --lini-stroke onto the site palette like the rest, so this
+  // value is only what a figure looks like away from the site.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  // A BARE STRING IS ALWAYS CENTRED in its parent, whatever `align` says;
+  // only a block-wrapped one can be placed.
+  |t::block|     { font-size: 13; color: --body; }
+  |small::t|     { font-size: 12.5; color: --muted; }
+  |cap::t|       { font-weight: semibold; color: --ink; }
+  |eyebrow::t|   { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                   text-transform: uppercase; color: --faint; }
+  |col::block|   { layout: flow; direction: column; align: start; gap: 6; }
+
+  // ---- the pattern preset -------------------------------------------------
+  // tile   the icon's square. Everything inside is stacked at its centre and
+  //        moved with `translate`, so a glyph is composed rather than placed.
+  // glyph  an open accent stroke: the thing the pattern is about.
+  // solid  a seal-green fill: what the store guarantees.
+  // ghost  a faint dashed outline: what is absent, refused, or merely claimed.
+  // rec    a record — the one noun every pattern shares.
+  // name   the caption under a tile on this sheet.
+  |tile::box|    { width: 72; height: 72; radius: 12; fill: --bg; stroke: --line;
+                   stroke-width: 1.5; layout: stack; padding: 0; }
+  |glyph::path|  { fill: none; stroke: --accent; stroke-width: 2.25; }
+  |ring::oval|   { fill: none; stroke: --accent; stroke-width: 2.25; }
+  |rec::box|     { radius: 3; fill: --panel; stroke: --accent; stroke-width: 2;
+                   padding: 0; }
+  |solid::box|   { radius: 2; fill: --seal; stroke: none; padding: 0; }
+  |sdot::oval|   { fill: --seal; stroke: none; }
+  |adot::oval|   { fill: --accent; stroke: none; }
+  |ghost::box|   { radius: 3; fill: none; stroke: --faint; stroke-width: 1.5;
+                   stroke-style: dashed; padding: 0; }
+  |ghostline::line| { stroke: --faint; stroke-width: 1.5; stroke-style: dashed; }
+  |bar::line|    { stroke: --accent; stroke-width: 2.25; }
+  |arrow::line|  { stroke: --accent; stroke-width: 2.25; marker-end: arrow; }
+  |name::t|      { font-size: 11; color: --muted; max-width: 108; text-wrap: wrap; }
+  |slot::block|  { layout: flow; direction: column; align: center; gap: 6;
+                   width: 116; }
+
+  layout: flow; direction: column; align: start; width: 760;
+  padding: 4; gap: 0; clearance: 2;
+}
+
+|eyebrow| "Every pattern, one glyph"
+|block| { height: 10 } []
+
+|block| { layout: grid; columns: repeat(6, 116); gap: 12 } [
+
+  // -- foundation -----------------------------------------------------------
+  |slot| [ |tile| [
+      |ghost| { width: 34; height: 34; translate: 5 -5; }
+      |solid| { width: 30; height: 30; translate: -4 4; } ]
+    |name| "Property, Not Policy" ]
+
+  |slot| [ |tile| [
+      |rec| { width: 32; height: 36; radius: 6; }
+      |ring| { width: 32; height: 12; translate: 0 -14; fill: --panel; }
+      |bar| { points: -16 0, 16 0; translate: 0 -2; }
+      |bar| { points: -16 0, 16 0; translate: 0 8; } ]
+    |name| "The Tenant Is a Database" ]
+
+  // -- work -----------------------------------------------------------------
+  |slot| [ |tile| [
+      |rec| { width: 26; height: 32; translate: 12 0; }
+      |arrow| { points: 0 0, 24 0; translate: -18 0; }
+      |sdot| { width: 8; height: 8; translate: -30 0; } ]
+    |name| "Work Is the Reason" ]
+
+  |slot| [ |tile| [
+      |rec| { width: 30; height: 22; translate: -6 -8; }
+      |rec| { width: 30; height: 22; translate: 0 0; }
+      |rec| { width: 30; height: 22; translate: 6 8; fill: --seal-soft; stroke: --seal; } ]
+    |name| "The Run Is a Record" ]
+
+  |slot| [ |tile| [
+      |rec| { width: 24; height: 30; translate: 16 0; }
+      |rec| { width: 14; height: 14; translate: -22 0; radius: 7; }
+      |arrow| { points: 0 0, 22 0; translate: -4 -6; }
+      |ghostline| { points: 22 0, 0 0; translate: -4 8; } ]
+    |name| "Nobody Is Pushed" ]
+
+  |slot| [ |tile| [
+      |ring| { width: 30; height: 30; translate: -8 0; }
+      |ring| { width: 30; height: 30; translate: 8 0; }
+      |sdot| { width: 10; height: 16; translate: 0 0; } ]
+    |name| "Two Parties Bound the Claim" ]
+
+  |slot| [ |tile| [
+      |bar| { points: -22 0, 22 0; stroke: --line; stroke-width: 2; translate: 0 6; }
+      |bar| { points: -14 0, 10 0; stroke: --seal; stroke-width: 4; translate: 0 6; }
+      |bar| { points: 0 -6, 0 6; translate: -14 6; }
+      |bar| { points: 0 -6, 0 6; translate: 10 6; }
+      |ring| { width: 12; height: 12; translate: -2 -14; }
+    ]
+    |name| "A Role Is a Period on a Record" ]
+
+  |slot| [ |tile| [
+      |ring| { width: 14; height: 14; translate: -4 -10; }
+      |glyph| { path: "M 0 0 C 0 -10, 26 -10, 26 0"; translate: -4 8; }
+      |solid| { width: 16; height: 16; radius: 8; translate: 16 -12; }
+      |t| "3" { font-size: 9; color: --panel; font-weight: bold; translate: 16 -12; } ]
+    |name| "Falls to a Person, and Is Counted" ]
+
+  |slot| [ |tile| [
+      |glyph| { path: "M 14 -8 A 16 16 0 1 1 8 -14"; }
+      |arrow| { points: 0 0, 6 4; translate: 6 -14; }
+      |sdot| { width: 8; height: 8; } ]
+    |name| "A Sweep Is Found, Not Started" ]
+
+  // -- evidence -------------------------------------------------------------
+  |slot| [ |tile| [
+      |rec| { width: 30; height: 36; translate: -2 2; }
+      |solid| { width: 18; height: 10; translate: 10 -14; } ]
+    |name| "A Type Declares What It Is" ]
+
+  |slot| [ |tile| [
+      |rec| { width: 22; height: 12; translate: 0 -16; }
+      |rec| { width: 22; height: 12; translate: 0 0; }
+      |rec| { width: 22; height: 12; translate: 0 16; }
+      |sdot| { width: 5; height: 5; translate: 0 -8; }
+      |sdot| { width: 5; height: 5; translate: 0 8; } ]
+    |name| "The Trail Is Records" ]
+
+  |slot| [ |tile| [
+      |rec| { width: 38; height: 26; }
+      |bar| { points: 0 0, 10 7; translate: -9 -6; stroke-width: 2; }
+      |bar| { points: 0 0, -10 7; translate: 9 -6; stroke-width: 2; }
+      |sdot| { width: 9; height: 9; translate: 14 9; }
+    ]
+    |name| "Carrying Is Not Reading" ]
+
+  |slot| [ |tile| [
+      |glyph| { path: "M 0 0 L 34 0 L 21 14 L 21 28 L 13 22 L 13 14 Z"; translate: 0 -2; }
+      |sdot| { width: 9; height: 9; translate: 14 -13; }
+    ]
+    |name| "Asked, Not Scanned" ]
+
+  // -- change ---------------------------------------------------------------
+  |slot| [ |tile| [
+      |rec| { width: 22; height: 28; translate: -8 0; }
+      |sdot| { width: 10; height: 10; translate: 12 0; }
+      |glyph| { path: "M 0 0 L -4 0 L -4 36 L 0 36"; translate: -22 -18; }
+      |glyph| { path: "M 0 0 L 4 0 L 4 36 L 0 36"; translate: 20 -18; } ]
+    |name| "Committed with the Change" ]
+
+  |slot| [ |tile| [
+      |bar| { points: -22 0, 22 0; }
+      |adot| { width: 5; height: 5; translate: -16 0; }
+      |adot| { width: 5; height: 5; translate: -8 0; }
+      |adot| { width: 5; height: 5; translate: 0 0; }
+      |adot| { width: 5; height: 5; translate: 8 0; }
+      |adot| { width: 5; height: 5; translate: 16 0; }
+      |poly| { points: 0 0, 8 0, 4 -7; fill: --seal; stroke: none; translate: -16 9; }
+      |poly| { points: 0 0, 8 0, 4 -7; fill: --seal; stroke: none; translate: 4 9; }
+      |poly| { points: 0 0, 8 0, 4 -7; fill: --seal; stroke: none; translate: 16 9; } ]
+    |name| "One Feed, Every Consumer" ]
+
+  |slot| [ |tile| [
+      |ghostline| { points: -22 0, 22 0; translate: 0 6; }
+      |ghostline| { points: -22 0, 22 0; translate: 0 -6; }
+      |bar| { points: 0 0, 0 30; stroke: --seal; stroke-width: 3; }
+      |sdot| { width: 10; height: 10; translate: 0 -16; } ]
+    |name| "A Cursor That Holds Still" ]
+
+  // -- the person -----------------------------------------------------------
+  |slot| [ |tile| [
+      |ring| { width: 18; height: 18; translate: -14 0; }
+      |bar| { points: 0 0, 26 0; translate: 8 0; }
+      |bar| { points: 0 0, 0 8; translate: 12 4; stroke: --seal; stroke-width: 3; }
+      |bar| { points: 0 0, 0 8; translate: 20 4; stroke: --seal; stroke-width: 3; }
+    ]
+    |name| "The Person Is a Key" ]
+
+  |slot| [ |tile| [
+      |ring| { width: 18; height: 18; translate: -14 0; stroke: --faint; stroke-width: 1.5; }
+      |ghostline| { points: 0 0, 26 0; translate: 8 0; }
+      |glyph| { path: "M 0 0 L 18 18 M 18 0 L 0 18"; translate: 6 0; stroke: --seal; stroke-width: 3; }
+    ]
+    |name| "Erasure Destroys a Key" ]
+
+  |slot| [ |tile| [
+      |rec| { width: 28; height: 32; translate: -8 0; }
+      |sdot| { width: 8; height: 8; translate: -8 0; }
+      |arrow| { points: 0 0, 20 0; translate: 16 0; } ]
+    |name| "Leaving Is the Nightly Path" ]
+
+  // -- shape and operation --------------------------------------------------
+  |slot| [ |tile| [
+      |sdot| { width: 22; height: 22; }
+      |rec| { width: 14; height: 10; translate: 0 -22; }
+      |rec| { width: 14; height: 10; translate: -20 12; }
+      |rec| { width: 14; height: 10; translate: 20 12; } ]
+    |name| "Engine and Faces" ]
+
+  |slot| [ |tile| [
+      |glyph| { path: "M 8 0 L 0 0 L 0 32 L 8 32"; translate: -18 -16; }
+      |glyph| { path: "M 0 0 L 8 0 L 8 32 L 0 32"; translate: 10 -16; }
+      |solid| { width: 22; height: 14; translate: 0 0; } ]
+    |name| "Bytes Framed, Not Rebuilt" ]
+
+  |slot| [ |tile| [
+      |ghost| { width: 46; height: 40; radius: 10; }
+      |rec| { width: 18; height: 22; translate: -6 2; }
+      |sdot| { width: 8; height: 8; translate: 12 -8; } ]
+    |name| "A Country Is a Zone" ]
+
+  |slot| [ |tile| [
+      |rec| { width: 18; height: 24; translate: -18 0; }
+      |arrow| { points: 0 0, 14 -12; translate: -2 -6; }
+      |arrow| { points: 0 0, 14 0; translate: -2 0; }
+      |arrow| { points: 0 0, 14 12; translate: -2 6; }
+      |solid| { width: 10; height: 10; translate: 20 -12; }
+      |solid| { width: 10; height: 10; translate: 20 0; }
+      |solid| { width: 10; height: 10; translate: 20 12; } ]
+    |name| "One Declared Set, Applied" ]
+
+  |slot| [ |tile| [
+      |bar| { points: -22 0, 22 0; }
+      |adot| { width: 8; height: 8; translate: -18 0; }
+      |adot| { width: 8; height: 8; translate: -6 0; }
+      |sdot| { width: 10; height: 10; translate: 6 0; }
+      |ring| { width: 8; height: 8; translate: 18 0; stroke: --faint; stroke-width: 1.5; fill: --bg; } ]
+    |name| "Status Is a Lifecycle, Not a List" ]
+]

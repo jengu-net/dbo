@@ -1,0 +1,8 @@
+Where the evidence is kept
+Two columns. On the left, the audit trail shipped to an aggregator: somebody
+else owns the store, it is retained on their dial rather than yours, and one
+day the contract ends — three ways for the evidence to be missing on the day
+somebody asks. On the right, the trail as records in the tenant's own store:
+on its change feed like everything else, exported and restored with it, and
+with no interface that edits an entry, for anybody, including the party
+running the deployment.

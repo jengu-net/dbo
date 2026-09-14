@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-385.5 -184.5 771 369" width="771" height="369" class="lini lini-scope-160286e5" role="img" aria-labelledby="pattern-the-run-is-a-record-title pattern-the-run-is-a-record-desc">
+  <title id="pattern-the-run-is-a-record-title">The same four lines, paid for twice or not at all</title>
+  <desc id="pattern-the-run-is-a-record-desc">Two columns. On the left, work held in a queue of its own: history only if somebody wrote it, an audit trail built separately, an owner modelled again, and the work in flight when the node died. On the right, the same four lines for a run that is an ordinary record: history, an audit trail, an owner, and never having been in flight. Nothing was added to get the right-hand column.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-160286e5 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
+      .lini-scope-160286e5[data-theme="dark"], [data-theme="dark"] .lini-scope-160286e5 { color-scheme: dark; }
+      .lini-scope-160286e5[data-theme="light"], [data-theme="light"] .lini-scope-160286e5 { color-scheme: light; }
+    }
+    .lini-scope-160286e5 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-160286e5 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-160286e5 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-160286e5 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-160286e5 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-160286e5 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-160286e5 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-160286e5 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-160286e5 .lini-sealed { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-160286e5 .lini-dashed { fill: none; stroke: var(--lini-faint); stroke-width: 1.5; stroke-dasharray: 6,4.75; }
+    .lini-scope-160286e5 .lini-line-item { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-160286e5 .lini-has { color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-160286e5 .lini-miss { color: var(--lini-faint); }
+    .lini-scope-160286e5 .lini-body { color: var(--lini-muted); }
+    .lini-scope-160286e5 .lini-tile { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-160286e5 .lini-rec { fill: var(--lini-panel); stroke: var(--lini-accent); stroke-width: 2; }
+    .lini-scope-160286e5 .lini-row-miss { fill: none; stroke-dasharray: 3,2.5; }
+    .lini-scope-160286e5 .lini-row-has { fill: var(--lini-panel); stroke: var(--lini-seal); }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-203.3035,-175)">
+      <rect x="-178.1965" y="-5.5" width="356.393" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">THE SAME FOUR LINES, PAID FOR TWICE OR NOT AT ALL</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,-164.5)">
+    </g>
+    <g class="lini-node lini-block" transform="translate(0,-13)">
+      <rect x="-381.5" y="-146.5" width="763" height="293" rx="0" ry="0"/>
+      <g class="lini-node lini-col lini-block" transform="translate(-196.75,-0.75)">
+        <rect x="-184.75" y="-145.75" width="369.5" height="291.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(-184.75,-104.75)">
+        </g>
+        <g class="lini-node lini-dashed lini-box lini-block" transform="translate(0,41)">
+          <rect x="-184" y="-104" width="368" height="208" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-82" width="335.25" height="164" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-87.9415,-75.5)">
+              <rect x="-79.6835" y="-6.5" width="159.367" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">work in a queue of its own</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,-60)">
+            </g>
+            <g class="lini-node lini-row-miss lini-line-item lini-box lini-block" style="stroke-dasharray: 5.5,4.375" transform="translate(0,-37.375)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-68.3225,0)">
+                <rect x="-86.6775" y="-6.5" width="173.355" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">history, if somebody wrote it</text>
+              </g>
+            </g>
+            <g class="lini-node lini-row-miss lini-line-item lini-box lini-block" style="stroke-dasharray: 5.5,4.375" transform="translate(0,-2.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-67.8545,0)">
+                <rect x="-87.1455" y="-6.5" width="174.291" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">an audit trail, built separately</text>
+              </g>
+            </g>
+            <g class="lini-node lini-row-miss lini-line-item lini-box lini-block" style="stroke-dasharray: 5.5,4.375" transform="translate(0,33.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-77.8255,0)">
+                <rect x="-77.1745" y="-6.5" width="154.349" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">an owner, modelled again</text>
+              </g>
+            </g>
+            <g class="lini-node lini-row-miss lini-line-item lini-box lini-block" style="stroke-dasharray: 5.5,4.375" transform="translate(0,68.375)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-miss lini-t lini-block" transform="translate(-39.521,0)">
+                <rect x="-115.479" y="-6.5" width="230.958" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">and it was in flight when the node died</text>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g class="lini-node lini-col lini-block" transform="translate(196.75,0)">
+        <rect x="-184.75" y="-146.5" width="369.5" height="293" rx="0" ry="0"/>
+        <g class="lini-node lini-tile lini-box lini-block" transform="translate(-148,-109.75)">
+          <rect x="-36" y="-36" width="72" height="72" rx="12" ry="12"/>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(-6,-8)">
+            <rect x="-15" y="-11" width="30" height="22" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-rec lini-box lini-block" transform="translate(0,0)">
+            <rect x="-15" y="-11" width="30" height="22" rx="3" ry="3"/>
+          </g>
+          <g class="lini-node lini-rec lini-box lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(6,8)">
+            <rect x="-15" y="-11" width="30" height="22" rx="3" ry="3"/>
+          </g>
+        </g>
+        <g class="lini-node lini-block" transform="translate(-184.75,-68)">
+        </g>
+        <g class="lini-node lini-sealed lini-panel lini-box lini-block" transform="translate(0,41.75)">
+          <rect x="-184" y="-104" width="368" height="208" rx="9" ry="9"/>
+          <g class="lini-node lini-col lini-block" transform="translate(-0.375,0)">
+            <rect x="-167.625" y="-82" width="335.25" height="164" rx="0" ry="0"/>
+            <g class="lini-node lini-cap lini-t lini-block" transform="translate(-65.8675,-75.5)">
+              <rect x="-101.7575" y="-6.5" width="203.515" height="13" rx="0" ry="0"/>
+              <text class="lini-text" x="0" y="0" dy="0.358em">a run, which is an ordinary record</text>
+            </g>
+            <g class="lini-node lini-block" transform="translate(-167.625,-60)">
+            </g>
+            <g class="lini-node lini-row-has lini-line-item lini-box lini-block" transform="translate(0,-37.375)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-133.537,0)">
+                <rect x="-21.463" y="-6.5" width="42.926" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">history</text>
+              </g>
+            </g>
+            <g class="lini-node lini-row-has lini-line-item lini-box lini-block" transform="translate(0,-2.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-116.8645,0)">
+                <rect x="-38.1355" y="-6.5" width="76.271" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">an audit trail</text>
+              </g>
+            </g>
+            <g class="lini-node lini-row-has lini-line-item lini-box lini-block" transform="translate(0,33.125)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-126.582,0)">
+                <rect x="-28.418" y="-6.5" width="56.836" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">an owner</text>
+              </g>
+            </g>
+            <g class="lini-node lini-row-has lini-line-item lini-box lini-block" transform="translate(0,68.375)">
+              <rect x="-167" y="-13" width="334" height="26" rx="5" ry="5"/>
+              <g class="lini-node lini-has lini-t lini-block" transform="translate(-93.4775,0)">
+                <rect x="-61.5225" y="-6.5" width="123.045" height="13" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">it was never in flight</text>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-381.5,141.5)">
+    </g>
+    <g class="lini-node lini-col lini-block" transform="translate(-1.5,165)">
+      <rect x="-380" y="-15.5" width="760" height="31" rx="0" ry="0"/>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-149.6465,-9)">
+        <rect x="-230.3535" y="-6.5" width="460.707" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Nothing was added to get the right-hand column. It is what the store already</text>
+      </g>
+      <g class="lini-node lini-body lini-t lini-block" transform="translate(-161.158,9)">
+        <rect x="-218.842" y="-6.5" width="437.684" height="13" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">gives every record it holds, arriving on a record that happens to be work.</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

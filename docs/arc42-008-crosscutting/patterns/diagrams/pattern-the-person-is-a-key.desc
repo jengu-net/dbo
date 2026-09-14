@@ -1,0 +1,7 @@
+Encrypted where it is written
+On the left, the write itself: identifying elements are sealed there, with a
+key belonging to that one person, and re-identification goes through a single
+recorded place. On the right, everything downstream — the backup, the export,
+the change feed, the dependent copy — each carrying ciphertext because of
+where the seal is placed rather than because four separate paths were each
+written correctly.
