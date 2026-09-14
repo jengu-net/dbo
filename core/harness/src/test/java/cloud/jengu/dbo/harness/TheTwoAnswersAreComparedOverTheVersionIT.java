@@ -211,17 +211,30 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
             # toolchain and acts on nothing, and the whole case for it answering at
             # all is that it answers the same.
             #
-            # What the remaining ten are, read one by one rather than assumed: rules
-            # the toolchain knows that no definition states. A canonical url must be
-            # absolute; a uuid must be lowercase; an identifier under urn:ietf:rfc:3986
-            # must be a full uri; a StructureMap's source context must be one it
-            # declared. They are hard-coded in the validator, so nothing compiled FROM
-            # the definitions can produce them, and compiling invariants did not move
-            # this number by one.
+            # What the remaining ten are, read one by one rather than assumed — and they
+            # are three different things rather than one.
             #
-            # Which bounds what "the specification is data" can reach. A checker built
-            # from the definitions answers what the definitions say, and a validator
-            # carries knowledge besides.
+            # SIX are rules the validator carries in its own code, which no definition
+            # states: a canonical url must be absolute, a uuid must be lowercase, an
+            # identifier under urn:ietf:rfc:3986 must be a full uri. Nothing compiled
+            # FROM the definitions can produce those, and compiling invariants did not
+            # move them by one.
+            #
+            # TWO are dom-6, the narrative best-practice invariant DomainResource itself
+            # declares. That one IS in the definitions and IS in the rows here, so it
+            # bounds nothing: it is this store not raising a best-practice constraint to
+            # a finding, where the toolchain does.
+            #
+            # TWO are terminology — a code absent from a value set, and a code system
+            # that could not be resolved at all. No rule of either kind answers those.
+            # They need the content to answer against, which is a different axis from
+            # rules and does not close with them.
+            #
+            # So the limit "the specification is data" runs into is six of these, not
+            # ten. A checker built from the definitions answers what the definitions
+            # say, and a validator carries knowledge besides — but two of the four that
+            # looked like that knowledge were the definitions all along, and two were
+            # never a question of rules.
             """;
 
     private static String asLines(Map<String, int[]> perType) {
