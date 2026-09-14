@@ -180,7 +180,7 @@ class AnOperatorReadsAndSteersTheFleetIT {
         northRuntime.scanOnce();
 
         HttpResponse<String> withAFailure = ask(north, "/runtime/tenants", OPS);
-        assertTrue(withAFailure.body().contains("{\"code\":\"kukkunud\",\"state\":\"failed\"}"),
+        assertEquals("failed", stateReportedFor(withAFailure.body(), "kukkunud"),
                 "a tenant that was declared and did not come up has to say so rather than be "
                         + "missing: " + withAFailure.body());
 
@@ -402,6 +402,24 @@ class AnOperatorReadsAndSteersTheFleetIT {
                 Credentials.of(Map.of(NORTH, new Credentials.Credential("kaarel", "read-secret"))),
                 Credentials.of(Map.of(NORTH, new Credentials.Credential("valvur", "act-secret"))),
                 Duration.ofSeconds(5));
+    }
+
+    /**
+     * What a body reports for one tenant, read as a record rather than matched
+     * as text. This answer grows fields, and a check pinned to the exact shape
+     * of the object fails for a row that gained one — which says nothing at all
+     * about the thing it was put there to check.
+     */
+    private static String stateReportedFor(String body, String code) {
+        Object read = cloud.jengu.dbo.core.wire.RecordWire.read(body);
+        Object rows = ((java.util.Map<?, ?>) read).get("tenants");
+        for (Object row : (java.util.List<?>) rows) {
+            java.util.Map<?, ?> fields = (java.util.Map<?, ?>) row;
+            if (code.equals(fields.get("code"))) {
+                return String.valueOf(fields.get("state"));
+            }
+        }
+        return null;
     }
 
     private static URI base(TenantRuntimeManager manager) {

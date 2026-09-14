@@ -38,6 +38,7 @@ class ATenantDeclaredDifferentlyIsNoticedIT {
     static TenantRuntimeManager manager;
     static String observationId;
     static final java.net.http.HttpClient HTTP = java.net.http.HttpClient.newHttpClient();
+    static final String OPS = "kaarel-holds-this-one-too";
 
     @BeforeAll
     void up() throws Exception {
@@ -47,6 +48,7 @@ class ATenantDeclaredDifferentlyIsNoticedIT {
                 SharedPostgres.urlFor("ATenantDeclaredDifferentlyIsNoticedIT"),
                 postgres.getUsername(), postgres.getPassword());
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
+        manager.serveRuntimeState(OPS);
     }
 
     @AfterAll
@@ -149,9 +151,35 @@ class ATenantDeclaredDifferentlyIsNoticedIT {
                 "and the tenant keeps serving what it was built from");
     }
 
-    /** Declaring it back the way it serves is the change going away. */
+    /**
+     * And it can be asked from outside. The deployment knew this and would say
+     * so only in process, so the one party who can fix it — whoever declared
+     * the tenant — had no way to ask at all. A consumer comparing its own
+     * declarations against what is served sees membership: declared and
+     * missing, served and undeclared. A tenant serving under a spec nobody
+     * declares any more does not change that list, and is invisible to every
+     * check made from out there.
+     */
     @Test
     @Order(4)
+    @Proving({DboPromises.TEN_A_REDECLARATION_IS_NOTICED,
+            DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES})
+    void howItIsDeclaredDifferentlyIsServedOverHttp() throws Exception {
+        String said = manager.redeclarations().get(CLINIC);
+        String body = runtimeTenants();
+
+        assertTrue(body.contains("\"code\":\"" + CLINIC + "\""), body);
+        // The same sentence the operator's card carries, whole. A shorter
+        // answer — a flag, a kind — would be this store making somebody else
+        // guess what it already knows.
+        assertTrue(body.contains(said),
+                "the deployment holds the words and will not say them over HTTP: "
+                        + body + " (it says, in process: " + said + ")");
+    }
+
+    /** Declaring it back the way it serves is the change going away. */
+    @Test
+    @Order(5)
     @Proving(DboPromises.TEN_A_REDECLARATION_IS_NOTICED)
     void declaringItBackClearsIt() throws Exception {
         declare(spec("r4", "Observation"));
@@ -159,5 +187,19 @@ class ATenantDeclaredDifferentlyIsNoticedIT {
 
         assertTrue(manager.redeclarations().isEmpty(), manager.redeclarations().toString());
         assertFalse(manager.troubles().containsKey(CLINIC), manager.troubles().toString());
+        // And the door says so too, rather than going quiet: the field stays,
+        // empty, so a reader can tell this tenant is fine from a deployment
+        // that cannot answer.
+        assertTrue(runtimeTenants().contains("\"declaredDifferently\":\"\""),
+                "a tenant serving what was declared has to say so: " + runtimeTenants());
+    }
+
+    /** What the deployment answers about itself, behind the deployment's token. */
+    private static String runtimeTenants() throws Exception {
+        return HTTP.send(java.net.http.HttpRequest.newBuilder(
+                        java.net.URI.create("http://127.0.0.1:" + manager.port()
+                                + "/runtime/tenants"))
+                        .header("Authorization", "Bearer " + OPS).GET().build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString()).body();
     }
 }

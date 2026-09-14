@@ -768,17 +768,30 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         byte[] expected = opsToken.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         sharedServer.createContext("/runtime/tenants", opsGuarded(expected, () -> {
-            StringBuilder json = new StringBuilder("{\"tenants\":[");
-            boolean first = true;
+            // Written through the wire rather than concatenated, because one of
+            // these fields is prose. A code and a state are constrained enough
+            // to paste into JSON by hand; a sentence assembled from whatever a
+            // declaration happens to name is not, and the first quote in one
+            // would produce a body nobody could parse.
+            Map<String, String> differently = redeclarations();
+            List<Map<String, Object>> rows = new java.util.ArrayList<>();
             for (TenantState state : tenantStates()) {
-                if (!first) {
-                    json.append(',');
-                }
-                first = false;
-                json.append("{\"code\":\"").append(state.code())
-                        .append("\",\"state\":\"").append(state.state().wire()).append("\"}");
+                Map<String, Object> row = new java.util.LinkedHashMap<>();
+                row.put("code", state.code());
+                row.put("state", state.state().wire());
+                // The sentence this store already has, not a classification to
+                // re-derive: whoever declared the tenant would otherwise diff
+                // it themselves and hold a second opinion about this store's
+                // own state.
+                //
+                // Always present, empty where the tenant serves what was
+                // declared. Left out instead, a reader cannot tell a tenant
+                // with nothing wrong from a deployment too old to answer the
+                // question, and those two want opposite actions.
+                row.put("declaredDifferently", differently.getOrDefault(state.code(), ""));
+                rows.add(row);
             }
-            return json.append("]}").toString();
+            return cloud.jengu.dbo.core.wire.RecordWire.write(Map.of("tenants", rows));
         }));
         // The node's inventory, beside its tenants and under the same token.
         // What is INSTALLED here never leaves the node any other way: a
