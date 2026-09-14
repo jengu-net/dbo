@@ -206,11 +206,33 @@ public final class TenantImport {
                     String type = jsonString(line, "t");
                     String id = jsonString(line, "id");
                     byte[] resource = resourceOf(line);
-                    var existing = target.get(type, id);
+
+                    // Which record this IS, before which row it was.
+                    //
+                    // An archive's ids are the source's. Where a type is
+                    // identified by something in the document — a canonical
+                    // url — that identity is what says whether the
+                    // destination already holds this thing, and the id says
+                    // only where it sat over there. Asking by id first put a
+                    // second row up against a claim the destination had made
+                    // itself: the store publishes a vocabulary of its own into
+                    // every tenant, so an archive from one tenant arrived at
+                    // another naming a canonical it already held, and the
+                    // write was refused as a conflict — correctly, and about
+                    // a question nobody had asked properly.
+                    java.util.List<cloud.jengu.dbo.core.api.Identifier> claims =
+                            identityClaims(line);
+                    var existing = claims.isEmpty()
+                            ? target.get(type, id)
+                            : target.getByIdentifier(type, claims).stream().findFirst()
+                                    .or(() -> target.get(type, id));
+                    // and it is written where it already is, not where it was
+                    String at = existing.map(cloud.jengu.dbo.core.api.StoredObject::id)
+                            .orElse(id);
 
                     if (history == HistoryMode.PRESERVED) {
                         long version = jsonLong(line, "v");
-                        java.time.Instant at = java.time.Instant.parse(jsonString(line, "lu"));
+                        java.time.Instant when = java.time.Instant.parse(jsonString(line, "lu"));
                         // Idempotent by VERSION, not by bytes: a history replays
                         // as many lines per object, and a resumed move must skip
                         // what already landed rather than rewrite it.
@@ -218,7 +240,7 @@ public final class TenantImport {
                             skipped++;
                             continue;
                         }
-                        target.put(PutRequest.restored(type, id, resource, version, at));
+                        target.put(PutRequest.restored(type, at, resource, version, when));
                         imported++;
                         continue;
                     }
@@ -231,12 +253,41 @@ public final class TenantImport {
                         skipped++;
                         continue; // same tenant re-import: a no-op
                     }
-                    target.put(PutRequest.restoring(type, id, resource));
+                    target.put(PutRequest.restoring(type, at, resource));
                     imported++;
                 }
             }
         }
         return new PortableResult(imported, skipped);
+    }
+
+    /**
+     * What the line says this record claims, which travels beside it.
+     *
+     * <p>The export puts identity codes alongside the object rather than
+     * inside it, because rewriting the payload would change the bytes the
+     * version chain and both signatures are over. So they are read from
+     * alongside too.
+     */
+    private static java.util.List<cloud.jengu.dbo.core.api.Identifier> identityClaims(String line) {
+        String needle = "\"ic\":[";
+        int at = line.indexOf(needle);
+        if (at < 0) {
+            return java.util.List.of();
+        }
+        int end = line.indexOf(']', at);
+        java.util.List<cloud.jengu.dbo.core.api.Identifier> claims = new java.util.ArrayList<>();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"([^\"]+)\"")
+                .matcher(line.substring(at + needle.length(), end < 0 ? line.length() : end));
+        while (m.find()) {
+            String claim = m.group(1);
+            int bar = claim.indexOf('|');
+            if (bar > 0) {
+                claims.add(new cloud.jengu.dbo.core.api.Identifier(
+                        claim.substring(0, bar), claim.substring(bar + 1)));
+            }
+        }
+        return claims;
     }
 
     private static long jsonLong(String line, String field) {

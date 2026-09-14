@@ -51,6 +51,8 @@ public final class MaintenanceHandler implements HttpHandler {
     private final List<TypeRegistration> types;
     /** How the face makes a stored form whole for anything leaving the store. */
     private final cloud.jengu.dbo.core.face.GrainCodec grain;
+    /** Whether two documents say the same thing — a domain question. */
+    private final cloud.jengu.dbo.core.face.DocumentEquivalence equivalence;
     private final cloud.jengu.dbo.core.face.PortableRendering rendering;
     private final String basePath;
     private final cloud.jengu.dbo.maintenance.ImportLedger ledger;
@@ -94,6 +96,27 @@ public final class MaintenanceHandler implements HttpHandler {
             cloud.jengu.dbo.core.api.ObjectStore engine,
             cloud.jengu.dbo.fhir.common.FhirStoreFacade facade,
             cloud.jengu.dbo.core.face.GrainCodec grain) {
+        this(authority, dataSource, domain, types, rendering, basePath, ledger, engine,
+                facade, grain, null);
+    }
+
+    /**
+     * The same, told how this domain decides two documents are the same thing.
+     *
+     * <p>An import asks that on every record: a re-import into the tenant that
+     * made the archive has to be a no-op, and the engine's own answer —
+     * compare the bytes — calls two documents different because a tool wrote
+     * the fields in another order.
+     */
+    public MaintenanceHandler(TenantAuthority authority, DataSource dataSource,
+            String domain, List<TypeRegistration> types,
+            cloud.jengu.dbo.core.face.PortableRendering rendering, String basePath,
+            cloud.jengu.dbo.maintenance.ImportLedger ledger,
+            cloud.jengu.dbo.core.api.ObjectStore engine,
+            cloud.jengu.dbo.fhir.common.FhirStoreFacade facade,
+            cloud.jengu.dbo.core.face.GrainCodec grain,
+            cloud.jengu.dbo.core.face.DocumentEquivalence equivalence) {
+        this.equivalence = equivalence;
         this.grain = grain;
         this.engine = engine;
         this.facade = facade;
@@ -123,6 +146,7 @@ public final class MaintenanceHandler implements HttpHandler {
             switch (relative) {
                 case "archive" -> archive(exchange);
                 case "restore" -> restore(exchange);
+                case "import" -> importArchive(exchange);
                 case "inventory" -> inventory(exchange);
                 case "projection" -> projection(exchange);
                 case "reshape" -> reshape(exchange);
@@ -331,6 +355,54 @@ public final class MaintenanceHandler implements HttpHandler {
         cloud.jengu.dbo.maintenance.ProjectionMarker.record(dataSource,
                 cloud.jengu.dbo.maintenance.ProjectionMarker.CONFIG_COMMIT, commit);
         respond(exchange, 200, "{\"status\":\"recorded\"}");
+    }
+
+    /**
+     * Takes a portable archive into this tenant.
+     *
+     * <p>Beside {@code restore} rather than inside it, because they are not
+     * the same act. A backup restores an INSTALLATION — credentials,
+     * configuration, the lot — which is why that route refuses an export by
+     * name. This one takes content into a tenant that already exists and
+     * already has an authority of its own, and writes it through the tenant's
+     * engine, so every record lands audited, policy-guarded and re-stamped
+     * like any other write.
+     *
+     * <p><b>The archive is spooled rather than streamed.</b> An import reads
+     * it twice — once to the tag, to check both signatures, and again to
+     * apply — because writing first and verifying afterwards is not
+     * verification. A request body can be read once, so the bytes land in a
+     * file for the second pass; on the heap they would be a tenant's history
+     * held whole, which is the thing the export side is written to avoid.
+     */
+    private void importArchive(HttpExchange exchange) throws IOException {
+        if (engine == null || equivalence == null) {
+            respond(exchange, 501, "{\"error\":\"this tenant serves no face that can say "
+                    + "whether two documents are the same, so an import could not tell a "
+                    + "re-import from a rewrite\"}");
+            return;
+        }
+        byte[] ownerKey = ownerKey(exchange);
+        java.nio.file.Path spooled = java.nio.file.Files.createTempFile("dbo-import", ".archive");
+        try {
+            try (java.io.InputStream body = exchange.getRequestBody()) {
+                java.nio.file.Files.copy(body, spooled,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+            var result = cloud.jengu.dbo.maintenance.TenantImport.importVerified(
+                    engine,
+                    () -> java.nio.file.Files.newInputStream(spooled),
+                    ownerKey,
+                    attestation(exchange),
+                    publicKey(exchange, VENDOR_KEY_HEADER),
+                    publicKey(exchange, TENANT_KEY_HEADER),
+                    cloud.jengu.dbo.maintenance.TenantImport.HistoryMode.FRESH,
+                    ledger, equivalence, grain);
+            respond(exchange, 200, "{\"imported\":" + result.imported()
+                    + ",\"skippedIdentical\":" + result.skippedIdentical() + "}");
+        } finally {
+            java.nio.file.Files.deleteIfExists(spooled);
+        }
     }
 
     private void restore(HttpExchange exchange) throws IOException {
