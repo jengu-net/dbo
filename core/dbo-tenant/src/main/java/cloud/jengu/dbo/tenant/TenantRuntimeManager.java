@@ -647,6 +647,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // fault: an upstream this tenant declares is not
                 // serving, or storage somebody else provisions has
                 // not arrived. Both are answered by the next scan.
+                // A tenant whose storage went away while this was working on
+                // it is being taken down, not failing to come up — and saying
+                // the second sends a reader to the declaration, to the spec
+                // file, and to whether the tenant is broken, none of which is
+                // where the answer is. Nothing is wrong, so it is no state at
+                // all: not COMING_UP, not FAILED, and not an ERROR per deleted
+                // tenant, which teaches a reader to skip the level.
+                String goingAway = codeOf(declaration).orElse(null);
+                if (goingAway != null && failedOnStorage(e)
+                        && storageIsGone(tenantDataSources.get(goingAway))) {
+                    LOG.debug("tenant '{}' is being taken down; the work in flight for it "
+                            + "stopped because its storage is gone", goingAway);
+                    return;
+                }
                 boolean stillComing = e instanceof UpstreamNotReady
                         || e instanceof TenantDatabaseProvisioner.NotProvisionedYet;
                 // The code is known when the spec parsed, which is
@@ -2538,6 +2552,43 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     return payload.replaceAll(".*\"system\":\"([^\"]+)\".*", "$1");
                 })
                 .orElse(authorityConfig.subjectSystem());
+    }
+
+    /**
+     * Whether this failure came from the database rather than from a refusal.
+     *
+     * <p>Both halves are needed and neither alone is enough. A pool that is
+     * closed NOW says nothing about why this failed: a tenant that genuinely
+     * could not come up is released afterwards like any other, so its pool is
+     * closed too by the next pass — and suppressing on that alone made a real
+     * refusal say why once and stay silent for ever after, which is worse than
+     * the noise it was meant to remove. So the failure must also BE a database
+     * failure: a refusal for a chain that carries no code systems, or a face
+     * nothing provides, carries no SQLException and is nobody's shutdown.
+     */
+    private static boolean failedOnStorage(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof java.sql.SQLException) {
+                return true;
+            }
+            if (cause.getCause() == cause) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether this tenant's pool has been closed under us.
+     *
+     * <p>Asked of the pool rather than read out of the failure's message: a
+     * message is somebody else's wording and changes with their next release,
+     * while a closed pool is the fact itself. A provisioner whose data source
+     * cannot answer gets the old behaviour, which is the safe direction — a
+     * real bring-up failure reported as one.
+     */
+    private static boolean storageIsGone(javax.sql.DataSource source) {
+        return source instanceof com.zaxxer.hikari.HikariDataSource pool && pool.isClosed();
     }
 
     private void takeDown(String code, String because) {
