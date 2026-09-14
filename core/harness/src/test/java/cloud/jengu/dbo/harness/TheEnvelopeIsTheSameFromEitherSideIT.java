@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -344,6 +345,71 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
                                 cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM,
                                 "https://seam.test/vs"))).size(),
                 "the database wrote the record and not the identity it is claimed under");
+    }
+
+    /**
+     * The other half of the seam, and the one a passing test cannot show on
+     * its own: that the Java extractor is not merely unnecessary but unused.
+     *
+     * <p>Counting calls would mean instrumenting the face to satisfy a test,
+     * so the question is asked the other way round. The type names a function
+     * that does not exist. If the engine were extracting here — or falling
+     * back to here when the database refused — the write would succeed and
+     * nobody would ever know the declaration had done nothing. It fails, and
+     * the counting extractor beside it was never asked.
+     *
+     * <p>This is the assertion that caught the real defect: the declaration
+     * was first wired onto the personalities, which is not what a served
+     * tenant's registrations are built from, and every test passed while the
+     * feature reached no tenant at all.
+     */
+    @Test
+    @Timeout(300)
+    @DisplayName("a type whose extractor names a function the database does not have is "
+            + "refused, rather than quietly extracted here instead")
+    void aMissingFunctionIsNotFallenBackFrom() throws Exception {
+        int[] askedInJava = {0};
+        List<cloud.jengu.dbo.core.api.TypeRegistration> registrations = new ArrayList<>();
+        for (cloud.jengu.dbo.core.api.TypeRegistration one
+                : new cloud.jengu.dbo.fhir.r4.R4Personality(List.of(
+                        cloud.jengu.dbo.fhir.common.FhirTypeConfig.canonical("ValueSet")))
+                .registrations()) {
+            if (!"ValueSet".equals(one.typeName())) {
+                registrations.add(one);
+                continue;
+            }
+            cloud.jengu.dbo.core.api.EnvelopeExtractor inJava = one.extractor();
+            registrations.add(new cloud.jengu.dbo.core.api.TypeRegistration(one.typeName(),
+                    one.domain(), one.identityClass(), one.identitySystems(), one.handling(),
+                    new cloud.jengu.dbo.core.api.DatabaseExtractor() {
+
+                        @Override
+                        public String functionName() {
+                            return "dbo.no_such_extractor";
+                        }
+
+                        @Override
+                        public cloud.jengu.dbo.core.api.Envelope extract(String typeName,
+                                byte[] payload) {
+                            askedInJava[0]++;
+                            return inJava.extract(typeName, payload);
+                        }
+                    }, one.indexes(), one.payloadVersion()));
+        }
+
+        cloud.jengu.dbo.postgres.PgObjectStore store =
+                new cloud.jengu.dbo.postgres.PgObjectStore(tenantSource(), registrations);
+        byte[] declared = ("{\"resourceType\":\"ValueSet\",\"status\":\"active\","
+                + "\"url\":\"https://seam.test/vs-missing\",\"name\":\"Missing\"}")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        assertThrows(RuntimeException.class,
+                () -> store.put(cloud.jengu.dbo.core.api.PutRequest.create("ValueSet", declared)),
+                "the function does not exist and the write succeeded anyway, so something "
+                        + "else computed the envelope and the declaration means nothing");
+        assertEquals(0, askedInJava[0],
+                "the database refused and this process quietly did the work instead, which is "
+                        + "the fallback that would make a wrong declaration invisible");
     }
 
     // ------------------------------------------------------------- the two

@@ -64,11 +64,12 @@ class ATypeSaysWhereItsEnvelopeIsComputedIT {
         new java.security.SecureRandom().nextBytes(kek);
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
-        // faceRoot, because the function reads the compiled parameters this
-        // tenant holds and a tenant carrying no definitions would be asking a
-        // question with no rows behind it.
+        // NOT a face root. The function reads the compiled parameters this
+        // tenant holds, and an ordinary tenant holds them because it comes up
+        // from the face's image — so this is the shape a real tenant has, and
+        // it carries its own records rather than the whole published corpus.
         Files.writeString(dir.resolve(CODE + ".json"), """
-                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},"types":[
+                {"code":"%s","face":"r4","audit":{"level":"none"},"types":[
                   {"name":"ValueSet","identity":"canonical","handling":"operational",
                    "extractor":"database"},
                   {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
@@ -141,6 +142,62 @@ class ATypeSaysWhereItsEnvelopeIsComputedIT {
             at++;
         }
         return count;
+    }
+
+    /**
+     * And a reindex of it happens there too, with no payload crossing the wire.
+     *
+     * <p>The ordinary path reads every payload into this process, extracts and
+     * writes back — the whole of a type moving twice for work the database can
+     * do in place. Proven by emptying the envelope first, because a rebuild
+     * that does nothing and a rebuild that does not happen look identical from
+     * outside.
+     *
+     * <p>On an ordinary tenant rather than a face root, deliberately: a face
+     * root carries every ValueSet the version publishes, and reindexing all of
+     * them in one test measures the corpus rather than the mechanism.
+     */
+    @Test
+    @Timeout(600)
+    @Proving(DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED)
+    @DisplayName("a reindex of a type computed in the database rebuilds what a search asks by")
+    void aReindexHappensWhereTheBytesAre() throws Exception {
+        assertEquals(201, post("/ValueSet", """
+                {"resourceType":"ValueSet","url":"%s/reindexed","version":"1","status":"active",
+                 "name":"Reindexed"}""".formatted(URL)).statusCode());
+
+        var engine = manager.runtime(CODE).orElseThrow().engine();
+        String id = engine.getByIdentifier("ValueSet",
+                        List.of(new cloud.jengu.dbo.core.api.Identifier(
+                                cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM,
+                                URL + "/reindexed")))
+                .stream().findFirst().orElseThrow().id();
+
+        try (java.sql.Connection c = tenantSource().getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                     "UPDATE definitions.definitions_data SET envelope = '{}'::jsonb"
+                             + " WHERE id = ?")) {
+            ps.setObject(1, java.util.UUID.fromString(id));
+            assertEquals(1, ps.executeUpdate(), "the record this is about is not where it "
+                    + "was looked for");
+        }
+
+        engine.rebuildEnvelopes("ValueSet");
+
+        assertEquals(1, engine.getByIdentifier("ValueSet",
+                        List.of(new cloud.jengu.dbo.core.api.Identifier(
+                                cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM,
+                                URL + "/reindexed"))).size(),
+                "the envelope was emptied and the reindex did not put it back");
+    }
+
+    private static org.postgresql.ds.PGSimpleDataSource tenantSource() {
+        org.postgresql.ds.PGSimpleDataSource source = new org.postgresql.ds.PGSimpleDataSource();
+        source.setUrl(SharedPostgres.urlFor("x")
+                .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + CODE.replace('-', '_')));
+        source.setUser(postgres.getUsername());
+        source.setPassword(postgres.getPassword());
+        return source;
     }
 
     private static HttpResponse<String> post(String path, String body) throws Exception {

@@ -1339,6 +1339,17 @@ public final class PgObjectStore implements ObjectStore {
         String domain = type.domain();
         String d = Domains.tables(domain);
         int total = 0;
+        // Where the extractor lives in the database and nothing is behind on
+        // its payload version, the whole reindex happens there and no payload
+        // crosses the wire. A row that needs upgrading first needs Java the
+        // database does not have, and one such row sends the WHOLE type down
+        // the ordinary path rather than leaving half of it done here and half
+        // there — a reindex that is partly one thing and partly another is the
+        // state nobody can reason about afterwards.
+        if (type.extractor() instanceof cloud.jengu.dbo.core.api.DatabaseExtractor inTheDatabase
+                && nothingIsBehind(type, d)) {
+            return rebuiltWhereTheBytesAre(type, d, inTheDatabase, batchSize);
+        }
         UUID after = null;
         while (true) {
             final UUID cursor = after;
@@ -1454,6 +1465,142 @@ public final class PgObjectStore implements ObjectStore {
     }
 
     /** The stamp's search dimension: one token per profile, system|code = profile|version. */
+    /**
+     * A reindex of a type whose extractor lives in the database, as statements
+     * over rows.
+     *
+     * <p>The ordinary path reads every payload into this process, extracts,
+     * and writes back — so reindexing a large type is the whole of it crossing
+     * the wire twice for work the database could do where the bytes already
+     * are. Here nothing leaves: the batch is chosen, walked and written on the
+     * other side, and what comes back is a count and a cursor.
+     *
+     * <p><b>Only rows already at the current payload version.</b> A reindex
+     * also UPGRADES a payload that is behind, and converting one is Java the
+     * database does not have. Those rows are left to the ordinary loop, which
+     * runs after this and finds only them — usually none.
+     *
+     * <p><b>Three statements rather than one, deliberately.</b> A DELETE and
+     * an INSERT on the same table inside a single statement do not see each
+     * other: the insert would meet rows the delete had already removed, and
+     * {@code ON CONFLICT DO NOTHING} would drop them silently — a row lost to
+     * an optimisation. So the walk lands in a temporary table and the writes
+     * follow it in order, inside one transaction.
+     */
+    /** Whether every row of this type is already at its current payload version. */
+    private boolean nothingIsBehind(TypeRegistration type, String d) {
+        return inTx(c -> {
+            try (PreparedStatement ps = c.prepareStatement(
+                    ("SELECT count(*) FROM %s_data WHERE type = ? AND NOT deleted"
+                            + " AND payload_version <> ?").formatted(d))) {
+                ps.setString(1, type.typeName());
+                ps.setString(2, type.payloadVersion());
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    return rs.getLong(1) == 0;
+                }
+            }
+        });
+    }
+
+    private int rebuiltWhereTheBytesAre(TypeRegistration type, String d,
+            cloud.jengu.dbo.core.api.DatabaseExtractor inTheDatabase, int batchSize) {
+        String[] identityBearing = switch (type.identityClass()) {
+            case CANONICAL -> new String[] {Identifier.CANONICAL_SYSTEM};
+            case IDENTIFIER -> type.identitySystems().toArray(new String[0]);
+            case INTERNAL -> new String[0];
+        };
+        int total = 0;
+        UUID after = null;
+        while (true) {
+            final UUID cursor = after;
+            final int done = total;
+            Object[] moved = inTx(c -> {
+                try (PreparedStatement walk = c.prepareStatement("""
+                        CREATE TEMP TABLE reindexed ON COMMIT DROP AS
+                        SELECT b.id,
+                               (%s(convert_from(b.payload, 'UTF8')::jsonb, ?, ?)) AS parts,
+                               b.shape
+                          FROM %s_data b
+                         WHERE b.type = ? AND NOT b.deleted
+                           AND b.payload_version = ?
+                           AND (?::uuid IS NULL OR b.id > ?::uuid)
+                         ORDER BY b.id LIMIT ?"""
+                        .formatted(inTheDatabase.functionName(), d))) {
+                    walk.setString(1, type.typeName());
+                    walk.setBoolean(2, type.identityClass()
+                            == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL);
+                    walk.setString(3, type.typeName());
+                    walk.setString(4, type.payloadVersion());
+                    walk.setObject(5, cursor);
+                    walk.setObject(6, cursor);
+                    walk.setInt(7, batchSize);
+                    walk.executeUpdate();
+                }
+                // The shape dimension derives from the ROW and joins the
+                // envelope here, exactly as it does on the write path.
+                try (PreparedStatement up = c.prepareStatement("""
+                        UPDATE %s_data d
+                           SET envelope = (r.parts -> 'envelope') || COALESCE(
+                                 (SELECT jsonb_build_object('_shape', jsonb_agg(
+                                          jsonb_build_object('t', 'tok',
+                                              's', substring(e from '^(.*)\\|'),
+                                              'v', substring(e from '[^|]*$'))))
+                                    FROM jsonb_array_elements_text(
+                                             COALESCE(r.shape, '[]'::jsonb)) e
+                                   WHERE e LIKE '%%|%%'
+                                  HAVING count(*) > 0), '{}'::jsonb)
+                          FROM reindexed r
+                         WHERE d.id = r.id""".formatted(d))) {
+                    up.executeUpdate();
+                }
+                try (PreparedStatement clear = c.prepareStatement(
+                        "DELETE FROM %s_identifier WHERE object_id IN (SELECT id FROM reindexed)"
+                                .formatted(d))) {
+                    clear.executeUpdate();
+                }
+                try (PreparedStatement clear = c.prepareStatement(
+                        "DELETE FROM %s_reference WHERE owner_id IN (SELECT id FROM reindexed)"
+                                .formatted(d))) {
+                    clear.executeUpdate();
+                }
+                try (PreparedStatement ins = c.prepareStatement("""
+                        INSERT INTO %s_identifier (type, system, value, object_id, identity)
+                        SELECT ?, x.system, x.value, r.id, x.system = ANY (?)
+                          FROM reindexed r,
+                               jsonb_to_recordset(r.parts -> 'identifiers')
+                                   AS x(system text, value text)
+                        ON CONFLICT DO NOTHING""".formatted(d))) {
+                    ins.setString(1, type.typeName());
+                    ins.setArray(2, c.createArrayOf("text", identityBearing));
+                    ins.executeUpdate();
+                }
+                try (PreparedStatement ins = c.prepareStatement("""
+                        INSERT INTO %s_reference (owner_id, ref_type, target_type, target_id)
+                        SELECT r.id, e."refType", e."targetType", e."targetId"
+                          FROM reindexed r,
+                               jsonb_to_recordset(r.parts -> 'references')
+                                   AS e("refType" text, "targetType" text, "targetId" text)
+                        ON CONFLICT DO NOTHING""".formatted(d))) {
+                    ins.executeUpdate();
+                }
+                try (PreparedStatement counted = c.prepareStatement(
+                        "SELECT (SELECT count(*) FROM reindexed),"
+                                + " (SELECT id FROM reindexed ORDER BY id DESC LIMIT 1)");
+                     ResultSet rs = counted.executeQuery()) {
+                    rs.next();
+                    return new Object[] {rs.getInt(1), rs.getObject(2)};
+                }
+            });
+            int rows = (Integer) moved[0];
+            total = done + rows;
+            if (rows < batchSize) {
+                return total;
+            }
+            after = (UUID) moved[1];
+        }
+    }
+
     private static void shapeIntoEnvelope(Envelope envelope, java.util.List<String> shape) {
         if (shape == null) {
             return;
