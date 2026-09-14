@@ -11,30 +11,38 @@
 # toolchain and acts on nothing, and the whole case for it answering at
 # all is that it answers the same.
 #
-# What the remaining ten are, read one by one rather than assumed — and they
-# are three different things rather than one.
+# What the remaining ten are, read one by one — and read by the findings that
+# actually decided each one. An outcome carries everything the face has to say,
+# warnings included; only error and fatal decide this count, and the first
+# sentence in an outcome is usually neither.
 #
-# SIX are rules the validator carries in its own code, which no definition
-# states: a canonical url must be absolute, a uuid must be lowercase, an
-# identifier under urn:ietf:rfc:3986 must be a full uri. Nothing compiled
-# FROM the definitions can produce those, and compiling invariants did not
-# move them by one.
+# RULES THE VALIDATOR CARRIES IN ITS OWN CODE, which no definition states: a
+# canonical url must be absolute, a uuid must be lowercase, an identifier under
+# urn:ietf:rfc:3986 must be a full uri. Three rules over six documents, and the
+# absolute-url one accounts for eighteen findings by itself. Nothing compiled
+# FROM the definitions can produce these, and compiling invariants did not move
+# them by one.
 #
-# TWO are dom-6, the narrative best-practice invariant DomainResource itself
-# declares. That one IS in the definitions and IS in the rows here, so it
-# bounds nothing: it is this store not raising a best-practice constraint to
-# a finding, where the toolchain does.
+# A STRUCTUREMAP CHECKED AS A PROGRAM rather than as a document: a source or
+# target context must be one the map declared, and a target path must exist on
+# the type it targets. Both maps this version publishes diverge this way. A
+# checker built from StructureDefinitions has nothing to say about either,
+# because neither is a statement about the shape of a StructureMap.
 #
-# TWO are terminology — a code absent from a value set, and a code system
-# that could not be resolved at all. No rule of either kind answers those.
-# They need the content to answer against, which is a different axis from
-# rules and does not close with them.
+# ONE IS THE TOOLCHAIN FAILING, not this store lacking. Constraint cid-0 cannot
+# be evaluated at all — the validator holds that invariant and reports that the
+# name in its own expression is not valid for any of the possible types. It is
+# a divergence and it is counted, but the side that said nothing is not the
+# side that was wrong.
 #
-# So the limit "the specification is data" runs into is six of these, not
-# ten. A checker built from the definitions answers what the definitions
-# say, and a validator carries knowledge besides — but two of the four that
-# looked like that knowledge were the definitions all along, and two were
-# never a question of rules.
+# ONE IS CONTENT: codes under http://snomed.info/sct that this tenant's
+# terminology does not hold. No rule of any kind answers that. It closes by
+# carrying the content and would not have moved however many invariants were
+# compiled.
+#
+# So the ceiling that "the specification is data" runs into is the first group
+# and only it — three rules, hard-coded, over six documents. The rest is a
+# program checker, a defect in the toolchain, and a gap in what is loaded.
 CapabilityStatement compared=8 onlyTheToolchain=5 onlyTheDatabase=0
 CodeSystem compared=40 onlyTheToolchain=0 onlyTheDatabase=0
 CompartmentDefinition compared=6 onlyTheToolchain=0 onlyTheDatabase=0
