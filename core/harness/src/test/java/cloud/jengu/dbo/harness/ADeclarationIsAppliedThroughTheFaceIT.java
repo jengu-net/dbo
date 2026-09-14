@@ -50,6 +50,7 @@ class ADeclarationIsAppliedThroughTheFaceIT {
 
     static final String ZONE = "through-the-face";
     static final String SYSTEM = "https://zone.test/cs/declared";
+    static final String BENCH_SYSTEM = "https://zone.test/benches";
 
     static PostgreSQLContainer<?> postgres;
     static Path dir;
@@ -72,8 +73,10 @@ class ADeclarationIsAppliedThroughTheFaceIT {
         Files.writeString(dir.resolve(ZONE + ".json"), """
                 {"code":"%s","face":"r4","types":[
                   {"name":"CodeSystem","identity":"canonical","handling":"operational"},
-                  {"name":"ValueSet","identity":"canonical","handling":"operational"}]}"""
-                .formatted(ZONE));
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                  {"name":"Device","identity":"identifier","systems":["%s"],
+                   "handling":"projected-config"}]}"""
+                .formatted(ZONE, BENCH_SYSTEM));
         UntilServed.scan(manager, ZONE);
         manager.authority(ZONE).ensureClient("a-loader", "loader-secret",
                 List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
@@ -108,6 +111,13 @@ class ADeclarationIsAppliedThroughTheFaceIT {
                 + "{\"resourceType\":\"ValueSet\",\"url\":\"" + SYSTEM + "/vs\",\"version\":\"1\","
                 + "\"status\":\"" + status + "\",\"compose\":{\"include\":[{\"system\":\""
                 + SYSTEM + "\"}]}}}";
+    }
+
+    /** A projected record: the lane's to write, and the lane's to take away. */
+    private static String bench(String code) {
+        return "{\"type\":\"Device\",\"name\":\"devices/" + code + ".json\",\"payload\":"
+                + "{\"resourceType\":\"Device\",\"status\":\"active\",\"identifier\":[{"
+                + "\"system\":\"" + BENCH_SYSTEM + "\",\"value\":\"" + code + "\"}]}}";
     }
 
     /**
@@ -256,6 +266,81 @@ class ADeclarationIsAppliedThroughTheFaceIT {
                         + again.body());
         assertEquals(was, versionOf("ValueSet", SYSTEM + "/vs"),
                 "a reordered serialisation moved the record");
+    }
+
+    /**
+     * A loader polling a repository posts the same READ every tick, and says
+     * so with a marker. The pass that finds this scope already agreed with
+     * exactly that read does nothing and says it did nothing.
+     *
+     * <p>Without it the same set is re-applied every time, which for a zone
+     * read every two minutes is a rewrite of everything in it onto a feed
+     * everything downstream is watching — and the declarer had no way to
+     * prevent it, because a list cannot say it is the same list.
+     */
+    @Test
+    @Order(6)
+    @Proving({DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
+            DboPromises.PROC_CONFIG_READ_FROM_A_SOURCE})
+    @DisplayName("a posted set that says which read it is, and is the read this scope already "
+            + "agreed with, is a read of nothing")
+    void aPostedReadThisScopeAgreedWithIsARead() throws Exception {
+        String read = "{\"marker\":\"commit:settled\",\"declarations\":["
+                + valueSet("active") + "]}";
+
+        HttpResponse<String> first = hand(read);
+        assertEquals(200, first.statusCode(), first.body());
+
+        HttpResponse<String> again = hand(read);
+        assertEquals(200, again.statusCode(), again.body());
+        assertTrue(again.body().contains("\"read\":0"),
+                "the same read, posted again, was read again: " + again.body());
+    }
+
+    /**
+     * And the other half a list could never have: what a complete read stops
+     * naming is taken away. A device decommissioned in a repository stops
+     * being a record here, rather than standing until somebody notices.
+     */
+    @Test
+    @Order(7)
+    @Proving({DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
+            DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED})
+    @DisplayName("a posted read that says it is complete withdraws what it no longer names")
+    void aCompletePostedReadWithdraws() throws Exception {
+        // A projected type, because only a type the lane owns outright can be
+        // withdrawn by machinery that cannot otherwise tell whose it is.
+        HttpResponse<String> declared = hand("{\"marker\":\"commit:has-bench\","
+                + "\"complete\":true,\"declarations\":[" + bench("bench-7") + "]}");
+        assertEquals(200, declared.statusCode(), declared.body());
+        assertTrue(declared.body().contains("\"applied\":1"), declared.body());
+
+        HttpResponse<String> without = hand("{\"marker\":\"commit:bench-gone\","
+                + "\"complete\":true,\"declarations\":[" + bench("bench-8") + "]}");
+
+        assertEquals(200, without.statusCode(), without.body());
+        assertTrue(without.body().contains("\"withdrawn\":1"),
+                "the read stopped naming it and it stayed: " + without.body());
+    }
+
+    /**
+     * Completeness is a claim about a read, so it needs a read to be a claim
+     * about. Honoured once for a body this store cannot recognise again, it
+     * would quietly mean nothing on the next pass.
+     */
+    @Test
+    @Order(8)
+    @Proving(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED)
+    @DisplayName("a set claiming to be complete without saying which read it is, is refused")
+    void completenessWithoutAReadIsRefused() throws Exception {
+        HttpResponse<String> refused = hand("{\"complete\":true,\"declarations\":["
+                + valueSet("active") + "]}");
+
+        assertEquals(400, refused.statusCode(),
+                "a claim nothing can hold this declarer to was accepted: " + refused.body());
+        assertTrue(refused.body().contains("marker"),
+                "and the refusal has to say what would make the claim keepable: "
+                        + refused.body());
     }
 
     /** What the engine holds for this declaration, by its version. */

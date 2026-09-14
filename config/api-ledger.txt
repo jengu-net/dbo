@@ -3199,7 +3199,7 @@ cloud.jengu.dbo.tenant.AuditedImportLedger                             new(cloud
 cloud.jengu.dbo.tenant.ConfigurationHandler                            SCOPE:String
 cloud.jengu.dbo.tenant.ConfigurationHandler                            class
 cloud.jengu.dbo.tenant.ConfigurationHandler                            handle(HttpExchange):void
-cloud.jengu.dbo.tenant.ConfigurationHandler                            new(cloud.jengu.dbo.auth.TenantAuthority,Supplier,BiFunction)
+cloud.jengu.dbo.tenant.ConfigurationHandler                            new(cloud.jengu.dbo.auth.TenantAuthority,Supplier,BiFunction,Function)
 cloud.jengu.dbo.tenant.ConvertedDefinitions                            class
 cloud.jengu.dbo.tenant.ConvertedDefinitions                            said(List):String
 cloud.jengu.dbo.tenant.ConvertedDefinitions                            unfounded(DataSource):List

@@ -1470,7 +1470,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             version.face().capability(
                                     cloud.jengu.dbo.core.face.DocumentEquivalence.class)
                                     .orElse(null))
-                            .apply(spec.code(), correlation, declarations)));
+                            .apply(spec.code(), correlation, declarations),
+                    // A posted read is a source. Nothing here reads anything —
+                    // the declarations arrived in the body — and that is the
+                    // whole of the difference: a source is what it says about
+                    // the set, not where the bytes came from.
+                    fetch -> new cloud.jengu.dbo.sync.ConfigApplication(
+                            runStores.get(spec.code()),
+                            new cloud.jengu.dbo.work.Runs(runStores.get(spec.code())),
+                            version.domain(),
+                            runtime.grain(),
+                            version.face().capability(
+                                    cloud.jengu.dbo.core.face.DocumentEquivalence.class)
+                                    .orElse(null))
+                            .applyFrom(spec.code(), () -> fetch)));
             configurationContexts.put(spec.code(), configurationPath);
         }
         // The maintenance surface, when the tenant has an authority to guard

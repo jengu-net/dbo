@@ -40,6 +40,17 @@ import java.util.function.Supplier;
  * body asks the deployment to apply the declarations it reads itself, and is
  * only meaningful where those live.
  *
+ * <p><b>A body may be a list, or it may be a READ.</b> A list says nothing
+ * about whether it is all of them, or about whether it is the same list as
+ * last time, so it is applied every time and nothing is ever withdrawn. A body
+ * that carries a {@code marker} is a source in every respect but where the
+ * bytes came from: this store can tell whether it already agreed with exactly
+ * that read and answer with nothing, and — where the declarer also says
+ * {@code complete} — it can take what the read no longer names as withdrawn.
+ * That is the difference between a loader that reapplies a zone every two
+ * minutes and one that costs a read, and it is the declarer's to claim rather
+ * than this store's to infer.
+ *
  * <p>Nothing reaches back afterwards. The correlation the declarer sent is
  * echoed on the run and never parsed, and whoever declared it closes their own
  * run by re-evaluating against what this one says — the moment this store
@@ -54,15 +65,29 @@ public final class ConfigurationHandler implements HttpHandler {
     private final Supplier<ConfigApplication.Outcome> apply;
     private final java.util.function.BiFunction<String,
             java.util.List<ConfigApplication.Declared>, ConfigApplication.Outcome> applyHere;
+    private final java.util.function.Function<cloud.jengu.dbo.sync.ConfigSource.Fetch,
+            ConfigApplication.Outcome> applyRead;
 
+    /**
+     * @param applyHere a list, applied every time and withdrawing nothing
+     * @param applyRead a read, which may be one this scope already agreed with
+     *                  and may be complete. Kept apart from {@code applyHere}
+     *                  rather than inferred from a null marker: the two differ
+     *                  in whether an unchanged post is a rewrite or a read,
+     *                  and a seam that decided that from a missing field would
+     *                  make it depend on a declarer forgetting one
+     */
     public ConfigurationHandler(TenantAuthority authority,
             Supplier<ConfigApplication.Outcome> apply,
             java.util.function.BiFunction<String,
                     java.util.List<ConfigApplication.Declared>,
-                    ConfigApplication.Outcome> applyHere) {
+                    ConfigApplication.Outcome> applyHere,
+            java.util.function.Function<cloud.jengu.dbo.sync.ConfigSource.Fetch,
+                    ConfigApplication.Outcome> applyRead) {
         this.authority = authority;
         this.apply = apply;
         this.applyHere = applyHere;
+        this.applyRead = applyRead;
     }
 
     @Override
@@ -151,9 +176,34 @@ public final class ConfigurationHandler implements HttpHandler {
                     String.valueOf(one.get("type")), String.valueOf(one.get("name")),
                     RecordWire.write(one.get("payload")).getBytes(StandardCharsets.UTF_8)));
         }
-        String correlation = fields.get("correlation") == null
-                ? null : String.valueOf(fields.get("correlation"));
-        return applyHere.apply(correlation, declarations);
+        String marker = fields.get("marker") == null
+                ? null : String.valueOf(fields.get("marker"));
+        boolean complete = Boolean.TRUE.equals(fields.get("complete"))
+                || "true".equals(String.valueOf(fields.get("complete")));
+        if (marker == null) {
+            if (complete) {
+                // Refused rather than ignored. A declarer that says this is
+                // all of them is asking for what it does not name to be taken
+                // away, and a body that cannot say WHICH read it is cannot be
+                // held to that claim on the next pass — so the claim would be
+                // honoured once and then quietly mean nothing.
+                fail(exchange, 400, "invalid_request",
+                        "a complete set is a read this store can recognise again: send a "
+                                + "marker with it, or send the declarations without claiming "
+                                + "they are all of them");
+                return null;
+            }
+            String correlation = fields.get("correlation") == null
+                    ? null : String.valueOf(fields.get("correlation"));
+            return applyHere.apply(correlation, declarations);
+        }
+        // The marker is what the run is correlated with, because it is what
+        // being settled is computed from. A correlation sent beside it names
+        // the same read a second time and is not kept: two answers to "what
+        // did this scope last agree with" is no answer, and the skip is the
+        // thing that would stop working.
+        return applyRead.apply(new cloud.jengu.dbo.sync.ConfigSource.Fetch(
+                declarations, marker, complete));
     }
 
     private boolean permitted(HttpExchange exchange) throws IOException {
