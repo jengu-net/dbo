@@ -53,10 +53,10 @@ How long is it kept, at least and at most — because retention is a floor as
 well as a ceiling, and a record deleted too early is as much a failure as one
 kept too long. What identifies one, and what domain it belongs to.
 
-One consequence is worth naming because it is what makes the pattern more than
-tidiness: the audit trail is exempt from whatever the tenant declares. An
-audit entry has no update and no tombstone under any policy, for anybody,
-including the party running the deployment.
+One exception is worth naming, because it is what makes the pattern more than
+tidiness: the audit trail is exempt from whatever anybody declares. An audit
+entry gets no update and no tombstone under any policy, for anybody, the
+operator included.
 
 ## What each reader gets
 
@@ -72,12 +72,8 @@ including the party running the deployment.
 ## Relations
 
 - **Builds on** — [Property, Not Policy](pattern-property-not-policy.md).
-- **Makes possible** — [The Run Is a Record](pattern-the-run-is-a-record.md);
-  the trail as records;
-  [A Role Is a Period on a Record](pattern-a-role-is-a-period-on-a-record.md).
-- **Composed of** — Canonical Data Model, from Enterprise Integration
-  Patterns, for the part about one agreed shape per kind.
-- **Written up in** — [Declared rules](../declared-rules/README.md) and
-  [Records you can rely on](../records-you-can-rely-on/README.md). Proven by
-  `REQ-DBO-POL-DECLARED-AT-CONFIGURATION`, `REQ-DBO-POL-DECLARATIVE-RETENTION`
-  and `REQ-DBO-POL-AUDIT-UNCONDITIONALLY-APPEND-ONLY`.
+- **Makes possible** — [The Trail Is Records](pattern-the-trail-is-records.md); [The Run Is a Record](pattern-the-run-is-a-record.md); [A Role Is a Period on a Record](pattern-a-role-is-a-period-on-a-record.md); [Engine and Faces](pattern-engine-and-faces.md); [Asked, Not Scanned](pattern-asked-not-scanned.md).
+- **Composed of** — [Canonical Data Model](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CanonicalDataModel.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - [Canonical Data Model](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CanonicalDataModel.html), for the part about one agreed shape per kind.
+    - Schema-on-write against schema-on-read, of which this is the governance half: not what the data looks like, but what may be done to it.

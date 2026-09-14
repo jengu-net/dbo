@@ -56,14 +56,15 @@ The test for where something belongs is whether the concept carries domain
 meaning. A birth date reducing to its year is the engine's business. A birth
 date being spelled a particular way is the face's.
 
-Two versions of one standard already run in parallel over the same engine and
-interpret it differently — one using criteria, the other topics, over the same
-record of changes. If the standard were the model, that would need two stores.
+Two versions of one standard can then run in parallel over one engine and
+interpret it differently — one using criteria where the other uses topics,
+over the same record of changes. If the standard were the model, that would
+need two stores.
 
 ## What each reader gets
 
-- **A regulator** is shown that the obligations are met by the store itself,
-  not by each application built on it.
+- **A regulator** is shown that the obligations are met once, underneath, not
+  separately by each application.
 - **A security officer** reviews one set of mechanisms regardless of how many
   domains are served.
 - **An administrator** changes the standard a tenant speaks by changing a
@@ -73,14 +74,9 @@ record of changes. If the standard were the model, that would need two stores.
 
 ## Relations
 
-- **Builds on** — [Property, Not Policy](pattern-property-not-policy.md);
-  [A Type Declares What It Is](pattern-a-type-declares-what-it-is.md).
-- **Makes possible** —
-  [Bytes Framed, Not Rebuilt](pattern-bytes-framed-not-rebuilt.md);
-  [A Country Is a Zone](pattern-a-country-is-a-zone.md);
-  [One Declared Set, Applied](pattern-one-declared-set-applied.md).
-- **Composed of** — Canonical Data Model, Message Translator and Normalizer,
-  from Enterprise Integration Patterns; ports and adapters.
-- **Written up in** — [The engine and its faces](../engine-and-faces/README.md).
-  Proven by `REQ-DBO-CORE-SIBLING-MODELS`, `REQ-DBO-VER-CONCURRENT-VERSIONS`
-  and `REQ-DBO-VER-DEFINITIONS-TRAVEL-WITH-THE-FACE`.
+- **Builds on** — [Property, Not Policy](pattern-property-not-policy.md); [A Type Declares What It Is](pattern-a-type-declares-what-it-is.md).
+- **Makes possible** — [Bytes Framed, Not Rebuilt](pattern-bytes-framed-not-rebuilt.md); [A Country Is a Zone](pattern-a-country-is-a-zone.md); [One Declared Set, Applied](pattern-one-declared-set-applied.md).
+- **Composed of** — [Canonical Data Model](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CanonicalDataModel.html), [Message Translator](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageTranslator.html) and [Normalizer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Normalizer.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/), and [ports and adapters](https://alistair.cockburn.us/hexagonal-architecture/).
+- **Related work**
+    - [Ports and adapters](https://alistair.cockburn.us/hexagonal-architecture/), which is this arrangement stated for an application rather than a store.
+    - [Fielding (2000)](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm), chapter five, for deriving an interface from constraints rather than from a domain.

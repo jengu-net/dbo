@@ -44,10 +44,10 @@ counted.**
 <p class="diagram-caption">The position is opaque to the caller, so what it
 encodes can change without breaking anybody holding one.</p>
 
-The work is designed out rather than worked around. In the platform measured
-before this was designed, the same defensive deduplication appeared at roughly
-a hundred call sites — which is not a hundred bugs, it is one design decision
-paid for a hundred times.
+The work is designed out rather than worked around. In one platform where this
+was measured, the same defensive deduplication appeared at roughly a hundred
+call sites — which is not a hundred bugs. It is one design decision paid for a
+hundred times.
 
 Opacity matters as much as stability. A caller that cannot parse a position
 cannot come to depend on its shape, which leaves the store free to change how
@@ -65,10 +65,6 @@ a position is computed for a given kind of feed.
 
 ## Relations
 
-- **Builds on** —
-  [One Feed, Every Consumer](pattern-one-feed-every-consumer.md).
-- **Related work** — keyset pagination, against offset pagination. Enterprise
-  Integration Patterns has no name for this one.
-- **Written up in** — [Change, and who is listening](../change-and-who-is-listening/README.md)
-  and [Finding things](../finding-things/README.md). Proven by
-  `REQ-DBO-FEED-KEYSET-CURSORS` and `REQ-DBO-SRCH-TYPED-ORDERING`.
+- **Builds on** — [One Feed, Every Consumer](pattern-one-feed-every-consumer.md).
+- **Related work**
+    - [Keyset pagination](https://use-the-index-luke.com/no-offset), against offset pagination. Enterprise Integration Patterns has no name for this one.

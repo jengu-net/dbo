@@ -69,16 +69,9 @@ else's, which is what the next pattern rests on.
 
 ## Relations
 
-- **Builds on** — [Property, Not Policy](pattern-property-not-policy.md);
-  [The Tenant Is a Database](pattern-the-tenant-is-a-database.md).
-- **Makes possible** —
-  [Erasure Destroys a Key](pattern-erasure-destroys-a-key.md);
-  [Leaving Is the Nightly Path](pattern-leaving-is-the-nightly-path.md).
-- **Composed of** — Claim Check, from Enterprise Integration Patterns: the
-  identity held aside, a reference travelling in its place.
-- **Related work** — Boneh and Lipton (1996) on revocable storage through key
-  destruction, which is the same mechanism read forwards.
-- **Written up in** — [Data isolation](../data-isolation/README.md). Proven by
-  `REQ-DBO-PDI-STRUCTURAL-VAULT`, `REQ-DBO-PDI-BLIND-OPERATIONS`,
-  `REQ-DBO-PDI-EXACT-RESOLUTION` and
-  `REQ-DBO-PDI-PLAINTEXT-IN-FLIGHT-LEAVES-NO-TRACE`.
+- **Builds on** — [Property, Not Policy](pattern-property-not-policy.md); [The Tenant Is a Database](pattern-the-tenant-is-a-database.md).
+- **Makes possible** — [Erasure Destroys a Key](pattern-erasure-destroys-a-key.md); [Leaving Is the Nightly Path](pattern-leaving-is-the-nightly-path.md).
+- **Composed of** — [Claim Check](https://www.enterpriseintegrationpatterns.com/patterns/messaging/StoreInLibrary.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/): the identity held aside, a reference travelling in its place.
+- **Related work**
+    - [Boneh and Lipton (1996)](https://www.usenix.org/conference/6th-usenix-security-symposium/revocable-backup-system) on revocable storage through key destruction, which is this mechanism read forwards.
+    - Pseudonymisation as [Article 4 of the GDPR](https://gdpr-info.eu/art-4-gdpr/) defines it: identifiable only with information kept separately.

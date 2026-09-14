@@ -76,15 +76,10 @@ than a consultancy exercise.
 ## Relations
 
 - **Builds on** — [Property, Not Policy](pattern-property-not-policy.md).
-- **Makes possible** — [The Run Is a Record](pattern-the-run-is-a-record.md);
-  the trail as records; nobody is pushed.
-- **Composed of** — Process Manager and Correlation Identifier, from
-  Enterprise Integration Patterns.
-- **Related work** — Clark and Wilson (1987), where a user is authorised for a
-  transformation procedure rather than for the data; Thomas and Sandhu (1997)
-  on task-based authorisation, where the permission activates with the task
-  and expires with it; Byun and Li (2005) on access bound to a stated purpose.
-- **Written up in** — [Processes and work](../processes-and-work/README.md)
-  for the mechanics, and the essay *Access granted to the work* for the long
-  form of the argument. Proven by `REQ-DBO-PROC-INPUTS-ARRIVE-WITH-THE-WORK`
-  and `REQ-DBO-PROC-CLAIM-IS-THE-INTERSECTION`.
+- **Makes possible** — [The Run Is a Record](pattern-the-run-is-a-record.md); [Nobody Is Pushed](pattern-nobody-is-pushed.md); [The Trail Is Records](pattern-the-trail-is-records.md).
+- **Composed of** — [Process Manager](https://www.enterpriseintegrationpatterns.com/patterns/messaging/ProcessManager.html) and [Correlation Identifier](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CorrelationIdentifier.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - [Clark and Wilson (1987)](https://doi.org/10.1109/SP.1987.10001), where a user is authorised for a transformation procedure rather than for the data.
+    - [Thomas and Sandhu (1997)](https://profsandhu.com/confrnc/ifip/i97tbac.pdf) on task-based authorisation, where the permission activates with the task and expires with it.
+    - [Byun, Bertino and Li (2005)](https://doi.org/10.1145/1063979.1063998) on access bound to a stated purpose.
+    - [Atluri and Huang (1996)](https://doi.org/10.1007/3-540-61770-1_27) on authorisation derived from the workflow rather than declared beside it.

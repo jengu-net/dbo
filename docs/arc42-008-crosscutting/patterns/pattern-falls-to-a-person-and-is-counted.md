@@ -35,8 +35,8 @@ from the fact that it went there?
 
 ## Therefore
 
-**Make the fall-through an ordinary outcome, and count it per step and per
-zone.**
+**Make the fall-through an ordinary outcome, and count it — per step, and per
+part of the organisation.**
 
 --8<-- "assets/diagrams/pattern-falls-to-a-person-and-is-counted.svg"
 
@@ -65,12 +65,6 @@ deployed and as volumes change.
 
 ## Relations
 
-- **Builds on** — [The Run Is a Record](pattern-the-run-is-a-record.md);
-  [Nobody Is Pushed](pattern-nobody-is-pushed.md).
-- **Related work** — the workflow resource patterns, where a task not taken by
-  an automatic resource is offered to a human worklist; the distinction
-  between design-time and run-time allocation.
-- **Written up in** — [Processes and work](../processes-and-work/README.md).
-  Proven by `REQ-DBO-PROC-FALL-THROUGH-IS-COUNTABLE`,
-  `REQ-DBO-PROC-AUTOMATION-IS-DECLARED` and
-  `REQ-DBO-PROC-EXECUTOR-RESOLUTION-IS-DETERMINISTIC`.
+- **Builds on** — [The Run Is a Record](pattern-the-run-is-a-record.md); [Nobody Is Pushed](pattern-nobody-is-pushed.md).
+- **Related work**
+    - The [workflow resource patterns](http://www.workflowpatterns.com/patterns/resource/), where a task no automatic resource takes is offered to a human worklist.

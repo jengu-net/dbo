@@ -15,8 +15,8 @@ rather than duplicate it.**
 ## You are
 
 Running work that is defined by a condition rather than by a list. Erase this
-person from everywhere they appear. Bring this tenant's configuration into
-line with what was declared. Retire everything past its retention.
+person from everywhere they appear. Bring a system's configuration into line
+with what was declared. Retire everything past its retention.
 
 Such work is asked for by people, by schedules and by retries, and sometimes
 by all three within a minute. It also crashes halfway through, because
@@ -70,11 +70,8 @@ when it is not.
 ## Relations
 
 - **Builds on** — [The Run Is a Record](pattern-the-run-is-a-record.md).
-- **Makes possible** — erasure destroys a key; one declared set, applied.
-- **Composed of** — Idempotent Receiver, from Enterprise Integration Patterns.
-- **Related work** — convergence and reconciliation loops, where the desired
-  state is declared and the run closes when observation matches it.
-- **Written up in** — [Processes and work](../processes-and-work/README.md)
-  and [Data isolation](../data-isolation/README.md). Proven by
-  `REQ-DBO-PROC-RUN-KINDS`, `REQ-DBO-PDI-ERASURE-IS-A-RUN` and
-  `REQ-DBO-PROC-CONFIG-APPLIES-AS-A-SWEEP`.
+- **Makes possible** — [Erasure Destroys a Key](pattern-erasure-destroys-a-key.md); [One Declared Set, Applied](pattern-one-declared-set-applied.md).
+- **Composed of** — [Idempotent Receiver](https://www.enterpriseintegrationpatterns.com/patterns/messaging/IdempotentReceiver.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - [Idempotent Receiver](https://www.enterpriseintegrationpatterns.com/patterns/messaging/IdempotentReceiver.html), which is this read from the receiving end.
+    - Convergent reconciliation, where a desired state is declared and the loop closes when observation matches it.

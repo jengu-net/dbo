@@ -43,12 +43,13 @@ do this work, which one wins?
 declaration. It is never the union, and never whichever of the two happened to
 be checked last.</p>
 
-The rule generalises, and it is the same rule in three other places in the
-store. A jurisdiction declares which identifier systems and which brokers are
-admissible, and a tenant chooses within that set. An operator's override is
-bounded by what the tenant declared. A lane's entitlement is stated when the
-lane is provisioned. In every case the outer party declares the set, the inner
-one chooses within it and may narrow, never widen.
+The rule generalises well beyond taking work, and it is worth applying
+wherever two declarations meet. A jurisdiction says which identifier systems
+and which brokers are admissible, and an organisation inside it chooses within
+that set. An operator's override is bounded by what the customer declared. A
+connection's entitlement is fixed when the connection is set up, not when it
+is used. In every case the outer party declares the set, the inner one chooses
+within it and may narrow, never widen.
 
 The other half of the pattern is that there is no implicit unrestricted. An
 entitlement that was never stated is empty, not unlimited, so the reach of a
@@ -67,13 +68,8 @@ remote participant never depends on a parameter somebody forgot to set.
 
 ## Relations
 
-- **Builds on** — [Nobody Is Pushed](pattern-nobody-is-pushed.md);
-  [A Role Is a Period on a Record](pattern-a-role-is-a-period-on-a-record.md).
-- **Makes possible** — a country is a zone.
-- **Related work** — least privilege, and separation of duties, where the
-  authority to act is deliberately split across two declarations.
-- **Written up in** — [Processes and work](../processes-and-work/README.md)
-  and [Declared rules](../declared-rules/README.md). Proven by
-  `REQ-DBO-PROC-CLAIM-IS-THE-INTERSECTION`,
-  `REQ-DBO-PROC-ENTITLEMENT-IS-DECLARED-NOT-DEFAULTED` and
-  `REQ-DBO-PROC-THE-LANE-HAS-TWO-BOUNDS`.
+- **Builds on** — [Nobody Is Pushed](pattern-nobody-is-pushed.md); [A Role Is a Period on a Record](pattern-a-role-is-a-period-on-a-record.md).
+- **Makes possible** — [A Country Is a Zone](pattern-a-country-is-a-zone.md).
+- **Related work**
+    - [Saltzer and Schroeder (1975)](https://doi.org/10.1109/PROC.1975.9939) on least privilege and on separation of privilege, where authority is deliberately split so that no single declaration suffices.
+    - [Park and Sandhu (2004)](https://doi.org/10.1145/984334.984339) on usage control, which generalises the several conditions a use has to satisfy at once.

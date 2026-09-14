@@ -68,12 +68,8 @@ so. This is non-forgery and non-repudiation. It is not omission-proofing.
 
 ## Relations
 
-- **Builds on** — [The Trail Is Records](pattern-the-trail-is-records.md);
-  bytes framed, not rebuilt.
-- **Composed of** — Message History, from Enterprise Integration Patterns, for
-  the travel entry, and Claim Check for carrying without opening.
-- **Written up in** — [Records you can rely on](../records-you-can-rely-on/README.md)
-  and [Processes and work](../processes-and-work/README.md). Proven by
-  `REQ-DBO-POL-TRAVEL-AND-ACCESS-ARE-DIFFERENT-ENTRIES`,
-  `REQ-DBO-WF-HOPS-AUDITED` and
-  `REQ-DBO-POL-A-RUNS-TRAIL-IS-CHAINED-FROM-THE-TASK`.
+- **Builds on** — [The Trail Is Records](pattern-the-trail-is-records.md); [Bytes Framed, Not Rebuilt](pattern-bytes-framed-not-rebuilt.md).
+- **Composed of** — [Message History](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageHistory.html) and [Claim Check](https://www.enterpriseintegrationpatterns.com/patterns/messaging/StoreInLibrary.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - [Claim Check](https://www.enterpriseintegrationpatterns.com/patterns/messaging/StoreInLibrary.html), for carrying a reference rather than the contents.
+    - Chain of custody, as evidence handling uses the term: who held it, and separately, who examined it.

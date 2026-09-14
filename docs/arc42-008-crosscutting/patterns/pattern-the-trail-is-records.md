@@ -3,8 +3,8 @@ title: "The Trail Is Records"
 eyebrow: Pattern
 standfirst: >-
   Who read this, who changed it, on whose authority, and when — kept as
-  ordinary records in the tenant's own store, append-only against everyone
-  with the vendor included.
+  ordinary records inside the system that produced them, append-only against
+  everyone, the operator included.
 pattern: 11
 template: essay.html
 ---
@@ -30,7 +30,8 @@ that produced it have been replaced twice?
 
 ## The forces
 
-- A log that leaves the tenant is subject to somebody else's retention, and
+- A log that leaves the organisation is subject to somebody else's retention,
+  and
   to the end of a contract.
 - Evidence anybody can edit is a document, not evidence — and the party most
   able to edit it is the one running the deployment.
@@ -39,7 +40,7 @@ that produced it have been replaced twice?
 
 ## Therefore
 
-**Keep the trail as ordinary records in the tenant's own store, and give it no
+**Keep the trail as ordinary records where the events happened, and give it no
 edit interface at all.**
 
 --8<-- "assets/diagrams/pattern-the-trail-is-records.svg"
@@ -48,10 +49,10 @@ edit interface at all.**
 retention setting. There is no operator, and no vendor, for whom an exception
 exists.</p>
 
-Audit entries are exempt from whatever write discipline the tenant declares
-for everything else: no update and no tombstone under any policy. Retention's
-sweep is the only thing that can remove one, and every removal is itself
-audited, without retaining what was removed.
+Make audit entries exempt from whatever write discipline is declared
+for everything else: no update and no tombstone under any policy. Let a
+retention sweep be the only thing that can remove one, and audit every removal
+without retaining what was removed.
 
 Applications may contribute business-level events, so the trail can carry what
 happened in a domain rather than only what happened at the database. What an
@@ -66,25 +67,16 @@ somebody else's name.
   under its own declared retention, not by a supplier.
 - **A security officer** can state that no role, including the operator's, can
   alter an entry.
-- **An administrator** backs up and restores audit with the tenant, because it
-  is part of the tenant.
+- **An administrator** backs up and restores the evidence along with the data,
+  because it is part of it.
 - **The business** can leave a hosting provider without leaving its evidence
   behind.
 
 ## Relations
 
-- **Builds on** — [Work Is the Reason](pattern-work-is-the-reason.md);
-  [A Type Declares What It Is](pattern-a-type-declares-what-it-is.md);
-  [The Tenant Is a Database](pattern-the-tenant-is-a-database.md).
-- **Makes possible** —
-  [Carrying Is Not Reading](pattern-carrying-is-not-reading.md);
-  [Asked, Not Scanned](pattern-asked-not-scanned.md); erasure destroys a key.
-- **Composed of** — Wire Tap and Message History, from Enterprise Integration
-  Patterns.
-- **Related work** — Clark and Wilson (1987), where the audit of each
-  transformation procedure is part of the integrity mechanism rather than an
-  accessory to it.
-- **Written up in** — [Records you can rely on](../records-you-can-rely-on/README.md).
-  Proven by `REQ-DBO-POL-AUDIT-AS-RECORDS`,
-  `REQ-DBO-POL-AUDIT-UNCONDITIONALLY-APPEND-ONLY`,
-  `REQ-DBO-POL-ACTOR-FROM-AUTHORITY` and `REQ-DBO-POL-CUSTOM-AUDIT-EVENTS`.
+- **Builds on** — [The Tenant Is a Database](pattern-the-tenant-is-a-database.md); [A Type Declares What It Is](pattern-a-type-declares-what-it-is.md); [Work Is the Reason](pattern-work-is-the-reason.md).
+- **Makes possible** — [Carrying Is Not Reading](pattern-carrying-is-not-reading.md); [Asked, Not Scanned](pattern-asked-not-scanned.md); [Erasure Destroys a Key](pattern-erasure-destroys-a-key.md).
+- **Composed of** — [Wire Tap](https://www.enterpriseintegrationpatterns.com/patterns/messaging/WireTap.html) and [Message History](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageHistory.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - [Clark and Wilson (1987)](https://doi.org/10.1109/SP.1987.10001), where the audit of each transformation procedure is part of the integrity mechanism rather than an accessory to it.
+    - [Article 30 of the GDPR](https://gdpr-info.eu/art-30-gdpr/), which is the obligation this answers in European law.

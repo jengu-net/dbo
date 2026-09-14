@@ -2,8 +2,8 @@
 title: "Bytes Framed, Not Rebuilt"
 eyebrow: Pattern
 standfirst: >-
-  Data crosses the line between engine and face as bytes, parsed once and
-  framed rather than rebuilt. What is carried is not opened.
+  A payload crosses each layer as bytes, parsed once and framed rather than
+  rebuilt. What is carried is not opened.
 pattern: 21
 template: essay.html
 ---
@@ -67,11 +67,8 @@ claim honest.
 ## Relations
 
 - **Builds on** — [Engine and Faces](pattern-engine-and-faces.md).
-- **Makes possible** —
-  [Carrying Is Not Reading](pattern-carrying-is-not-reading.md).
-- **Composed of** — Envelope Wrapper and Claim Check, from Enterprise
-  Integration Patterns.
-- **Written up in** — [The payload seam](../the-payload-seam/README.md).
-  Proven by `REQ-DBO-CORE-PAYLOAD-IS-TRUTH`,
-  `REQ-DBO-CORE-DECLARED-TRUTH-FORM` and
-  `REQ-DBO-SRCH-THE-ENVELOPE-IS-EXTRACTED-WHERE-THE-BYTES-ARE`.
+- **Makes possible** — [Carrying Is Not Reading](pattern-carrying-is-not-reading.md).
+- **Composed of** — [Envelope Wrapper](https://www.enterpriseintegrationpatterns.com/patterns/messaging/EnvelopeWrapper.html) and [Claim Check](https://www.enterpriseintegrationpatterns.com/patterns/messaging/StoreInLibrary.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - [Envelope Wrapper](https://www.enterpriseintegrationpatterns.com/patterns/messaging/EnvelopeWrapper.html), for carrying a payload a layer has no business opening.
+    - Canonical serialisation, whose concern is the same: that a round trip through a model is not guaranteed to return what went in.

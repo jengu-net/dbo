@@ -2,32 +2,36 @@
 
 ## What this is about
 
-The concepts in this tree are written as arguments: each one starts from a
-problem and reasons to what the store does. That is the right form for
-somebody deciding whether the design is sound, and the wrong form for
-somebody who needs to *refer* to one idea in a meeting with four disciplines
-in the room.
+Twenty-four cards, each naming one recurring problem and the arrangement that
+solves it. They are written as general design guidance, not as a description
+of any one system: a reader who never intends to use this store should still
+be able to take a pattern to their own.
 
-So the same material is also given as a **pattern language**. Each pattern
-names one idea, states the situation it belongs to, the question it answers
-and the arrangement that answers it, in language that does not need an
-engineer to decode it. Where a pattern is an application of something already
-named in the literature — Enterprise Integration Patterns, task-based access
-control, business artifacts — it says so and links to the concept page for the
-mechanics.
+Each card states the situation it belongs to, the question it answers, the
+forces pulling against each other, the arrangement that resolves them, and
+what four different readers get out of it — a regulator, a security officer,
+an administrator and the business — because these are decisions all four live
+with and usually discuss in different vocabularies.
 
-All twenty-four are written, in six families. The proposal they came from,
-and the reading list behind them, is the pattern-language plan — which sits
-with the other plans rather than here, because a proposal is not a description
-of the store.
+Where a pattern is an application of something already named in the
+literature — Enterprise Integration Patterns, task-based access control,
+business artifacts, the transactional outbox — it says so and links to the
+source, so a card is a starting point for reading rather than a replacement
+for it.
 
-## The shape of a page
+The cards do not cite this store's requirements or link to its internals.
+Whether a given pattern is implemented here, and how, is a question for the
+rest of the specification.
 
-Every pattern is written the same way: a name and a one-line intent, *you
-are*, *the question*, *the forces*, *therefore*, *what each reader gets* —
-four lines, for a regulator, for security, for an administrator, for the
-business — and *relations*. Module names and protocol names appear only in the
-last part.
+## The shape of a card
+
+A name and a one-line intent, then *you are*, *the question*, *the forces*,
+*therefore*, *what each reader gets*, and *relations*.
+
+Relations are what make the twenty-four a language rather than a list. Each
+card names what it **builds on** — the patterns that must already be true
+before it makes sense — what it **makes possible**, what it is **composed
+of**, and the outside **related work** it descends from.
 
 ## Every pattern, and what it rests on
 
@@ -76,8 +80,8 @@ before it can be.</p>
 ## Evidence
 
 - [**The Trail Is Records**](pattern-the-trail-is-records.md) — audit lives in
-  the tenant's own store, append-only against everyone, with the party running
-  the deployment included.
+  the system that produced the events, append-only against everyone, the
+  operator included.
 - [**Carrying Is Not Reading**](pattern-carrying-is-not-reading.md) — a hop
   that carried leaves a travel entry, a participant that opened leaves an
   access entry, so the trail can say that nobody looked.

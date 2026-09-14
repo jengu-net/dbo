@@ -48,14 +48,14 @@ The entries remain, complete and in order, and the chain still verifies. What
 happened is still provable years later. Who it happened to is gone, and cannot
 be recovered by anybody, including the party running the deployment.
 
-Two properties make it an obligation rather than a gesture. The erasure is
-asked for as work and answered by a run, so it has a receipt saying what was
-found, how far it got and when — and asking twice finds the run that already
-exists rather than opening a second account of one erasure. And a person the
-store never held closes the run saying so, because an unknown subject is not a
-refusal.
+Two further properties turn it from a gesture into an obligation. Ask for the
+erasure as work and answer it with a record, so there is a receipt saying what
+was found, how far it got and when — and so that asking twice joins the
+attempt already open rather than opening a second account of one erasure. And
+let a subject you never held close that record saying so, because an unknown
+person is not a refusal.
 
-Because audit entries are pseudonymous to begin with, re-identifiable only
+Where the records were pseudonymous to begin with, re-identifiable only
 through one door, this is a smaller step than it sounds.
 
 ## What each reader gets
@@ -71,13 +71,7 @@ through one door, this is a smaller step than it sounds.
 
 ## Relations
 
-- **Builds on** — [The Person Is a Key](pattern-the-person-is-a-key.md);
-  [The Trail Is Records](pattern-the-trail-is-records.md);
-  [A Sweep Is Found, Not Started](pattern-a-sweep-is-found-not-started.md).
-- **Related work** — crypto-shredding, descended from Boneh and Lipton's
-  revocable backup (1996); the right to erasure in European data-protection
-  law.
-- **Written up in** — [Data isolation](../data-isolation/README.md). Proven by
-  `REQ-DBO-PDI-CRYPTO-SHREDDING`, `REQ-DBO-PDI-ERASURE-IS-A-RUN`,
-  `REQ-DBO-PDI-ERASURE-SAYS-HOW-FAR-IT-GOT` and
-  `REQ-DBO-PDI-UNFINDABLE-AFTER-ERASURE`.
+- **Builds on** — [The Person Is a Key](pattern-the-person-is-a-key.md); [The Trail Is Records](pattern-the-trail-is-records.md); [A Sweep Is Found, Not Started](pattern-a-sweep-is-found-not-started.md).
+- **Related work**
+    - [Crypto-shredding](https://en.wikipedia.org/wiki/Crypto-shredding), descended from [Boneh and Lipton (1996)](https://www.usenix.org/conference/6th-usenix-security-symposium/revocable-backup-system).
+    - [Article 17 of the GDPR](https://gdpr-info.eu/art-17-gdpr/), the right this reconciles with an unalterable record.

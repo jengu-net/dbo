@@ -68,16 +68,9 @@ linger because nobody wrote the removal step.
 
 ## Relations
 
-- **Builds on** —
-  [A Sweep Is Found, Not Started](pattern-a-sweep-is-found-not-started.md);
-  [Engine and Faces](pattern-engine-and-faces.md).
-- **Makes possible** —
-  [Status Is a Lifecycle, Not a List](pattern-status-is-a-lifecycle-not-a-list.md).
-- **Composed of** — Control Bus, from Enterprise Integration Patterns.
-- **Related work** — declarative configuration and convergent reconciliation,
-  where desired state is stated and the system moves towards it.
-- **Written up in** — [Running it](../running-it/README.md). Proven by
-  `REQ-DBO-PROC-CONFIG-READ-FROM-A-SOURCE`,
-  `REQ-DBO-TEN-A-DECLARED-SET-IS-APPLIED-AS-ONE-PASS`,
-  `REQ-DBO-TEN-APPLYING-IS-ASKED-FOR-AND-RECORDED` and
-  `REQ-DBO-PROC-CONFIG-WITHDRAWAL-IS-DECLARED`.
+- **Builds on** — [Engine and Faces](pattern-engine-and-faces.md); [A Sweep Is Found, Not Started](pattern-a-sweep-is-found-not-started.md).
+- **Makes possible** — [Status Is a Lifecycle, Not a List](pattern-status-is-a-lifecycle-not-a-list.md).
+- **Composed of** — [Control Bus](https://www.enterpriseintegrationpatterns.com/patterns/messaging/ControlBus.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - [Control Bus](https://www.enterpriseintegrationpatterns.com/patterns/messaging/ControlBus.html), for administering many instances through one declared channel.
+    - Declarative configuration and convergent reconciliation, where desired state is stated and the system moves towards it.

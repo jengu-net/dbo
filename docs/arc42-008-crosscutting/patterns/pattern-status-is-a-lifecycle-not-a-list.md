@@ -65,12 +65,7 @@ operation with a record, not a row disappearing from a table.
 
 ## Relations
 
-- **Builds on** —
-  [One Declared Set, Applied](pattern-one-declared-set-applied.md);
-  [The Tenant Is a Database](pattern-the-tenant-is-a-database.md).
-- **Composed of** — Control Bus, from Enterprise Integration Patterns.
-- **Written up in** — [Running it](../running-it/README.md) and
-  [Deployment](../../arc42-007-deployment/README.md). Proven by
-  `REQ-DBO-TEN-COMING-UP-AND-KEEPING-UP-ARE-NOT-ONE-QUEUE`,
-  `REQ-DBO-TEN-READY-WHEN-ITS-CRITICAL-DEFINITIONS-ARRIVED` and
-  `REQ-DBO-TEN-SERVED-FROM-WHAT-WAS-APPLIED`.
+- **Builds on** — [The Tenant Is a Database](pattern-the-tenant-is-a-database.md); [One Declared Set, Applied](pattern-one-declared-set-applied.md).
+- **Composed of** — [Control Bus](https://www.enterpriseintegrationpatterns.com/patterns/messaging/ControlBus.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - Readiness against liveness, which makes the same distinction between having started and being able to serve.

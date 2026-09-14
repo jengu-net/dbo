@@ -74,16 +74,9 @@ distance, which is a number you read off the same line as everyone else's.
 
 ## Relations
 
-- **Builds on** —
-  [Committed with the Change](pattern-committed-with-the-change.md);
-  [Nobody Is Pushed](pattern-nobody-is-pushed.md).
-- **Makes possible** —
-  [A Cursor That Holds Still](pattern-a-cursor-that-holds-still.md).
-- **Composed of** — Durable Subscriber, Polling Consumer and Message Store,
-  from Enterprise Integration Patterns.
-- **Related work** — Kreps (2013) on the log as a unifying abstraction, where
-  paging, replication and subscription are the same read at different
-  positions.
-- **Written up in** — [Change, and who is listening](../change-and-who-is-listening/README.md).
-  Proven by `REQ-DBO-FEED-ONE-PRIMITIVE`, `REQ-DBO-FEED-NAMED-CONSUMERS` and
-  `REQ-DBO-FEED-PUSH-ACK-RESUME`.
+- **Builds on** — [Committed with the Change](pattern-committed-with-the-change.md); [Nobody Is Pushed](pattern-nobody-is-pushed.md).
+- **Makes possible** — [A Cursor That Holds Still](pattern-a-cursor-that-holds-still.md).
+- **Composed of** — [Durable Subscriber](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DurableSubscription.html), [Polling Consumer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/PollingConsumer.html) and [Message Store](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageStore.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - Kreps (2013) on the log as a unifying abstraction, where paging, replication and subscription are the same read at different positions. The original post has moved more than once, so it is cited by name rather than linked.
+    - [Event sourcing](https://martinfowler.com/eaaDev/EventSourcing.html), which takes the same sequence as the system of record.

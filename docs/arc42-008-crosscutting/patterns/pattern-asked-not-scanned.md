@@ -71,11 +71,6 @@ A caller told only that something is unsupported can do nothing but guess.
 
 ## Relations
 
-- **Builds on** — [The Trail Is Records](pattern-the-trail-is-records.md);
-  [A Type Declares What It Is](pattern-a-type-declares-what-it-is.md).
-- **Related work** — none named. This is the store's own stance, against the
-  common convention of best-effort matching.
-- **Written up in** — [Records you can rely on](../records-you-can-rely-on/README.md)
-  and [Finding things](../finding-things/README.md). Proven by
-  `REQ-DBO-SRCH-STRICT-BY-DEFAULT`, `REQ-DBO-SRCH-HONEST-CAPABILITY` and
-  `REQ-DBO-PROC-REFUSED-IS-NOT-UNANSWERED`.
+- **Builds on** — [A Type Declares What It Is](pattern-a-type-declares-what-it-is.md); [The Trail Is Records](pattern-the-trail-is-records.md).
+- **Related work**
+    - No named antecedent. It runs against the common convention of best-effort matching, and the nearest relative is the fail-fast preference for an error over a plausible wrong answer.

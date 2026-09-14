@@ -47,17 +47,17 @@ door was never built.
 and that is the whole difference: on the left it is the day the promise is not
 kept, and on the right there is no such day to draw.</p>
 
-This is the root of every other pattern here, and each of them is one
-application of it. Access is not granted to a person and then policed, it is
-granted to a step, so there is no general read to misuse. Tenants are not
-separated by a filter everyone must remember to apply, they are separate
-databases, so a query with a bug in it has nowhere to go. Identifying material
-is not "handled carefully" on the way out, it is encrypted where it is
-written, so every copy carries ciphertext whether or not each path was coded
-correctly.
+Every other pattern in this language is one application of the same move. Do
+not grant access to a person and then police it; grant it to a step, so there
+is no general reach to misuse. Do not separate customers by a filter everyone
+must remember to apply; give them separate databases, so a query with a bug in
+it has nowhere to go. Do not handle identifying material carefully on the way
+out; encrypt it where it is written, so every copy carries ciphertext whether
+or not each path was coded correctly.
 
 The discipline the pattern asks of you is not to claim more than the
-arrangement gives. Where something really is a policy, it is named as one.
+arrangement gives. Where something really is a policy, say so, and defend it
+the way policies have to be defended.
 
 ## What each reader gets
 
@@ -74,10 +74,8 @@ arrangement gives. Where something really is a policy, it is named as one.
 ## Relations
 
 - **Builds on** — nothing. This is the root.
-- **Makes possible** — every other pattern in the language, directly or
-  through one of the five that descend from it.
-- **Related work** — Clark and Wilson (1987) on integrity enforced by the
-  system rather than asserted about its users; Parnas and Clements (1986) on
-  presenting a design as the consequences of its requirements.
-- **Written up in** — the *Why DBO* index, which opens on the same
-  distinction and derives the rest of the design from it.
+- **Makes possible** — every other pattern in the language, directly or through one of the five that descend from it: [The Tenant Is a Database](pattern-the-tenant-is-a-database.md); [A Type Declares What It Is](pattern-a-type-declares-what-it-is.md); [Work Is the Reason](pattern-work-is-the-reason.md); [Engine and Faces](pattern-engine-and-faces.md); [The Person Is a Key](pattern-the-person-is-a-key.md).
+- **Related work**
+    - [Clark and Wilson (1987)](https://doi.org/10.1109/SP.1987.10001) on integrity enforced by the system rather than asserted about its users.
+    - [Parnas and Clements (1986)](https://doi.org/10.1109/TSE.1986.6312940) on presenting a design as the consequences of its requirements.
+    - [Saltzer and Schroeder (1975)](https://doi.org/10.1109/PROC.1975.9939), whose economy of mechanism is the same preference for an arrangement over a rule.

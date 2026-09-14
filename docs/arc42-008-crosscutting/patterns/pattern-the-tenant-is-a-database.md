@@ -73,10 +73,6 @@ operation here rather than an administrative afterthought.
 ## Relations
 
 - **Builds on** — [Property, Not Policy](pattern-property-not-policy.md).
-- **Makes possible** — the trail as records; leaving is the nightly path;
-  committed with the change.
-- **Related work** — the database-per-tenant arrangement, against the shared
-  schema with a discriminator column.
-- **Written up in** — [Data isolation](../data-isolation/README.md). Proven by
-  `REQ-DBO-TEN-DEDICATED-DATABASE-TIER`, `REQ-DBO-TEN-SHARED-TIER-ISOLATION`
-  and `REQ-DBO-TEN-ERASURE-BY-DROP`.
+- **Makes possible** — [Committed with the Change](pattern-committed-with-the-change.md); [The Trail Is Records](pattern-the-trail-is-records.md); [The Person Is a Key](pattern-the-person-is-a-key.md); [Leaving Is the Nightly Path](pattern-leaving-is-the-nightly-path.md); [Status Is a Lifecycle, Not a List](pattern-status-is-a-lifecycle-not-a-list.md).
+- **Related work**
+    - [Multitenancy models](https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/tenancy-models), which set database-per-tenant against a shared schema with a discriminator column.

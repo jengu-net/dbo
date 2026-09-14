@@ -68,14 +68,8 @@ every day.
 
 ## Relations
 
-- **Builds on** — [The Tenant Is a Database](pattern-the-tenant-is-a-database.md);
-  [The Person Is a Key](pattern-the-person-is-a-key.md).
-- **Composed of** — Document Message and Envelope Wrapper, from Enterprise
-  Integration Patterns.
-- **Related work** — the right to data portability in European
-  data-protection law.
-- **Written up in** — [Data isolation](../data-isolation/README.md) and
-  [Running it](../running-it/README.md). Proven by
-  `REQ-DBO-MNT-BACKUP-IS-EXPORT`, `REQ-DBO-MNT-OWNER-KEY-ENCRYPTION`,
-  `REQ-DBO-MNT-ARCHIVE-ROOT-OVER-CONTENTS` and
-  `REQ-DBO-MNT-IMPORT-REFUSES-UNATTESTED`.
+- **Builds on** — [The Tenant Is a Database](pattern-the-tenant-is-a-database.md); [The Person Is a Key](pattern-the-person-is-a-key.md).
+- **Composed of** — [Document Message](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DocumentMessage.html) and [Envelope Wrapper](https://www.enterpriseintegrationpatterns.com/patterns/messaging/EnvelopeWrapper.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - [Article 20 of the GDPR](https://gdpr-info.eu/art-20-gdpr/) on portability.
+    - Restore testing, whose argument is the same one: a path exercised once is a path nobody has debugged.

@@ -68,10 +68,6 @@ in.
 
 ## Relations
 
-- **Builds on** —
-  [Two Parties Bound the Claim](pattern-two-parties-bound-the-claim.md);
-  [Engine and Faces](pattern-engine-and-faces.md).
-- **Written up in** — [Declared rules](../declared-rules/README.md). Proven by
-  `REQ-DBO-ZONE-DECLARATIONS-AS-RECORDS`, `REQ-DBO-ZONE-BROKER-CHOICE`,
-  `REQ-DBO-ZONE-SUBJECT-DOMAINS` and
-  `REQ-DBO-ZONE-AN-UNSERVABLE-ZONE-IS-SAID-AT-BRING-UP`.
+- **Builds on** — [Engine and Faces](pattern-engine-and-faces.md); [Two Parties Bound the Claim](pattern-two-parties-bound-the-claim.md).
+- **Related work**
+    - Internationalisation and locale design, where what varies by place is held as data rather than compiled in.

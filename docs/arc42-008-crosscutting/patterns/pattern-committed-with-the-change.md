@@ -44,9 +44,9 @@ How do you make a change and its notification impossible to separate?
 <p class="diagram-caption">Either both are in the database or neither is.
 There is no third outcome to handle.</p>
 
-Distribution then runs on the store's own database rather than an external
-broker. That is a deployment decision as much as an architectural one: the
-ordering guarantee a broker would provide is already available where the data
+Distribution then runs on the database you already have rather than on an
+external broker. That is a deployment decision as much as an architectural
+one: the ordering a broker would give you is already available where the data
 is, and there is no second source of truth about what has happened.
 
 One subtlety is worth knowing because it is where naive implementations break.
@@ -68,11 +68,8 @@ deliver only what is genuinely settled.
 ## Relations
 
 - **Builds on** — [The Tenant Is a Database](pattern-the-tenant-is-a-database.md).
-- **Makes possible** —
-  [One Feed, Every Consumer](pattern-one-feed-every-consumer.md).
-- **Composed of** — Guaranteed Delivery, Transactional Client and Event
-  Message, from Enterprise Integration Patterns; the transactional outbox as
-  Richardson (2018) describes it.
-- **Written up in** — [Change, and who is listening](../change-and-who-is-listening/README.md).
-  Proven by `REQ-DBO-EVT-TRANSACTIONAL-OUTBOX` and
-  `REQ-DBO-FEED-IDEMPOTENT-DELIVERY`.
+- **Makes possible** — [One Feed, Every Consumer](pattern-one-feed-every-consumer.md).
+- **Composed of** — [Guaranteed Delivery](https://www.enterpriseintegrationpatterns.com/patterns/messaging/GuaranteedMessaging.html), [Transactional Client](https://www.enterpriseintegrationpatterns.com/patterns/messaging/TransactionalClient.html) and [Event Message](https://www.enterpriseintegrationpatterns.com/patterns/messaging/EventMessage.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - The [transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html), which is this pattern under its usual name.
+    - [Guaranteed Delivery](https://www.enterpriseintegrationpatterns.com/patterns/messaging/GuaranteedMessaging.html), which states the obligation the outbox discharges.

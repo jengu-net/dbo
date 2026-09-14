@@ -2,9 +2,9 @@
 title: "The Run Is a Record"
 eyebrow: Pattern
 standfirst: >-
-  One attempt at one step is an ordinary record in the tenant's own store. So
-  it has history, an audit trail and an owner, and it survives a restart of
-  anything, because it was never in flight.
+  One attempt at one step is an ordinary record in the same store as everything
+  else. So it has history, an audit trail and an owner, and it survives a
+  restart of anything, because it was never in flight.
 pattern: 5
 template: essay.html
 ---
@@ -39,9 +39,9 @@ already gives to everything else it holds?
 ## Therefore
 
 **Store the attempt as an ordinary record, and let it inherit.** A run is not
-a message moving through a system. It is a record sitting in the tenant's
-store, listed, counted and read through the same interface as everything else,
-with nothing special built for looking at work.
+a message moving through a system. It is a record, listed, counted and read
+through the same interface as everything else, with nothing special built for
+looking at work.
 
 --8<-- "assets/diagrams/pattern-the-run-is-a-record.svg"
 
@@ -71,15 +71,10 @@ must not have.
 
 ## Relations
 
-- **Builds on** — [Work Is the Reason](pattern-work-is-the-reason.md); a type
-  declares what it is.
-- **Makes possible** — a sweep is found, not started; falls to a person, and
-  is counted.
-- **Composed of** — Message Store, from Enterprise Integration Patterns, with
-  the store standing in for the queue rather than beside it.
-- **Related work** — Nigam and Caswell (2003) on business artifacts, where the
-  record carries its own lifecycle; van der Aalst, Weske and Grünbauer (2005)
-  on case handling.
-- **Written up in** — [Processes and work](../processes-and-work/README.md).
-  Proven by `REQ-DBO-PROC-RUN-HAS-A-RECORD`,
-  `REQ-DBO-PROC-RUN-SAYS-WHO-HOLDS-IT` and `REQ-DBO-PROC-RUN-KINDS`.
+- **Builds on** — [A Type Declares What It Is](pattern-a-type-declares-what-it-is.md); [Work Is the Reason](pattern-work-is-the-reason.md).
+- **Makes possible** — [A Sweep Is Found, Not Started](pattern-a-sweep-is-found-not-started.md); [Falls to a Person, and Is Counted](pattern-falls-to-a-person-and-is-counted.md).
+- **Composed of** — [Message Store](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageStore.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/), with the store standing in for the queue rather than sitting beside it.
+- **Related work**
+    - [Nigam and Caswell (2003)](https://doi.org/10.1147/sj.423.0428) on business artifacts, where the record carries its own lifecycle.
+    - [van der Aalst, Weske and Grünbauer (2005)](https://doi.org/10.1016/j.datak.2004.07.003) on case handling.
+    - [Case Management Model and Notation](https://www.omg.org/spec/CMMN/), which standardised the same idea.

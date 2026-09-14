@@ -66,15 +66,7 @@ position is a thing you can read.
 ## Relations
 
 - **Builds on** — [Work Is the Reason](pattern-work-is-the-reason.md).
-- **Makes possible** —
-  [Two Parties Bound the Claim](pattern-two-parties-bound-the-claim.md);
-  [Falls to a Person, and Is Counted](pattern-falls-to-a-person-and-is-counted.md);
-  one feed, every consumer.
-- **Composed of** — Polling Consumer and Competing Consumers, from Enterprise
-  Integration Patterns.
-- **Related work** — the workflow resource patterns of Russell, van der Aalst,
-  ter Hofstede and Edmond (2005), where resource-initiated allocation is the
-  participant pulling rather than the engine assigning.
-- **Written up in** — [Processes and work](../processes-and-work/README.md).
-  Proven by `REQ-DBO-PROC-LANE-IS-A-TENANT-SERVICE` and
-  `REQ-DBO-PROC-A-HOST-HOLDS-A-LANE-WHEREVER-IT-IS`.
+- **Makes possible** — [Two Parties Bound the Claim](pattern-two-parties-bound-the-claim.md); [Falls to a Person, and Is Counted](pattern-falls-to-a-person-and-is-counted.md); [One Feed, Every Consumer](pattern-one-feed-every-consumer.md).
+- **Composed of** — [Polling Consumer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/PollingConsumer.html) and [Competing Consumers](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CompetingConsumers.html), from [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/).
+- **Related work**
+    - The [workflow resource patterns](http://www.workflowpatterns.com/patterns/resource/), where resource-initiated allocation is the participant pulling rather than the engine assigning.

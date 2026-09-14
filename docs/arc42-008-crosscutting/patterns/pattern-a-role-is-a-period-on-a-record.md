@@ -50,9 +50,10 @@ an owner and an audit trail. So "who could reach this last March" is a
 question about a record as it stood in March, which the store can answer
 because it never threw the earlier version away.
 
-The credential is still separate — a person or a system authenticates through
-the tenant's own authority — but what that credential *reaches* is derived
-from the records, not from a parallel list kept beside them.
+The credential stays separate: a person or a system still authenticates
+through whatever authority the organisation uses. What that credential
+*reaches* is what changes — derived from the records, not from a parallel list
+kept beside them.
 
 ## What each reader gets
 
@@ -68,12 +69,7 @@ from the records, not from a parallel list kept beside them.
 ## Relations
 
 - **Builds on** — [A Type Declares What It Is](pattern-a-type-declares-what-it-is.md).
-- **Makes possible** —
-  [Two Parties Bound the Claim](pattern-two-parties-bound-the-claim.md).
-- **Related work** — role-based access control (Sandhu and others, 1996), and
-  Dietz's enterprise ontology (2006), where an actor role is authorised for
-  transaction kinds and may be filled by a person or by a system.
-- **Written up in** — [Who may act](../who-may-act/README.md). Proven by
-  `REQ-DBO-AUTH-ORG-MODEL-IS-THE-AUTH-MODEL`,
-  `REQ-DBO-AUTH-ROLE-GRANTS-AS-RECORDS` and
-  `REQ-DBO-AUTH-DEACTIVATION-RETIRES-CREDENTIALS`.
+- **Makes possible** — [Two Parties Bound the Claim](pattern-two-parties-bound-the-claim.md).
+- **Related work**
+    - [Sandhu and others (1996)](https://doi.org/10.1109/2.485845) on role-based access control.
+    - [Dietz (2006)](https://doi.org/10.1007/3-540-33149-2) on enterprise ontology, where an actor role is authorised for transaction kinds and may be filled by a person or by a system.
