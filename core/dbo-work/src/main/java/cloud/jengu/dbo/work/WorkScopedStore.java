@@ -78,6 +78,12 @@ public final class WorkScopedStore implements ObjectStore {
         return recorded(request.typeName(), inner.putConditional(identity, request));
     }
 
+    @Override
+    public PutResult putConditional(IdentityRef identity, PutRequest request,
+            cloud.jengu.dbo.core.api.Handling.Authority caller) {
+        return recorded(request.typeName(), inner.putConditional(identity, request, caller));
+    }
+
     /**
      * Tells the run, when there is one and when the write is not the run's own.
      *

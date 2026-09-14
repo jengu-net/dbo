@@ -122,6 +122,8 @@ class ABindingIsAnsweredFromRecordsTest {
         @Override public PutResult put(PutRequest r, Handling.Authority c) { return put(r); }
         @Override public PutResult putIfAbsent(IdentityRef i, PutRequest r) { return put(r); }
         @Override public PutResult putConditional(IdentityRef i, PutRequest r) { return put(r); }
+        @Override public PutResult putConditional(IdentityRef i, PutRequest r,
+                Handling.Authority c) { return put(r); }
         @Override public Optional<StoredObject> get(String t, String id) { return Optional.empty(); }
         @Override public void delete(String t, String id, Long v) { }
         @Override public void delete(String t, String id, Long v, Handling.Authority c) { }

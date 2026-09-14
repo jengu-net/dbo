@@ -146,15 +146,22 @@ public final class PdiObjectStore implements ObjectStore {
 
     @Override
     public PutResult putConditional(IdentityRef identity, PutRequest request) {
+        return putConditional(identity, request,
+                cloud.jengu.dbo.core.api.Handling.Authority.TENANT_USERS);
+    }
+
+    @Override
+    public PutResult putConditional(IdentityRef identity, PutRequest request,
+            cloud.jengu.dbo.core.api.Handling.Authority caller) {
         if (!spec.isPersonType(request.typeName())) {
-            return inner.putConditional(identity, request);
+            return inner.putConditional(identity, request, caller);
         }
         Optional<StoredObject> existing = recordOf(identity, request.typeName());
         if (existing.isPresent()) {
             return put(PutRequest.update(request.typeName(), existing.get().id(),
-                    existing.get().versionId(), request.payload()));
+                    existing.get().versionId(), request.payload()), caller);
         }
-        return put(PutRequest.create(request.typeName(), request.payload()));
+        return put(PutRequest.create(request.typeName(), request.payload()), caller);
     }
 
     /**

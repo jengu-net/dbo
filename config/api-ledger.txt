@@ -685,6 +685,7 @@ cloud.jengu.dbo.core.api.ObjectStore                                   page(clou
 cloud.jengu.dbo.core.api.ObjectStore                                   put(cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.core.api.ObjectStore                                   put(cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.core.api.ObjectStore                                   putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
+cloud.jengu.dbo.core.api.ObjectStore                                   putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.core.api.ObjectStore                                   putIfAbsent(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.core.api.ObjectStore                                   rebuildEnvelopes(String):int
 cloud.jengu.dbo.core.api.ObjectStore                                   registrationOf(String):cloud.jengu.dbo.core.api.TypeRegistration
@@ -1951,6 +1952,7 @@ cloud.jengu.dbo.pdi.PdiObjectStore                                     page(clou
 cloud.jengu.dbo.pdi.PdiObjectStore                                     put(cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.pdi.PdiObjectStore                                     put(cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.pdi.PdiObjectStore                                     putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
+cloud.jengu.dbo.pdi.PdiObjectStore                                     putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.pdi.PdiObjectStore                                     putIfAbsent(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.pdi.PdiObjectStore                                     rebuildEnvelopes(String):int
 cloud.jengu.dbo.pdi.PdiObjectStore                                     registrationOf(String):cloud.jengu.dbo.core.api.TypeRegistration
@@ -2056,6 +2058,7 @@ cloud.jengu.dbo.policy.PolicyObjectStore                               policies(
 cloud.jengu.dbo.policy.PolicyObjectStore                               put(cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.policy.PolicyObjectStore                               put(cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.policy.PolicyObjectStore                               putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
+cloud.jengu.dbo.policy.PolicyObjectStore                               putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.policy.PolicyObjectStore                               putIfAbsent(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.policy.PolicyObjectStore                               rebuildEnvelopes(String):int
 cloud.jengu.dbo.policy.PolicyObjectStore                               recordCustom(String,String,String,Map):String
@@ -2144,6 +2147,7 @@ cloud.jengu.dbo.postgres.PgObjectStore                                 page(clou
 cloud.jengu.dbo.postgres.PgObjectStore                                 put(cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.postgres.PgObjectStore                                 put(cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.postgres.PgObjectStore                                 putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
+cloud.jengu.dbo.postgres.PgObjectStore                                 putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.postgres.PgObjectStore                                 putIfAbsent(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.postgres.PgObjectStore                                 rebuildEnvelopes(String):int
 cloud.jengu.dbo.postgres.PgObjectStore                                 rebuildEnvelopes(String,int):int
@@ -3929,6 +3933,7 @@ cloud.jengu.dbo.work.WorkScopedStore                                   page(clou
 cloud.jengu.dbo.work.WorkScopedStore                                   put(cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.work.WorkScopedStore                                   put(cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.work.WorkScopedStore                                   putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
+cloud.jengu.dbo.work.WorkScopedStore                                   putConditional(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.work.WorkScopedStore                                   putIfAbsent(cloud.jengu.dbo.core.api.IdentityRef,cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.work.WorkScopedStore                                   rebuildEnvelopes(String):int
 cloud.jengu.dbo.work.WorkScopedStore                                   registrationOf(String):cloud.jengu.dbo.core.api.TypeRegistration

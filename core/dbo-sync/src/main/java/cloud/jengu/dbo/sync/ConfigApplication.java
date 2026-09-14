@@ -397,7 +397,7 @@ public final class ConfigApplication {
                         ? cloud.jengu.dbo.core.api.IdentityRef.canonical(claim.value())
                         : cloud.jengu.dbo.core.api.IdentityRef.identifier(
                                 claim.system(), claim.value()),
-                PutRequest.create(type, forTheEngine));
+                PutRequest.create(type, forTheEngine), Handling.Authority.CONFIG_LANE);
         if (grained) {
             grain.keep(type, whole);
         }

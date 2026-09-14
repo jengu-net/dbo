@@ -101,6 +101,15 @@ public final class PolicyObjectStore implements ObjectStore,
     }
 
     @Override
+    public PutResult putConditional(IdentityRef identity, PutRequest request,
+            cloud.jengu.dbo.core.api.Handling.Authority caller) {
+        refuseDirectAuditWrites(request.typeName());
+        PutResult result = inner.putConditional(identity, request, caller);
+        auditWrite(result.created() ? "create" : "update", request.typeName(), result.id());
+        return result;
+    }
+
+    @Override
     public void delete(String typeName, String id, Long expectedVersion) {
         delete(typeName, id, expectedVersion, Handling.Authority.TENANT_USERS);
     }

@@ -65,6 +65,21 @@ public interface ObjectStore {
     /** Conditional upsert by identity: create if absent, else update (with optional expected version). */
     PutResult putConditional(IdentityRef identity, PutRequest request);
 
+    /**
+     * The same upsert, saying who is making it — see
+     * {@link #put(PutRequest, Handling.Authority)}.
+     *
+     * <p>Abstract for the reason that form is abstract, and for one the lane
+     * that needed it found the hard way: a lane whose two branches were an
+     * unidentified {@code put} stating {@code CONFIG_LANE} and an identified
+     * upsert stating nothing wrote its own configuration as the
+     * least-privileged caller on the branch it takes most often. Nothing said
+     * so while the type permitted everyone; the moment one did not, the lane
+     * refused its own writes.
+     */
+    PutResult putConditional(IdentityRef identity, PutRequest request,
+            Handling.Authority caller);
+
     Optional<StoredObject> get(String typeName, String id);
 
     /** OR-match across the given identifiers. */

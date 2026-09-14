@@ -46,6 +46,13 @@ class HandlingShieldsIT {
     private static final String DOMAIN = "shields";
     private static final byte[] OWNER_KEY = new byte[32];
     private static final EnvelopeExtractor PLAIN = (typeName, payload) -> new Envelope();
+    private static final String CODE_SYSTEM = "https://shields.test/code";
+    /** Named by what it declares itself to be, so the lane can upsert on it. */
+    private static final EnvelopeExtractor BY_CODE = (typeName, payload) -> {
+        String json = new String(payload, StandardCharsets.UTF_8);
+        int at = json.indexOf("\"what\":\"") + 8;
+        return new Envelope().identifier(CODE_SYSTEM, json.substring(at, json.indexOf('"', at)));
+    };
 
     static PGSimpleDataSource ds;
     static PgObjectStore store;
@@ -57,6 +64,11 @@ class HandlingShieldsIT {
                     Handling.replicated(), PLAIN, List.of()),
             new TypeRegistration("Note", DOMAIN, IdentityClass.INTERNAL, java.util.Set.of(),
                     Handling.operational(), PLAIN, List.of()),
+            // A projection of somebody's declaration, keyed the way a lane
+            // applying one keys it: on what the declaration says it is.
+            new TypeRegistration("Projected", DOMAIN, IdentityClass.IDENTIFIER,
+                    java.util.Set.of(CODE_SYSTEM), Handling.projectedConfig(), BY_CODE,
+                    List.of()),
             // current-state-only and it never leaves: a session, not a heartbeat —
             // heartbeats are not stored objects at all
             new TypeRegistration("Session", DOMAIN, IdentityClass.INTERNAL, java.util.Set.of(),
@@ -131,6 +143,63 @@ class HandlingShieldsIT {
         assertTrue(refused.getMessage().contains("read-only-here"), refused.getMessage());
         assertTrue(refused.getMessage().contains("SOURCE_TENANT"),
                 "the refusal must say whose data it is: " + refused.getMessage());
+    }
+
+    /**
+     * The promise this keeps is a sentence an administrator is told: a
+     * configured change goes to one place. The store was where it broke —
+     * a projection was writable by anybody, so an edit made in the store
+     * either survived and made the declaration a lie, or was overwritten
+     * without a word by the next pass and made the store one.
+     */
+    @Test
+    @Timeout(300)
+    @DisplayName("a tenant user cannot edit configuration projected from a declaration")
+    void projectedConfigurationIsTheLanesToWrite() {
+        PutResult applied = store.put(PutRequest.create("Projected", body("device-a")),
+                Handling.Authority.CONFIG_LANE);
+
+        cloud.jengu.dbo.core.api.HandlingRefusedException refused = assertThrows(
+                cloud.jengu.dbo.core.api.HandlingRefusedException.class,
+                () -> store.put(new PutRequest("Projected", applied.id(), null,
+                        body("device-a-edited"))));
+
+        assertTrue(refused.getMessage().contains("read-only-here"), refused.getMessage());
+        assertTrue(refused.getMessage().contains("CONFIG_LANE"),
+                "the refusal must say which lane may write it, so the person reading it knows "
+                        + "where the change belongs: " + refused.getMessage());
+    }
+
+    /**
+     * The branch the lane actually takes, and the one that had no way to say
+     * who it was.
+     *
+     * <p>Applying a declaration is an upsert keyed on identity — declaring the
+     * same thing again is what a source moving forward looks like — and
+     * {@code putConditional} had no authority parameter, so the lane ran as
+     * the least-privileged caller on the branch it uses most. Nothing said so
+     * while the type permitted everybody. The refusal below is what that
+     * silence was hiding.
+     */
+    @Test
+    @Timeout(300)
+    @DisplayName("the lane's own upsert has to say it is the lane, and is refused when it does "
+            + "not")
+    void anUpsertSaysWhoIsMakingIt() {
+        cloud.jengu.dbo.core.api.IdentityRef ref =
+                cloud.jengu.dbo.core.api.IdentityRef.identifier(CODE_SYSTEM, "device-b");
+
+        store.putConditional(ref, PutRequest.create("Projected", body("device-b")),
+                Handling.Authority.CONFIG_LANE);
+        // and again, which is the case that made this an upsert at all
+        store.putConditional(ref, PutRequest.create("Projected", body("device-b")),
+                Handling.Authority.CONFIG_LANE);
+
+        assertThrows(cloud.jengu.dbo.core.api.HandlingRefusedException.class,
+                () -> store.putConditional(ref,
+                        PutRequest.create("Projected", body("device-b"))),
+                "an upsert that states no authority is the least-privileged caller, and a "
+                        + "projection is not that caller's to write");
     }
 
     @Test

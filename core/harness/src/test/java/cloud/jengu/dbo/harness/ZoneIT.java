@@ -94,12 +94,20 @@ class ZoneIT {
         manager.scanOnce();
         String stubBase = "http://127.0.0.1:" + stubBrokers.getAddress().getPort();
         PgObjectStore zoneStore = new PgObjectStore(tenantDs("ee"), ZoneModel.registrations());
+        // As the lane, because that is what this stands in for: a zone's
+        // brokers and identifier domains are projected configuration, and
+        // projected configuration is refused to everybody but the lane that
+        // applies it. A test seeding them as a tenant user would be exercising
+        // a door no declarer has.
         zoneStore.put(PutRequest.create("ZoneBroker", ZoneModel.Broker.payload(
-                new ZoneModel.Broker("tara", stubBase + "/tara", "zone-tara", "EE", "high"))));
+                new ZoneModel.Broker("tara", stubBase + "/tara", "zone-tara", "EE", "high"))),
+                cloud.jengu.dbo.core.api.Handling.Authority.CONFIG_LANE);
         zoneStore.put(PutRequest.create("ZoneBroker", ZoneModel.Broker.payload(
-                new ZoneModel.Broker("eeid", stubBase + "/eeid", "zone-eeid", "EE", "substantial"))));
+                new ZoneModel.Broker("eeid", stubBase + "/eeid", "zone-eeid", "EE", "substantial"))),
+                cloud.jengu.dbo.core.api.Handling.Authority.CONFIG_LANE);
         zoneStore.put(PutRequest.create("ZoneIdentifierDomain",
-                ZoneModel.identifierDomainPayload(ZoneModel.USE_PERSON_PRIMARY, SUBJECT_SYSTEM)));
+                ZoneModel.identifierDomainPayload(ZoneModel.USE_PERSON_PRIMARY, SUBJECT_SYSTEM)),
+                cloud.jengu.dbo.core.api.Handling.Authority.CONFIG_LANE);
 
         // haigla: municipal (tara, tara-only policy); kliinik: private (eeid, accepts any)
         Files.writeString(dir.resolve("haigla.json"), """

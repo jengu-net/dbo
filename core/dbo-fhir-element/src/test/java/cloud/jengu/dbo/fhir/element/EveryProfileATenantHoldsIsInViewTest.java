@@ -127,6 +127,12 @@ class EveryProfileATenantHoldsIsInViewTest {
         }
 
         @Override
+        public PutResult putConditional(IdentityRef identity, PutRequest request,
+                Handling.Authority caller) {
+            return put(request);
+        }
+
+        @Override
         public Optional<StoredObject> get(String typeName, String id) {
             return Optional.empty();
         }

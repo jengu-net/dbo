@@ -419,6 +419,12 @@ public final class PgObjectStore implements ObjectStore {
 
     @Override
     public PutResult putConditional(IdentityRef identity, PutRequest request) {
+        return putConditional(identity, request, Handling.Authority.TENANT_USERS);
+    }
+
+    @Override
+    public PutResult putConditional(IdentityRef identity, PutRequest request,
+            Handling.Authority caller) {
         TypeRegistration type = registry.require(request.typeName());
         Identifier ident = registry.identityIdentifier(type, identity);
         return inTx(c -> {
@@ -426,7 +432,7 @@ public final class PgObjectStore implements ObjectStore {
             String id = existing.orElse(request.id());
             // Same strip, same fix: only the id is decided here, and `with`
             // carries everything else the caller asked for.
-            return writeObject(c, type, request.with(id, request.payload()));
+            return writeObject(c, type, request.with(id, request.payload()), caller);
         });
     }
 

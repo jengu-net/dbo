@@ -181,9 +181,32 @@ public record Handling(Authority authority, Mutability mutability,
                 Durability.VERSIONED, Travel.BACKUP_AND_EXPORT);
     }
 
-    /** Configuration projected from git; the sync lane owns it. */
+    /**
+     * Configuration projected from a declaration; the lane that applies it
+     * owns it, and owning it means writing it.
+     *
+     * <p><b>Read-only to everybody else, which is the point of projecting it.</b>
+     * A configured change goes to one place — the declaration — and comes back
+     * through the lane. Left writable, the store was where that promise broke:
+     * a tenant user could edit a projected Device in place, the store took it,
+     * and the next pass of the lane overwrote the edit without a word, because
+     * the lane is keyed on the same identity. Neither half is acceptable. An
+     * edit that survives makes the declaration a lie; an edit that vanishes
+     * makes the store one.
+     *
+     * <p>Where a correction belongs is not in question — it belongs in the
+     * declaration. Refusing here is what says so at the moment somebody tries
+     * the other way, rather than hours later when the reconciliation runs.
+     *
+     * <p>Not the same choice as {@link #mirrored()}, which stays writable on
+     * purpose: an external publication is not ours to correct, so the lane has
+     * to be able to put it there and a local edit would only make our copy
+     * differ from everybody else's. Projected configuration is the opposite
+     * case — it IS ours, which is exactly why the correction has somewhere
+     * better to go.
+     */
     public static Handling projectedConfig() {
-        return new Handling(Authority.CONFIG_LANE, Mutability.FULL,
+        return new Handling(Authority.CONFIG_LANE, Mutability.READ_ONLY_HERE,
                 Durability.VERSIONED, Travel.BACKUP_ONLY);
     }
 
@@ -280,13 +303,20 @@ public record Handling(Authority authority, Mutability mutability,
      * every type a lane owns, while the engine happily accepted those creates
      * — so a store advertised a type as read-only and then wrote it.
      *
-     * <p>The engine's rule is the deliberate one. {@code replicated()} chose
-     * {@link Mutability#READ_ONLY_HERE} and {@code projectedConfig()} chose
-     * {@link Mutability#FULL}, and that contrast is the design: mutability
-     * answers whether anyone here may write it, authority answers whose it is.
-     * Only the first is a permission. Enforcing ownership instead would erase
-     * a distinction the classifications make on purpose — and would refuse the
-     * lane loads that put configuration and mirrored terminology there at all.
+     * <p>The engine's rule is the deliberate one. Mutability answers whether
+     * anyone here may write it, authority answers whose it is, and only the
+     * first is a permission — which is why {@code mirrored()} is
+     * {@link Mutability#FULL} while {@code replicated()} and
+     * {@code projectedConfig()} are {@link Mutability#READ_ONLY_HERE}. Two of
+     * them belong to a lane AND are refused to everybody else; the third
+     * belongs to an outside publisher and is still writable here, because our
+     * own lane has to be able to put it there. Enforcing ownership instead of
+     * mutability would erase that distinction.
+     *
+     * <p>A lane whose type is {@code READ_ONLY_HERE} has to SAY it is the
+     * lane. That is the cost of the rule and it is paid in one place, at the
+     * write; a lane that states nothing is treated as the least-privileged
+     * caller, which is the safe direction and the one that fails loudly.
      *
      * @param caller   the authority the write is made under
      * @param creating true for a create, false for an update or a delete;

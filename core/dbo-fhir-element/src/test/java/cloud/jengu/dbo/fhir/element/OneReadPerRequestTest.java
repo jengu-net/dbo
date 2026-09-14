@@ -115,6 +115,12 @@ class OneReadPerRequestTest {
         }
 
         @Override
+        public PutResult putConditional(IdentityRef identity, PutRequest request,
+                Handling.Authority caller) {
+            return capture(request);
+        }
+
+        @Override
         public Optional<StoredObject> get(String typeName, String id) {
             return Optional.empty();
         }
