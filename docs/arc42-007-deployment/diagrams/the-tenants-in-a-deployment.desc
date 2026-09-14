@@ -1,0 +1,15 @@
+Two organisations, and the three tenants that serve them
+Above the deployment, two kinds of thing that are not inside it. Applications
+ask the store: the clinic's own application over FHIR, and a host that embeds
+the store in its own JVM, each carrying a token from that tenant's own issuer.
+Participants are offered work: a bench instrument behind a router and a
+supplier's own system elsewhere, each holding an enrolment and taking work it
+asked for. Inside one node are five tenants. Three supply: a zone holding which
+brokers authenticate and which identifiers prove, a face root holding a FHIR
+version's structures, searches, value sets and codes, and a managing tenant
+holding what this deployment was told to serve. Two are served: the clinic and
+the laboratory, each with its own issuer, keys and people. What the zone and
+the face root hold moves down one way, only where the tenant below declared it,
+read-only where it lands and stamped with where it came from, and never
+carrying a person. Beneath, five databases, one per tenant. Nothing reads
+another tenant's records, for anybody, the operator included.

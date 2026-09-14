@@ -2,24 +2,30 @@
 title: A deployment, drawn
 eyebrow: Technical
 standfirst: >-
-  One node, two organisations and the operator's own tenant, with two
-  participants outside it. Concrete enough to point at, so the boundaries can
-  be checked rather than asserted.
+  One node, two organisations, and the three tenants that serve them. Concrete
+  enough to point at, so the boundaries can be checked rather than asserted.
 template: essay.html
 ---
 
 Isolation claims are easy to write and hard to check. This page takes the
-smallest deployment that still shows all of them — a clinic, a laboratory, the
-operator's own tenant, and two participants that are somewhere else entirely —
-and says what each party can reach.
+smallest deployment that still shows all of them — two organisations, the three
+tenants behind them, the applications in front, and two participants somewhere
+else entirely — and says what each party can reach.
 
---8<-- "assets/diagrams/three-tenants-drawn.svg"
+--8<-- "assets/diagrams/the-tenants-in-a-deployment.svg"
 
-<p class="diagram-caption">Two kinds of thing sit outside, and the difference
-is not cosmetic: an application asks the store, a participant is offered work.
-Below them, put a finger on any column and follow it down.</p>
+<p class="diagram-caption">Two separations, and they are not the same one. No
+tenant reads another's records. Definitions and declarations do move, one way,
+where the tenant below declared them.</p>
 
-## The three tenants
+## Five tenants, of three kinds
+
+Everything in the node is a tenant. That is not a figure of speech — the zone,
+the face root and the operator's own records are tenants in the same sense the
+clinic is, with their own database, their own history and their own audit
+trail. What differs is what they hold and who depends on them.
+
+### The two that serve people
 
 **The clinic** and **the laboratory** are two organisations that need to
 exchange work and do not otherwise trust each other. Each gets a database of
@@ -28,6 +34,24 @@ own token issuer, its own signing keys, and its own records of who works there.
 A token minted for the clinic fails at the laboratory before any claim in it is
 read, because the issuer and the keys are wrong. Confusion between them is not
 filtered out, it is unrepresentable.
+
+### The three that supply them
+
+**The zone** holds what a country decides rather than what an organisation
+does: which identity brokers may authenticate a person, which identifier
+systems establish who they are, which terminology is canonical. Those are
+ordinary records inside it, so they are versioned and audited — you can ask
+what the rules were on the day something happened — and entering a new country
+is a zone rather than a release. A tenant inside a zone chooses among what the
+zone declares and may narrow it further, never widen it.
+
+**The face root** holds a standard's version as records: the structures, the
+search parameters, the value sets and the code systems that make up FHIR R4
+here. It exists so that a version is something a tenant subscribes to rather
+than something loaded into a node, which is why two tenants on the same version
+share one copy of it and why a tenant is served only once the four have
+actually arrived. A second face root beside it would be another version, and
+the clinic and the laboratory could sit on different ones.
 
 **The managing tenant** is the operator's own, and the thing worth noticing is
 that it sits in the same row as the other two. It is a tenant, not a control
@@ -40,6 +64,25 @@ everybody else.
 A deployment does not have to have one. Without a managing tenant the node
 reads its declarations directly from the source and serves exactly as before —
 recording what was declared is not a condition of honouring it.
+
+### The one direction anything crosses
+
+The arrows in the figure are the only movement between tenants, and they are
+worth being precise about, because a careless reading makes them a hole in the
+wall.
+
+What moves is definitions and declarations — never a person, never a record of
+care. It moves only where the receiving tenant **declared that it takes it**,
+and a tenant declares only against its direct upstream, so chains compose one
+hop at a time rather than granting anybody a view of the whole. What lands is
+read-only and stamped with which tenant and which version it came from. And it
+travels on the same feed machinery as everything else, with definitions on a
+feed of their own, so there is no separate synchronisation subsystem to go
+stale.
+
+The wall the figure claims is therefore about records: no tenant reads
+another's, including the operator. The door is about definitions, one way, by
+declaration.
 
 ## The application on top
 
@@ -144,8 +187,9 @@ to is gone, including from the archive that left the building in March.
 | The clinic's application | a token of its own, or a person's, depending on whose behalf it acts | the same surface a person gets, never a wider one |
 | The bench instrument | an enrolment for the laboratory's lane | the runs of the steps it is entitled to claim |
 | The supplier's system | an enrolment of its own | its own steps, in whichever tenant enrolled it |
+| The clinic | a declared dependency on the zone and on the face root | read-only copies of what it declared it takes |
 | The operator | a connection per tenant, and a credential in the managing tenant | provisioning, and the closed measurement stream |
-| Nobody | — | a read across tenants |
+| Nobody | — | another tenant's records |
 
 ## What this deployment is not yet
 

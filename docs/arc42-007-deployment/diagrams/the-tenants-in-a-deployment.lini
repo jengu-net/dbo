@@ -1,16 +1,16 @@
 {
-  // One node, three tenants, and the two kinds of thing that are not inside it.
+  // One node, five tenants, and the two kinds of thing that are not inside it.
   //
-  // The top band separates them because they are separated in the design: an
-  // application ASKS the store and holds a person's or a system's token; a
-  // participant is OFFERED work and holds an enrolment. Drawing them as one
-  // row of outsiders would lose the distinction the access rules rest on.
+  // Two separations have to survive being drawn together, and they are not
+  // the same separation. Nothing reads another tenant's RECORDS — that is the
+  // wall. Definitions and declarations do move between tenants, one way, only
+  // where the receiving tenant declared the dependency — that is a door, and
+  // drawing it as an exception to the wall would be wrong: it never carries a
+  // patient.
   //
-  // The columns are deliberately independent all the way down: a reader
-  // should be able to put a finger on any column and find nothing that
-  // crosses to its neighbour. The managing tenant sits in the same row as the
-  // other two, because it IS one of them — that is the claim, and putting it
-  // in a band of its own would quietly deny it.
+  // The top band separates applications from participants because the access
+  // rules rest on the difference: an application ASKS the store and holds a
+  // token; a participant is OFFERED work and holds an enrolment.
 
   // The site's palette. dbo.css maps every one of these onto its own --dbo-*
   // and wins, because Lini's defaults sit in a cascade layer — so these
@@ -60,7 +60,7 @@
   padding: 4; gap: 0; clearance: 2;
 }
 
-|eyebrow| "A clinic, a laboratory, and the operator's own tenant"
+|eyebrow| "Two organisations, and the three tenants that serve them"
 |block| { height: 10 } []
 
 // ---- outside ---------------------------------------------------------------
@@ -89,48 +89,65 @@
 |block| { height: 12 } []
 
 // ---- the node --------------------------------------------------------------
-|dashed| { width: 760; height: 138; padding: 12 } [ |col| { width: 736; gap: 8 } [
+|dashed| { width: 760; height: 268; padding: 12 } [ |col| { width: 736; gap: 8 } [
   |cap| "one node — one process, one port"
+
   |block| { layout: grid; columns: repeat(3, 240); gap: 8 } [
-    |panel| { width: 240; height: 80; padding: 10 12 } [ |col| { width: 216; gap: 3 } [
-      |cap| "tenant: the clinic"
-      |small| "its own issuer and keys"
-      |small| "served at its own path" ] ]
-    |panel| { width: 240; height: 80; padding: 10 12 } [ |col| { width: 216; gap: 3 } [
-      |cap| "tenant: the laboratory"
-      |small| "its own issuer and keys"
-      |small| "served at its own path" ] ]
-    |sealed| { width: 240; height: 80; padding: 10 12 } [ |col| { width: 216; gap: 3 } [
-      |has| "tenant: managing"
+    |panel| { width: 240; height: 74; padding: 10 12 } [ |col| { width: 216; gap: 3 } [
+      |cap| "zone: the country"
+      |small| "which brokers authenticate,"
+      |small| "which identifiers prove" ] ]
+    |panel| { width: 240; height: 74; padding: 10 12 } [ |col| { width: 216; gap: 3 } [
+      |cap| "face root: FHIR R4"
+      |small| "the version's structures,"
+      |small| "searches, value sets, codes" ] ]
+    |sealed| { width: 240; height: 74; padding: 10 12 } [ |col| { width: 216; gap: 3 } [
+      |has| "managing"
       |small| "what this deployment was"
       |small| "told to serve, as records" ] ]
-  ] ] ]
+  ]
+
+  |block| { layout: grid; columns: repeat(3, 240); gap: 8 } [
+    |block| { width: 240; height: 28 } [ |down| { pin: center } ]
+    |block| { width: 240; height: 28 } [ |down| { pin: center } ]
+    |block| { width: 240; height: 28 } []
+  ]
+  |col| { width: 736; gap: 0 } [
+    |small| "one way, and only what the tenant below declared it takes — read-only where it lands," 
+    |small| "stamped with where it came from, and never a person" ]
+
+  |block| { layout: grid; columns: repeat(2, 364); gap: 8 } [
+    |panel| { width: 364; height: 74; padding: 10 12 } [ |col| { width: 340; gap: 3 } [
+      |cap| "tenant: the clinic"
+      |small| "its own issuer and keys, its own people," 
+      |small| "served at its own path" ] ]
+    |panel| { width: 364; height: 74; padding: 10 12 } [ |col| { width: 340; gap: 3 } [
+      |cap| "tenant: the laboratory"
+      |small| "its own issuer and keys, its own people,"
+      |small| "served at its own path" ] ]
+  ]
+] ]
 
 |block| { height: 4 } []
-|block| { layout: grid; columns: repeat(3, 248); gap: 8 } [
-  |block| { width: 248; height: 34 } [ |down| { pin: center } ]
-  |block| { width: 248; height: 34 } [ |down| { pin: center } ]
-  |block| { width: 248; height: 34 } [ |down| { pin: center } ]
-]
-|block| { height: 2 } []
 |col| { width: 760; gap: 0 } [
   |small| "a connection handed to each, and never a credential the operator holds" ]
-|block| { height: 10 } []
+|block| { height: 8 } []
 
 // ---- the databases ---------------------------------------------------------
-|block| { layout: grid; columns: repeat(3, 248); gap: 8 } [
-  |sealed| { width: 248; height: 74; padding: 10 12 } [ |col| { width: 224; gap: 3 } [
-    |has| "database: the clinic"
-    |small| "records, history, trail, vault" ] ]
-  |sealed| { width: 248; height: 74; padding: 10 12 } [ |col| { width: 224; gap: 3 } [
-    |has| "database: the laboratory"
-    |small| "records, history, trail, vault" ] ]
-  |sealed| { width: 248; height: 74; padding: 10 12 } [ |col| { width: 224; gap: 3 } [
-    |has| "database: managing"
-    |small| "declarations, and its own trail" ] ]
+|block| { layout: grid; columns: repeat(5, 144); gap: 8 } [
+  |sealed| { width: 144; height: 62; padding: 8 10 } [ |col| { width: 124; gap: 2 } [
+    |has| "the clinic"; |small| "its own database" ] ]
+  |sealed| { width: 144; height: 62; padding: 8 10 } [ |col| { width: 124; gap: 2 } [
+    |has| "the laboratory"; |small| "its own database" ] ]
+  |sealed| { width: 144; height: 62; padding: 8 10 } [ |col| { width: 124; gap: 2 } [
+    |has| "the zone"; |small| "its own database" ] ]
+  |sealed| { width: 144; height: 62; padding: 8 10 } [ |col| { width: 124; gap: 2 } [
+    |has| "the face root"; |small| "its own database" ] ]
+  |sealed| { width: 144; height: 62; padding: 8 10 } [ |col| { width: 124; gap: 2 } [
+    |has| "managing"; |small| "its own database" ] ]
 ]
 
 |block| { height: 14 } []
 |dashed| { width: 760; height: 60; padding: 12 16 } [ |col| { width: 728; gap: 3 } [
-  |miss| "what is not drawn because it does not exist: a read across the columns, for anybody"
-  |miss| "including the operator; a broker beside the databases; a call from the node outwards" ] ]
+  |miss| "what is not drawn because it does not exist: a read of another tenant's records, for"
+  |miss| "anybody including the operator; a broker beside the databases; a call from the node out" ] ]
