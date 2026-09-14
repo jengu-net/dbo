@@ -1056,6 +1056,27 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     /**
+     * The same tally, as numbers rather than as a line, for a deployment that
+     * reports it. {@code notHeld} is the one to read first: it counts writes
+     * this store could not compare at all, because the tenant holds no
+     * expanded rows for what was written — which is every type nobody declared
+     * a definition for, and says the database is not answering those writes
+     * rather than agreeing about them.
+     */
+    @Override
+    public java.util.Map<String, Long> answeredBesideTheToolchain() {
+        AdvisoryVerdicts.Tally now = advisory.tally();
+        java.util.Map<String, Long> out = new java.util.LinkedHashMap<>();
+        out.put("compared", now.compared());
+        out.put("agreed", now.agreed());
+        out.put("onlyTheToolchain", now.onlyTheToolchain());
+        out.put("onlyTheDatabase", now.onlyTheDatabase());
+        out.put("notHeld", now.notHeld());
+        out.put("failed", now.failed());
+        return out;
+    }
+
+    /**
      * Take apart every structure this tenant holds that is not taken apart
      * already (REQ-DBO-VER-A-DEFINITION-IS-EXPANDED-WHEN-IT-ARRIVES).
      *

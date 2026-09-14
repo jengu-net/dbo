@@ -152,4 +152,9 @@ public final class R4Store implements FhirStoreFacade {
     public String noSuchType(String typeName, String path) {
         return served.noSuchType(typeName, path);
     }
+
+    @Override
+    public java.util.Map<String, Long> answeredBesideTheToolchain() {
+        return served.answeredBesideTheToolchain();
+    }
 }

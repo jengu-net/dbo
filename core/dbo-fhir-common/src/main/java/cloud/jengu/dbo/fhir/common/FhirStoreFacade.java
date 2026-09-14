@@ -260,4 +260,21 @@ public interface FhirStoreFacade {
     default String noSuchType(String typeName, String path) {
         return operationOutcome("not-supported", "unknown resource type or endpoint: " + path);
     }
+
+    /**
+     * What the database made of the writes this face has taken, beside what
+     * the toolchain made of them.
+     *
+     * <p>Counted on every write already and never read outside a test, which
+     * is the whole problem: the case for the database deciding anything rests
+     * on this number, and nobody can see it. Counts only — a divergence is
+     * interesting about the checker and the document that provoked it is a
+     * person (§14).
+     *
+     * <p>An empty answer is a face that does not compare, which is a different
+     * statement from a face that compared and found nothing.
+     */
+    default java.util.Map<String, Long> answeredBesideTheToolchain() {
+        return java.util.Map.of();
+    }
 }

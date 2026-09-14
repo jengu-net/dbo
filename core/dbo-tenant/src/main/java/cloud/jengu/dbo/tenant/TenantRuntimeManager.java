@@ -789,6 +789,24 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // with nothing wrong from a deployment too old to answer the
                 // question, and those two want opposite actions.
                 row.put("declaredDifferently", differently.getOrDefault(state.code(), ""));
+                // What the database made of this tenant's writes beside what
+                // the toolchain made of them. Counted on every write since the
+                // comparison was built and readable only from inside the
+                // process until now — which is the whole difficulty with it,
+                // because the case for the database deciding anything rests on
+                // this number and nobody could see it.
+                //
+                // notHeld is the one to read first. It counts writes that were
+                // not compared at all, because the tenant holds no expanded
+                // rows for what was written — so the database is not answering
+                // those, which is a different thing from agreeing about them
+                // and reads the same in any summary that only counts
+                // disagreements.
+                TenantRuntime serving = runtimes.get(state.code());
+                if (serving != null && serving.store() != null) {
+                    row.put("answeredBesideTheToolchain",
+                            serving.store().answeredBesideTheToolchain());
+                }
                 rows.add(row);
             }
             return cloud.jengu.dbo.core.wire.RecordWire.write(Map.of("tenants", rows));

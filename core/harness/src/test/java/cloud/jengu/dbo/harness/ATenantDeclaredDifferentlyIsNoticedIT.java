@@ -6,6 +6,7 @@ import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -192,6 +193,34 @@ class ATenantDeclaredDifferentlyIsNoticedIT {
         // that cannot answer.
         assertTrue(runtimeTenants().contains("\"declaredDifferently\":\"\""),
                 "a tenant serving what was declared has to say so: " + runtimeTenants());
+    }
+
+    /**
+     * The case for the database ever deciding a write rests on one number: on
+     * real writes, does it say what the toolchain says? It has been counted on
+     * every write since the comparison was built, and read by one test and
+     * nothing else — so the argument could not be checked by anybody who was
+     * not inside the process.
+     */
+    @Test
+    @Order(6)
+    @Proving(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES)
+    @DisplayName("a deployment says what the database made of its writes beside the "
+            + "toolchain, so the case for switching can be read from outside")
+    void whatTheDatabaseMadeOfTheWritesIsReadable() throws Exception {
+        String body = runtimeTenants();
+
+        assertTrue(body.contains("answeredBesideTheToolchain"),
+                "the tally is counted on every write and cannot be read: " + body);
+        // Every term, because which of them is large is the finding. A summary
+        // that counted only disagreements would read the same whether the two
+        // agreed about every write or the database answered none of them.
+        for (String term : java.util.List.of("compared", "agreed", "onlyTheToolchain",
+                "onlyTheDatabase", "notHeld", "failed")) {
+            assertTrue(body.contains(term),
+                    "the tally has to carry " + term + ", or a reader cannot tell agreement "
+                            + "from having answered nothing: " + body);
+        }
     }
 
     /** What the deployment answers about itself, behind the deployment's token. */

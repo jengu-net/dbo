@@ -1344,6 +1344,7 @@ cloud.jengu.dbo.fhir.common.FhirOperation.Answer                       record
 cloud.jengu.dbo.fhir.common.FhirOperation.Answer                       status():int
 cloud.jengu.dbo.fhir.common.FhirOperation.Answer                       status(int,String):cloud.jengu.dbo.fhir.common.FhirOperation.Answer
 cloud.jengu.dbo.fhir.common.FhirOperation.Answer                       toString():String
+cloud.jengu.dbo.fhir.common.FhirStoreFacade                            answeredBesideTheToolchain():Map
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            bundle(String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            capabilityStatement(String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            capabilityStatement(String,Collection):String
@@ -1530,6 +1531,7 @@ cloud.jengu.dbo.fhir.element.ElementFhirVersion                        payloadVe
 cloud.jengu.dbo.fhir.element.ElementFhirVersion                        serving(String):cloud.jengu.dbo.fhir.element.ElementFhirVersion
 cloud.jengu.dbo.fhir.element.ElementFhirVersion                        serving(String,String):cloud.jengu.dbo.fhir.element.ElementFhirVersion
 cloud.jengu.dbo.fhir.element.ElementStore                              advisoryTally():String
+cloud.jengu.dbo.fhir.element.ElementStore                              answeredBesideTheToolchain():Map
 cloud.jengu.dbo.fhir.element.ElementStore                              bundle(String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              capabilityStatement(String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              capabilityStatement(String,Collection):String
@@ -1628,6 +1630,7 @@ cloud.jengu.dbo.fhir.r4.R4Personality.CompiledSearch                   includeRe
 cloud.jengu.dbo.fhir.r4.R4Personality.CompiledSearch                   new(cloud.jengu.dbo.core.api.Criteria,boolean,List,List,String)
 cloud.jengu.dbo.fhir.r4.R4Personality.CompiledSearch                   record
 cloud.jengu.dbo.fhir.r4.R4Personality.CompiledSearch                   toString():String
+cloud.jengu.dbo.fhir.r4.R4Store                                        answeredBesideTheToolchain():Map
 cloud.jengu.dbo.fhir.r4.R4Store                                        bundle(String):String
 cloud.jengu.dbo.fhir.r4.R4Store                                        capabilityStatement(String):String
 cloud.jengu.dbo.fhir.r4.R4Store                                        capabilityStatement(String,Collection):String
@@ -1715,6 +1718,7 @@ cloud.jengu.dbo.fhir.r5.R5Personality.CompiledSearch                   includeRe
 cloud.jengu.dbo.fhir.r5.R5Personality.CompiledSearch                   new(cloud.jengu.dbo.core.api.Criteria,boolean,List,List,String)
 cloud.jengu.dbo.fhir.r5.R5Personality.CompiledSearch                   record
 cloud.jengu.dbo.fhir.r5.R5Personality.CompiledSearch                   toString():String
+cloud.jengu.dbo.fhir.r5.R5Store                                        answeredBesideTheToolchain():Map
 cloud.jengu.dbo.fhir.r5.R5Store                                        bundle(String):String
 cloud.jengu.dbo.fhir.r5.R5Store                                        capabilityStatement(String):String
 cloud.jengu.dbo.fhir.r5.R5Store                                        capabilityStatement(String,Collection):String
