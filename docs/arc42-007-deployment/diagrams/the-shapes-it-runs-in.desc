@@ -1,0 +1,9 @@
+One implementation, three deployments
+Three columns side by side. Inside a host process: the host's own JVM with one
+Postgres beside it, no container and no orchestrator, for a test suite, a
+laptop or an appliance on a shelf. One node, many tenants: one process on one
+port, a database per tenant, runners alongside or not, with an orchestrator
+that runs it and holds the secrets but routes nothing. A fleet, drawn faint
+because it is specified and not built: many nodes on one network, one writer
+per tenant, entry near the requester. Underneath, what does not change across
+the three: the engine, the faces, the tenant's database and the trail.

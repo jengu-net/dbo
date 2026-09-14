@@ -6,4 +6,5 @@ nav:
   - quickstart-docker.md
   - quickstart-karaf.md
   - environment.md
+  - scaling.md
   - performance.md

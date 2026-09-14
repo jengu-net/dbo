@@ -22,6 +22,11 @@ absences are deliberate: one language runtime, one database, no broker, no
 cache tier, and a container orchestrator that is responsible for less than you
 might expect.
 
+**[The shapes it runs in](scaling.md).** The same implementation inside a
+host's own process, on one node serving many tenants, or across a fleet — what
+scales, what one more of it buys, and which parts of that are designed rather
+than written.
+
 **[How performance is measured](performance.md).** Not a benchmark page. A
 description of the method — the hardware, the two profiles, what makes a run
 invalid — so that a number from here can be argued with on how it was taken.

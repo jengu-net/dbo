@@ -1,0 +1,9 @@
+What grows, and what it costs to grow it
+Five stacked layers, read top to bottom. Entry, where any node can take the
+role and adding one adds a place to arrive. Serving, where one node holds one
+tenant's writes. Routing, where a durable assignment says which node serves
+which tenant, with no broker. Work, where runners ask for work and report
+back, so adding one adds throughput and nothing else. Data, a database per
+tenant, where the unit that moves is a whole tenant. The serving and routing
+layers are drawn faint and dashed because they are specified and have no
+implementation; the others are built.

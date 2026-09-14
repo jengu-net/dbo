@@ -1,4 +1,47 @@
-# Scaling — tenant-aware routing
+# Deployment
+
+## The shapes a deployment takes
+
+Three, and the engine behind them is the same build in all three.
+
+- **Embedded in a host process.** A host application boots the store inside its
+  own JVM, sharing a small container runtime and its API. The engine carries no
+  application framework, which is what makes this possible; cold start is
+  measured in seconds so that consumers test against the store rather than
+  against a mock of it. This is also the appliance shape — one JVM, one
+  Postgres, no container and no orchestrator — and it is the ordinary edition
+  with one tenant, not a reduced one.
+- **One node, many tenants.** One process on one port, a database per tenant,
+  tenants served at `/t/<code>/…`. The orchestrator runs instances, holds
+  secrets and enforces network policy. It does not route and does not know
+  which tenant lives where.
+- **A fleet.** Specified below; **no implementation exists**. A deployment today
+  is one node and its databases.
+
+## Performance is a requirement, not a later phase
+
+R7 states it as founding, and two consequences are structural rather than
+tuning: the searchable envelope is indexed from the first schema rather than
+retrofitted, and change distribution runs on the store's own database rather
+than on a broker beside it. A cache tier is the usual answer to the same
+problem and is deliberately absent, because it is a second copy of the truth.
+
+## What scales, and what one more of it buys
+
+--8<-- "assets/diagrams/what-scales-and-how.svg"
+
+<p class="diagram-caption">Solid is built. Dashed is specified and unwritten.</p>
+
+- **Data — a database per tenant.** Built. The unit that moves is a whole
+  tenant, so one is never split in order to be moved, and clustering, replicas
+  and sizing are per-instance Postgres decisions.
+- **Work — runners.** Built. A runner is the work module packaged with the
+  durable-execution runtime it uses. Runners ask for work rather than being
+  called, so adding one adds throughput and nothing has to be told it arrived.
+- **Serving, routing and entry.** Specified below. All five `SCAL` promises
+  read `PLANNED`.
+
+## Scaling — tenant-aware routing
 
 - One Kubernetes-managed flat network; every DBO pod sees every other pod.
 - Assignment maps tenants → pods: a pod serves one or more tenants; a big tenant
