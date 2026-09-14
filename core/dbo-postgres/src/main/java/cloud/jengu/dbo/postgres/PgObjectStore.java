@@ -1673,7 +1673,7 @@ public final class PgObjectStore implements ObjectStore {
                 throw t;
             }
         } catch (SQLException e) {
-            throw new IllegalStateException("transaction failed", e);
+            throw failed("transaction", e);
         }
     }
 
@@ -1681,7 +1681,35 @@ public final class PgObjectStore implements ObjectStore {
         try (Connection c = ds.getConnection()) {
             return body.run(c);
         } catch (SQLException e) {
-            throw new IllegalStateException("query failed", e);
+            throw failed("query", e);
         }
+    }
+
+    /**
+     * A fatal somebody can act on.
+     *
+     * <p>"query failed" was the whole of it, and a caller cannot tell a
+     * malformed request from a store fault by it — so the only rational
+     * response is to retry the same thing for ever, which is what happens:
+     * twenty-two of these in one run, against four stores, with nothing to
+     * tell them apart or to report.
+     *
+     * <p>What travels is the SQLSTATE, and deliberately not the database's own
+     * sentence. The state is five characters from a closed set and says which
+     * kind of wrong this is on its own — an undefined table or column is this
+     * store's fault and a deployment's to fix, a bad input syntax is a value
+     * that was never going to parse. The sentence beside it names the values
+     * the statement was working on, and here those are somebody's identifiers,
+     * which is the one thing that may not travel into a message or a log
+     * (§14).
+     *
+     * <p>The cause is kept, so a deployment reading its own stack has
+     * everything; what crosses to a caller is the code alone.
+     */
+    private static IllegalStateException failed(String what, SQLException e) {
+        String state = e.getSQLState();
+        return new IllegalStateException(state == null || state.isBlank()
+                ? what + " failed"
+                : what + " failed [SQLSTATE " + state + "]", e);
     }
 }
