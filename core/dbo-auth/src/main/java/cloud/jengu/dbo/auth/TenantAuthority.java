@@ -1031,32 +1031,47 @@ public final class TenantAuthority {
                 .referencing("practitioner", "Practitioner", practitionerId))) {
             found.put(role.id(), role);
         }
-        for (Identifier claim : identifiersOf("Practitioner", practitionerId)) {
-            for (StoredObject role : subjectStore.select(Criteria.of("PractitionerRole")
-                    .eq("practitioner_identifier",
-                            EnvelopeValue.token(claim.system(), claim.value())))) {
+        // The other direction, and it has to be this way round: a record's own
+        // claims cannot be read back at all where a tenant holds identifying
+        // data in its vault. The index there keeps a one-way hash, which can
+        // answer "who holds this identifier" and can never answer "which
+        // identifiers does this one hold" — that is what makes it safe to keep
+        // in the clear. So the role's claim is resolved instead of the
+        // practitioner's being listed: the value is already in the role, which
+        // is nobody's person record, and the vault is asked the only question
+        // it can answer.
+        //
+        // The cost is a read of the roles this tenant declares, once per
+        // sign-in, and it is bounded by the staff a tenant has rather than by
+        // anything clinical. Narrowing it would mean knowing which identifiers
+        // to ask for, which is the thing that cannot be known.
+        java.util.Map<String, Boolean> resolved = new java.util.LinkedHashMap<>();
+        for (StoredObject role : subjectStore.select(Criteria.of("PractitionerRole"))) {
+            if (found.containsKey(role.id())) {
+                continue;
+            }
+            Object payload = Json.parse(new String(role.payload(), StandardCharsets.UTF_8));
+            Object named = ((Map<?, ?>) payload).get("practitioner");
+            Object identifier = named instanceof Map<?, ?> reference
+                    ? reference.get("identifier") : null;
+            if (identifier == null) {
+                continue;
+            }
+            String system = Json.strOpt(identifier, "system");
+            String value = Json.strOpt(identifier, "value");
+            if (system == null || value == null) {
+                continue;
+            }
+            // Asked once per distinct claim: a hundred roles at one identifier
+            // are one question, not a hundred.
+            if (resolved.computeIfAbsent(system + "|" + value, claim ->
+                    subjectStore.getByIdentifier("Practitioner",
+                                    List.of(new Identifier(system, value))).stream()
+                            .anyMatch(one -> one.id().equals(practitionerId)))) {
                 found.put(role.id(), role);
             }
         }
         return List.copyOf(found.values());
-    }
-
-    /** Every identifier a record carries, as the store would claim it by. */
-    private List<Identifier> identifiersOf(String typeName, String id) {
-        Optional<StoredObject> record = subjectStore.get(typeName, id);
-        if (record.isEmpty()) {
-            return List.of();
-        }
-        List<Identifier> claims = new java.util.ArrayList<>();
-        Object payload = Json.parse(new String(record.get().payload(), StandardCharsets.UTF_8));
-        for (Object ident : Json.array(payload, "identifier")) {
-            String system = Json.strOpt(ident, "system");
-            String value = Json.strOpt(ident, "value");
-            if (system != null && value != null) {
-                claims.add(new Identifier(system, value));
-            }
-        }
-        return claims;
     }
 
     /**
