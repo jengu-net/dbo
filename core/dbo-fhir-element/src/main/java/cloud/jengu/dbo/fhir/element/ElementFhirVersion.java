@@ -173,10 +173,18 @@ public class ElementFhirVersion implements FhirVersion {
         public List<TypeRegistration> registrations(String domain) {
             List<TypeRegistration> out = new ArrayList<>();
             for (FhirTypeConfig type : types) {
-                cloud.jengu.dbo.core.api.EnvelopeExtractor inProcess = version.extractor(
-                        type.typeName(),
-                        type.identityClass() == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL,
-                        List.of(), this::through);
+                // A type the face has no definition for never reaches the
+                // toolchain: the ordinary extractor's first act is to parse,
+                // and parsing is exactly what refuses a resource type the
+                // specification does not have.
+                cloud.jengu.dbo.core.api.EnvelopeExtractor inProcess =
+                        type.definition() == FhirTypeConfig.Definition.NONE
+                                ? (typeName, payload) -> OpaqueEnvelopes.extract(typeName,
+                                        type.identitySystems(), payload)
+                                : version.extractor(type.typeName(),
+                                        type.identityClass()
+                                                == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL,
+                                        List.of(), this::through);
                 out.add(new TypeRegistration(type.typeName(), domain, type.identityClass(),
                         type.identitySystems(), type.handling(),
                         asDeclared(type, inProcess),

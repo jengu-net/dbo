@@ -147,6 +147,16 @@ spec:
                       identity:
                         type: string
                         enum: [identifier, canonical, internal]
+                      definition:
+                        description: >-
+                          whether this face has a definition for the type.
+                          Left out, it does; 'none' for a declaration of the
+                          consumer's own, which FHIR cannot be given a
+                          definition for — such a type is stored and returned
+                          verbatim and is findable only by the identity it
+                          declares.
+                        type: string
+                        enum: [by-the-face, none]
                       extractor:
                         description: >-
                           where this type's envelope is computed. Left out, in

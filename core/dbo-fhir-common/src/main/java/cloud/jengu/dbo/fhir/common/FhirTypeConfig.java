@@ -21,7 +21,31 @@ import java.util.Set;
  */
 public record FhirTypeConfig(String typeName, IdentityClass identityClass,
                              Set<String> identitySystems, Handling handling,
-                             Extraction extraction) {
+                             Extraction extraction, Definition definition) {
+
+    /** Whether the face has a definition for this type. */
+    public enum Definition {
+
+        /** The face defines it: parsed, validated, indexed by its parameters. */
+        BY_THE_FACE,
+
+        /**
+         * The face has no definition for it, and cannot be given one.
+         *
+         * <p>A StructureDefinition that defines a resource type the
+         * specification does not have is refused by FHIR's own validator —
+         * the only legal way to describe an arbitrary shape is a logical
+         * model, which is not a resource. So a consumer's own declarations
+         * are held as themselves: stored and returned verbatim, indexed by
+         * the identity their type declares, and validated against nothing,
+         * because there is nothing to validate against.
+         *
+         * <p>Declared and never inferred. The face could notice it has no
+         * definition for a name and quietly switch, and a typo in a type
+         * name would then become an opaque type instead of an error.
+         */
+        NONE
+    }
 
     /** Where this type's envelope, claims and edges are computed. */
     public enum Extraction {
@@ -45,13 +69,26 @@ public record FhirTypeConfig(String typeName, IdentityClass identityClass,
 
     public FhirTypeConfig(String typeName, IdentityClass identityClass,
             Set<String> identitySystems, Handling handling) {
-        this(typeName, identityClass, identitySystems, handling, Extraction.IN_PROCESS);
+        this(typeName, identityClass, identitySystems, handling, Extraction.IN_PROCESS,
+                Definition.BY_THE_FACE);
+    }
+
+    public FhirTypeConfig(String typeName, IdentityClass identityClass,
+            Set<String> identitySystems, Handling handling, Extraction extraction) {
+        this(typeName, identityClass, identitySystems, handling, extraction,
+                Definition.BY_THE_FACE);
+    }
+
+    /** The same type, which this face has no definition for. */
+    public FhirTypeConfig withoutADefinition() {
+        return new FhirTypeConfig(typeName, identityClass, identitySystems, handling,
+                extraction, Definition.NONE);
     }
 
     /** The same type, computed in the database instead of here. */
     public FhirTypeConfig inTheDatabase() {
         return new FhirTypeConfig(typeName, identityClass, identitySystems, handling,
-                Extraction.IN_THE_DATABASE);
+                Extraction.IN_THE_DATABASE, definition);
     }
 
     public static FhirTypeConfig identifier(String typeName, String... systems) {
@@ -85,6 +122,6 @@ public record FhirTypeConfig(String typeName, IdentityClass identityClass,
      */
     public FhirTypeConfig handledAs(Handling replacement) {
         return new FhirTypeConfig(typeName, identityClass, identitySystems, replacement,
-                extraction);
+                extraction, definition);
     }
 }

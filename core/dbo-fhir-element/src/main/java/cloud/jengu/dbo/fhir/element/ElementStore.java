@@ -218,8 +218,31 @@ public final class ElementStore implements FhirStoreFacade {
      */
     private ParametersInForce inForce() {
         Map<String, List<SearchParameter>> tenants = authoredHere;
-        return typeName -> ElementVersion.union(version.parametersFor(typeName),
-                tenants.getOrDefault(typeName, List.of()));
+        return typeName -> hasNoDefinition(typeName)
+                ? List.of(identifierOf(typeName))
+                : ElementVersion.union(version.parametersFor(typeName),
+                        tenants.getOrDefault(typeName, List.of()));
+    }
+
+    /**
+     * The one parameter a type with no definition answers by.
+     *
+     * <p>Made here rather than authored, because a SearchParameter names its
+     * {@code base} as a resource type and a base the specification does not
+     * know is the same illegality that stops such a type being defined at all
+     * — so a tenant could not write this one down even if it wanted to. It is
+     * the identity the type already declared, said in the vocabulary search
+     * speaks, and it is the whole of what such a type promises: everything
+     * else is refused as unsupported rather than answered empty, because an
+     * empty result reads as there being nothing to find.
+     */
+    private static SearchParameter identifierOf(String typeName) {
+        SearchParameter parameter = new SearchParameter();
+        parameter.setCode("identifier");
+        parameter.setName("identifier");
+        parameter.setType(org.hl7.fhir.r5.model.Enumerations.SearchParamType.TOKEN);
+        parameter.setExpression(typeName + ".identifier");
+        return parameter;
     }
 
     // ------------------------------------------------------------- writing
@@ -249,6 +272,16 @@ public final class ElementStore implements FhirStoreFacade {
      */
     Accepted accepted(String resourceJson, ElementReferences.Resolver first) {
         byte[] payload = resourceJson.getBytes(StandardCharsets.UTF_8);
+        // Before the parse, because the parse is what refuses such a type. A
+        // type this face has no definition for is accepted as it arrived:
+        // nothing to validate against, nothing to resolve references in, and
+        // no tree to write back — the bytes ARE the record
+        // (REQ-DBO-CORE-PAYLOAD-IS-TRUTH, taken at its word rather than as
+        // far as FHIR allows).
+        String undefined = undefinedTypeOf(payload);
+        if (undefined != null) {
+            return new Accepted(undefined, payload, java.util.List.of());
+        }
         Object document = payloads().read(null, payload);
         String type = payloads().typeOf(document);
         ElementReferences.Resolver resolver = first == null ? this::identified
@@ -614,8 +647,46 @@ public final class ElementStore implements FhirStoreFacade {
         return major.matches("[0-9]+") ? Integer.parseInt(major) : -1;
     }
 
+    /**
+     * The type this document declares, when the tenant declared that type as
+     * one the face has no definition for — and null otherwise, which is every
+     * ordinary write.
+     *
+     * <p>Read out of the JSON rather than through the toolchain, because the
+     * toolchain is what cannot read it. A document with no {@code resourceType}
+     * is nobody's here: such a type may omit it, but then nothing says which
+     * of the tenant's types it is, and guessing from the shape would be this
+     * store deciding what somebody's declaration is.
+     */
+    private String undefinedTypeOf(byte[] payload) {
+        String declared;
+        try {
+            declared = org.hl7.fhir.utilities.json.parser.JsonParser
+                    .parseObject(new java.io.ByteArrayInputStream(payload))
+                    .asString("resourceType");
+        } catch (Exception notEvenJson) {
+            return null;
+        }
+        return declared != null && hasNoDefinition(declared) ? declared : null;
+    }
+
+    /** Whether the tenant declared this type as one the face does not define. */
+    private boolean hasNoDefinition(String typeName) {
+        return types.stream().anyMatch(t -> t.typeName().equals(typeName)
+                && t.definition() == cloud.jengu.dbo.fhir.common.FhirTypeConfig
+                        .Definition.NONE);
+    }
+
     private String rendered(StoredObject stored) {
         refuseIfTooNew(stored);
+        if (hasNoDefinition(stored.typeName())) {
+            // Verbatim. Rendering injects an id and a meta into the document,
+            // which for somebody else's declaration would be this store
+            // writing into it — and the reader wants back what was written,
+            // byte for byte, because that is the whole reason for holding it
+            // as itself rather than inside a Basic.
+            return new String(stored.payload(), StandardCharsets.UTF_8);
+        }
         return new String(ElementAncestors.rendered(elementPayloads().context(), stored.payload(),
                 stored.id(), stored.versionId(), null, stampsFor(stored)), StandardCharsets.UTF_8);
     }

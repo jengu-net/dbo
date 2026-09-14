@@ -1378,6 +1378,7 @@ cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult                 toString(
 cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult                 versionId():long
 cloud.jengu.dbo.fhir.common.FhirTerminology                            interface
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             canonical(String):cloud.jengu.dbo.fhir.common.FhirTypeConfig
+cloud.jengu.dbo.fhir.common.FhirTypeConfig                             definition():cloud.jengu.dbo.fhir.common.FhirTypeConfig.Definition
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             equals(Object):boolean
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             extraction():cloud.jengu.dbo.fhir.common.FhirTypeConfig.Extraction
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             handledAs(cloud.jengu.dbo.core.api.Handling):cloud.jengu.dbo.fhir.common.FhirTypeConfig
@@ -1390,10 +1391,17 @@ cloud.jengu.dbo.fhir.common.FhirTypeConfig                             inTheData
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             internal(String):cloud.jengu.dbo.fhir.common.FhirTypeConfig
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             new(String,cloud.jengu.dbo.core.api.IdentityClass,Set,cloud.jengu.dbo.core.api.Handling)
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             new(String,cloud.jengu.dbo.core.api.IdentityClass,Set,cloud.jengu.dbo.core.api.Handling,cloud.jengu.dbo.fhir.common.FhirTypeConfig.Extraction)
+cloud.jengu.dbo.fhir.common.FhirTypeConfig                             new(String,cloud.jengu.dbo.core.api.IdentityClass,Set,cloud.jengu.dbo.core.api.Handling,cloud.jengu.dbo.fhir.common.FhirTypeConfig.Extraction,cloud.jengu.dbo.fhir.common.FhirTypeConfig.Definition)
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             record
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             replicatedCanonical(String):cloud.jengu.dbo.fhir.common.FhirTypeConfig
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             toString():String
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             typeName():String
+cloud.jengu.dbo.fhir.common.FhirTypeConfig                             withoutADefinition():cloud.jengu.dbo.fhir.common.FhirTypeConfig
+cloud.jengu.dbo.fhir.common.FhirTypeConfig.Definition                  BY_THE_FACE:cloud.jengu.dbo.fhir.common.FhirTypeConfig.Definition
+cloud.jengu.dbo.fhir.common.FhirTypeConfig.Definition                  NONE:cloud.jengu.dbo.fhir.common.FhirTypeConfig.Definition
+cloud.jengu.dbo.fhir.common.FhirTypeConfig.Definition                  enum
+cloud.jengu.dbo.fhir.common.FhirTypeConfig.Definition                  valueOf(String):cloud.jengu.dbo.fhir.common.FhirTypeConfig.Definition
+cloud.jengu.dbo.fhir.common.FhirTypeConfig.Definition                  values():cloud.jengu.dbo.fhir.common.FhirTypeConfig.Definition[]
 cloud.jengu.dbo.fhir.common.FhirTypeConfig.Extraction                  IN_PROCESS:cloud.jengu.dbo.fhir.common.FhirTypeConfig.Extraction
 cloud.jengu.dbo.fhir.common.FhirTypeConfig.Extraction                  IN_THE_DATABASE:cloud.jengu.dbo.fhir.common.FhirTypeConfig.Extraction
 cloud.jengu.dbo.fhir.common.FhirTypeConfig.Extraction                  enum

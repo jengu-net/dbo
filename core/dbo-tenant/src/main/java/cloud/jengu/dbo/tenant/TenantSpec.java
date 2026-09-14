@@ -249,6 +249,16 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             }
             FhirTypeConfig placed = "database".equals(extractor)
                     ? config.inTheDatabase() : config;
+            String definition = Json.strOpt(t, "definition");
+            if (definition != null && !"none".equals(definition)
+                    && !"by-the-face".equals(definition)) {
+                throw new IllegalArgumentException(code + "/" + name
+                        + ": unknown definition " + definition + " — say 'none' for a type "
+                        + "this face has no definition for, or leave it out");
+            }
+            if ("none".equals(definition)) {
+                placed = placed.withoutADefinition();
+            }
             return placed.handledAs(switch (handling) {
                 case "operational" -> Handling.operational();
                 case "projected-config" -> Handling.projectedConfig();
