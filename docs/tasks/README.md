@@ -93,7 +93,6 @@ can tell a wait from a stall. Close the table with the critical path, so
 | [The face contract](face-contract.md) | one slice open, and the document closes with it | [#112](https://github.com/jengu-net/dbo/issues/112) |
 | [IHE profiles the store should serve](ihe-profiles.md) | analysis only; SVCM next | none filed |
 | [UBL is a face, described in FHIR's own tools](ubl-face.md) | two spikes green; nothing built; generating the models is next | none filed |
-| [The tenant lifecycle](tenant-lifecycle.md) | built; the queue is gone and change is a transition, not a retraction — two named gaps left, and the consumer half | [#189](https://github.com/jengu-net/dbo/issues/189), [#190](https://github.com/jengu-net/dbo/issues/190) |
 | [Eventing is unreachable](eventing-is-unreachable.md) | built; nothing constructs it, and the catalogue now says so — mounting dispatch is next | none open; [#183](https://github.com/jengu-net/dbo/issues/183) is the ratchet |
 
 Everything else open in this repository is backlog: it has an issue, and it

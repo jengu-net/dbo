@@ -178,6 +178,62 @@ Verification is the inventory it already reports: shape counts before and after,
 diffed. A verification that read every record would be a second full copy of the
 data, performed to check the first one.
 
+## Changing a tenant is a transition, not a retraction
+
+A tenant is declared, and what it serves comes from what was **applied** —
+declarations are records, and the applied one is both the schedule and the
+account of it. Changing a declaration used to mean withdrawing the tenant and
+declaring it again, which drops its surfaces, its lanes and its dependents'
+streams in order to alter one field. That still works and stays available as
+an operator act; it is no longer the mechanism, because a store where every
+edit is an outage is a store nobody edits.
+
+A re-read declaration is **classified, never guessed**, and the three answers
+need to be different things:
+
+- **Hot** — absorbed while the tenant serves. Search parameters and profiles
+  have their own seams, and a reindex is work rather than a side effect: it
+  gets a run, because a round that quietly spent four minutes is a deployment
+  nobody can account for.
+- **Rebuilt in place** — surfaces or dependencies change and the runtime is
+  rebuilt, additively and idempotently, never as a retraction.
+- **Cold** — the change moves what is already stored: the face, a PDI toggle,
+  the zone. Refused **by name**, saying what it would need, and never half
+  applied. A silently ignored cold change is a deployment believing something
+  about itself that is not true; a half-applied one is worse.
+
+The kind is the coldest of what changed, because the half that can be had does
+not make the half that cannot any warmer.
+
+**What a change would do is answerable without doing it.** The classification
+is a pure function of two declarations, so the door that applies a declaration
+also answers what applying it would do — same grant, same body, and nothing
+applied. It is a named path rather than a flag, because a flag that switches
+applying off is one whose typo applies, and the caller who misspells it is
+the one who was trying not to cause a change. It records nothing: a run says
+what happened to a tenant, and a preview does not happen to it.
+
+**Absence is not withdrawal.** A declaration missing from a read is not a
+retraction, because a read that failed or returned a partial snapshot produces
+the same absence as a deliberate removal. A withdrawal is an event somebody
+produced. Underneath all of it the directory remains the floor: declarations
+as records cannot bootstrap the store that holds them, so a management tenant
+and a storeless deployment come up by reading a directory directly, and every
+richer source sits above that rather than replacing it.
+
+**Applying is authored, and it is its own entitlement.** Nothing applies
+configuration without authoring the work and recording the run — not a console
+reaching past the lane, not a private method the manager calls on itself —
+because the first question after a bad configuration is who applied it and
+when. And the right to change what a tenant *is* does not come free with the
+right to write records into it; it is a declared grant, enforced the same way
+for an operator's console and an automatic consumer.
+
+Whether a step is automated at all is declared the same way: a switch on the
+scope chain, most local winning, read where a claim is taken — so switching it
+off stops the next automatic claim and leaves work already in somebody's hands
+alone.
+
 ## Upgrades ride the deployment
 
 Schema and engine upgrades happen through **rolling deployment**: the

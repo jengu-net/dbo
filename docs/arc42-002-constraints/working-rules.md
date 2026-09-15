@@ -110,6 +110,12 @@ reference: docs/arc42-002-constraints/working-rules.md#proving-a-change-which-co
 - MUST NOT add a dependency to the dependency-free core module, or anything
   beyond the JDBC driver to the storage module, without a reason that
   survives being read aloud.
+- MUST run the negative for a test written to prove a fix: break the thing
+  deliberately and watch the test go red. A test that has never failed for
+  the reason it was written has not been shown to test that reason, and two
+  ways it passes anyway are common — a wait that outlives the condition it
+  was racing, and an assertion on text the answer contains regardless, such
+  as a search echoing its own query in a bundle with no results.
 <!-- /skill -->
 
 ## Reachability, which tests do not check
