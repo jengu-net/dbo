@@ -1617,7 +1617,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             runtime.grain(),
                             version.face().capability(
                                     cloud.jengu.dbo.core.face.DocumentEquivalence.class)
-                                    .orElse(null))
+                                    .orElse(null),
+                            // And how this face answers a reference that is a
+                            // question, so a declaration may name its referent
+                            // the way an authored write may.
+                            store.references().orElse(null))
                             .apply(spec.code(), correlation, declarations),
                     // A posted read is a source. Nothing here reads anything —
                     // the declarations arrived in the body — and that is the
@@ -1630,7 +1634,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             runtime.grain(),
                             version.face().capability(
                                     cloud.jengu.dbo.core.face.DocumentEquivalence.class)
-                                    .orElse(null))
+                                    .orElse(null),
+                            // And how this face answers a reference that is a
+                            // question, so a declaration may name its referent
+                            // the way an authored write may.
+                            store.references().orElse(null))
                             .applyFrom(spec.code(), () -> fetch),
                     // Decided per request, not at mount: which tenant manages
                     // the deployment is not known when its context is created,

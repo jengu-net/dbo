@@ -66,6 +66,8 @@ public final class ConfigApplication {
     private final String domain;
     private final GrainCodec grain;
     private final DocumentEquivalence equivalence;
+    /** How the face answers a reference that is a question. Null where it has no notion. */
+    private final cloud.jengu.dbo.core.face.ReferenceResolution references;
 
     /**
      * Applying onto the engine alone, which is all this ever had.
@@ -108,6 +110,18 @@ public final class ConfigApplication {
      */
     public ConfigApplication(ObjectStore store, Runs runs, String domain,
             GrainCodec grain, DocumentEquivalence equivalence) {
+        this(store, runs, domain, grain, equivalence, null);
+    }
+
+    /**
+     * The same, and a third answer only a face can give: where references
+     * live in its payloads, so a declaration may name its referent by a
+     * question the way an authored write may.
+     */
+    public ConfigApplication(ObjectStore store, Runs runs, String domain,
+            GrainCodec grain, DocumentEquivalence equivalence,
+            cloud.jengu.dbo.core.face.ReferenceResolution references) {
+        this.references = references;
         this.store = store;
         this.runs = runs;
         this.domain = domain;
@@ -326,21 +340,49 @@ public final class ConfigApplication {
         long unchanged = 0;
         long skipped = 0;
         java.util.List<Card> cards = new java.util.ArrayList<>();
-        for (Declared declared : declarations) {
-            try {
-                if (applier.apply(declared) == Applier.Verdict.UNCHANGED) {
-                    unchanged++;
-                } else {
-                    applied++;
+        // Applied to a fixed point rather than in the order it arrived.
+        //
+        // A declaration may name a referent that another declaration in the
+        // same set creates, and a reference is answered from what is stored —
+        // so the referrer cannot be written until the referent has been. The
+        // alternative was to make the order somebody composed the set in a
+        // contract, discovered by whoever got it wrong. Instead: apply what
+        // can be applied, retry what could not while each round applies
+        // something, and stop when a round applies nothing.
+        //
+        // What is left when progress stops is genuinely stuck — a reference
+        // nobody can answer, a cycle, or a declaration refused for its own
+        // reasons — and each is carded with the reason from its last attempt.
+        java.util.List<Declared> pending = new java.util.ArrayList<>(declarations);
+        java.util.Map<String, RuntimeException> stuck = new java.util.LinkedHashMap<>();
+        while (!pending.isEmpty()) {
+            java.util.List<Declared> again = new java.util.ArrayList<>();
+            stuck.clear();
+            for (Declared declared : pending) {
+                try {
+                    if (applier.apply(declared) == Applier.Verdict.UNCHANGED) {
+                        unchanged++;
+                    } else {
+                        applied++;
+                    }
+                } catch (RuntimeException refused) {
+                    again.add(declared);
+                    stuck.put(declared.name(), refused);
                 }
-            } catch (RuntimeException refused) {
-                skipped++;
-                // A declaration the engine refuses is a person's — no pass will
-                // apply it until somebody changes it. A store that was
-                // unavailable is a retry and nobody's card.
-                pass.item(declared.name(), Failure.of(refused), String.valueOf(refused.getMessage()));
-                cards.add(new Card(declared.name(), String.valueOf(refused.getMessage())));
             }
+            if (again.size() == pending.size()) {
+                break; // a round that applied nothing will not apply anything
+            }
+            pending = again;
+        }
+        for (Declared declared : pending) {
+            RuntimeException refused = stuck.get(declared.name());
+            skipped++;
+            // A declaration the engine refuses is a person's — no pass will
+            // apply it until somebody changes it. A store that was
+            // unavailable is a retry and nobody's card.
+            pass.item(declared.name(), Failure.of(refused), String.valueOf(refused.getMessage()));
+            cards.add(new Card(declared.name(), String.valueOf(refused.getMessage())));
         }
         long withdrawn = 0;
         // A read with a declaration nobody could apply is not a read anything
@@ -421,7 +463,14 @@ public final class ConfigApplication {
         // What was declared is the whole thing, always — a declaration is a
         // file somebody wrote, not a stored form. Whether the engine is given
         // all of it is the face's answer, and the only one that knows.
-        byte[] whole = declared.payload();
+        // A reference that is a question, answered before anything is
+        // stored — the same act the authored path performs, reaching the
+        // configuration door for the first time. What could not be answered
+        // throws from here, naming the reference, and the declaration is
+        // retried once its referent has landed.
+        byte[] whole = references == null ? declared.payload()
+                : references.resolved(declared.payload(),
+                        cloud.jengu.dbo.core.face.ReferenceResolution.Resolver.NOTHING);
         boolean grained = grain != null && grain.handles(type);
         byte[] forTheEngine = grained ? grain.storedFormOf(type, whole) : whole;
 

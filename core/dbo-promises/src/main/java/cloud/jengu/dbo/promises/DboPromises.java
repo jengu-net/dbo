@@ -879,6 +879,24 @@ public enum DboPromises implements Promise {
      * switches applying off is one whose typo applies, and the caller who
      * misspells it is the one who was trying not to cause a change.
      */
+    /**
+     * The authored path always answered a reference that is a question; the
+     * configuration door never did, because a declaration is written through
+     * the engine with the face's grain applied rather than through the face's
+     * accept path. So the query was stored verbatim — a reference that reads
+     * as a promise and resolves to nothing, which is worse than the logical
+     * reference a consumer writes instead.
+     *
+     * <p>The set answers for itself by being written: applied to a fixed
+     * point rather than in the order it arrived, so the order somebody
+     * composed it in is not a contract discovered by whoever gets it wrong.
+     */
+    TEN_A_DECLARATION_NAMES_ITS_REFERENT("A declared record may name its referent by a "
+            + "conditional reference, including one another declaration in the same set "
+            + "creates: the set is applied to a fixed point rather than in the order it "
+            + "arrived, what is stored names the referent by id, and a reference nothing can "
+            + "answer fails that declaration by name rather than landing as a question."),
+
     TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING("What a declaration would do to the "
             + "tenants it names is answerable without doing it — hot, rebuilt in place, or "
             + "refused with what it would need — on the door that applies it and under the "

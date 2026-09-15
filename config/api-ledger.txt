@@ -1206,6 +1206,11 @@ cloud.jengu.dbo.core.face.RecordProjection.Record                      record
 cloud.jengu.dbo.core.face.RecordProjection.Record                      toString():String
 cloud.jengu.dbo.core.face.RecordProjection.Record                      typeName():String
 cloud.jengu.dbo.core.face.RecordProjection.Record                      versionId():long
+cloud.jengu.dbo.core.face.ReferenceResolution                          interface
+cloud.jengu.dbo.core.face.ReferenceResolution                          resolved(byte[],cloud.jengu.dbo.core.face.ReferenceResolution.Resolver):byte[]
+cloud.jengu.dbo.core.face.ReferenceResolution.Resolver                 NOTHING:cloud.jengu.dbo.core.face.ReferenceResolution.Resolver
+cloud.jengu.dbo.core.face.ReferenceResolution.Resolver                 interface
+cloud.jengu.dbo.core.face.ReferenceResolution.Resolver                 resolve(String,String):Optional
 cloud.jengu.dbo.core.face.ShapeConversion                              convert(String,byte[],String,int):Optional
 cloud.jengu.dbo.core.face.ShapeConversion                              interface
 cloud.jengu.dbo.core.process.StepDeclaration                           actions():Set
@@ -1455,6 +1460,7 @@ cloud.jengu.dbo.fhir.common.FhirStoreFacade                            operation
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            operations():List
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            read(String,String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            readForServing(String,String):cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult
+cloud.jengu.dbo.fhir.common.FhirStoreFacade                            references():Optional
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            search(String,Map,String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            search(String,Map,String,OutputStream):void
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            searchParametersChanged():int
@@ -1657,6 +1663,7 @@ cloud.jengu.dbo.fhir.element.ElementStore                              operation
 cloud.jengu.dbo.fhir.element.ElementStore                              putCanonical(String):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.fhir.element.ElementStore                              read(String,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              readForServing(String,String):cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult
+cloud.jengu.dbo.fhir.element.ElementStore                              resolved(byte[],cloud.jengu.dbo.core.face.ReferenceResolution.Resolver):byte[]
 cloud.jengu.dbo.fhir.element.ElementStore                              search(String,Map,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              search(String,Map,String,OutputStream):void
 cloud.jengu.dbo.fhir.element.ElementStore                              searchParametersChanged():int
@@ -2656,6 +2663,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_APPLY
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_CHANGE_IS_NOT_A_RETRACTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARATION_IS_A_RECORD:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARATION_NAMES_ITS_REFERENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REDECLARATION_IS_NOTICED:cloud.jengu.dbo.promises.DboPromises
@@ -3147,6 +3155,7 @@ cloud.jengu.dbo.sync.ConfigApplication                                 declarati
 cloud.jengu.dbo.sync.ConfigApplication                                 intoTheStore(cloud.jengu.dbo.sync.ConfigApplication.Declared):cloud.jengu.dbo.sync.ConfigApplication.Applier.Verdict
 cloud.jengu.dbo.sync.ConfigApplication                                 new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Runs,String)
 cloud.jengu.dbo.sync.ConfigApplication                                 new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Runs,String,cloud.jengu.dbo.core.face.GrainCodec,cloud.jengu.dbo.core.face.DocumentEquivalence)
+cloud.jengu.dbo.sync.ConfigApplication                                 new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Runs,String,cloud.jengu.dbo.core.face.GrainCodec,cloud.jengu.dbo.core.face.DocumentEquivalence,cloud.jengu.dbo.core.face.ReferenceResolution)
 cloud.jengu.dbo.sync.ConfigApplication.Applier                         apply(cloud.jengu.dbo.sync.ConfigApplication.Declared):cloud.jengu.dbo.sync.ConfigApplication.Applier.Verdict
 cloud.jengu.dbo.sync.ConfigApplication.Applier                         held(String):List
 cloud.jengu.dbo.sync.ConfigApplication.Applier                         interface

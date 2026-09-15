@@ -137,6 +137,19 @@ public interface FhirStoreFacade {
         return java.util.Optional.empty();
     }
 
+    /**
+     * How this face answers a reference that is a question, for a caller
+     * outside the accept path.
+     *
+     * <p>Empty where a face has no such notion. The configuration door then
+     * writes a declaration as authored, which is what it always did — and a
+     * conditional reference in one stays the question it was written as.
+     */
+    default java.util.Optional<cloud.jengu.dbo.core.face.ReferenceResolution> references() {
+        return this instanceof cloud.jengu.dbo.core.face.ReferenceResolution answering
+                ? java.util.Optional.of(answering) : java.util.Optional.empty();
+    }
+
     String historyBundle(String typeName, String id);
 
     /** CapabilityStatement generated from the configured types (REQ-DBO-SRCH-HONEST-CAPABILITY). */
