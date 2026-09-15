@@ -267,15 +267,16 @@ public final class PdiObjectStore implements ObjectStore {
         if (cloud.jengu.dbo.core.api.Caller.current() == null) {
             return;
         }
-        java.util.List<String> paths = new java.util.ArrayList<>();
-        criteria.equalsPredicates().forEach(p -> paths.add(p.path()));
-        criteria.notEqualsPredicates().forEach(p -> paths.add(p.path()));
-        criteria.startsWithPredicates().forEach(p -> paths.add(p.path()));
-        criteria.rangePredicates().forEach(p -> paths.add(p.path()));
-        // `missing` deliberately not guarded: asking whether a person HAS a
-        // telecom is a question about the record's completeness, not about who
-        // they are, and it can be answered from the coarse form.
-        for (String path : paths) {
+        // Asked of the criteria rather than assembled here. This list used to
+        // be four enumerations written out in this method, and a predicate
+        // kind added anywhere else was outside the membrane until somebody
+        // remembered to come back — which is the wrong way round for the
+        // check that decides whether a search may name a person at all.
+        //
+        // `missing` is not among them, deliberately: asking whether a person
+        // HAS a telecom is a question about the record's completeness, not
+        // about who they are, and it can be answered from the coarse form.
+        for (String path : criteria.matchedPaths()) {
             String element = spec.identifyingElementFor(criteria.typeName(), path);
             if (element == null) {
                 continue;
@@ -308,11 +309,13 @@ public final class PdiObjectStore implements ObjectStore {
      * through to the guard.
      */
     private Optional<List<StoredObject>> identifyingLookup(Criteria criteria) {
+        // ONE predicate, and matchedPaths is what says so: a lookup carrying a
+        // second condition of ANY kind — including "or this other identifier",
+        // which reads like one question and is two — is not the narrow shape
+        // this answers from the vault.
         if (!spec.isPersonType(criteria.typeName())
+                || criteria.matchedPaths().size() != 1
                 || criteria.equalsPredicates().size() != 1
-                || !criteria.notEqualsPredicates().isEmpty()
-                || !criteria.startsWithPredicates().isEmpty()
-                || !criteria.rangePredicates().isEmpty()
                 || !criteria.shapePredicates().isEmpty()) {
             return Optional.empty();
         }

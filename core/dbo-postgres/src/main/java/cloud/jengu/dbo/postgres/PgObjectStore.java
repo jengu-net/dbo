@@ -979,6 +979,40 @@ public final class PgObjectStore implements ObjectStore {
             sql.append(" AND d.envelope @> ?::jsonb");
             params.add(JsonbCodec.containmentJson(criteria.equalsPredicates()));
         }
+        // One containment per alternative, OR'd. Each branch is still an
+        // indexable @>, so the comma costs a branch rather than the index:
+        // folding the alternatives into ONE containment document would ask
+        // for an object carrying all of them, which is the conjunction this
+        // predicate exists to not be.
+        for (Criteria.AnyOf any : criteria.anyOfPredicates()) {
+            sql.append(" AND (");
+            boolean first = true;
+            for (cloud.jengu.dbo.core.api.EnvelopeValue value : any.values()) {
+                if (!first) {
+                    sql.append(" OR ");
+                }
+                first = false;
+                sql.append("d.envelope @> ?::jsonb");
+                params.add(JsonbCodec.containmentJson(
+                        List.of(new Criteria.Eq(any.path(), value))));
+            }
+            sql.append(')');
+        }
+        for (Criteria.StartsWithAny any : criteria.startsWithAnyPredicates()) {
+            sql.append(" AND EXISTS (SELECT 1 FROM jsonb_array_elements(d.envelope -> ?) e")
+               .append(" WHERE ");
+            params.add(any.path());
+            boolean first = true;
+            for (String prefix : any.prefixes()) {
+                if (!first) {
+                    sql.append(" OR ");
+                }
+                first = false;
+                sql.append("e->>'v' LIKE ? ESCAPE '\\'");
+                params.add(likePrefix(prefix));
+            }
+            sql.append(')');
+        }
         for (Criteria.NotEq ne : criteria.notEqualsPredicates()) {
             sql.append(" AND NOT (d.envelope @> ?::jsonb)");
             params.add(JsonbCodec.containmentJson(

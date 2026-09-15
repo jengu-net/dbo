@@ -156,6 +156,28 @@ class APersonExercisesTheirRightsIT {
 
     @Test
     @Order(2)
+    @DisplayName("asking for either of two identifiers is still an identifying act, so a "
+            + "second way to spell the question does not become a way around the membrane")
+    @Proving({DboPromises.PDI_EXACT_RESOLUTION, DboPromises.SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM})
+    void severalIdentifiersAreStillAnIdentifyingLookup() throws Exception {
+        // The membrane decides from the paths a query matches on, and a
+        // search gained a new way to state one. A predicate kind the guard
+        // had not been told about would have let this through — identifying,
+        // unpurposed, and answered — so the guard reads the paths from the
+        // criteria rather than enumerating the kinds it knows.
+        HttpResponse<String> unstated = get("/Patient?identifier=" + URLEncoder.encode(
+                EID + "|49001010000," + EID + "|39002020266", StandardCharsets.UTF_8),
+                clinical());
+
+        assertFalse(unstated.statusCode() == 200,
+                "spelling the lookup as two alternatives answered it with no purpose "
+                        + "stated, so the comma is a way around the membrane: "
+                        + unstated.body());
+        assertTrue(unstated.body().contains("purpose"), unstated.body());
+    }
+
+    @Test
+    @Order(2)
     @DisplayName("the reason rides the request rather than the credential, so the caller who "
             + "holds no purposed token can still say what they are looking for")
     @Proving({DboPromises.AUTH_PURPOSE_IS_STATED_PER_REQUEST, DboPromises.PDI_EXACT_RESOLUTION})

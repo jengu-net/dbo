@@ -492,21 +492,35 @@ public final class R4Personality {
                 new Criteria.ChainTarget.ByEq(pathName(targetParam), targetValue));
     }
 
+    /**
+     * A token filter, which a subscription carries as readily as a search
+     * does — and where several values used to be read as one literal, so a
+     * subscription filtered that way never fired and said nothing about why.
+     */
     private void compileToken(Criteria criteria, String path, String value, boolean negate) {
-        EnvelopeValue token;
+        java.util.List<String> alternatives =
+                cloud.jengu.dbo.fhir.common.SearchValues.several(value);
+        if (negate) {
+            // Excluding any of several is excluding each, which a conjunction
+            // of negations already says.
+            alternatives.forEach(one -> criteria.notEq(path, oneToken(one)));
+        } else if (alternatives.size() == 1) {
+            criteria.eq(path, oneToken(alternatives.get(0)));
+        } else {
+            criteria.anyOf(path, alternatives.stream()
+                    .map(R4Personality::oneToken).toList());
+        }
+    }
+
+    private static EnvelopeValue oneToken(String value) {
         int pipe = value.indexOf('|');
         if (pipe < 0) {
-            token = new EnvelopeValue.Token(null, value);
-        } else if (pipe == value.length() - 1) {
-            token = new EnvelopeValue.Token(value.substring(0, pipe), null); // sys| any-value form
-        } else {
-            token = EnvelopeValue.token(value.substring(0, pipe), value.substring(pipe + 1));
+            return new EnvelopeValue.Token(null, value);
         }
-        if (negate) {
-            criteria.notEq(path, token);
-        } else {
-            criteria.eq(path, token);
+        if (pipe == value.length() - 1) {
+            return new EnvelopeValue.Token(value.substring(0, pipe), null); // sys| any-value form
         }
+        return EnvelopeValue.token(value.substring(0, pipe), value.substring(pipe + 1));
     }
 
     private void requireParamType(String typeName, RuntimeSearchParam sp,

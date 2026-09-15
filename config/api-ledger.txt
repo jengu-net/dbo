@@ -345,6 +345,8 @@ cloud.jengu.dbo.core.api.Caller                                        run():Str
 cloud.jengu.dbo.core.api.Caller                                        set(String):void
 cloud.jengu.dbo.core.api.Caller                                        setChain(String,String):void
 cloud.jengu.dbo.core.api.Caller                                        setRun(String):void
+cloud.jengu.dbo.core.api.Criteria                                      anyOf(String,List):cloud.jengu.dbo.core.api.Criteria
+cloud.jengu.dbo.core.api.Criteria                                      anyOfPredicates():List
 cloud.jengu.dbo.core.api.Criteria                                      chained(String,String,cloud.jengu.dbo.core.api.Criteria.ChainTarget):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.core.api.Criteria                                      chainedPredicates():List
 cloud.jengu.dbo.core.api.Criteria                                      class
@@ -356,6 +358,7 @@ cloud.jengu.dbo.core.api.Criteria                                      lastUpdat
 cloud.jengu.dbo.core.api.Criteria                                      lastUpdatedPredicates():List
 cloud.jengu.dbo.core.api.Criteria                                      limit(int):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.core.api.Criteria                                      limitValue():int
+cloud.jengu.dbo.core.api.Criteria                                      matchedPaths():List
 cloud.jengu.dbo.core.api.Criteria                                      missing(String,boolean):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.core.api.Criteria                                      missingPredicates():List
 cloud.jengu.dbo.core.api.Criteria                                      notEq(String,cloud.jengu.dbo.core.api.EnvelopeValue):cloud.jengu.dbo.core.api.Criteria
@@ -377,8 +380,17 @@ cloud.jengu.dbo.core.api.Criteria                                      sortBy(St
 cloud.jengu.dbo.core.api.Criteria                                      sortByLastUpdated(boolean):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.core.api.Criteria                                      sortLastUpdatedAscending():Boolean
 cloud.jengu.dbo.core.api.Criteria                                      startsWith(String,String):cloud.jengu.dbo.core.api.Criteria
+cloud.jengu.dbo.core.api.Criteria                                      startsWithAny(String,List):cloud.jengu.dbo.core.api.Criteria
+cloud.jengu.dbo.core.api.Criteria                                      startsWithAnyPredicates():List
 cloud.jengu.dbo.core.api.Criteria                                      startsWithPredicates():List
 cloud.jengu.dbo.core.api.Criteria                                      typeName():String
+cloud.jengu.dbo.core.api.Criteria.AnyOf                                equals(Object):boolean
+cloud.jengu.dbo.core.api.Criteria.AnyOf                                hashCode():int
+cloud.jengu.dbo.core.api.Criteria.AnyOf                                new(String,List)
+cloud.jengu.dbo.core.api.Criteria.AnyOf                                path():String
+cloud.jengu.dbo.core.api.Criteria.AnyOf                                record
+cloud.jengu.dbo.core.api.Criteria.AnyOf                                toString():String
+cloud.jengu.dbo.core.api.Criteria.AnyOf                                values():List
 cloud.jengu.dbo.core.api.Criteria.ChainTarget                          interface
 cloud.jengu.dbo.core.api.Criteria.ChainTarget.ByEq                     equals(Object):boolean
 cloud.jengu.dbo.core.api.Criteria.ChainTarget.ByEq                     hashCode():int
@@ -492,6 +504,13 @@ cloud.jengu.dbo.core.api.Criteria.StartsWith                           path():St
 cloud.jengu.dbo.core.api.Criteria.StartsWith                           prefix():String
 cloud.jengu.dbo.core.api.Criteria.StartsWith                           record
 cloud.jengu.dbo.core.api.Criteria.StartsWith                           toString():String
+cloud.jengu.dbo.core.api.Criteria.StartsWithAny                        equals(Object):boolean
+cloud.jengu.dbo.core.api.Criteria.StartsWithAny                        hashCode():int
+cloud.jengu.dbo.core.api.Criteria.StartsWithAny                        new(String,List)
+cloud.jengu.dbo.core.api.Criteria.StartsWithAny                        path():String
+cloud.jengu.dbo.core.api.Criteria.StartsWithAny                        prefixes():List
+cloud.jengu.dbo.core.api.Criteria.StartsWithAny                        record
+cloud.jengu.dbo.core.api.Criteria.StartsWithAny                        toString():String
 cloud.jengu.dbo.core.api.DatabaseExtractor                             functionName():String
 cloud.jengu.dbo.core.api.DatabaseExtractor                             interface
 cloud.jengu.dbo.core.api.DateKeys                                      FORMAT:DateTimeFormatter
@@ -1525,6 +1544,9 @@ cloud.jengu.dbo.fhir.common.ResultParameters.Sort                      hashCode(
 cloud.jengu.dbo.fhir.common.ResultParameters.Sort                      new(String,boolean)
 cloud.jengu.dbo.fhir.common.ResultParameters.Sort                      record
 cloud.jengu.dbo.fhir.common.ResultParameters.Sort                      toString():String
+cloud.jengu.dbo.fhir.common.SearchValues                               class
+cloud.jengu.dbo.fhir.common.SearchValues                               noSeveral(String,String,String):void
+cloud.jengu.dbo.fhir.common.SearchValues                               several(String):List
 cloud.jengu.dbo.fhir.common.TerminologyFacade                          expand(String,String,int,int):Optional
 cloud.jengu.dbo.fhir.common.TerminologyFacade                          ingestCodeSystem(String):cloud.jengu.dbo.fhir.common.TerminologyFacade.IngestResult
 cloud.jengu.dbo.fhir.common.TerminologyFacade                          ingestValueSet(String):cloud.jengu.dbo.core.api.PutResult
@@ -2611,6 +2633,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SRCH_A_PA
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_CUSTOM_PARAMETERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_DECLARED_INDEXES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_HONEST_CAPABILITY:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_STRICT_BY_DEFAULT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE:cloud.jengu.dbo.promises.DboPromises

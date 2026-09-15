@@ -66,10 +66,14 @@ final class ElementSearch {
                 case "_elements" -> elements = List.of(value.split(","));
                 case "_include" -> includes.add(include(typeName, known, value));
                 case "_id" -> byId = value;
-                case "_lastUpdated" -> lastUpdated(criteria, value);
+                case "_lastUpdated" -> {
+                    noCommaYet(typeName, "_lastUpdated", value);
+                    lastUpdated(criteria, value);
+                }
                 case "_tag" -> token(criteria, "_tag", value, false);
                 case "_tag:not" -> token(criteria, "_tag", value, true);
-                case "_profile" -> criteria.eq("_profile", EnvelopeValue.of(value));
+                case "_profile" -> anyValue(criteria, "_profile", commaValues(value).stream()
+                        .map(EnvelopeValue::of).toList());
                 case "_shape-below" -> shapeBound(criteria, typeName, value, true);
                 case "_shape-at-least" -> shapeBound(criteria, typeName, value, false);
                 case "_offset" -> throw new UnknownSearchParameterException(typeName,
@@ -170,7 +174,8 @@ final class ElementSearch {
                 }
                 case "exact" -> {
                     require(typeName, parameter, Enumerations.SearchParamType.STRING, name);
-                    criteria.eq(path + "_xct", EnvelopeValue.of(value));
+                    anyValue(criteria, path + "_xct", commaValues(value).stream()
+                            .map(EnvelopeValue::of).toList());
                 }
                 case "not" -> {
                     require(typeName, parameter, Enumerations.SearchParamType.TOKEN, name);
@@ -187,24 +192,60 @@ final class ElementSearch {
 
         switch (parameter.getType()) {
             case TOKEN -> token(criteria, path, value, false);
-            case STRING -> criteria.startsWith(path, value.toLowerCase());
-            case URI -> criteria.eq(path, EnvelopeValue.of(value));
+            case STRING -> {
+                List<String> alternatives = commaValues(value).stream()
+                        .map(String::toLowerCase).toList();
+                if (alternatives.size() == 1) {
+                    criteria.startsWith(path, alternatives.get(0));
+                } else {
+                    criteria.startsWithAny(path, alternatives);
+                }
+            }
+            case URI -> anyValue(criteria, path, commaValues(value).stream()
+                    .map(EnvelopeValue::of).toList());
             case NUMBER -> {
                 Criteria.RangeOp op = tryPrefixOp(value);
                 if (op != null) {
+                    // A comparison, not a value: two of them OR'd is a shape
+                    // the criteria cannot state yet, and guessing is worse.
+                    noCommaYet(typeName, base, value);
                     criteria.range(path, ValueKind.NUMBER, op, stripPrefix(value));
                 } else {
-                    criteria.eq(path, EnvelopeValue.of(new java.math.BigDecimal(value)));
+                    anyValue(criteria, path, commaValues(value).stream()
+                            .map(one -> EnvelopeValue.of(new java.math.BigDecimal(one)))
+                            .toList());
                 }
             }
-            case DATE -> date(criteria, path, value);
+            case DATE -> {
+                noCommaYet(typeName, base, value);
+                date(criteria, path, value);
+            }
             case REFERENCE -> {
-                int slash = value.indexOf('/');
-                if (slash < 0) {
-                    throw new UnknownSearchParameterException(typeName,
-                            base + "=" + value + " (typed reference Type/id required)");
+                List<String> alternatives = commaValues(value);
+                String targetType = null;
+                List<String> ids = new ArrayList<>();
+                for (String one : alternatives) {
+                    int slash = one.indexOf('/');
+                    if (slash < 0) {
+                        throw new UnknownSearchParameterException(typeName,
+                                base + "=" + one + " (typed reference Type/id required)");
+                    }
+                    String type = one.substring(0, slash);
+                    if (targetType != null && !targetType.equals(type)) {
+                        // The edge predicate reaches one target type. Two
+                        // types OR'd is a different query, and answering it
+                        // as one of them would be confidently wrong.
+                        throw new UnknownSearchParameterException(typeName, base + "=" + value
+                                + " (several values must name one resource type)");
+                    }
+                    targetType = type;
+                    ids.add(one.substring(slash + 1));
                 }
-                criteria.referencing(path, value.substring(0, slash), value.substring(slash + 1));
+                if (ids.size() == 1) {
+                    criteria.referencing(path, targetType, ids.get(0));
+                } else {
+                    criteria.referencingAny(path, targetType, ids);
+                }
             }
             default -> throw new UnknownSearchParameterException(typeName,
                     base + " (" + parameter.getType().toCode() + " is not served)");
@@ -217,6 +258,10 @@ final class ElementSearch {
         if (reference == null || reference.getType() != Enumerations.SearchParamType.REFERENCE) {
             throw new UnknownSearchParameterException(typeName, refName + "." + targetParam);
         }
+        // A chain target holds one condition. Several would have to be said
+        // as several chains, and folding them into one would ask for a target
+        // matching all of them — which is not what the comma means.
+        noCommaYet(typeName, refName + "." + targetParam, value);
         List<String> targets = reference.getTarget().stream()
                 .map(org.hl7.fhir.r5.model.Enumeration::getCode).sorted().toList();
         if (targets.size() != 1) {
@@ -257,6 +302,7 @@ final class ElementSearch {
         };
         criteria.chained(refPath, targetType,
                 new Criteria.ChainTarget.ByEq(pathName(targetParam), targetValue));
+
     }
 
     /**
@@ -315,20 +361,47 @@ final class ElementSearch {
     }
 
     private static void token(Criteria criteria, String path, String value, boolean negate) {
-        EnvelopeValue token;
+        List<String> alternatives = commaValues(value);
+        if (negate) {
+            // Excluding any of several is excluding each of them, which is
+            // what a conjunction of negations already says. No any-of here.
+            alternatives.forEach(one -> criteria.notEq(path, oneToken(one)));
+            return;
+        }
+        if (alternatives.size() == 1) {
+            criteria.eq(path, oneToken(alternatives.get(0)));
+            return;
+        }
+        criteria.anyOf(path, alternatives.stream().map(ElementSearch::oneToken).toList());
+    }
+
+    /** One value stays an equality; several become the any-of a comma asks for. */
+    private static void anyValue(Criteria criteria, String path, List<EnvelopeValue> values) {
+        if (values.size() == 1) {
+            criteria.eq(path, values.get(0));
+        } else {
+            criteria.anyOf(path, values);
+        }
+    }
+
+    private static EnvelopeValue oneToken(String value) {
         int pipe = value.indexOf('|');
         if (pipe < 0) {
-            token = new EnvelopeValue.Token(null, value);
-        } else if (pipe == value.length() - 1) {
-            token = new EnvelopeValue.Token(value.substring(0, pipe), null); // sys| any-value form
-        } else {
-            token = EnvelopeValue.token(value.substring(0, pipe), value.substring(pipe + 1));
+            return new EnvelopeValue.Token(null, value);
         }
-        if (negate) {
-            criteria.notEq(path, token);
-        } else {
-            criteria.eq(path, token);
+        if (pipe == value.length() - 1) {
+            return new EnvelopeValue.Token(value.substring(0, pipe), null); // sys| any-value form
         }
+        return EnvelopeValue.token(value.substring(0, pipe), value.substring(pipe + 1));
+    }
+
+    /** One spelling of the comma for every compiler — see SearchValues. */
+    private static List<String> commaValues(String value) {
+        return cloud.jengu.dbo.fhir.common.SearchValues.several(value);
+    }
+
+    private static void noCommaYet(String typeName, String display, String value) {
+        cloud.jengu.dbo.fhir.common.SearchValues.noSeveral(typeName, display, value);
     }
 
     private static void require(String typeName, SearchParameter parameter,

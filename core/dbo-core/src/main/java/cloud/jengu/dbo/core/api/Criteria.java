@@ -25,6 +25,37 @@ public final class Criteria {
      */
     public record Shape(String profile, int major, boolean below) {}
 
+    /**
+     * Any one of these values at this path — what a comma means in a search.
+     *
+     * <p>Its own predicate rather than several {@link Eq}s, because equality
+     * predicates are conjunctive: two of them on one path ask for an object
+     * carrying <b>both</b> values, which is a different and much rarer
+     * question than the one a comma asks.
+     */
+    public record AnyOf(String path, java.util.List<EnvelopeValue> values) {
+
+        public AnyOf {
+            if (values == null || values.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "an empty any-of is a refusal, not a filter matching everything");
+            }
+            values = java.util.List.copyOf(values);
+        }
+    }
+
+    /** As {@link AnyOf}, for the prefix match a string search does. */
+    public record StartsWithAny(String path, java.util.List<String> prefixes) {
+
+        public StartsWithAny {
+            if (prefixes == null || prefixes.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "an empty any-of is a refusal, not a filter matching everything");
+            }
+            prefixes = java.util.List.copyOf(prefixes);
+        }
+    }
+
     public record NotEq(String path, EnvelopeValue value) {}
 
     public record StartsWith(String path, String prefix) {}
@@ -71,6 +102,8 @@ public final class Criteria {
 
     private final String typeName;
     private final List<Eq> equals = new ArrayList<>();
+    private final List<AnyOf> anyOf = new ArrayList<>();
+    private final List<StartsWithAny> startsWithAny = new ArrayList<>();
     private final List<NotEq> notEquals = new ArrayList<>();
     private final List<StartsWith> startsWith = new ArrayList<>();
     private final List<Missing> missing = new ArrayList<>();
@@ -109,6 +142,20 @@ public final class Criteria {
     public Criteria eq(String path, EnvelopeValue value) {
         Paths.requireValid(path);
         equals.add(new Eq(path, value));
+        return this;
+    }
+
+    /** Objects carrying ANY of {@code values} at {@code path}. */
+    public Criteria anyOf(String path, java.util.List<EnvelopeValue> values) {
+        Paths.requireValid(path);
+        anyOf.add(new AnyOf(path, values));
+        return this;
+    }
+
+    /** Objects whose value at {@code path} starts with ANY of {@code prefixes}. */
+    public Criteria startsWithAny(String path, java.util.List<String> prefixes) {
+        Paths.requireValid(path);
+        startsWithAny.add(new StartsWithAny(path, prefixes));
         return this;
     }
 
@@ -192,6 +239,36 @@ public final class Criteria {
     public String typeName() { return typeName; }
 
     public List<Eq> equalsPredicates() { return equals; }
+    public List<AnyOf> anyOfPredicates() { return anyOf; }
+    public List<StartsWithAny> startsWithAnyPredicates() { return startsWithAny; }
+
+    /**
+     * Every envelope path this criteria <b>matches on</b>, in no order.
+     *
+     * <p>Here rather than at the call sites, and this is the reason: a store
+     * that has to decide something about the paths a query touches — whether
+     * one of them is an identifying element the caller has stated no purpose
+     * for, say — was enumerating the predicate lists itself, so a predicate
+     * kind added later was silently outside its reach. A new way to ask
+     * "which of these" is exactly the kind of addition that looks like a
+     * convenience and lands as a hole.
+     *
+     * <p><b>Presence tests are deliberately not here.</b> Asking whether an
+     * object has a value at a path is a question about the record's
+     * completeness rather than about what the value is, and it is answerable
+     * from a form that carries no identifying data. A caller that needs those
+     * as well should ask for them by name.
+     */
+    public List<String> matchedPaths() {
+        List<String> paths = new ArrayList<>();
+        equals.forEach(p -> paths.add(p.path()));
+        anyOf.forEach(p -> paths.add(p.path()));
+        notEquals.forEach(p -> paths.add(p.path()));
+        startsWith.forEach(p -> paths.add(p.path()));
+        startsWithAny.forEach(p -> paths.add(p.path()));
+        ranges.forEach(p -> paths.add(p.path()));
+        return List.copyOf(paths);
+    }
 
     public List<NotEq> notEqualsPredicates() { return notEquals; }
 

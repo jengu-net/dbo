@@ -1338,6 +1338,25 @@ public enum DboPromises implements Promise {
 
     // ── SRCH — migrated from hand-written prose (2026-08-27) ──
 
+    /**
+     * It answered nothing, which is the worst of the three possible wrongs.
+     * The token compiler split on the system separator and never on the
+     * comma, so several values were looked for as one literal that nothing
+     * carries — neither honoured nor refused, an ordinary-looking empty page.
+     * Strict search catches an unsupported PARAMETER; an unsupported value
+     * syntax fell between it and the compiler.
+     *
+     * <p>The engine could not state it either: equality predicates are
+     * conjunctive, so adding them in a loop asks for an object carrying every
+     * value at once — wrong in a different way and just as quiet. Hence a
+     * predicate of its own rather than a fix in the compiler.
+     */
+    SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM("Several values for one search parameter are the "
+            + "union, as the comma has always meant, with a backslash escaping one that "
+            + "belongs to the value; where the union cannot be expressed — between two "
+            + "ranges rather than two values — it is refused by name rather than answered "
+            + "with an empty page."),
+
     SRCH_TIER1_PARITY(
             "Every search feature a production healthcare platform actually issues "
             + "works identically ([inventory](../evidence/search-usage-inventory.md))."),
