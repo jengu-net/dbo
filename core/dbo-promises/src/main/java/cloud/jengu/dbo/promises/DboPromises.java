@@ -1538,6 +1538,19 @@ public enum DboPromises implements Promise {
      * tenant: nothing outside a test constructs one, and neither dbo-tenant nor
      * dbo-rest contains the string `subscri`. No tenant has ever served a
      * Subscription of any shape. */
+    /**
+     * What was actually turned on, kept apart from the topic promise beside
+     * it. A tenant now mounts its own dispatcher and delivers for the
+     * criteria subscriptions it holds; topic-based ones are still not wired,
+     * and folding the two together would let a criteria test stand behind a
+     * topic sentence — the defect the callerless-seam work is about, arriving
+     * through a citation rather than through code.
+     */
+    EVT_A_TENANT_DELIVERS("A tenant serving a face that composes notifications mounts its own "
+            + "dispatcher: a subscription it holds is matched against what changes and the "
+            + "subscriber is posted to, with the name of what changed rather than the record "
+            + "itself where the channel asked for no payload."),
+
     EVT_FHIR_SUBSCRIPTIONS(
             "Planned — Topic-based FHIR Subscriptions (R5/R6 style, backported to the R4 "
             + "personality) are a core capability. (R8)"),

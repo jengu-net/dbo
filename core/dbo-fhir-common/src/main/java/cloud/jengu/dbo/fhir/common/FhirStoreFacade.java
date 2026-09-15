@@ -113,6 +113,30 @@ public interface FhirStoreFacade {
                         + "convert more than it was asked to");
     }
 
+    /**
+     * Starts delivering this tenant's subscription notifications, if this face
+     * serves subscriptions at all.
+     *
+     * <p><b>Why the answer is an {@link AutoCloseable} and not the engine.</b>
+     * The dispatcher is FHIR-blind and the FHIR-shaped halves of it — what a
+     * subscription looks like, how a notification is composed, how a filter
+     * compiles — live in the personality. The composition root has to start
+     * and stop it and needs nothing else, so what crosses this seam is
+     * something to close. Handing back the engine would put the subscription
+     * types into the shared FHIR surface, and a feature that sits on top of
+     * the store would become part of the seam every face is written against.
+     *
+     * <p>Empty is an ordinary answer: a face with no subscription support
+     * serves a tenant that never delivers, which is what it did before
+     * anything mounted this.
+     */
+    default java.util.Optional<AutoCloseable> dispatchNotifications(
+            cloud.jengu.dbo.core.api.feed.ChangeFeed feed,
+            javax.sql.DataSource dataSource,
+            long pollMillis) {
+        return java.util.Optional.empty();
+    }
+
     String historyBundle(String typeName, String id);
 
     /** CapabilityStatement generated from the configured types (REQ-DBO-SRCH-HONEST-CAPABILITY). */

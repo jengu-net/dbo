@@ -1444,6 +1444,7 @@ cloud.jengu.dbo.fhir.common.FhirStoreFacade                            condition
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            conditionalUpdate(String,Map):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            create(String):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            delete(String,String,Long):void
+cloud.jengu.dbo.fhir.common.FhirStoreFacade                            dispatchNotifications(cloud.jengu.dbo.core.api.feed.ChangeFeed,DataSource,long):Optional
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            historyBundle(String,String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            interface
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            internalFault(String):String
@@ -1644,6 +1645,7 @@ cloud.jengu.dbo.fhir.element.ElementStore                              condition
 cloud.jengu.dbo.fhir.element.ElementStore                              convertersChanged():void
 cloud.jengu.dbo.fhir.element.ElementStore                              create(String):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.fhir.element.ElementStore                              delete(String,String,Long):void
+cloud.jengu.dbo.fhir.element.ElementStore                              dispatchNotifications(cloud.jengu.dbo.core.api.feed.ChangeFeed,DataSource,long):Optional
 cloud.jengu.dbo.fhir.element.ElementStore                              expandDefinitionsHeld():int
 cloud.jengu.dbo.fhir.element.ElementStore                              historyBundle(String,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              internalFault(String):String
@@ -2459,6 +2461,7 @@ cloud.jengu.dbo.promises.DboPromises                                   CORE_REIN
 cloud.jengu.dbo.promises.DboPromises                                   CORE_SIBLING_MODELS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_UPGRADE_ON_READ:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_VERSIONED_HISTORY:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   EVT_A_TENANT_DELIVERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   EVT_DURABLE_DELIVERY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   EVT_FHIR_SUBSCRIPTIONS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   EVT_IN_PROCESS_SURFACE:cloud.jengu.dbo.promises.DboPromises
@@ -3084,6 +3087,7 @@ cloud.jengu.dbo.subscriptions.SubscriptionEngine                       class
 cloud.jengu.dbo.subscriptions.SubscriptionEngine                       close():void
 cloud.jengu.dbo.subscriptions.SubscriptionEngine                       deadLetters():List
 cloud.jengu.dbo.subscriptions.SubscriptionEngine                       dispatchOnce(int):int
+cloud.jengu.dbo.subscriptions.SubscriptionEngine                       new(DataSource,String,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.subscriptions.SubscriptionSource,Function,cloud.jengu.dbo.subscriptions.NotificationTransport)
 cloud.jengu.dbo.subscriptions.SubscriptionEngine                       new(DataSource,String,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.subscriptions.SubscriptionSource,Function,cloud.jengu.dbo.subscriptions.NotificationTransport,String,String,String)
 cloud.jengu.dbo.subscriptions.SubscriptionEngine                       start(long):void
 cloud.jengu.dbo.subscriptions.SubscriptionEngine                       withTopics(cloud.jengu.dbo.subscriptions.TopicSubscriptionSource,cloud.jengu.dbo.subscriptions.NotificationComposer,BiFunction):cloud.jengu.dbo.subscriptions.SubscriptionEngine
@@ -3105,7 +3109,9 @@ cloud.jengu.dbo.subscriptions.SubscriptionSpec                         endpoint(
 cloud.jengu.dbo.subscriptions.SubscriptionSpec                         equals(Object):boolean
 cloud.jengu.dbo.subscriptions.SubscriptionSpec                         hashCode():int
 cloud.jengu.dbo.subscriptions.SubscriptionSpec                         id():String
+cloud.jengu.dbo.subscriptions.SubscriptionSpec                         idOnly():boolean
 cloud.jengu.dbo.subscriptions.SubscriptionSpec                         new(String,String,String)
+cloud.jengu.dbo.subscriptions.SubscriptionSpec                         new(String,String,String,boolean)
 cloud.jengu.dbo.subscriptions.SubscriptionSpec                         record
 cloud.jengu.dbo.subscriptions.SubscriptionSpec                         toString():String
 cloud.jengu.dbo.subscriptions.TopicSpec                                allowedFilterParams():Set

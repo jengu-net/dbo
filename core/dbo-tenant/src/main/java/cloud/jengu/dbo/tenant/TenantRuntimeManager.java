@@ -358,6 +358,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private volatile String managementCode;
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
+    /** One per tenant whose face delivers notifications; closed when the tenant goes. */
+    private final Map<String, AutoCloseable> subscriptionDispatch = new ConcurrentHashMap<>();
+    /** How often a tenant's dispatcher looks again when it last found nothing. */
+    private static final java.time.Duration SUBSCRIPTION_POLL = java.time.Duration.ofSeconds(1);
 
     /** A tenant that is not serving, and why — the reason a card has to carry. */
     private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
@@ -1518,6 +1522,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // so the facade is built here rather than shared — a tenant answers
         // $expand from its own concepts or it is a second-class reader.
         FhirTerminology terminology = declared.terminology(engine, db.dataSource());
+        // Subscription dispatching, where the face serves it. The engine was
+        // complete, tested and constructed by nothing: a tenant could hold a
+        // Subscription, the store would accept it, and no deployment ever
+        // called start. This is that call.
+        //
+        // What the face hands back is something to close, not the engine —
+        // the dispatcher is FHIR-blind and its FHIR-shaped halves live in the
+        // personality, so the composition root starts it and stops it and
+        // knows nothing else about it.
+        store.dispatchNotifications(new PgChangeFeed(db.dataSource(), version.domain()),
+                        db.dataSource(), SUBSCRIPTION_POLL.toMillis())
+                .ifPresent(dispatching -> subscriptionDispatch.put(spec.code(), dispatching));
         // The lane's own objects, built once for this tenant and shared by
         // everything that reaches for a lane.
         //
@@ -2791,6 +2807,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String workPath = workContexts.remove(code);
         if (workPath != null) {
             sharedServer.removeContext(workPath);
+        }
+        // Its own dispatcher thread and its own DBOS connection, so a tenant
+        // going away has to stop it: a retracted tenant whose dispatcher kept
+        // polling would deliver from a store nobody serves any more.
+        AutoCloseable dispatching = subscriptionDispatch.remove(code);
+        if (dispatching != null) {
+            try {
+                dispatching.close();
+            } catch (Exception stopping) {
+                LOG.warn("subscription dispatch for {} did not stop cleanly", code, stopping);
+            }
         }
         cloud.jengu.dbo.stream.StreamDoor door = doors.remove(code);
         if (door != null) {

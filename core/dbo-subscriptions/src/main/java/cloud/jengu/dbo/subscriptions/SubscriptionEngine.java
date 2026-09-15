@@ -102,16 +102,41 @@ public final class SubscriptionEngine implements AutoCloseable {
         // record of it.
         store.count(Criteria.of(WorkModel.TYPE));
 
-        DBOSConfig cfg = DBOSConfig.defaults("dbo-subscriptions-" + domain)
-                .withDatabaseUrl(dbUrl)
-                .withDbUser(dbUser)
-                .withDbPassword(dbPassword)
-                .withDatabaseSchema("dbos")
-                .withMigrate(true);
+        // From the DataSource when that is all the caller has, and from the
+        // credentials when it named them. A composition root holds pooled
+        // DataSources and deliberately stops carrying passwords, so requiring
+        // both would have meant the one place that can mount this could not.
+        DBOSConfig cfg = dbUrl == null
+                ? DBOSConfig.defaults("dbo-subscriptions-" + domain)
+                        .withDataSource(dataSource)
+                        .withDatabaseSchema("dbos")
+                        .withMigrate(true)
+                : DBOSConfig.defaults("dbo-subscriptions-" + domain)
+                        .withDatabaseUrl(dbUrl)
+                        .withDbUser(dbUser)
+                        .withDbPassword(dbPassword)
+                        .withDatabaseSchema("dbos")
+                        .withMigrate(true);
         this.dbos = new DBOS(cfg);
         dbos.registerQueue(new Queue(QUEUE));
         this.deliveryProxy = dbos.registerProxy(DeliveryWorkflows.class, new DeliveryImpl());
         dbos.launch();
+    }
+
+    /**
+     * The same, taking only the DataSource it was already given.
+     *
+     * <p>The credential triple was there because DBOS was configured from a
+     * URL; it also takes a DataSource, which the caller has already built and
+     * which the engine already holds. Asking for both meant the one place that
+     * could mount this — a composition root holding pooled DataSources and no
+     * passwords — could not call it without going back for credentials it had
+     * deliberately stopped carrying.
+     */
+    public SubscriptionEngine(DataSource dataSource, String domain, ObjectStore store,
+            ChangeFeed feed, SubscriptionSource source, Function<String, Criteria> criteriaCompiler,
+            NotificationTransport transport) {
+        this(dataSource, domain, store, feed, source, criteriaCompiler, transport, null, null, null);
     }
 
     /** The delivery workflow: one retried step; exhaustion dead-letters and completes. */
@@ -156,7 +181,15 @@ public final class SubscriptionEngine implements AutoCloseable {
                 if (!matches(sub, item)) {
                     continue;
                 }
-                String payload = new String(item.payload(), StandardCharsets.UTF_8);
+                // What travels: the resource when the channel asked for it,
+                // and otherwise the name of what changed. A criteria-string
+                // subscription used to send the resource unconditionally —
+                // which meant a channel that declared no payload, FHIR's own
+                // default and the only safe shape across a plane that may not
+                // read identifying elements, received the whole of it anyway.
+                String payload = sub.idOnly()
+                        ? idOnlyNotification(sub, item)
+                        : new String(item.payload(), StandardCharsets.UTF_8);
                 String workflowId = sub.id() + ":" + item.seq();
                 dbos.startWorkflow(
                         () -> deliveryProxy.deliver(sub.id(), sub.endpoint(), payload, item.seq()),
@@ -168,6 +201,25 @@ public final class SubscriptionEngine implements AutoCloseable {
         }
         feed.ack(CONSUMER, chunk.nextCursor());
         return chunk.items().size();
+    }
+
+    /**
+     * The narrow notification: which subscription, and the name of what
+     * changed. Deliberately not the resource, and deliberately not a bare
+     * string — a subscriber reading this has to be able to tell it from a
+     * resource without guessing, so it is a Bundle like every other thing
+     * this store posts.
+     */
+    private static String idOnlyNotification(SubscriptionSpec sub, FeedItem item) {
+        String focus = item.typeName() + "/" + item.objectId();
+        return "{\"resourceType\":\"Bundle\",\"type\":\"history\",\"entry\":["
+                + "{\"resource\":{\"resourceType\":\"Parameters\",\"parameter\":["
+                + "{\"name\":\"subscription\",\"valueString\":\"Subscription/"
+                + sub.id() + "\"},"
+                + "{\"name\":\"status\",\"valueString\":\"active\"},"
+                + "{\"name\":\"type\",\"valueString\":\"event-notification\"},"
+                + "{\"name\":\"focus\",\"valueString\":\"" + focus + "\"}]}},"
+                + "{\"fullUrl\":\"" + focus + "\"}]}";
     }
 
     private boolean matches(SubscriptionSpec sub, FeedItem item) {

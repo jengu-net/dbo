@@ -26,6 +26,11 @@ dependencies {
     api(project(":core:dbo-terminology"))
     // the native form a definition is expanded into when it arrives
     api(project(":core:dbo-definitions"))
+    // Notifications are composed here because this is the face that serves
+    // tenants: the R4 and R5 personalities carry their own composers, hung off
+    // stores no request reaches. The same edge the personalities already have,
+    // moved to where it does something.
+    api(project(":core:dbo-subscriptions"))
     compileOnly("org.slf4j:slf4j-api:2.0.18")
     compileOnly("org.osgi:osgi.core:8.0.0")
     // A token-level JSON copier, so a stored payload reaches a reader with the

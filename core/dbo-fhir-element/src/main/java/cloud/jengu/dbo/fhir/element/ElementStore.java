@@ -1412,6 +1412,27 @@ public final class ElementStore implements FhirStoreFacade {
 
     // ----------------------------------------------------------- searching
 
+    /**
+     * Starts this tenant's subscription dispatching.
+     *
+     * <p>Here because this is the face that serves: the personalities carry
+     * their own halves of this, hung off stores no request reaches. What
+     * crosses back is something to close, so the composition root starts it
+     * and stops it and knows nothing else about it.
+     */
+    @Override
+    public java.util.Optional<AutoCloseable> dispatchNotifications(
+            cloud.jengu.dbo.core.api.feed.ChangeFeed feed,
+            javax.sql.DataSource dataSource, long pollMillis) {
+        cloud.jengu.dbo.subscriptions.SubscriptionEngine engine =
+                new cloud.jengu.dbo.subscriptions.SubscriptionEngine(dataSource, version.code(), store,
+                        feed, ElementSubscriptions.source(store, inForce()),
+                        ElementSubscriptions.criteriaCompiler(inForce()),
+                        new cloud.jengu.dbo.subscriptions.RestHookTransport());
+        engine.start(pollMillis);
+        return java.util.Optional.of(engine);
+    }
+
     @Override
     public Criteria narrow(String typeName, Map<String, String> params) {
         // ElementSearch.compile and nothing else: this is the face that

@@ -21,16 +21,14 @@
 # signature.
 cloud.jengu.dbo.auth.SecretHashProbe                                     a test's way into a package-private verifier — SecretHash itself is reached, and widening it to test it is the worse trade
 cloud.jengu.dbo.fhir.common.ArchiveProvenance                            NOT REACHED — the FHIR rendering of an archive's attestation, and no export path builds one
-cloud.jengu.dbo.fhir.r4.R4Subscriptions                                  NOT REACHED — the R4 half of eventing; no composition root knows subscriptions exist
-cloud.jengu.dbo.fhir.r5.R5Subscriptions                                  NOT REACHED — the R5 half of eventing; no composition root knows subscriptions exist
+cloud.jengu.dbo.fhir.r4.R4Subscriptions                                  NOT REACHED — and now superseded: notifications are composed on the element face, which is what serves tenants. This hangs off R4Store, which no request reaches. Its topic half is the only part not yet reimplemented there
+cloud.jengu.dbo.fhir.r5.R5Subscriptions                                  NOT REACHED — and now superseded: notifications are composed on the element face, which is what serves tenants. This hangs off R5Store, which no request reaches. Its topic half is the only part not yet reimplemented there
 cloud.jengu.dbo.maintenance.ReferenceClosure                             NOT REACHED — not on a maintenance route, not a console command, not in the verifier
 cloud.jengu.dbo.promises.DboAreas                                        reached by the catalogue projection, which is build tooling rather than anything a tenant runs
 cloud.jengu.dbo.promises.DboStories                                      reached by the catalogue projection, which is build tooling rather than anything a tenant runs
 cloud.jengu.dbo.promises.Proving                                         the annotation a test cites a promise with — read by the projection, never by the runtime
 cloud.jengu.dbo.runner.ProvingLane                                       an external consumer — implementors prove their own step services with it, which is the whole of what it is for. The driver-probe bundle names it too and deliberately does not count: a probe is not production reach, and a ledger a probe could satisfy is one anybody could satisfy by writing one
 cloud.jengu.dbo.stream.StreamLane                                        NOT REACHED — the third lane carrier; nothing constructs it, so a fleet on the substrate has no door
-cloud.jengu.dbo.subscriptions.RestHookTransport                          NOT REACHED — delivery for an engine nothing mounts
-cloud.jengu.dbo.subscriptions.SubscriptionEngine                         NOT REACHED — four eventing promises read PROVEN and no tenant has ever delivered a notification
 cloud.jengu.dbo.sync.http.HttpLanes                                      an external consumer: a host that drives a tenant's replication over HTTP from its own process, which is why it is not built in this one
 cloud.jengu.dbo.tenant.k8s.SpecDirSync                                   NOT REACHED — the spec mount for a process with no ConfigMap volume, and the operator builds none
 cloud.jengu.dbo.work.Runner                                              an external consumer: the embeddable participant, built by whatever process does the work — a hospital's integration, an edge with no orchestrator
