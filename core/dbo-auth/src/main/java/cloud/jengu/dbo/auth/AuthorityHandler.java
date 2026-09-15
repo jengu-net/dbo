@@ -491,6 +491,10 @@ public final class AuthorityHandler implements HttpHandler {
      * Guarded by a system-plane write scope of this authority's own tokens.
      */
     private void adminRoleGrants(HttpExchange exchange) throws IOException {
+        if ("GET".equals(exchange.getRequestMethod())) {
+            readRoleGrants(exchange);
+            return;
+        }
         if (!systemWrite(exchange)) {
             return;
         }
@@ -523,6 +527,65 @@ public final class AuthorityHandler implements HttpHandler {
         }
         authority.ensureRoleGrant(role, organisation, scopes);
         respond(exchange, 200, "{\"status\":\"ensured\",\"role\":\"" + role + "\"}");
+    }
+
+    /**
+     * What this tenant grants, so a provisioning client can converge it.
+     *
+     * <p><b>The other half of the write.</b> Widening a grant worked and
+     * narrowing silently did nothing, because a role dropped from
+     * configuration is never posted and so was never touched. The withdrawal
+     * verb could not close that alone: a client cannot withdraw what it has no
+     * way to learn about.
+     *
+     * <p>Active grants unless {@code status=all} asks for the rest. The
+     * default is the narrow one because the dangerous reading is the silent
+     * one — a withdrawn grant sitting unremarked in a list of grants reads as
+     * a role that is present, and the client then never re-grants it when
+     * configuration names it again. Every entry carries its status anyway, so
+     * the default answer is self-describing.
+     *
+     * <p>The organisation is on every entry, {@code null} for a tenant-wide
+     * grant. Flattening it would let a client withdraw a tenant-wide grant
+     * believing it had withdrawn the one at an organisation, which is worse
+     * than not reading at all.
+     */
+    private void readRoleGrants(HttpExchange exchange) throws IOException {
+        if (!systemPlane(exchange)) {
+            return;
+        }
+        Map<String, String> q = parseForm(exchange.getRequestURI().getRawQuery() == null
+                ? "" : exchange.getRequestURI().getRawQuery());
+        String status = q.getOrDefault("status", "active");
+        if (!"active".equals(status) && !"all".equals(status)) {
+            // Named, not ignored: a caller who believed it had asked for the
+            // withdrawn ones and silently got only the active ones would
+            // reconcile against a list that is missing what it asked to see.
+            respond(exchange, 400, "{\"error\":\"invalid_request\",\"error_description\":"
+                    + Json.quote("status is 'active' (the default) or 'all', not '"
+                            + status + "'") + "}");
+            return;
+        }
+        StringBuilder json = new StringBuilder("{\"grants\":[");
+        boolean first = true;
+        for (TenantAuthority.RoleGrant grant : authority.roleGrants("all".equals(status))) {
+            if (!first) {
+                json.append(',');
+            }
+            first = false;
+            json.append("{\"role\":").append(Json.quote(grant.roleCode()))
+                    .append(",\"organisation\":").append(grant.organisation() == null
+                            ? "null" : Json.quote(grant.organisation()))
+                    .append(",\"scopes\":[")
+                    .append(grant.scopes().stream().map(Json::quote)
+                            .collect(java.util.stream.Collectors.joining(",")))
+                    .append("],\"status\":").append(Json.quote(grant.status()));
+            if (grant.withdrawnAt() != null) {
+                json.append(",\"withdrawnAt\":\"").append(grant.withdrawnAt()).append('"');
+            }
+            json.append('}');
+        }
+        respond(exchange, 200, json.append("]}").toString());
     }
 
     /**
@@ -609,6 +672,19 @@ public final class AuthorityHandler implements HttpHandler {
             respond(exchange, 405, "{\"error\":\"invalid_request\"}");
             return false;
         }
+        return systemPlane(exchange);
+    }
+
+    /**
+     * The provisioning plane, whatever the method.
+     *
+     * <p>A read of what is granted stands behind the <b>same</b> scope as the
+     * writes, rather than a read scope of its own. The client that reconciles
+     * already holds it, so nothing new has to be granted to anybody; and the
+     * list says what this tenant's authority is shaped like, which is not a
+     * thing to widen the audience for as a side effect of making it readable.
+     */
+    private boolean systemPlane(HttpExchange exchange) throws IOException {
         String bearer = bearerOf(exchange);
         var context = bearer == null ? java.util.Optional.<TenantAuthority.AuthContext>empty()
                 : authority.validate(bearer);

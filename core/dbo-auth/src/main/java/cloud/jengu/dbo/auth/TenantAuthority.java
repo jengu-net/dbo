@@ -499,17 +499,86 @@ public final class TenantAuthority {
      */
     public List<String> activeRoleCodes() {
         java.util.TreeSet<String> codes = new java.util.TreeSet<>();
-        for (StoredObject grant : store.select(
-                cloud.jengu.dbo.core.api.Criteria.of("RoleGrant")
-                        .eq("status", cloud.jengu.dbo.core.api.EnvelopeValue.of("active")))) {
-            Object parsed = Json.parse(new String(grant.payload(),
-                    java.nio.charset.StandardCharsets.UTF_8));
-            String code = Json.strOpt(parsed, "roleCode");
-            if (code != null) {
-                codes.add(code);
-            }
+        for (RoleGrant grant : roleGrants(false)) {
+            codes.add(grant.roleCode());
         }
         return List.copyOf(codes);
+    }
+
+    /**
+     * A grant as it stands: which role, at which organisation, what it may do,
+     * and whether it still may.
+     *
+     * <p>The scopes are part of it rather than a detail. A converging client
+     * compares them, and the drift hardest to see is a role that still exists
+     * with more than configuration now gives it — a read of role codes alone
+     * would say that role is present and nothing about whether it is right.
+     *
+     * @param organisation the organisation this is granted at, or null for
+     *        tenant-wide — the two are different grants and may both exist,
+     *        so a reader that flattened them could withdraw the wrong one
+     */
+    public record RoleGrant(String roleCode, String organisation, List<String> scopes,
+                            String status, java.time.Instant withdrawnAt) {
+
+        public RoleGrant {
+            scopes = List.copyOf(scopes);
+        }
+
+        /** Whether this grant still grants anything. */
+        public boolean active() {
+            return "active".equals(status);
+        }
+    }
+
+    /**
+     * What this tenant grants, for a client converging the store on what its
+     * configuration names.
+     *
+     * <p><b>The half that was missing.</b> There was a verb to widen a grant
+     * and a verb to withdraw one, and no way to learn which grants exist — so
+     * a client could add what configuration named and could never find what
+     * configuration had stopped naming. Reconciling from what was posted last
+     * time is platform-side state about this store's contents, and reconciling
+     * from a configuration repository's history converges only if every commit
+     * was applied in order, which a restored store breaks.
+     *
+     * <p><b>Withdrawn grants are excluded unless asked for</b>, because the
+     * dangerous reading is the silent one: a client that saw a withdrawn grant
+     * in a list of grants could take the role for present and never re-grant
+     * it when configuration names it again. Every entry carries its status all
+     * the same, so the default answer is self-describing and asking for the
+     * rest never changes what the client already reads.
+     *
+     * @param includeWithdrawn whether to answer with grants that no longer
+     *        grant anything — the auditor's question, "what could this role do
+     *        and when did it stop"
+     */
+    public List<RoleGrant> roleGrants(boolean includeWithdrawn) {
+        cloud.jengu.dbo.core.api.Criteria criteria =
+                cloud.jengu.dbo.core.api.Criteria.of("RoleGrant");
+        if (!includeWithdrawn) {
+            criteria.eq("status", cloud.jengu.dbo.core.api.EnvelopeValue.of("active"));
+        }
+        List<RoleGrant> grants = new java.util.ArrayList<>();
+        for (StoredObject stored : store.select(criteria)) {
+            Object parsed = Json.parse(new String(stored.payload(),
+                    java.nio.charset.StandardCharsets.UTF_8));
+            String code = Json.strOpt(parsed, "roleCode");
+            if (code == null) {
+                continue;
+            }
+            String withdrawnAt = Json.strOpt(parsed, "withdrawnAt");
+            grants.add(new RoleGrant(code, Json.strOpt(parsed, "organisation"),
+                    Json.strings(parsed, "scopes"),
+                    String.valueOf(Json.strOpt(parsed, "status")),
+                    withdrawnAt == null ? null : java.time.Instant.parse(withdrawnAt)));
+        }
+        // Ordered, because a client diffs this against configuration and an
+        // answer whose order moved between sweeps reads as a change.
+        grants.sort(java.util.Comparator.comparing(RoleGrant::roleCode)
+                .thenComparing(g -> g.organisation() == null ? "" : g.organisation()));
+        return List.copyOf(grants);
     }
 
     public void ensureRoleGrant(String roleCode, List<String> scopes) {

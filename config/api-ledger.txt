@@ -148,6 +148,7 @@ cloud.jengu.dbo.auth.TenantAuthority                                   redeemSec
 cloud.jengu.dbo.auth.TenantAuthority                                   refresh(String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   resolveByNationalId(String,String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   retireCredential(String):void
+cloud.jengu.dbo.auth.TenantAuthority                                   roleGrants(boolean):List
 cloud.jengu.dbo.auth.TenantAuthority                                   rotateSigningKey():String
 cloud.jengu.dbo.auth.TenantAuthority                                   setFactor(String,String,String):void
 cloud.jengu.dbo.auth.TenantAuthority                                   signingKey(String):Optional
@@ -241,6 +242,17 @@ cloud.jengu.dbo.auth.TenantAuthority.LoginResult.Redirect              hashCode(
 cloud.jengu.dbo.auth.TenantAuthority.LoginResult.Redirect              new(String)
 cloud.jengu.dbo.auth.TenantAuthority.LoginResult.Redirect              record
 cloud.jengu.dbo.auth.TenantAuthority.LoginResult.Redirect              toString():String
+cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         active():boolean
+cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         equals(Object):boolean
+cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         hashCode():int
+cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         new(String,String,List,String,Instant)
+cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         organisation():String
+cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         record
+cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         roleCode():String
+cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         scopes():List
+cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         status():String
+cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         toString():String
+cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         withdrawnAt():Instant
 cloud.jengu.dbo.auth.TenantAuthority.TokenResult                       interface
 cloud.jengu.dbo.auth.TenantAuthority.TokenResult.Issued                accessToken():String
 cloud.jengu.dbo.auth.TenantAuthority.TokenResult.Issued                equals(Object):boolean
@@ -2384,6 +2396,7 @@ cloud.jengu.dbo.promises.DboPromises                                   AUTH_DEAC
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_DENY_BY_DEFAULT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_FEDERATED_HUMANS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   AUTH_GRANTS_ARE_READABLE_TO_CONVERGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_IDENTITY_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_NO_SUBJECT_ENUMERATION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_ONE_CEREMONY_MANY_TENANTS:cloud.jengu.dbo.promises.DboPromises

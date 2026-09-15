@@ -934,6 +934,24 @@ public enum DboPromises implements Promise {
             "The role-to-scope mapping is tenant-administered regular records — "
             + "auditable, feed-visible, exported; changing who may do what is a recorded "
             + "act."),
+    /**
+     * Converging is a read and then a write, and for a while only the write
+     * existed: a grant could be widened, and a role dropped from
+     * configuration was never posted and so was never touched. The verb to
+     * withdraw one could not close that alone — a client cannot withdraw what
+     * it has no way to learn about.
+     *
+     * <p>What the answer carries is decided by what a reconcile compares. The
+     * organisation, because a grant at one and a tenant-wide grant are
+     * different grants. The scopes, because a role that still exists with
+     * more than configuration now gives it is the drift a list of role codes
+     * could never show.
+     */
+    AUTH_GRANTS_ARE_READABLE_TO_CONVERGE("What a tenant grants is readable on the same "
+            + "provisioning plane that writes it, each grant with the organisation it was "
+            + "granted at and the scopes as granted; withdrawn grants are left out unless "
+            + "asked for, so one is never mistaken for a role that is still present."),
+
     AUTH_PSEUDONYMOUS_TOKENS(
             "Human tokens carry the practitioner's record id and SMART user scopes — no "
             + "name, no national code; a captured token identifies no one."),
