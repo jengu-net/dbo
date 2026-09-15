@@ -238,7 +238,7 @@ public enum DboPromises implements Promise {
     /** TODO: prove it in a test. No single test walks catalogue → CodeSystem/PlanDefinition
      * → "never hand-edited" end to end; the projection generator itself has no negative
      * test that a hand-edit would be overwritten or refused. */
-    PROC_CATALOGUE_IN_STORE("Process and step definitions (with profiles, planes and "
+    PROC_CATALOGUE_IN_STORE("Planned — Process and step definitions (with profiles, planes and "
             + "projections) are part of DBO's own vocabulary; projections are generated, "
             + "never hand-edited."),
 
@@ -286,7 +286,7 @@ public enum DboPromises implements Promise {
     /** TODO: prove it in a test. The free-string process-domain code exists on Run and
      * is written; no test yet asserts a view or projection filtering BY it — that arrives
      * with the console (#75). */
-    PROC_DOMAIN_CODE_FILTER("Every process and step carries a free-string process-domain "
+    PROC_DOMAIN_CODE_FILTER("Planned — Every process and step carries a free-string process-domain "
             + "code; views and projections filter by it."),
 
     /** TODO: prove it in a test. ArchiveCoversEveryTableIT proves every TABLE is archived,
@@ -353,7 +353,7 @@ public enum DboPromises implements Promise {
     /** TODO: prove it in a test. Run.parent is a String key and nothing walks a chain of
      * runs to assert it never crosses a domain or a system — the rule is enforced by
      * convention at the two call sites (item(), not by a refusal anywhere. */
-    PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY("A run has at most one parent, and "
+    PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY("Planned — A run has at most one parent, and "
             + "parenthood never crosses a domain or a system: items are children, "
             + "subprocesses and continuations are references. A parent's close must "
             + "mean something for its children, and cannot across a boundary this "
@@ -805,11 +805,11 @@ public enum DboPromises implements Promise {
             + "including durable workflow history and feed state."),
     /** TODO: prove it in a test. */
     TEN_SHARED_TIER_ISOLATION(
-            "Tenants on the shared tier are isolated by tenant-keyed schemas and "
+            "Planned — Tenants on the shared tier are isolated by tenant-keyed schemas and "
             + "row-level security with the same API surface as the dedicated tier."),
     /** TODO: prove it in a test. */
     TEN_FAIRNESS_QUOTAS(
-            "Per-tenant quotas and rate limits are first-class configuration, enforced "
+            "Planned — Per-tenant quotas and rate limits are first-class configuration, enforced "
             + "at the serving pod."),
 
     // ── AUTH — migrated from hand-written prose (2026-08-27) ──
@@ -826,7 +826,7 @@ public enum DboPromises implements Promise {
             + "access it."),
     /** TODO: prove it in a test. */
     AUTH_PRIVATE_SURFACE(
-            "The raw store surface is never publicly routed; public interaction with "
+            "Planned — The raw store surface is never publicly routed; public interaction with "
             + "dbo-held data goes through process-based surfaces. The authority exists so "
             + "authorized services reach the private surface with tenant-rooted trust."),
     AUTH_DENY_BY_DEFAULT(
@@ -1411,7 +1411,7 @@ public enum DboPromises implements Promise {
             + "and replay are uniformly observable."),
     /** TODO: prove it in a test. */
     FEED_LEAN_WIRE_OPTION(
-            "Between DBO-speaking parties, feeds stream lean frames; FHIR Bundles are "
+            "Planned — Between DBO-speaking parties, feeds stream lean frames; FHIR Bundles are "
             + "assembled only at the FHIR surface."),
 
     // ── EVT — migrated from hand-written prose (2026-08-27) ──
@@ -1425,13 +1425,13 @@ public enum DboPromises implements Promise {
      * dbo-rest contains the string `subscri`. No tenant has ever served a
      * Subscription of any shape. */
     EVT_FHIR_SUBSCRIPTIONS(
-            "Topic-based FHIR Subscriptions (R5/R6 style, backported to the R4 "
+            "Planned — Topic-based FHIR Subscriptions (R5/R6 style, backported to the R4 "
             + "personality) are a core capability. (R8)"),
     /** TODO: prove it in a test (#184). Retries, backoff and dead-lettering are
      * exercised in SubscriptionsIT against an engine the test built. No tenant has
      * ever delivered a notification, so nothing has ever retried one either. */
     EVT_DURABLE_DELIVERY(
-            "Subscription delivery is durable, tenant-scoped and replayable, with "
+            "Planned — Subscription delivery is durable, tenant-scoped and replayable, with "
             + "retries, backoff and dead-lettering. (R8, §9)"),
     /** TODO: prove it in a test (#184). The sharpest of the three: the proof
      * called addLocalListener on an engine the test constructed, and in a
@@ -1439,7 +1439,7 @@ public enum DboPromises implements Promise {
      * promises does not exist in any form, rather than existing and going
      * unused. */
     EVT_IN_PROCESS_SURFACE(
-            "Co-located consumers get the same topics with identical semantics through "
+            "Planned — Co-located consumers get the same topics with identical semantics through "
             + "the in-process/OSGi surface. (R8)"),
 
     // ── WF — migrated from hand-written prose (2026-08-27) ──
@@ -1459,7 +1459,7 @@ public enum DboPromises implements Promise {
             + "the plaintext form would not, however briefly."),
     /** TODO: prove it in a test. */
     WF_PLATFORM_COORDINATED_HOPS(
-            "Every cross-plane or cross-tenant hop is coordinated by the platform; no "
+            "Planned — Every cross-plane or cross-tenant hop is coordinated by the platform; no "
             + "direct tenant-to-tenant connection exists."),
     WF_HOPS_AUDITED(
             "Every hop leaves a travel entry about the task — who handed to whom — and a "
@@ -1470,22 +1470,22 @@ public enum DboPromises implements Promise {
 
     /** TODO: prove it in a test. */
     SCAL_DURABLE_ASSIGNMENT(
-            "The tenant→pod assignment is durable state with version-driven takeover."),
+            "Planned — The tenant→pod assignment is durable state with version-driven takeover."),
     /** TODO: prove it in a test. */
     SCAL_SINGLE_WRITER_TENANT(
-            "A tenant's serving pod is its single writer, making local caching and "
+            "Planned — A tenant's serving pod is its single writer, making local caching and "
             + "local subscription state correct by construction."),
     /** TODO: prove it in a test. */
     SCAL_TRANSPARENT_ROUTING(
-            "Callers look up a tenant's service in the registry; local instance or "
+            "Planned — Callers look up a tenant's service in the registry; local instance or "
             + "remote proxy is indistinguishable."),
     /** TODO: prove it in a test. */
     SCAL_TWO_HOP_LOCALITY(
-            "Requests enter at the closest public node (Kubernetes locality), then "
+            "Planned — Requests enter at the closest public node (Kubernetes locality), then "
             + "route to the serving pod (tenant assignment)."),
     /** TODO: prove it in a test. */
     SCAL_NO_SHARED_STATE_BROKER(
-            "The architecture requires no Redis-class shared-state service."),
+            "Planned — The architecture requires no Redis-class shared-state service."),
 
     // ── TERM — migrated from hand-written prose (2026-08-27) ──
 
@@ -1592,7 +1592,7 @@ public enum DboPromises implements Promise {
 
     /** TODO: prove it in a test. The object store tier is not built. */
     OPS_TENANT_BLOB_STORAGE(
-            "Binary content lives in per-tenant blob storage provisioned "
+            "Planned — Binary content lives in per-tenant blob storage provisioned "
             + "credential-blind; erasure-by-drop extends to it; small deployments fall "
             + "back to Postgres behind the same interface."),
     OPS_NUMBERS_LEAVE_THE_NODE(
@@ -1632,7 +1632,7 @@ public enum DboPromises implements Promise {
             + "from it."),
     /** TODO: prove it in a test. */
     OPS_MIGRATION_AS_DEPLOYMENT(
-            "Schema and engine upgrades ride rolling deployment: the highest-version "
+            "Planned — Schema and engine upgrades ride rolling deployment: the highest-version "
             + "node leads, migrates, and older nodes passivate. (D5)"),
 
     // ── MNT — migrated from hand-written prose (2026-08-27) ──

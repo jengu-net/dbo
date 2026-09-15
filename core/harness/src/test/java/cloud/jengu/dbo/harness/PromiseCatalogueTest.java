@@ -52,6 +52,50 @@ class PromiseCatalogueTest {
     }
 
     /**
+     * A promise travels as a sentence, and the sentence has to be honest on
+     * its own.
+     *
+     * <p>Status is derived and correct and lives in a catalogue. That did not
+     * help: promises are quoted into design documents and read aloud in
+     * meetings, and the catalogue stays behind. An unbuilt one written in the
+     * present indicative — <i>binary content LIVES in per-tenant blob
+     * storage</i> — is indistinguishable from one that is kept, and a
+     * consumer rejected two alternative designs on the strength of exactly
+     * that sentence describing a capability that did not exist.
+     *
+     * <p>So the prose carries its own status. Crude on purpose: a rule that
+     * asked whether a sentence READS as intent would be a judgement nobody
+     * can enforce, and this is a prefix that survives being copied somewhere
+     * the catalogue is not.
+     *
+     * <p>It holds both ways. A promise that gains its first citation stops
+     * being planned, and the build then refuses the word until somebody takes
+     * it out — which is the moment to check that the sentence became true
+     * rather than merely cited.
+     */
+    @Test
+    @DisplayName("a promise nothing proves says it is planned, in its own words, and one "
+            + "that is proven does not")
+    @Proving(DboPromises.PRM_NAME_IS_THE_CODE)
+    void whatIsNotBuiltReadsAsIntent() {
+        Registry.Model model = model();
+        java.util.List<String> wrong = new java.util.ArrayList<>();
+        for (DboPromises promise : DboPromises.values()) {
+            boolean planned = model.statusOf(promise) == PromiseStatus.PLANNED;
+            boolean saysSo = promise.text().startsWith("Planned — ");
+            if (planned && !saysSo) {
+                wrong.add(promise.name() + ": nothing proves it and it reads as a description "
+                        + "of what this store does");
+            }
+            if (!planned && saysSo) {
+                wrong.add(promise.name() + ": something proves it and it still says planned — "
+                        + "take the word out, once the sentence is true rather than cited");
+            }
+        }
+        assertTrue(wrong.isEmpty(), String.join(System.lineSeparator(), wrong));
+    }
+
+    /**
      * The gap this feature declared when the catalogue was first written —
      * what happens to stock stamped under a version the pack withdraws —
      * was answered and promoted to a named promise. What the fold
