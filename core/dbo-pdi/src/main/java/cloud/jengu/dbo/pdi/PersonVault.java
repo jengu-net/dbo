@@ -741,20 +741,102 @@ public final class PersonVault {
      * @return the pseudonym, or nothing where the person has been erased
      */
     public Optional<String> pseudonymFor(String personId, String scope) {
+        requireScope(scope);
+        return keyFor(personId, false).map(key -> derive(key, scope));
+    }
+
+    /**
+     * Which live person answers to this pseudonym under this scope, if any.
+     *
+     * <p>A walk, because an HMAC does not invert and the only alternative is
+     * an index — and an index is the stored link the derivation exists not to
+     * have. It would have to be deleted on erasure by somebody remembering to,
+     * where a walk simply stops finding a person whose key is gone, and
+     * unlinkability would become an access rule rather than a property of the
+     * construction.
+     *
+     * <p>Shredded persons are not among the candidates and no clause excludes
+     * them: their key is what the comparison is made of, and a destroyed key
+     * cannot produce a value to compare. The same sentence is why a miss does
+     * not distinguish erased from never-known — from this side there is
+     * nothing left that could tell them apart, which is what erasure means.
+     *
+     * <p>It grows with the tenant. Bounding it by a narrower population is a
+     * WHERE clause on the walk when there is one to bound it to; nothing here
+     * has to change to acquire it.
+     */
+    public Optional<String> whoAnswersTo(String scope, String pseudonym) {
+        requireScope(scope);
+        byte[] wanted;
+        try {
+            wanted = java.util.HexFormat.of().parseHex(
+                    pseudonym == null ? "" : pseudonym);
+        } catch (IllegalArgumentException notHex) {
+            // A syntax fact, said before any person is considered: nothing
+            // about who is here has been consulted to produce this refusal.
+            throw new IllegalArgumentException(
+                    "a pseudonym is hex, and this is not one");
+        }
+        String after = "00000000-0000-0000-0000-000000000000";
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT id, wrapped_key FROM pdi.person"
+                             + " WHERE wrapped_key IS NOT NULL AND id > ?::uuid"
+                             + " ORDER BY id LIMIT ?")) {
+            while (true) {
+                ps.setString(1, after);
+                ps.setInt(2, SCAN_PAGE);
+                int seen = 0;
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        seen++;
+                        after = rs.getString(1);
+                        // Constant-time: a comparison that stopped at the
+                        // first differing byte would let a caller build a
+                        // pseudonym one byte at a time without ever holding
+                        // one.
+                        if (java.security.MessageDigest.isEqual(
+                                mac(unwrap(rs.getBytes(2)), scope), wanted)) {
+                            return Optional.of(after);
+                        }
+                    }
+                }
+                if (seen < SCAN_PAGE) {
+                    return Optional.empty();
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("vault pseudonym scan failed", e);
+        }
+    }
+
+    /** One round trip per page rather than per person. */
+    private static final int SCAN_PAGE = 500;
+
+    private static void requireScope(String scope) {
         if (scope == null || scope.isBlank()) {
             throw new IllegalArgumentException("a pseudonym is for a scope; name one");
         }
-        return keyFor(personId, false).map(key -> {
-            try {
-                javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
-                mac.init(new SecretKeySpec(key, "HmacSHA256"));
-                byte[] derived = mac.doFinal(scope.getBytes(
-                        java.nio.charset.StandardCharsets.UTF_8));
-                return java.util.HexFormat.of().formatHex(derived);
-            } catch (Exception e) {
-                throw new IllegalStateException("deriving a pseudonym failed", e);
-            }
-        });
+    }
+
+    /**
+     * The derivation itself, in one place because both directions have to mean
+     * the same thing: a scan that computed a pseudonym even slightly
+     * differently from the deriving verb would answer nobody, forever, and
+     * nothing would fail.
+     */
+    private static String derive(byte[] key, String scope) {
+        return java.util.HexFormat.of().formatHex(mac(key, scope));
+    }
+
+    private static byte[] mac(byte[] key, String scope) {
+        try {
+            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(key, "HmacSHA256"));
+            return mac.doFinal(scope.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw new IllegalStateException("deriving a pseudonym failed", e);
+        }
     }
 
     // ------------------------------------------------------------- crypto

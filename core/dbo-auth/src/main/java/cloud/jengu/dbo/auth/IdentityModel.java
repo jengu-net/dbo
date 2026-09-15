@@ -26,6 +26,16 @@ public final class IdentityModel {
     public static final String LOGIN_SYSTEM = "urn:dbo:auth:login";
 
     /**
+     * The person a pseudonym was turned back into, so "who has looked me up"
+     * is a question with an answer.
+     *
+     * <p>The pseudonym that was asked about is deliberately not indexed, and
+     * is not written at all: a row pairing one with a person is the stored
+     * mapping the derivation exists in order not to have.
+     */
+    public static final String RESOLVED_PERSON_SYSTEM = "urn:dbo:identity:resolved-person";
+
+    /**
      * A one-time grant, found by the hash of what the holder presents.
      *
      * <p>The grant itself is never stored: it is a bearer secret for its short
@@ -61,7 +71,8 @@ public final class IdentityModel {
 
     /** What {@link #identificationRegistrations()} selects, named once. */
     private static final java.util.Set<String> IDENTIFICATION =
-            java.util.Set.of("AnonymityEvent", "BindingEvent", "Adjudication");
+            java.util.Set.of("AnonymityEvent", "BindingEvent", "Adjudication",
+                    "PseudonymResolution");
 
     public static List<TypeRegistration> registrations() {
         EnvelopeExtractor client = (type, payload) -> {
@@ -110,6 +121,17 @@ public final class IdentityModel {
         // judged this claim?" without scanning. The claims are not identity
         // claims here — they identify a person, not this record — so they do
         // not collide with the person's own.
+        EnvelopeExtractor resolution = (type, payload) -> {
+            Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
+            Envelope e = new Envelope();
+            e.value("scope", EnvelopeValue.of(Json.str(n, "scope")));
+            e.value("actor", EnvelopeValue.of(Json.str(n, "actor")));
+            String person = Json.strOpt(n, "personId");
+            if (person != null) {
+                e.identifier(RESOLVED_PERSON_SYSTEM, person);
+            }
+            return e;
+        };
         EnvelopeExtractor adjudication = (type, payload) -> {
             Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
             Envelope e = new Envelope();
@@ -164,6 +186,18 @@ public final class IdentityModel {
                                 Handling.Durability.VERSIONED,
                                 Handling.Travel.BACKUP_ONLY),
                         binding, List.of()),
+                // Appended and never edited, like the binding above and for a
+                // sharper version of its reason: this is the record that
+                // somebody turned a pseudonym back into a person, and the only
+                // party with a motive to remove one is whoever should not have
+                // asked.
+                new TypeRegistration("PseudonymResolution", DOMAIN, IdentityClass.INTERNAL,
+                        java.util.Set.of(),
+                        new Handling(Handling.Authority.TENANT_USERS,
+                                Handling.Mutability.APPEND_ONLY,
+                                Handling.Durability.VERSIONED,
+                                Handling.Travel.BACKUP_ONLY),
+                        resolution, List.of()),
                 // TENANT_USERS and APPEND_ONLY: a receptionist decides, and a
                 // decision is never edited. Revising an identification means
                 // recording a NEW decision that supersedes it — editing the old

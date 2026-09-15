@@ -104,6 +104,24 @@ public enum DboPromises implements Promise {
             + "cryptographically gone from live store, history, envelopes and archives at "
             + "once."),
 
+    /**
+     * The inverse of the derivation, and the reason it is a walk rather than
+     * a lookup: the index that would make it fast is the correlatable link
+     * the derivation exists in order not to have, and it would have to be
+     * deleted on an erasure by somebody remembering to.
+     *
+     * <p>The trail is the other half. Turning a pseudonym back into a person
+     * is a disclosure, so it names who asked and why — and records the person
+     * and the scope rather than the pseudonym, because a row pairing those
+     * two would be the index arriving one question at a time.
+     */
+    PDI_PSEUDONYM_RESOLVED_BY_SCAN("Which person a pseudonym belongs to is answered by "
+            + "deriving over the people whose keys could have made it, never by a stored "
+            + "mapping; the question states its scope and its purpose and is recorded as the "
+            + "disclosure it is, and the record names the person rather than the pseudonym. A "
+            + "person whose key is destroyed is not found, and is not distinguishable from one "
+            + "who was never here."),
+
     PDI_UNFINDABLE_AFTER_ERASURE("Search indexes derived from personal elements are "
             + "vault-scoped or rebuilt on shred — an erased person is unfindable, not "
             + "merely unreadable."),

@@ -4,6 +4,7 @@ import cloud.jengu.dbo.auth.Adjudications;
 import cloud.jengu.dbo.auth.Anonymity;
 import cloud.jengu.dbo.auth.Bindings;
 import cloud.jengu.dbo.auth.Identities;
+import cloud.jengu.dbo.auth.Pseudonyms;
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.identity.Adjudication;
@@ -12,6 +13,7 @@ import cloud.jengu.dbo.core.api.identity.Assurance;
 import cloud.jengu.dbo.core.api.identity.BindingEvent;
 import cloud.jengu.dbo.core.api.identity.Candidate;
 import cloud.jengu.dbo.core.api.identity.IdentityClaim;
+import cloud.jengu.dbo.core.api.identity.PseudonymResolution;
 import cloud.jengu.dbo.core.api.identity.Resolution;
 import cloud.jengu.dbo.core.wire.RecordWire;
 import com.sun.net.httpserver.HttpExchange;
@@ -118,9 +120,11 @@ public final class IdentityHandler implements HttpHandler {
                 case "anonymity" -> anonymity(exchange, body);
                 case "subject" -> subject(exchange, body);
                 case "pseudonym" -> pseudonym(exchange, body);
+                case "pseudonym/resolve" -> resolvePseudonym(exchange, body);
                 default -> fail(exchange, 404, "invalid_request",
-                        "this door offers resolve, adjudicate, bind, unbind, anonymity "
-                                + "and subject; it was asked for '" + verb + "'");
+                        "this door offers resolve, adjudicate, bind, unbind, anonymity, "
+                                + "subject, pseudonym and pseudonym/resolve; it was asked "
+                                + "for '" + verb + "'");
             }
         } catch (Anonymity.AnonymityRefusedException declined) {
             // Not a fault. Somebody declared they are not to be identified,
@@ -269,6 +273,46 @@ public final class IdentityHandler implements HttpHandler {
             return;
         }
         respond(exchange, 200, Map.of("scope", scope, "pseudonym", derived.get()));
+    }
+
+    /**
+     * Which person answers to a pseudonym, under the scope that made it.
+     *
+     * <p>The deriving verb's inverse, and the asymmetry between the two is
+     * real rather than an omission. That one is told whose pseudonym to
+     * compute, so it can say the person is erased; this one holds only the
+     * pseudonym, and after a key is destroyed nothing remains that could tell
+     * "erased" from "never here". A record kept so that it could would be the
+     * stored mapping this verb exists in order not to have. So a miss is
+     * <b>nobody</b>, answered as an ordinary result.
+     */
+    private void resolvePseudonym(HttpExchange exchange, Map<String, Object> body)
+            throws IOException {
+        if (vault == null) {
+            fail(exchange, 400, "invalid_request", "this tenant holds no keys, so there is "
+                    + "no pseudonym of its own to resolve");
+            return;
+        }
+        String scope = required(body, "scope");
+        String pseudonym = required(body, "pseudonym");
+        String actor = required(body, "actor");
+        String purpose = required(body, "purpose");
+        java.util.Optional<String> person = vault.whoAnswersTo(scope, pseudonym);
+        // Recorded before it is answered, and not in a finally: if the trail
+        // cannot be written the caller gets a fault and no name. A disclosure
+        // nobody can account for afterwards is worse than one that did not
+        // happen.
+        String recorded = Pseudonyms.record(store, person
+                .map(who -> PseudonymResolution.to(scope, who, actor, Instant.now(),
+                        purpose, str(body, "because")))
+                .orElseGet(() -> PseudonymResolution.nobody(scope, actor, Instant.now(),
+                        purpose, str(body, "because"))));
+        Map<String, Object> answer = new LinkedHashMap<>();
+        answer.put("scope", scope);
+        answer.put("found", person.isPresent());
+        person.ifPresent(who -> answer.put("person", who));
+        answer.put("resolution", recorded);
+        respond(exchange, 200, answer);
     }
 
     // ------------------------------------------------------------ reading

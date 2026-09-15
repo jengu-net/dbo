@@ -53,6 +53,7 @@ cloud.jengu.dbo.auth.IdentityModel                                     DOMAIN:St
 cloud.jengu.dbo.auth.IdentityModel                                     GRANT_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     KID_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     LOGIN_SYSTEM:String
+cloud.jengu.dbo.auth.IdentityModel                                     RESOLVED_PERSON_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     ROLE_CODE_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     class
 cloud.jengu.dbo.auth.IdentityModel                                     identificationRegistrations():List
@@ -78,6 +79,8 @@ cloud.jengu.dbo.auth.KeyProtector                                      class
 cloud.jengu.dbo.auth.KeyProtector                                      new(byte[])
 cloud.jengu.dbo.auth.KeyProtector                                      unwrap(byte[]):byte[]
 cloud.jengu.dbo.auth.KeyProtector                                      wrap(byte[]):byte[]
+cloud.jengu.dbo.auth.Pseudonyms                                        class
+cloud.jengu.dbo.auth.Pseudonyms                                        record(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.identity.PseudonymResolution):String
 cloud.jengu.dbo.auth.Scopes                                            CONFIGURATION:String
 cloud.jengu.dbo.auth.Scopes                                            ERASURE:String
 cloud.jengu.dbo.auth.Scopes                                            FLEET:String
@@ -967,6 +970,20 @@ cloud.jengu.dbo.core.api.identity.IdentityClaim.Verification           CHECKED:c
 cloud.jengu.dbo.core.api.identity.IdentityClaim.Verification           enum
 cloud.jengu.dbo.core.api.identity.IdentityClaim.Verification           valueOf(String):cloud.jengu.dbo.core.api.identity.IdentityClaim.Verification
 cloud.jengu.dbo.core.api.identity.IdentityClaim.Verification           values():cloud.jengu.dbo.core.api.identity.IdentityClaim.Verification[]
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  actor():String
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  at():Instant
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  because():String
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  equals(Object):boolean
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  found():boolean
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  hashCode():int
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  new(String,String,String,Instant,String,String)
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  nobody(String,String,Instant,String,String):cloud.jengu.dbo.core.api.identity.PseudonymResolution
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  personId():String
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  purpose():String
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  record
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  scope():String
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  to(String,String,String,Instant,String,String):cloud.jengu.dbo.core.api.identity.PseudonymResolution
+cloud.jengu.dbo.core.api.identity.PseudonymResolution                  toString():String
 cloud.jengu.dbo.core.api.identity.Resolution                           candidates():List
 cloud.jengu.dbo.core.api.identity.Resolution                           certain():Optional
 cloud.jengu.dbo.core.api.identity.Resolution                           equals(Object):boolean
@@ -2100,6 +2117,7 @@ cloud.jengu.dbo.pdi.PersonVault                                        restricte
 cloud.jengu.dbo.pdi.PersonVault                                        sealedUnder(Collection):Map
 cloud.jengu.dbo.pdi.PersonVault                                        shred(String):cloud.jengu.dbo.pdi.PersonVault.Shred
 cloud.jengu.dbo.pdi.PersonVault                                        survivorOf(String):String
+cloud.jengu.dbo.pdi.PersonVault                                        whoAnswersTo(String,String):Optional
 cloud.jengu.dbo.pdi.PersonVault.Sealed                                 equals(Object):boolean
 cloud.jengu.dbo.pdi.PersonVault.Sealed                                 hashCode():int
 cloud.jengu.dbo.pdi.PersonVault.Sealed                                 key():byte[]
@@ -2440,6 +2458,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PDI_ERASU
 cloud.jengu.dbo.promises.DboPromises                                   PDI_ERASURE_SAYS_HOW_FAR_IT_GOT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_EXACT_RESOLUTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_PLAINTEXT_IN_FLIGHT_LEAVES_NO_TRACE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PDI_PSEUDONYM_RESOLVED_BY_SCAN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_RIGHTS_AS_OPERATIONS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_SHRED_LEDGER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_STRUCTURAL_VAULT:cloud.jengu.dbo.promises.DboPromises
