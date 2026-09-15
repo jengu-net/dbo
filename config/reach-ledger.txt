@@ -27,7 +27,7 @@ cloud.jengu.dbo.maintenance.ReferenceClosure                             NOT REA
 cloud.jengu.dbo.promises.DboAreas                                        reached by the catalogue projection, which is build tooling rather than anything a tenant runs
 cloud.jengu.dbo.promises.DboStories                                      reached by the catalogue projection, which is build tooling rather than anything a tenant runs
 cloud.jengu.dbo.promises.Proving                                         the annotation a test cites a promise with — read by the projection, never by the runtime
-cloud.jengu.dbo.runner.ProvingLane                                       REASON MISSING
+cloud.jengu.dbo.runner.ProvingLane                                       an external consumer — implementors prove their own step services with it, which is the whole of what it is for; the driver-probe bundle names it in-tree once the whiteboard proof lands
 cloud.jengu.dbo.stream.StreamLane                                        NOT REACHED — the third lane carrier; nothing constructs it, so a fleet on the substrate has no door
 cloud.jengu.dbo.subscriptions.RestHookTransport                          NOT REACHED — delivery for an engine nothing mounts
 cloud.jengu.dbo.subscriptions.SubscriptionEngine                         NOT REACHED — four eventing promises read PROVEN and no tenant has ever delivered a notification
