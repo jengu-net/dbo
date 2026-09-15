@@ -111,13 +111,15 @@ public final class StreamLane extends WireLane implements AutoCloseable {
             ask.put("id", id);
             ask.put("participant", participant);
             ask.put("verb", verb.path());
-            Object parsed = RecordWire.read(body);
-            ask.put("body", parsed);
-            // Signed as it travels: id, verb and the body's own rendering, so
-            // the door can check that what arrived is what was asked.
-            String signed = id + "\n" + verb.path() + "\n" + RecordWire.write(parsed);
+            // Parsed to refuse a malformed body here rather than at the far
+            // end, and then discarded: what travels is the text itself.
+            RecordWire.read(body);
+            ask.put("body", new RecordWire.Raw(body));
+            // Signed over the body's own bytes, which are the bytes that
+            // travel — and spelled by StreamAsk, so the door is not a second
+            // implementation of the same sentence.
             ask.put("signature", cloud.jengu.dbo.core.api.seal.SigningKey.sign(
-                    signed.getBytes(java.nio.charset.StandardCharsets.UTF_8), signing));
+                    StreamAsk.signedOver(id, verb.path(), body), signing));
             String door = door();
             for (int patience = 0; door == null && patience < 20; patience++) {
                 // A generation hands over to the next in a moment nobody can

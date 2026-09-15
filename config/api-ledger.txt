@@ -3020,6 +3020,9 @@ cloud.jengu.dbo.runner.http.WireLane.Transport                         post(clou
 cloud.jengu.dbo.scim.ScimHandler                                       class
 cloud.jengu.dbo.scim.ScimHandler                                       handle(HttpExchange):void
 cloud.jengu.dbo.scim.ScimHandler                                       new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,String,String)
+cloud.jengu.dbo.stream.StreamAsk                                       bytesOf(Object):String
+cloud.jengu.dbo.stream.StreamAsk                                       class
+cloud.jengu.dbo.stream.StreamAsk                                       signedOver(Object,Object,String):byte[]
 cloud.jengu.dbo.stream.StreamDoor                                      class
 cloud.jengu.dbo.stream.StreamDoor                                      close():void
 cloud.jengu.dbo.stream.StreamDoor                                      new(DataSource,String,cloud.jengu.dbo.runner.http.LaneHandler.SignedGrants,cloud.jengu.dbo.runner.http.LaneHandler.Lanes)

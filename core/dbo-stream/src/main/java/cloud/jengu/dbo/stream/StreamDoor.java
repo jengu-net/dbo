@@ -131,7 +131,9 @@ public final class StreamDoor implements AutoCloseable {
                 if (message.isEmpty()) {
                     continue;
                 }
-                Map<String, Object> ask = asMap(RecordWire.read(message.get()));
+                // The body is kept as the text it arrived as, because that
+                // is what its signature is over.
+                Map<String, Object> ask = asMap(RecordWire.read(message.get(), "body"));
                 String id = String.valueOf(ask.get("id"));
                 // The verb itself runs as a step: a workflow replayed after a
                 // crash must not claim twice for one ask, and a step's result
@@ -165,15 +167,35 @@ public final class StreamDoor implements AutoCloseable {
         }
         LaneVerbService.Answer answer;
         try {
-            // What was signed: the ask's id, verb and body exactly as they
-            // travelled, so a body altered on the plane fails as a forgery.
-            String signed = ask.get("id") + "\n" + ask.get("verb") + "\n"
-                    + RecordWire.write(ask.get("body"));
-            LaneHandler.Access access = grants.of(
-                    ask.get("participant") == null ? null : String.valueOf(ask.get("participant")),
-                    signed.getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                    ask.get("signature") == null ? null : String.valueOf(ask.get("signature")));
-            answer = service.serve(access, verb.get(), ask.get("body"));
+            // What was signed: the ask's id, verb and the body's own bytes,
+            // exactly as they travelled — so a body altered on the plane
+            // fails as a forgery, and a signature does not depend on how
+            // this store renders JSON.
+            String bytes = StreamAsk.bytesOf(ask.get("body"));
+            Object body = RecordWire.read(bytes);
+            String participant = ask.get("participant") == null
+                    ? null : String.valueOf(ask.get("participant"));
+            String signature = ask.get("signature") == null
+                    ? null : String.valueOf(ask.get("signature"));
+            LaneHandler.Access access =
+                    grants.of(participant,
+                    StreamAsk.signedOver(ask.get("id"), ask.get("verb"), bytes),
+                    signature);
+            // A sender from before the bytes were signed signed the
+            // rendering instead. Its rendering IS what sits in the message,
+            // so the first attempt usually agrees — but where the body's own
+            // text is not what this renderer would produce, the older
+            // spelling is tried before the ask is called a forgery. Only on
+            // 401: a refusal about scope is not about which bytes were
+            // signed, and retrying it would say the wrong thing twice.
+            String rendered = RecordWire.write(body);
+            if (access instanceof LaneHandler.Denied denied && denied.status() == 401
+                    && !rendered.equals(bytes)) {
+                access = grants.of(participant,
+                        StreamAsk.signedOver(ask.get("id"), ask.get("verb"), rendered),
+                        signature);
+            }
+            answer = service.serve(access, verb.get(), body);
         } catch (RuntimeException failed) {
             envelope.put("status", 500);
             envelope.put(LaneVerbs.REFUSED, Boolean.TRUE);
