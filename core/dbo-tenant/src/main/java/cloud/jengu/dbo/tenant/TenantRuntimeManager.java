@@ -97,7 +97,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
              * every tenant, so every tenant has one; what a tenant may not
              * have is the door, which needs an authority to say who is asking.
              */
-            cloud.jengu.dbo.sync.Lanes replication) {}
+            cloud.jengu.dbo.sync.Lanes replication,
+
+            /**
+             * Binary content this tenant holds, whole.
+             *
+             * <p>On the runtime rather than reached for, and pointed at this
+             * tenant's own database, which is the entire reason erasure gets
+             * to it: dropping the tenant drops what the tenant held. A blob
+             * store built somewhere else would be a second place erasure has
+             * to remember, and a place nobody remembers is a place that keeps
+             * somebody's recording after they asked for it to be gone.
+             */
+            cloud.jengu.dbo.core.api.BlobStore blobs) {}
 
     /**
      * A face root gets its face from an image, or reads the packages and
@@ -952,7 +964,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // answers about the new one from here.
             runtimes.put(declared.code(), new TenantRuntime(declared, serving.engine(),
                     serving.store(), serving.feed(), serving.definitionsFeed(),
-                    serving.endpoint(), serving.grain(), serving.replication()));
+                    serving.endpoint(), serving.grain(), serving.replication(),
+                    serving.blobs()));
             redeclared.remove(declared.code());
             LOG.info("tenant {} took a change where it stands: {}",
                     declared.code(), change.says());
@@ -1488,7 +1501,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
                         terminology, "/t/" + spec.code() + "/fhir", guard), spec),
                         version.face(), engine),
-                terminology, replication);
+                terminology, replication,
+                new cloud.jengu.dbo.postgres.PgBlobStore(db.dataSource()));
         // Staged, not published: what is mounted has to be reachable so a
         // bring-up that throws can be taken back down, and a runtime here is
         // nobody's upstream — a dependent that resolved one mid-wire would

@@ -1573,7 +1573,24 @@ public enum DboPromises implements Promise {
 
     // ── OPS — migrated from hand-written prose (2026-08-27) ──
 
-    /** TODO: prove it in a test. */
+    /**
+     * Binary content a tenant holds lives in that tenant's own database and
+     * comes back as the bytes that were written, so erasure-by-drop takes it
+     * with everything else the tenant held rather than by reaching a second
+     * system that can be forgotten.
+     *
+     * <p>The fallback tier of {@link #OPS_TENANT_BLOB_STORAGE}, and the one
+     * every deployment has. That promise stays PLANNED because its object
+     * store tier is not built; this one is what is kept today, said narrowly
+     * enough to be true.
+     */
+    OPS_TENANT_BLOBS_ARE_TENANT_DATA(
+            "Binary content a tenant holds is kept in that tenant's own database and "
+            + "returned byte for byte, needing no credential and no provisioning of its "
+            + "own; erasure-by-drop removes it with the tenant, because it is in what "
+            + "gets dropped rather than in a second place something has to reach."),
+
+    /** TODO: prove it in a test. The object store tier is not built. */
     OPS_TENANT_BLOB_STORAGE(
             "Binary content lives in per-tenant blob storage provisioned "
             + "credential-blind; erasure-by-drop extends to it; small deployments fall "

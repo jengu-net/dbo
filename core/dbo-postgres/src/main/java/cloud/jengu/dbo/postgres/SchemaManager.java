@@ -50,6 +50,10 @@ public final class SchemaManager {
                 for (String domain : registry.domains()) {
                     createDomainTables(c, domain);
                 }
+                // Beside the tenant's records rather than anywhere else: what
+                // makes erasure reach a blob is that dropping the tenant drops
+                // the database it is in, and that only holds while it is here.
+                PgBlobStore.ensure(c);
                 applyIndexes(c, registry);
             } finally {
                 execute(c, "SELECT pg_advisory_unlock(" + LOCK_KEY + ")");
