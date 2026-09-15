@@ -506,6 +506,22 @@ public enum DboPromises implements Promise {
             + "report is a true-looking record of something that has not happened. A "
             + "participant with durable execution underneath waits for it; a router waits "
             + "for its edge; a wedged one lets the claim lapse and the run reads released."),
+    /**
+     * The type described a decision nobody could make: a record for it, a
+     * resolution rule that honoured it, and nothing that could write one.
+     *
+     * <p>Where it is read is what it can promise. A reader on the resolution
+     * chain alone would have made the console honest and stopped nothing —
+     * work here is pulled rather than dispatched, and the claim path never
+     * consults resolution. So it is read where a claim is taken, which every
+     * automatic claim passes through, and the console reads the same one.
+     */
+    PROC_AUTOMATION_IS_A_DECLARED_SWITCH("Whether a step is automated here is declared "
+            + "configuration on the scope chain, most local winning, and it is read where a "
+            + "claim is taken — so switching it off stops the next automatic claim, leaves "
+            + "work already held alone, and says the same thing to an operator asking who "
+            + "would run the step as it does to the runner asking to take it."),
+
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "
             + "HTTP: work goes out and travel, access and result events come home as they "

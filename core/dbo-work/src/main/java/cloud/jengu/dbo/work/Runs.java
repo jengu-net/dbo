@@ -27,6 +27,7 @@ import java.util.Optional;
 public final class Runs {
 
     private final ObjectStore store;
+    private final Automations automations;
 
     /**
      * The step catalogue, for reporting through declared actions.
@@ -49,6 +50,11 @@ public final class Runs {
     public Runs(ObjectStore store, cloud.jengu.dbo.core.process.Steps steps) {
         this.store = store;
         this.steps = steps;
+        // Built here rather than passed in, for the reason the note above
+        // gives about steps: every claim goes through this primitive, and a
+        // switch read at one caller leaves the others to grow a second copy
+        // of the rule.
+        this.automations = new Automations(store);
     }
 
     /**
@@ -307,15 +313,38 @@ public final class Runs {
      * inside its deadline is refused, including to whoever claimed it. A
      * participant's own bookkeeping must not be the thing that saves it.
      *
+     * <p><b>And this is where automation being switched off takes effect.</b>
+     * Every claim taken here becomes {@link Holder#AUTOMATION}, so this is the
+     * one place that can stop new automatic claims without stopping anything
+     * else. A switch is read rather than a code path consulted: it is declared
+     * configuration, and where it is read decides what it can promise.
+     *
+     * <p>What it cannot do from here is strand somebody. A run already held
+     * carries its holder, its executor and its deadline on the run itself, and
+     * nothing re-resolves a claim once taken — so a switch thrown while a
+     * participant is working changes nothing about the work in its hands.
+     * That is a property of where the check sits rather than a rule anybody
+     * has to remember, which is the only kind worth promising.
+     *
      * @param until when the claim lapses. A dead participant must not hold work
      *              for ever, and nothing but the clock is going to notice.
-     * @return the claimed run, or empty when somebody else holds it
+     * @return the claimed run, or empty when somebody else holds it — or when
+     *         automation is switched off for this step where this executor
+     *         stands, which is the same answer to the same question: not now
      */
     public Optional<Run> claim(Run seen, Executor by, java.time.Instant until) {
         refuseIfAuthoredElsewhere(seen, "claimed");
         requireAdmits(seen, by);
         Run current = byKey(seen.key()).orElse(null);
         if (current == null || current.claimed(java.time.Instant.now())) {
+            return Optional.empty();
+        }
+        if (!automations.automated(current.process(), current.step(), by.scope())) {
+            // Empty rather than a fault: the runner asks on every beat and
+            // "not now" is a true answer to what it asked. Why not now is a
+            // question about configuration, and it is answered where
+            // configuration is read — the console names the scope the switch
+            // was declared at.
             return Optional.empty();
         }
         State claimed = state(current).withAssignment(

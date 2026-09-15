@@ -5,6 +5,7 @@ import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.core.process.Steps;
 import cloud.jengu.dbo.work.Automation;
+import cloud.jengu.dbo.work.Automations;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.ExecutorResolution;
 import cloud.jengu.dbo.work.Introductions;
@@ -203,8 +204,14 @@ final class ProcessView {
                 .map(scopeClass -> StepGrant.of(process, bare)
                         .overridableBy(ScopeClass.valueOf(scopeClass.toUpperCase(Locale.ROOT))))
                 .orElseGet(() -> StepGrant.of(process, bare));
+        // The switches this tenant actually holds, not an empty list. An
+        // operator asking who would run a step is asking what will happen, and
+        // a view that ignored a switch would answer a different question
+        // confidently — while the claim path, which does read them, did
+        // something else.
+        List<Automation> switches = new Automations(store).forStep(process, bare);
         Resolution resolution = new ExecutorResolution(declarations::candidates)
-                .resolve(grant, chain, List.<Automation>of(), Work.of(process, bare, null));
+                .resolve(grant, chain, switches, Work.of(process, bare, null));
         System.out.println("  would run here: " + (resolution.executor() == null
                 ? "nobody — " + resolution.reason() + ", so a person holds it"
                 : resolution.executor().name() + " at "

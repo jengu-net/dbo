@@ -82,6 +82,7 @@ public final class WorkModel {
                         Set.of(KEY_SYSTEM), handling(), extractor(), List.of())));
         all.addAll(ExecutorModel.registrations());
         all.addAll(IntroductionModel.registrations());
+        all.addAll(AutomationModel.registrations());
         return List.copyOf(all);
     }
 

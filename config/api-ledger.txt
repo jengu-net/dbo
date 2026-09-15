@@ -2532,6 +2532,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PRM_PROOF
 cloud.jengu.dbo.promises.DboPromises                                   PRM_REGISTERED_AT_COMPILE_TIME:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_STATUS_IS_DERIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUDIT_REPLICATES_AS_RECORDED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_A_DECLARED_SWITCH:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS:cloud.jengu.dbo.promises.DboPromises
@@ -3710,6 +3711,17 @@ cloud.jengu.dbo.work.Automation                                        record
 cloud.jengu.dbo.work.Automation                                        scope():cloud.jengu.dbo.work.Scope
 cloud.jengu.dbo.work.Automation                                        step():String
 cloud.jengu.dbo.work.Automation                                        toString():String
+cloud.jengu.dbo.work.AutomationModel                                   KEY_SYSTEM:String
+cloud.jengu.dbo.work.AutomationModel                                   TYPE:String
+cloud.jengu.dbo.work.AutomationModel                                   class
+cloud.jengu.dbo.work.AutomationModel                                   key(String):cloud.jengu.dbo.core.api.Identifier
+cloud.jengu.dbo.work.AutomationModel                                   keyFor(String,String,cloud.jengu.dbo.work.Scope):String
+cloud.jengu.dbo.work.AutomationModel                                   registrations():List
+cloud.jengu.dbo.work.Automations                                       automated(String,String,cloud.jengu.dbo.work.Scope):boolean
+cloud.jengu.dbo.work.Automations                                       class
+cloud.jengu.dbo.work.Automations                                       declare(cloud.jengu.dbo.work.Automation):void
+cloud.jengu.dbo.work.Automations                                       forStep(String,String):List
+cloud.jengu.dbo.work.Automations                                       new(cloud.jengu.dbo.core.api.ObjectStore)
 cloud.jengu.dbo.work.Declarations                                      all():List
 cloud.jengu.dbo.work.Declarations                                      candidates():List
 cloud.jengu.dbo.work.Declarations                                      class
