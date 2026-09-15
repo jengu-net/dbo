@@ -1594,6 +1594,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     reference.substring(slash + 1));
                         }));
             }
+            // Content held whole, over the wire. The store keeps it and an
+            // archive carries it; without a door none of that is reachable
+            // from outside this process, which is a capability built and
+            // unreachable rather than one that is missing.
+            if (guard != null) {
+                String blobPath = "/t/" + spec.code() + "/blob";
+                sharedServer.createContext(blobPath,
+                        new BlobHandler(guard, runtime.blobs(), blobPath));
+            }
             // Identification. Beside erasure rather than inside maintenance,
             // and for the same reason erasure is: identifying somebody is an
             // act performed for a person, not something done to the store.

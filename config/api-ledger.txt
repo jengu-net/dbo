@@ -3266,6 +3266,10 @@ cloud.jengu.dbo.tenant.AuditedImportLedger                             CODE:Stri
 cloud.jengu.dbo.tenant.AuditedImportLedger                             accepted(cloud.jengu.dbo.maintenance.ImportLedger.Accepted):void
 cloud.jengu.dbo.tenant.AuditedImportLedger                             class
 cloud.jengu.dbo.tenant.AuditedImportLedger                             new(cloud.jengu.dbo.policy.PolicyObjectStore)
+cloud.jengu.dbo.tenant.BlobHandler                                     RESOURCE:String
+cloud.jengu.dbo.tenant.BlobHandler                                     class
+cloud.jengu.dbo.tenant.BlobHandler                                     handle(HttpExchange):void
+cloud.jengu.dbo.tenant.BlobHandler                                     new(cloud.jengu.dbo.rest.RequestAuthenticator,cloud.jengu.dbo.core.api.BlobStore,String)
 cloud.jengu.dbo.tenant.ConfigurationHandler                            SCOPE:String
 cloud.jengu.dbo.tenant.ConfigurationHandler                            class
 cloud.jengu.dbo.tenant.ConfigurationHandler                            handle(HttpExchange):void
