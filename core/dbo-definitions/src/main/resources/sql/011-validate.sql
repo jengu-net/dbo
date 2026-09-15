@@ -18,6 +18,7 @@ BEGIN
   RETURN QUERY
     SELECT * FROM dbo.cardinality_in(once, profile)
     UNION ALL SELECT * FROM dbo.value_in(once, profile)
+    UNION ALL SELECT * FROM dbo.primitive_in(once, profile)
     UNION ALL SELECT * FROM dbo.binding_in(once, profile)
     UNION ALL SELECT * FROM dbo.reference_in(once, profile)
     UNION ALL SELECT * FROM dbo.invariant_in(once, profile);

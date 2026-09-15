@@ -31,3 +31,84 @@ RETURNS TABLE (severity text, path text, key text, detail text)
 LANGUAGE sql STABLE AS $$
   SELECT * FROM dbo.value_in(dbo.walked(doc, profile), profile)
 $$;
+
+-- What a primitive value must LOOK like.
+--
+-- The checks above answer what an element must equal or contain, which is a
+-- question about a value that is already the right kind of thing. Nothing
+-- asked whether it was: a date that is not a date and a string standing where
+-- a boolean belongs both passed, and were refused only by the toolchain — two
+-- of the three clinical divergences measured against a face.
+--
+-- Conservative by construction: an element is flagged only when NO type it
+-- declares can admit what is there. A choice element keeps its freedom that
+-- way — `deceased[x]` admits a boolean or a dateTime, so a string is judged
+-- against dateTime alone, because that is the only one of the two a string
+-- could be. And a type this does not recognise admits everything, so a
+-- complex type, a Reference or a profile's own datatype is never refused here
+-- by a check that does not understand it.
+CREATE OR REPLACE FUNCTION dbo.admits(code text, kind text, v jsonb)
+RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE code
+    WHEN 'boolean' THEN kind = 'boolean'
+    WHEN 'integer' THEN kind = 'number' AND (v #>> '{}') ~ '^-?[0-9]+$'
+    WHEN 'positiveInt' THEN kind = 'number' AND (v #>> '{}') ~ '^[1-9][0-9]*$'
+    WHEN 'unsignedInt' THEN kind = 'number' AND (v #>> '{}') ~ '^[0-9]+$'
+    WHEN 'integer64' THEN kind = 'number' AND (v #>> '{}') ~ '^-?[0-9]+$'
+    WHEN 'decimal' THEN kind = 'number'
+    -- The specification's own lexical forms, which is why they are this
+    -- shape: a year may not be 0000, and a month or a day is present with
+    -- everything above it or not at all.
+    WHEN 'date' THEN kind = 'string' AND (v #>> '{}') ~
+      '^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)(-(0[1-9]|1[0-2])(-(0[1-9]|[1-2][0-9]|3[0-1]))?)?$'
+    WHEN 'dateTime' THEN kind = 'string' AND (v #>> '{}') ~
+      '^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)(-(0[1-9]|1[0-2])(-(0[1-9]|[1-2][0-9]|3[0-1])(T([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\.[0-9]+)?(Z|[+-]((0[0-9]|1[0-3]):[0-5][0-9]|14:00)))?)?)?$'
+    WHEN 'instant' THEN kind = 'string' AND (v #>> '{}') ~
+      '^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])T([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\.[0-9]+)?(Z|[+-]((0[0-9]|1[0-3]):[0-5][0-9]|14:00))$'
+    WHEN 'time' THEN kind = 'string' AND (v #>> '{}') ~
+      '^([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\.[0-9]+)?$'
+    WHEN 'id' THEN kind = 'string' AND (v #>> '{}') ~ '^[A-Za-z0-9\-\.]{1,64}$'
+    WHEN 'code' THEN kind = 'string' AND (v #>> '{}') ~ '^[^\s]+( [^\s]+)*$'
+    WHEN 'oid' THEN kind = 'string' AND (v #>> '{}') ~ '^urn:oid:[0-2](\.(0|[1-9][0-9]*))+$'
+    WHEN 'uuid' THEN kind = 'string' AND (v #>> '{}') ~
+      '^urn:uuid:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+    WHEN 'string' THEN kind = 'string'
+    WHEN 'markdown' THEN kind = 'string'
+    WHEN 'uri' THEN kind = 'string'
+    WHEN 'url' THEN kind = 'string'
+    WHEN 'canonical' THEN kind = 'string'
+    WHEN 'base64Binary' THEN kind = 'string'
+    WHEN 'xhtml' THEN kind = 'string'
+    -- Not a primitive this knows: it admits whatever is there, so nothing is
+    -- refused by a rule that was never written for it.
+    ELSE true
+  END
+$$;
+
+CREATE OR REPLACE FUNCTION dbo.primitive_in(walked jsonb, profile text)
+RETURNS TABLE (severity text, path text, key text, detail text)
+LANGUAGE sql STABLE AS $$
+  WITH held AS (
+    SELECT e.path, e.types, at.value -> 'i' AS v
+      FROM jsonb_array_elements(walked) AS at
+      JOIN definitions.definition_element e
+        ON e.canonical = profile AND e.element_id = at.value ->> 'e'
+       AND e.unenforceable IS NULL
+     WHERE e.types IS NOT NULL AND jsonb_array_length(e.types) > 0
+  )
+  SELECT 'error', h.path, 'primitive',
+         format('%s holds %s, which is not a %s', h.path, h.v,
+                (SELECT string_agg(t ->> 'code', ' or ')
+                   FROM jsonb_array_elements(h.types) AS t))
+    FROM held h
+   WHERE jsonb_typeof(h.v) NOT IN ('null', 'object', 'array')
+     AND NOT EXISTS (
+           SELECT 1 FROM jsonb_array_elements(h.types) AS t
+            WHERE dbo.admits(t ->> 'code', jsonb_typeof(h.v), h.v))
+$$;
+
+CREATE OR REPLACE FUNCTION dbo.primitive_issues(doc jsonb, profile text)
+RETURNS TABLE (severity text, path text, key text, detail text)
+LANGUAGE sql STABLE AS $$
+  SELECT * FROM dbo.primitive_in(dbo.walked(doc, profile), profile)
+$$;
