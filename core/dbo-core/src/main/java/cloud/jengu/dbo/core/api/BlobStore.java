@@ -31,7 +31,12 @@ public interface BlobStore {
      * @param media    the media type as the writer stated it, never inferred
      * @param content  the bytes, exactly as they were written
      */
-    record Blob(String key, String media, byte[] content) {
+    record Blob(String key, String media, byte[] content, String person) {
+
+        public Blob(String key, String media, byte[] content) {
+            this(key, media, content, null);
+        }
+
 
         public int size() {
             return content.length;
@@ -46,6 +51,54 @@ public interface BlobStore {
      * eventually choose the same name for different content.
      */
     String put(byte[] content, String media);
+
+    /**
+     * The same, for content that is about somebody.
+     *
+     * <p>The writer names the person; nothing here reads the bytes. A store
+     * that can seal keeps it under that person's key, so destroying the key
+     * destroys the content — crypto-shredding reaching a recording for the
+     * same structural reason dropping a tenant reaches its rows, rather than
+     * because something remembered to go and delete it.
+     *
+     * <p>Refused by a store that cannot seal, and deliberately not accepted
+     * quietly: a caller who named a subject believes the content is protected,
+     * and storing it in the clear while they believe that is worse than
+     * telling them no.
+     */
+    default String put(byte[] content, String media, String person) {
+        throw new UnsupportedOperationException("this store cannot seal content to a person: "
+                + "it holds no key for one, so content named for somebody would be kept in "
+                + "the clear while whoever wrote it believed otherwise");
+    }
+
+    /** Whether content named for a person is sealed to them here. */
+    default boolean seals() {
+        return false;
+    }
+
+    /**
+     * Content that was here and whose person has been erased.
+     *
+     * <p>Distinct from nothing being found, because they are different facts
+     * and only one of them is an answer: an auditor asking what became of a
+     * recording is told it was destroyed with its subject, rather than that
+     * this store has never heard of it.
+     */
+    class ErasedException extends RuntimeException {
+
+        private final String key;
+
+        public ErasedException(String key) {
+            super("the person this content was about has been erased, so it cannot be read: "
+                    + key);
+            this.key = key;
+        }
+
+        public String key() {
+            return key;
+        }
+    }
 
     /**
      * Puts content back under the key it already had.

@@ -87,7 +87,7 @@ class WhatTheLoadedSpecificationCostsIT {
             + "a second tenant on the same face pays for the specification again")
     @Proving(DboPromises.OPS_NUMBERS_LEAVE_THE_NODE)
     void theNumbersAreRecorded() throws Exception {
-        long empty = heapInUse();
+        long before = heapInUse();
 
         serve("malu-uks");
         long oneTenant = heapInUse();
@@ -110,8 +110,13 @@ class WhatTheLoadedSpecificationCostsIT {
         long twoTenants = heapInUse();
 
         Map<String, Long> now = new LinkedHashMap<>();
-        now.put("aProcessServingNobody", mb(empty));
-        now.put("oneServedTenantBeforeAnyWrite", mb(oneTenant - empty));
+        // Deltas only, and the absolute floor deliberately not among them.
+        // This runs inside a suite that shares one JVM, so what is resident
+        // when it starts is whatever ran before it — measured alone that read
+        // 23 MB and inside the suite 1.3 GB, which is a fact about the suite
+        // and not about a tenant. A difference across a forced collection is
+        // the same either way, which is why these are the numbers kept.
+        now.put("oneServedTenantBeforeAnyWrite", mb(oneTenant - before));
         now.put("theFirstValidatedWrite", mb(afterAWrite - oneTenant));
         now.put("theRestOfTheValidatorPool", mb(afterThePool - afterAWrite));
         now.put("aSecondTenantOnTheSameFace", mb(twoTenants - afterThePool));
@@ -206,8 +211,11 @@ class WhatTheLoadedSpecificationCostsIT {
             # would report more; native memory is not in this at all. It is the
             # quantity a sizing conversation uses and the one that reproduces.
             #
-            # Each line after the first is a DELTA from the line above it, so
-            # they read as what each thing added rather than as running totals.
+            # Every line is a DELTA, measured across a forced collection: what
+            # that thing added, not a running total. There is deliberately no
+            # figure for the process itself — this runs in a suite sharing one
+            # JVM, so what is resident at the start is whatever ran before, and
+            # an absolute there would record the suite rather than the store.
             #
             # These are measured on one process with a two-gigabyte heap, which
             # is not a deployment. What they are for is comparison: a change

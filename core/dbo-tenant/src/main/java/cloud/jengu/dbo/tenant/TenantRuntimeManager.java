@@ -112,6 +112,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
             cloud.jengu.dbo.core.api.BlobStore blobs) {}
 
     /**
+     * This tenant's blob store, sealing where it can.
+     *
+     * <p>A tenant with no vault keeps content plainly and its door says so —
+     * it refuses content named for a person rather than storing it in the
+     * clear while whoever wrote it believes it is protected.
+     */
+    private cloud.jengu.dbo.core.api.BlobStore blobsFor(String code,
+            cloud.jengu.dbo.core.api.BlobStore plain) {
+        cloud.jengu.dbo.pdi.PersonVault vault = vaults.get(code);
+        return vault == null ? plain
+                : new cloud.jengu.dbo.pdi.SealingBlobStore(plain, vault);
+    }
+
+    /**
      * A face root gets its face from an image, or reads the packages and
      * leaves one behind.
      *
@@ -1503,7 +1517,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         terminology, "/t/" + spec.code() + "/fhir", guard), spec),
                         version.face(), engine),
                 terminology, replication,
-                new cloud.jengu.dbo.postgres.PgBlobStore(db.dataSource()));
+                // Sealed where there is a vault to seal with. A tenant behind
+                // the membrane holds its people's keys, and content named for
+                // one of them is kept under that key — so erasing the person
+                // destroys the recording, rather than leaving it readable
+                // beside a receipt that says otherwise.
+                blobsFor(spec.code(), new cloud.jengu.dbo.postgres.PgBlobStore(
+                        db.dataSource())));
         // Staged, not published: what is mounted has to be reachable so a
         // bring-up that throws can be taken back down, and a runtime here is
         // nobody's upstream — a dependent that resolved one mid-wire would

@@ -49,13 +49,23 @@ public final class PgBlobStore implements BlobStore {
                   key         uuid PRIMARY KEY,
                   media       text NOT NULL,
                   content     bytea NOT NULL,
+                  person      uuid,
                   written_at  timestamptz NOT NULL DEFAULT now())""")) {
             ps.execute();
         }
     }
 
     @Override
+    public String put(byte[] content, String media, String person) {
+        return kept(content, media, person);
+    }
+
+    @Override
     public String put(byte[] content, String media) {
+        return kept(content, media, null);
+    }
+
+    private String kept(byte[] content, String media, String person) {
         if (content == null) {
             throw new IllegalArgumentException("a blob is bytes; there are none here");
         }
@@ -64,11 +74,17 @@ public final class PgBlobStore implements BlobStore {
         String key = UuidV7.newId();
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO state.blob (key, media, content) VALUES (?::uuid, ?, ?)")) {
+                     "INSERT INTO state.blob (key, media, content, person)"
+                             + " VALUES (?::uuid, ?, ?, ?::uuid)")) {
             ps.setString(1, key);
             ps.setString(2, media == null || media.isBlank()
                     ? "application/octet-stream" : media);
             ps.setBytes(3, content);
+            // Whose it is, and nothing about what it is: this store keeps the
+            // bytes it was handed, sealed or not, and the name of the person
+            // they are about so whoever CAN unseal them knows which key to
+            // ask for.
+            ps.setString(4, person);
             ps.executeUpdate();
             return key;
         } catch (SQLException e) {
@@ -109,11 +125,13 @@ public final class PgBlobStore implements BlobStore {
         }
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT media, content FROM state.blob WHERE key = ?::uuid")) {
+                     "SELECT media, content, person::text FROM state.blob"
+                             + " WHERE key = ?::uuid")) {
             ps.setString(1, key);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next()
-                        ? Optional.of(new Blob(key, rs.getString(1), rs.getBytes(2)))
+                        ? Optional.of(new Blob(key, rs.getString(1), rs.getBytes(2),
+                                rs.getString(3)))
                         : Optional.empty();
             }
         } catch (SQLException e) {

@@ -160,6 +160,33 @@ class ContentHeldWholeIsReachableOverTheWireIT {
                 "content was written with no credential at all");
     }
 
+    /**
+     * This tenant is not behind the membrane, so it holds nobody's key. A
+     * writer naming a person believes their content is protected, and keeping
+     * it in the clear while they believe that is the failure the sealing
+     * exists to prevent — one layer along.
+     */
+    @Test
+    @DisplayName("a tenant that holds no keys refuses content named for a person, rather than "
+            + "keeping it in the clear")
+    @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
+    void whatCannotBeSealedIsNotQuietlyKept() throws Exception {
+        HttpRequest.Builder named = HttpRequest.newBuilder(
+                        URI.create(base() + "/t/" + CLINIC + "/blob?person="
+                                + "01920000-0000-7000-8000-000000000000"))
+                .header("Authorization", "Bearer " + writer)
+                .header("Content-Type", "audio/ogg")
+                .POST(HttpRequest.BodyPublishers.ofByteArray(new byte[] {1, 2, 3}));
+
+        HttpResponse<String> refused = HTTP.send(named.build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(400, refused.statusCode(),
+                "content named for a person was accepted by a tenant with no keys, so it is "
+                        + "stored in the clear while whoever wrote it believes otherwise: "
+                        + refused.body());
+        assertTrue(refused.body().contains("seal"), refused.body());
+    }
+
     private static String base() {
         return "http://127.0.0.1:" + manager.port();
     }

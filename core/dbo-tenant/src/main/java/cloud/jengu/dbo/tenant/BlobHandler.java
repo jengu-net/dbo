@@ -103,7 +103,19 @@ public final class BlobHandler implements HttpHandler {
             return;
         }
         String media = exchange.getRequestHeaders().getFirst("Content-Type");
-        String key = blobs.put(content, media);
+        // Whose the content is, where the writer says so. Named rather than
+        // guessed: this store cannot read opaque bytes and so cannot judge
+        // whether they are about somebody, and it does not have to — the
+        // writer knows, and says.
+        String person = subjectOf(exchange);
+        if (person != null && !blobs.seals()) {
+            fail(exchange, 400, "this tenant holds no keys, so content cannot be sealed to a "
+                    + "person here: put it without a subject, or serve it behind the membrane");
+            return;
+        }
+        String key = person == null
+                ? blobs.put(content, media)
+                : blobs.put(content, media, person);
         exchange.getResponseHeaders().set("Location", base + "/" + key);
         respond(exchange, 201, RecordWire.write(Map.of("key", key, "size", content.length))
                 .getBytes(StandardCharsets.UTF_8), "application/json");
@@ -114,7 +126,17 @@ public final class BlobHandler implements HttpHandler {
             fail(exchange, 404, "name the content to read: " + base + "/{key}");
             return;
         }
-        Optional<BlobStore.Blob> held = blobs.get(key);
+        Optional<BlobStore.Blob> held;
+        try {
+            held = blobs.get(key);
+        } catch (BlobStore.ErasedException erased) {
+            // 410 rather than 404: it was here, and it is deliberately gone.
+            // An auditor asking what became of a recording is owed the
+            // difference between destroyed and never known.
+            fail(exchange, 410, "the person this content was about has been erased, so it "
+                    + "cannot be read");
+            return;
+        }
         if (held.isEmpty()) {
             fail(exchange, 404, "nothing is held under that key");
             return;
@@ -136,6 +158,21 @@ public final class BlobHandler implements HttpHandler {
         } else {
             fail(exchange, 404, "nothing was held under that key");
         }
+    }
+
+    /** The person a writer says the content is about, from {@code ?person=}. */
+    private static String subjectOf(HttpExchange exchange) {
+        String query = exchange.getRequestURI().getQuery();
+        if (query == null) {
+            return null;
+        }
+        for (String part : query.split("&")) {
+            if (part.startsWith("person=")) {
+                String said = part.substring("person=".length()).trim();
+                return said.isEmpty() ? null : said;
+            }
+        }
+        return null;
     }
 
     /** The path segment after the door, or null when the ask is the door itself. */
