@@ -267,6 +267,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, String> identityContexts = new ConcurrentHashMap<>();
     private final Map<String, String> fleetContexts = new ConcurrentHashMap<>();
     private final Map<String, String> erasureContexts = new ConcurrentHashMap<>();
+    private final Map<String, String> blobContexts = new ConcurrentHashMap<>();
     private final Map<String, String> scimContexts = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.pdi.PersonVault> vaults = new ConcurrentHashMap<>();
     private volatile cloud.jengu.dbo.auth.IdentityHub identityHub;
@@ -1600,6 +1601,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // unreachable rather than one that is missing.
             if (guard != null) {
                 String blobPath = "/t/" + spec.code() + "/blob";
+                // Remembered like every other door, because a tenant that is
+                // rebuilt comes back through here: a path left registered
+                // refuses the second registration and the whole bring-up
+                // fails, having served perfectly the first time.
+                blobContexts.put(spec.code(), blobPath);
                 sharedServer.createContext(blobPath,
                         new BlobHandler(guard, runtime.blobs(), blobPath));
             }
@@ -2693,6 +2699,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String configurationPath = configurationContexts.remove(code);
         if (configurationPath != null) {
             sharedServer.removeContext(configurationPath);
+        }
+        String blobPath = blobContexts.remove(code);
+        if (blobPath != null) {
+            sharedServer.removeContext(blobPath);
         }
         String workPath = workContexts.remove(code);
         if (workPath != null) {
