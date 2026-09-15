@@ -9,9 +9,13 @@ hands its own content over as one recorded pass. What is left is two things
 step 10 deliberately did not build: the automation switch, and a preview that
 classifies without applying. The topic stays open on the consumer half.
 
-**Issues** — [#188](https://github.com/jengu-net/dbo/issues/188) (the tenant
-queue, which is the symptom this document reframes). The consumer half has
-its own issue in the consuming platform's tracker.
+**Issues** — open: [#189](https://github.com/jengu-net/dbo/issues/189) (the
+automation switch) and [#190](https://github.com/jengu-net/dbo/issues/190) (a
+preview that classifies without applying) — the two things step 10
+deliberately did not build, described under *What is left*. Closed:
+[#188](https://github.com/jengu-net/dbo/issues/188) (the tenant queue, which
+is the symptom this document reframes). The consumer half has its own issue
+in the consuming platform's tracker.
 
 **Concepts** —
 [processes and work](../arc42-008-crosscutting/processes-and-work/README.md) ·

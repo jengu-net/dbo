@@ -1,17 +1,23 @@
 # Eventing: built, closed as done, and reachable from nothing
 
 **Status** — the subscription engine is complete, tested, installed as a
-bundle, and constructed only by tests. Four EVT promises read `PROVEN`. No
-tenant has ever delivered a notification.
+bundle, and constructed only by tests. No tenant has ever delivered a
+notification. **The catalogue now says so**: of the four EVT promises, three
+read `PLANNED` and say it in their own words, and only the outbox — which is
+genuinely reachable — still reads `PROVEN`. So the status page is no longer
+the thing to fix, and step 2 is the next one that changes what the store can
+do.
 
-**Issues** — open: [#184](https://github.com/jengu-net/dbo/issues/184) (say
-what is true while it is untrue — step 1). Built and closed:
+**Issues** — none open. Built and closed:
 [#8](https://github.com/jengu-net/dbo/issues/8) (durable rest-hook delivery),
 [#15](https://github.com/jengu-net/dbo/issues/15) (topic subscriptions,
-R5-native and R4-backported). Related:
+R5-native and R4-backported),
+[#184](https://github.com/jengu-net/dbo/issues/184) (say what is true while
+it is untrue — step 1, closed 2026-09-13). Related:
 [#183](https://github.com/jengu-net/dbo/issues/183), the ratchet that would
-have caught this. Steps 2 onward are the groomable list below and are
-deliberately unfiled until step 1 lands.
+have caught this, still open. Steps 2 onward are the groomable list below and
+are unfiled: nothing is blocked on filing them, and this document is what
+carries them until somebody picks one up.
 
 **Concepts** —
 [change, and who is listening](../arc42-008-crosscutting/change-and-who-is-listening/README.md) ·
@@ -53,14 +59,14 @@ meantime.
 
 | # | step | status |
 |---|---|---|
-| 1 | **Say what is true while it is untrue** ([#184](https://github.com/jengu-net/dbo/issues/184)) — the unreachable EVT promises carry a `TODO: prove it in a test` and the status page stops describing eventing as complete. Cheap, and everything below is decided while believing the status page. | NEXT |
-| 2 | **Mount dispatch as a step service** — the runner tracks `StepService` through an OSGi whiteboard, so a bundle contributes one the way it contributes anything else. No new wiring in the composition root, which is where the gap is. | READY, needs 1 |
+| 1 | **Say what is true while it is untrue** ([#184](https://github.com/jengu-net/dbo/issues/184)) — the unreachable EVT promises carry a `TODO: prove it in a test` and the status page stops describing eventing as complete. Cheap, and everything below is decided while believing the status page. | **DONE** 2026-09-13 — three EVT promises read `PLANNED`; since 2026-09-15 they also say it in their own prose rather than only in a status column |
+| 2 | **Mount dispatch as a step service** — the runner tracks `StepService` through an OSGi whiteboard, so a bundle contributes one the way it contributes anything else. No new wiring in the composition root, which is where the gap is. | NEXT |
 | 3 | **Model dispatch as a sweep** — one run per pass over the feed, checkpointing its position, with per-event durability kept inside the step. A reconciler modelled as a pipeline never ends. | READY, needs 2 |
 | 4 | **Make id-only the default notification** — transport becomes routing, and the disclosing read goes back through the door that authorises, audits and decrypts. | READY, needs 0 |
 | 5 | **Match against the envelope, not the database** — carry the envelope on the feed item so the common criteria are an in-process predicate. Today matching is one query per event per active subscription. | LATER — the throughput item, worth doing when a tenant has enough subscriptions to feel it |
 | 6 | **Blind patching on the stream** — a patch whose paths are all non-identifying is applicable with no key, decidable from tenant configuration. | LATER — its own topic if it grows |
 
-Steps 1 and 4 need nothing from the others. The critical path is 1, 2, 3.
+Step 4 needs nothing from the others. The critical path is now **2 → 3**.
 
 ## Decisions
 

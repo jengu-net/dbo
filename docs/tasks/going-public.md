@@ -6,7 +6,7 @@
 
 ## What this is
 
-The repository is private, and everything about how it builds and ships was
+The repository was private, and everything about how it built and shipped was
 shaped by that. The suite ran on two self-hosted runners because hosted
 minutes are a monthly budget for a private repository under a free-tier
 organisation. Jars published to `repo.jengu.cloud`, images to a registry on
