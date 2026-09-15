@@ -252,9 +252,19 @@ public enum DboPromises implements Promise {
             + "credential bounded to steps may work only as itself."),
 
     // ── PROC continued — migrated from hand-written prose (2026-08-27).
-    // Six carry no verified citation yet; each says so and names what a
-    // proof would have to show, per the pilot's own rule that unstated
-    // ground is a gap, not a silent PLANNED.
+    //
+    // What stood behind these was once summarised here, as a count of how
+    // many carried no citation yet. It rotted, and it cost somebody: a
+    // consumer checking what backed a promise before building on it read the
+    // count, believed it, and filed against a gap that had been closed for
+    // weeks. The count was true the day it was written and nothing made it
+    // move.
+    //
+    // So there is no count here now. Status is DERIVED from citations and
+    // read from the catalogue or the report; a number in a comment is a
+    // second copy of it that no test can fail. A promise nothing proves says
+    // so in its own first word, which is the only place that cannot drift
+    // from the thing it describes.
 
     PROC_STEP_SERVICE_EMBEDDABLE("One embeddable runner registers step services and needs "
             + "only the participation lane — no orchestrator, no transport, no access to "

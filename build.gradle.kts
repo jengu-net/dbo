@@ -26,6 +26,7 @@ val moduleBlurbs = mapOf(
     "dbo-tenant-k8s" to "In-cluster provisioning seam backed by operator-written Kubernetes Secrets.",
     "dbo-operator" to "Kubernetes operator reconciling TenantRegistration resources.",
     "dbo-test-model" to "A non-FHIR model used to prove the engine holds no FHIR knowledge.",
+    "dbo-step-probe" to "A driver bundle that contributes a step service, to prove the runner's whiteboard wires one.",
     "promise" to "Requirements as code: promises declared once, cited everywhere, composed across products.",
     "dbo-promises" to "The store's own promise catalogue: SHAPE and PDI as the pilot.",
     "dbo-runner" to "The embeddable step runner: register step services, work arrives, outcomes and vitals go back.",

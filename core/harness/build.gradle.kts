@@ -310,6 +310,16 @@ tasks.withType<Test>().configureEach {
             project(":core:$module").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
         )
     }
+    // The driver bundle for the whiteboard proof. Staged like any other
+    // bundle the container tests install, and deliberately NOT in the runtime
+    // module set: nothing in the distribution imports it, and a probe that
+    // shipped would be a step service registered on every deployment.
+    dependsOn(":core:dbo-step-probe:jar")
+    systemProperty(
+        "dbo.step.probe.jar",
+        project(":core:dbo-step-probe").tasks.named<Jar>("jar").get().archiveFile.get()
+            .asFile.absolutePath,
+    )
     dependsOn(":core:dbo-core:jar", ":core:dbo-postgres:jar", ":core:dbo-fhir-r4:jar")
     systemProperty(
         "dbo.core.jar",
