@@ -858,6 +858,23 @@ public enum DboPromises implements Promise {
             "Planned — Tenants on the shared tier are isolated by tenant-keyed schemas and "
             + "row-level security with the same API surface as the dedicated tier."),
     /** TODO: prove it in a test. */
+    /**
+     * The classification ran inside the pass that applied what it classified,
+     * so the only way to learn a change was a rebuild was to cause one — and
+     * the only way to learn it was refused was to read the refusal afterwards
+     * as the record of an attempt. Worst exactly where somebody most needed
+     * it before committing.
+     *
+     * <p>A named path rather than a parameter, because a parameter that
+     * switches applying off is one whose typo applies, and the caller who
+     * misspells it is the one who was trying not to cause a change.
+     */
+    TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING("What a declaration would do to the "
+            + "tenants it names is answerable without doing it — hot, rebuilt in place, or "
+            + "refused with what it would need — on the door that applies it and under the "
+            + "same grant; nothing is applied and nothing is recorded, because a preview "
+            + "does not happen to the tenant."),
+
     TEN_FAIRNESS_QUOTAS(
             "Planned — Per-tenant quotas and rate limits are first-class configuration, enforced "
             + "at the serving pod."),

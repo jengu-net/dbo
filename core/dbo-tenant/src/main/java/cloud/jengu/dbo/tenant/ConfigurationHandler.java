@@ -61,12 +61,31 @@ public final class ConfigurationHandler implements HttpHandler {
     /** What a credential must carry to reach this door and nothing else. */
     public static final String SCOPE = cloud.jengu.dbo.auth.Scopes.CONFIGURATION;
 
+    /**
+     * What applying one declaration would do, worked out without doing it.
+     *
+     * <p>The answer a preview gives, and deliberately the same vocabulary the
+     * sweep uses when it notices a redeclaration for real — hot, rewire, cold
+     * — because an operator comparing what they were told with what happened
+     * should not have to translate between two ways of saying it.
+     */
+    public record Classified(String declaration, String kind, java.util.List<String> fields,
+                             String says) {
+
+        public Classified {
+            fields = java.util.List.copyOf(fields);
+        }
+    }
+
     private final TenantAuthority authority;
     private final Supplier<ConfigApplication.Outcome> apply;
     private final java.util.function.BiFunction<String,
             java.util.List<ConfigApplication.Declared>, ConfigApplication.Outcome> applyHere;
     private final java.util.function.Function<cloud.jengu.dbo.sync.ConfigSource.Fetch,
             ConfigApplication.Outcome> applyRead;
+    /** Says what applying would do, and does none of it. Null where nothing holds tenants. */
+    private final java.util.function.Function<java.util.List<ConfigApplication.Declared>,
+            java.util.List<Classified>> classify;
 
     /**
      * @param applyHere a list, applied every time and withdrawing nothing
@@ -83,16 +102,24 @@ public final class ConfigurationHandler implements HttpHandler {
                     java.util.List<ConfigApplication.Declared>,
                     ConfigApplication.Outcome> applyHere,
             java.util.function.Function<cloud.jengu.dbo.sync.ConfigSource.Fetch,
-                    ConfigApplication.Outcome> applyRead) {
+                    ConfigApplication.Outcome> applyRead,
+            java.util.function.Function<java.util.List<ConfigApplication.Declared>,
+                    java.util.List<Classified>> classify) {
         this.authority = authority;
         this.apply = apply;
         this.applyHere = applyHere;
         this.applyRead = applyRead;
+        this.classify = classify;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
+            // The door's own path, and the one path beside it. A context
+            // matches by prefix, so without this every spelling of every
+            // sub-path reaches the applying handler and applies — which would
+            // make the near misses of the word 'preview' apply the change
+            // somebody was trying to inspect.
             if (!"POST".equals(exchange.getRequestMethod())) {
                 fail(exchange, 405, "invalid_request",
                         "applying what is declared is asked for with POST");
@@ -101,8 +128,32 @@ public final class ConfigurationHandler implements HttpHandler {
             if (!permitted(exchange)) {
                 return;
             }
+            // Which path, decided after the grant is: a door that answered
+            // 404 or 200 to somebody holding nothing would tell them which
+            // sub-paths it serves, and the answer to a credential this door
+            // does not admit is the same whatever it asked for.
+            //
+            // A context matches by PREFIX, so without this every spelling of
+            // every sub-path reaches the applying handler and applies — which
+            // would make the near misses of 'preview' apply the change
+            // somebody was trying to inspect.
+            String verb = exchange.getRequestURI().getPath()
+                    .substring(exchange.getHttpContext().getPath().length());
+            if (verb.startsWith("/")) {
+                verb = verb.substring(1);
+            }
+            if (!verb.isEmpty() && !"preview".equals(verb)) {
+                fail(exchange, 404, "invalid_request", "this door applies what is declared, "
+                        + "and 'preview' says what applying it would do; it was asked for '"
+                        + verb + "'");
+                return;
+            }
             String body = new String(exchange.getRequestBody().readAllBytes(),
                     StandardCharsets.UTF_8);
+            if ("preview".equals(verb)) {
+                preview(exchange, body);
+                return;
+            }
             ConfigApplication.Outcome outcome = body.isBlank()
                     ? applyWhatIsRead(exchange)
                     : applyWhatWasSent(exchange, body);
@@ -173,17 +224,74 @@ public final class ConfigurationHandler implements HttpHandler {
      * store having an opinion about it would be this store deciding when
      * somebody else's configuration is the same configuration.
      */
-    private ConfigApplication.Outcome applyWhatWasSent(HttpExchange exchange, String body)
-            throws IOException {
-        // Each payload kept as the text it arrived as. Parsed into a tree and
-        // rendered back, a set of any size costs three copies of every
-        // declaration — the tree, the string, and the bytes — to establish
-        // only that it was JSON, which the parse establishes on its own.
-        Object read = RecordWire.read(body, "payload");
-        if (!(read instanceof Map<?, ?> fields)) {
-            fail(exchange, 400, "invalid_request", "send an object");
-            return null;
+    /**
+     * The declarations a body names, or null once it has been refused.
+     *
+     * <p>Read here rather than at each caller: applying a set and saying what
+     * applying it would do take the same body, and two readers of one wire
+     * shape are two that can come to differ about what a caller sent.
+     *
+     * <p>Each payload kept as the text it arrived as. Parsed into a tree and
+     * rendered back, a set of any size costs three copies of every
+     * declaration — the tree, the string, and the bytes — to establish only
+     * that it was JSON, which the parse establishes on its own.
+     */
+    /**
+     * What the declarations sent here would do, without doing any of it.
+     *
+     * <p>The same comparison the sweep makes when it notices a serving tenant
+     * declared differently, asked of a declaration that has not been applied.
+     * It existed only inside the pass that applied what it classified, so the
+     * only way to learn that a change was a rebuild — or refused outright —
+     * was to cause the rebuild, or to read the refusal afterwards as the
+     * record of an attempt.
+     *
+     * <p><b>Nothing is written.</b> Not the declaration, not a run, not a
+     * trouble entry, and nothing the sweep has noticed is disturbed. A run
+     * records what happened to a tenant, and this does not happen to it; a
+     * history carrying questions nobody acted on is one that every honest
+     * question afterwards has to filter.
+     */
+    private void preview(HttpExchange exchange, String body) throws IOException {
+        Map<?, ?> fields = fieldsOf(exchange, body);
+        if (fields == null) {
+            return;
         }
+        java.util.List<ConfigApplication.Declared> declarations =
+                declarationsIn(exchange, fields);
+        if (declarations == null) {
+            return;
+        }
+        java.util.List<Classified> classifications =
+                classify == null ? null : classify.apply(declarations);
+        if (classifications == null) {
+            fail(exchange, 409, "not_previewable", "this tenant does not hold the "
+                    + "deployment's declarations, so there is nothing here to compare a "
+                    + "proposal against");
+            return;
+        }
+        java.util.List<Object> classified = new java.util.ArrayList<>();
+        for (Classified one : classifications) {
+            java.util.Map<String, Object> said = new java.util.LinkedHashMap<>();
+            said.put("declaration", one.declaration());
+            said.put("kind", one.kind());
+            said.put("fields", one.fields());
+            said.put("says", one.says());
+            classified.add(said);
+        }
+        java.util.Map<String, Object> answer = new java.util.LinkedHashMap<>();
+        answer.put("preview", Boolean.TRUE);
+        // Said in the answer as well as in the path, because this is the field
+        // a caller can assert on. A client that meant to preview and reached
+        // the applying door by some other route reads applied here, and a
+        // client that meant to apply and previewed reads nothing changed.
+        answer.put("applied", 0);
+        answer.put("classified", classified);
+        respond(exchange, 200, answer);
+    }
+
+    private java.util.List<ConfigApplication.Declared> declarationsIn(HttpExchange exchange,
+            Map<?, ?> fields) throws IOException {
         Object declared = fields.get("declarations");
         if (!(declared instanceof java.util.List<?> items) || items.isEmpty()) {
             fail(exchange, 400, "invalid_request",
@@ -205,6 +313,29 @@ public final class ConfigurationHandler implements HttpHandler {
                     payload instanceof RecordWire.Raw raw
                             ? raw.text().getBytes(StandardCharsets.UTF_8)
                             : RecordWire.write(payload).getBytes(StandardCharsets.UTF_8)));
+        }
+        return declarations;
+    }
+
+    /** The body as an object, or null once it has been refused. */
+    private Map<?, ?> fieldsOf(HttpExchange exchange, String body) throws IOException {
+        if (RecordWire.read(body, "payload") instanceof Map<?, ?> fields) {
+            return fields;
+        }
+        fail(exchange, 400, "invalid_request", "send an object");
+        return null;
+    }
+
+    private ConfigApplication.Outcome applyWhatWasSent(HttpExchange exchange, String body)
+            throws IOException {
+        Map<?, ?> fields = fieldsOf(exchange, body);
+        if (fields == null) {
+            return null;
+        }
+        java.util.List<ConfigApplication.Declared> declarations =
+                declarationsIn(exchange, fields);
+        if (declarations == null) {
+            return null;
         }
         String marker = fields.get("marker") == null
                 ? null : String.valueOf(fields.get("marker"));

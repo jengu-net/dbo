@@ -901,6 +901,58 @@ public final class TenantRuntimeManager implements AutoCloseable {
         exchange.getResponseBody().write(bytes);
     }
 
+    /**
+     * What these declarations would do to the tenants they name, without
+     * doing any of it.
+     *
+     * <p>The classification was reachable only from inside the sweep, which
+     * applies what it classifies in the same pass — so "is this a rebuild"
+     * could be asked only by causing one. It is a pure function of two
+     * declarations; what was missing was somewhere to ask it from.
+     *
+     * <p>Reads {@code runtimes} and writes nothing: not what the sweep has
+     * noticed, not the trouble a cold change would raise when it is really
+     * attempted, and no record of having been asked.
+     */
+    List<ConfigurationHandler.Classified> classify(
+            List<cloud.jengu.dbo.sync.ConfigApplication.Declared> declarations) {
+        List<ConfigurationHandler.Classified> said = new java.util.ArrayList<>();
+        for (cloud.jengu.dbo.sync.ConfigApplication.Declared declaration : declarations) {
+            TenantSpec proposed;
+            try {
+                proposed = TenantSpec.parse(new String(declaration.payload(),
+                        java.nio.charset.StandardCharsets.UTF_8));
+            } catch (RuntimeException notATenant) {
+                // Said rather than skipped: a caller who previewed a set and
+                // got fewer answers than declarations would have to work out
+                // which one this store did not understand.
+                said.add(new ConfigurationHandler.Classified(declaration.name(),
+                        "not-a-tenant", List.of(),
+                        "this is not a tenant declaration, so there is nothing here to "
+                                + "classify: " + notATenant.getMessage()));
+                continue;
+            }
+            TenantRuntime serving = runtimes.get(proposed.code());
+            if (serving == null) {
+                said.add(new ConfigurationHandler.Classified(declaration.name(), "new",
+                        List.of(), "no tenant '" + proposed.code() + "' is served here, so "
+                                + "this would build one rather than change one"));
+                continue;
+            }
+            SpecChange change = SpecChange.between(serving.spec(), proposed);
+            if (!change.any()) {
+                said.add(new ConfigurationHandler.Classified(declaration.name(), "unchanged",
+                        List.of(), "nothing in this declaration differs from what tenant '"
+                                + proposed.code() + "' is serving"));
+                continue;
+            }
+            said.add(new ConfigurationHandler.Classified(declaration.name(),
+                    change.kind().name().toLowerCase(java.util.Locale.ROOT),
+                    change.fields(), change.says()));
+        }
+        return List.copyOf(said);
+    }
+
     /** The tenant a spec file declares, when it parses — for a state to belong to. */
     private static Optional<String> codeOf(
             cloud.jengu.dbo.sync.ConfigApplication.Declared declaration) {
@@ -1563,7 +1615,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             version.face().capability(
                                     cloud.jengu.dbo.core.face.DocumentEquivalence.class)
                                     .orElse(null))
-                            .applyFrom(spec.code(), () -> fetch)));
+                            .applyFrom(spec.code(), () -> fetch),
+                    // Decided per request, not at mount: which tenant manages
+                    // the deployment is not known when its context is created,
+                    // so a choice made here would be made on an unset field —
+                    // the same reason the supplier above defers it.
+                    //
+                    // Null where this is not that tenant: one that does not
+                    // carry the declarations has nothing to compare a proposal
+                    // against, and answering anyway would be answering about
+                    // somebody else's tenants.
+                    declarations -> spec.code().equals(managementCode)
+                            ? classify(declarations) : null));
             configurationContexts.put(spec.code(), configurationPath);
         }
         // The maintenance surface, when the tenant has an authority to guard
