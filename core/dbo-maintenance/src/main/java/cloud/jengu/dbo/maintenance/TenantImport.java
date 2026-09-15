@@ -615,6 +615,15 @@ public final class TenantImport {
         if (archiveName.equals("state.projection_marker")) {
             return archiveName;
         }
+        // Content held whole, which belongs to the tenant rather than to any
+        // one of its domains — a recording is not a record of a type. Named
+        // here rather than let through by a widened rule: this guard exists so
+        // an archive cannot name an arbitrary table in the target, and each
+        // table that carries no domain has to earn its place by being written
+        // down.
+        if (archiveName.equals("state.blob")) {
+            return archiveName;
+        }
         // The guard still holds: a table must belong to a domain the archive
         // DECLARED. Widening it to "any domain" would let an archive name an
         // arbitrary table in the target database, which is what this check
