@@ -393,6 +393,70 @@ public final class DefinitionStore {
      * the two checkers agree, and the findings themselves are about a
      * document, which in this store is a person.
      */
+    /**
+     * What this release's functions found, in their own words.
+     *
+     * <p>A count answers whether the two checkers agree, which is what the
+     * comparison needed. It cannot refuse a write: told only that there is one
+     * issue, a writer learns that something is wrong and not what, and the
+     * only thing they can do is send it again. So a verdict needs the
+     * sentences, and they are the database's own — path, key and detail, as
+     * the checks wrote them.
+     *
+     * <p>Nothing at all where the definition is not held here, which stays
+     * different from finding nothing.
+     */
+    public java.util.Optional<List<Finding>> findingsUnder(byte[] document, String canonical) {
+        try (Connection c = ds.getConnection()) {
+            try (PreparedStatement held = c.prepareStatement(
+                    "SELECT 1 FROM definitions.definition_element WHERE canonical = ? LIMIT 1")) {
+                held.setString(1, canonical);
+                try (ResultSet rs = held.executeQuery()) {
+                    if (!rs.next()) {
+                        return java.util.Optional.empty();
+                    }
+                }
+            }
+            List<Finding> found = new java.util.ArrayList<>();
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT severity, path, key, detail FROM dbo.validate(?::jsonb, ?)")) {
+                ps.setString(1, new String(document, java.nio.charset.StandardCharsets.UTF_8));
+                ps.setString(2, canonical);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        found.add(new Finding(rs.getString(1), rs.getString(2),
+                                rs.getString(3), rs.getString(4)));
+                    }
+                }
+            }
+            return java.util.Optional.of(List.copyOf(found));
+        } catch (SQLException e) {
+            throw new IllegalStateException("asking the database about a " + canonical
+                    + " failed", e);
+        }
+    }
+
+    /**
+     * One thing a check found: its severity, where it is, the rule that
+     * found it, and what it says.
+     *
+     * <p>The key is the rule rather than the message, so a caller can act on
+     * a kind of problem without reading English — which is the difference
+     * between a refusal somebody automates against and one they grep.
+     */
+    public record Finding(String severity, String path, String key, String detail) {
+
+        /** Whether this is a refusal rather than advice. */
+        public boolean refuses() {
+            return "error".equals(severity) || "fatal".equals(severity);
+        }
+
+        /** What a writer is told, which names where and what. */
+        public String says() {
+            return path + ": " + detail;
+        }
+    }
+
     public java.util.OptionalLong issuesUnder(byte[] document, String canonical) {
         try (Connection c = ds.getConnection()) {
             try (PreparedStatement held = c.prepareStatement(

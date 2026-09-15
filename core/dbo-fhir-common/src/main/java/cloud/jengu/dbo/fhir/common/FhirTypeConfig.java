@@ -21,7 +21,8 @@ import java.util.Set;
  */
 public record FhirTypeConfig(String typeName, IdentityClass identityClass,
                              Set<String> identitySystems, Handling handling,
-                             Extraction extraction, Definition definition) {
+                             Extraction extraction, Definition definition,
+                             Verdict verdict) {
 
     /** Whether the face has a definition for this type. */
     public enum Definition {
@@ -47,6 +48,38 @@ public record FhirTypeConfig(String typeName, IdentityClass identityClass,
         NONE
     }
 
+    /** Whose answer decides a write of this type. */
+    public enum Verdict {
+
+        /** The toolchain's, as it always has been. The ordinary answer. */
+        THE_TOOLCHAIN,
+
+        /**
+         * The database's, from the definitions this tenant holds expanded.
+         *
+         * <p>Declared per type rather than switched on for a face, and never
+         * a default — the same rule {@link Extraction} follows, for a sharper
+         * version of the same reason. An envelope computed the wrong way
+         * makes a document unfindable; a verdict decided the wrong way
+         * changes what this store ACCEPTS, and a tenant that started refusing
+         * its own traffic would learn it from its writers.
+         *
+         * <p>What a tenant should have before asking for it is a measurement
+         * rather than a hope: the two checkers are compared on every write
+         * and the tally is on the deployment's own read, per tenant. The
+         * directions are not symmetric and the numbers say which is which —
+         * this store has been the quieter of the two everywhere it has been
+         * measured, except on cardinality, where the specification says it is
+         * right and the toolchain says nothing at all.
+         *
+         * <p>The toolchain is still asked while this is declared, and its
+         * answer is still counted. Only the decision moves. Not asking it is
+         * what finally lets the loaded specification go, and that is a
+         * separate step with its own evidence to gather.
+         */
+        THE_DATABASE
+    }
+
     /** Where this type's envelope, claims and edges are computed. */
     public enum Extraction {
 
@@ -70,25 +103,25 @@ public record FhirTypeConfig(String typeName, IdentityClass identityClass,
     public FhirTypeConfig(String typeName, IdentityClass identityClass,
             Set<String> identitySystems, Handling handling) {
         this(typeName, identityClass, identitySystems, handling, Extraction.IN_PROCESS,
-                Definition.BY_THE_FACE);
+                Definition.BY_THE_FACE, Verdict.THE_TOOLCHAIN);
     }
 
     public FhirTypeConfig(String typeName, IdentityClass identityClass,
             Set<String> identitySystems, Handling handling, Extraction extraction) {
         this(typeName, identityClass, identitySystems, handling, extraction,
-                Definition.BY_THE_FACE);
+                Definition.BY_THE_FACE, Verdict.THE_TOOLCHAIN);
     }
 
     /** The same type, which this face has no definition for. */
     public FhirTypeConfig withoutADefinition() {
         return new FhirTypeConfig(typeName, identityClass, identitySystems, handling,
-                extraction, Definition.NONE);
+                extraction, Definition.NONE, verdict);
     }
 
     /** The same type, computed in the database instead of here. */
     public FhirTypeConfig inTheDatabase() {
         return new FhirTypeConfig(typeName, identityClass, identitySystems, handling,
-                Extraction.IN_THE_DATABASE, definition);
+                Extraction.IN_THE_DATABASE, definition, verdict);
     }
 
     public static FhirTypeConfig identifier(String typeName, String... systems) {
@@ -115,13 +148,19 @@ public record FhirTypeConfig(String typeName, IdentityClass identityClass,
     /**
      * The same type, handled differently — a zone's override, or a test's.
      *
-     * <p>Carries the extraction forward. Rebuilding through the short
-     * constructor would reset it to {@code IN_PROCESS}, and a tenant that
-     * asked for the other one would be served the ordinary answer without
-     * anything saying so.
+     * <p>Carries the extraction and the verdict forward. Rebuilding through
+     * the short constructor resets them to the ordinary answers, and a tenant
+     * that asked for the others would be served the defaults without anything
+     * saying so — which is how the extraction was lost once already.
      */
     public FhirTypeConfig handledAs(Handling replacement) {
         return new FhirTypeConfig(typeName, identityClass, identitySystems, replacement,
-                extraction, definition);
+                extraction, definition, verdict);
+    }
+
+    /** The same type, decided by the database rather than by the toolchain. */
+    public FhirTypeConfig decidedByTheDatabase() {
+        return new FhirTypeConfig(typeName, identityClass, identitySystems, handling,
+                extraction, definition, Verdict.THE_DATABASE);
     }
 }

@@ -166,6 +166,16 @@ spec:
                           what it holds.
                         type: string
                         enum: [in-process, database]
+                      verdict:
+                        description: >-
+                          whose answer decides a write of this type. Left out,
+                          the toolchain's, as it always has been; 'database'
+                          for this store's own checks, which a tenant asks for
+                          once the tally of what the two made of its writes
+                          says they agree. It changes what is ACCEPTED, so it
+                          is declared per type and never inferred.
+                        type: string
+                        enum: [toolchain, database]
                       handling:
                         type: string
                         enum: [operational, projected-config, mirrored,

@@ -360,6 +360,14 @@ public final class ElementStore implements FhirStoreFacade {
             }
         }
         takenBesideTheToolchain(type, payload, issues);
+        // Whose answer decides, where the tenant has said. The comparison
+        // above still runs and is still counted: what a declared verdict
+        // moves is the decision, not the measurement, so a tenant that
+        // switched a type can still see what the two made of every write —
+        // and would see a divergence appear rather than infer one from
+        // traffic. Letting the loaded specification go is a further step,
+        // and it is the one that stops asking the toolchain at all.
+        issues = whoDecides(type, payload, issues);
         if (!issues.isEmpty()) {
             if (!authoredElsewhere(type)) {
                 throw new ValidationFailedException(type, issues);
@@ -1041,6 +1049,45 @@ public final class ElementStore implements FhirStoreFacade {
             LOG.warn("taking the database's answer beside the toolchain's failed, and the "
                     + "write was unaffected: {}", measurementBroke.getMessage());
         }
+    }
+
+    /**
+     * The findings that decide this write.
+     *
+     * <p>The toolchain's, unless the type says otherwise. Where it does, the
+     * database's own sentences refuse it — path, rule and detail — because a
+     * writer told that something is wrong and not what can only send it
+     * again.
+     *
+     * <p>A type declared this way whose definition this tenant does not hold
+     * keeps the toolchain's answer rather than being accepted by silence.
+     * Nothing to judge against is not the same as nothing wrong, and a
+     * declaration is not a reason to stop checking.
+     */
+    private List<String> whoDecides(String type, byte[] payload, List<String> toolchain) {
+        FhirTypeConfig declared = types.stream()
+                .filter(t -> t.typeName().equals(type)).findFirst().orElse(null);
+        if (declared == null
+                || declared.verdict() != FhirTypeConfig.Verdict.THE_DATABASE
+                || definitions == null) {
+            return toolchain;
+        }
+        java.util.Optional<String> canonical = definitions.theTypeItself(type);
+        if (canonical.isEmpty()) {
+            return toolchain;
+        }
+        java.util.Optional<List<cloud.jengu.dbo.definitions.DefinitionStore.Finding>> found =
+                definitions.findingsUnder(payload, canonical.get());
+        if (found.isEmpty()) {
+            return toolchain;
+        }
+        List<String> refusing = new ArrayList<>();
+        for (var finding : found.get()) {
+            if (finding.refuses()) {
+                refusing.add(finding.says());
+            }
+        }
+        return refusing;
     }
 
     /** The profiles a document claims, as written. */

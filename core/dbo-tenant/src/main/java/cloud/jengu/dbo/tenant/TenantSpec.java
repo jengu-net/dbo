@@ -259,6 +259,16 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             if ("none".equals(definition)) {
                 placed = placed.withoutADefinition();
             }
+            String verdict = Json.strOpt(t, "verdict");
+            if (verdict != null && !"database".equals(verdict)
+                    && !"toolchain".equals(verdict)) {
+                throw new IllegalArgumentException(code + "/" + name
+                        + ": unknown verdict " + verdict + " — say 'database' to have this "
+                        + "store's own checks decide a write of this type, or leave it out");
+            }
+            if ("database".equals(verdict)) {
+                placed = placed.decidedByTheDatabase();
+            }
             return placed.handledAs(switch (handling) {
                 case "operational" -> Handling.operational();
                 case "projected-config" -> Handling.projectedConfig();
