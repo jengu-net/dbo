@@ -118,11 +118,30 @@ val distTest = tasks.register<Test>("distTest") {
     filter.includeTestsMatching("*ServerDistIT")
     maxHeapSize = "1g"
 }
+// The memory measurement, in a process of its own — which is the whole of
+// why it is a task rather than a test among the others. It reports what a
+// tenant ADDS, and in a JVM that has already run seven hundred tests the
+// specification is loaded long before it starts, so every figure reads as
+// nought: a served tenant costs nothing, a second costs nothing. True of that
+// JVM and false about this store, which is worse than recording nothing.
+val memoryTest = tasks.register<Test>("memoryTest") {
+    description = "What a tenant costs to hold, measured in a JVM that holds nothing else."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter.includeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
+    // Its own process per class, and no other class in it.
+    forkEvery = 1
+    maxHeapSize = "2g"
+}
 tasks.test {
     filter.excludeTestsMatching("*ServerDistIT")
+    filter.excludeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
     shouldRunAfter(distTest)
+    shouldRunAfter(memoryTest)
 }
 tasks.check { dependsOn(distTest) }
+tasks.check { dependsOn(memoryTest) }
 
 // Shared shape for BOTH suites: the wiring below (jar paths, ports, the
 // container fixtures) is identical whichever executor asks.
