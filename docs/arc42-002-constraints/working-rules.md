@@ -110,6 +110,12 @@ reference: docs/arc42-002-constraints/working-rules.md#proving-a-change-which-co
 - MUST NOT add a dependency to the dependency-free core module, or anything
   beyond the JDBC driver to the storage module, without a reason that
   survives being read aloud.
+- MUST add a new module to the OSGi bundle set in the same commit that makes
+  another module import it, in all three places that carry it — the root
+  build's runtime module list, the harness's jar properties, and the
+  container test's own ordered install list, which is hand-written rather
+  than derived from the others. bnd computes the import from bytecode, so
+  the bundle resolves on the classpath and dies in the framework.
 - MUST run the negative for a test written to prove a fix: break the thing
   deliberately and watch the test go red. A test that has never failed for
   the reason it was written has not been shown to test that reason, and two
