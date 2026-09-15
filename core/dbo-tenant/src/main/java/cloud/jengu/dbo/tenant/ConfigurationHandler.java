@@ -143,6 +143,15 @@ public final class ConfigurationHandler implements HttpHandler {
             // ask did not complete, because a body describing an application
             // that may have half-run is worse than a status.
             fail(exchange, 500, "apply_failed", "the application did not complete");
+        } catch (Throwable died) {
+            // An Error is not this thread's to die of silently. Running out of
+            // heap here answered the caller as though the set had been applied
+            // — so a declarer could not tell an application from a JVM that
+            // gave up half way through one, which is a worse property than the
+            // memory that caused it. Answering costs nothing that is not
+            // already allocated, and the run says what actually landed.
+            fail(exchange, 500, "apply_failed",
+                    died.getClass().getSimpleName() + ": the application did not complete");
         } finally {
             exchange.close();
         }
@@ -166,7 +175,11 @@ public final class ConfigurationHandler implements HttpHandler {
      */
     private ConfigApplication.Outcome applyWhatWasSent(HttpExchange exchange, String body)
             throws IOException {
-        Object read = RecordWire.read(body);
+        // Each payload kept as the text it arrived as. Parsed into a tree and
+        // rendered back, a set of any size costs three copies of every
+        // declaration — the tree, the string, and the bytes — to establish
+        // only that it was JSON, which the parse establishes on its own.
+        Object read = RecordWire.read(body, "payload");
         if (!(read instanceof Map<?, ?> fields)) {
             fail(exchange, 400, "invalid_request", "send an object");
             return null;
@@ -186,9 +199,12 @@ public final class ConfigurationHandler implements HttpHandler {
                         "every declaration carries a type, a name and a payload");
                 return null;
             }
+            Object payload = one.get("payload");
             declarations.add(new ConfigApplication.Declared(
                     String.valueOf(one.get("type")), String.valueOf(one.get("name")),
-                    RecordWire.write(one.get("payload")).getBytes(StandardCharsets.UTF_8)));
+                    payload instanceof RecordWire.Raw raw
+                            ? raw.text().getBytes(StandardCharsets.UTF_8)
+                            : RecordWire.write(payload).getBytes(StandardCharsets.UTF_8)));
         }
         String marker = fields.get("marker") == null
                 ? null : String.valueOf(fields.get("marker"));

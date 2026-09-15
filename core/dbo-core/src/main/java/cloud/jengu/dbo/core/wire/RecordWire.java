@@ -52,12 +52,36 @@ public final class RecordWire {
         return Json.parse(json);
     }
 
+    /**
+     * The same, except that members named {@code rawField} arrive as
+     * {@link Raw} — the text they were written as, unparsed.
+     *
+     * <p>For a value this reader passes on rather than reads. A payload taken
+     * apart into maps and strings and written back out is the bytes it already
+     * was, having cost a tree, a StringBuilder and a second copy of itself on
+     * the way — which is a heap failure waiting for a large enough set, and
+     * the failure does not even belong to the thing that was wrong.
+     */
+    public static Object read(String json, String rawField) {
+        return Json.parse(json, rawField);
+    }
+
+    /**
+     * A value kept as the text it arrived as.
+     *
+     * <p>Writing it emits that text verbatim, so a value read this way and
+     * written back is unchanged rather than re-rendered — down to the spacing
+     * and the order its author chose.
+     */
+    public record Raw(String text) {}
+
     // ── encoding ────────────────────────────────────────────────────────
 
     /** One value as a tree of maps, lists and scalars. */
     public static Object encode(Object value) {
         return switch (value) {
             case null -> null;
+            case Raw raw -> raw;
             case String s -> s;
             case Boolean b -> b;
             case Number n -> n;

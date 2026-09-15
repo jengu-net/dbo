@@ -19,7 +19,20 @@ final class Json {
     private Json() {}
 
     static Object parse(String json) {
-        return new Parser(json).parseValue();
+        return new Parser(json, null).parseValue();
+    }
+
+    /**
+     * The same, except that a member named {@code rawField} is kept as the
+     * text it arrived as rather than parsed into a tree.
+     *
+     * <p>For a value this reader's caller does not read and only passes on.
+     * Parsing one into maps and strings and rendering it back establishes that
+     * it was JSON and nothing else — while costing a tree, a StringBuilder and
+     * a second copy of every byte, all of which were already in the argument.
+     */
+    static Object parse(String json, String rawField) {
+        return new Parser(json, rawField).parseValue();
     }
 
     static String str(Object node, String field) {
@@ -81,6 +94,7 @@ final class Json {
                 }
                 sb.append(']');
             }
+            case RecordWire.Raw raw -> sb.append(raw.text());
             case String str -> {
                 sb.append('"');
                 for (char c : str.toCharArray()) {
@@ -104,10 +118,12 @@ final class Json {
 
     private static final class Parser {
         private final String s;
+        private final String rawField;
         private int i;
 
-        Parser(String s) {
+        Parser(String s, String rawField) {
             this.s = s;
+            this.rawField = rawField;
         }
 
         Object parseValue() {
@@ -134,7 +150,14 @@ final class Json {
                 String key = parseString();
                 skipWs();
                 i++; // :
-                out.put(key, parseValue());
+                if (key.equals(rawField)) {
+                    skipWs();
+                    int from = i;
+                    skipValue();
+                    out.put(key, new RecordWire.Raw(s.substring(from, i)));
+                } else {
+                    out.put(key, parseValue());
+                }
                 skipWs();
                 char c = s.charAt(i++);
                 if (c == '}') {
@@ -183,6 +206,54 @@ final class Json {
                 } else {
                     sb.append(c);
                 }
+            }
+        }
+
+        /** Past a value without building it: the span is all the caller wants. */
+        private void skipValue() {
+            skipWs();
+            char c = s.charAt(i);
+            switch (c) {
+                case '{', '[' -> skipNested();
+                case '"' -> skipString();
+                default -> skipLiteral();
+            }
+        }
+
+        private void skipNested() {
+            int depth = 0;
+            while (true) {
+                char c = s.charAt(i);
+                // A brace inside a string is text, not structure, so strings
+                // are stepped over whole rather than scanned for delimiters.
+                if (c == '"') {
+                    skipString();
+                    continue;
+                }
+                i++;
+                if (c == '{' || c == '[') {
+                    depth++;
+                } else if ((c == '}' || c == ']') && --depth == 0) {
+                    return;
+                }
+            }
+        }
+
+        private void skipString() {
+            i++;
+            while (true) {
+                char c = s.charAt(i++);
+                if (c == '\\') {
+                    i++;
+                } else if (c == '"') {
+                    return;
+                }
+            }
+        }
+
+        private void skipLiteral() {
+            while (i < s.length() && "-+.0123456789eEtruefalsnl".indexOf(s.charAt(i)) >= 0) {
+                i++;
             }
         }
 

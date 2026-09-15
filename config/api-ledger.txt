@@ -1185,7 +1185,14 @@ cloud.jengu.dbo.core.wire.RecordWire                                   decodeLis
 cloud.jengu.dbo.core.wire.RecordWire                                   decodeMap(Object,Class):Map
 cloud.jengu.dbo.core.wire.RecordWire                                   encode(Object):Object
 cloud.jengu.dbo.core.wire.RecordWire                                   read(String):Object
+cloud.jengu.dbo.core.wire.RecordWire                                   read(String,String):Object
 cloud.jengu.dbo.core.wire.RecordWire                                   write(Object):String
+cloud.jengu.dbo.core.wire.RecordWire.Raw                               equals(Object):boolean
+cloud.jengu.dbo.core.wire.RecordWire.Raw                               hashCode():int
+cloud.jengu.dbo.core.wire.RecordWire.Raw                               new(String)
+cloud.jengu.dbo.core.wire.RecordWire.Raw                               record
+cloud.jengu.dbo.core.wire.RecordWire.Raw                               text():String
+cloud.jengu.dbo.core.wire.RecordWire.Raw                               toString():String
 cloud.jengu.dbo.definitions.DefinitionElement                          bindingStrength():String
 cloud.jengu.dbo.definitions.DefinitionElement                          bindingValueSet():String
 cloud.jengu.dbo.definitions.DefinitionElement                          enforceable():boolean
