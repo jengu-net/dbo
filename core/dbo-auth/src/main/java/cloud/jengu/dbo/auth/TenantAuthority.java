@@ -550,6 +550,65 @@ public final class TenantAuthority {
         }
     }
 
+    /** As {@link #withdrawRoleGrant(String, String)}, tenant-wide. */
+    public boolean withdrawRoleGrant(String roleCode) {
+        return withdrawRoleGrant(roleCode, null);
+    }
+
+    /**
+     * Stops a role granting anything, without forgetting that it did.
+     *
+     * <p>There was only ever one verb here, and it could widen. A provisioning
+     * client posts what its configuration names on every sweep, so adding a
+     * scope worked and taking one away did nothing that could be seen: a role
+     * dropped from the configuration entirely is never posted at all, so
+     * nothing touched it and it stayed granted. The operator edits the repo,
+     * the sweep reports success, and the permission is still there. That is
+     * the wrong direction to fail in and it failed silently, which is worse.
+     *
+     * <p><b>Deactivated rather than deleted.</b> A withdrawn grant and one
+     * that never existed behave identically at token time and must not read
+     * identically afterwards: somebody asking when a role stopped being able
+     * to do something needs an answer, and a deleted row has none. The scopes
+     * are kept as they were for the same reason — what it could do when it
+     * stopped is part of the answer.
+     *
+     * <p><b>Idempotent, because the client re-runs on every boot.</b>
+     * Withdrawing what is already withdrawn, or what was never granted, is a
+     * true answer to the request rather than a failure. The return says which
+     * happened, for a caller that wants to report it.
+     *
+     * @return whether an active grant was withdrawn by this call
+     */
+    public boolean withdrawRoleGrant(String roleCode, String organisation) {
+        String claim = organisation == null ? roleCode : roleCode + "@" + organisation;
+        Optional<StoredObject> existing = store.getByIdentifier("RoleGrant",
+                List.of(new Identifier(IdentityModel.ROLE_CODE_SYSTEM, claim)))
+                .stream().findFirst();
+        if (existing.isEmpty()) {
+            return false;
+        }
+        Object parsed = Json.parse(new String(existing.get().payload(),
+                java.nio.charset.StandardCharsets.UTF_8));
+        if (!"active".equals(Json.strOpt(parsed, "status"))) {
+            return false;
+        }
+        // The scopes as they stood. An auditor asking what this role could do
+        // when it was taken away is asking about the grant, and a withdrawal
+        // that dropped them would answer "nothing", which was never true.
+        String scopes = Json.strings(parsed, "scopes").stream()
+                .map(s -> "\"" + s + "\"").collect(Collectors.joining(","));
+        String payload = "{\"roleCode\":\"" + roleCode + "\""
+                + (organisation == null ? ""
+                        : ",\"organisation\":\"" + organisation + "\"")
+                + ",\"scopes\":[" + scopes + "]"
+                + ",\"status\":\"withdrawn\""
+                + ",\"withdrawnAt\":\"" + java.time.Instant.now() + "\"}";
+        store.put(PutRequest.update("RoleGrant", existing.get().id(),
+                existing.get().versionId(), payload.getBytes(StandardCharsets.UTF_8)));
+        return true;
+    }
+
     /**
      * A password is held only where this tenant is the identity provider.
      *

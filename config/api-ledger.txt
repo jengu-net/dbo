@@ -153,6 +153,8 @@ cloud.jengu.dbo.auth.TenantAuthority                                   token(Str
 cloud.jengu.dbo.auth.TenantAuthority                                   trust(String,Supplier,String):void
 cloud.jengu.dbo.auth.TenantAuthority                                   validate(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   verifyFactor(String,String,String):boolean
+cloud.jengu.dbo.auth.TenantAuthority                                   withdrawRoleGrant(String):boolean
+cloud.jengu.dbo.auth.TenantAuthority                                   withdrawRoleGrant(String,String):boolean
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       actClient():String
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       audience():String
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       clientId():String

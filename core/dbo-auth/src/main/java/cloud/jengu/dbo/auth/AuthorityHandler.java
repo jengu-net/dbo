@@ -497,12 +497,31 @@ public final class AuthorityHandler implements HttpHandler {
         Object body = Json.parse(new String(
                 exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
         String role = Json.strOpt(body, "role");
-        java.util.List<String> scopes = Json.strings(body, "scopes");
-        if (role == null || role.isBlank() || scopes.isEmpty()) {
+        // Named here as well as on the grant itself: a role granted at one
+        // organisation could be made only in process, so over this surface it
+        // could never be taken away either.
+        String organisation = Json.strOpt(body, "organisation");
+        boolean withdraw = "true".equals(Json.strOpt(body, "withdraw"));
+        if (role == null || role.isBlank()) {
             respond(exchange, 400, "{\"error\":\"invalid_request\"}");
             return;
         }
-        authority.ensureRoleGrant(role, scopes);
+        if (withdraw) {
+            // Idempotent on purpose: a provisioning client re-runs on every
+            // boot, and withdrawing what is already withdrawn is a true answer
+            // rather than something to fail on. The body says which it was, so
+            // a sweep can report the difference it actually made.
+            boolean was = authority.withdrawRoleGrant(role, organisation);
+            respond(exchange, 200, "{\"status\":\"withdrawn\",\"role\":\"" + role
+                    + "\",\"wasActive\":" + was + "}");
+            return;
+        }
+        java.util.List<String> scopes = Json.strings(body, "scopes");
+        if (scopes.isEmpty()) {
+            respond(exchange, 400, "{\"error\":\"invalid_request\"}");
+            return;
+        }
+        authority.ensureRoleGrant(role, organisation, scopes);
         respond(exchange, 200, "{\"status\":\"ensured\",\"role\":\"" + role + "\"}");
     }
 
