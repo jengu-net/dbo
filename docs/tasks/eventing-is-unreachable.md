@@ -63,15 +63,21 @@ meantime.
 | # | step | status |
 |---|---|---|
 | 1 | **Say what is true while it is untrue** ([#184](https://github.com/jengu-net/dbo/issues/184)) — the unreachable EVT promises carry a `TODO: prove it in a test` and the status page stops describing eventing as complete. Cheap, and everything below is decided while believing the status page. | **DONE** 2026-09-13 — three EVT promises read `PLANNED`; since 2026-09-15 they also say it in their own prose rather than only in a status column |
-| 2 | **Mount the engine** — construct it per tenant and start it. | **NEXT, and this row was mis-stated too.** It said *mount dispatch as a step service*, which describes a refactor onto the runner's whiteboard and is not what stands between a tenant and a notification. The engine already runs its own dispatcher (`start(pollMillis)`), already authors a run per delivery (`dbo.subscriptions.delivery`/`post`) and already makes each POST a durable workflow. Nothing calls `start`. What mounting needs is a **face capability for subscription support** — the engine is FHIR-blind and the FHIR-shaped parts live in `R4Subscriptions`/`R5Subscriptions`, which the reach ledger already lists as NOT REACHED for this exact reason — offered the way shape conversion is, and mounted when a face declares it |
+| 2 | **Mount the engine** — construct it per tenant and start it. | **DONE** 2026-09-15 — but not as this row described, twice over. It said *mount dispatch as a step service*, which is a refactor rather than the way in; and mounting turned out not to be wiring at all, because both composers hung off `R4Store`/`R5Store`, which no tenant runs. Notifications are composed on the element face now, which is what serves. Criteria subscriptions deliver; topic ones are still not wired. The old row said: It said *mount dispatch as a step service*, which describes a refactor onto the runner's whiteboard and is not what stands between a tenant and a notification. The engine already runs its own dispatcher (`start(pollMillis)`), already authors a run per delivery (`dbo.subscriptions.delivery`/`post`) and already makes each POST a durable workflow. Nothing calls `start`. What mounting needs is a **face capability for subscription support** — the engine is FHIR-blind and the FHIR-shaped parts live in `R4Subscriptions`/`R5Subscriptions`, which the reach ledger already lists as NOT REACHED for this exact reason — offered the way shape conversion is, and mounted when a face declares it |
 | 3 | **Model dispatch as a sweep** — one run per pass over the feed, checkpointing its position, rather than the run per delivery that exists. | LATER, and no longer on the path — what is built is durable per delivery, which is *more* than a sweep gives, so this is a change of durability model rather than a step towards working eventing. Decide it on evidence once notifications are flowing, not on the way to turning them on |
 | 4 | **Id-only notification** — transport becomes routing, and the disclosing read goes back through the door that authorises, audits and decrypts. | **BUILT, and this step was mis-stated** — id-only is not missing and never was: it is per subscription, driven by the subscriber's own declaration (`!channel.hasPayload()` in R4, honoured by both composers), so a subscription declaring no payload already receives the topic, the subscription, the event number and a reference. What is left under this heading is a *default* and a policy question — whether a payload should be refused over a carrier that holds nothing readable — not a mechanism |
 | 5 | **Match against the envelope, not the database** — carry the envelope on the feed item so the common criteria are an in-process predicate. Today matching is one query per event per active subscription. | LATER — the throughput item, worth doing when a tenant has enough subscriptions to feel it |
 | 6 | **Blind patching on the stream** — a patch whose paths are all non-identifying is applicable with no key, decidable from tenant configuration. | LATER — its own topic if it grows |
 
-The critical path is **2**, alone. It is the whole distance between a tenant
-holding a `Subscription` and anything arriving: the engine matches correctly,
-delivers durably, and no deployment constructs it.
+The critical path is empty for criteria subscriptions: a tenant delivers. What
+remains under this topic is the **topic-based** half, which is step 2's
+unfinished quarter rather than a step of its own — the personalities' topic
+sources and composers still hang off stores no request reaches, and
+reimplementing them where notifications are now composed is the work.
+
+The reach ledger carries that as the live statement: both halves sit there as
+NOT REACHED *and superseded*, naming their topic half as the part not yet
+moved.
 
 Steps 3 and 4 are not on the path at all, which is a correction rather than a
 re-ordering — see their rows. Three of this table's six rows described work
