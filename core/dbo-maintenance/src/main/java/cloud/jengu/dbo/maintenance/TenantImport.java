@@ -121,6 +121,24 @@ public final class TenantImport {
             ImportLedger ledger, cloud.jengu.dbo.core.face.DocumentEquivalence equivalence,
             cloud.jengu.dbo.core.face.GrainCodec grain)
             throws IOException {
+        return importVerified(target, source, ownerMasterKey, attestation, vendorPublicKey,
+                tenantPublicKey, history, ledger, equivalence, grain, null);
+    }
+
+    /**
+     * The same, told where content that travelled as itself goes back to.
+     *
+     * <p>Without it a restored tenant holds every record that pointed at a
+     * recording and not one recording — which reads as a clean import, because
+     * the references are all there and the thing they name is what is missing.
+     */
+    public static PortableResult importVerified(ObjectStore target, ArchiveSource source,
+            byte[] ownerMasterKey, ArchiveAttestation attestation,
+            byte[] vendorPublicKey, byte[] tenantPublicKey, HistoryMode history,
+            ImportLedger ledger, cloud.jengu.dbo.core.face.DocumentEquivalence equivalence,
+            cloud.jengu.dbo.core.face.GrainCodec grain,
+            cloud.jengu.dbo.core.api.BlobStore blobs)
+            throws IOException {
         Objects.requireNonNull(ledger, "an import records what it accepted, or does not happen");
         // Pass one: read to the tag, digest every entry, check the signatures.
         String root;
@@ -133,7 +151,7 @@ public final class TenantImport {
         PortableResult result;
         try (InputStream sealed = source.open();
              InputStream plain = SealedArchive.opening(sealed, ownerMasterKey)) {
-            result = applyPortable(target, plain, history, equivalence, grain);
+            result = applyPortable(target, plain, history, equivalence, grain, blobs);
         }
         // Recorded after the objects land: a root recorded for an import that
         // then failed would be a claim about data the tenant does not have.
@@ -163,10 +181,13 @@ public final class TenantImport {
 
     private static PortableResult applyPortable(ObjectStore target, InputStream plain,
             HistoryMode history, cloud.jengu.dbo.core.face.DocumentEquivalence equivalence,
-            cloud.jengu.dbo.core.face.GrainCodec grain)
+            cloud.jengu.dbo.core.face.GrainCodec grain,
+            cloud.jengu.dbo.core.api.BlobStore blobs)
             throws IOException {
         long imported = 0;
         long skipped = 0;
+        Map<String, byte[]> carried = new LinkedHashMap<>();
+        Map<String, String> media = new LinkedHashMap<>();
         try (ZipInputStream zip = new ZipInputStream(plain)) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
@@ -191,6 +212,26 @@ public final class TenantImport {
                             }
                         }
                     }
+                    continue;
+                }
+                // Content that travelled as itself goes back as itself. The
+                // index is read first because the archive writes the bytes
+                // before it — so the media types are kept aside and applied
+                // as each blob lands, rather than needing a second pass over
+                // an archive that may not fit in memory.
+                if (entry.getName().equals("blobs/index.txt")) {
+                    for (String line : new String(zip.readAllBytes(), StandardCharsets.UTF_8)
+                            .split("\n")) {
+                        int space = line.indexOf(' ');
+                        if (space > 0) {
+                            media.put(line.substring(0, space), line.substring(space + 1).trim());
+                        }
+                    }
+                    continue;
+                }
+                if (entry.getName().startsWith("blobs/")) {
+                    carried.put(entry.getName().substring("blobs/".length()),
+                            new NonClosing(zip).readAllBytes());
                     continue;
                 }
                 if (!entry.getName().startsWith("state/") || !entry.getName().endsWith(".ndjson")) {
@@ -256,6 +297,30 @@ public final class TenantImport {
                     target.put(PutRequest.restoring(type, at, resource));
                     imported++;
                 }
+            }
+        }
+        // Put back last, once the whole archive has been read: the index and
+        // the bytes are separate entries, and a blob restored before its media
+        // type was seen would be restored as something it is not.
+        //
+        // A caller that handed over no blob store gets the records and not the
+        // content, and is told so rather than left to notice. Silence here
+        // reads as a clean import — every reference is present, and only the
+        // thing they name is missing.
+        if (!carried.isEmpty()) {
+            if (blobs == null) {
+                throw new IllegalStateException("this archive carries " + carried.size()
+                        + " blobs and no blob store was given to put them in: importing it "
+                        + "would restore every record that points at content and none of the "
+                        + "content");
+            }
+            for (Map.Entry<String, byte[]> one : carried.entrySet()) {
+                // Under the key it left under. A restore that let the store
+                // choose a fresh one would keep every byte and rename it, and
+                // every record pointing at a scan would arrive pointing at
+                // nothing.
+                blobs.restore(one.getKey(), one.getValue(),
+                        media.getOrDefault(one.getKey(), "application/octet-stream"));
             }
         }
         return new PortableResult(imported, skipped);

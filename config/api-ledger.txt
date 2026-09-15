@@ -302,6 +302,7 @@ cloud.jengu.dbo.core.api.BlobStore                                     drop(Stri
 cloud.jengu.dbo.core.api.BlobStore                                     get(String):Optional
 cloud.jengu.dbo.core.api.BlobStore                                     interface
 cloud.jengu.dbo.core.api.BlobStore                                     put(byte[],String):String
+cloud.jengu.dbo.core.api.BlobStore                                     restore(String,byte[],String):void
 cloud.jengu.dbo.core.api.BlobStore.Blob                                content():byte[]
 cloud.jengu.dbo.core.api.BlobStore.Blob                                equals(Object):boolean
 cloud.jengu.dbo.core.api.BlobStore.Blob                                hashCode():int
@@ -1937,6 +1938,7 @@ cloud.jengu.dbo.maintenance.TenantImport                               class
 cloud.jengu.dbo.maintenance.TenantImport                               comparingBytes():cloud.jengu.dbo.core.face.DocumentEquivalence
 cloud.jengu.dbo.maintenance.TenantImport                               importVerified(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.maintenance.TenantImport.ArchiveSource,byte[],cloud.jengu.dbo.maintenance.ArchiveAttestation,byte[],byte[],cloud.jengu.dbo.maintenance.TenantImport.HistoryMode,cloud.jengu.dbo.maintenance.ImportLedger,cloud.jengu.dbo.core.face.DocumentEquivalence):cloud.jengu.dbo.maintenance.TenantImport.PortableResult
 cloud.jengu.dbo.maintenance.TenantImport                               importVerified(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.maintenance.TenantImport.ArchiveSource,byte[],cloud.jengu.dbo.maintenance.ArchiveAttestation,byte[],byte[],cloud.jengu.dbo.maintenance.TenantImport.HistoryMode,cloud.jengu.dbo.maintenance.ImportLedger,cloud.jengu.dbo.core.face.DocumentEquivalence,cloud.jengu.dbo.core.face.GrainCodec):cloud.jengu.dbo.maintenance.TenantImport.PortableResult
+cloud.jengu.dbo.maintenance.TenantImport                               importVerified(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.maintenance.TenantImport.ArchiveSource,byte[],cloud.jengu.dbo.maintenance.ArchiveAttestation,byte[],byte[],cloud.jengu.dbo.maintenance.TenantImport.HistoryMode,cloud.jengu.dbo.maintenance.ImportLedger,cloud.jengu.dbo.core.face.DocumentEquivalence,cloud.jengu.dbo.core.face.GrainCodec,cloud.jengu.dbo.core.api.BlobStore):cloud.jengu.dbo.maintenance.TenantImport.PortableResult
 cloud.jengu.dbo.maintenance.TenantImport                               restoreFidelity(DataSource,String,InputStream,byte[],cloud.jengu.dbo.maintenance.ArchiveAttestation,byte[],byte[],cloud.jengu.dbo.maintenance.ImportLedger):void
 cloud.jengu.dbo.maintenance.TenantImport.ArchiveSource                 interface
 cloud.jengu.dbo.maintenance.TenantImport.ArchiveSource                 open():InputStream
@@ -2182,6 +2184,7 @@ cloud.jengu.dbo.postgres.PgBlobStore                                   drop(Stri
 cloud.jengu.dbo.postgres.PgBlobStore                                   get(String):Optional
 cloud.jengu.dbo.postgres.PgBlobStore                                   new(DataSource)
 cloud.jengu.dbo.postgres.PgBlobStore                                   put(byte[],String):String
+cloud.jengu.dbo.postgres.PgBlobStore                                   restore(String,byte[],String):void
 cloud.jengu.dbo.postgres.PgChangeFeed                                  ack(String,String):void
 cloud.jengu.dbo.postgres.PgChangeFeed                                  class
 cloud.jengu.dbo.postgres.PgChangeFeed                                  cursorOf(String):String

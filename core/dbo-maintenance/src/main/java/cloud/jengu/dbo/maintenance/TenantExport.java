@@ -97,9 +97,15 @@ public final class TenantExport {
         //
         // In the shared schema the tenant-scoped tables ride with whichever
         // domain sweeps them up first.
+        // `blob` is tenant-scoped and carries no domain in its name, the same
+        // shape as the projection marker: swept up by whichever domain gets
+        // there first. Left out, an archive is a backup of everything except
+        // the recordings and the scans — the content nobody can reconstruct
+        // from anywhere else.
         String alsoMatching = Domains.separable(domain)
                 ? " OR true"
-                : " OR table_name LIKE 'term\\_%' OR table_name = 'projection_marker'";
+                : " OR table_name LIKE 'term\\_%' OR table_name = 'projection_marker'"
+                        + " OR table_name = 'blob'";
         // History is dumped separately below, with the type-level travel
         // exclusions applied to it. A domain whose history shares its schema
         // would otherwise be swept up here as well and written twice.
@@ -701,6 +707,54 @@ public final class TenantExport {
                 fhirCounts.put(type, lines);
             }
             writeBulkManifest(c, zip, fhirCounts);
+
+            // ---- the blobs, as themselves
+            //
+            // Not FHIR and not rendered: content that is identifying as a
+            // whole travels as the bytes it was written as, because taking it
+            // apart is exactly what it is held whole to avoid. The store
+            // cannot read it — a tenant may well have sealed it before
+            // handing it over — so nothing here sniffs, transcodes or
+            // normalises anything.
+            //
+            // Hash-verified for free: every entry's digest goes into the
+            // manifest the archive is attested over, so a scan that changed
+            // on the way fails the same check everything else does.
+            long blobs = 0;
+            StringBuilder index = new StringBuilder();
+            if (tableExists(c, "state", "blob")) {
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT key, media FROM state.blob ORDER BY key");
+                     ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        index.append(rs.getString(1)).append(' ')
+                                .append(rs.getString(2)).append('\n');
+                        blobs++;
+                    }
+                }
+                for (String line : index.toString().split("\n")) {
+                    if (line.isBlank()) {
+                        continue;
+                    }
+                    String key = line.substring(0, line.indexOf(' '));
+                    zip.putNextEntry(new ZipEntry("blobs/" + key));
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "SELECT content FROM state.blob WHERE key = ?::uuid")) {
+                        ps.setString(1, key);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) {
+                                zip.write(rs.getBytes(1));
+                            }
+                        }
+                    }
+                    zip.closeEntry();
+                }
+                // The media types beside them: a reader needs to know what a
+                // blob was called, and the bytes cannot say.
+                zip.putNextEntry(new ZipEntry("blobs/index.txt"));
+                zip.write(index.toString().getBytes(StandardCharsets.UTF_8));
+                zip.closeEntry();
+            }
         }
 
         Set<String> written = new java.util.LinkedHashSet<>();

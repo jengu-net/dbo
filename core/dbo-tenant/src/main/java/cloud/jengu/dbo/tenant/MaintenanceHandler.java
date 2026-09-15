@@ -397,7 +397,12 @@ public final class MaintenanceHandler implements HttpHandler {
                     publicKey(exchange, VENDOR_KEY_HEADER),
                     publicKey(exchange, TENANT_KEY_HEADER),
                     cloud.jengu.dbo.maintenance.TenantImport.HistoryMode.FRESH,
-                    ledger, equivalence, grain);
+                    ledger, equivalence, grain,
+                    // This tenant's own, built from the data source this
+                    // handler already holds: content restores where the
+                    // records restore, which is the only place erasure will
+                    // later reach it.
+                    new cloud.jengu.dbo.postgres.PgBlobStore(dataSource));
             respond(exchange, 200, "{\"imported\":" + result.imported()
                     + ",\"skippedIdentical\":" + result.skippedIdentical() + "}");
         } finally {

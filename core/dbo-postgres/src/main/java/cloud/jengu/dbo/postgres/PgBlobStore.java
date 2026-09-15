@@ -77,6 +77,29 @@ public final class PgBlobStore implements BlobStore {
     }
 
     @Override
+    public void restore(String key, byte[] content, String media) {
+        if (!isKey(key)) {
+            throw new IllegalArgumentException("not a key this store could have issued: " + key);
+        }
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "INSERT INTO state.blob (key, media, content) VALUES (?::uuid, ?, ?)"
+                             + " ON CONFLICT (key) DO UPDATE SET media = EXCLUDED.media,"
+                             + " content = EXCLUDED.content")) {
+            // Idempotent, because a restore is retried: an import that failed
+            // half way is run again, and the second pass must land on the same
+            // content rather than refuse what it already put there.
+            ps.setString(1, key);
+            ps.setString(2, media == null || media.isBlank()
+                    ? "application/octet-stream" : media);
+            ps.setBytes(3, content);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw failed("putting a blob back", e);
+        }
+    }
+
+    @Override
     public Optional<Blob> get(String key) {
         if (!isKey(key)) {
             // Not found rather than refused: a key this store did not issue

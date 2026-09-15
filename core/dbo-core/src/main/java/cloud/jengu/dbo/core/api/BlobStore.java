@@ -47,6 +47,22 @@ public interface BlobStore {
      */
     String put(byte[] content, String media);
 
+    /**
+     * Puts content back under the key it already had.
+     *
+     * <p>The exception to the rule above, and it does not break it: a key
+     * arriving with an archive is not a caller choosing where somebody else's
+     * content lives, it is this store being told what it chose before. The
+     * alternative is a restore that keeps every byte and renames it, so each
+     * record that pointed at a scan arrives pointing at nothing — which reads
+     * as a clean import, because the content is all there and only its name is
+     * wrong.
+     *
+     * <p>For putting an archive back, and nothing else. Anything writing new
+     * content uses {@link #put} and is given a key.
+     */
+    void restore(String key, byte[] content, String media);
+
     /** The content under this key, or nothing — never a different blob. */
     Optional<Blob> get(String key);
 
