@@ -1428,7 +1428,14 @@ public final class ElementStore implements FhirStoreFacade {
                 new cloud.jengu.dbo.subscriptions.SubscriptionEngine(dataSource, version.code(), store,
                         feed, ElementSubscriptions.source(store, inForce()),
                         ElementSubscriptions.criteriaCompiler(inForce()),
-                        new cloud.jengu.dbo.subscriptions.RestHookTransport());
+                        new cloud.jengu.dbo.subscriptions.RestHookTransport())
+                        // Both halves, because a tenant may hold either: a
+                        // criteria subscription is the R4 spelling and a topic
+                        // one the R5, and each source answers nothing for the
+                        // other's shape rather than guessing.
+                        .withTopics(ElementSubscriptions.topicSource(store, inForce()),
+                                ElementSubscriptions.composer(),
+                                ElementSubscriptions.filterCompiler(inForce()));
         engine.start(pollMillis);
         return java.util.Optional.of(engine);
     }

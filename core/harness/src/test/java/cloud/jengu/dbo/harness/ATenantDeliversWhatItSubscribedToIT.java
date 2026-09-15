@@ -62,6 +62,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ATenantDeliversWhatItSubscribedToIT {
 
     private static final String CLINIC = "teavitus";
+    private static final String R5_CLINIC = "teavitus-r5";
+    private static final String TOPIC = "https://teavitus.example/SubscriptionTopic/final-results";
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
     static PostgreSQLContainer<?> postgres;
@@ -70,7 +72,9 @@ class ATenantDeliversWhatItSubscribedToIT {
     static TenantRuntimeManager manager;
     static HttpServer subscriber;
     static final List<String> delivered = new CopyOnWriteArrayList<>();
+    static final List<String> onTopic = new CopyOnWriteArrayList<>();
     static String endpoint;
+    static String topicEndpoint;
 
     @BeforeAll
     void up() throws Exception {
@@ -89,8 +93,15 @@ class ATenantDeliversWhatItSubscribedToIT {
             exchange.sendResponseHeaders(200, -1);
             exchange.close();
         });
+        subscriber.createContext("/on-topic", exchange -> {
+            onTopic.add(new String(exchange.getRequestBody().readAllBytes(),
+                    StandardCharsets.UTF_8));
+            exchange.sendResponseHeaders(200, -1);
+            exchange.close();
+        });
         subscriber.start();
         endpoint = "http://127.0.0.1:" + subscriber.getAddress().getPort() + "/notify";
+        topicEndpoint = "http://127.0.0.1:" + subscriber.getAddress().getPort() + "/on-topic";
 
         byte[] kek = new byte[32];
         new java.security.SecureRandom().nextBytes(kek);
@@ -101,7 +112,15 @@ class ATenantDeliversWhatItSubscribedToIT {
                   {"name":"Observation","identity":"internal","handling":"operational"},
                   {"name":"Subscription","identity":"internal","handling":"operational"}]}"""
                 .formatted(CLINIC));
-        UntilServed.scan(manager, CLINIC);
+        // An R5 tenant beside it: topics are records there, which is what
+        // makes the topic half reachable at all.
+        Files.writeString(dir.resolve(R5_CLINIC + ".json"), """
+                {"code":"%s","face":"r5","types":[
+                  {"name":"Observation","identity":"internal","handling":"operational"},
+                  {"name":"Subscription","identity":"internal","handling":"operational"},
+                  {"name":"SubscriptionTopic","identity":"canonical","handling":"operational"}]}"""
+                .formatted(R5_CLINIC));
+        UntilServed.scan(manager, CLINIC, R5_CLINIC);
     }
 
     @AfterAll
@@ -170,20 +189,69 @@ class ATenantDeliversWhatItSubscribedToIT {
                         + notification);
     }
 
+    @Test
+    @Order(3)
+    @DisplayName("a topic subscription delivers too, on the face that composes it — the half "
+            + "that was written where no request could reach it")
+    @Proving(DboPromises.EVT_FHIR_SUBSCRIPTIONS)
+    void aTopicSubscriptionDelivers() throws Exception {
+        assertEquals(201, post(R5_CLINIC, "/SubscriptionTopic", """
+                {"resourceType":"SubscriptionTopic","url":"%s","status":"active",
+                 "resourceTrigger":[{"resource":"Observation",
+                                     "supportedInteraction":["create","update"]}],
+                 "canFilterBy":[{"filterParameter":"status"}]}"""
+                .formatted(TOPIC)).statusCode());
+
+        assertEquals(201, post(R5_CLINIC, "/Subscription", """
+                {"resourceType":"Subscription","status":"active","topic":"%s",
+                 "channelType":{"code":"rest-hook"},"endpoint":"%s","content":"id-only",
+                 "filterBy":[{"filterParameter":"status","value":"final"}]}"""
+                .formatted(TOPIC, topicEndpoint)).statusCode());
+
+        assertEquals(201, post(R5_CLINIC, "/Observation", """
+                {"resourceType":"Observation","status":"final",
+                 "code":{"coding":[{"system":"http://loinc.org","code":"9999-1"}]}}""")
+                .statusCode());
+
+        String notification = null;
+        long deadline = System.nanoTime() + Duration.ofSeconds(90).toNanos();
+        while (notification == null && System.nanoTime() < deadline) {
+            notification = onTopic.isEmpty() ? null : onTopic.get(0);
+            if (notification == null) {
+                Thread.sleep(100);
+            }
+        }
+
+        assertTrue(notification != null,
+                "a topic subscription delivered nothing, so the half that was unreachable is "
+                        + "still unreachable — just somewhere else");
+        assertTrue(notification.contains("subscription-notification"),
+                "it is not the R5 notification shape: " + notification);
+        assertTrue(notification.contains(TOPIC),
+                "and it does not say which topic it answers: " + notification);
+        assertFalse(notification.contains("9999-1"),
+                "content was id-only and the resource travelled anyway: " + notification);
+    }
+
     private static HttpResponse<String> post(String path, String body) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CLINIC) + path))
-                        .header("Authorization", "Bearer " + token())
+        return post(CLINIC, path, body);
+    }
+
+    private static HttpResponse<String> post(String tenant, String path, String body)
+            throws Exception {
+        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(tenant) + path))
+                        .header("Authorization", "Bearer " + token(tenant))
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
-    private static String token() throws Exception {
+    private static String token(String tenant) throws Exception {
         String form = "grant_type=client_credentials&client_id=tenant-bootstrap&client_secret="
-                + URLEncoder.encode(provisioner.bootstrapClientSecret(CLINIC),
+                + URLEncoder.encode(provisioner.bootstrapClientSecret(tenant),
                         StandardCharsets.UTF_8);
         return HTTP.send(HttpRequest.newBuilder(URI.create(
-                        manager.baseUrl(CLINIC).replace("/fhir", "/oidc/token")))
+                        manager.baseUrl(tenant).replace("/fhir", "/oidc/token")))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString())

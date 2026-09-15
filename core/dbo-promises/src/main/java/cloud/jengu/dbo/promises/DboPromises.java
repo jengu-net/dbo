@@ -1551,9 +1551,18 @@ public enum DboPromises implements Promise {
             + "subscriber is posted to, with the name of what changed rather than the record "
             + "itself where the channel asked for no payload."),
 
+    /**
+     * Narrowed to what is served. It said "backported to the R4 personality"
+     * as well, and that half is not reachable: an R4 topic is platform
+     * configuration rather than a record, so there is nowhere for a tenant to
+     * declare one. Leaving the wider sentence standing on a proof of the R5
+     * shape would be a citation covering ground it never walked.
+     */
     EVT_FHIR_SUBSCRIPTIONS(
-            "Planned — Topic-based FHIR Subscriptions (R5/R6 style, backported to the R4 "
-            + "personality) are a core capability. (R8)"),
+            "Topic-based FHIR Subscriptions are served where the version declares topics as "
+            + "records: a topic, a subscription filtered within what that topic allows, and a "
+            + "notification naming the subscription, the topic and the event — carrying the "
+            + "focus by name where the subscription asked for id-only. (R8)"),
     /** TODO: prove it in a test (#184). Retries, backoff and dead-lettering are
      * exercised in SubscriptionsIT against an engine the test built. No tenant has
      * ever delivered a notification, so nothing has ever retried one either. */
