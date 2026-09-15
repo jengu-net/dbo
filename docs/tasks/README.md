@@ -92,7 +92,7 @@ can tell a wait from a stall. Close the table with the critical path, so
 | [The face contract](face-contract.md) | one slice open, and the document closes with it | [#112](https://github.com/jengu-net/dbo/issues/112) |
 | [IHE profiles the store should serve](ihe-profiles.md) | analysis only; SVCM next | none filed |
 | [UBL is a face, described in FHIR's own tools](ubl-face.md) | two spikes green; nothing built; generating the models is next | none filed |
-| [Eventing is unreachable](eventing-is-unreachable.md) | built; nothing constructs it, and the catalogue now says so — mounting dispatch is next | none open; [#183](https://github.com/jengu-net/dbo/issues/183) is the ratchet |
+| [Eventing is unreachable](eventing-is-unreachable.md) | built; nothing constructs it, and a consumer is now polling because of it — mounting dispatch is next | [#259](https://github.com/jengu-net/dbo/issues/259); [#183](https://github.com/jengu-net/dbo/issues/183) is the ratchet |
 
 Everything else open in this repository is backlog: it has an issue, and it
 does not yet have enough shape to need one of these.

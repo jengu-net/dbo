@@ -8,7 +8,10 @@ genuinely reachable — still reads `PROVEN`. So the status page is no longer
 the thing to fix, and step 2 is the next one that changes what the store can
 do.
 
-**Issues** — none open. Built and closed:
+**Issues** — open: [#259](https://github.com/jengu-net/dbo/issues/259), a consumer
+that has narrowed to the edge and now polls every sixty seconds because this
+is unmounted — which is what turns the priority here from ours to set in the
+abstract into one with a cost attached. Built and closed:
 [#8](https://github.com/jengu-net/dbo/issues/8) (durable rest-hook delivery),
 [#15](https://github.com/jengu-net/dbo/issues/15) (topic subscriptions,
 R5-native and R4-backported),
@@ -62,11 +65,20 @@ meantime.
 | 1 | **Say what is true while it is untrue** ([#184](https://github.com/jengu-net/dbo/issues/184)) — the unreachable EVT promises carry a `TODO: prove it in a test` and the status page stops describing eventing as complete. Cheap, and everything below is decided while believing the status page. | **DONE** 2026-09-13 — three EVT promises read `PLANNED`; since 2026-09-15 they also say it in their own prose rather than only in a status column |
 | 2 | **Mount dispatch as a step service** — the runner tracks `StepService` through an OSGi whiteboard, so a bundle contributes one the way it contributes anything else. No new wiring in the composition root, which is where the gap is. | NEXT |
 | 3 | **Model dispatch as a sweep** — one run per pass over the feed, checkpointing its position, with per-event durability kept inside the step. A reconciler modelled as a pipeline never ends. | READY, needs 2 |
-| 4 | **Make id-only the default notification** — transport becomes routing, and the disclosing read goes back through the door that authorises, audits and decrypts. | READY, needs 0 |
+| 4 | **Id-only notification** — transport becomes routing, and the disclosing read goes back through the door that authorises, audits and decrypts. | **BUILT, and this step was mis-stated** — id-only is not missing and never was: it is per subscription, driven by the subscriber's own declaration (`!channel.hasPayload()` in R4, honoured by both composers), so a subscription declaring no payload already receives the topic, the subscription, the event number and a reference. What is left under this heading is a *default* and a policy question — whether a payload should be refused over a carrier that holds nothing readable — not a mechanism |
 | 5 | **Match against the envelope, not the database** — carry the envelope on the feed item so the common criteria are an in-process predicate. Today matching is one query per event per active subscription. | LATER — the throughput item, worth doing when a tenant has enough subscriptions to feel it |
 | 6 | **Blind patching on the stream** — a patch whose paths are all non-identifying is applicable with no key, decidable from tenant configuration. | LATER — its own topic if it grows |
 
-Step 4 needs nothing from the others. The critical path is now **2 → 3**.
+The critical path is **2 → 3**, and step 2 is the whole distance between a
+tenant holding a `Subscription` and anything arriving: the engine matches
+correctly and no deployment constructs it.
+
+Step 4 is not on the path at all, which is a correction rather than a
+re-ordering — see its row. A consumer reading this table ranked 4 above 2 on
+the strength of the old wording and would have got nothing for it, because
+id-only is already the shape they would receive the moment anything delivered.
+That is this document doing the opposite of its job, and the reason it is
+worth saying so in the row rather than quietly editing the words.
 
 ## Decisions
 
