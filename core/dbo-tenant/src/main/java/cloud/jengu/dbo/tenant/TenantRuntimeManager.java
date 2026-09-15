@@ -1641,7 +1641,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             if (identityType != null) {
                 String identityPath = "/t/" + spec.code() + "/identity";
                 sharedServer.createContext(identityPath, new IdentityHandler(
-                        authority, runtime.engine(), identityPath, identityType));
+                        authority, runtime.engine(), identityPath, identityType,
+                        vaults.get(spec.code())));
                 identityContexts.put(spec.code(), identityPath);
             }
             // The participation surface: where a host that is NOT the

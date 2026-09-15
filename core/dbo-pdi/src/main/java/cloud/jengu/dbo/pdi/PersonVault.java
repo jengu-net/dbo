@@ -715,6 +715,48 @@ public final class PersonVault {
         }
     }
 
+    // --------------------------------------------------------- pseudonyms
+
+    /**
+     * This person's pseudonym under one scope — derived, never stored.
+     *
+     * <p>A pseudonym kept as a record is a link somebody can read: two rows
+     * joined by a value, correlatable by anyone who reaches both, surviving
+     * the erasure that was supposed to end the correlation. Derived from the
+     * person's own key, there is nothing to read and nothing to survive.
+     *
+     * <p><b>The same person and scope always answer the same thing</b>, which
+     * is what makes it usable as an identifier at all, and <b>two scopes
+     * answer values nobody can relate</b> without the key — that is a keyed
+     * function rather than a rule anybody enforces.
+     *
+     * <p><b>Erasure makes it impossible rather than forbidden.</b> A shredded
+     * person has no key, so the derivation cannot be performed — a pseudonym
+     * issued yesterday cannot be recomputed today, by us or by anybody.
+     *
+     * <p>The scope is opaque and is not interpreted: it is whatever the
+     * caller means by a context, and giving it structure here would be this
+     * store deciding what somebody else's contexts are.
+     *
+     * @return the pseudonym, or nothing where the person has been erased
+     */
+    public Optional<String> pseudonymFor(String personId, String scope) {
+        if (scope == null || scope.isBlank()) {
+            throw new IllegalArgumentException("a pseudonym is for a scope; name one");
+        }
+        return keyFor(personId, false).map(key -> {
+            try {
+                javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+                mac.init(new SecretKeySpec(key, "HmacSHA256"));
+                byte[] derived = mac.doFinal(scope.getBytes(
+                        java.nio.charset.StandardCharsets.UTF_8));
+                return java.util.HexFormat.of().formatHex(derived);
+            } catch (Exception e) {
+                throw new IllegalStateException("deriving a pseudonym failed", e);
+            }
+        });
+    }
+
     // ------------------------------------------------------------- crypto
 
     public byte[] encrypt(byte[] personKey, byte[] plain) {

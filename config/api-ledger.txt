@@ -2091,6 +2091,7 @@ cloud.jengu.dbo.pdi.PersonVault                                        index(Str
 cloud.jengu.dbo.pdi.PersonVault                                        keyFor(String,boolean):Optional
 cloud.jengu.dbo.pdi.PersonVault                                        new(DataSource,byte[])
 cloud.jengu.dbo.pdi.PersonVault                                        personOf(String,String):Optional
+cloud.jengu.dbo.pdi.PersonVault                                        pseudonymFor(String,String):Optional
 cloud.jengu.dbo.pdi.PersonVault                                        recordsOf(String):List
 cloud.jengu.dbo.pdi.PersonVault                                        recordsOf(String,String):List
 cloud.jengu.dbo.pdi.PersonVault                                        replayLedger():int
@@ -3353,6 +3354,7 @@ cloud.jengu.dbo.tenant.IdentityHandler                                 SCOPE:Str
 cloud.jengu.dbo.tenant.IdentityHandler                                 class
 cloud.jengu.dbo.tenant.IdentityHandler                                 handle(HttpExchange):void
 cloud.jengu.dbo.tenant.IdentityHandler                                 new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.core.api.ObjectStore,String,String)
+cloud.jengu.dbo.tenant.IdentityHandler                                 new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.core.api.ObjectStore,String,String,cloud.jengu.dbo.pdi.PersonVault)
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               bootstrapClientSecret(String):String
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               bootstrapClientSecret(String,Duration):String
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               class

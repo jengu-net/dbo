@@ -73,12 +73,25 @@ public final class IdentityHandler implements HttpHandler {
      */
     private final String identityType;
 
+    /**
+     * The membrane, where this tenant has one. A pseudonym is derived from a
+     * person's key and there is nowhere else to get one — so a tenant without
+     * a vault says it cannot rather than answering with something weaker.
+     */
+    private final cloud.jengu.dbo.pdi.PersonVault vault;
+
     public IdentityHandler(TenantAuthority authority, ObjectStore store, String base,
             String identityType) {
+        this(authority, store, base, identityType, null);
+    }
+
+    public IdentityHandler(TenantAuthority authority, ObjectStore store, String base,
+            String identityType, cloud.jengu.dbo.pdi.PersonVault vault) {
         this.authority = authority;
         this.store = store;
         this.base = base;
         this.identityType = identityType;
+        this.vault = vault;
     }
 
     @Override
@@ -104,6 +117,7 @@ public final class IdentityHandler implements HttpHandler {
                 case "unbind" -> bind(exchange, body, BindingEvent.Kind.WITHDRAWN);
                 case "anonymity" -> anonymity(exchange, body);
                 case "subject" -> subject(exchange, body);
+                case "pseudonym" -> pseudonym(exchange, body);
                 default -> fail(exchange, 404, "invalid_request",
                         "this door offers resolve, adjudicate, bind, unbind, anonymity "
                                 + "and subject; it was asked for '" + verb + "'");
@@ -212,6 +226,49 @@ public final class IdentityHandler implements HttpHandler {
                 "subject", subjectId,
                 "anonymous", Anonymity.declared(store, subjectId),
                 "bound", assurance));
+    }
+
+    /**
+     * The pseudonym for a person under a scope, computed rather than looked
+     * up.
+     *
+     * <p>Nothing is written, here or anywhere: asking twice answers the same
+     * value because the key and the scope are the same, not because something
+     * was kept. Two scopes answer values that cannot be related without the
+     * key, and a person who has been erased has no key — so a pseudonym
+     * issued before an erasure cannot be recomputed after it.
+     */
+    private void pseudonym(HttpExchange exchange, Map<String, Object> body) throws IOException {
+        if (vault == null) {
+            fail(exchange, 400, "invalid_request", "this tenant holds no keys, so there is "
+                    + "nothing to derive a pseudonym from");
+            return;
+        }
+        String subject = required(body, "subject");
+        String scope = required(body, "scope");
+        // A reference names a record and the vault knows people — resolved the
+        // way sealing and erasure resolve theirs, so all three agree about who
+        // a reference means.
+        String person = subject;
+        int slash = subject.lastIndexOf('/');
+        if (slash > 0 && slash < subject.length() - 1) {
+            person = vault.personOf(subject.substring(0, slash), subject.substring(slash + 1))
+                    .orElse(null);
+            if (person == null) {
+                fail(exchange, 404, "not_found", "no person is known for " + subject);
+                return;
+            }
+        }
+        java.util.Optional<String> derived = vault.pseudonymFor(person, scope);
+        if (derived.isEmpty()) {
+            // Gone rather than absent, as everywhere else the erasure reaches:
+            // this person existed and their key was destroyed, which is a
+            // different fact from never having heard of them.
+            fail(exchange, 410, "erased", "this person has been erased, so no pseudonym for "
+                    + "them can be derived");
+            return;
+        }
+        respond(exchange, 200, Map.of("scope", scope, "pseudonym", derived.get()));
     }
 
     // ------------------------------------------------------------ reading
