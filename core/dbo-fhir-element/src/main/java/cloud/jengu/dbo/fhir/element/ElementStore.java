@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.fhir.element;
 
+import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.IdentityRef;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PutRequest;
@@ -1410,6 +1411,14 @@ public final class ElementStore implements FhirStoreFacade {
     }
 
     // ----------------------------------------------------------- searching
+
+    @Override
+    public Criteria narrow(String typeName, Map<String, String> params) {
+        // ElementSearch.compile and nothing else: this is the face that
+        // actually serves the searches, so the expression cannot differ from
+        // the one a caller measured the stock with.
+        return ElementSearch.compile(inForce(), typeName, params).criteria();
+    }
 
     @Override
     public String search(String typeName, Map<String, String> params, String cursor) {

@@ -1417,6 +1417,7 @@ cloud.jengu.dbo.fhir.common.FhirStoreFacade                            historyBu
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            interface
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            internalFault(String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            knowsType(String):boolean
+cloud.jengu.dbo.fhir.common.FhirStoreFacade                            narrow(String,Map):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            noSuchType(String,String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            operationOutcome(String,String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            operations():List
@@ -1613,6 +1614,7 @@ cloud.jengu.dbo.fhir.element.ElementStore                              expandDef
 cloud.jengu.dbo.fhir.element.ElementStore                              historyBundle(String,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              internalFault(String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              knowsType(String):boolean
+cloud.jengu.dbo.fhir.element.ElementStore                              narrow(String,Map):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.fhir.element.ElementStore                              noSuchType(String,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              operationOutcome(String,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              operations():List
@@ -1708,6 +1710,7 @@ cloud.jengu.dbo.fhir.r4.R4Store                                        create(St
 cloud.jengu.dbo.fhir.r4.R4Store                                        delete(String,String,Long):void
 cloud.jengu.dbo.fhir.r4.R4Store                                        historyBundle(String,String):String
 cloud.jengu.dbo.fhir.r4.R4Store                                        knowsType(String):boolean
+cloud.jengu.dbo.fhir.r4.R4Store                                        narrow(String,Map):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.fhir.r4.R4Store                                        new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.r4.R4Personality,String)
 cloud.jengu.dbo.fhir.r4.R4Store                                        noSuchType(String,String):String
 cloud.jengu.dbo.fhir.r4.R4Store                                        operationOutcome(String,String):String
@@ -1796,6 +1799,7 @@ cloud.jengu.dbo.fhir.r5.R5Store                                        create(St
 cloud.jengu.dbo.fhir.r5.R5Store                                        delete(String,String,Long):void
 cloud.jengu.dbo.fhir.r5.R5Store                                        historyBundle(String,String):String
 cloud.jengu.dbo.fhir.r5.R5Store                                        knowsType(String):boolean
+cloud.jengu.dbo.fhir.r5.R5Store                                        narrow(String,Map):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.fhir.r5.R5Store                                        new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.r5.R5Personality,String)
 cloud.jengu.dbo.fhir.r5.R5Store                                        noSuchType(String,String):String
 cloud.jengu.dbo.fhir.r5.R5Store                                        operationOutcome(String,String):String
@@ -1914,11 +1918,11 @@ cloud.jengu.dbo.maintenance.ReferenceClosure.Report                    record
 cloud.jengu.dbo.maintenance.ReferenceClosure.Report                    referencesChecked():long
 cloud.jengu.dbo.maintenance.ReferenceClosure.Report                    toString():String
 cloud.jengu.dbo.maintenance.Reshape                                    apply(cloud.jengu.dbo.maintenance.Reshape.Accept,String,String,List):cloud.jengu.dbo.maintenance.Reshape.Run
-cloud.jengu.dbo.maintenance.Reshape                                    claim(cloud.jengu.dbo.core.api.ObjectStore,String,String,int,int,String):cloud.jengu.dbo.maintenance.Reshape.Claim
+cloud.jengu.dbo.maintenance.Reshape                                    claim(cloud.jengu.dbo.core.api.ObjectStore,String,String,int,int,String,cloud.jengu.dbo.maintenance.Reshape.Narrowing):cloud.jengu.dbo.maintenance.Reshape.Claim
 cloud.jengu.dbo.maintenance.Reshape                                    class
 cloud.jengu.dbo.maintenance.Reshape                                    json(cloud.jengu.dbo.maintenance.Reshape.Claim):String
 cloud.jengu.dbo.maintenance.Reshape                                    json(cloud.jengu.dbo.maintenance.Reshape.Run):String
-cloud.jengu.dbo.maintenance.Reshape                                    run(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.face.ShapeConversion,cloud.jengu.dbo.maintenance.Reshape.Accept,String,String,int,int,int,String):cloud.jengu.dbo.maintenance.Reshape.Run
+cloud.jengu.dbo.maintenance.Reshape                                    run(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.face.ShapeConversion,cloud.jengu.dbo.maintenance.Reshape.Accept,String,String,int,int,int,String,cloud.jengu.dbo.maintenance.Reshape.Narrowing):cloud.jengu.dbo.maintenance.Reshape.Run
 cloud.jengu.dbo.maintenance.Reshape.Accept                             interface
 cloud.jengu.dbo.maintenance.Reshape.Accept                             reaccept(String,String,long,byte[]):void
 cloud.jengu.dbo.maintenance.Reshape.Claim                              cursor():String
@@ -1936,6 +1940,9 @@ cloud.jengu.dbo.maintenance.Reshape.Held                               payload()
 cloud.jengu.dbo.maintenance.Reshape.Held                               record
 cloud.jengu.dbo.maintenance.Reshape.Held                               toString():String
 cloud.jengu.dbo.maintenance.Reshape.Held                               version():long
+cloud.jengu.dbo.maintenance.Reshape.Narrowing                          NONE:cloud.jengu.dbo.maintenance.Reshape.Narrowing
+cloud.jengu.dbo.maintenance.Reshape.Narrowing                          interface
+cloud.jengu.dbo.maintenance.Reshape.Narrowing                          of(String):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.maintenance.Reshape.Refusal                            equals(Object):boolean
 cloud.jengu.dbo.maintenance.Reshape.Refusal                            hashCode():int
 cloud.jengu.dbo.maintenance.Reshape.Refusal                            id():String
@@ -2579,6 +2586,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SHAPE_QUE
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_REFUSED_OBJECT_LEFT_BEHIND:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_RESHAPED_IN_PLACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_RESHAPE_RESUMABLE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SHAPE_RESHAPE_TAKES_THE_SEARCH_NARROWING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_SERVED_BESIDE_THE_CLAIM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_STAMP_IS_DERIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_STAMP_OUTLIVES_ITS_PACK:cloud.jengu.dbo.promises.DboPromises

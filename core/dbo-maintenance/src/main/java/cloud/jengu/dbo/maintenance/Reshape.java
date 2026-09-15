@@ -133,6 +133,32 @@ public final class Reshape {
     /** One object held out for conversion elsewhere, with the version it was read at. */
     public record Held(String id, long version, byte[] payload) {}
 
+    /**
+     * The extra narrowing a caller aimed this run with, compiled by the face
+     * that owns the expression.
+     *
+     * <p>A background sweep converges everything below the bound and wants
+     * nothing here. An <b>admission gate</b> is the other case and is a
+     * different question: it holds a tenant out of service on a narrow
+     * condition — stock of a shape somebody waits on <em>and</em> in a state
+     * somebody waits in — and it has to be able to clear only that condition.
+     * Without this it would have to converge the whole profile, which for a
+     * hospital with years of filed orders is a longer outage than the
+     * narrowing exists to avoid.
+     *
+     * <p>Produces a fresh criteria each time it is asked, because a walk
+     * builds one per page.
+     */
+    @FunctionalInterface
+    public interface Narrowing {
+
+        /** The starting criteria for one page of this type. */
+        Criteria of(String typeName);
+
+        /** Everything below the bound, which is what a sweep wants. */
+        Narrowing NONE = Criteria::of;
+    }
+
     /** A page of stock handed out, and where to ask for the next one. */
     public record Claim(List<Held> held, String cursor) {
 
@@ -159,8 +185,8 @@ public final class Reshape {
      * the failure it would exist to prevent.
      */
     public static Claim claim(ObjectStore store, String typeName, String profile,
-            int targetMajor, int pageSize, String cursor) {
-        var chunk = store.page(Criteria.of(typeName)
+            int targetMajor, int pageSize, String cursor, Narrowing narrowing) {
+        var chunk = store.page(narrowing.of(typeName)
                 .shapeBelow(profile, targetMajor)
                 .limit(pageSize), cursor);
         List<Held> held = new ArrayList<>();
@@ -212,12 +238,12 @@ public final class Reshape {
      */
     public static Run run(ObjectStore store, ShapeConversion conversion, Accept accept,
             String typeName, String profile, int targetMajor, int pageSize, int maxPages,
-            String cursor) {
+            String cursor, Narrowing narrowing) {
         int converted = 0;
         List<Refusal> refused = new ArrayList<>();
         String at = cursor;
         for (int page = 0; page < maxPages; page++) {
-            var chunk = store.page(Criteria.of(typeName)
+            var chunk = store.page(narrowing.of(typeName)
                     .shapeBelow(profile, targetMajor)
                     .limit(pageSize), at);
             for (StoredObject stored : chunk.items()) {

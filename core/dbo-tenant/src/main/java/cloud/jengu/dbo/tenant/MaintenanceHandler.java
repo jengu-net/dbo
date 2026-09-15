@@ -225,6 +225,11 @@ public final class MaintenanceHandler implements HttpHandler {
                     + "conversion, so a reshape would have nothing to convert with");
             return;
         }
+        cloud.jengu.dbo.maintenance.Reshape.Narrowing narrowing =
+                narrowingFrom(exchange, q, typeName);
+        if (narrowing == null) {
+            return;
+        }
         cloud.jengu.dbo.maintenance.Reshape.Run run;
         try {
             run = cloud.jengu.dbo.maintenance.Reshape.run(engine, conversion.get(),
@@ -235,7 +240,7 @@ public final class MaintenanceHandler implements HttpHandler {
                     typeName, profile, Integer.parseInt(target),
                     Integer.parseInt(q.getOrDefault("pageSize", "100")),
                     Integer.parseInt(q.getOrDefault("pages", "10")),
-                    q.get("cursor"));
+                    q.get("cursor"), narrowing);
         } catch (NumberFormatException notANumber) {
             fail(exchange, 400, "invalid_request",
                     "target, pageSize and pages are numbers: " + notANumber.getMessage());
@@ -260,16 +265,88 @@ public final class MaintenanceHandler implements HttpHandler {
                     "claim needs type, profile and target (the major to converge on)");
             return;
         }
+        cloud.jengu.dbo.maintenance.Reshape.Narrowing narrowing =
+                narrowingFrom(exchange, q, q.get("type"));
+        if (narrowing == null) {
+            return;
+        }
         try {
             respond(exchange, 200, cloud.jengu.dbo.maintenance.Reshape.json(
                     cloud.jengu.dbo.maintenance.Reshape.claim(engine, q.get("type"),
                             q.get("profile"), Integer.parseInt(q.get("target")),
                             Integer.parseInt(q.getOrDefault("pageSize", "100")),
-                            q.get("cursor"))));
+                            q.get("cursor"), narrowing)));
         } catch (NumberFormatException notANumber) {
             fail(exchange, 400, "invalid_request",
                     "target and pageSize are numbers: " + notANumber.getMessage());
         }
+    }
+
+    /** What steers the walk itself, rather than selecting the stock it walks. */
+    private static final java.util.Set<String> STEERING =
+            java.util.Set.of("type", "profile", "target", "pageSize", "pages", "cursor");
+
+    /**
+     * Parameters that shape a <b>result</b>. A reshape has no result to
+     * shape: it walks by pageSize and pages, and the shape it converges on is
+     * named by profile and target. Accepting one would mean either ignoring
+     * it or letting a second source of the same fact disagree with the first.
+     */
+    private static final java.util.Set<String> SHAPES_THE_RESULT =
+            java.util.Set.of("_count", "_sort", "_summary", "_elements", "_include",
+                    "_revinclude", "_offset", "_total", "_shape-below", "_shape-at-least");
+
+    /**
+     * The narrowing this request asked for, or {@code null} once it has been
+     * refused and answered.
+     *
+     * <p>Everything that is not this door's own steering is handed to the
+     * face's compiler <b>untouched</b>. That is the guarantee worth having:
+     * the filter that converts is not a second implementation agreeing with
+     * the one that counted, it is the same one, so a gate cannot clear a
+     * condition it never measured.
+     *
+     * <p>Compiled once here, before a single object is converted. An
+     * unsupported parameter is refused by name rather than dropped, because a
+     * dropped filter on a read shows somebody too much while a dropped filter
+     * here <b>writes</b> to everything it was meant to exclude and then
+     * reports success.
+     */
+    private cloud.jengu.dbo.maintenance.Reshape.Narrowing narrowingFrom(HttpExchange exchange,
+            java.util.Map<String, String> q, String typeName) throws IOException {
+        java.util.Map<String, String> filters = new java.util.LinkedHashMap<>(q);
+        filters.keySet().removeAll(STEERING);
+        for (String name : filters.keySet()) {
+            if (SHAPES_THE_RESULT.contains(name)) {
+                fail(exchange, 400, "invalid_request", "'" + name + "' shapes a result and a "
+                        + "reshape has none: it walks by pageSize and pages, and converges on "
+                        + "the shape named by profile and target");
+                return null;
+            }
+        }
+        if (filters.isEmpty()) {
+            return cloud.jengu.dbo.maintenance.Reshape.Narrowing.NONE;
+        }
+        if (facade == null) {
+            fail(exchange, 409, "not_aimable", "this tenant serves no face, so a filtered "
+                    + "conversion cannot be compiled — and converting everything instead "
+                    + "would convert what was excluded");
+            return null;
+        }
+        try {
+            facade.narrow(typeName, filters);
+        } catch (UnsupportedOperationException cannotAim) {
+            // Named, not silent, and for the same reason as 'not convertible'
+            // above: "this face cannot be aimed" and "this face converted what
+            // you did not ask for" must not look alike from outside.
+            fail(exchange, 409, "not_aimable", "this tenant's face compiles no search "
+                    + "narrowing, so the filter could not be applied to the conversion");
+            return null;
+        } catch (RuntimeException refused) {
+            fail(exchange, 400, "invalid_request", String.valueOf(refused.getMessage()));
+            return null;
+        }
+        return type -> facade.narrow(type, filters);
     }
 
     /** Converted forms handed back, re-accepted through the face. */

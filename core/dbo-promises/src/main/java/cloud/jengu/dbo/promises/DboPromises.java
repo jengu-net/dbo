@@ -64,6 +64,22 @@ public enum DboPromises implements Promise {
             + "pre-conversion object with its own stamp and the new version carries the "
             + "new one."),
 
+    /**
+     * The default converges everything below the bound, which is what a sweep
+     * wants and what an admission gate cannot use: a gate holds a tenant out
+     * of service on a narrow condition and has to clear only that condition,
+     * or it shuts the clinic for longer than a naive design would.
+     *
+     * <p>The filter is compiled by the face that serves the searches rather
+     * than parsed a second time, so what counted the stock is what converts
+     * it. Two expressions that merely agree can stop agreeing, and a gate
+     * would then clear a condition it never measured.
+     */
+    SHAPE_RESHAPE_TAKES_THE_SEARCH_NARROWING("A reshape and a hand-back claim accept the "
+            + "search narrowing a read of the same stock accepts, compiled by the same face, "
+            + "so one expression measures and converges; a parameter the store cannot honour "
+            + "is refused by name before anything is converted, never dropped."),
+
     SHAPE_RESHAPE_RESUMABLE("A reshape is paged and rate-bounded, hands back a cursor and "
             + "its counts, and a re-run finds only what is still behind."),
 

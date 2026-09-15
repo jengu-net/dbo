@@ -88,6 +88,31 @@ public interface FhirStoreFacade {
     }
 
     /** History Bundle, oldest first. Empty entries if the id is unknown. */
+    /**
+     * The narrowing these search parameters express, as engine criteria.
+     *
+     * <p><b>The same compiler the search path uses</b>, asked for the
+     * criteria instead of a bundle. That is the whole point of it being here
+     * rather than a second parser somewhere convenient: a filter that counted
+     * the stock and a filter that converts it must be one expression, because
+     * two that can drift let a caller clear a condition it never measured and
+     * act on the strength of it.
+     *
+     * <p>Refuses by name what it does not support, exactly as a search does
+     * (REQ-DBO-SRCH-STRICT-BY-DEFAULT). A dropped filter on a read shows
+     * somebody too much; a dropped filter on a conversion <b>writes</b> to
+     * everything it was meant to exclude and reports success.
+     *
+     * <p>A face that cannot compile one says so rather than answering with
+     * everything: "this face cannot be aimed" and "this face converted what
+     * you did not ask for" must not look alike from outside.
+     */
+    default cloud.jengu.dbo.core.api.Criteria narrow(String typeName, Map<String, String> params) {
+        throw new UnsupportedOperationException(
+                "this face compiles no search narrowing, so a filtered conversion would "
+                        + "convert more than it was asked to");
+    }
+
     String historyBundle(String typeName, String id);
 
     /** CapabilityStatement generated from the configured types (REQ-DBO-SRCH-HONEST-CAPABILITY). */

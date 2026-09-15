@@ -102,6 +102,13 @@ public final class R5Store implements FhirStoreFacade {
         return served.search(typeName, params, cursor);
     }
 
+    /** The face's own compiler, so a reshape is aimed by the expression a search is. */
+    @Override
+    public cloud.jengu.dbo.core.api.Criteria narrow(String typeName,
+            java.util.Map<String, String> params) {
+        return served.narrow(typeName, params);
+    }
+
     @Override
     public void search(String typeName, Map<String, String> params, String cursor,
             OutputStream out) throws IOException {
