@@ -163,7 +163,12 @@ class TenantRuntimeIT {
                 {"code":"terms5","face":"r5","types":[
                   {"name":"CodeSystem","identity":"canonical","handling":"operational"},
                   {"name":"ValueSet","identity":"canonical","handling":"operational"}]}""");
-        manager.scanOnce();
+        // Waited for, not scanned once. A pass returning is not these two
+        // serving, and the difference is what a 404 three lines below would
+        // otherwise be blamed on: this test used to report that terms5
+        // refused a CodeSystem, when what had happened was that terms5 never
+        // came up at all.
+        UntilServed.scan(manager, "terms4", "terms5");
 
         for (String code : java.util.List.of("terms4", "terms5")) {
             String base = manager.baseUrl(code);
@@ -232,7 +237,10 @@ class TenantRuntimeIT {
         assertEquals(200, get(manager.baseUrl("teine") + "/metadata").statusCode());
 
         Files.writeString(dir.resolve("aiakas.json"), specA());
-        manager.scanOnce();
+        // Same reason as above, and a sharper consequence: a bring-up that
+        // threw here would read as the data NOT having survived the retract,
+        // which is the one conclusion this test exists to rule out.
+        UntilServed.scan(manager, "aiakas");
         String found = get(manager.baseUrl("aiakas") + "/Patient?identifier="
                 + java.net.URLEncoder.encode(EID + "|38001010001",
                         java.nio.charset.StandardCharsets.UTF_8)).body();

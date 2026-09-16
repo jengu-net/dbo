@@ -76,12 +76,37 @@ final class UntilServed {
                 + " passes; serving=" + up + " troubles=" + manager.troubles());
     }
 
-    /** Scans until every code named is being served. */
+    /**
+     * Scans until every code named is being served.
+     *
+     * <p><b>Names the tenants that did not make it, and what the runtime
+     * recorded about them.</b> A bring-up that throws is caught into the
+     * manager's ledger and the tenant simply never serves — which at the
+     * surface is indistinguishable from a tenant nobody declared. A test that
+     * carried on therefore met a 404 and said whatever its next assertion was
+     * about, and the one thing it could not say was that a bring-up had
+     * failed. That reading is the failure this exists to prevent: the
+     * assertion that follows a bare pass blames the store for refusing a
+     * write it never saw.
+     */
     static Set<String> scan(TenantRuntimeManager manager, String... codes) {
         for (String code : codes) {
             classUnique(code);
         }
-        return scan(manager, up -> up.containsAll(Set.of(codes)));
+        Set<String> wanted = Set.of(codes);
+        Set<String> up = Set.of();
+        for (int pass = 0; pass < PASSES; pass++) {
+            up = manager.scanOnce();
+            if (up.containsAll(wanted)) {
+                return up;
+            }
+        }
+        Set<String> missing = new java.util.TreeSet<>(wanted);
+        missing.removeAll(up);
+        throw new AssertionError("declared but not serving after " + PASSES + " passes: "
+                + missing + " — so anything asked of them answers 404, which is also what a "
+                + "tenant nobody declared answers. What the runtime recorded about the "
+                + "bring-up: " + manager.troubles() + "; serving=" + up);
     }
 
     /** Refuses a tenant code a different class already brought up. */
