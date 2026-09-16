@@ -323,6 +323,13 @@ that names a declared step becomes a run, refused by name where its rules
 are not met, and reads back as the same `Task` as it advances. A router holds
 the claim for the edge behind it, names that edge as the recipient, and waits.
 
+A participant's own container is configuration rather than code: installing
+the runner brings the whiteboard, installing the stream carrier beside it and
+naming the substrate, the tenants and the enrolment turns that container into
+a host holding one lane per tenant. Over the substrate nothing is opened
+towards the participant and it opens nothing towards a tenant, which is the
+deployment shape that carrier exists for.
+
 One runner fleet can carry every tenant's work and read almost none of it.
 A participant offers two public keys at enrolment (X25519 to be sealed to,
 Ed25519 to sign with); its inputs leave as a readable manifest plus payloads

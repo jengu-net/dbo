@@ -18,6 +18,26 @@ Three, and the engine behind them is the same build in all three.
 - **A fleet.** Specified below; **no implementation exists**. A deployment today
   is one node and its databases.
 
+### A participant's own container
+
+A participant that runs steps is not one of those shapes: it is somebody
+else's process, and what it installs is the deployment. `dbo-runner` brings
+the whiteboard — a bundle registering a step service contributes a step, a
+bundle registering a lane says which tenant's work to offer it — and the step
+bundles are the participant's own.
+
+The lane depends on where the participant sits. In-process it is the host's
+own; over HTTP it is built by whatever holds the credential. Over the store's
+durable substrate it comes from installing `dbo-stream` beside the runner and
+telling the container four things: the substrate it already shares with the
+store, the tenants it holds a lane into, the participant name it enrolled
+under, and the private halves of the two keys it enrolled with. That is the
+shape for a participant that can take no inbound connection at all — nothing
+is opened towards it, and it opens nothing towards any tenant.
+
+A container serving tenants installs the same bundle, because the door is in
+it. It is told no tenants to hold a lane into, so it holds none.
+
 A worked example of the second shape — two organisations, the managing tenant,
 the applications in front of them and the participants outside — is drawn on
 the site under Technical, where a reader planning a deployment is standing.

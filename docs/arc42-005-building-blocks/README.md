@@ -98,7 +98,9 @@ leaves installed everywhere: promise · dbo-promises · dbo-telemetry
 - **`dbo-policy`** — audit and write discipline as tenant policy.
 - **`dbo-work`** — runs as records, step declarations, the claim.
   **`dbo-runner`** — the participation lane and the embeddable step runner.
-  **`dbo-stream`** — the lane's third carrier, over the store's own substrate.
+  **`dbo-stream`** — the lane's third carrier, over the store's own substrate:
+  the door a tenant mounts and the lane a participant's container holds, which
+  it builds from what the container was told.
   **`dbo-sync`** — declared content dependencies and the replication lane
   between two appliances of one tenant.
 - **`dbo-subscriptions`** — durable subscription delivery over the change feed.

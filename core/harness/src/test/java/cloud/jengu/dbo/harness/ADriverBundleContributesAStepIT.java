@@ -126,7 +126,7 @@ class ADriverBundleContributesAStepIT {
                 "the step never ran, so registering a StepService and a Lane in a container "
                         + "wires nothing — and a driver bundle contributing a step is a "
                         + "sentence with no mechanism behind it");
-        assertTrue(performed.startsWith("dbo.probe.assay"),
+        assertTrue(performed.startsWith("probe.assay"),
                 "something ran, but not the work this bundle offered: " + performed);
     }
 

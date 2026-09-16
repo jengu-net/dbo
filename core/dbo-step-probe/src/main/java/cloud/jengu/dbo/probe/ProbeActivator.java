@@ -32,24 +32,44 @@ public final class ProbeActivator implements BundleActivator {
     /** Set to the run's key once the step has actually performed. */
     public static final String PERFORMED = "dbo.probe.performed";
 
-    /** The step this driver contributes — its own, declared nowhere else. */
-    public static final String STEP = "dbo.probe.assay.report";
+    /**
+     * The step this driver contributes — its own, declared nowhere else.
+     *
+     * <p>{@code <module>.<process>.<step>}, which it was not until a tenant
+     * declared it: nothing had ever put this id past {@code StepId}, because
+     * the lane this bundle offers is in-memory and asks nothing of a name.
+     */
+    public static final String STEP = "probe.assay.report";
+
+    /**
+     * Set to {@code false} where the container already has a lane.
+     *
+     * <p>A driver bundle carries no lane in life: the host holds that, and
+     * this one holds a standing one so the whiteboard can be proved with no
+     * store anywhere near it. In a container that IS a host — one holding a
+     * real carrier into a real tenant — its own lane would answer first and
+     * the carrier under test would never be asked, so the work performed
+     * would prove the whiteboard again and the carrier not at all.
+     */
+    public static final String OFFER_A_LANE = "dbo.probe.lane";
 
     @Override
     public void start(BundleContext context) {
         System.clearProperty(PERFORMED);
-        // The lane first: a runner that saw the service and had nowhere to
-        // poll would sit quietly, and the test would read the same silence it
-        // reads when the whiteboard is broken.
-        context.registerService(Lane.class,
-                ProvingLane.offering(STEP).with("specimen", "Basic", "{\"n\":1}").lane(),
-                null);
+        if (!"false".equals(context.getProperty(OFFER_A_LANE))) {
+            // The lane first: a runner that saw the service and had nowhere
+            // to poll would sit quietly, and the test would read the same
+            // silence it reads when the whiteboard is broken.
+            context.registerService(Lane.class,
+                    ProvingLane.offering(STEP).with("specimen", "Basic", "{\"n\":1}").lane(),
+                    null);
+        }
         context.registerService(StepService.class, new Report(), null);
     }
 
     @Override
     public void stop(BundleContext context) {
-        // The framework unregisters both on stop; the runner lets them go.
+        // The framework unregisters what this registered; the runner lets it go.
     }
 
     /** The step itself: it records that it ran, and finishes. */

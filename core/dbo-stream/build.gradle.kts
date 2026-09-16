@@ -17,6 +17,13 @@ dependencies {
     // the verbs, encoded once: this bundle is a carrier, not a second lane
     api(project(":core:dbo-runner"))
     embedded("dev.dbos:transact:1.0.0")
+    // The pool the host half opens onto the substrate. DBOS already carries
+    // this exact version in lib/, where it is runtime-only and so invisible
+    // to the compiler; declaring it is what puts it on the compile classpath
+    // and changes nothing about what ships. The same pool the serving side
+    // opens, for the same substrate — a host that pooled differently would be
+    // a second answer to a question the runtime already settled.
+    embedded("com.zaxxer:HikariCP:7.1.0")
     // DBOS carries Jackson 3, and 1.0.0 is the current release: its
     // next version is a milestone, so the version moves here instead.
     constraints {
@@ -28,6 +35,10 @@ dependencies {
         embedded("org.postgresql:postgresql:42.7.13")
     }
     compileOnly("org.slf4j:slf4j-api:2.0.18")
+    // The host's half arrives the way the runner says a lane arrives — as a
+    // service in an existing container — so this bundle has an activator like
+    // every other injectable one. compileOnly: outside OSGi it is never called.
+    compileOnly("org.osgi:osgi.core:8.0.0")
 }
 
 tasks.jar {
@@ -38,6 +49,7 @@ tasks.jar {
             val jars = embedded.resolve().sortedBy { it.name }
             listOf(
                 "Bundle-SymbolicName: cloud.jengu.dbo.stream",
+                "Bundle-Activator: cloud.jengu.dbo.stream.Activator",
                 "Bundle-ClassPath: ." + jars.joinToString("") { ",lib/${it.name}" },
                 "-includeresource: " + jars.joinToString(",") { "lib/${it.name}=${it.absolutePath}" },
                 "Export-Package: cloud.jengu.dbo.stream;version=0.1.0",
