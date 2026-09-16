@@ -92,21 +92,30 @@ Having declared it, the hospital answers the zone's codes as its own:
   {"name":"display","valueString":"Spell Damage"}]}
 ```
 
-The insurer is in no zone and declared no such dependency. It gets nothing:
+The insurer is in the same zone, and declared only `CodeSystem` from it — not
+`ValueSet`. So it has exactly that, and not the other:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:zone-not-at-insurer"
+--8<-- "docs/guide/examples/check.sh:zone-partial-at-insurer"
 ```
 
+```json
+{"resourceType":"Parameters","parameter":[
+  {"name":"name","valueString":"urn:rl:wards"},
+  {"name":"display","valueString":"Spell Damage"}]}
 ```
-0 entries
+```
+0 value sets
 ```
 
-**This is the whole governance model in one contrast.** Being near the zone
-brings nothing. Being told to take `CodeSystem` and `ValueSet` from it brings
-exactly those, and only those. A dependency on a type you did not name brings
-nothing however much of it the zone holds — so a tenant's content is a
-consequence of its declaration and never of what happened to be nearby.
+The code system arrived. The value set, sitting beside it in the same zone,
+under the same dependency, did not — because nobody asked for it.
+
+**This is the whole governance model in one contrast.** Two tenants, one zone,
+and what each holds is decided by its own file. The hospital named `CodeSystem`
+and `ValueSet` and has both; the insurer named `CodeSystem` and has one. A type
+you did not name brings nothing however much of it the zone holds — so a
+tenant's content is a consequence of its declaration and never of proximity.
 
 The direction matters too. The zone does not push to its members and does not
 know who reads it. Each tenant pulls what it declared, which is why adding a

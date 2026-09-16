@@ -510,14 +510,19 @@ at_hospital=$(curl -s "$HOGWARTS/CodeSystem/\$lookup?system=urn:rl:wards&code=sp
 printf '%s' "$at_hospital" | grep -q 'Spell Damage' \
     || fail "the zone's terminology never reached the hospital: $at_hospital"
 
-step "the insurer declared no such dependency, so it has none of it"
-# --8<-- [start:zone-not-at-insurer]
-curl -sf -G "$GRINGOTTS/CodeSystem" --data-urlencode "url=urn:rl:wards" \
-  | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])), "entries")'
-# --8<-- [end:zone-not-at-insurer]
-at_insurer=$(curl -sf -G "$GRINGOTTS/CodeSystem" --data-urlencode "url=urn:rl:wards" \
+step "the insurer declared the code systems and not the value sets, and that is what it has"
+# --8<-- [start:zone-partial-at-insurer]
+curl -s -w '\n' "$GRINGOTTS/CodeSystem/\$lookup?system=urn:rl:wards&code=spell"
+
+curl -sf -G "$GRINGOTTS/ValueSet" --data-urlencode "url=urn:rl:wards:vs" \
+  | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])), "value sets")'
+# --8<-- [end:zone-partial-at-insurer]
+insurer_code=$(curl -s "$GRINGOTTS/CodeSystem/\$lookup?system=urn:rl:wards&code=spell")
+printf '%s' "$insurer_code" | grep -q 'Spell Damage' \
+    || fail "the insurer declared CodeSystem from the zone and did not get it: $insurer_code"
+insurer_vs=$(curl -sf -G "$GRINGOTTS/ValueSet" --data-urlencode "url=urn:rl:wards:vs" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
-[ "$at_insurer" = "0" ] || fail "the insurer took terminology it never declared, got $at_insurer"
+[ "$insurer_vs" = "0" ] || fail "the insurer took a type it never declared, got $insurer_vs"
 
 step "and the standard's own terminology is there by the same mechanism"
 # --8<-- [start:core-terminology]
@@ -525,6 +530,40 @@ curl -s "$HOGWARTS/CodeSystem/\$lookup?system=http://hl7.org/fhir/administrative
 # --8<-- [end:core-terminology]
 core=$(curl -s "$HOGWARTS/CodeSystem/\$lookup?system=http://hl7.org/fhir/administrative-gender&code=female")
 printf '%s' "$core" | grep -q 'Female' || fail "the core code system is not answerable: $core"
+
+step "a face root is a tenant, and its definitions are records"
+# --8<-- [start:face-roots]
+for root in fhir-r5 fhir-r4; do
+    curl -s -G "http://localhost:8090/t/$root/fhir/StructureDefinition" \
+        --data-urlencode "_summary=count" \
+      | python3 -c "import sys,json;print('$root', json.load(sys.stdin)['total'])"
+done
+# --8<-- [end:face-roots]
+for root in fhir-r5 fhir-r4; do
+    held=$(curl -sf -G "http://localhost:8090/t/$root/fhir/StructureDefinition" \
+        --data-urlencode "_summary=count" \
+      | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"])')
+    [ "$held" -gt 300 ] || fail "$root should hold the version's definitions, got $held"
+done
+
+step "a projection converts the zone once, for the face that needs it"
+for _ in $(seq 1 90); do
+    curl -sf -o /dev/null "http://localhost:8090/t/rl-on-r4/fhir/metadata" && break
+    sleep 10
+done
+# --8<-- [start:projection]
+curl -s http://localhost:8090/t/rl-on-r4/fhir/metadata \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["fhirVersion"])'
+
+curl -s http://localhost:8090/t/rl/fhir/metadata \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["fhirVersion"])'
+# --8<-- [end:projection]
+projected=$(curl -sf http://localhost:8090/t/rl-on-r4/fhir/metadata \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["fhirVersion"])')
+[ "$projected" = "4.0.1" ] || fail "the projection should speak the face it serves, said $projected"
+source_face=$(curl -sf http://localhost:8090/t/rl/fhir/metadata \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["fhirVersion"])')
+[ "$source_face" = "5.0.0" ] || fail "the zone should still speak its own face, said $source_face"
 
 step "the version that deleted a record is gone, not missing"
 # --8<-- [start:vread-gone]
@@ -546,4 +585,4 @@ tomb=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient/$doomed/_histor
 before_it=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient/$doomed/_history/1")
 [ "$before_it" = "200" ] || fail "deleting took the history with it, got $before_it"
 
-printf '\nguide: chapters one to seven work\n'
+printf '\nguide: chapters one to eight work\n'
