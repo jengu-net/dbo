@@ -2728,6 +2728,7 @@ cloud.jengu.dbo.promises.DboPromises                                   VER_THE_F
 cloud.jengu.dbo.promises.DboPromises                                   VER_TRANSITION_BY_CONVERTERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_VALIDATION_WITHOUT_WRITING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   VER_VERSION_AGNOSTIC_CORE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   VER_WHAT_THIS_FACE_CANNOT_READ_IS_REFUSED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_CONTENT_FREE_PLATFORM_PLANE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_HOPS_AUDITED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_PLATFORM_COORDINATED_HOPS:cloud.jengu.dbo.promises.DboPromises

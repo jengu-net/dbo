@@ -6,6 +6,7 @@ import cloud.jengu.dbo.core.face.ReadOnce;
 import org.hl7.fhir.r5.context.SimpleWorkerContext;
 import org.hl7.fhir.r5.elementmodel.Element;
 import org.hl7.fhir.r5.elementmodel.Manager;
+import org.hl7.fhir.r5.elementmodel.ParserBase;
 import org.hl7.fhir.r5.formats.IParser;
 import org.hl7.fhir.r5.utils.validation.ValidatorSession;
 import org.hl7.fhir.r5.utils.xver.XVerExtensionManagerFactory;
@@ -73,14 +74,117 @@ final class ElementPayloads implements Payloads<Element> {
         this.reading = new ReadOnce<>(new Parsing());
     }
 
+    /**
+     * What the parser did not recognise, carried on the document it parsed.
+     *
+     * <p>On the document rather than returned beside it, because the reading
+     * seam is shared with every path that renders a stored payload and only
+     * the write path may act on this. A reader that never asks is unaffected.
+     */
+    static final String UNRECOGNISED = "dbo.parse.unrecognised";
+
+    /**
+     * An element the version does not define, as the parser named it.
+     *
+     * <p><b>Matched against the parser's own message bundle, not English.</b>
+     * The parser leaves {@code messageId} null on these, so the text is the
+     * only handle there is — and matching English would mean the rule quietly
+     * stopped applying on a machine with a different default locale. So the
+     * bundle is asked what it WOULD say, with a sentinel where the property
+     * name goes, and the two halves of that become the prefix and suffix to
+     * recognise. Same bundle, same locale, same string: the comparison cannot
+     * drift away from what the parser produced, and the property name falls
+     * out of the middle.
+     *
+     * <p><b>Only this family.</b> Turning the policy on makes everything else
+     * the parser noticed visible too, and acting on all of it was measurably
+     * wrong twice: it refused this store's OWN rendering — {@code id} and
+     * {@code meta} are written onto every served document whether or not a
+     * sibling model declares them — and it pre-empted the per-type choice of
+     * who decides a write, by refusing at the parse a document that exists to
+     * be judged by the toolchain or the database. Both are deliberate
+     * behaviours that were here first. What the parser noticed and this does
+     * not read stays exactly as invisible as it was.
+     */
+    private List<String> unrecognised(List<ValidationMessage> noticed) {
+        String probe = context().formatMessage(
+                org.hl7.fhir.utilities.i18n.I18nConstants.UNRECOGNISED_PROPERTY_, SENTINEL);
+        int at = probe.indexOf(SENTINEL);
+        if (at < 0) {
+            // The bundle stopped interpolating the name. Reading nothing is
+            // the safe answer: this seam refuses writes, and a rule that
+            // cannot tell which property it is about must not guess.
+            return List.of();
+        }
+        String head = probe.substring(0, at);
+        String tail = probe.substring(at + SENTINEL.length());
+        List<String> found = new ArrayList<>();
+        for (ValidationMessage message : noticed) {
+            if (message.getLevel() != ValidationMessage.IssueSeverity.ERROR
+                    && message.getLevel() != ValidationMessage.IssueSeverity.FATAL) {
+                continue;
+            }
+            String said = message.getMessage();
+            if (said == null || !said.startsWith(head) || !said.endsWith(tail)
+                    || said.length() < head.length() + tail.length()) {
+                continue;
+            }
+            String property = said.substring(head.length(), said.length() - tail.length());
+            // The slots this store writes itself. ElementAncestors#rendered
+            // puts them on every served document whether or not the model
+            // declares them; for a FHIR resource they are declared and never
+            // come up, and for a sibling model they do. The author never
+            // supplied them, so there is nothing there for anybody to fix —
+            // and a converted form handed back for re-acceptance carries
+            // them.
+            if (OURS.contains(property)) {
+                continue;
+            }
+            String where = message.getLocation();
+            found.add((where == null || where.isBlank() ? document(message) : where)
+                    + ": the element '" + property + "' is not defined here, and this store "
+                    + "does not keep what it cannot read — FHIR carries what a resource does "
+                    + "not define in 'extension'");
+        }
+        return List.copyOf(found);
+    }
+
+    /** Where a message with no location came from, so a refusal still points somewhere. */
+    private static String document(ValidationMessage message) {
+        return message.getLocation() == null ? "" : message.getLocation();
+    }
+
+    /** Stands in for the property name while the bundle is asked what it would say. */
+    private static final String SENTINEL = "\u0001dbo\u0001";
+
+    /** Written by this store onto every served document, declared by the model or not. */
+    private static final java.util.Set<String> OURS = java.util.Set.of("id", "meta");
+
     private final class Parsing implements Payloads<Element> {
 
         @Override
         public Element read(String typeName, byte[] payload) {
             READS.incrementAndGet();
             try {
-                return Manager.parseSingle(context(), new ByteArrayInputStream(payload),
-                        Manager.FhirFormat.JSON);
+                // The same parser {@code Manager.parseSingle} builds, given
+                // somewhere to report into. It hands the parser a null list,
+                // and ParserBase#logError returns on the first line when the
+                // list is null — so everything the parser noticed about a
+                // document was discarded before anybody could act on it,
+                // including an element FHIR does not define. The default
+                // policy reports nothing in any case.
+                //
+                // Collected, never thrown: with EVERYTHING the parser adds to
+                // the list and returns, so nothing that parsed before stops
+                // parsing. What is done about a finding is the write path's
+                // decision, not the reader's — a stored document that was
+                // accepted under an older rule must stay readable.
+                ParserBase parser = Manager.makeParser(context(), Manager.FhirFormat.JSON);
+                parser.setupValidation(ParserBase.ValidationPolicy.EVERYTHING);
+                List<ValidationMessage> noticed = new ArrayList<>();
+                Element parsed = parser.parseSingle(new ByteArrayInputStream(payload), noticed);
+                parsed.setUserData(UNRECOGNISED, unrecognised(noticed));
+                return parsed;
             } catch (IOException | RuntimeException e) {
                 // IOException included, and deliberately: the bytes are in
                 // memory, so there is no I/O here to fail — a JSON syntax error
@@ -122,6 +226,19 @@ final class ElementPayloads implements Payloads<Element> {
         @Override
         public List<Issue> check(String typeName, Element document, String shapeReference) {
             List<ValidationMessage> messages = new ArrayList<>();
+            // What the PARSER could not make sense of, said here so that
+            // asking and writing give the same answer. The validator never
+            // sees these: the parser drops what it cannot place before the
+            // tree exists, so a document could be refused by a write while
+            // $validate called it clean — and a writer who asks first is
+            // exactly the writer this operation is for.
+            List<Issue> unreadable = new ArrayList<>();
+            if (document.getUserData(UNRECOGNISED) instanceof List<?> noticed) {
+                for (Object one : noticed) {
+                    unreadable.add(new Issue(Issue.ERROR, document.fhirType(),
+                            String.valueOf(one)));
+                }
+            }
             // A profile the document CLAIMS and nothing here carries is an
             // answer, not a crash. HAPI resolves meta.profile itself and
             // throws an Error the request thread does not survive — the
@@ -132,9 +249,11 @@ final class ElementPayloads implements Payloads<Element> {
                 String url = claimed.primitiveValue();
                 if (url != null && context().fetchResource(
                         org.hl7.fhir.r5.model.StructureDefinition.class, url) == null) {
-                    return List.of(new Issue(Issue.ERROR, document.fhirType(),
+                    List<Issue> claimed_ = new ArrayList<>(unreadable);
+                    claimed_.add(new Issue(Issue.ERROR, document.fhirType(),
                             "the resource claims the profile '" + url + "', which this tenant "
                                     + "does not have — nothing was checked against it"));
+                    return List.copyOf(claimed_);
                 }
             }
             // The path a message is reported against: the document's own type,
@@ -166,7 +285,8 @@ final class ElementPayloads implements Payloads<Element> {
                     returnValidator(validator);
                 }
             }
-            List<Issue> issues = new ArrayList<>(messages.stream()
+            List<Issue> issues = new ArrayList<>(unreadable);
+            issues.addAll(messages.stream()
                     .map(m -> new Issue(severityOf(m),
                             m.getLocation() == null ? document.fhirType() : m.getLocation(),
                             m.getMessage()))

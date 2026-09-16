@@ -1367,6 +1367,23 @@ public enum DboPromises implements Promise {
             "Profile-resolution and validation semantics are specified by DBO — a "
             + "malformed or versioned canonical reference can never silently disable "
             + "validation."),
+    /**
+     * What closed the gap between the two halves of one request.
+     *
+     * <p>The parser drops what it cannot place before the validator is
+     * handed a tree, and the bytes are kept as written so that what was
+     * written is what is read. Both are wanted on their own; together they
+     * let a document carry a field nothing had checked, nothing could search,
+     * and every later reader was handed as part of the record.
+     */
+    VER_WHAT_THIS_FACE_CANNOT_READ_IS_REFUSED(
+            "An authored write carrying content this face cannot read is refused by name, "
+            + "at the same seam a violated binding is — an element the version does not "
+            + "define is a mistake rather than an extension point, and FHIR already has "
+            + "the extension point. Asking first gives the same answer: the finding is "
+            + "made once and both the write and $validate read it. What arrived as "
+            + "somebody else's publication is held and warned instead, like any other "
+            + "imperfect arrival."),
     VER_VALIDATION_WITHOUT_WRITING(
             "A caller can ask whether a resource would be accepted without writing it "
             + "(`[Type]/$validate`), and the answer is the write path's own: what it "

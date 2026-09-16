@@ -315,6 +315,18 @@ public final class ElementStore implements FhirStoreFacade,
             payload = payloads().write(document);
         }
         loadClaimedShapesThisTenantHolds(document);
+        // Carries what the PARSER could not make sense of as well as what the
+        // validator found — an element this face does not define among them.
+        // The store took the same position on an unrecognised SEARCH
+        // PARAMETER long ago and for the same reason: a caller who believed a
+        // filter applied would act on a wider answer than they asked for,
+        // while a write kept the element, never validated it, could not
+        // search it, and handed it back to the next reader as though it were
+        // part of the record.
+        //
+        // A finding rather than a throw, so somebody else's publication is
+        // held-and-warned like any other imperfect arrival while an authored
+        // write refuses.
         List<String> issues = payloads().validate(type, document);
         // The ordering rule's own door (REQ-DBO-SHAPE-UNPARSEABLE-VERSION-
         // REFUSED): dbo's pack is data, so "refused at pack load" means
