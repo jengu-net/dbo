@@ -111,14 +111,15 @@ has to: an `ETag` echoing the newest version would make a conditional update
 built on a stale read look safe, which is the one mistake version reads exist
 to prevent.
 
-A third answer completes it. Delete a record and ask for the version that did
-the deleting:
+A third answer completes it. Create a record, delete it, and ask for the
+version that did the deleting:
 
 ```bash
 --8<-- "docs/guide/examples/check.sh:vread-gone"
 ```
 
 ```
+204
 410
 200
 ```

@@ -527,13 +527,16 @@ core=$(curl -s "$HOGWARTS/CodeSystem/\$lookup?system=http://hl7.org/fhir/adminis
 printf '%s' "$core" | grep -q 'Female' || fail "the core code system is not answerable: $core"
 
 step "the version that deleted a record is gone, not missing"
+# --8<-- [start:vread-gone]
 doomed=$(curl -sf -X POST "$HOGWARTS/Patient" \
     -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0007"}],
+    -d '{"resourceType":"Patient",
+         "identifier":[{"system":"urn:rl:nid","value":"RL-0007"}],
          "name":[{"family":"Fleeting"}]}' \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
-curl -sf -o /dev/null -X DELETE "$HOGWARTS/Patient/$doomed"
-# --8<-- [start:vread-gone]
+
+curl -s -o /dev/null -w '%{http_code}\n' -X DELETE "$HOGWARTS/Patient/$doomed"
+
 curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient/$doomed/_history/2"
 
 curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient/$doomed/_history/1"
