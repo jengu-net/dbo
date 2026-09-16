@@ -1,8 +1,10 @@
 # The header menu.
 #
-# Four of these are sections that drill down — Why, Faces, Patterns and
+# Five of these are sections that drill down — Why, Faces, Patterns, Guide and
 # Technical — and the plugin expands each from its directory, so adding a page
-# to one is a file rather than an edit here. Material shows them across the header when
+# to one is a file rather than an edit here. Guide names a path inside the
+# specification tree because its chapters live there: they are markdown that
+# has to read correctly on GitHub too. Material shows them across the header when
 # there is room and folds them into the drawer when there is not.
 #
 # Quickstart is inside Technical rather than beside it: running the thing is
@@ -14,5 +16,6 @@ nav:
   - Why: why
   - Faces: faces
   - Patterns: patterns
+  - Guide: docs/guide
   - Technical: technical
   - Documentation: docs

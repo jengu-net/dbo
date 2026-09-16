@@ -1,0 +1,60 @@
+# The sample world, running.
+#
+#   docker compose -f docs/guide/examples/compose.yaml up -d
+#
+# Six tenants come up: the managing tenant, the zone, two face roots, a
+# hospital and an insurer. The guide's examples run against them, and
+# examples/check.sh runs the guide's examples.
+#
+# This is the quickstart's compose file with one difference — the world it
+# mounts — and it keeps the quickstart's pinned image on purpose, so there is
+# one place to bump a version rather than two that drift.
+#
+# Two settings here must never be copied into a deployment, and each says so
+# where it is made.
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      # A database per tenant means the admin connection needs CREATE
+      # DATABASE. Superuser is the shortest way to have that on a throwaway
+      # instance; a deployment grants exactly that right and nothing else.
+      POSTGRES_PASSWORD: guide
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  dbo:
+    image: ghcr.io/jengu-net/dbo-server:main-e381b19b0900a0a2bf2a7dac76a2f8bd29c277e1
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8090:8090"
+    environment:
+      # ── The one line you must not copy into anything real ──────────
+      # The distribution refuses to serve without a working authority. That
+      # refusal is promised behaviour; switching it off is this explicit flag,
+      # and the flag is what lets the guide's commands run without a token.
+      DBO_AUTH_DISABLED: "true"
+
+      DBO_TENANT_DIR: /etc/dbo/tenants
+
+      # The managing tenant sits outside the scanned directory deliberately:
+      # the loop that retracts undeclared tenants must not be able to retract
+      # the thing that records retractions.
+      DBO_MANAGEMENT_SPEC: /etc/dbo/management/mom.json
+
+      DBO_ADMIN_JDBC_URL: jdbc:postgresql://db:5432/postgres
+      DBO_ADMIN_USER: postgres
+      DBO_ADMIN_PASSWORD: guide
+
+      DBO_LOG_FORMAT: text
+    volumes:
+      - ../world/tenants:/etc/dbo/tenants:ro
+      - ../world:/etc/dbo/management:ro

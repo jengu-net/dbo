@@ -1,0 +1,6 @@
+# The reading order. Chapters are added here as they are written, rather than
+# being discovered alphabetically — a guide read out of order is not a guide.
+nav:
+  - index.md
+  - quick-start.md
+  - world/README.md
