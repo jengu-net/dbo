@@ -413,6 +413,38 @@ public final class ElementStore implements FhirStoreFacade,
     }
 
     /**
+     * The face answering conditional references for a caller that is not the
+     * accept path — the configuration door applying a declared set.
+     *
+     * <p>The same rewriting the authored path does, and the same refusal when
+     * nothing answers: a declaration pointing at a reference nobody can
+     * resolve fails the apply naming it, rather than landing as a question
+     * that every later reader has to recognise as one.
+     */
+    @Override
+    public byte[] resolved(byte[] payload, cloud.jengu.dbo.core.face.ReferenceResolution.Resolver
+            offered) {
+        // Before the parse, for the reason accepted(..) gives above it: the
+        // parse is what refuses such a type, so a guard placed after it never
+        // runs. A type this face has no definition for is answered by
+        // returning what arrived — nothing to resolve references in, no tree
+        // to write back, and no conditional reference it could have carried.
+        if (undefinedTypeOf(payload) != null) {
+            return payload;
+        }
+        Object document = payloads().read(null, payload);
+        if (!(document instanceof org.hl7.fhir.r5.elementmodel.Element element)) {
+            // Parsed, and not into a tree this can walk.
+            return payload;
+        }
+        boolean moved = ElementReferences.resolve(element, (typeName, query) -> {
+            java.util.Optional<String> offeredId = offered.resolve(typeName, query);
+            return offeredId.isPresent() ? offeredId : identified(typeName, query);
+        });
+        return moved ? payloads().write(document) : payload;
+    }
+
+    /**
      * What a conditional reference points at, by the type's own identity.
      *
      * <p>Held to the same rule as a conditional create
@@ -425,31 +457,6 @@ public final class ElementStore implements FhirStoreFacade,
      * to say, and picking here would attach the record to the wrong subject —
      * the failure a conditional reference is used to avoid.
      */
-    /**
-     * The face answering conditional references for a caller that is not the
-     * accept path — the configuration door applying a declared set.
-     *
-     * <p>The same rewriting the authored path does, and the same refusal when
-     * nothing answers: a declaration pointing at a reference nobody can
-     * resolve fails the apply naming it, rather than landing as a question
-     * that every later reader has to recognise as one.
-     */
-    @Override
-    public byte[] resolved(byte[] payload, cloud.jengu.dbo.core.face.ReferenceResolution.Resolver
-            offered) {
-        Object document = payloads().read(null, payload);
-        if (!(document instanceof org.hl7.fhir.r5.elementmodel.Element element)) {
-            // A type this face has no definition for: the bytes are the
-            // record, and there is no tree to find a reference in.
-            return payload;
-        }
-        boolean moved = ElementReferences.resolve(element, (typeName, query) -> {
-            java.util.Optional<String> offeredId = offered.resolve(typeName, query);
-            return offeredId.isPresent() ? offeredId : identified(typeName, query);
-        });
-        return moved ? payloads().write(document) : payload;
-    }
-
     java.util.Optional<String> identified(String typeName, String query) {
         List<StoredObject> found = store.getByIdentifier(typeName,
                 java.util.List.of(identityOf(typeName, query)));

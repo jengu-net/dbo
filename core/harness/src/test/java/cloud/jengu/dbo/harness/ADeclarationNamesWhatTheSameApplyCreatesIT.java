@@ -44,6 +44,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * the query was stored verbatim — a reference that reads as a promise and
  * resolves to nothing, which is worse than not having written one.
  *
+ * <p><b>A type with no definition takes the path it always took.</b>
+ * Answering a reference means parsing the body as FHIR, and a type this face
+ * has no definition for cannot be parsed at all — so for it the parse is not
+ * a lighter validation, it is a refusal of the only shape that ever worked.
+ * It carries no conditional reference to answer either, which is why leaving
+ * it alone costs nothing.
+ *
  * <p><b>And the order is not the contract.</b> The set is composed here in the
  * worst order on purpose — every referrer before its referent — because the
  * alternative to fixing that is a rule nobody can see, discovered by whoever
@@ -56,6 +63,8 @@ class ADeclarationNamesWhatTheSameApplyCreatesIT {
 
     private static final String CLINIC = "viide";
     private static final String ORGS = "https://viide.example/org";
+    /** A type this face has no definition for, declared through the same door. */
+    private static final String PARTICIPANTS = "https://viide.example/participant";
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
     static PostgreSQLContainer<?> postgres;
@@ -77,8 +86,10 @@ class ADeclarationNamesWhatTheSameApplyCreatesIT {
         Files.writeString(dir.resolve(CLINIC + ".json"), """
                 {"code":"%s","face":"r4","types":[
                   {"name":"Organization","identity":"identifier","systems":["%s"],
-                   "handling":"operational"}]}"""
-                .formatted(CLINIC, ORGS));
+                   "handling":"operational"},
+                  {"name":"ParticipantDeclaration","identity":"identifier","systems":["%s"],
+                   "handling":"operational","definition":"none"}]}"""
+                .formatted(CLINIC, ORGS, PARTICIPANTS));
         UntilServed.scan(manager, CLINIC);
         manager.authority(CLINIC).ensureClient("a-loader", "loader-secret",
                 java.util.List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
@@ -156,7 +167,47 @@ class ADeclarationNamesWhatTheSameApplyCreatesIT {
                         + applied.body());
     }
 
+    @Test
+    @Order(4)
+    @DisplayName("a declaration of a type this face has no definition for lands as it "
+            + "arrived, because answering references is a parse and it has nothing to parse "
+            + "against")
+    @Proving(DboPromises.TEN_A_DECLARATION_NAMES_ITS_REFERENT)
+    void aTypeWithNoDefinitionIsStillDeclarable() throws Exception {
+        HttpResponse<String> applied = apply(participant("main-lab"));
+
+        assertEquals(200, applied.statusCode(), applied.body());
+        assertTrue(applied.body().contains("\"applied\":1"),
+                "a declaration of a definitionless type did not land, so the door answers "
+                        + "references at the cost of every type that has none: "
+                        + applied.body());
+        assertTrue(applied.body().contains("\"cards\":[]"),
+                "carded: " + applied.body());
+
+        String stored = readParticipant("main-lab");
+        assertTrue(stored.contains("\"zone\":\"ee\""),
+                "the record does not hold what was declared: " + stored);
+    }
+
     // ------------------------------------------------------------ plumbing
+
+    private static String participant(String name) {
+        String payload = """
+                {"resourceType":"ParticipantDeclaration",
+                 "identifier":[{"system":"%s","value":"%s"}],
+                 "zone":"ee","repo":"https://git.test/cfg"}""".formatted(PARTICIPANTS, name);
+        return """
+                {"type":"ParticipantDeclaration","name":"%s","payload":%s}"""
+                .formatted(name, payload);
+    }
+
+    private static String readParticipant(String name) throws Exception {
+        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CLINIC)
+                        + "/ParticipantDeclaration?identifier="
+                        + URLEncoder.encode(PARTICIPANTS + "|" + name, StandardCharsets.UTF_8)))
+                        .header("Authorization", "Bearer " + reader()).GET().build(),
+                HttpResponse.BodyHandlers.ofString()).body();
+    }
 
     private static String org(String code, String parent) {
         String partOf = parent == null ? "" :
