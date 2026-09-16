@@ -126,30 +126,6 @@ the record, alert someone, or drop it. If an unreachable validator said `422`,
 an outage would look exactly like a flood of bad data, and the damage would be
 done by the systems correctly reacting to what they were told.
 
-## The boundary: an element the face does not know
-
-Being precise about what is *not* checked. Send a field that is not part of the
-definition at all:
-
-```bash
---8<-- "docs/guide/examples/check.sh:validate-unknown-element"
-```
-
-```
-201
-{"resourceType":"Bundle","type":"searchset", ... "favouriteColour":"blue" ... }
-```
-
-It is accepted, stored, and handed back. Validation did not object because it
-never saw it, and the store keeps what you wrote.
-
-Take this as a limit rather than a feature. The field is not validated, it
-cannot be searched, and nothing promises it will still behave this way — so a
-system that needs to carry extra data should use the mechanism the standard has
-for it, an extension, which *is* part of the definition and therefore is
-checked. Treat an unrecognised element as a typo the store did not catch,
-because that is usually what it is.
-
 ## What you would otherwise have written
 
 Field checks at every endpoint that accepts a record, and the review that keeps

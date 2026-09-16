@@ -419,21 +419,4 @@ grep -q 'Observation.status' /tmp/dbo-guide-ahead \
 grep -q '"severity":"warning"' /tmp/dbo-guide-ahead \
     || fail "the verdict should carry advice as well as errors"
 
-step "an element the face does not know is kept rather than refused"
-# --8<-- [start:validate-unknown-element]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST "$HOGWARTS/Patient" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0005"}],
-         "favouriteColour":"blue"}'
-
-curl -sf -G "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0005"
-# --8<-- [end:validate-unknown-element]
-kept=$(curl -sf -G "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0005" \
-    | python3 -c '
-import sys, json
-entries = json.load(sys.stdin).get("entry", [])
-print("yes" if entries and "favouriteColour" in entries[0]["resource"] else "no")')
-[ "$kept" = "yes" ] || fail "the chapter documents that an unknown element is kept, and it was not"
-
 printf '\nguide: chapters one to six work\n'
