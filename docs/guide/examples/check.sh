@@ -138,6 +138,53 @@ printf '%s' "$outcome" | grep -q '4.0.1' \
     || fail "the refusal should name the version it validated against: $outcome"
 printf '%s' "$outcome" | grep -q 'OperationOutcome' || fail "expected an OperationOutcome"
 
+step "a type the tenant never declared is refused"
+# The hospital declared Observation. The insurer did not — it holds Patient
+# and Coverage — so the same request is answered differently by each.
+# --8<-- [start:undeclared-type]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$GRINGOTTS/Observation" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Observation","status":"final",
+         "code":{"text":"house points"}}'
+# --8<-- [end:undeclared-type]
+undeclared=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GRINGOTTS/Observation" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Observation","status":"final","code":{"text":"house points"}}')
+[ "$undeclared" = "404" ] || fail "expected 404 for an undeclared type, got $undeclared"
+
+step "a tenant appears when its spec does"
+# --8<-- [start:add-tenant]
+sed 's/"hogwarts"/"stmungos"/' \
+    docs/guide/world/tenants/hogwarts.json > docs/guide/world/tenants/stmungos.json
+# --8<-- [end:add-tenant]
+trap 'rm -f "$PWD/docs/guide/world/tenants/stmungos.json"; cleanup' EXIT
+for _ in $(seq 1 60); do
+    if curl -sf -o /dev/null "http://localhost:8090/t/stmungos/fhir/metadata"; then break; fi
+    sleep 5
+done
+# --8<-- [start:new-tenant-serves]
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8090/t/stmungos/fhir/metadata
+# --8<-- [end:new-tenant-serves]
+curl -sf -o /dev/null "http://localhost:8090/t/stmungos/fhir/metadata" \
+    || fail "stmungos never came up"
+
+step "and stops when its spec goes"
+# --8<-- [start:remove-tenant]
+rm docs/guide/world/tenants/stmungos.json
+# --8<-- [end:remove-tenant]
+for _ in $(seq 1 40); do
+    [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/t/stmungos/fhir/metadata)" != "200" ] && break
+    sleep 2
+done
+gone=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/t/stmungos/fhir/metadata)
+[ "$gone" != "200" ] || fail "stmungos was still served after its spec was removed"
+trap cleanup EXIT
+
+step "the hospital still has its own records"
+still=$(curl -sf -G "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0001" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$still" = "1" ] || fail "the hospital lost a record when a neighbour went away"
+
 step "an unsupported search parameter is refused, not ignored"
 # --8<-- [start:strict-search]
 curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient?favourite-colour=blue"
@@ -145,4 +192,4 @@ curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient?favourite-colour=blu
 code=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient?favourite-colour=blue")
 [ "$code" = "400" ] || fail "expected 400 for an unknown parameter, got $code"
 
-printf '\nguide: chapters one and two work\n'
+printf '\nguide: chapters one to three work\n'
