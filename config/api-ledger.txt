@@ -1469,6 +1469,7 @@ cloud.jengu.dbo.fhir.common.FhirStoreFacade                            shapesCha
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            update(String,Long,String):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            validationOutcome(String):String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade                            validationOutcome(String,String):String
+cloud.jengu.dbo.fhir.common.FhirStoreFacade                            versionForServing(String,String,long):cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead
 cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult                 equals(Object):boolean
 cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult                 hashCode():int
 cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult                 lastUpdated():Instant
@@ -1477,6 +1478,15 @@ cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult                 record
 cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult                 resourceJson():String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult                 toString():String
 cloud.jengu.dbo.fhir.common.FhirStoreFacade.ReadResult                 versionId():long
+cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead                deleted():boolean
+cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead                equals(Object):boolean
+cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead                hashCode():int
+cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead                lastUpdated():Instant
+cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead                new(String,long,Instant,boolean)
+cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead                record
+cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead                resourceJson():String
+cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead                toString():String
+cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead                versionId():long
 cloud.jengu.dbo.fhir.common.FhirTerminology                            interface
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             canonical(String):cloud.jengu.dbo.fhir.common.FhirTypeConfig
 cloud.jengu.dbo.fhir.common.FhirTypeConfig                             decidedByTheDatabase():cloud.jengu.dbo.fhir.common.FhirTypeConfig
@@ -1672,6 +1682,7 @@ cloud.jengu.dbo.fhir.element.ElementStore                              shapesCha
 cloud.jengu.dbo.fhir.element.ElementStore                              update(String,Long,String):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.fhir.element.ElementStore                              validationOutcome(String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              validationOutcome(String,String):String
+cloud.jengu.dbo.fhir.element.ElementStore                              versionForServing(String,String,long):cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead
 cloud.jengu.dbo.fhir.element.ElementVersion                            baseBuilds():long
 cloud.jengu.dbo.fhir.element.ElementVersion                            class
 cloud.jengu.dbo.fhir.element.ElementVersion                            code():String
@@ -1766,6 +1777,7 @@ cloud.jengu.dbo.fhir.r4.R4Store                                        search(St
 cloud.jengu.dbo.fhir.r4.R4Store                                        update(String,Long,String):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.fhir.r4.R4Store                                        validationOutcome(String):String
 cloud.jengu.dbo.fhir.r4.R4Store                                        validationOutcome(String,String):String
+cloud.jengu.dbo.fhir.r4.R4Store                                        versionForServing(String,String,long):cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead
 cloud.jengu.dbo.fhir.r4.R4Subscriptions                                BACKPORT_FILTER_EXT:String
 cloud.jengu.dbo.fhir.r4.R4Subscriptions                                backportComposer(cloud.jengu.dbo.fhir.r4.R4Personality):cloud.jengu.dbo.subscriptions.NotificationComposer
 cloud.jengu.dbo.fhir.r4.R4Subscriptions                                backportTopicSource(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.r4.R4Personality,List):cloud.jengu.dbo.subscriptions.TopicSubscriptionSource
@@ -1855,6 +1867,7 @@ cloud.jengu.dbo.fhir.r5.R5Store                                        search(St
 cloud.jengu.dbo.fhir.r5.R5Store                                        update(String,Long,String):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.fhir.r5.R5Store                                        validationOutcome(String):String
 cloud.jengu.dbo.fhir.r5.R5Store                                        validationOutcome(String,String):String
+cloud.jengu.dbo.fhir.r5.R5Store                                        versionForServing(String,String,long):cloud.jengu.dbo.fhir.common.FhirStoreFacade.VersionRead
 cloud.jengu.dbo.fhir.r5.R5Subscriptions                                class
 cloud.jengu.dbo.fhir.r5.R5Subscriptions                                composer(cloud.jengu.dbo.fhir.r5.R5Personality):cloud.jengu.dbo.subscriptions.NotificationComposer
 cloud.jengu.dbo.fhir.r5.R5Subscriptions                                criteriaCompiler(cloud.jengu.dbo.fhir.r5.R5Personality):Function

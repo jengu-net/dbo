@@ -64,6 +64,21 @@ public interface FhirStoreFacade {
     /** A resource with its version and the moment it was last written. */
     record ReadResult(String resourceJson, long versionId, java.time.Instant lastUpdated) {}
 
+    /**
+     * One version of a record as it stood, by number.
+     *
+     * <p>Null where the record has no such version. A version that REMOVED
+     * the record is <b>not</b> absent: it comes back with {@code deleted},
+     * because <i>there was never a version 3</i> and <i>version 3 is the one
+     * that deleted it</i> are different answers, and a client that cannot
+     * tell them apart cannot tell a typo from a history.
+     */
+    VersionRead versionForServing(String typeName, String id, long versionId);
+
+    /** One version as it stood; {@code deleted} where this version removed the record. */
+    record VersionRead(String resourceJson, long versionId, java.time.Instant lastUpdated,
+            boolean deleted) {}
+
     void delete(String typeName, String id, Long expectedVersion);
 
     /** Searchset Bundle; cursor from a previous page's link[next]. */

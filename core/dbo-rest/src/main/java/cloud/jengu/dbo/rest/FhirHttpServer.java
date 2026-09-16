@@ -515,8 +515,55 @@ public final class FhirHttpServer implements AutoCloseable {
                     respond(exchange, 404, store.operationOutcome("not-supported", relative));
                 }
             }
+            case 4 -> {
+                if ("_history".equals(segments[2]) && "GET".equals(method)) {
+                    versionRead(exchange, type, segments[1], segments[3], relative);
+                } else {
+                    respond(exchange, 404, store.operationOutcome("not-supported", relative));
+                }
+            }
             default -> respond(exchange, 404, store.operationOutcome("not-supported", relative));
         }
+    }
+
+    /**
+     * One version of a record, by number.
+     *
+     * <p>Three answers rather than two, because a client acts differently on
+     * each: no such version is <b>not found</b>, the version that deleted the
+     * record is <b>gone</b>, and anything else is the document as it stood,
+     * with the validators a read carries.
+     *
+     * <p>A version that is not a number is not found rather than a bad
+     * request: {@code _history/two} names no version of anything, and the
+     * shape of the path is the client's spelling rather than a parameter this
+     * store failed to understand.
+     */
+    private void versionRead(HttpExchange exchange, String type, String id, String version,
+            String relative) throws IOException {
+        long asked;
+        try {
+            asked = Long.parseLong(version);
+        } catch (NumberFormatException notAVersion) {
+            respond(exchange, 404, store.operationOutcome("not-found", relative));
+            return;
+        }
+        FhirStoreFacade.VersionRead found = store.versionForServing(type, id, asked);
+        if (found == null) {
+            respond(exchange, 404, store.operationOutcome("not-found", relative));
+            return;
+        }
+        exchange.getResponseHeaders().set("ETag", etag(found.versionId()));
+        exchange.getResponseHeaders().set("Last-Modified",
+                HTTP_DATE.format(found.lastUpdated()));
+        if (found.deleted()) {
+            // The moment the record stopped having a document. Answered with
+            // its own validators, because when it was deleted is the fact a
+            // caller came here for.
+            respond(exchange, 410, store.operationOutcome("deleted", relative));
+            return;
+        }
+        respond(exchange, 200, found.resourceJson());
     }
 
     // ------------------------------------------------------------ plumbing

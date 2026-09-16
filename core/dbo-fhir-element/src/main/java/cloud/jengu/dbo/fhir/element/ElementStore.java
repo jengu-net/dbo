@@ -646,6 +646,34 @@ public final class ElementStore implements FhirStoreFacade,
     }
 
     /**
+     * One version, as it stood.
+     *
+     * <p>Read from the history the type already keeps rather than from a
+     * store of its own: a version this face could serve and the engine could
+     * not list would be two accounts of what happened. It also means the
+     * governance is the history read's — the audience check, the reach check
+     * and the access entry all happen once, where they happen for the bundle.
+     *
+     * <p><b>The version that deleted it is a version.</b> A tombstone is a
+     * row in the history like any other, so it is found here and answered as
+     * gone rather than as missing; rendering it would be this store
+     * inventing a document for the moment a record stopped having one.
+     */
+    @Override
+    public VersionRead versionForServing(String typeName, String id, long versionId) {
+        for (StoredObject stored : store.history(typeName, id)) {
+            if (stored.versionId() != versionId) {
+                continue;
+            }
+            return stored.deleted()
+                    ? new VersionRead(null, stored.versionId(), stored.lastUpdated(), true)
+                    : new VersionRead(rendered(stored), stored.versionId(),
+                            stored.lastUpdated(), false);
+        }
+        return null;
+    }
+
+    /**
      * Refuses an object written under a shape newer than the pack carries
      * (REQ-DBO-SHAPE-NEWER-DATA-REFUSED).
      *

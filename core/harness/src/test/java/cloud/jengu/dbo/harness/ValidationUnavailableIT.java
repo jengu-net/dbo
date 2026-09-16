@@ -74,6 +74,11 @@ class ValidationUnavailableIT {
         }
 
         @Override
+        public VersionRead versionForServing(String typeName, String id, long versionId) {
+            return null;
+        }
+
+        @Override
         public void delete(String typeName, String id, Long expectedVersion) {
         }
 

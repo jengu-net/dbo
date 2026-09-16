@@ -93,6 +93,11 @@ public final class R5Store implements FhirStoreFacade {
     }
 
     @Override
+    public VersionRead versionForServing(String typeName, String id, long versionId) {
+        return served.versionForServing(typeName, id, versionId);
+    }
+
+    @Override
     public void delete(String typeName, String id, Long expectedVersion) {
         served.delete(typeName, id, expectedVersion);
     }
