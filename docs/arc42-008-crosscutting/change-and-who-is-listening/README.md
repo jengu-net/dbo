@@ -69,6 +69,40 @@ Between parties that both speak this store's own protocol, frames are lean.
 Assembling a standard's envelope format around each chunk is a **face** concern
 and happens only when a client of that standard is on the other end.
 
+## A notification routes; it does not disclose
+
+A subscriber is told **what changed**, not handed the record, unless it asked
+for the record and may have it. The channel's own declaration decides: a
+subscription declaring no payload receives the topic, the subscription, the
+event number and a reference, and the disclosing read then goes back through
+the door that authorises it, audits it and decrypts it.
+
+That is the standard's own default, and it is also the only shape that is safe
+across a plane which may not be able to read identifying elements at all.
+Under personal-data isolation the feed carries ciphertext by construction, so a
+carrier already cannot read what is sealed; sending the whole stored payload
+would make the transport a disclosure anyway, in the one place with no
+authorisation and no audit trail. This is the membrane argument that moved
+staff provisioning inside the tenant, applied to notifications.
+
+The failure it prevents is quiet: a delivery path that discloses looks
+identical to one that routes, right up to the moment somebody reads a log.
+
+## Delivery keeps its own durability; the run machinery owns the global truth
+
+Two mechanisms that both look like "making sure it happened", and the line
+between them is deliberate. Delivering one notification is durable in its own
+right — the attempt survives a restart, retries with backoff, and ends in a
+readable dead letter rather than in silence. What the run machinery owns is the
+question an operator asks: what is owed, by whom, and what became of it.
+
+The line is the same one the step-service contract draws, and for the same
+reason: how a step's half-finished work survives a crash is the implementor's
+choice, and a durable workflow on a server is a valid one. Pushing per-delivery
+durability up into claimable runs would put deliveries into contention with
+each other and move dedup out of the one place that solves it, in exchange for
+a tidier diagram.
+
 ## Every consumer is named, and its position is in the store
 
 An appliance, a dependent tenant, a subscription, a migration sweep: each holds

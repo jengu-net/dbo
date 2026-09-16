@@ -159,12 +159,15 @@ Coverage: {PROVEN=48, PLANNED=2} — a leg marked PLANNED cites a promise that e
 
 ## What the store cannot do yet
 
-- **Subscriptions are declared and unreachable.** This story leans on four
-  eventing promises. The engine behind them is complete and tested, and
-  nothing in a running container constructs it, so no tenant has ever
-  delivered a notification. That is a topic of its own
-  ([eventing is unreachable](https://github.com/jengu-net/dbo/blob/main/docs/tasks/eventing-is-unreachable.md)), and
-  until it lands the joins table below overstates this leg.
+- **Subscriptions deliver; their failure path is unproven.** A tenant mounts
+  its own dispatcher and posts to a subscriber when something it holds a
+  subscription for changes — criteria and topic subscriptions both. What no
+  test drives is a delivery that fails: retries, backoff and the dead letter
+  are exercised against an engine a test built rather than against a tenant.
+  So this leg works and its recovery is a claim.
+- **Topic subscriptions are R5 only.** A topic is a record there; in R4 it is
+  platform configuration and there is nowhere to declare one, so an R4 tenant
+  has criteria subscriptions and nothing topic-based.
 - **Search is tier 1.** Typed per-parameter partitions, and everything that
   needs them, are specified and not built. The store refuses what it cannot
   do, so the gap is visible rather than silent, but it is a gap.

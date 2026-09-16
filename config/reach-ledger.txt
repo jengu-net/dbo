@@ -21,8 +21,8 @@
 # signature.
 cloud.jengu.dbo.auth.SecretHashProbe                                     a test's way into a package-private verifier — SecretHash itself is reached, and widening it to test it is the worse trade
 cloud.jengu.dbo.fhir.common.ArchiveProvenance                            NOT REACHED — the FHIR rendering of an archive's attestation, and no export path builds one
-cloud.jengu.dbo.fhir.r4.R4Subscriptions                                  NOT REACHED — and now superseded: notifications are composed on the element face, which is what serves tenants. This hangs off R4Store, which no request reaches. Its topic half is the only part not yet reimplemented there
-cloud.jengu.dbo.fhir.r5.R5Subscriptions                                  NOT REACHED — and now superseded: notifications are composed on the element face, which is what serves tenants. This hangs off R5Store, which no request reaches. Its topic half is the only part not yet reimplemented there
+cloud.jengu.dbo.fhir.r4.R4Subscriptions                                  NOT REACHED — and wholly superseded: both halves, criteria and topic, are composed on the element face now, which is what serves tenants. This hangs off R4Store, which no request reaches. Deleting it is filed; the R4 backport inside it is the only answer written to where an R4 topic lives, so that goes first
+cloud.jengu.dbo.fhir.r5.R5Subscriptions                                  NOT REACHED — and wholly superseded: both halves, criteria and topic, are composed on the element face now, which is what serves tenants. This hangs off R5Store, which no request reaches. Deleting it is filed, and waits only on its R4 twin
 cloud.jengu.dbo.maintenance.ReferenceClosure                             NOT REACHED — not on a maintenance route, not a console command, not in the verifier
 cloud.jengu.dbo.promises.DboAreas                                        reached by the catalogue projection, which is build tooling rather than anything a tenant runs
 cloud.jengu.dbo.promises.DboStories                                      reached by the catalogue projection, which is build tooling rather than anything a tenant runs

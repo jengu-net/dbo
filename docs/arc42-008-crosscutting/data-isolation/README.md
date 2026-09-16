@@ -206,6 +206,15 @@ taken away the operator's freedom to move it.
 
 ## What stays outside
 
+**Deterministic encryption, or a keyed digest beside the sealed block.** It
+would let a reader holding no key say that the identifying part did not change
+between two versions — useful to anything differencing records it cannot read,
+and the request arrives from that direction every time. It buys that one word
+by leaking equality, which is precisely what lets an observer link two records,
+or two people, with no key at all. The honest answer is the one to keep: a
+blind differ characterises the cleartext delta exactly and reports the sealed
+block as opaque and possibly changed.
+
 Consent semantics and co-ownership — who must agree before a person's key may be
 unwrapped — are their own track; this provides the key seams they attach to.
 Anonymisation pipelines consume what is left behind here by construction:

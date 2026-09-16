@@ -1551,18 +1551,12 @@ public enum DboPromises implements Promise {
     EVT_TRANSACTIONAL_OUTBOX(
             "Every change event originates as an outbox row committed with the write. "
             + "(R8, §6)"),
-    /** TODO: prove it in a test (#184). TopicSubscriptionsIT builds a
-     * SubscriptionEngine and drives it, which proves the engine rather than a
-     * tenant: nothing outside a test constructs one, and neither dbo-tenant nor
-     * dbo-rest contains the string `subscri`. No tenant has ever served a
-     * Subscription of any shape. */
     /**
-     * What was actually turned on, kept apart from the topic promise beside
-     * it. A tenant now mounts its own dispatcher and delivers for the
-     * criteria subscriptions it holds; topic-based ones are still not wired,
-     * and folding the two together would let a criteria test stand behind a
-     * topic sentence — the defect the callerless-seam work is about, arriving
-     * through a citation rather than through code.
+     * What was turned on, kept apart from the topic promise beside it. Both
+     * deliver now, and they stay two sentences: folding them together would
+     * let a criteria test stand behind a topic claim, which is the
+     * callerless-seam defect arriving through a citation rather than through
+     * code.
      */
     EVT_A_TENANT_DELIVERS("A tenant serving a face that composes notifications mounts its own "
             + "dispatcher: a subscription it holds is matched against what changes and the "
@@ -1581,17 +1575,17 @@ public enum DboPromises implements Promise {
             + "records: a topic, a subscription filtered within what that topic allows, and a "
             + "notification naming the subscription, the topic and the event — carrying the "
             + "focus by name where the subscription asked for id-only. (R8)"),
-    /** TODO: prove it in a test (#184). Retries, backoff and dead-lettering are
-     * exercised in SubscriptionsIT against an engine the test built. No tenant has
-     * ever delivered a notification, so nothing has ever retried one either. */
+    /** TODO: prove it from a mounted tenant (#262). Retries, backoff and
+     * dead-lettering are exercised against an engine a test built. A tenant
+     * delivers now, so what is unproven is narrower than it was and sharper:
+     * nothing fails a delivery from a tenant and watches it recover. */
     EVT_DURABLE_DELIVERY(
             "Planned — Subscription delivery is durable, tenant-scoped and replayable, with "
             + "retries, backoff and dead-lettering. (R8, §9)"),
-    /** TODO: prove it in a test (#184). The sharpest of the three: the proof
-     * called addLocalListener on an engine the test constructed, and in a
-     * container there is no engine to add a listener to — so the surface this
-     * promises does not exist in any form, rather than existing and going
-     * unused. */
+    /** TODO: build it, then prove it (#265). There is an engine in a container
+     * now, one per tenant — but nothing exposes it, so a consumer sharing the
+     * JVM still takes a loopback HTTP hop to hear about a change in its own
+     * process. The surface does not exist in any form. */
     EVT_IN_PROCESS_SURFACE(
             "Planned — Co-located consumers get the same topics with identical semantics through "
             + "the in-process/OSGi surface. (R8)"),
