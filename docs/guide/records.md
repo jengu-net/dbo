@@ -87,19 +87,50 @@ word means. A different handling would mean different rules, declared in the
 same place, enforced by the engine rather than by the code that happens to
 write the record.
 
-**Reading one version by number is not supported yet.** The bundle is the way
-to get at history:
+**Any version is readable by its number.** The history bundle gives you all of
+them; this gives you one:
 
 ```bash
 --8<-- "docs/guide/examples/check.sh:vread"
 ```
 
+```json
+{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
+ "name":[{"family":"Potter","given":["Harry"]}],
+ "meta":{"versionId":"1", ...}}
+```
 ```
 404
 ```
 
-The response is an `OperationOutcome` saying `not-supported`, which is the
-store being honest about a gap rather than pretending the version is missing.
+The first call returns the record **as it was written** — `Harry`, not the `H.`
+it says now. The second asks for a version that never existed and is told so.
+
+The response carries *that* version's `ETag`, not the record's current one. It
+has to: an `ETag` echoing the newest version would make a conditional update
+built on a stale read look safe, which is the one mistake version reads exist
+to prevent.
+
+A third answer completes it. Delete a record and ask for the version that did
+the deleting:
+
+```bash
+--8<-- "docs/guide/examples/check.sh:vread-gone"
+```
+
+```
+410
+200
+```
+
+`410`, not `404` — the deletion is a version like any other, and the store will
+not invent a document for the moment a record stopped having one. The versions
+before it still read, which is the whole reason a deletion is a version rather
+than an erasure.
+
+That distinction matters more than it looks. A client that cannot tell *there
+was never a version 3* from *version 3 is the one that deleted it* cannot tell
+a typo from a history, which is most of what it came to ask.
 
 ## A definition is identified by its url
 

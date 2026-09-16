@@ -217,12 +217,22 @@ after=$(curl -sf -G "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$after" = "1" ] || fail "a conditional update should not add a record, got $after"
 
-step "reading one version by number is not supported"
+step "reading one version by number"
 # --8<-- [start:vread]
-curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient/$id/_history/1"
+curl -s "$HOGWARTS/Patient/$id/_history/1"
+
+curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient/$id/_history/99"
 # --8<-- [end:vread]
-vread=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient/$id/_history/1")
-[ "$vread" = "404" ] || fail "expected 404 from vread while it is unsupported, got $vread"
+first=$(curl -sf "$HOGWARTS/Patient/$id/_history/1")
+printf '%s' "$first" | grep -q '"given":\["Harry"\]' \
+    || fail "version 1 did not come back as it was written: $first"
+printf '%s' "$first" | grep -q '"versionId":"1"' \
+    || fail "the document does not say which version it is: $first"
+absent=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient/$id/_history/99")
+[ "$absent" = "404" ] || fail "expected 404 for a version that never existed, got $absent"
+etag=$(curl -s -o /dev/null -D - "$HOGWARTS/Patient/$id/_history/1" | grep -i '^etag:' | tr -d '\r')
+printf '%s' "$etag" | grep -q 'W/"1"' \
+    || fail "a version read must carry THAT version's validator, got: $etag"
 
 step "a definition is identified by its url, so writing it twice replaces it"
 # --8<-- [start:canonical]
@@ -367,6 +377,27 @@ curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient?favourite-colour=blu
 code=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient?favourite-colour=blue")
 [ "$code" = "400" ] || fail "expected 400 for an unknown parameter, got $code"
 
+step "an element the face does not define is refused, not quietly kept"
+# --8<-- [start:unknown-element]
+curl -s -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient",
+         "identifier":[{"system":"urn:rl:nid","value":"RL-0006"}],
+         "favouriteColour":"blue"}'
+# --8<-- [end:unknown-element]
+invented=$(curl -s -o /tmp/dbo-guide-invented -w '%{http_code}' -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0006"}],
+         "favouriteColour":"blue"}')
+[ "$invented" = "422" ] || fail "expected 422 for an undefined element, got $invented"
+grep -q "favouriteColour" /tmp/dbo-guide-invented \
+    || fail "the refusal should name the element: $(cat /tmp/dbo-guide-invented)"
+grep -q "extension" /tmp/dbo-guide-invented \
+    || fail "the refusal should point at the sanctioned way to carry it"
+landed=$(curl -sf -G "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0006" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$landed" = "0" ] || fail "a refused write left a record behind"
+
 step "a code outside a required binding is refused, and the refusal names the element"
 # --8<-- [start:validate-binding]
 curl -s -o /dev/null -w '%{http_code}\n' -X POST "$HOGWARTS/Patient" \
@@ -494,5 +525,22 @@ curl -s "$HOGWARTS/CodeSystem/\$lookup?system=http://hl7.org/fhir/administrative
 # --8<-- [end:core-terminology]
 core=$(curl -s "$HOGWARTS/CodeSystem/\$lookup?system=http://hl7.org/fhir/administrative-gender&code=female")
 printf '%s' "$core" | grep -q 'Female' || fail "the core code system is not answerable: $core"
+
+step "the version that deleted a record is gone, not missing"
+doomed=$(curl -sf -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0007"}],
+         "name":[{"family":"Fleeting"}]}' \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
+curl -sf -o /dev/null -X DELETE "$HOGWARTS/Patient/$doomed"
+# --8<-- [start:vread-gone]
+curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient/$doomed/_history/2"
+
+curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient/$doomed/_history/1"
+# --8<-- [end:vread-gone]
+tomb=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient/$doomed/_history/2")
+[ "$tomb" = "410" ] || fail "the version that deleted it should be gone, got $tomb"
+before_it=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient/$doomed/_history/1")
+[ "$before_it" = "200" ] || fail "deleting took the history with it, got $before_it"
 
 printf '\nguide: chapters one to seven work\n'

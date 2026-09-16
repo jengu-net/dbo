@@ -27,15 +27,20 @@ code from a particular value set. Write something else:
 
 ```
 422
-error | ERROR Patient.gender: The System URI could not be determined for the code 'purple' in the ValueSet 'http://hl7.org/fhir/ValueSet/administrative-gender|5.0.0'
+error | ERROR Patient.gender: The value provided ('purple') was not found in the
+value set 'AdministrativeGender' (http://hl7.org/fhir/ValueSet/administrative-gender|5.0.0),
+and a code is required from this value set (error message = The code 'purple' is not in
+the value set 'http://hl7.org/fhir/ValueSet/administrative-gender'
+(answered from this tenant's terminology))
 ```
 
 `422`, and nothing was written — the record does not exist at either version,
 because a refused write is not a partial one.
 
 Read what the outcome names. **The element**, so you know where to look, not
-merely that the resource was bad. **The value set**, by url. And **its
-version**, which is the part that matters in a minute.
+merely that the resource was bad. **The value set**, by url. **Its version**,
+which is the part that matters in a minute. And **where the answer came from** —
+*this tenant's terminology*, which is the subject of the next chapter.
 
 ## Shape is checked, not only codes
 
@@ -114,6 +119,36 @@ them ahead of time is most of why you would ask.
 but the capability statement does not currently list it, so you cannot discover
 it the way you discover search parameters. Until that is fixed, this page is
 where you find out it exists.
+
+## An element the face does not define is refused
+
+Being precise about the edge. Send a field that is not part of the definition
+at all:
+
+```bash
+--8<-- "docs/guide/examples/check.sh:unknown-element"
+```
+
+```json
+{"resourceType":"OperationOutcome","issue":[{"severity":"error","code":"invalid",
+ "diagnostics":"ERROR Patient: the element 'favouriteColour' is not defined here,
+  and this store does not keep what it cannot read — FHIR carries what a
+  resource does not define in 'extension'"}]}
+```
+
+`422`, and nothing was written. The refusal names the element, and it names the
+sanctioned alternative rather than leaving you to find it.
+
+This is the same stance as chapter five's refusal of an unknown search
+parameter, and for the same reason. A field the store cannot read is a field it
+cannot validate and cannot search — so keeping it would hand the next reader a
+document containing something the store never checked and cannot find. An
+extension is the mechanism the standard provides for carrying what a resource
+does not define, and an extension *is* part of the definition, so it is
+validated like everything else.
+
+In practice an unrecognised element is a typo, and this is the store catching
+it at the only moment it is cheap to catch.
 
 ## When the verdict cannot be reached
 
