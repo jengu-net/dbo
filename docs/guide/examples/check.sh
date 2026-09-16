@@ -325,4 +325,115 @@ curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient?favourite-colour=blu
 code=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient?favourite-colour=blue")
 [ "$code" = "400" ] || fail "expected 400 for an unknown parameter, got $code"
 
-printf '\nguide: chapters one to five work\n'
+step "a code outside a required binding is refused, and the refusal names the element"
+# --8<-- [start:validate-binding]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient",
+         "identifier":[{"system":"urn:rl:nid","value":"RL-0002"}],
+         "gender":"purple"}'
+
+# The outcome repeats itself at length; this prints the first clause of
+# each issue, which is the part naming what was wrong and where.
+curl -s -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient",
+         "identifier":[{"system":"urn:rl:nid","value":"RL-0002"}],
+         "gender":"purple"} ' \
+  | python3 -c '
+import sys, json
+for issue in json.load(sys.stdin)["issue"]:
+    print(issue["severity"], "|", issue["diagnostics"].split(";")[0])'
+# --8<-- [end:validate-binding]
+binding=$(curl -s -o /tmp/dbo-guide-binding -w '%{http_code}' -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0002"}],
+         "gender":"purple"}')
+[ "$binding" = "422" ] || fail "expected 422 for a code outside a required binding, got $binding"
+grep -q 'Patient.gender' /tmp/dbo-guide-binding \
+    || fail "the refusal should name the element: $(cat /tmp/dbo-guide-binding)"
+rejected=$(curl -sf -G "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0002" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$rejected" = "0" ] || fail "a refused write left a record behind"
+
+step "a malformed value and a missing required element are refused the same way"
+# --8<-- [start:validate-shape]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient",
+         "identifier":[{"system":"urn:rl:nid","value":"RL-0003"}],
+         "birthDate":"not-a-date"}'
+
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$HOGWARTS/Observation" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Observation","code":{"text":"house points"}}'
+# --8<-- [end:validate-shape]
+badday=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0003"}],
+         "birthDate":"not-a-date"}')
+[ "$badday" = "422" ] || fail "expected 422 for a malformed date, got $badday"
+nostatus=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$HOGWARTS/Observation" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Observation","code":{"text":"house points"}}')
+[ "$nostatus" = "422" ] || fail "expected 422 for a missing required element, got $nostatus"
+
+step "the same mistake at both faces, each naming the version it validated against"
+# --8<-- [start:validate-versions]
+for base in "$HOGWARTS" "$GRINGOTTS"; do
+    curl -s -X POST "$base/Patient" \
+        -H 'Content-Type: application/fhir+json' \
+        -d '{"resourceType":"Patient",
+             "identifier":[{"system":"urn:rl:nid","value":"RL-0004"}],
+             "gender":"purple"}' \
+      | grep -o 'administrative-gender|[0-9.]*' | head -1
+done
+# --8<-- [end:validate-versions]
+r5said=$(curl -s -X POST "$HOGWARTS/Patient" -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0004"}],
+         "gender":"purple"}' | grep -o 'administrative-gender|[0-9.]*' | head -1)
+r4said=$(curl -s -X POST "$GRINGOTTS/Patient" -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0004"}],
+         "gender":"purple"}' | grep -o 'administrative-gender|[0-9.]*' | head -1)
+[ "$r5said" = "administrative-gender|5.0.0" ] \
+    || fail "the hospital should validate against its own release, said $r5said"
+[ "$r4said" = "administrative-gender|4.0.1" ] \
+    || fail "the insurer should validate against its own release, said $r4said"
+
+step "asking for the verdict without writing"
+# --8<-- [start:validate-ahead]
+curl -s -X POST "$HOGWARTS/Observation/\$validate" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Observation","code":{"text":"house points"}}' \
+  | python3 -c '
+import sys, json
+for issue in json.load(sys.stdin)["issue"]:
+    print(issue["severity"], "|", issue["diagnostics"][:85])'
+# --8<-- [end:validate-ahead]
+ahead=$(curl -s -o /tmp/dbo-guide-ahead -w '%{http_code}' -X POST "$HOGWARTS/Observation/\$validate" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Observation","code":{"text":"house points"}}')
+[ "$ahead" = "200" ] || fail "a verdict was reached, so \$validate answers 200; got $ahead"
+grep -q 'Observation.status' /tmp/dbo-guide-ahead \
+    || fail "the verdict should name the missing element: $(cat /tmp/dbo-guide-ahead)"
+grep -q '"severity":"warning"' /tmp/dbo-guide-ahead \
+    || fail "the verdict should carry advice as well as errors"
+
+step "an element the face does not know is kept rather than refused"
+# --8<-- [start:validate-unknown-element]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient",
+         "identifier":[{"system":"urn:rl:nid","value":"RL-0005"}],
+         "favouriteColour":"blue"}'
+
+curl -sf -G "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0005"
+# --8<-- [end:validate-unknown-element]
+kept=$(curl -sf -G "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0005" \
+    | python3 -c '
+import sys, json
+entries = json.load(sys.stdin).get("entry", [])
+print("yes" if entries and "favouriteColour" in entries[0]["resource"] else "no")')
+[ "$kept" = "yes" ] || fail "the chapter documents that an unknown element is kept, and it was not"
+
+printf '\nguide: chapters one to six work\n'
