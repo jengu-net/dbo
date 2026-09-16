@@ -35,6 +35,7 @@ docker compose -f docs/guide/examples/compose.yaml up -d
 # --8<-- [start:bases]
 HOGWARTS=http://localhost:8090/t/hogwarts/fhir
 GRINGOTTS=http://localhost:8090/t/gringotts/fhir
+ZONE=http://localhost:8090/t/rl/fhir
 # --8<-- [end:bases]
 
 step "waiting for the world to be served"
@@ -138,6 +139,68 @@ printf '%s' "$outcome" | grep -q '4.0.1' \
     || fail "the refusal should name the version it validated against: $outcome"
 printf '%s' "$outcome" | grep -q 'OperationOutcome' || fail "expected an OperationOutcome"
 
+step "the same person twice is refused, not duplicated"
+# --8<-- [start:duplicate-identity]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient",
+         "identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
+         "name":[{"family":"Potter","given":["Harry","James"]}]}'
+# --8<-- [end:duplicate-identity]
+dup=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
+         "name":[{"family":"Potter","given":["Harry","James"]}]}')
+[ "$dup" = "409" ] || fail "expected 409 for a second create of one identity, got $dup"
+count=$(curl -sf -G "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0001" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$count" = "1" ] || fail "expected one record for one identity, got $count"
+
+step "updating by identity rather than by id"
+# --8<-- [start:conditional-update]
+curl -s -o /dev/null -w '%{http_code}\n' -X PUT \
+    "$HOGWARTS/Patient?identifier=urn:rl:nid%7CRL-0001" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient",
+         "identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
+         "name":[{"family":"Potter","given":["Harry","James"]}]}'
+# --8<-- [end:conditional-update]
+cond=$(curl -s -o /dev/null -w '%{http_code}' -X PUT \
+    "$HOGWARTS/Patient?identifier=urn:rl:nid%7CRL-0001" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
+         "name":[{"family":"Potter","given":["Harry","James"]}]}')
+[ "$cond" = "200" ] || fail "expected 200 from a conditional update, got $cond"
+after=$(curl -sf -G "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0001" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$after" = "1" ] || fail "a conditional update should not add a record, got $after"
+
+step "reading one version by number is not supported"
+# --8<-- [start:vread]
+curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient/$id/_history/1"
+# --8<-- [end:vread]
+vread=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient/$id/_history/1")
+[ "$vread" = "404" ] || fail "expected 404 from vread while it is unsupported, got $vread"
+
+step "a definition is identified by its url, so writing it twice replaces it"
+# --8<-- [start:canonical]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$ZONE/CodeSystem" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"CodeSystem","url":"urn:rl:houses","version":"1",
+         "status":"active","content":"complete",
+         "concept":[{"code":"gry","display":"Gryffindor"}]}'
+
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$ZONE/CodeSystem" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"CodeSystem","url":"urn:rl:houses","version":"1",
+         "status":"active","content":"complete",
+         "concept":[{"code":"gry","display":"Gryffindor"},
+                    {"code":"sly","display":"Slytherin"}]}'
+# --8<-- [end:canonical]
+held=$(curl -sf -G "$ZONE/CodeSystem" --data-urlencode "url=urn:rl:houses" \
+    | python3 -c 'import sys,json;d=json.load(sys.stdin);e=d.get("entry",[]);print(str(len(e))+":"+(e[0]["resource"]["meta"]["versionId"] if e else "-"))')
+[ "$held" = "1:2" ] || fail "expected one code system at version 2, got $held"
+
 step "a type the tenant never declared is refused"
 # The hospital declared Observation. The insurer did not — it holds Patient
 # and Coverage — so the same request is answered differently by each.
@@ -192,4 +255,4 @@ curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient?favourite-colour=blu
 code=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient?favourite-colour=blue")
 [ "$code" = "400" ] || fail "expected 400 for an unknown parameter, got $code"
 
-printf '\nguide: chapters one to three work\n'
+printf '\nguide: chapters one to four work\n'
