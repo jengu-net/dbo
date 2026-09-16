@@ -248,6 +248,76 @@ still=$(curl -sf -G "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$still" = "1" ] || fail "the hospital lost a record when a neighbour went away"
 
+step "what this tenant says it can be asked"
+# --8<-- [start:capability-search]
+curl -s "$HOGWARTS/metadata" | python3 -c '
+import sys, json
+rest = json.load(sys.stdin)["rest"][0]
+for resource in rest["resource"]:
+    if resource["type"] == "Patient":
+        print(*sorted(p["name"] for p in resource["searchParam"]), sep="\n")'
+# --8<-- [end:capability-search]
+declared=$(curl -s "$HOGWARTS/metadata" | python3 -c '
+import sys, json
+rest = json.load(sys.stdin)["rest"][0]
+for resource in rest["resource"]:
+    if resource["type"] == "Patient":
+        print(len(resource["searchParam"]))')
+[ "$declared" -gt 10 ] || fail "expected the capability statement to declare Patient search parameters, got $declared"
+
+step "a modifier the parameter does not have is refused by name"
+# --8<-- [start:unknown-modifier]
+curl -s -G "$HOGWARTS/Patient" --data-urlencode "family:nosuch=Granger"
+# --8<-- [end:unknown-modifier]
+modifier=$(curl -s -G "$HOGWARTS/Patient" --data-urlencode "family:nosuch=Granger")
+printf '%s' "$modifier" | grep -q "family:nosuch" \
+    || fail "the refusal should name what it refused: $modifier"
+
+step "counting without fetching"
+# --8<-- [start:count]
+curl -s -G "$HOGWARTS/Patient" --data-urlencode "_summary=count"
+# --8<-- [end:count]
+before=$(curl -s -G "$HOGWARTS/Patient" --data-urlencode "_summary=count" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"])')
+
+step "enough people to page through"
+for family in Granger Longbottom Lovegood Malfoy Diggory; do
+    curl -sf -o /dev/null -X POST "$HOGWARTS/Patient" \
+        -H 'Content-Type: application/fhir+json' \
+        -d "{\"resourceType\":\"Patient\",
+             \"identifier\":[{\"system\":\"urn:rl:nid\",\"value\":\"RL-90-$family\"}],
+             \"name\":[{\"family\":\"$family\"}]}" || fail "could not create $family"
+done
+
+step "a page, and the cursor that follows it"
+# --8<-- [start:first-page]
+curl -s -G "$HOGWARTS/Patient" --data-urlencode "_count=2"
+# --8<-- [end:first-page]
+page1=$(curl -sf -G "$HOGWARTS/Patient" --data-urlencode "_count=2")
+first=$(printf '%s' "$page1" | python3 -c 'import sys,json;print(" ".join(e["resource"]["id"] for e in json.load(sys.stdin)["entry"]))')
+next=$(printf '%s' "$page1" | python3 -c 'import sys,json;print([l["url"] for l in json.load(sys.stdin)["link"] if l["relation"]=="next"][0])')
+printf '%s' "$next" | grep -q "_cursor=" || fail "the next link carries no cursor: $next"
+
+step "a write lands between the pages, and the next page does not repeat"
+curl -sf -o /dev/null -X POST "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient",
+         "identifier":[{"system":"urn:rl:nid","value":"RL-90-Between"}],
+         "name":[{"family":"Aaaa"}]}'
+# The link carries the address the node was told to bind to. A deployment
+# names itself properly; this world binds to everything, so the example
+# points the same cursor at the host the reader is on.
+# --8<-- [start:next-page]
+curl -s "$(printf '%s' "$next" | sed 's|http://0.0.0.0:8090|http://localhost:8090|')"
+# --8<-- [end:next-page]
+page2=$(curl -sf "$(printf '%s' "$next" | sed 's|http://0.0.0.0:8090|http://localhost:8090|')")
+second=$(printf '%s' "$page2" | python3 -c 'import sys,json;print(" ".join(e["resource"]["id"] for e in json.load(sys.stdin).get("entry",[])))')
+python3 - "$first" "$second" <<'OVERLAP' || fail "a page repeated a record the previous page already returned"
+import sys
+a, b = set(sys.argv[1].split()), set(sys.argv[2].split())
+sys.exit(1 if a & b else 0)
+OVERLAP
+
 step "an unsupported search parameter is refused, not ignored"
 # --8<-- [start:strict-search]
 curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient?favourite-colour=blue"
@@ -255,4 +325,4 @@ curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient?favourite-colour=blu
 code=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient?favourite-colour=blue")
 [ "$code" = "400" ] || fail "expected 400 for an unknown parameter, got $code"
 
-printf '\nguide: chapters one to four work\n'
+printf '\nguide: chapters one to five work\n'
