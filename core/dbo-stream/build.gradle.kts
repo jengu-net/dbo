@@ -72,6 +72,28 @@ tasks.jar {
                     "org.slf4j",
                     "javax.sql",
                     "com.sun.net.httpserver",
+                    // As in dbo-subscriptions, and for the same reason: the
+                    // door is handed the substrate DataSource built over the
+                    // container's shared driver, and DBOS unwraps a
+                    // connection to org.postgresql.PGConnection to reach
+                    // LISTEN. A private copy of that package makes the class
+                    // it asks for and the class the connection implements two
+                    // classes with one name. The rest of the driver stays
+                    // private; what has to agree is the interface an object
+                    // is passed across.
+                    //
+                    // OPTIONAL here and mandatory in dbo-subscriptions,
+                    // because this bundle has two homes and they differ. In a
+                    // container that SERVES, the door is handed somebody
+                    // else's connection and the shared interface is the whole
+                    // point. In a PARTICIPANT's container the activator opens
+                    // its own pool from the copy in lib/, and there is no
+                    // driver bundle to import from — a host installs this
+                    // beside the runner and nothing else. Mandatory made that
+                    // container fail to resolve, which its own test caught.
+                    // Optional wires to the shared package wherever one
+                    // exists and is self-consistent where none does.
+                    "org.postgresql;resolution:=optional",
                     "!*",
                 ).joinToString(","),
             ).joinToString("\n")

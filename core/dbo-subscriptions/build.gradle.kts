@@ -75,6 +75,18 @@ tasks.jar {
                     "org.slf4j",
                     "javax.sql",
                     "com.sun.net.httpserver",
+                    // The driver's own interfaces come from the container's
+                    // driver bundle, NOT from the copy in lib/. DBOS is handed
+                    // a DataSource built over the shared driver and unwraps
+                    // the connection to org.postgresql.PGConnection to reach
+                    // LISTEN; with a private copy of that package the class it
+                    // asks for and the class the connection implements share a
+                    // name and nothing else, so the unwrap can never succeed
+                    // and the listener retries for ever — one warning per
+                    // second per tenant. The rest of the driver stays private:
+                    // what has to agree is the interface two parties pass an
+                    // object across.
+                    "org.postgresql",
                     // and nothing else
                     "!*",
                 ).joinToString(","),

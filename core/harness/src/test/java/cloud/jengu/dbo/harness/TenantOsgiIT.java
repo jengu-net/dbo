@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.ServiceLoader;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -185,6 +187,56 @@ class TenantOsgiIT {
             case Bundle.ACTIVE -> "ACTIVE";
             default -> "state-" + state;
         };
+    }
+
+    /**
+     * The subscription dispatcher and the driver must mean one
+     * {@code PGConnection}, or the listener cannot unwrap the connection it
+     * is handed.
+     *
+     * <p>A tenant mounts a dispatcher, and DBOS opens a {@code LISTEN}
+     * connection and unwraps it to reach the notification API. The
+     * {@code DataSource} it is given is built over the container's SHARED
+     * driver bundle, while {@code dbo-subscriptions} carried its own copy of
+     * the driver privately and imported nothing — so the interface DBOS asked
+     * for and the one the connection implements were two classes with one
+     * name, and the unwrap could never succeed. In a deployment that is one
+     * warning per second per tenant, for as long as it runs.
+     *
+     * <p><b>Asserted as class identity rather than through a connection</b>,
+     * because that is exactly what the failure is: an unwrap is an
+     * {@code isInstance} check, and two classes of the same name from two
+     * classloaders fail it no matter what connection is passed. There is no
+     * {@code DataSource} in the registry to borrow, and this needs none —
+     * {@code loadClass} asks the framework what each bundle actually sees.
+     */
+    @Test
+    @Timeout(300)
+    void theDispatcherAndTheDriverMeanOnePgConnection() throws Exception {
+        BundleContext ctx = framework.getBundleContext();
+        java.util.Map<String, Bundle> held = new java.util.TreeMap<>();
+        for (Bundle bundle : ctx.getBundles()) {
+            held.put(bundle.getSymbolicName(), bundle);
+        }
+        Bundle driver = held.get("org.postgresql.jdbc");
+        assertNotNull(driver, "no driver bundle: " + inTheContainer(ctx));
+        Class<?> asTheDriverMeansIt = driver.loadClass("org.postgresql.PGConnection");
+
+        // Both bundles that are handed a DataSource somebody else built: the
+        // dispatcher a tenant mounts, and the stream door it opens when a
+        // deployment has a substrate. The second is the same defect waiting
+        // for a deployment that configures one.
+        for (String carrier : java.util.List.of("cloud.jengu.dbo.subscriptions",
+                "cloud.jengu.dbo.stream")) {
+            Bundle bundle = held.get(carrier);
+            assertNotNull(bundle, carrier + " is not installed: " + inTheContainer(ctx));
+            Class<?> asItMeansIt = bundle.loadClass("org.postgresql.PGConnection");
+            assertSame(asTheDriverMeansIt, asItMeansIt,
+                    carrier + " and the driver mean different PGConnection classes, so every "
+                            + "unwrap of a connection it was handed fails and the listener "
+                            + "retries for ever: driver=" + asTheDriverMeansIt.getClassLoader()
+                            + " " + carrier + "=" + asItMeansIt.getClassLoader());
+        }
     }
 
     @AfterAll
