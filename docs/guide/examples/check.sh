@@ -20,7 +20,13 @@ set -euo pipefail
 # the guide tells a reader to run it from.
 cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 
-COMPOSE="docker compose -f docs/guide/examples/compose.yaml"
+# The world, normally the pinned one the guide publishes. DBO_GUIDE_COMPOSE
+# points this at a candidate instead — a locally built image, say — so the
+# guide's own commands can be run against a build BEFORE the pin moves to it.
+# Three findings were filed against the pinned image in one day that were
+# already fixed in the tree; this is how that is checked rather than guessed.
+COMPOSE_FILE="${DBO_GUIDE_COMPOSE:-docs/guide/examples/compose.yaml}"
+COMPOSE="docker compose -f $COMPOSE_FILE"
 step() { printf '\n=== %s\n' "$1"; }
 fail() { echo "guide: $1" >&2; exit 1; }
 cleanup() { $COMPOSE down --remove-orphans >/dev/null 2>&1 || true; }
@@ -51,6 +57,42 @@ curl -sf -o /dev/null "$HOGWARTS/metadata" || {
     fail "hogwarts never came up"
 }
 curl -sf -o /dev/null "$GRINGOTTS/metadata" || fail "gringotts never came up"
+
+step "the zone publishes terminology of its own"
+# --8<-- [start:zone-publishes]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$ZONE/CodeSystem" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"CodeSystem","url":"urn:rl:wards","version":"1",
+         "status":"active","content":"complete",
+         "concept":[{"code":"dai","display":"Dai Llewellyn Ward"},
+                    {"code":"spell","display":"Spell Damage"},
+                    {"code":"creature","display":"Creature-Induced Injuries"},
+                    {"code":"potion","display":"Potion and Plant Poisoning"}]}'
+
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$ZONE/ValueSet" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"ValueSet","url":"urn:rl:wards:vs","version":"1",
+         "status":"active","compose":{"include":[{"system":"urn:rl:wards"}]}}'
+# --8<-- [end:zone-publishes]
+
+step "and answers questions about it"
+# --8<-- [start:zone-lookup]
+curl -s "$ZONE/CodeSystem/\$lookup?system=urn:rl:wards&code=dai"
+# --8<-- [end:zone-lookup]
+looked=$(curl -s "$ZONE/CodeSystem/\$lookup?system=urn:rl:wards&code=dai")
+printf '%s' "$looked" | grep -q 'Dai Llewellyn' || fail "the zone cannot look up its own code: $looked"
+
+# --8<-- [start:zone-expand]
+curl -s "$ZONE/ValueSet/\$expand?url=urn:rl:wards:vs" | python3 -c '
+import sys, json
+expansion = json.load(sys.stdin)["expansion"]
+print(expansion["total"], "concepts")
+for concept in expansion["contains"]:
+    print(" ", concept["code"], concept["display"])'
+# --8<-- [end:zone-expand]
+expanded=$(curl -s "$ZONE/ValueSet/\$expand?url=urn:rl:wards:vs" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["expansion"]["total"])')
+[ "$expanded" = "4" ] || fail "expected the value set to expand to 4 concepts, got $expanded"
 
 step "asking each tenant which version it speaks"
 # --8<-- [start:versions]
@@ -419,4 +461,38 @@ grep -q 'Observation.status' /tmp/dbo-guide-ahead \
 grep -q '"severity":"warning"' /tmp/dbo-guide-ahead \
     || fail "the verdict should carry advice as well as errors"
 
-printf '\nguide: chapters one to six work\n'
+step "waiting for the zone's terminology to reach the hospital"
+# The hospital's first sync from its zone runs some minutes after it comes
+# up; once the stream is running, a change propagates in a second or two.
+for _ in $(seq 1 120); do
+    held=$(curl -sf -G "$HOGWARTS/CodeSystem" --data-urlencode "url=urn:rl:wards" \
+        | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+    [ "$held" = "1" ] && break
+    sleep 5
+done
+
+step "the hospital declared the zone, so it answers the zone's codes as its own"
+# --8<-- [start:zone-reaches-hospital]
+curl -s "$HOGWARTS/CodeSystem/\$lookup?system=urn:rl:wards&code=spell"
+# --8<-- [end:zone-reaches-hospital]
+at_hospital=$(curl -s "$HOGWARTS/CodeSystem/\$lookup?system=urn:rl:wards&code=spell")
+printf '%s' "$at_hospital" | grep -q 'Spell Damage' \
+    || fail "the zone's terminology never reached the hospital: $at_hospital"
+
+step "the insurer declared no such dependency, so it has none of it"
+# --8<-- [start:zone-not-at-insurer]
+curl -sf -G "$GRINGOTTS/CodeSystem" --data-urlencode "url=urn:rl:wards" \
+  | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])), "entries")'
+# --8<-- [end:zone-not-at-insurer]
+at_insurer=$(curl -sf -G "$GRINGOTTS/CodeSystem" --data-urlencode "url=urn:rl:wards" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$at_insurer" = "0" ] || fail "the insurer took terminology it never declared, got $at_insurer"
+
+step "and the standard's own terminology is there by the same mechanism"
+# --8<-- [start:core-terminology]
+curl -s "$HOGWARTS/CodeSystem/\$lookup?system=http://hl7.org/fhir/administrative-gender&code=female"
+# --8<-- [end:core-terminology]
+core=$(curl -s "$HOGWARTS/CodeSystem/\$lookup?system=http://hl7.org/fhir/administrative-gender&code=female")
+printf '%s' "$core" | grep -q 'Female' || fail "the core code system is not answerable: $core"
+
+printf '\nguide: chapters one to seven work\n'

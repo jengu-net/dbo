@@ -4,7 +4,8 @@
   "zone": "rl",
   "dependencies": [
     { "name": "fhir-r5", "face": true,
-      "types": ["StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"] }
+      "types": ["StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"] },
+    { "name": "rl", "types": ["CodeSystem", "ValueSet"] }
   ],
   "types": [
     { "name": "StructureDefinition", "identity": "canonical", "handling": "replicated" },
