@@ -1,0 +1,7 @@
+{
+  "code": "mom",
+  "face": "r5",
+  "types": [
+    { "name": "Organization", "identity": "internal", "handling": "operational" }
+  ]
+}

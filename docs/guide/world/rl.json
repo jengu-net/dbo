@@ -1,0 +1,8 @@
+{
+  "code": "rl",
+  "face": "r5",
+  "types": [
+    { "name": "CodeSystem", "identity": "canonical", "handling": "operational" },
+    { "name": "ValueSet", "identity": "canonical", "handling": "operational" }
+  ]
+}

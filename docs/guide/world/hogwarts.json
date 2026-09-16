@@ -1,0 +1,17 @@
+{
+  "code": "hogwarts",
+  "face": "r5",
+  "zone": "rl",
+  "dependencies": [
+    { "name": "fhir-r5", "face": true,
+      "types": ["StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"] }
+  ],
+  "types": [
+    { "name": "StructureDefinition", "identity": "canonical", "handling": "replicated" },
+    { "name": "SearchParameter", "identity": "canonical", "handling": "replicated" },
+    { "name": "ValueSet", "identity": "canonical", "handling": "replicated" },
+    { "name": "CodeSystem", "identity": "canonical", "handling": "replicated" },
+    { "name": "Patient", "identity": "identifier", "systems": ["urn:rl:nid"], "handling": "operational" },
+    { "name": "Observation", "identity": "internal", "handling": "operational" }
+  ]
+}
