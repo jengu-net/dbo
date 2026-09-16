@@ -62,6 +62,7 @@ exec java \
   ${DBO_ADMIN_USER:+-Ddbo.tenant.admin.user="${DBO_ADMIN_USER}"} \
   ${DBO_ADMIN_PASSWORD:+-Ddbo.tenant.admin.password="${DBO_ADMIN_PASSWORD}"} \
   ${DBO_AUTH_KEK:+-Ddbo.tenant.auth.kek="${DBO_AUTH_KEK}"} \
+  ${DBO_BOOTSTRAP_SECRETS:+-Ddbo.tenant.bootstrap.secrets="${DBO_BOOTSTRAP_SECRETS}"} \
   ${DBO_AUTH_ISSUER_BASE:+-Ddbo.tenant.auth.issuer.base="${DBO_AUTH_ISSUER_BASE}"} \
   ${DBO_BROKER_ISSUER:+-Ddbo.tenant.auth.broker.issuer="${DBO_BROKER_ISSUER}"} \
   ${DBO_BROKER_CLIENT_ID:+-Ddbo.tenant.auth.broker.client.id="${DBO_BROKER_CLIENT_ID}"} \

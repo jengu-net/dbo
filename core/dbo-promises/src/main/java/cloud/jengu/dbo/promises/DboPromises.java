@@ -968,6 +968,11 @@ public enum DboPromises implements Promise {
             + "resolves nothing, redemption burns the grant on presentation rather than "
             + "on success, and a grant authenticates nothing and cannot be exchanged for "
             + "a token."),
+    AUTH_BOOTSTRAP_SECRET_IS_CUSTODY(
+            "A tenant's bootstrap credential is the secret its deployment already holds, "
+            + "named per tenant, and never one the store invented and kept to itself: "
+            + "custody is the operator's, so a deployment without one says what it "
+            + "decided rather than being locked out of its own authority."),
     AUTH_NO_SUBJECT_ENUMERATION(
             "No authority answer distinguishes a subject that exists from one that does "
             + "not — not in what it says, not in how long it takes. The authority is the "

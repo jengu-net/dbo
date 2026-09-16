@@ -2435,6 +2435,7 @@ cloud.jengu.dbo.promises.DboFeatures                                   title():S
 cloud.jengu.dbo.promises.DboFeatures                                   valueOf(String):cloud.jengu.dbo.promises.DboFeatures
 cloud.jengu.dbo.promises.DboFeatures                                   values():cloud.jengu.dbo.promises.DboFeatures[]
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_BEARER_LOCAL_VALIDATION:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   AUTH_BOOTSTRAP_SECRET_IS_CUSTODY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_CREDENTIAL_FACTORS_BY_KIND:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_DEACTIVATION_RETIRES_CREDENTIALS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_DENY_BY_DEFAULT:cloud.jengu.dbo.promises.DboPromises
@@ -3504,6 +3505,7 @@ cloud.jengu.dbo.tenant.IdentityHandler                                 new(cloud
 cloud.jengu.dbo.tenant.IdentityHandler                                 new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.core.api.ObjectStore,String,String,cloud.jengu.dbo.pdi.PersonVault)
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               bootstrapClientSecret(String):String
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               bootstrapClientSecret(String,Duration):String
+cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               bootstrapSecrets(Map):void
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               class
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               close():void
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               deprovision(String):void

@@ -89,6 +89,30 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
                         .map(uri -> uri.replace("{code}", spec.code())).toList());
     }
 
+    /**
+     * Bootstrap secrets this deployment already holds, by tenant code.
+     *
+     * <p>Seeded before provisioning, so the generator below never runs for a
+     * tenant named here. That is the whole point: the secret the deployment
+     * put in its own vault and the secret the authority accepts are the same
+     * string, and neither side invents one the other cannot know.
+     *
+     * <p>Without this there is no credential path outside Kubernetes. In a
+     * cluster the operator writes the secret into custody and the serving side
+     * ensures the record from it; a deployment with no operator had only a
+     * secret generated in memory, never written down and readable through no
+     * surface — so its tenants came up guarded by a credential nobody could
+     * present. A deployment that cannot authenticate to itself is one that has
+     * to be run with its authority switched off, which is the configuration
+     * this store tells operators not to run.
+     *
+     * <p>Per tenant rather than per deployment, because one secret opening
+     * every tenant is not the isolation the rest of this class is for.
+     */
+    public void bootstrapSecrets(Map<String, String> byTenantCode) {
+        bootstrapSecrets.putAll(byTenantCode);
+    }
+
     /** Dev: redirect URIs for the per-tenant relying-party client. */
     public void rpRedirectUris(java.util.List<String> uris) {
         this.rpRedirectUris = java.util.List.copyOf(uris);

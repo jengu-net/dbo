@@ -110,6 +110,11 @@ public final class Activator implements BundleActivator {
             localProvisioner = new LocalDatabasePerTenantProvisioner(adminUrl,
                     ctx.getProperty("dbo.tenant.admin.user"),
                     ctx.getProperty("dbo.tenant.admin.password"));
+            // Custody, where there is no operator to hold it: the secrets
+            // this deployment already decided on, so the tenant's bootstrap
+            // client is one somebody can actually present.
+            localProvisioner.bootstrapSecrets(
+                    parseSecretMap(ctx.getProperty("dbo.tenant.bootstrap.secrets")));
             String rpRedirects = ctx.getProperty("dbo.tenant.rp.redirect.uris");
             if (rpRedirects != null && !rpRedirects.isBlank()) {
                 // embedded/local RP custody: {code}
@@ -260,7 +265,7 @@ public final class Activator implements BundleActivator {
     }
 
     /** "tara=secret1,eeid=secret2" — custody by broker code (§17.1). */
-    private static java.util.Map<String, String> parseBrokerSecrets(String csv) {
+    private static java.util.Map<String, String> parseSecretMap(String csv) {
         if (csv == null || csv.isBlank()) {
             return java.util.Map.of();
         }
@@ -304,7 +309,7 @@ public final class Activator implements BundleActivator {
                         ctx.getProperty("dbo.tenant.auth.issuer.base"),
                         upstream,
                         ctx.getProperty("dbo.tenant.auth.subject.system"),
-                        parseBrokerSecrets(ctx.getProperty("dbo.tenant.auth.broker.secrets")));
+                        parseSecretMap(ctx.getProperty("dbo.tenant.auth.broker.secrets")));
         manager = new TenantRuntimeManager(dir, provisioner, host, port,
                 new TenantRuntimeManager.Listener() {
                     @Override
