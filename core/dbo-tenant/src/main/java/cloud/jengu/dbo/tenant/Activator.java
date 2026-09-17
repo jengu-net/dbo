@@ -36,6 +36,8 @@ public final class Activator implements BundleActivator {
     private ServiceTracker<TenantDatabaseProvisioner, TenantDatabaseProvisioner> tracker;
     private LocalDatabasePerTenantProvisioner localProvisioner;
     private TenantRuntimeManager manager;
+    private ServiceTracker<TenantLifecycleListener, TenantLifecycleListener> lifecycle;
+    private ServiceTracker<TenantObserver, TenantObserver> observers;
     private final Map<String, List<ServiceRegistration<?>>> tenantRegistrations = new ConcurrentHashMap<>();
 
     /** How many tenants a node brings up at once, when a deployment says. */
@@ -87,6 +89,89 @@ public final class Activator implements BundleActivator {
             LOG.warn("{}={} is not a number; using {} at a time", named, declared, fallback);
             return fallback;
         }
+    }
+
+    /**
+     * Whiteboard for the extension APIs: anything registering one is picked
+     * up, and says for itself which tenants it is for.
+     *
+     * <p>Both kinds are here because they are one mechanism with two delivery
+     * contracts. A {@link TenantLifecycleListener} is a callback, and gets to
+     * be one because a tenant reaching a point is not a record anywhere — so
+     * there is no feed of it to read. A {@link TenantObserver} reads a feed as
+     * a named consumer, because the streams it watches ARE records, and a
+     * callback over them would lose everything that happened while its bundle
+     * was down.
+     *
+     * <p>A registration missing what it needs is refused by name at
+     * registration rather than ignored: a service that silently observes
+     * nothing is indistinguishable from one that is working and has nothing to
+     * do, which is the confusion this whole mechanism exists to remove.
+     */
+    private void watchExtensions(BundleContext ctx) {
+        lifecycle = new ServiceTracker<>(ctx, TenantLifecycleListener.class,
+                new ServiceTrackerCustomizer<>() {
+                    @Override
+                    public TenantLifecycleListener addingService(
+                            ServiceReference<TenantLifecycleListener> ref) {
+                        TenantLifecycleListener listener = ctx.getService(ref);
+                        String name = String.valueOf(ref.getProperty("service.id"));
+                        try {
+                            manager.addLifecycleListener(
+                                    TenantPoint.valueOf(String.valueOf(
+                                            ref.getProperty(TenantPoint.POINT))
+                                            .toUpperCase(java.util.Locale.ROOT)),
+                                    (String) ref.getProperty(TenantPoint.TARGET),
+                                    name, listener);
+                        } catch (RuntimeException e) {
+                            LOG.error("a lifecycle listener was not taken up: {}", name, e);
+                        }
+                        return listener;
+                    }
+
+                    @Override
+                    public void modifiedService(ServiceReference<TenantLifecycleListener> ref,
+                            TenantLifecycleListener listener) {
+                    }
+
+                    @Override
+                    public void removedService(ServiceReference<TenantLifecycleListener> ref,
+                            TenantLifecycleListener listener) {
+                        ctx.ungetService(ref);
+                    }
+                });
+        lifecycle.open();
+        observers = new ServiceTracker<>(ctx, TenantObserver.class,
+                new ServiceTrackerCustomizer<>() {
+                    @Override
+                    public TenantObserver addingService(ServiceReference<TenantObserver> ref) {
+                        TenantObserver observer = ctx.getService(ref);
+                        String name = String.valueOf(ref.getProperty("service.id"));
+                        try {
+                            manager.addObserver(
+                                    TenantDomain.ofSpelling(String.valueOf(
+                                            ref.getProperty(TenantDomain.DOMAIN))),
+                                    (String) ref.getProperty(TenantDomain.CONSUMER),
+                                    (String) ref.getProperty(TenantPoint.TARGET),
+                                    name, observer);
+                        } catch (RuntimeException e) {
+                            LOG.error("an observer was not taken up: {}", name, e);
+                        }
+                        return observer;
+                    }
+
+                    @Override
+                    public void modifiedService(ServiceReference<TenantObserver> ref,
+                            TenantObserver observer) {
+                    }
+
+                    @Override
+                    public void removedService(ServiceReference<TenantObserver> ref,
+                            TenantObserver observer) {
+                        ctx.ungetService(ref);
+                    }
+                });
+        observers.open();
     }
 
     @Override
@@ -371,6 +456,7 @@ public final class Activator implements BundleActivator {
         // A runtime can be asked what it is serving, when a deployment has
         // said who may ask.
         manager.serveRuntimeState(ctx.getProperty("dbo.tenant.ops.token"));
+        watchExtensions(ctx);
         // The durable substrate, when this deployment has one: each tenant's
         // lane then has a door on the stream beside its HTTP door, for a
         // fleet that connects to the substrate and to nothing else.
@@ -403,6 +489,14 @@ public final class Activator implements BundleActivator {
         LOG.info("shutdown requested: component=dbo-server");
         if (tracker != null) {
             tracker.close();
+        }
+        // Before the manager, so nothing is selected for a tenant that is on
+        // its way down.
+        if (lifecycle != null) {
+            lifecycle.close();
+        }
+        if (observers != null) {
+            observers.close();
         }
         if (manager != null) {
             manager.close();

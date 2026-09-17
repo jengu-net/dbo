@@ -195,6 +195,33 @@ It also gives a ratchet something exact to enforce: **no activity derives its
 own applicability**. It declares a selector, or it runs for everything on
 purpose.
 
+## Where it stands
+
+Built: the facts a tenant publishes, the selector, the two points activities
+run at (`dispatch` and `serving`), the whiteboard that takes up both extension
+APIs, and dbo's own subscription dispatching registered through it with the
+selector that excludes a face root — which is the defect, fixed by the
+mechanism rather than beside it.
+
+Both APIs exist because they carry different contracts, and the split is not
+cosmetic:
+
+- `TenantLifecycleListener` is a callback, because a tenant reaching a point
+  is not a record anywhere and there is no feed of it to read.
+- `TenantObserver` reads one of the tenant's streams as a **named durable
+  consumer**, because the streams it watches are records. It covers the work,
+  audit, identity and content domains through one interface, and an observer
+  absent for an hour resumes rather than missing the hour.
+
+`content` is the domain that needs resolving, and resolving it once is the
+point: a face root and a projection hold no records on their face, so an
+observer of content is **not started** for them. That is the original defect in
+its second disguise, and the mechanism now refuses it in both.
+
+The remaining points in the table are named and not yet run at. They are
+converted one at a time, because a point nothing runs at is a promise rather
+than a mechanism.
+
 ## First conversions
 
 The defect, and the ones that already carry their condition inline, in that

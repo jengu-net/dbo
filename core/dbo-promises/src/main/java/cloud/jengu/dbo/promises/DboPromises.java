@@ -773,6 +773,16 @@ public enum DboPromises implements Promise {
             + "managing tenant to hold records reads its source directly, because nothing "
             + "can bootstrap out of a store it has not built yet."),
 
+    TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES("A tenant publishes what it is as facts, "
+            + "and an activity states which tenants it is for rather than working it out "
+            + "where it runs: it declares a filter over those facts, or it applies to "
+            + "every tenant on purpose. An activity whose filter a tenant does not match "
+            + "is not performed for it — so provisioning that suits one kind of tenant "
+            + "cannot be applied to another by omission, which is the shape the failure "
+            + "took when subscription dispatching polled a record domain that a face root "
+            + "does not have. A filter that cannot be parsed is refused where it is "
+            + "registered, because one consulted later would match nothing in silence."),
+
     TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS("Configuration a declarer holds — value "
             + "sets, profiles, search parameters, whatever a loader keeps — is handed over "
             + "and applied to a tenant as one recorded pass rather than posted a resource "
