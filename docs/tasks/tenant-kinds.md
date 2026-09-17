@@ -133,6 +133,14 @@ appointment into the thing being appointed.
 
 ### Kinds are visible to the container
 
+The mechanism that consumes this is
+[tenant lifecycle extension points](tenant-lifecycle-points.md), where a kind is
+one of the facts a provisioning activity selects on. That document supersedes
+the trait-profile sketch below: rather than call sites asking a profile, each
+activity declares which tenants it applies to, and the composition root runs
+what matches. The kind is what makes the coarse case expressible.
+
+
 The reason to build it rather than to fix the dispatcher and move on: a kind is
 something other bundles can act on. A tenant's kind belongs in the runtime
 identity it publishes, so an OSGi service can filter on it — hooks and
