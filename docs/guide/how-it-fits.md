@@ -64,17 +64,18 @@ to by pseudonym, and erasable by destroying a key.
 
 ## One honest word about the examples
 
-Every command in this guide talks to a tenant's general surface with a
-credential the deployment holds. No step appears in any of them.
+Almost every command in this guide talks to a tenant's general surface with a
+credential the deployment holds. No step appears in them.
 
-That is what exists today, and it is the deployment's own door rather than the
-one an application is meant to come through. The step-addressed surface — where
-a run is the context a request happens in, and the data a step may reach is
-declared — is designed and not built. You can read
-[the design](../arc42-008-crosscutting/reaching-the-data/README.md) if you want
-to know where this is going.
+That surface is the deployment's own door rather than the one an application is
+meant to come through. The door that is — a run as the context a request
+happens in, reaching the documents the run was given — exists, and
+[Reaching data through a run](runs.md) is the chapter that uses it. It is one
+slice: reads only, and what a run may reach is what it names rather than
+anything followed from there. [The design](../arc42-008-crosscutting/reaching-the-data/README.md)
+says where the rest goes.
 
-So read the chapters with the frame above, and read the examples as showing
-what the store does rather than how an application will eventually ask for it.
-Nothing about records, tenants, faces, zones or privacy changes when the door
-does; what changes is what has to be declared before you may knock.
+So read the chapters with the frame above, and read most of their examples as
+showing what the store does rather than how an application will eventually ask
+for it. Nothing about records, tenants, faces, zones or privacy changes when
+the door does; what changes is what has to be declared before you may knock.

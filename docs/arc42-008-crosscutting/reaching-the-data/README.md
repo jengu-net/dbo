@@ -215,25 +215,32 @@ erasure.
 
 ## Where this stands
 
-None of the above is implemented. What exists today:
+**One slice is built.** A tenant declares the steps it offers beside the types
+it holds; a run is started over a document per slot; and a run context serves
+those documents and answers not-found for everything else, including a document
+of a declared type the run was not given. A credential holding the work scope
+enters that context and is refused by the tenant's own records surface.
+`PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS` is the promise, and the boundary's
+sharpest property is asserted directly: a withheld record and an invented id
+answer identically, so the door cannot be used to discover what a tenant holds.
+
+What is still true of everything else:
 
 - A credential holding `system/*.read` reads any record with no step and no run
-  anywhere in the picture, and that is how every example in the guide works.
-- `work` is a single scope rather than one bounded to a step.
-- The participation surface a host obtains is the replication lane's verbs, not
-  a step-addressed data plane.
-- Runs are read by id and are deliberately not searchable, which is the one
-  place the narrowing above is already real.
-- Nothing serves a run-scoped FHIR base, so neither the anchor nor the reach
-  above has anywhere to be declared yet.
-- The trail records the run a change belongs to, so the accountability half is
-  in place for work that does go through a run.
+  anywhere in the picture, and that is how every guide chapter but one works.
+  The general surface is a door this slice did not close.
+- `work` is a single scope rather than one bounded to a step, so a credential
+  that may enter one run context may enter another.
+- Reach is what a run names and nothing is followed from it, so the anchor
+  exists and the traversal described above does not.
+- The run context is read-only.
+- The participation surface a host obtains is still the replication lane's
+  verbs rather than this.
 
-So the store has the pieces — processes, steps, runs, per-tenant authority,
-role-derived authorisation, profile validation, generated capability statements,
-a trail that names runs — and does not yet have the rule. The gap is a step
-declaring the data it may reach, a surface that turns an inbound call into a
-run, and the demotion of the general surface to the control plane.
+So the rule now holds on one surface and nowhere else. The sentence in the
+regulation mapping — that there is no way to reach the data without performing
+the work that needed it — describes that surface and does not yet describe the
+store.
 
 [The implementation status](https://github.com/jengu-net/dbo/blob/main/docs/plans/implementation-status.md)
 is the honest record of what is built; where it and this document disagree, it

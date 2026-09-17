@@ -20,51 +20,34 @@ own door.
 
 ## Where it stands
 
-Groomed; nothing built. **Half of what this looked like is already proven**, so
-the slice is enforcement rather than design:
+Built and proven, except the chapter's harness run. The slice turned out to be
+enforcement rather than design: three promises were already PROVEN — a step
+declaration names its input slots, a run's inputs fill them fixed at creation
+with undeclared and unfilled slots both refused by name, and each input renders
+as `Task.input`, all by `WorkLeavesTheClinicAndComesBackIT`. `Run` already
+carried the slot-to-reference map, so the anchor was neither invented nor
+stored here.
 
-- `REQ-DBO-PROC-STEP-DECLARES-ITS-SLOTS` — PROVEN. A step declaration names its
-  input slots, ordered.
-- `REQ-DBO-PROC-RUN-INPUTS-FILL-THE-SLOTS` — PROVEN. A run's inputs fill them,
-  fixed at creation; undeclared and unfilled slots are refused by name.
-- `REQ-DBO-PROC-TASK-CARRIES-THE-INPUTS` — PROVEN. Each input renders as
-  `Task.input`.
+What this added: a tenant declaring the steps it offers, a door that turns a
+call into a run, a run context that answers for what the run named, and the
+proof that a withheld record and an invented id answer identically.
 
-All three by `WorkLeavesTheClinicAndComesBackIT`. `Run` carries
-`Map<String, String> inputs` — slot to `Type/id`. The anchor is not invented
-here and not stored here. What is missing is that nothing enforces it, and
-nothing outside the JVM can declare a step or start a run.
-
-The other pieces it builds on:
-
-- **`Run`** carries `process`, `step`, a `key`, an assignment and what it
-  produced.
-- **`Manifest`** already names *the documents a run works on* — `inputs`, a
-  slot to a `Type/id` each, "exactly as the run names them". This is the anchor
-  primitive; it does not have to be invented.
-- **`StepGrant`**, **`ExecutorDeclaration`** and **`StepIntroduction`** decide
-  who may perform a step.
-- **`WorkScopedStore`** already makes a run record what it produced.
-- The trail already names the run a change belonged to.
-- The per-tenant authority already issues credentials and validates scopes.
-
-What is missing is a step saying *what data it may reach*, a surface that turns
-that into a boundary, and a credential bound to a run.
+Still open, deliberately: reach is the named documents with no traversal, the
+context is read-only, and the general surface is untouched.
 
 ## Sequence
 
 1. ~~A step declares its slots~~ — **done already**, and proven.
 2. ~~A run's inputs fill them~~ — **done already**, and proven.
-3. A tenant declares its steps in its spec, beside `types`. **todo**
-4. Starting a run over HTTP, naming a document per slot. **todo**
-5. A run-scoped read surface at `/t/{code}/run/{key}/fhir/…`, answering for
-   `run.inputs()` and 404 for everything else. **todo**
-6. A client holding `work` and not `system/*`, so the same token is refused by
-   the general surface. **todo** — registration, not a change.
-7. The context's `/metadata` lists only the declared types. **todo**
-8. A guide chapter using it, with executed examples. **todo**
+3. ~~A tenant declares its steps in its spec~~ — **done**.
+4. ~~Starting a run over HTTP, naming a document per slot~~ — **done**.
+5. ~~A run-scoped read surface answering for `run.inputs()`~~ — **done**.
+6. ~~A client holding `work` and not `system/*`~~ — **done**; registration.
+7. ~~The context's metadata lists only the declared types~~ — **done**.
+8. A guide chapter using it. **written, not yet run** — the harness needs an
+   image carrying the surface, so it waits on the pin moving.
 
-The promise this claims: `PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS`, proven by
+`PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS`, proven by
 `AStepReachesOnlyWhatItNamedIT`.
 
 ## Decisions
