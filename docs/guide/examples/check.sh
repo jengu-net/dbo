@@ -271,6 +271,46 @@ etag=$(curl -s -o /dev/null -D - -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS
 printf '%s' "$etag" | grep -q 'W/"1"' \
     || fail "a version read must carry THAT version's validator, got: $etag"
 
+step "a write made against a version that has moved is refused"
+stale=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0008"}],
+         "name":[{"family":"Prewett"}]}' \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
+# Somebody else gets there first, which is the case this exists for.
+curl -sf -o /dev/null -X PUT -H "Authorization: Bearer $HOSPITAL" \
+    "$HOGWARTS/Patient/$stale" -H 'Content-Type: application/fhir+json' \
+    -d "{\"resourceType\":\"Patient\",\"id\":\"$stale\",
+         \"identifier\":[{\"system\":\"urn:rl:nid\",\"value\":\"RL-0008\"}],
+         \"name\":[{\"family\":\"Prewett\",\"given\":[\"Molly\"]}]}"
+# --8<-- [start:stale-write]
+curl -s -o /dev/null -w '%{http_code}\n' -X PUT \
+    -H "Authorization: Bearer $HOSPITAL" \
+    -H 'If-Match: W/"1"' \
+    "$HOGWARTS/Patient/$stale" \
+    -H 'Content-Type: application/fhir+json' \
+    -d "{\"resourceType\":\"Patient\",\"id\":\"$stale\",
+         \"identifier\":[{\"system\":\"urn:rl:nid\",\"value\":\"RL-0008\"}],
+         \"name\":[{\"family\":\"Prewett\",\"given\":[\"Fabian\"]}]}"
+
+curl -s -o /dev/null -w '%{http_code}\n' -X PUT \
+    -H "Authorization: Bearer $HOSPITAL" \
+    -H 'If-Match: W/"2"' \
+    "$HOGWARTS/Patient/$stale" \
+    -H 'Content-Type: application/fhir+json' \
+    -d "{\"resourceType\":\"Patient\",\"id\":\"$stale\",
+         \"identifier\":[{\"system\":\"urn:rl:nid\",\"value\":\"RL-0008\"}],
+         \"name\":[{\"family\":\"Prewett\",\"given\":[\"Fabian\"]}]}"
+# --8<-- [end:stale-write]
+refused_stale=$(curl -s -o /dev/null -w '%{http_code}' -X PUT \
+    -H "Authorization: Bearer $HOSPITAL" -H 'If-Match: W/"1"' \
+    "$HOGWARTS/Patient/$stale" -H 'Content-Type: application/fhir+json' \
+    -d "{\"resourceType\":\"Patient\",\"id\":\"$stale\",
+         \"identifier\":[{\"system\":\"urn:rl:nid\",\"value\":\"RL-0008\"}],
+         \"name\":[{\"family\":\"Prewett\"}]}")
+[ "$refused_stale" = "412" ] \
+    || fail "a write against a version that has moved should be refused, got $refused_stale"
+
 step "a definition is identified by its url, so writing it twice replaces it"
 # --8<-- [start:canonical]
 curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $JURISDICTION" "$ZONE/CodeSystem" \

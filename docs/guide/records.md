@@ -77,61 +77,10 @@ buys: no lookup, no branch, no race between the lookup and the write.
 
 ## Nothing is overwritten
 
-The previous version is still there. `_history` returns them oldest first, and
-chapter two walked through it: two entries, `versionId` 1 and 2, the first with
-the name as you originally wrote it.
-
-You did not ask for that and you did not configure it. The type declared
-`"handling": "operational"`, and keeping every version is part of what that
-word means. A different handling would mean different rules, declared in the
-same place, enforced by the engine rather than by the code that happens to
-write the record.
-
-**Any version is readable by its number.** The history bundle gives you all of
-them; this gives you one:
-
-```bash
---8<-- "docs/guide/examples/check.sh:vread"
-```
-
-```json
-{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
- "name":[{"family":"Potter","given":["Harry"]}],
- "meta":{"versionId":"1", ...}}
-```
-```
-404
-```
-
-The first call returns the record **as it was written** — `Harry`, not the `H.`
-it says now. The second asks for a version that never existed and is told so.
-
-The response carries *that* version's `ETag`, not the record's current one. It
-has to: an `ETag` echoing the newest version would make a conditional update
-built on a stale read look safe, which is the one mistake version reads exist
-to prevent.
-
-A third answer completes it. Create a record, delete it, and ask for the
-version that did the deleting:
-
-```bash
---8<-- "docs/guide/examples/check.sh:vread-gone"
-```
-
-```
-204
-410
-200
-```
-
-`410`, not `404` — the deletion is a version like any other, and the store will
-not invent a document for the moment a record stopped having one. The versions
-before it still read, which is the whole reason a deletion is a version rather
-than an erasure.
-
-That distinction matters more than it looks. A client that cannot tell *there
-was never a version 3* from *version 3 is the one that deleted it* cannot tell
-a typo from a history, which is most of what it came to ask.
+The previous version is still there, and so is every version before it. That is
+the subject of [history and concurrency](history.md) — including reading a
+version by its number, what a deletion is, and how two writers who both edit
+this record are stopped from silently losing each other's work.
 
 ## A definition is identified by its url
 
