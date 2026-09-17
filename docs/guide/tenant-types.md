@@ -2,26 +2,59 @@
 title: Kinds of tenant
 eyebrow: Guide
 standfirst: >-
-  They are all tenants — same bring-up, same surface — but four of them exist to do a job for the others.
+  Five of them appear in this guide and four exist to do a job for the others —
+  but every one is an ordinary tenant, brought up the same way, answering on
+  the same surfaces.
 template: essay.html
 ---
 
-!!! note "Not written yet"
+By now you have met all of them without being told they were a set. This page
+is the set, because a reader who has seen `mom`, `fhir-r5`, `rl` and `rl-on-r4`
+go past in four different chapters is owed one place that says how they relate.
 
-    This page is a placeholder so the shape of the guide can be reviewed. It
-    describes what belongs here, not what the store does — for that, the
-    chapters that are written are the ones in this menu that do not carry this
-    notice.
+| It is called | What it holds | Where it is covered |
+|---|---|---|
+| an ordinary tenant | an organisation's own records | [Tenants](tenants.md) |
+| the managing tenant | what this deployment was told to serve | [Tenants](tenants.md) |
+| a face root | one release of a standard, as records | [The face](the-face.md) |
+| a zone | a jurisdiction's rules and vocabulary | [A zone is a jurisdiction](zones.md) |
+| a projection | a zone as seen on another face | [Across faces](zone-chain.md) |
 
-## What this chapter will cover
+## The thing they have in common is the point
 
-- the managing tenant: what this deployment was told to serve
-- a face root: a release of a standard, held as records
-- a zone: a jurisdiction's rules
-- a projection: a zone as seen on another face
-- why each is an ordinary tenant rather than a mechanism of its own
+None of these is a mechanism. Each is a tenant: a database of its own, brought
+up by the same path, with the same history, the same trail, the same surfaces
+and the same rules about who may write what.
+
+That is a design decision and it could have gone the other way. The
+specification could have held a version's definitions in a bundled package, the
+deployment's own configuration in a table, and a jurisdiction's terminology in a
+config file — three mechanisms, three formats, three ways to ask what is in
+them, three things to back up separately and three that can be out of step with
+the records they govern.
+
+Instead there is one mechanism, and the consequences fall out for free. You can
+query a face root to see what definitions your tenant validates against. The
+managing tenant's history tells you when a tenant was declared and by whom,
+because it is history, and the rule that nothing is overwritten is not suspended
+for configuration. An archive of a zone is an archive, produced by the same
+door as any other.
+
+## Only one of them is created for you
+
+The projection is the exception worth knowing about. Nobody declares
+`rl-on-r4` — it appears because an R4 tenant declared a dependency on an R5
+zone, and something had to convert once rather than per member. It is still an
+ordinary tenant when it arrives, with a database and a surface you can ask.
+
+Everything else in the table is a file somebody wrote.
 
 ## What you would otherwise have written
 
-Every chapter ends with this section: the thing you would have built yourself
-if the store did not do it, and what owning that would have cost you.
+A package manager for specification versions, a configuration store for what the
+deployment serves, and a terminology distribution for what a jurisdiction
+mandates — each with its own format, its own update path, its own failure mode
+and its own answer to *what is in there right now*.
+
+Then the fourth thing: whatever reconciles them, because they are all describing
+the same records and none of them can see the others.
