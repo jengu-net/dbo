@@ -14,11 +14,9 @@ template: essay.html
     chapters that are written are the ones in this menu that do not carry this
     notice.
 
-This section comes first, and the rest of the guide is written as what it acts
-upon. That is the opposite of how a store is usually explained, and deliberate:
-the records, the tenants and the faces are all good answers on their own, but
-what makes them worth the constraints they carry is that reaching them is an
-act with a purpose attached.
+The idea this section rests on is introduced before the chapters start, in
+[how it fits together](how-it-fits.md). This is where it gets its detail, once
+records, tenants and faces are there for the vocabulary to attach to.
 
 ## What this chapter will cover
 

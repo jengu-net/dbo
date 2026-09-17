@@ -1,13 +1,13 @@
 # The reading order, in two levels.
 #
-# Work comes first, and that is the one place the dependency order is broken on
-# purpose. Everything here is built around work — what may be reached, by whom,
-# and why — so a reader who meets records, tenants and faces before meeting
-# work learns the parts without the thing that binds them. The work chapters
-# introduce the vocabulary; the sections after them supply the mechanics.
+# Nothing is used before it has been explained, so this is a dependency order
+# rather than an importance order.
 #
-# After that the principle holds: nothing is used before it has been explained,
-# so the order is a dependency order rather than an importance order. Files stay flat
+# The idea that binds it — that reaching data is an act of declared work — is
+# introduced up front rather than by putting the Work section first. Leading
+# with Work would have led with the one subject that has no surface to
+# demonstrate yet, so the introduction supplies the frame and Work goes where
+# its vocabulary has something concrete to attach to. Files stay flat
 # in this directory and the grouping lives here: a chapter's published address
 # does not change because it moved sections.
 #
@@ -17,11 +17,7 @@
 nav:
   - index.md
   - quick-start.md
-  - Work:
-      - work.md
-      - runs.md
-      - runners.md
-      - the-trail.md
+  - how-it-fits.md
   - Core:
       - declaring.md
       - records.md
@@ -46,6 +42,11 @@ nav:
       - zone-terminology.md
       - zone-services.md
       - zone-chain.md
+  - Work:
+      - work.md
+      - runs.md
+      - runners.md
+      - the-trail.md
   - Security:
       - who-may-act.md
       - authority.md

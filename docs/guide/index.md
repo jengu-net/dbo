@@ -58,10 +58,11 @@ declared it. A **zone** is a tenant holding a jurisdiction's rules. And all of
 it is records: the trail, the configuration, the definitions validated against,
 and the work itself.
 
-That order is deliberate. A store that only answers questions is a database,
-and there are good ones. What makes this one worth its constraints is that
-reaching the data is an act with a declared purpose attached — so the chapters
-begin there, and the storage is explained as what that acts upon.
+A store that only answers questions is a database, and there are good ones.
+What makes this one worth its constraints is that last idea — that reaching the
+data is an act with a declared purpose attached. [How it fits
+together](how-it-fits.md) sets that out before the chapters start, and is worth
+reading first: the order everything else comes in follows from it.
 
 ## The tenants in the examples
 
