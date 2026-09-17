@@ -271,6 +271,24 @@ etag=$(curl -s -o /dev/null -D - -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS
 printf '%s' "$etag" | grep -q 'W/"1"' \
     || fail "a version read must carry THAT version's validator, got: $etag"
 
+step "a type declared replicated is not writable here"
+# --8<-- [start:replicated-refused]
+curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/CodeSystem" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"CodeSystem","url":"urn:hogwarts:local","version":"1",
+         "status":"active","content":"complete",
+         "concept":[{"code":"x","display":"Local"}]}'
+# --8<-- [end:replicated-refused]
+readonly_here=$(curl -s -o /tmp/dbo-guide-readonly -w '%{http_code}' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/CodeSystem" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"CodeSystem","url":"urn:hogwarts:local","version":"1",
+         "status":"active","content":"complete","concept":[{"code":"x","display":"Local"}]}')
+[ "$readonly_here" = "403" ] \
+    || fail "writing a replicated type should be refused, got $readonly_here"
+grep -q "read-only-here" /tmp/dbo-guide-readonly \
+    || fail "the refusal should name the rule: $(cat /tmp/dbo-guide-readonly)"
+
 step "several writes as one act"
 # --8<-- [start:transaction]
 curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS" \
