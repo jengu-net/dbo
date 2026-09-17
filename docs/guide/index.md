@@ -61,8 +61,7 @@ and the work itself.
 A store that only answers questions is a database, and there are good ones.
 What makes this one worth its constraints is that last idea — that reaching the
 data is an act with a declared purpose attached. [How it fits
-together](how-it-fits.md) sets that out before the chapters start, and is worth
-reading first: the order everything else comes in follows from it.
+together](how-it-fits.md) sets it out.
 
 ## The tenants in the examples
 

@@ -2,16 +2,14 @@
 title: How it fits together
 eyebrow: Guide
 standfirst: >-
-  One idea binds the rest: reaching data is an act of declared work. Read this
-  before the chapters and the order of everything after it stops looking
-  arbitrary.
+  Reaching data here is an act of declared work: a step says what may be
+  touched and by whom, a run is one performance of it, and the reason the data
+  was reached is recorded rather than reconstructed afterwards.
 template: essay.html
 ---
 
 You have just written a record and read it back, which is the part of this
-store that looks like every other store. This page is about the part that does
-not, and it is worth five minutes before the chapters because it decides what
-all of them are for.
+store that looks like every other store. This is the part that does not.
 
 ## Work is the thing everything else attaches to
 
