@@ -2565,6 +2565,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_LA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_NODE_ANSWERS_ITS_CATALOGUE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_NAMES_WHAT_IT_PRODUCED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TRACKABLE_MAY_ROUTE_OTHERS:cloud.jengu.dbo.promises.DboPromises
@@ -3664,11 +3665,13 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List)
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      pdi():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      policies():cloud.jengu.dbo.policy.TenantPolicies
 cloud.jengu.dbo.tenant.TenantSpec                                      record
 cloud.jengu.dbo.tenant.TenantSpec                                      scim():cloud.jengu.dbo.tenant.TenantSpec.Scim
+cloud.jengu.dbo.tenant.TenantSpec                                      steps():List
 cloud.jengu.dbo.tenant.TenantSpec                                      toString():String
 cloud.jengu.dbo.tenant.TenantSpec                                      types():List
 cloud.jengu.dbo.tenant.TenantSpec                                      zone():String
@@ -3687,6 +3690,13 @@ cloud.jengu.dbo.tenant.TenantSpec.Scim                                 new(Strin
 cloud.jengu.dbo.tenant.TenantSpec.Scim                                 record
 cloud.jengu.dbo.tenant.TenantSpec.Scim                                 system():String
 cloud.jengu.dbo.tenant.TenantSpec.Scim                                 toString():String
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 code():String
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 equals(Object):boolean
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 hashCode():int
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map)
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 record
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 slots():Map
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 toString():String
 cloud.jengu.dbo.tenant.TenantState                                     code():String
 cloud.jengu.dbo.tenant.TenantState                                     equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantState                                     hashCode():int

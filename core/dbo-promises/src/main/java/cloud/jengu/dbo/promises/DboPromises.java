@@ -179,6 +179,11 @@ public enum DboPromises implements Promise {
             + "named, each an opaque shape reference — and a runner that joins the step "
             + "has agreed to that API: there is nothing else it can receive."),
 
+    PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS(
+            "A run context answers for the documents its run named and for nothing else — a "
+            + "document of a declared type the run was not given is as absent as one that "
+            + "never existed, so a credential that may act in a step cannot use it to read "
+            + "past what the step was handed."),
     PROC_RUN_INPUTS_FILL_THE_SLOTS("A run's inputs fill the step's declared slots, fixed "
             + "at creation: a slot the step does not declare and a declared slot left "
             + "unfilled are both refused by name, and the record round-trips them in "

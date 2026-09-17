@@ -344,6 +344,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
             java.time.Duration.ofMinutes(2);
     /** Where each tenant's lane surface is mounted, for the same teardown. */
     private final Map<String, String> workContexts = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * Where a tenant's declared steps are started, and where a run of one
+     * answers. Two paths because they are two acts, tracked together because
+     * a retracted tenant takes both with it.
+     */
+    private final Map<String, java.util.List<String>> stepContexts =
+            new java.util.concurrent.ConcurrentHashMap<>();
     /** Each tenant's door on the stream, while it is served; none unless a substrate was given. */
     private final Map<String, cloud.jengu.dbo.stream.StreamDoor> doors =
             new java.util.concurrent.ConcurrentHashMap<>();
@@ -1901,6 +1908,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
                     workPath, new WorkGrants(authority), laneFactory));
             workContexts.put(spec.code(), workPath);
+            // Work as the way in. A tenant that declares no steps offers no
+            // such door — the surface exists because something was declared,
+            // never as a default somebody has to remember to close.
+            if (!spec.steps().isEmpty()) {
+                String startPath = "/t/" + spec.code() + "/step";
+                String runPath = "/t/" + spec.code() + "/run";
+                sharedServer.createContext(startPath, new StepSurface(authority, laneRuns,
+                        runtime.store(), spec.steps(), runPath, true));
+                sharedServer.createContext(runPath, new StepSurface(authority, laneRuns,
+                        runtime.store(), spec.steps(), runPath, false));
+                stepContexts.put(spec.code(), java.util.List.of(startPath, runPath));
+            }
             // What this tenant knows about the things behind its
             // participants. Beside replication rather than as a verb on the
             // lane: a lane is what one participant may do, and an operator
@@ -2860,6 +2879,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String workPath = workContexts.remove(code);
         if (workPath != null) {
             sharedServer.removeContext(workPath);
+        }
+        java.util.List<String> stepPaths = stepContexts.remove(code);
+        if (stepPaths != null) {
+            stepPaths.forEach(sharedServer::removeContext);
         }
         // Its own dispatcher thread and its own DBOS connection, so a tenant
         // going away has to stop it: a retracted tenant whose dispatcher kept
