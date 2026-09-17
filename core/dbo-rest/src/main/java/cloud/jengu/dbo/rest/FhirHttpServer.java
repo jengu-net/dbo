@@ -203,6 +203,18 @@ public final class FhirHttpServer implements AutoCloseable {
             // anyone, including us — so the answer says which rule refused it
             // rather than implying somebody could authorise their way past.
             respond(exchange, 403, store.operationOutcome("forbidden", e.getMessage()));
+        } catch (cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException e) {
+            // 403: the caller asked a question about a person without saying
+            // why, and the answer is that they may not ask it that way — not
+            // 400, because the request is well formed, and emphatically not
+            // 500, which says this store broke. It did not; it declined, and
+            // the refusal is the whole point of the exception.
+            //
+            // It had no arm here at all, so a tenant behind the membrane
+            // answered a fault to every identifying search — with a message
+            // written to be read by the caller, under a status telling them to
+            // retry and report it.
+            respond(exchange, 403, store.operationOutcome("security", e.getMessage()));
         } catch (cloud.jengu.dbo.core.api.ShapeTooNewException e) {
             // 409: the tenant's DATA and the tenant's PACK disagree. Not 422
             // — the request was fine; not 403 — nobody could be granted a way

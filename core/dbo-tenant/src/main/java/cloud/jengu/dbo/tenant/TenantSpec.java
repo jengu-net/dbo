@@ -17,7 +17,52 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
         String zone, String broker, List<String> acceptedBrokers,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
-        String managedBy, boolean faceRoot) {
+        String managedBy, boolean faceRoot, List<Step> steps) {
+
+    /**
+     * A step this tenant offers, and the documents a run of it is over.
+     *
+     * <p>Declared here rather than stored as a record because it is a
+     * contract, not data: the same reason the types are here. A reader of the
+     * file can see what the tenant may be asked to do and over what, without
+     * querying it.
+     *
+     * <p>A slot names <b>a face type</b>, which is narrower than the engine's
+     * own step declaration — there a slot is an opaque shape reference the
+     * engine hands to a face. This is the narrower thing on purpose: what it
+     * configures is a face surface, and the surface has to know which type a
+     * slot admits in order to refuse the ones it does not.
+     *
+     * @param code  the step's own name, as a run of it will be addressed
+     * @param slots slot name to the type it takes, in declaration order
+     */
+    public record Step(String code, java.util.Map<String, String> slots) {
+        public Step {
+            if (code == null || code.isBlank()) {
+                throw new IllegalArgumentException("a step declares a code");
+            }
+            if (slots.isEmpty()) {
+                throw new IllegalArgumentException(code + ": a step with no slots is over "
+                        + "nothing, and a run of it would reach nothing — declare what it "
+                        + "takes, or do not declare the step");
+            }
+            slots = java.util.Collections.unmodifiableMap(
+                    new java.util.LinkedHashMap<>(slots));
+        }
+    }
+
+    /**
+     * Without offered steps: every tenant before one could be reached through
+     * the work it declares rather than through its records directly.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, List.of());
+    }
 
     /**
      * Without a face root: what every tenant was before a version's
@@ -325,6 +370,43 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                         + "and scim names which of those the directory uses");
             }
         }
+        // The steps this tenant offers, and what each is over. A slot naming a
+        // type the tenant does not hold is refused here rather than at the
+        // first run of it: the spec is where a declaration disagreeing with
+        // itself is cheapest to find.
+        List<Step> steps = new java.util.ArrayList<>();
+        {
+            java.util.Set<String> held = types.stream()
+                    .map(cloud.jengu.dbo.fhir.common.FhirTypeConfig::typeName)
+                    .collect(java.util.stream.Collectors.toSet());
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            for (Object one : Json.array(root, "steps")) {
+                String stepCode = Json.str(one, "code");
+                // A step's name is the engine's, so it is checked against the
+                // engine's rule here rather than at the first run of it: the
+                // spec is read once and the run is attempted under load.
+                cloud.jengu.dbo.core.process.StepId.of(stepCode);
+                if (!seen.add(stepCode)) {
+                    throw new IllegalArgumentException(code + ": step '" + stepCode
+                            + "' is declared twice, and a run addressed by that name could "
+                            + "not say which was meant");
+                }
+                java.util.Map<String, String> slots = new java.util.LinkedHashMap<>();
+                if (Json.objOpt(one, "slots") instanceof java.util.Map<?, ?> named) {
+                    named.forEach((slot, type) -> slots.put(String.valueOf(slot),
+                            String.valueOf(type)));
+                }
+                for (java.util.Map.Entry<String, String> slot : slots.entrySet()) {
+                    if (!held.contains(slot.getValue())) {
+                        throw new IllegalArgumentException(code + ": step '" + stepCode
+                                + "' takes '" + slot.getValue() + "' in slot '" + slot.getKey()
+                                + "', and this tenant does not declare that type. It holds: "
+                                + new java.util.TreeSet<>(held));
+                    }
+                }
+                steps.add(new Step(stepCode, slots));
+            }
+        }
         return new TenantSpec(code, face, types, pdi,
                 cloud.jengu.dbo.policy.TenantPolicies.parse(root),
                 Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),
@@ -332,7 +414,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 Json.strings(root, "mandatorySteps"), Json.strOpt(root, "managedBy"),
                 // A face root holds its version's definitions as records —
                 // the one place the carried packages are ever read.
-                Json.bool(root, "faceRoot"));
+                Json.bool(root, "faceRoot"), List.copyOf(steps));
     }
 
     /**

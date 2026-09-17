@@ -179,6 +179,11 @@ public enum DboPromises implements Promise {
             + "named, each an opaque shape reference — and a runner that joins the step "
             + "has agreed to that API: there is nothing else it can receive."),
 
+    PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS(
+            "A run context answers for the documents its run named and for nothing else — a "
+            + "document of a declared type the run was not given is as absent as one that "
+            + "never existed, so a credential that may act in a step cannot use it to read "
+            + "past what the step was handed."),
     PROC_RUN_INPUTS_FILL_THE_SLOTS("A run's inputs fill the step's declared slots, fixed "
             + "at creation: a slot the step does not declare and a declared slot left "
             + "unfilled are both refused by name, and the record round-trips them in "
@@ -767,6 +772,61 @@ public enum DboPromises implements Promise {
             + "says in the ledger that it has stopped moving. A deployment with no "
             + "managing tenant to hold records reads its source directly, because nothing "
             + "can bootstrap out of a store it has not built yet."),
+
+    TEN_A_REFUSED_DECLARATION_IS_SAID_ONCE("A declaration this deployment refused is "
+            + "reported by name with its reason, and a deployment that is not serving "
+            + "something it was told to serve does not answer as though it were. The refusal "
+            + "was already a card in front of a person, which is where it belongs; what it "
+            + "was not is visible, because a spec that will not parse never reaches bring-up "
+            + "and none of the reporting there fires — six tenants of seven reads exactly "
+            + "like six. Said once per declaration and reason, since the pass runs on every "
+            + "beat and a refusal repeated every few seconds is how a log stops being read; "
+            + "said again when the reason changes, because somebody fixing a file works "
+            + "through its problems one at a time."),
+
+    TEN_A_STALE_INDEX_IS_REMEMBERED_UNTIL_IT_IS_REBUILT("A reindex that did not finish is "
+            + "remembered against the tenant and retried until it does. The feed's events are "
+            + "acknowledged before the rebuild runs — deliberately, so a broken profile is "
+            + "not re-read forever — which left a failed reindex with nothing to bring it "
+            + "back: the index stayed stale behind one warning, and a stale envelope does not "
+            + "slow a search down, it makes it miss, which reads as nobody here. The warning "
+            + "is said once rather than every round, because a log that repeats itself stops "
+            + "being read, and the recovery says so when it comes."),
+
+    SRCH_A_REINDEX_HOLDS_NO_TRANSACTION_WHILE_IT_EXTRACTS("A reindex reads a batch in one "
+            + "transaction, extracts with none open, and writes in another — so how long "
+            + "extraction takes cannot decide whether the reindex survives. Extracting "
+            + "between two statements of an open transaction left the connection idle in "
+            + "transaction, and this store sets a sixty-second guard on every tenant "
+            + "database, so on a loaded node its own guard terminated its own reindex. The "
+            + "write is conditional on the version the row was read at: a row rewritten "
+            + "meanwhile already carries an envelope from the write that changed it, and "
+            + "replacing it would restore the staleness the rebuild exists to remove."),
+
+    PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL("A search refused for want of a stated purpose "
+            + "answers as a refusal the caller can act on, never as a fault: the request was "
+            + "well formed and this store is not broken, it declined. Answering 500 told a "
+            + "caller to retry and report it, under a message written to tell them to state "
+            + "a purpose instead — so the one refusal the design argues hardest for was the "
+            + "one a caller was least able to read."),
+
+    PDI_AN_ID_THE_STORE_NEVER_ASSIGNED_IS_NOT_A_FAULT("A vault lookup for a record id "
+            + "this store never assigned answers that it holds nothing, decided before the "
+            + "database is asked. A caller's malformed id is the caller's mistake, and "
+            + "handing it to the database to cast made it the server's: a tenant with a "
+            + "vault answered 500 where the same request answered 400 without one, so "
+            + "turning the membrane on turned a refusal into a fault — and the membrane is "
+            + "supposed to be invisible to everything except what it protects."),
+
+    TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES("A tenant publishes what it is as facts, "
+            + "and an activity states which tenants it is for rather than working it out "
+            + "where it runs: it declares a filter over those facts, or it applies to "
+            + "every tenant on purpose. An activity whose filter a tenant does not match "
+            + "is not performed for it — so provisioning that suits one kind of tenant "
+            + "cannot be applied to another by omission, which is the shape the failure "
+            + "took when subscription dispatching polled a record domain that a face root "
+            + "does not have. A filter that cannot be parsed is refused where it is "
+            + "registered, because one consulted later would match nothing in silence."),
 
     TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS("Configuration a declarer holds — value "
             + "sets, profiles, search parameters, whatever a loader keeps — is handed over "

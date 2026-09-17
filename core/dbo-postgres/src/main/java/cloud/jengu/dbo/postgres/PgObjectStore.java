@@ -1387,12 +1387,16 @@ public final class PgObjectStore implements ObjectStore {
         UUID after = null;
         while (true) {
             final UUID cursor = after;
-            record Row(UUID id, byte[] payload, String storedVersion, String shapeJson) {}
+            record Row(UUID id, byte[] payload, String storedVersion, String shapeJson,
+                    long versionId) {}
+            record Rebuilt(Row row, Envelope envelope) {}
+            // READ. Its own transaction, and nothing but reading happens in
+            // it.
             List<Row> batch = inTx(c -> {
                 List<Row> rows = new ArrayList<>();
                 String sql = cursor == null
-                        ? "SELECT id, payload, payload_version, shape FROM %s_data WHERE type = ? AND NOT deleted ORDER BY id LIMIT ?"
-                        : "SELECT id, payload, payload_version, shape FROM %s_data WHERE type = ? AND NOT deleted AND id > ? ORDER BY id LIMIT ?";
+                        ? "SELECT id, payload, payload_version, shape, version_id FROM %s_data WHERE type = ? AND NOT deleted ORDER BY id LIMIT ?"
+                        : "SELECT id, payload, payload_version, shape, version_id FROM %s_data WHERE type = ? AND NOT deleted AND id > ? ORDER BY id LIMIT ?";
                 try (PreparedStatement ps = c.prepareStatement(sql.formatted(d))) {
                     int p = 1;
                     ps.setString(p++, typeName);
@@ -1402,28 +1406,62 @@ public final class PgObjectStore implements ObjectStore {
                     ps.setInt(p, batchSize);
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
-                            rows.add(new Row((UUID) rs.getObject(1), rs.getBytes(2), rs.getString(3), rs.getString(4)));
+                            rows.add(new Row((UUID) rs.getObject(1), rs.getBytes(2),
+                                    rs.getString(3), rs.getString(4), rs.getLong(5)));
                         }
                     }
                 }
-                for (Row row : rows) {
-                    byte[] current = upgraded(type, new StoredObject(row.id().toString(), typeName,
-                            0, Instant.EPOCH, row.payload(), false, row.storedVersion())).payload();
-                    Envelope envelope = type.extractor().extract(typeName, current);
-                    // rebuilt from the row: the stamp survives a reindex
-                    // because it never depended on the payload
-                    shapeIntoEnvelope(envelope, shapeOf(row.shapeJson()));
-                    try (PreparedStatement up = c.prepareStatement(
-                            "UPDATE %s_data SET envelope = ?::jsonb WHERE id = ?".formatted(d))) {
-                        up.setString(1, JsonbCodec.envelopeJson(envelope.paths()));
-                        up.setObject(2, row.id());
-                        up.executeUpdate();
-                    }
-                    replaceIdentifiers(c, type, row.id(), envelope.identifiers());
-                    // a reindex rewrites edges for rows that already have them
-                    replaceReferences(c, domain, row.id(), envelope.references(), false);
-                }
                 return rows;
+            });
+
+            // EXTRACT. No transaction is open for this, and that is the whole
+            // point of the split: extraction is work in this JVM, and doing it
+            // between two statements of an open transaction leaves the
+            // connection IDLE IN TRANSACTION for as long as it takes. This
+            // store sets `idle_in_transaction_session_timeout = '60s'` on
+            // every tenant database, so on a loaded node its own guard
+            // terminated its own reindex — and because the shapes consumer is
+            // acked before the rebuild runs, the events were not re-read and
+            // the index stayed stale behind one warning. A stale envelope does
+            // not slow a search down; it makes it MISS, which reads as nothing
+            // here.
+            List<Rebuilt> rebuilt = new ArrayList<>(batch.size());
+            for (Row row : batch) {
+                byte[] current = upgraded(type, new StoredObject(row.id().toString(), typeName,
+                        0, Instant.EPOCH, row.payload(), false, row.storedVersion())).payload();
+                Envelope envelope = type.extractor().extract(typeName, current);
+                // rebuilt from the row: the stamp survives a reindex
+                // because it never depended on the payload
+                shapeIntoEnvelope(envelope, shapeOf(row.shapeJson()));
+                rebuilt.add(new Rebuilt(row, envelope));
+            }
+
+            // WRITE. Its own transaction, guarded on the version the row had
+            // when it was read: a row rewritten in between already carries an
+            // envelope extracted from its new payload by the write that
+            // changed it, and overwriting that with one derived from the
+            // payload we read would put back exactly the staleness this
+            // rebuild exists to remove.
+            inTx(c -> {
+                for (Rebuilt one : rebuilt) {
+                    int touched;
+                    try (PreparedStatement up = c.prepareStatement(
+                            "UPDATE %s_data SET envelope = ?::jsonb WHERE id = ? AND version_id = ?"
+                                    .formatted(d))) {
+                        up.setString(1, JsonbCodec.envelopeJson(one.envelope().paths()));
+                        up.setObject(2, one.row().id());
+                        up.setLong(3, one.row().versionId());
+                        touched = up.executeUpdate();
+                    }
+                    if (touched == 0) {
+                        continue;
+                    }
+                    replaceIdentifiers(c, type, one.row().id(), one.envelope().identifiers());
+                    // a reindex rewrites edges for rows that already have them
+                    replaceReferences(c, domain, one.row().id(), one.envelope().references(),
+                            false);
+                }
+                return null;
             });
             total += batch.size();
             if (batch.size() < batchSize) {

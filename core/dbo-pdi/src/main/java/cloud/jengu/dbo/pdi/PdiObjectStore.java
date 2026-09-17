@@ -568,6 +568,14 @@ public final class PdiObjectStore implements ObjectStore {
             if (!spec.isPersonType(linkedType)) {
                 continue;
             }
+            // A reference this store never assigned an id for names nothing
+            // here — another organisation's practitioner, a registry entry —
+            // and there is no record of it to bind. Skipping is the answer;
+            // refusing would make a perfectly ordinary outward reference
+            // unwritable the moment a tenant turns the membrane on.
+            if (!PersonVault.storeAssigned(linkedId)) {
+                continue;
+            }
             Optional<String> theirs = vault.personOf(linkedType, linkedId);
             if (theirs.isEmpty()) {
                 vault.bind(linkedType, linkedId, personId);

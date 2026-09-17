@@ -1,13 +1,57 @@
-# The reading order. Chapters are added here as they are written, rather than
-# being discovered alphabetically — a guide read out of order is not a guide.
+# The reading order, in two levels.
+#
+# Nothing is used before it has been explained, so this is a dependency order
+# rather than an importance order.
+#
+# The idea that binds it — that reaching data is an act of declared work — is
+# introduced up front rather than by putting the Work section first. Leading
+# with Work would have led with the one subject that has no surface to
+# demonstrate yet, so the introduction supplies the frame and Work goes where
+# its vocabulary has something concrete to attach to. Files stay flat
+# in this directory and the grouping lives here: a chapter's published address
+# does not change because it moved sections.
+#
+# The sample world is not here on purpose. It exists so the examples in these
+# chapters are consistent with each other and stay that way; that is a fact
+# about how this documentation is kept, not something a reader of it needs.
 nav:
   - index.md
   - quick-start.md
-  - tenants.md
-  - records.md
-  - search.md
-  - validation.md
-  - terminology.md
-  - the-face.md
-  - export-and-import.md
-  - world/README.md
+  - how-it-fits.md
+  - Core:
+      - declaring.md
+      - records.md
+      - history.md
+      - search.md
+      - references.md
+      - transactions.md
+      - validation.md
+      - terminology.md
+      - change-feed.md
+      - blobs.md
+  - Tenants:
+      - tenants.md
+      - isolation.md
+      - the-face.md
+      - tenant-types.md
+      - lifecycle.md
+      - export-and-import.md
+  - Zones:
+      - zones.md
+      - zone-terminology.md
+      - zone-chain.md
+  - Work:
+      - work.md
+      - runs.md
+      - runners.md
+      - the-trail.md
+  - Security:
+      - who-may-act.md
+      - authority.md
+      - delegated.md
+      - scim.md
+  - Privacy:
+      - personal-data.md
+      - encryption.md
+      - erasure.md
+      - retention.md

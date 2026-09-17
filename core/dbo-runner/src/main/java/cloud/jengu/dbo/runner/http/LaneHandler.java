@@ -30,7 +30,7 @@ import java.util.Set;
  * precisely so the application never holds {@code CREATE DATABASE}, and the
  * consuming JVM has no {@code Runs} to build a lane from at all — while being
  * the side that <em>serves</em> work to the appliances. This is the door it
- * comes in by: the same twelve verbs, over the private surface it already
+ * comes in by: the same verbs, over the private surface it already
  * reaches the tenant on.
  *
  * <p><b>The lane, not the store.</b> What is offered here is deliberately no

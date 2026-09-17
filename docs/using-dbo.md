@@ -335,7 +335,7 @@ procedure somebody performs.
 
 | what the regulation asks for | what answers it here |
 |---|---|
-| a purpose for each processing of personal data | access is granted to a **step**, and the step is the purpose — there is no way to reach the data without performing the work that needed it |
+| a purpose for each processing of personal data | access is granted to a **step**, and the step is the purpose. A run context reaches the documents its run named and nothing else; the tenant's general surface is still open to a credential the deployment holds, so this answers for what comes through a step and not yet for everything |
 | records of processing | the **trail**: who read what, on whose authority, as append-only records in the tenant's own store |
 | right of access | the person's records, read through the ordinary surface |
 | data portability | a **store-independent export**, hash-verified, importable elsewhere |

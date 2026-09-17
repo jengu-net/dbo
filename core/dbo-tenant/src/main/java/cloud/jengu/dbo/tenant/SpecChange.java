@@ -106,6 +106,14 @@ public record SpecChange(Kind kind, List<String> fields) {
         if (!Objects.equals(serving.scim(), declared.scim())) {
             rewire.add("scim");
         }
+        // The steps a tenant offers decide whether it mounts a step surface
+        // and what a run of one may reach — both of which are wiring, built
+        // when the tenant comes up. Nothing already stored moves, so this is
+        // not cold; but a tenant cannot start answering at a path it has not
+        // mounted, so it is not hot either.
+        if (!Objects.equals(serving.steps(), declared.steps())) {
+            rewire.add("steps");
+        }
         if (!Objects.equals(serving.policies(), declared.policies())) {
             rewire.add("policies");
         }

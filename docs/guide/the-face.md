@@ -32,52 +32,26 @@ fhir-r4 740
 Those are `StructureDefinition` records, readable and searchable like any
 other. The hospital and the insurer each declared a dependency on one of these,
 which is how the shapes they validate against got there — the same mechanism
-chapter seven used for the zone's code systems, pointed at a different tenant.
+[the agreed vocabulary](zone-terminology.md) uses for the zone's code systems,
+pointed at a different tenant.
 
 This is the whole reason two releases coexist. There is no global "the FHIR
 version this deployment runs". There is a tenant holding R5's definitions, a
 tenant holding R4's, and each ordinary tenant declaring which it reads.
 
-## Conversion happens once, in a tenant that exists to do it
+## Two releases, and what sits between them
 
-Now the case this arrangement is really for.
-
-The zone speaks R5. The insurer speaks R4 and declares the zone as a
-dependency. Somebody has to convert — and the obvious answers are both bad.
-Converting in the zone means the zone holds a copy per face of everything.
-Converting in each tenant means every R4 member of that zone does the same work
-on the same content, separately, forever.
-
-The store does neither. It declares a **projection**: the zone, as seen on a
-face. Nobody wrote it and nobody asked for it — it exists because an R4 tenant
-declared an R5 zone:
-
-```bash
---8<-- "docs/guide/examples/check.sh:projection"
-```
-
-```
-4.0.1
-5.0.0
-```
-
-`rl-on-r4` is a tenant. It has a database, a bring-up, a surface, a
-capability statement — everything any other tenant has, because a thing that is
-a tenant should be one rather than a second mechanism that will drift. It reads
-the zone, converts what it finds, and serves the result to every R4 tenant in
-that zone.
-
-Add a second R4 insurer tomorrow and no more conversion happens. It reads the
-projection that is already there.
-
-The insurer's own request does not know any of this. It asked its own tenant
-for a code and got an answer, and chapter seven's `Spell Damage` lookup is the
-proof — that code was written to an R5 tenant and read from an R4 one.
+The hospital reads R5's definitions and the insurer reads R4's, and the zone
+they share speaks one of the two. Something has to convert, and the store's
+answer is a tenant that exists to do it — which is
+[across faces](zone-chain.md), because whose content is being converted is the
+zone's question rather than the face's.
 
 ## The face decides what a refusal says
 
-Chapter two showed the insurer refusing a `Coverage` shaped the R5 way, and the
-refusal naming `4.0.1`. Chapter six showed the same wrong code refused by both
+[The quick start](quick-start.md) showed the insurer refusing a `Coverage` shaped
+the R5 way, and the refusal naming `4.0.1`. [Validation](validation.md) showed
+the same wrong code refused by both
 tenants, each naming its own release of the value set.
 
 Both are the same fact in different clothes. A tenant validates against the

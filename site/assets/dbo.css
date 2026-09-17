@@ -315,3 +315,45 @@
  * have pointed into a list nobody is shown. Essays keep theirs: a section of
  * an argument is a thing worth linking to. */
 .dbo-home .headerlink { display: none; }
+
+/* ------------------------------------------------------------------ menu
+ * The sidebar was stock Material while everything else was styled, and with
+ * two levels it spent too much width on itself. Narrower type, tighter
+ * leading, and a smaller step between levels — the same information in about
+ * a third less horizontal space.
+ */
+.md-nav { font-size: .68rem; line-height: 1.45 }
+.md-nav__title { font-size: .66rem; letter-spacing: .04em }
+.md-nav__item .md-nav__link { padding-top: .22em; padding-bottom: .22em }
+.md-nav--secondary .md-nav__title { font-weight: 600 }
+/* A section's own children sit close to it rather than a full indent away. */
+.md-nav__list .md-nav__list { padding-left: .35rem }
+.md-sidebar--primary { width: 11.5rem }
+@media screen and (min-width: 76.25em) {
+  .md-sidebar { padding-top: 1.2rem }
+}
+
+/* ------------------------------------------------------- admonitions
+ * Material's defaults are boxed and loud; these pages are set as prose, so an
+ * aside is marked by a rule and a colour rather than by a panel. The title
+ * carries the icon's colour, which is enough to say what kind it is.
+ */
+.dbo-essay .md-typeset .admonition,
+.dbo-essay .md-typeset details {
+  border: none; border-left: 3px solid var(--dbo-line);
+  border-radius: 0; box-shadow: none;
+  background: transparent; padding: .2rem 0 .2rem 1.1rem;
+  font-size: 15.5px; margin: 1.8em 0;
+}
+.dbo-essay .md-typeset .admonition-title,
+.dbo-essay .md-typeset summary {
+  background: transparent; border: none; padding: 0 0 .25em 0;
+  font-weight: 600; color: var(--dbo-ink);
+}
+.dbo-essay .md-typeset .admonition-title::before,
+.dbo-essay .md-typeset summary::before { display: none }
+.dbo-essay .md-typeset .admonition > p { color: var(--dbo-muted); margin: .2em 0 }
+.dbo-essay .md-typeset .admonition.note { border-left-color: var(--dbo-accent) }
+.dbo-essay .md-typeset .admonition.warning { border-left-color: #b4551d }
+.dbo-essay .md-typeset .admonition.danger { border-left-color: #9b2c2c }
+.dbo-essay .md-typeset .admonition.tip { border-left-color: var(--dbo-seal) }

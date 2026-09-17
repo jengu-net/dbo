@@ -344,6 +344,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
             java.time.Duration.ofMinutes(2);
     /** Where each tenant's lane surface is mounted, for the same teardown. */
     private final Map<String, String> workContexts = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * Where a tenant's declared steps are started, and where a run of one
+     * answers. Two paths because they are two acts, tracked together because
+     * a retracted tenant takes both with it.
+     */
+    private final Map<String, java.util.List<String>> stepContexts =
+            new java.util.concurrent.ConcurrentHashMap<>();
     /** Each tenant's door on the stream, while it is served; none unless a substrate was given. */
     private final Map<String, cloud.jengu.dbo.stream.StreamDoor> doors =
             new java.util.concurrent.ConcurrentHashMap<>();
@@ -371,9 +378,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
     /** One per tenant whose face delivers notifications; closed when the tenant goes. */
-    private final Map<String, AutoCloseable> subscriptionDispatch = new ConcurrentHashMap<>();
+    private final Map<String, java.util.List<AutoCloseable>> activityCloseables =
+            new ConcurrentHashMap<>();
     /** How often a tenant's dispatcher looks again when it last found nothing. */
     private static final java.time.Duration SUBSCRIPTION_POLL = java.time.Duration.ofSeconds(1);
+    /** What runs at each point of a tenant's life, and which tenants each is for. */
+    private final TenantActivities activities = new TenantActivities();
+    /** Who is watching which of a tenant's streams. */
+    private final TenantObservations observations = new TenantObservations();
+    /** Who is told when a tenant reaches a point, with the filter that selected them. */
+    private final java.util.List<Object[]> lifecycleListeners =
+            new java.util.concurrent.CopyOnWriteArrayList<>();
+    /** What each served tenant published about itself, for the later points. */
+    private final Map<String, TenantFacts> publishedFacts = new ConcurrentHashMap<>();
+    /** Tenants whose index is stale because a reindex did not finish. */
+    private final StaleIndexes staleIndexes = new StaleIndexes();
+    /** Which refused declarations have already been reported. */
+    private final Refusals refusals = new Refusals();
 
     /** A tenant that is not serving, and why — the reason a card has to carry. */
     private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
@@ -484,6 +505,115 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     authorityConfig.subjectSystem(), hubBase, "/hub", 28_800);
             sharedServer.createContext("/hub", identityHub);
         }
+        registerOwnActivities();
+    }
+
+    /**
+     * dbo's own provisioning, registered the way anybody else's would be.
+     *
+     * <p>Subscription dispatching used to be performed here unconditionally,
+     * and a face root and a projection keep their records in the definitions
+     * domain rather than the face's — so it polled a relation that does not
+     * exist in their databases, once a second, for the life of the deployment.
+     * Nothing said so: the poll loop swallowed the failure, and the only trace
+     * was the database's own error log.
+     *
+     * <p>The condition is now stated where the activity is, which is the point
+     * of the mechanism. An activity that applies to every tenant says nothing
+     * here and means it; this one does not apply to every tenant, and now says
+     * which.
+     */
+    /**
+     * Adds a listener for a point, with the filter saying which tenants it is
+     * for, or null for every tenant.
+     *
+     * <p>The filter is parsed here rather than where it is first consulted:
+     * one nobody could parse would otherwise match nothing, quietly, for the
+     * life of the deployment.
+     */
+    public void addLifecycleListener(TenantPoint point, String target, String name,
+            TenantLifecycleListener listener) {
+        org.osgi.framework.Filter filter = null;
+        if (target != null && !target.isBlank()) {
+            try {
+                filter = org.osgi.framework.FrameworkUtil.createFilter(target);
+            } catch (org.osgi.framework.InvalidSyntaxException e) {
+                throw new IllegalArgumentException(
+                        name + ": the target filter cannot be parsed: " + target, e);
+            }
+        }
+        lifecycleListeners.add(new Object[] {point, filter, name, listener});
+    }
+
+    /** Registers an observer of one of a tenant's streams. */
+    public void addObserver(TenantDomain domain, String consumer, String target, String name,
+            TenantObserver observer) {
+        observations.register(domain, consumer, target, name, observer);
+    }
+
+    /** What a tenant publishes about itself, once it is up. */
+    public java.util.Optional<TenantFacts> factsOf(String code) {
+        return java.util.Optional.ofNullable(publishedFacts.get(code));
+    }
+
+    /**
+     * Tells whoever selected this tenant that it reached a point.
+     *
+     * <p>A listener that throws is named and the rest still run, and none of
+     * it stops the tenant: what a listener does is its author's business, and
+     * a deployment an absent listener can take down is the worse trade — the
+     * same answer mandatory steps already gives.
+     */
+    @SuppressWarnings("unchecked")
+    private void reached(TenantPoint point, TenantFacts facts) {
+        for (Object[] one : lifecycleListeners) {
+            if (one[0] != point) {
+                continue;
+            }
+            org.osgi.framework.Filter filter = (org.osgi.framework.Filter) one[1];
+            if (filter != null
+                    && !filter.matches((Map<String, ?>) facts.properties())) {
+                continue;
+            }
+            try {
+                ((TenantLifecycleListener) one[3]).reached(point, facts);
+            } catch (RuntimeException e) {
+                LOG.warn("tenant {}: listener {} failed at {}",
+                        facts.code(), one[2], point.spelling(), e);
+            }
+        }
+    }
+
+    /**
+     * Whether this tenant keeps any records in its face's record domain.
+     *
+     * <p>Asked of the registrations rather than inferred from the spec, and
+     * the difference is not academic: the first version of this test was
+     * {@code faceRoot || a face dependency}, which looked like the answer and
+     * was not. A tenant holding only definitional types keeps them in the
+     * definitions domain whatever kind of tenant it is — which is true of a
+     * ZONE, and a zone is neither a face root nor face-dependent. It went on
+     * erroring after the defect was supposedly fixed.
+     *
+     * <p>The registrations already carry the domain each type lands in, so
+     * this stops guessing and reads it, and stays right for a kind of tenant
+     * nobody has invented yet.
+     */
+    static boolean holdsRecordsInFaceDomain(
+            java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> registrations,
+            String recordDomain) {
+        return registrations.stream()
+                .anyMatch(registration -> recordDomain.equals(registration.domain()));
+    }
+
+    private void registerOwnActivities() {
+        activities.register(TenantPoint.DISPATCH,
+                "(" + TenantFacts.HOLDS_RECORDS_IN_FACE_DOMAIN + "=true)",
+                "subscription dispatch",
+                tenant -> tenant.store().dispatchNotifications(
+                                new PgChangeFeed(tenant.dataSource(), tenant.recordDomain()),
+                                tenant.dataSource(), SUBSCRIPTION_POLL.toMillis())
+                        .orElse(null));
     }
 
     public int port() {
@@ -562,6 +692,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (!runtimes.containsKey(spec.code())) {
             bringUp(spec);
             states.put(spec.code(), TenantState.State.SERVING);
+            factsOf(spec.code()).ifPresent(facts -> reached(TenantPoint.SERVING, facts));
             LOG.info("management tenant up: code={}", spec.code());
         }
         managementCode = spec.code();
@@ -656,6 +787,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 TenantSpec spec = TenantSpec.parse(new String(declaration.payload(),
                         java.nio.charset.StandardCharsets.UTF_8));
                 declared.add(spec.code());
+                // It parsed and it is being served, so a later refusal of the
+                // same file is news rather than a repeat.
+                refusals.applied(named);
                 states.putIfAbsent(spec.code(), TenantState.State.COMING_UP);
                 trouble.remove(spec.code());
                 trouble.remove("spec:" + named);
@@ -667,6 +801,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     long began = System.nanoTime();
                     bringUp(spec);
                     states.put(spec.code(), TenantState.State.SERVING);
+                    factsOf(spec.code()).ifPresent(facts -> reached(TenantPoint.SERVING, facts));
                     reportedFailures.removeIf(k -> k.startsWith(named + ":"));
                     LOG.info("tenant up: code={} fhir={} pdi={} in {}ms",
                             spec.code(), spec.face(), spec.pdi(),
@@ -1223,6 +1358,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 room.acquireUninterruptibly();
                 try {
                     each.accept(one);
+                } catch (Throwable escaped) {
+                    // Whatever the work did not catch for itself. A virtual
+                    // thread that dies takes its reason with it: join()
+                    // returns normally, the scan reports what it served, and
+                    // the tenant that did not come up leaves NO log line, no
+                    // state and no trouble record — it is simply not there.
+                    //
+                    // That is worse than any failure it could be reporting,
+                    // because there is nothing to search for. So this is the
+                    // floor: the work still owns its own failures, and this
+                    // catches only what got past them.
+                    LOG.error("bring-up died with nothing catching it: work={}", one, escaped);
                 } finally {
                     room.release();
                 }
@@ -1543,9 +1690,29 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // the dispatcher is FHIR-blind and its FHIR-shaped halves live in the
         // personality, so the composition root starts it and stops it and
         // knows nothing else about it.
-        store.dispatchNotifications(new PgChangeFeed(db.dataSource(), version.domain()),
-                        db.dataSource(), SUBSCRIPTION_POLL.toMillis())
-                .ifPresent(dispatching -> subscriptionDispatch.put(spec.code(), dispatching));
+        // Whether this tenant keeps records in its face's record domain is
+        // ASKED, not inferred from the spec's shape. Inferring it is what put
+        // this defect here: `faceRoot || a face dependency` looked like the
+        // answer and was not, because a tenant holding only definitional types
+        // keeps them in the definitions domain whatever kind it is — which is
+        // true of a zone, and a zone is neither of those things.
+        TenantFacts facts = TenantFacts.of(spec,
+                holdsRecordsInFaceDomain(declared.registrations(), version.domain()));
+        java.util.List<AutoCloseable> leftBehind = new java.util.ArrayList<>(
+                activities.runAt(TenantPoint.DISPATCH,
+                        new TenantActivities.Provisioned(facts, db.dataSource(), store,
+                                version.domain()),
+                        (name, failed) -> LOG.warn("tenant {}: activity {} failed at {}",
+                                spec.code(), name, TenantPoint.DISPATCH.spelling(), failed)));
+        // The tenant's feeds exist from here, so this is where anybody
+        // watching one starts reading it.
+        leftBehind.addAll(observations.startFor(facts, version.domain(),
+                (watched, domain) -> new PgChangeFeed(db.dataSource(), domain),
+                (name, failed) -> LOG.warn("tenant {}: observer {} failed",
+                        spec.code(), name, failed)));
+        activityCloseables.put(spec.code(), leftBehind);
+        publishedFacts.put(spec.code(), facts);
+        reached(TenantPoint.DISPATCH, facts);
         // The lane's own objects, built once for this tenant and shared by
         // everything that reaches for a lane.
         //
@@ -1901,6 +2068,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
                     workPath, new WorkGrants(authority), laneFactory));
             workContexts.put(spec.code(), workPath);
+            // Work as the way in. A tenant that declares no steps offers no
+            // such door — the surface exists because something was declared,
+            // never as a default somebody has to remember to close.
+            if (!spec.steps().isEmpty()) {
+                String startPath = "/t/" + spec.code() + "/step";
+                String runPath = "/t/" + spec.code() + "/run";
+                sharedServer.createContext(startPath, new StepSurface(authority, laneRuns,
+                        runtime.store(), spec.steps(), runPath, true));
+                sharedServer.createContext(runPath, new StepSurface(authority, laneRuns,
+                        runtime.store(), spec.steps(), runPath, false));
+                stepContexts.put(spec.code(), java.util.List.of(startPath, runPath));
+            }
             // What this tenant knows about the things behind its
             // participants. Beside replication rather than as a verb on the
             // lane: a lane is what one participant may do, and an operator
@@ -2426,21 +2605,41 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // yet. What it costs is different, so it is said differently:
                 // a reindex is work, and a round that quietly spent four
                 // minutes on one is a deployment nobody can account for.
-                if (searchMoved) {
+                // The events are acked above, BEFORE this runs, which is
+                // right for a broken profile and was wrong for a reindex: a
+                // reindex that failed was never re-read, so the index stayed
+                // stale behind one warning, and a stale envelope does not make
+                // a search slow — it makes it MISS, which reads as nobody
+                // here. So the need to reindex is remembered against the
+                // tenant rather than against the feed, and retried until it
+                // takes.
+                if (staleIndexes.needsRebuild(runtime.spec().code(), searchMoved)) {
                     long began = System.currentTimeMillis();
                     int reindexed = runtime.store().searchParametersChanged();
                     if (reindexed > 0) {
                         rebuilt++;
                     }
-                    LOG.info("tenant {} honoured a search parameter change: reindexed={} in {}ms",
-                            runtime.spec().code(), reindexed,
-                            System.currentTimeMillis() - began);
+                    if (staleIndexes.cleared(runtime.spec().code())) {
+                        LOG.info("tenant {} finished the reindex it could not complete "
+                                + "earlier: reindexed={}", runtime.spec().code(), reindexed);
+                    } else {
+                        LOG.info("tenant {} honoured a search parameter change: "
+                                        + "reindexed={} in {}ms", runtime.spec().code(),
+                                reindexed, System.currentTimeMillis() - began);
+                    }
                 }
             } catch (RuntimeException e) {
-                // One tenant's broken profile never stops the others, and the
-                // next round retries from the acked cursor.
-                LOG.warn("could not refresh validation shapes for tenant {}",
-                        runtime.spec().code(), e);
+                // One tenant's broken profile never stops the others.
+                //
+                // Said once. A reindex that keeps failing is retried every
+                // round, and a warning every round for the same cause is how
+                // a log stops being read at all — the recovery says so when
+                // it comes.
+                if (staleIndexes.note(runtime.spec().code())) {
+                    LOG.warn("could not refresh validation shapes for tenant {} — its index "
+                            + "is stale and the reindex will be retried until it completes",
+                            runtime.spec().code(), e);
+                }
             }
         }
         return rebuilt;
@@ -2861,15 +3060,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (workPath != null) {
             sharedServer.removeContext(workPath);
         }
+        java.util.List<String> stepPaths = stepContexts.remove(code);
+        if (stepPaths != null) {
+            stepPaths.forEach(sharedServer::removeContext);
+        }
         // Its own dispatcher thread and its own DBOS connection, so a tenant
         // going away has to stop it: a retracted tenant whose dispatcher kept
         // polling would deliver from a store nobody serves any more.
-        AutoCloseable dispatching = subscriptionDispatch.remove(code);
-        if (dispatching != null) {
-            try {
-                dispatching.close();
-            } catch (Exception stopping) {
-                LOG.warn("subscription dispatch for {} did not stop cleanly", code, stopping);
+        java.util.List<AutoCloseable> left = activityCloseables.remove(code);
+        if (left != null) {
+            for (AutoCloseable dispatching : left) {
+                try {
+                    dispatching.close();
+                } catch (Exception stopping) {
+                    LOG.warn("an activity for {} did not stop cleanly", code, stopping);
+                }
             }
         }
         cloud.jengu.dbo.stream.StreamDoor door = doors.remove(code);
@@ -2969,6 +3174,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             directory, TenantDeclarationModel.TYPE, ".json"),
                     declarationsOf(applied, management));
             trouble.remove(SOURCE_TROUBLE);
+            sayWhatWasRefused(outcome);
             return outcome;
         } catch (RuntimeException e) {
             // Same rule as the sweep below: the deployment keeps serving
@@ -2981,6 +3187,32 @@ public final class TenantRuntimeManager implements AutoCloseable {
             LOG.warn("the declarations could not be read; the tenants already declared are "
                     + "unaffected and the records stand as they were", e);
             throw e;
+        }
+    }
+
+    /**
+     * Says, once, which declarations were refused and why.
+     *
+     * <p>A refusal is already a card in front of a person, which is the right
+     * home for it: somebody has to change the file. What it was not is
+     * VISIBLE. A tenant whose spec will not parse never reaches bring-up, so
+     * none of the reporting there fires, and the deployment answers what it
+     * serves without mentioning the one it could not — six of seven looks
+     * exactly like six.
+     *
+     * <p>The reason exists and is usually precise enough to fix the file from.
+     * It was being written to a card and to nowhere an operator was looking.
+     *
+     * <p>Said once per declaration and reason, on the same suppression the
+     * bring-up failures use: a pass runs on every beat, and a refusal repeated
+     * every few seconds is how a log stops being read.
+     */
+    private void sayWhatWasRefused(cloud.jengu.dbo.sync.ConfigApplication.Outcome outcome) {
+        for (cloud.jengu.dbo.sync.ConfigApplication.Card card
+                : refusals.worthSaying(outcome.cards())) {
+            LOG.error("a declaration was refused and this deployment is not serving it: "
+                    + "declaration={} reason={} (said again only if the reason changes)",
+                    card.declaration(), card.reason());
         }
     }
 

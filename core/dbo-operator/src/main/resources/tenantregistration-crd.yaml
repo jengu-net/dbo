@@ -53,6 +53,13 @@ spec:
                         type: array
                         items:
                           type: string
+                      # The face chain, which the parser reads and this did
+                      # not declare. An undeclared key is PRUNED rather than
+                      # refused, so the tenant registered and came up without
+                      # the dependency it names being its face — the quiet
+                      # half of the failure the top-level check catches loudly.
+                      face:
+                        type: boolean
                 deletionPolicy:
                   type: string
                   enum: [Retain, Delete]
@@ -95,6 +102,21 @@ spec:
                   properties:
                     system:
                       type: string
+                # What this tenant can be asked to do, and over what. A slot
+                # names a type the tenant holds; a run of the step is created
+                # over the documents filling its slots and reaches no further.
+                steps:
+                  type: array
+                  items:
+                    type: object
+                    required: [code, slots]
+                    properties:
+                      code:
+                        type: string
+                      slots:
+                        type: object
+                        additionalProperties:
+                          type: string
                 # Steps this tenant must have available before it serves.
                 mandatorySteps:
                   type: array

@@ -323,6 +323,17 @@ that names a declared step becomes a run, refused by name where its rules
 are not met, and reads back as the same `Task` as it advances. A router holds
 the claim for the edge behind it, names that edge as the recipient, and waits.
 
+A tenant may also **offer** a step: declared in its spec beside its types, with
+a slot naming the type it takes. Starting a run of one names a document per
+slot and answers with a context — a FHIR base URL under which those documents
+read and nothing else does. A document of the very type the step declared,
+which the run was not given, answers not-found exactly as one that never
+existed, so the context cannot be used to discover what the tenant holds. The
+credential that enters a run context holds the work scope and is refused by the
+tenant's own records surface, which is what makes entering through a run worth
+anything. Reads only; reach is what the run names, and nothing is followed from
+it.
+
 A participant's own container is configuration rather than code: installing
 the runner brings the whiteboard, installing the stream carrier beside it and
 naming the substrate, the tenants and the enrolment turns that container into

@@ -107,7 +107,8 @@ were never in the same database in the first place.
 ## The managing tenant
 
 One tenant in the world is not like the others in what it holds, and is exactly
-like them in every other respect. `mom` is the managing tenant: what this
+like them in every other respect. `mom`, which serves the Ministry of Magic, is
+the managing tenant: what this
 deployment was told to serve lives there as ordinary records, with the same
 history, the same trail and the same rules.
 
