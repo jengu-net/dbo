@@ -37,8 +37,11 @@ what    Patient/01a0af3b-583f-750a-aff6-d08269c6fe88
 ```
 
 Three facts, and the third is the one that is usually missing elsewhere. The
-entry names the record it is about, so *what happened to this person* is a
-query rather than a grep.
+entry names the record it is about — and the search above asked by that same
+reference, narrowed to the create because a patient who has been read since has
+newer entries than the one that admitted them. That round trip is the point: *what happened to this person* is a query rather
+than a grep, and the answer is written in the form you ask the next question
+with.
 
 **Who is the credential, not the claim.** The agent is what the authority
 validated, never a name the caller supplied — a request cannot describe itself

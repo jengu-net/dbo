@@ -391,15 +391,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             new java.util.concurrent.CopyOnWriteArrayList<>();
     /** What each served tenant published about itself, for the later points. */
     private final Map<String, TenantFacts> publishedFacts = new ConcurrentHashMap<>();
-    /**
-     * Tenants whose index is stale because a reindex did not finish.
-     *
-     * <p>Held against the tenant rather than against the feed, because the
-     * feed's events are acknowledged before the rebuild runs — deliberately,
-     * so a broken profile is not re-read forever — which left a failed
-     * reindex with nothing to bring it back.
-     */
-    private final java.util.Set<String> reindexPending = ConcurrentHashMap.newKeySet();
+    /** Tenants whose index is stale because a reindex did not finish. */
+    private final StaleIndexes staleIndexes = new StaleIndexes();
 
     /** A tenant that is not serving, and why — the reason a card has to carry. */
     private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
@@ -2603,13 +2596,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // here. So the need to reindex is remembered against the
                 // tenant rather than against the feed, and retried until it
                 // takes.
-                if (searchMoved || reindexPending.contains(runtime.spec().code())) {
+                if (staleIndexes.needsRebuild(runtime.spec().code(), searchMoved)) {
                     long began = System.currentTimeMillis();
                     int reindexed = runtime.store().searchParametersChanged();
                     if (reindexed > 0) {
                         rebuilt++;
                     }
-                    if (reindexPending.remove(runtime.spec().code())) {
+                    if (staleIndexes.cleared(runtime.spec().code())) {
                         LOG.info("tenant {} finished the reindex it could not complete "
                                 + "earlier: reindexed={}", runtime.spec().code(), reindexed);
                     } else {
@@ -2625,7 +2618,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // round, and a warning every round for the same cause is how
                 // a log stops being read at all — the recovery says so when
                 // it comes.
-                if (reindexPending.add(runtime.spec().code())) {
+                if (staleIndexes.note(runtime.spec().code())) {
                     LOG.warn("could not refresh validation shapes for tenant {} — its index "
                             + "is stale and the reindex will be retried until it completes",
                             runtime.spec().code(), e);

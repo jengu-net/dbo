@@ -124,7 +124,24 @@ public final class AuditProjection implements AuditSurface {
             criteria.eq("actor", EnvelopeValue.of(query.get("agent")));
         }
         if (query.get("entity") != null) {
-            criteria.eq("targetId", EnvelopeValue.of(query.get("entity")));
+            // A reference, because that is what the face renders and what the
+            // parameter takes — `Patient/<id>`, copied out of the entry the
+            // caller is holding. It was matched against targetId, which is the
+            // id alone, so the reference form never matched and the trail
+            // answered an empty bundle: not "you asked the wrong way" but
+            // "nothing happened to this record", which is the one answer this
+            // store exists not to give by accident.
+            //
+            // The bare id keeps working, because something is certainly asking
+            // that way by now.
+            String entity = query.get("entity");
+            int slash = entity.lastIndexOf('/');
+            if (slash > 0 && slash < entity.length() - 1) {
+                criteria.eq("targetType", EnvelopeValue.of(entity.substring(0, slash)));
+                criteria.eq("targetId", EnvelopeValue.of(entity.substring(slash + 1)));
+            } else {
+                criteria.eq("targetId", EnvelopeValue.of(entity));
+            }
         }
         if (query.get("run") != null) {
             criteria.eq("run", EnvelopeValue.of(query.get("run")));

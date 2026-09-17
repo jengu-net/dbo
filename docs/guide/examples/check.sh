@@ -74,11 +74,15 @@ step "a credential, because the world is guarded"
 token() {
     curl -sf -X POST "http://localhost:8090/t/$1/oidc/token" \
         -H 'Content-Type: application/x-www-form-urlencoded' \
-        -d "grant_type=client_credentials&client_id=${3:-tenant-bootstrap}&client_secret=$2" \
+        -d "grant_type=client_credentials&client_id=${3:-tenant-bootstrap}&client_secret=$2\
+&purpose_of_use=${4:-}" \
       | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])'
 }
 
-HOSPITAL=$(token hogwarts hogwarts-secret)
+# The hospital holds people behind the membrane, so its credential says what it
+# is for: reading somebody by their national number is a disclosure, and one
+# without a stated reason is refused rather than answered.
+HOSPITAL=$(token hogwarts hogwarts-secret tenant-bootstrap TREAT)
 INSURER=$(token gringotts gringotts-secret)
 JURISDICTION=$(token rl rl-secret)
 # --8<-- [end:token]
@@ -1097,7 +1101,11 @@ case "$own" in *"/t/hogwarts/oidc") ;; *) fail "the tenant's issuer is not its o
 
 step "the trail records the act, and who did it"
 # --8<-- [start:trail]
+# Asked about the record, rather than taking whatever the trail happened to
+# return first: a tenant's trail holds every write since it came up, and the
+# question worth asking is about one patient.
 curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
+    --data-urlencode "entity=Patient/$id" --data-urlencode "action=C" \
     --data-urlencode "_count=1" | python3 -c '
 import sys, json
 entry = json.load(sys.stdin)["entry"][0]["resource"]
@@ -1105,10 +1113,16 @@ print("action ", entry["action"])
 print("who    ", entry["agent"][0]["who"]["identifier"]["value"])
 print("what   ", entry["entity"][0]["what"]["reference"])'
 # --8<-- [end:trail]
+# Asserted by the REFERENCE, because that is the form the entry hands back and
+# the form a reader copies. It was matched against the id alone, so asking the
+# way the answer is written returned an empty bundle — which reads as nothing
+# happened to this record.
 recorded=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
+    --data-urlencode "entity=Patient/$id" --data-urlencode "action=C" \
     --data-urlencode "_count=1" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
-[ "$recorded" = "1" ] || fail "the trail recorded nothing, got $recorded"
+[ "$recorded" = "1" ] \
+    || fail "the trail cannot be asked about the record it names, got $recorded"
 
 step "and the trail is searched the way it is asked about"
 # --8<-- [start:trail-search]
