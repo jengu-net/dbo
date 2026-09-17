@@ -25,13 +25,14 @@ table an operator would read:
 ```
 __pdiEnc
 __pdiPerson
-birthDate
 resourceType
 ```
 
 Those are all the keys the stored payload has. `name` is not there.
-`identifier` is not there. What is there is a blob, a pseudonym, and the
-coarse birth year that [Personal data](personal-data.md) explained.
+`identifier` is not there. What is there is a blob and a pseudonym — plus, for
+a patient who has one, the coarse `birthDate` that [Personal
+data](personal-data.md) explained, which is the only identifying element kept
+in any readable form.
 
 This is the claim that matters operationally, and it is checkable rather than
 promised: a backup, a replica, a restored copy on somebody's laptop, a DBA with
