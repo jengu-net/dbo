@@ -795,9 +795,15 @@ val siteAssemble by tasks.registering(Sync::class) {
         // /patterns/ below, so the header can offer them beside Faces rather
         // than burying a cross-domain vocabulary six directories into the
         // reference.
+        // The guide's sample world is a device for keeping the examples in the
+        // chapters consistent with each other. Its tenant specs are injected
+        // into pages and must be copied; the page describing the arrangement
+        // is about how this documentation is kept rather than about the store,
+        // so it stays in the tree, readable on GitHub, and is not published.
         exclude(
             "tasks/**", "plans/**", "**/why-*.md", "**/diagrams/**",
             "arc42-008-crosscutting/patterns/**",
+            "guide/world/README.md",
         )
     }
     from(layout.projectDirectory.file("docs/favicon.ico")) { into("assets") }
