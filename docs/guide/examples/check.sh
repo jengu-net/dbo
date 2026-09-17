@@ -1137,6 +1137,82 @@ inventory=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/invent
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin)["types"]))')
 [ "$inventory" -gt 3 ] || fail "the inventory should name what the tenant holds, got $inventory"
 
+step "the streams a tenant carries, one per domain"
+# --8<-- [start:feed-domains]
+curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" | python3 -c '
+import sys, json
+held = json.load(sys.stdin)["types"]
+print(*sorted({one["domain"] for one in held}), sep="\n")'
+# --8<-- [end:feed-domains]
+domains=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" \
+    | python3 -c 'import sys,json;print(",".join(sorted({o["domain"] for o in json.load(sys.stdin)["types"]})))')
+case "$domains" in
+    *audit*) ;;
+    *) fail "the tenant reports no audit domain: $domains" ;;
+esac
+case "$domains" in
+    *work*) ;;
+    *) fail "the tenant reports no work domain: $domains" ;;
+esac
+
+step "and what is reading them, with how far behind it is"
+# --8<-- [start:feed-consumers]
+curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" | python3 -c '
+import sys, json
+for one in json.load(sys.stdin)["delivery"]:
+    print("%-12s %-18s lag %s" % (one["domain"], one["consumer"], one["lag"]))'
+# --8<-- [end:feed-consumers]
+reading=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" \
+    | python3 -c '
+import sys, json
+rows = json.load(sys.stdin)["delivery"]
+# A consumer is a name and a position, so a row without either is not one.
+print(all("consumer" in r and "lag" in r and "domain" in r for r in rows) and len(rows) > 0)')
+[ "$reading" = "True" ] \
+    || fail "the tenant does not say what is reading it, or says it without a position"
+
+step "content a tenant holds whole"
+# --8<-- [start:blob-write]
+BLOBS=http://localhost:8090/t/hogwarts/blob
+
+curl -s -X POST -H "Authorization: Bearer $HOSPITAL" \
+    -H 'Content-Type: application/pdf' \
+    --data-binary 'PDF-ish bytes' "$BLOBS"
+# --8<-- [end:blob-write]
+echo
+blob=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" \
+    -H 'Content-Type: application/pdf' \
+    --data-binary 'PDF-ish bytes' "$BLOBS" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["key"])')
+[ -n "$blob" ] || fail "the blob was not written"
+
+step "handed back as it was given"
+# --8<-- [start:blob-read]
+curl -s -D - -o /dev/null -H "Authorization: Bearer $HOSPITAL" "$BLOBS/$blob" \
+    | grep -iE '^content-type|^content-length'
+# --8<-- [end:blob-read]
+kind=$(curl -sf -D - -o /dev/null -H "Authorization: Bearer $HOSPITAL" "$BLOBS/$blob" \
+    | grep -i '^content-type' | tr -d '\r' | awk '{print $2}')
+[ "$kind" = "application/pdf" ] \
+    || fail "the media type the writer declared did not come back: $kind"
+back=$(curl -sf -H "Authorization: Bearer $HOSPITAL" "$BLOBS/$blob")
+[ "$back" = "PDF-ish bytes" ] || fail "the bytes came back changed"
+
+step "and it is guarded by the grant that covers binary content"
+# --8<-- [start:blob-unheld]
+curl -s -o /dev/null -w '%{http_code}\n' "$BLOBS/$blob"
+
+curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $HOSPITAL" \
+    "$BLOBS/01a00000-0000-7000-8000-00000000dead"
+# --8<-- [end:blob-unheld]
+unheld=$(curl -s -o /dev/null -w '%{http_code}' "$BLOBS/$blob")
+[ "$unheld" = "401" ] || fail "a blob was served without a credential, got $unheld"
+absent=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPITAL" \
+    "$BLOBS/01a00000-0000-7000-8000-00000000dead")
+[ "$absent" = "404" ] || fail "a blob that is not there answered $absent"
+
+
+
 step "the archive is sealed under a key the store does not hold"
 # --8<-- [start:archive-no-key]
 curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/archive"
