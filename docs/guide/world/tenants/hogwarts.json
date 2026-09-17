@@ -16,6 +16,11 @@
     { "name": "SearchParameter", "identity": "canonical", "handling": "replicated" },
     { "name": "ValueSet", "identity": "canonical", "handling": "replicated" },
     { "name": "CodeSystem", "identity": "canonical", "handling": "replicated" },
+    { "name": "Organization", "identity": "identifier", "systems": ["urn:rl:org"],
+      "handling": "operational" },
+    { "name": "Practitioner", "identity": "identifier", "systems": ["urn:rl:nid"],
+      "handling": "operational" },
+    { "name": "PractitionerRole", "identity": "internal", "handling": "operational" },
     { "name": "Patient", "identity": "identifier", "systems": ["urn:rl:nid"], "handling": "operational" },
     { "name": "Observation", "identity": "internal", "handling": "operational" }
   ]

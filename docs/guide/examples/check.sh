@@ -884,6 +884,72 @@ tomb=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPITA
 before_it=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$doomed/_history/1")
 [ "$before_it" = "200" ] || fail "deleting took the history with it, got $before_it"
 
+step "the hospital is an organisation, with people and what they may do"
+# --8<-- [start:org-and-people]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Organization" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Organization",
+         "identifier":[{"system":"urn:rl:org","value":"hogwarts"}],
+         "name":"Hogwarts Hospital"}'
+
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Practitioner" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Practitioner",
+         "identifier":[{"system":"urn:rl:nid","value":"RL-POMFREY"}],
+         "name":[{"family":"Pomfrey","given":["Poppy"]}]}'
+# --8<-- [end:org-and-people]
+org=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Organization" \
+    --data-urlencode "identifier=urn:rl:org|hogwarts" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["entry"][0]["resource"]["id"])')
+matron=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Practitioner" \
+    --data-urlencode "identifier=urn:rl:nid|RL-POMFREY" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["entry"][0]["resource"]["id"])')
+[ -n "$org" ] && [ -n "$matron" ] || fail "the organisation or the practitioner is missing"
+
+step "a role is a record, not a column"
+# --8<-- [start:the-role]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/PractitionerRole" \
+    -H 'Content-Type: application/fhir+json' \
+    -d "{\"resourceType\":\"PractitionerRole\",\"active\":true,
+         \"practitioner\":{\"reference\":\"Practitioner/$matron\"},
+         \"organization\":{\"reference\":\"Organization/$org\"},
+         \"code\":[{\"coding\":[{\"system\":\"urn:rl:role\",\"code\":\"matron\"}]}]}"
+# --8<-- [end:the-role]
+roles=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/PractitionerRole" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"])')
+[ "$roles" -gt 0 ] || fail "the role did not land"
+
+step "and what that role may do is declared, and readable"
+# --8<-- [start:role-grant]
+curl -s -X POST -H "Authorization: Bearer $HOSPITAL" \
+    -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/oidc/admin/role-grants \
+    -d '{"role":"matron","organisation":"hogwarts",
+         "scopes":["user/Patient.read","user/Observation.read"]}'
+
+curl -s -H "Authorization: Bearer $HOSPITAL" \
+    http://localhost:8090/t/hogwarts/oidc/admin/role-grants
+# --8<-- [end:role-grant]
+granted=$(curl -sf -H "Authorization: Bearer $HOSPITAL" \
+    http://localhost:8090/t/hogwarts/oidc/admin/role-grants \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["grants"][0]["role"])')
+[ "$granted" = "matron" ] || fail "the tenant does not say what it grants, got $granted"
+
+step "every tenant issues its own tokens"
+# --8<-- [start:issuer]
+curl -s http://localhost:8090/t/hogwarts/oidc/.well-known/openid-configuration \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["issuer"])'
+
+curl -s http://localhost:8090/t/gringotts/oidc/.well-known/openid-configuration \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["issuer"])'
+# --8<-- [end:issuer]
+own=$(curl -sf http://localhost:8090/t/hogwarts/oidc/.well-known/openid-configuration \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["issuer"])')
+case "$own" in *"/t/hogwarts/oidc") ;; *) fail "the tenant's issuer is not its own: $own" ;; esac
+
 step "the trail records the act, and who did it"
 # --8<-- [start:trail]
 curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \

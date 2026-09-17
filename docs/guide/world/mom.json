@@ -2,6 +2,7 @@
   "code": "mom",
   "face": "r5",
   "types": [
-    { "name": "Organization", "identity": "internal", "handling": "operational" }
+    { "name": "Organization", "identity": "identifier", "systems": ["urn:rl:org"],
+      "handling": "operational" }
   ]
 }
