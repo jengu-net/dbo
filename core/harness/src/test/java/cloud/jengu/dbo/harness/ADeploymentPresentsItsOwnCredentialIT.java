@@ -79,13 +79,19 @@ class ADeploymentPresentsItsOwnCredentialIT {
         new java.security.SecureRandom().nextBytes(kek);
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
-        for (String code : java.util.List.of(ONE, TWO)) {
-            Files.writeString(dir.resolve(code + ".json"), """
-                    {"code":"%s","face":"r4","types":[
-                      {"name":"Patient","identity":"identifier",
-                       "systems":["https://custody.example/nid"],
-                       "handling":"operational"}]}""".formatted(code));
-        }
+        // Written out per tenant rather than in a loop: the check that no two
+        // harness classes claim one code reads these names statically, and a
+        // loop variable is a name it cannot resolve.
+        Files.writeString(dir.resolve(ONE + ".json"), """
+                {"code":"%s","face":"r4","types":[
+                  {"name":"Patient","identity":"identifier",
+                   "systems":["https://custody.example/nid"],
+                   "handling":"operational"}]}""".formatted(ONE));
+        Files.writeString(dir.resolve(TWO + ".json"), """
+                {"code":"%s","face":"r4","types":[
+                  {"name":"Patient","identity":"identifier",
+                   "systems":["https://custody.example/nid"],
+                   "handling":"operational"}]}""".formatted(TWO));
         UntilServed.scan(manager, ONE, TWO);
     }
 
