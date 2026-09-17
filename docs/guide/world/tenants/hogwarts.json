@@ -7,6 +7,9 @@
       "types": ["StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"] },
     { "name": "rl", "types": ["CodeSystem", "ValueSet"] }
   ],
+  "steps": [
+    { "code": "hogwarts.admission.admit", "slots": { "patient": "Patient" } }
+  ],
   "types": [
     { "name": "StructureDefinition", "identity": "canonical", "handling": "replicated" },
     { "name": "SearchParameter", "identity": "canonical", "handling": "replicated" },

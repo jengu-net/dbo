@@ -74,7 +74,7 @@ step "a credential, because the world is guarded"
 token() {
     curl -sf -X POST "http://localhost:8090/t/$1/oidc/token" \
         -H 'Content-Type: application/x-www-form-urlencoded' \
-        -d "grant_type=client_credentials&client_id=tenant-bootstrap&client_secret=$2" \
+        -d "grant_type=client_credentials&client_id=${3:-tenant-bootstrap}&client_secret=$2" \
       | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])'
 }
 
@@ -704,4 +704,76 @@ grep -q "cannot sign for either of them" /tmp/dbo-guide-unsigned \
     || fail "the refusal should name what is missing: $(cat /tmp/dbo-guide-unsigned)"
 rm -f hogwarts.archive
 
-printf '\nguide: chapters one to nine work\n'
+step "a credential that may act in work, and not read the tenant"
+# --8<-- [start:worker-credential]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" \
+    -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/oidc/admin/clients \
+    -d '{"client_id":"a-porter","secret":"porter-secret","scope":["work"]}'
+
+PORTER=$(token hogwarts porter-secret a-porter)
+# --8<-- [end:worker-credential]
+[ -n "$PORTER" ] || fail "no token for the porter"
+
+step "and that credential cannot read a record directly"
+# --8<-- [start:worker-cannot-read]
+curl -s -o /dev/null -w '%{http_code}\n' \
+    -H "Authorization: Bearer $PORTER" "$HOGWARTS/Patient/$id"
+# --8<-- [end:worker-cannot-read]
+blocked=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer $PORTER" "$HOGWARTS/Patient/$id")
+[ "$blocked" = "403" ] || [ "$blocked" = "401" ] \
+    || fail "the work credential read a record directly, got $blocked"
+
+step "a run of the step the hospital offers, over one patient"
+# --8<-- [start:start-a-run]
+curl -s -X POST -H "Authorization: Bearer $PORTER" \
+    -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/step/hogwarts.admission.admit \
+    -d "{\"inputs\":{\"patient\":\"Patient/$id\"}}"
+# --8<-- [end:start-a-run]
+started=$(curl -sf -X POST -H "Authorization: Bearer $PORTER" \
+    -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/step/hogwarts.admission.admit \
+    -d "{\"inputs\":{\"patient\":\"Patient/$id\"}}")
+CONTEXT=http://localhost:8090$(printf '%s' "$started" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["context"])')
+[ -n "$CONTEXT" ] || fail "the run returned no context"
+
+step "inside the run, the patient it was given"
+# --8<-- [start:read-in-run]
+curl -s -o /dev/null -w '%{http_code}\n' \
+    -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$id"
+# --8<-- [end:read-in-run]
+inside=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$id")
+[ "$inside" = "200" ] || fail "the run could not read what it was given, got $inside"
+
+step "and nothing else, whatever its type"
+other=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
+    --data-urlencode "identifier=urn:rl:nid|RL-90-Granger" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["entry"][0]["resource"]["id"])')
+# --8<-- [start:read-outside-reach]
+curl -s -o /dev/null -w '%{http_code}\n' \
+    -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$other"
+
+curl -s -o /dev/null -w '%{http_code}\n' \
+    -H "Authorization: Bearer $PORTER" "$CONTEXT/Observation/$other"
+# --8<-- [end:read-outside-reach]
+withheld=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$other")
+[ "$withheld" = "404" ] || fail "a run reached a patient it was never given, got $withheld"
+
+step "the context says what it answers for"
+# --8<-- [start:run-metadata]
+curl -s -H "Authorization: Bearer $PORTER" "$CONTEXT/metadata" | python3 -c '
+import sys, json
+rest = json.load(sys.stdin)["rest"][0]
+print(*[r["type"] for r in rest["resource"]], sep="\n")'
+# --8<-- [end:run-metadata]
+serves=$(curl -sf -H "Authorization: Bearer $PORTER" "$CONTEXT/metadata" \
+    | python3 -c 'import sys,json;print(",".join(r["type"] for r in json.load(sys.stdin)["rest"][0]["resource"]))')
+[ "$serves" = "Patient" ] || fail "the context advertises more than the step declared: $serves"
+
+printf '\nguide: chapters one to ten work\n'
