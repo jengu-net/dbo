@@ -36,7 +36,7 @@ final class Snippets {
     private static final String STATE = "__SNIPPET_STATE__";
 
     private static final java.util.regex.Pattern DECLARED =
-            java.util.regex.Pattern.compile("([A-Z][A-Z0-9_]*)=(.*)");
+            java.util.regex.Pattern.compile("([A-Za-z_][A-Za-z0-9_]*)=(.*)");
 
     /** One snippet's result: what it printed, and how it ended. */
     record Ran(String out, String err, int status) {
@@ -97,17 +97,23 @@ final class Snippets {
         // that matches nothing exits 1, which `set -e` turned into a snippet
         // that had "failed". Two layers of inference about somebody else's
         // output format, to learn something bash can simply be asked.
+        // What the snippet defined, by comparing before with after rather
+        // than by insisting names look a certain way. The published commands
+        // set `id` and `bones` as readily as HOSPITAL, and a runner that only
+        // captured shouting ones would quietly drop half of them — or, worse,
+        // make the documentation spell its variables to suit the test.
+        //
+        // The file is sourced verbatim, so what runs is what the chapter
+        // publishes; the snapshotting is around it.
         ProcessBuilder bash = new ProcessBuilder("bash", "-euo", "pipefail", "-c",
-                "source \"$1\"; printf '\\n" + STATE + "\\n'; "
-                        + "for name in $(compgen -v); do "
-                        + "  case \"$name\" in [A-Z]*) ;; *) continue ;; esac; "
-                        // ${!name-} rather than ${!name}: compgen lists names
-                        // that are declared and unset, and under `set -u` the
-                        // first of those ends the loop — which looked like a
-                        // snippet that set nothing.
-                        + "  value=\"${!name-}\"; "
-                        + "  case \"$value\" in *$'\\n'*) continue ;; esac; "
-                        + "  printf '%s=%s\\n' \"$name\" \"$value\"; "
+                "__before=$(compgen -v | sort); "
+                        + "source \"$1\"; "
+                        + "printf '\\n" + STATE + "\\n'; "
+                        + "for __name in $(compgen -v); do "
+                        + "  case \"$__name\" in __*|BASH*|FUNCNAME|PIPESTATUS|_) continue ;; esac; "
+                        + "  __value=\"${!__name-}\"; "
+                        + "  case \"$__value\" in *$'\\n'*) continue ;; esac; "
+                        + "  printf '%s=%s\\n' \"$__name\" \"$__value\"; "
                         + "done",
                 "snippet", file.toAbsolutePath().toString());
         bash.environment().putAll(known);

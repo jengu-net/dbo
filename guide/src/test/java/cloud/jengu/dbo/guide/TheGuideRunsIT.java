@@ -86,15 +86,60 @@ class TheGuideRunsIT {
 
     @Test
     @Order(3)
+    @DisplayName("the zone publishes terminology of its own, and answers about it")
+    void theZonePublishesTerminology() throws Exception {
+        assertEquals(0, snippets.run("zone-publishes").status());
+        assertTrue(snippets.run("zone-lookup").text().contains("Dai Llewellyn"),
+                "the zone cannot look up its own code");
+        assertTrue(snippets.run("zone-expand").text().startsWith("4 concepts"),
+                "the value set did not expand to its four concepts");
+    }
+
+    @Test
+    @Order(4)
+    @DisplayName("each tenant says which version it speaks")
+    void eachTenantSaysWhichVersionItSpeaks() throws Exception {
+        // The insurer is a release behind on purpose, which is what makes
+        // conversion and a version-named refusal things a reader can run.
+        assertEquals("5.0.0\n4.0.1", snippets.run("versions").text());
+    }
+
+    @Test
+    @Order(5)
     @DisplayName("admitting a patient")
     void admittingAPatient() throws Exception {
         Snippets.Ran ran = snippets.run("create");
         assertEquals(0, ran.status(), ran.err());
-        String id = ran.lastLine();
-        assertTrue(id.matches("[0-9a-f-]{36}"), "the store did not answer with an id: " + id);
-        // Handed on by name. The next chapters read it, and saying so here is
-        // what the long script left to the order of its lines.
-        snippets.remember("id", id);
+        // The snippet names it, so the runner has it: the id is not scraped
+        // out of the output here and threaded on by hand.
+        assertTrue(snippets.recall("id").matches("[0-9a-f-]{36}"),
+                "the store did not assign a uuid: " + snippets.recall("id"));
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("a readable id is refused")
+    void aReadableIdIsRefused() throws Exception {
+        Snippets.Ran refused = snippets.run("readable-id");
+        assertTrue(refused.text().contains("OperationOutcome"),
+                "an id the caller chose was accepted: " + refused.text());
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("finding him by the identifier the zone declares")
+    void findingHimByIdentifier() throws Exception {
+        Snippets.Ran found = snippets.run("search");
+        assertEquals(0, found.status(), found.err());
+        assertTrue(found.text().contains("RL-0001"),
+                "the patient was not found by the identifier the zone declares");
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("changing him, and reading what he was")
+    void changingHimAndReadingWhatHeWas() throws Exception {
+        assertEquals(0, snippets.run("history").status());
     }
 
     private static boolean served(String tenant) throws Exception {
