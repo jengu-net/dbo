@@ -70,7 +70,7 @@ thing in the next.
 
 | Tenant | Face | What it is |
 |---|---|---|
-| `mom` | R5 | the Ministry of Magic — the managing tenant, holding what this deployment was told to serve |
+| `mom` | R5 | the Ministry of Magic's tenant, and the managing one — it holds what this deployment was told to serve |
 | `rl` | R5 | the zone — Rowling Land, whose terminology the others take |
 | `fhir-r5` | R5 | a face root, holding the R5 definitions as records |
 | `fhir-r4` | R4 | a face root, holding the R4 definitions as records |

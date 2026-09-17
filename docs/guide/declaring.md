@@ -79,6 +79,33 @@ something your own users create and they cannot write it at all. The engine
 tells you immediately in the second case, which is the safer of the two
 mistakes to make.
 
+## What is declared, and what is a record
+
+A tenant's spec is not the place for everything true about an organisation, and
+the line between them is worth stating because it is not arbitrary.
+
+**The spec holds what the deployment must know to bring the tenant up** — its
+code, the face it speaks, the types it may hold and how each is identified and
+handled, the zone it is in, what it takes from whom, its policies, the steps it
+offers. The test is simple: could this be read from inside the tenant *before
+the tenant is serving*? If it could not, it has to be a declaration, because
+there is nowhere else for it to be.
+
+**Everything the organisation can say about itself is a record inside it** —
+its name and its structure, its people and what they may do, its own
+terminology, the credentials it issues.
+
+The hospital is a useful example of the distinction. `hogwarts` is a tenant
+code: an address in this deployment, chosen by whoever runs it. *Hogwarts
+Hospital* is an organisation, and where that name lives is inside the tenant,
+because it is a fact about the organisation rather than about the deployment
+serving it.
+
+That is not a filing preference. The `Organization` records in a tenant are
+**the structure authorisation is derived from** — a role is a grant against a
+place in that tree, which is the Security section's subject. A name in a spec
+file would be a label; a record is something a permission can point at.
+
 ## What you would otherwise have written
 
 A `read_only` flag on a table, honoured by the four services that remembered
