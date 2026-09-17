@@ -86,6 +86,24 @@ JURISDICTION=$(token rl rl-secret)
 [ -n "$INSURER" ] || fail "no token for the insurer"
 [ -n "$JURISDICTION" ] || fail "no token for the zone"
 FACE_R5=$(token fhir-r5 r5-secret)
+
+# Two shapes of the token endpoint that the chapters show in place rather than
+# as a helper, so they are written out here once for the assertions to use.
+token_code() {
+    curl -sf -X POST http://localhost:8090/t/hogwarts/oidc/token \
+        -H 'Content-Type: application/x-www-form-urlencoded' \
+        -d "grant_type=authorization_code&code=$1&redirect_uri=https%3A%2F%2Fward.example%2Fcb&client_id=ward-console&client_secret=console-secret" \
+      | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])'
+}
+token_exchange() {
+    local form="grant_type=urn:ietf:params:oauth:grant-type:token-exchange"
+    form="$form&client_id=night-ledger&client_secret=ledger-secret"
+    for part in "$@"; do form="$form&$part"; done
+    curl -sf -X POST http://localhost:8090/t/hogwarts/oidc/token \
+        -H 'Content-Type: application/x-www-form-urlencoded' -d "$form" \
+      | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])'
+}
+
 FACE_R4=$(token fhir-r4 r4-secret)
 
 step "and without one, the store says no"
@@ -940,6 +958,130 @@ granted=$(curl -sf -H "Authorization: Bearer $HOSPITAL" \
     http://localhost:8090/t/hogwarts/oidc/admin/role-grants \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["grants"][0]["role"])')
 [ "$granted" = "matron" ] || fail "the tenant does not say what it grants, got $granted"
+
+step "a person signs in, and the store works out what she is here"
+# --8<-- [start:a-person-signs-in]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Person" \
+    -H 'Content-Type: application/fhir+json' \
+    -d "{\"resourceType\":\"Person\",
+         \"identifier\":[{\"system\":\"urn:rl:nid\",\"value\":\"RL-POMFREY\"}],
+         \"name\":[{\"family\":\"Pomfrey\",\"given\":[\"Poppy\"]}],
+         \"link\":[{\"target\":{\"reference\":\"Practitioner/$matron\"}}]}"
+# --8<-- [end:a-person-signs-in]
+person=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Person" \
+    --data-urlencode "identifier=urn:rl:nid|RL-POMFREY" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["entry"][0]["resource"]["id"])')
+[ -n "$person" ] || fail "the person was not written"
+
+# --8<-- [start:her-credential]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/oidc/admin/credentials \
+    -d "{\"login\":\"pomfrey\",\"secret\":\"a-strong-secret\",\"personId\":\"$person\"}"
+
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/oidc/admin/clients \
+    -d '{"client_id":"ward-console","secret":"console-secret",
+         "scope":["user/Patient.read","user/Observation.read"],
+         "redirect_uris":["https://ward.example/cb"]}'
+# --8<-- [end:her-credential]
+
+# The authorization code arrives where a browser would be sent, so the
+# redirect is read rather than followed.
+code=$(curl -s -o /dev/null -D - -X POST \
+    http://localhost:8090/t/hogwarts/oidc/authorize/login \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -d "client_id=ward-console&redirect_uri=https%3A%2F%2Fward.example%2Fcb&login=pomfrey&password=a-strong-secret" \
+    | sed -n 's/.*[?&]code=\([^&[:space:]]*\).*/\1/p' | tr -d '\r')
+[ -n "$code" ] || fail "signing in produced no authorization code"
+HUMAN=$(token_code "$code")
+[ -n "$HUMAN" ] || fail "the code did not exchange for a token"
+
+# --8<-- [start:who-she-is]
+claims() { python3 -c '
+import base64, json, sys
+payload = sys.argv[1].split(".")[1]
+claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+for name in ("sub", "fhirUser", "act", "scope"):
+    if name in claims:
+        actor = claims[name]
+        print(name.ljust(9), actor["sub"] if name == "act" else actor)' "$1"; }
+
+claims "$HUMAN"
+# --8<-- [end:who-she-is]
+echo "$HUMAN" | grep -q . || fail "no human token"
+capacity=$(claims "$HUMAN" | awk '$1=="fhirUser"{print $2}')
+[ "$capacity" = "Practitioner/$matron" ] \
+    || fail "the token names the wrong capacity: $capacity"
+
+step "a process acts in her name, and carries both names"
+# --8<-- [start:acting-for-her]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/oidc/admin/clients \
+    -d '{"client_id":"night-ledger","secret":"ledger-secret",
+         "scope":["user/Patient.read"]}'
+
+ACT=$(token_exchange "subject_token=$HUMAN" "scope=user%2FPatient.read")
+claims "$ACT"
+# --8<-- [end:acting-for-her]
+actor=$(claims "$ACT" | awk '$1=="act"{print $2}')
+[ "$actor" = "night-ledger" ] || fail "the delegated token does not name the actor"
+onbehalf=$(claims "$ACT" | awk '$1=="sub"{print $2}')
+[ "$onbehalf" = "$person" ] || fail "the delegated token lost the person"
+
+step "and cannot acquire authority she never had"
+# --8<-- [start:attenuation]
+curl -s -X POST http://localhost:8090/t/hogwarts/oidc/token \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token=$HUMAN&client_id=night-ledger&client_secret=ledger-secret&scope=user%2FPatient.write"
+# --8<-- [end:attenuation]
+widened=$(curl -s -X POST http://localhost:8090/t/hogwarts/oidc/token \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token=$HUMAN&client_id=night-ledger&client_secret=ledger-secret&scope=user%2FPatient.write" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin).get("error",""))')
+[ "$widened" = "access_denied" ] \
+    || fail "a delegated token widened past its subject, got $widened"
+
+step "work that outlives the token holds a delegation"
+# --8<-- [start:a-delegation]
+curl -s -w '\n' -X POST http://localhost:8090/t/hogwarts/oidc/delegation \
+    -H "Authorization: Bearer $HUMAN" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -d "client_id=night-ledger&scope=user/Patient.read&valid_until=$(( $(date +%s) + 86400 ))"
+# --8<-- [end:a-delegation]
+delegation=$(curl -sf -X POST http://localhost:8090/t/hogwarts/oidc/delegation \
+    -H "Authorization: Bearer $HUMAN" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -d "client_id=night-ledger&scope=user/Patient.read&valid_until=$(( $(date +%s) + 86400 ))" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["delegation_id"])')
+[ -n "$delegation" ] || fail "no delegation was recorded"
+
+# --8<-- [start:exchange-a-delegation]
+LEDGER=$(token_exchange "delegation_id=$delegation")
+claims "$LEDGER"
+# --8<-- [end:exchange-a-delegation]
+still=$(claims "$LEDGER" | awk '$1=="sub"{print $2}')
+[ "$still" = "$person" ] || fail "the delegation lost the person it was granted by"
+
+step "and ending it stops the next exchange"
+# --8<-- [start:ending-a-delegation]
+curl -s -o /dev/null -w '%{http_code}\n' -X DELETE \
+    -H "Authorization: Bearer $HUMAN" \
+    "http://localhost:8090/t/hogwarts/oidc/delegation/$delegation"
+
+curl -s -X POST http://localhost:8090/t/hogwarts/oidc/token \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange&delegation_id=$delegation&client_id=night-ledger&client_secret=ledger-secret"
+# --8<-- [end:ending-a-delegation]
+ended=$(curl -s -X POST http://localhost:8090/t/hogwarts/oidc/token \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange&delegation_id=$delegation&client_id=night-ledger&client_secret=ledger-secret" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin).get("error",""))')
+[ "$ended" = "invalid_grant" ] || fail "an ended delegation still exchanged, got $ended"
+
 
 step "every tenant issues its own tokens"
 # --8<-- [start:issuer]
