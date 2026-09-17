@@ -71,6 +71,26 @@ final class Snippets {
     }
 
     /**
+     * Runs shell that is NOT part of the guide, with the same state.
+     *
+     * <p>Some steps need a situation before they can show anything: a record
+     * somebody else has already moved, a spec file appearing on disk. That
+     * arranging is not what the chapter publishes, and writing it in Java
+     * would translate curl into something a reader never sees — so it stays
+     * shell, and only the assertion becomes Java.
+     */
+    Ran sh(String script) throws IOException, InterruptedException {
+        ProcessBuilder bash = new ProcessBuilder("bash", "-euo", "pipefail", "-c", script);
+        bash.environment().putAll(known);
+        bash.directory(Path.of("..").toFile());
+        Process process = bash.start();
+        String out = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        String err = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
+        process.waitFor(5, TimeUnit.MINUTES);
+        return new Ran(out, err, process.exitValue());
+    }
+
+    /**
      * Runs a published snippet with what it needs in the environment.
      *
      * <p>The snippet is run by {@code bash} exactly as it is written, so a
