@@ -288,37 +288,6 @@ etag=$(curl -s -o /dev/null -D - -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS
 printf '%s' "$etag" | grep -q 'W/"1"' \
     || fail "a version read must carry THAT version's validator, got: $etag"
 
-step "what belongs to a record is found by the reference to it"
-# --8<-- [start:reference-search]
-curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
-    --data-urlencode "subject=Patient/$bones" \
-  | python3 -c '
-import sys, json
-for entry in json.load(sys.stdin).get("entry", []):
-    print(entry["resource"]["code"]["text"])'
-# --8<-- [end:reference-search]
-belonging=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
-    --data-urlencode "subject=Patient/$bones" \
-    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
-[ "$belonging" = "1" ] || fail "the reference did not find what belongs to the record, got $belonging"
-
-step "a reference to something this store does not hold is kept, not refused"
-# --8<-- [start:reference-unheld]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Observation","status":"final",
-         "code":{"text":"referred elsewhere"},
-         "subject":{"reference":"Patient/01a00000-0000-7000-8000-00000000dead"}}'
-# --8<-- [end:reference-unheld]
-elsewhere=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Observation","status":"final","code":{"text":"referred elsewhere"},
-         "subject":{"reference":"Patient/01a00000-0000-7000-8000-00000000dead"}}')
-[ "$elsewhere" = "201" ] \
-    || fail "a reference out of this store should be kept, got $elsewhere"
-
 step "a type declared replicated is not writable here"
 # --8<-- [start:replicated-refused]
 curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/CodeSystem" \
@@ -423,6 +392,37 @@ kept=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
     --data-urlencode "identifier=urn:rl:nid|RL-0011" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$kept" = "1" ] || fail "a batch's good entry did not land, got $kept"
+
+step "what belongs to a record is found by the reference to it"
+# --8<-- [start:reference-search]
+curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
+    --data-urlencode "subject=Patient/$bones" \
+  | python3 -c '
+import sys, json
+for entry in json.load(sys.stdin).get("entry", []):
+    print(entry["resource"]["code"]["text"])'
+# --8<-- [end:reference-search]
+belonging=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
+    --data-urlencode "subject=Patient/$bones" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$belonging" = "1" ] || fail "the reference did not find what belongs to the record, got $belonging"
+
+step "a reference to something this store does not hold is kept, not refused"
+# --8<-- [start:reference-unheld]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Observation","status":"final",
+         "code":{"text":"referred elsewhere"},
+         "subject":{"reference":"Patient/01a00000-0000-7000-8000-00000000dead"}}'
+# --8<-- [end:reference-unheld]
+elsewhere=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Observation","status":"final","code":{"text":"referred elsewhere"},
+         "subject":{"reference":"Patient/01a00000-0000-7000-8000-00000000dead"}}')
+[ "$elsewhere" = "201" ] \
+    || fail "a reference out of this store should be kept, got $elsewhere"
 
 step "a write made against a version that has moved is refused"
 stale=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
@@ -918,8 +918,11 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST \
          \"organization\":{\"reference\":\"Organization/$org\"},
          \"code\":[{\"coding\":[{\"system\":\"urn:rl:role\",\"code\":\"matron\"}]}]}"
 # --8<-- [end:the-role]
+# Counted from the entries rather than read from "total": a searchset that
+# matched nothing does not carry one, so reading it turns an assertion that
+# should fail into a traceback that says nothing.
 roles=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/PractitionerRole" \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"])')
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$roles" -gt 0 ] || fail "the role did not land"
 
 step "and what that role may do is declared, and readable"
@@ -973,7 +976,7 @@ curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
 # --8<-- [end:trail-search]
 by_agent=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
     --data-urlencode "agent=tenant-bootstrap" \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"])')
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$by_agent" -gt 0 ] || fail "the trail cannot be searched by who acted"
 
 step "what the tenant holds, before anything moves"
