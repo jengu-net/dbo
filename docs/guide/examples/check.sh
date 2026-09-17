@@ -271,6 +271,37 @@ etag=$(curl -s -o /dev/null -D - -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS
 printf '%s' "$etag" | grep -q 'W/"1"' \
     || fail "a version read must carry THAT version's validator, got: $etag"
 
+step "what belongs to a record is found by the reference to it"
+# --8<-- [start:reference-search]
+curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
+    --data-urlencode "subject=Patient/$bones" \
+  | python3 -c '
+import sys, json
+for entry in json.load(sys.stdin).get("entry", []):
+    print(entry["resource"]["code"]["text"])'
+# --8<-- [end:reference-search]
+belonging=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
+    --data-urlencode "subject=Patient/$bones" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$belonging" = "1" ] || fail "the reference did not find what belongs to the record, got $belonging"
+
+step "a reference to something this store does not hold is kept, not refused"
+# --8<-- [start:reference-unheld]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Observation","status":"final",
+         "code":{"text":"referred elsewhere"},
+         "subject":{"reference":"Patient/01a00000-0000-7000-8000-00000000dead"}}'
+# --8<-- [end:reference-unheld]
+elsewhere=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Observation","status":"final","code":{"text":"referred elsewhere"},
+         "subject":{"reference":"Patient/01a00000-0000-7000-8000-00000000dead"}}')
+[ "$elsewhere" = "201" ] \
+    || fail "a reference out of this store should be kept, got $elsewhere"
+
 step "a type declared replicated is not writable here"
 # --8<-- [start:replicated-refused]
 curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/CodeSystem" \
