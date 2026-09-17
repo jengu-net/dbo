@@ -9,7 +9,8 @@ this selects on.
 Bringing a tenant up is already a sequence of conditional activities. The
 conditions are written inline and derived from the spec's shape at each site,
 which is why one of them — subscription dispatch — has no condition at all and
-errors against a domain that does not exist on a face root.
+errors against a domain that does not exist on any tenant holding only
+definitional types: a face root, a projection, and a zone.
 
 This names the points, publishes what a tenant is as properties, and lets an
 activity **declare** which tenants it applies to instead of working it out.
@@ -200,8 +201,17 @@ purpose.
 Built: the facts a tenant publishes, the selector, the two points activities
 run at (`dispatch` and `serving`), the whiteboard that takes up both extension
 APIs, and dbo's own subscription dispatching registered through it with the
-selector that excludes a face root — which is the defect, fixed by the
-mechanism rather than beside it.
+selector that excludes a tenant holding no records on its face — which is the
+defect, fixed by the mechanism rather than beside it.
+
+The selector reads that fact off the **type registrations** rather than
+inferring it from the spec. The first attempt inferred it, with
+`faceRoot || a face dependency`, and fixed three of the four affected tenants:
+a zone is neither, and kept erroring. Measured on a clean world afterwards:
+no errors over thirty seconds against ninety-eight before, and — the half a
+count of zero would not show, since dispatching for nobody also produces no
+errors — statement logging confirms the three tenants that do hold records on
+their face are still polling.
 
 Both APIs exist because they carry different contracts, and the split is not
 cosmetic:

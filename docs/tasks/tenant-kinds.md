@@ -18,15 +18,22 @@ Three instances, all found in one afternoon and none of them looked for.
 
 **A dispatcher polls a domain that does not exist.** Every tenant gets a
 subscription dispatcher started against `version.domain()` — the face's record
-domain. A face root keeps its records in `definitions` instead, and a
-projection likewise, so the domain it polls was never created there. The poll
+domain. A tenant holding only definitional types keeps its records in
+`definitions` instead, so the domain it polls was never created there. The poll
 loop catches `RuntimeException`, sleeps and retries, with no log line and no
 counter, so the only trace is the database logging a failed statement once a
-second per affected tenant. In the six-tenant sample world that is three
-tenants and roughly 259,000 errors a day.
+second per affected tenant: four of the sample world's seven, on the order of
+345,000 errors a day.
 
-The predicate that would have prevented it is computed three lines above the
-call and then not used:
+Which tenants those are was got wrong twice, and the second time was in the
+fix. A face root and a projection are two of them; the fourth is the **zone**,
+which is neither a face root nor face-dependent. Where a tenant keeps its
+records follows from `isDefinition(typeName) ? DEFINITIONS : recordDomain` — a
+property of the types it declares, not of what kind of tenant it is.
+
+A predicate that looked like the answer sits three lines above the call and is
+not used — and it is not the answer, which is the point. It catches a face root
+and a projection and misses the zone:
 
 ```java
 boolean versionHeldAsRecords = spec.faceRoot()
