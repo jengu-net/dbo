@@ -155,6 +155,39 @@ class AnActivitySaysWhichTenantsItIsForTest {
 
     @Test
     @Proving(DboPromises.TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES)
+    @DisplayName("where a tenant keeps its records is read off the registrations, not guessed")
+    void theZoneIsWhyThisIsAskedRatherThanInferred() {
+        // The first fix asked `faceRoot || a face dependency`, which is an
+        // inference from the spec's shape — the very thing that put the defect
+        // here. A zone is neither of those and still keeps its records in the
+        // definitions domain, because it holds only definitional types, so it
+        // went on polling a relation that does not exist after the defect was
+        // supposedly fixed.
+        var zone = List.of(
+                new cloud.jengu.dbo.core.api.TypeRegistration("CodeSystem", "definitions",
+                        cloud.jengu.dbo.core.api.IdentityClass.CANONICAL, java.util.Set.of(),
+                        cloud.jengu.dbo.core.api.Handling.projectedConfig(),
+                        (typeName, payload) -> null, List.of()),
+                new cloud.jengu.dbo.core.api.TypeRegistration("ValueSet", "definitions",
+                        cloud.jengu.dbo.core.api.IdentityClass.CANONICAL, java.util.Set.of(),
+                        cloud.jengu.dbo.core.api.Handling.projectedConfig(),
+                        (typeName, payload) -> null, List.of()));
+        assertFalse(TenantRuntimeManager.holdsRecordsInFaceDomain(zone, "r5"),
+                "a tenant holding only definitional types keeps them in the definitions "
+                        + "domain, and reading its face's domain finds nothing there");
+
+        var hospital = new ArrayList<>(zone);
+        hospital.add(new cloud.jengu.dbo.core.api.TypeRegistration("Patient", "r5",
+                cloud.jengu.dbo.core.api.IdentityClass.INTERNAL, java.util.Set.of(),
+                cloud.jengu.dbo.core.api.Handling.projectedConfig(),
+                        (typeName, payload) -> null, List.of()));
+        assertTrue(TenantRuntimeManager.holdsRecordsInFaceDomain(hospital, "r5"),
+                "a tenant with one record type on its face holds records there, and stopping "
+                        + "its dispatching would be the opposite mistake");
+    }
+
+    @Test
+    @Proving(DboPromises.TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES)
     @DisplayName("an observer without a durable consumer name is refused")
     void anObserverWithoutAPositionIsACallbackWearingTheName() {
         TenantObservations observations = new TenantObservations();

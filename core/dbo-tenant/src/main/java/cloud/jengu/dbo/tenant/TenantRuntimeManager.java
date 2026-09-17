@@ -580,6 +580,28 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
     }
 
+    /**
+     * Whether this tenant keeps any records in its face's record domain.
+     *
+     * <p>Asked of the registrations rather than inferred from the spec, and
+     * the difference is not academic: the first version of this test was
+     * {@code faceRoot || a face dependency}, which looked like the answer and
+     * was not. A tenant holding only definitional types keeps them in the
+     * definitions domain whatever kind of tenant it is — which is true of a
+     * ZONE, and a zone is neither a face root nor face-dependent. It went on
+     * erroring after the defect was supposedly fixed.
+     *
+     * <p>The registrations already carry the domain each type lands in, so
+     * this stops guessing and reads it, and stays right for a kind of tenant
+     * nobody has invented yet.
+     */
+    static boolean holdsRecordsInFaceDomain(
+            java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> registrations,
+            String recordDomain) {
+        return registrations.stream()
+                .anyMatch(registration -> recordDomain.equals(registration.domain()));
+    }
+
     private void registerOwnActivities() {
         activities.register(TenantPoint.DISPATCH,
                 "(" + TenantFacts.HOLDS_RECORDS_IN_FACE_DOMAIN + "=true)",
@@ -1649,7 +1671,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // the dispatcher is FHIR-blind and its FHIR-shaped halves live in the
         // personality, so the composition root starts it and stops it and
         // knows nothing else about it.
-        TenantFacts facts = TenantFacts.of(spec, !versionHeldAsRecords);
+        // Whether this tenant keeps records in its face's record domain is
+        // ASKED, not inferred from the spec's shape. Inferring it is what put
+        // this defect here: `faceRoot || a face dependency` looked like the
+        // answer and was not, because a tenant holding only definitional types
+        // keeps them in the definitions domain whatever kind it is — which is
+        // true of a zone, and a zone is neither of those things.
+        TenantFacts facts = TenantFacts.of(spec,
+                holdsRecordsInFaceDomain(declared.registrations(), version.domain()));
         java.util.List<AutoCloseable> leftBehind = new java.util.ArrayList<>(
                 activities.runAt(TenantPoint.DISPATCH,
                         new TenantActivities.Provisioned(facts, db.dataSource(), store,
