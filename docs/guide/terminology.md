@@ -8,7 +8,7 @@ standfirst: >-
 template: essay.html
 ---
 
-Chapter six ended on a refusal you could not fully explain. The store said a
+[Validation](validation.md) ended on a refusal you could not fully explain. The store said a
 code was not in a value set and named the value set by url and version. This
 chapter is where those come from, and why you did not have to install anything
 for it to happen.
@@ -33,7 +33,7 @@ zones chapter; here it is simply a tenant with the types declared.
 ```
 
 Two ordinary writes. Both types are declared with `identity: canonical`, which
-chapter four covered: they are identified by their `url`, so writing one twice
+[Records](records.md) covered: they are identified by their `url`, so writing one twice
 replaces it rather than making a second.
 
 ## It answers questions, not just stores documents
@@ -70,7 +70,8 @@ expansion without a rebuild step.
 
 ## The standard's own terminology is no different
 
-The value set that refused `purple` in chapter six is not a special case:
+The value set that refused `purple` in [Validation](validation.md) is not a
+special case:
 
 ```bash
 --8<-- "docs/guide/examples/check.sh:core-terminology"

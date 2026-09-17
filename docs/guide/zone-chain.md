@@ -49,8 +49,8 @@ projection that is already there.
 
 ## The member does not know
 
-The insurer asked its own tenant for a code and got an answer. Chapter eight's
-`Spell Damage` lookup is the proof: that code was written to an R5 tenant and
+The insurer asked its own tenant for a code and got an answer. The `Spell Damage` lookup in [the agreed vocabulary](zone-terminology.md) is the
+proof: that code was written to an R5 tenant and
 read from an R4 one, and nothing in the request said anything about a release.
 
 This is what the whole arrangement buys. A tenant speaks one release — its own

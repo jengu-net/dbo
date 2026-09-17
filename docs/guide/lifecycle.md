@@ -8,7 +8,7 @@ standfirst: >-
 template: essay.html
 ---
 
-Chapter three showed the two ends of this: a file appears and a tenant comes
+[Tenants](tenants.md) showed the two ends of this: a file appears and a tenant comes
 up, the file goes and it stops. This is what happens in between, and what each
 step actually costs.
 
@@ -62,7 +62,8 @@ migration. The records were never the thing being changed.
 
 ## Going away
 
-Removing the declaration stops the tenant serving, which chapter three showed.
+Removing the declaration stops the tenant serving, which
+[Tenants](tenants.md) showed.
 Worth being explicit about what that is and is not: the endpoint stops
 answering. It is a retraction of service, not a deletion of data — destroying
 what a tenant holds is [erasure](erasure.md) and the archive path, both of which

@@ -32,7 +32,8 @@ fhir-r4 740
 Those are `StructureDefinition` records, readable and searchable like any
 other. The hospital and the insurer each declared a dependency on one of these,
 which is how the shapes they validate against got there — the same mechanism
-chapter seven used for the zone's code systems, pointed at a different tenant.
+[the agreed vocabulary](zone-terminology.md) uses for the zone's code systems,
+pointed at a different tenant.
 
 This is the whole reason two releases coexist. There is no global "the FHIR
 version this deployment runs". There is a tenant holding R5's definitions, a
@@ -48,8 +49,9 @@ zone's question rather than the face's.
 
 ## The face decides what a refusal says
 
-Chapter two showed the insurer refusing a `Coverage` shaped the R5 way, and the
-refusal naming `4.0.1`. Chapter six showed the same wrong code refused by both
+[The quick start](quick-start.md) showed the insurer refusing a `Coverage` shaped
+the R5 way, and the refusal naming `4.0.1`. [Validation](validation.md) showed
+the same wrong code refused by both
 tenants, each naming its own release of the value set.
 
 Both are the same fact in different clothes. A tenant validates against the

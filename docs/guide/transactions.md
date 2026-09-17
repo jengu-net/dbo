@@ -59,7 +59,7 @@ the client first inventing ids or making a round trip to learn them.
 0 entries
 ```
 
-The `Observation` has no `status`, which chapter six covered — and the
+The `Observation` has no `status`, which [Validation](validation.md) covered — and the
 `Patient` beside it, which was perfectly valid, is not there either.
 
 That is the promise. A partially applied visit is worse than a rejected one:

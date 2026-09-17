@@ -13,7 +13,8 @@ records decides what you can ask it and what it will refuse you.
 
 ## Finding what belongs to a record
 
-Chapter five's bundle wrote an observation about a patient. Ask for it by the
+The bundle in [Bundles and transactions](transactions.md) wrote an observation
+about a patient. Ask for it by the
 reference:
 
 ```bash
@@ -65,7 +66,7 @@ pointing at nothing inside the archive is refused rather than warned about.
 The difference is the difference between the two situations. A live tenant is
 part of a larger world and its references reach out of it by design. An archive
 claims to be a complete account of a tenant — that is the whole of what
-[chapter twelve](export-and-import.md) said a backup is — and one that has lost
+[Export and import](export-and-import.md) said a backup is — and one that has lost
 half of what it refers to is not a complete account, it is a corrupted one that
 would restore quietly.
 
@@ -79,9 +80,9 @@ has:
 ```
 
 This matters when the sender genuinely does not have your ids — which, for
-anything arriving from another organisation, is most of the time. Chapter four
-made the same point about writing a record by identity instead of by id; this
-is that idea applied to the links between them.
+anything arriving from another organisation, is most of the time.
+[Records](records.md) made the same point about writing a record by identity
+instead of by id; this is that idea applied to the links between them.
 
 ## What you would otherwise have written
 

@@ -8,8 +8,8 @@ standfirst: >-
 template: essay.html
 ---
 
-Every chapter before this one reached records the direct way: a credential the
-deployment holds, and any record you can name. That is the deployment's own
+Every other chapter reaches records the direct way: a credential the deployment
+holds, and any record you can name. That is the deployment's own
 door, and [how it fits together](how-it-fits.md) said an application is meant
 to come through a different one.
 

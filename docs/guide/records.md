@@ -22,7 +22,7 @@ a round trip through somebody's object model.
 Every mechanism that has to recognise *the same thing again* — a second write,
 a record arriving twice from upstream, an import, a converter — needs one
 answer per type. So each type declares exactly one identity class, and the
-hospital's spec in [chapter three](tenants.md) chose them:
+hospital's spec in [Tenants](tenants.md) chose them:
 
 | Class | Identity is | Used for |
 |---|---|---|
@@ -31,12 +31,12 @@ hospital's spec in [chapter three](tenants.md) chose them:
 | **Internal** | the store-assigned id, and nothing else | records with no business identity: an observation, a by-product |
 
 The id is never the identity. It is a UUID the store assigns, opaque on
-purpose, and [chapter two](quick-start.md) showed what happens if you try to
+purpose, and [the quick start](quick-start.md) showed what happens if you try to
 choose one yourself.
 
 ## A second copy of a person is refused
 
-Harry is already in the hospital's store from chapter two. Create him again,
+Harry is already in the hospital's store from the quick start. Create him again,
 with the same national identifier:
 
 ```bash

@@ -40,7 +40,8 @@ because a refused write is not a partial one.
 Read what the outcome names. **The element**, so you know where to look, not
 merely that the resource was bad. **The value set**, by url. **Its version**,
 which is the part that matters in a minute. And **where the answer came from** —
-*this tenant's terminology*, which is the subject of the next chapter.
+*this tenant's terminology*, which is the subject of
+[Terminology](terminology.md).
 
 ## Shape is checked, not only codes
 
@@ -139,7 +140,7 @@ at all:
 `422`, and nothing was written. The refusal names the element, and it names the
 sanctioned alternative rather than leaving you to find it.
 
-This is the same stance as chapter five's refusal of an unknown search
+This is the same stance as [Search](search.md)'s refusal of an unknown search
 parameter, and for the same reason. A field the store cannot read is a field it
 cannot validate and cannot search — so keeping it would hand the next reader a
 document containing something the store never checked and cannot find. An

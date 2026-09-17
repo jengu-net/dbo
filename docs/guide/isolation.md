@@ -7,7 +7,8 @@ standfirst: >-
 template: essay.html
 ---
 
-Chapter three said a tenant is a database rather than a column on your tables.
+[Tenants](tenants.md) said a tenant is a database rather than a column on your
+tables.
 This is what follows from that, shown rather than asserted.
 
 ## A credential is for one tenant
@@ -41,7 +42,7 @@ and asks for the id of a patient the hospital holds. `404`.
 
 Ids are not global. The same human being is a record in each tenant that knows
 them, with a different id in each, and the thing that says they are the same
-person is an identifier the zone declares — which is chapter four's subject and
+person is an identifier the zone declares — which is [Records](records.md)' subject and
 the reason identity is declared rather than assumed.
 
 So a leaked id is not a key to anything. It is a string that resolves in

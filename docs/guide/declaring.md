@@ -8,8 +8,8 @@ standfirst: >-
 template: essay.html
 ---
 
-Chapter three showed a tenant as one file, and chapter four showed what
-`identity` does. This is the other half of a type declaration, the one that is
+[Tenants](tenants.md) showed a tenant as one file, and [Records](records.md)
+showed what `identity` does. This is the other half of a type declaration, the one that is
 easy to read past:
 
 ```json
@@ -41,7 +41,8 @@ The hospital declares `CodeSystem` too, but not as `operational`:
 { "name": "CodeSystem", "identity": "canonical", "handling": "replicated" }
 ```
 
-Chapter eight's terminology arrived that way, from the zone. So what happens if
+The terminology in [the agreed vocabulary](zone-terminology.md) arrived that
+way, from the zone. So what happens if
 the hospital writes one itself?
 
 ```bash
