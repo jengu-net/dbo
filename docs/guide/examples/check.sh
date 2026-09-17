@@ -683,11 +683,6 @@ print(all("consumer" in r and "lag" in r and "domain" in r for r in rows) and le
 
 step "content a tenant holds whole"
 source docs/guide/examples/snippets/blob-write.sh
-echo
-blob=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" \
-    -H 'Content-Type: application/pdf' \
-    --data-binary 'PDF-ish bytes' "$BLOBS" \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["key"])')
 [ -n "$blob" ] || fail "the blob was not written"
 
 step "handed back as it was given"
@@ -750,15 +745,7 @@ blocked=$(curl -s -o /dev/null -w '%{http_code}' \
 
 step "a run of the step the hospital offers, over one patient"
 source docs/guide/examples/snippets/start-a-run.sh
-started=$(curl -sf -X POST -H "Authorization: Bearer $PORTER" \
-    -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/step/hogwarts.admission.admit \
-    -d "{\"inputs\":{\"patient\":\"Patient/$id\"}}")
-CONTEXT=http://localhost:8090$(printf '%s' "$started" \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["context"])')
 [ -n "$CONTEXT" ] || fail "the run returned no context"
-run=$(printf '%s' "$started" \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["run"])')
 [ -n "$run" ] || fail "the run returned no id"
 
 step "inside the run, the patient it was given"
@@ -768,9 +755,7 @@ inside=$(curl -s -o /dev/null -w '%{http_code}' \
 [ "$inside" = "200" ] || fail "the run could not read what it was given, got $inside"
 
 step "and nothing else, whatever its type"
-other=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    --data-urlencode "identifier=urn:rl:nid|RL-90-Granger" \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["entry"][0]["resource"]["id"])')
+source docs/guide/examples/snippets/another-patient.sh
 source docs/guide/examples/snippets/read-outside-reach.sh
 withheld=$(curl -s -o /dev/null -w '%{http_code}' \
     -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$other")

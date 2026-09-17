@@ -39,6 +39,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TheGuideRunsIT {
 
+    /** Written into the working directory by the archive chapter, and taken away again. */
+    private static final Path ARCHIVE = Path.of("..", "hogwarts.archive");
+
     private static final Path COMPOSE =
             Path.of("..", "docs", "guide", "examples", "compose.yaml");
 
@@ -70,6 +73,7 @@ class TheGuideRunsIT {
         // whoever runs next.
         java.nio.file.Files.deleteIfExists(
                 Path.of("..", "docs", "guide", "world", "tenants", "stmungos.json"));
+        java.nio.file.Files.deleteIfExists(ARCHIVE);
     }
 
     @Test
@@ -895,6 +899,174 @@ class TheGuideRunsIT {
         String rest = text.substring(at + marker.length());
         return rest.substring(0, rest.indexOf('"'));
     }
+
+
+    @Test
+    @Order(55)
+    @DisplayName("what the tenant holds, before anything moves")
+    void whatTheTenantHoldsBeforeAnythingMoves() throws Exception {
+        String inventory = snippets.run("inventory").text();
+        assertTrue(inventory.lines().count() > 3,
+                "the inventory should name what the tenant holds: " + inventory);
+        assertTrue(inventory.contains("definitions:"),
+                "the inventory does not account for the definitions: " + inventory);
+    }
+
+    @Test
+    @Order(56)
+    @DisplayName("the streams a tenant carries, one per domain")
+    void theStreamsATenantCarries() throws Exception {
+        java.util.List<String> domains = snippets.run("feed-domains").text().lines().toList();
+        // The trail and the work a tenant does are separate streams from its
+        // records, which is what makes them separately readable.
+        assertTrue(domains.contains("audit"), "the tenant reports no audit domain: " + domains);
+        assertTrue(domains.contains("work"), "the tenant reports no work domain: " + domains);
+    }
+
+    @Test
+    @Order(57)
+    @DisplayName("and what is reading them, with how far behind it is")
+    void andWhatIsReadingThem() throws Exception {
+        java.util.List<String> reading = snippets.run("feed-consumers").text().lines().toList();
+        assertTrue(!reading.isEmpty(), "the tenant does not say what is reading it");
+        // A consumer is a name and a position. One reported without a position
+        // is not something you can act on, so the step insists on both.
+        for (String row : reading) {
+            assertTrue(row.contains("lag "), "a consumer was named without a position: " + row);
+        }
+    }
+
+    @Test
+    @Order(58)
+    @DisplayName("content a tenant holds whole")
+    void contentATenantHoldsWhole() throws Exception {
+        String written = snippets.run("blob-write").text();
+        assertTrue(written.contains("\"key\""), "the blob was not written: " + written);
+        assertTrue(snippets.recall("blob").matches("[0-9a-f-]{36}"),
+                "the key is not a store assignment: " + snippets.recall("blob"));
+    }
+
+    @Test
+    @Order(59)
+    @DisplayName("handed back as it was given")
+    void handedBackAsItWasGiven() throws Exception {
+        String headers = snippets.run("blob-read").text();
+        assertTrue(headers.toLowerCase(java.util.Locale.ROOT).contains("application/pdf"),
+                "the media type the writer declared did not come back: " + headers);
+        Snippets.Ran back = snippets.sh(
+                "curl -sf -H \"Authorization: Bearer $HOSPITAL\" \"$BLOBS/$blob\"");
+        assertEquals("PDF-ish bytes", back.text(), "the bytes came back changed");
+    }
+
+    @Test
+    @Order(60)
+    @DisplayName("and it is guarded by the grant that covers binary content")
+    void andItIsGuardedByTheGrant() throws Exception {
+        // Unheld and absent, in that order: a blob is not public, and one that
+        // was never written says so rather than saying nothing.
+        assertEquals("401\n404", snippets.run("blob-unheld").text());
+    }
+
+    @Test
+    @Order(61)
+    @DisplayName("the archive is sealed under a key the store does not hold")
+    void theArchiveIsSealedUnderAKeyTheStoreDoesNotHold() throws Exception {
+        String refused = snippets.run("archive-no-key").text();
+        assertTrue(refused.contains("does not hold"),
+                "the refusal should say why: " + refused);
+    }
+
+    @Test
+    @Order(62)
+    @DisplayName("the whole tenant leaves as one file, and whoever stores it can read nothing in it")
+    void theWholeTenantLeavesAsOneFile() throws Exception {
+        String taken = snippets.run("archive").text();
+        assertTrue(taken.startsWith("200 "), "the archive was refused: " + taken);
+        assertTrue(java.nio.file.Files.size(ARCHIVE) > 0, "the archive is empty");
+        assertEquals("0", snippets.run("archive-opaque").text(),
+                "a name is legible in the archive, which is the one thing it must not be");
+    }
+
+    @Test
+    @Order(63)
+    @DisplayName("coming back is a ceremony, and the store cannot perform it alone")
+    void comingBackIsACeremony() throws Exception {
+        String refused = snippets.run("import-needs-signatures").text();
+        assertTrue(refused.contains("cannot sign for either of them"),
+                "the refusal should name what is missing: " + refused);
+        java.nio.file.Files.deleteIfExists(ARCHIVE);
+    }
+
+    @Test
+    @Order(64)
+    @DisplayName("a credential that may act in work, and not read the tenant")
+    void aCredentialThatMayActInWork() throws Exception {
+        assertEquals("200", snippets.run("worker-credential", "token").text().lines()
+                .findFirst().orElse(""), "the porter's client was not created");
+        assertTrue(snippets.recall("PORTER").startsWith("ey"), "no token for the porter");
+    }
+
+    @Test
+    @Order(65)
+    @DisplayName("and that credential cannot read a record directly")
+    void andThatCredentialCannotReadARecordDirectly() throws Exception {
+        String blocked = snippets.run("worker-cannot-read").lastLine();
+        assertTrue(blocked.equals("403") || blocked.equals("401"),
+                "the work credential read a record directly, got " + blocked);
+    }
+
+    @Test
+    @Order(66)
+    @DisplayName("a run of the step the hospital offers, over one patient")
+    void aRunOfTheStepTheHospitalOffers() throws Exception {
+        String started = snippets.run("start-a-run").text();
+        assertTrue(started.contains("\"context\""), "the run returned no context: " + started);
+        assertTrue(snippets.recall("CONTEXT").endsWith("/fhir"),
+                "the context is not a FHIR base: " + snippets.recall("CONTEXT"));
+        assertTrue(!snippets.recall("run").isBlank(), "the run returned no id");
+    }
+
+    @Test
+    @Order(67)
+    @DisplayName("inside the run, the patient it was given")
+    void insideTheRunThePatientItWasGiven() throws Exception {
+        // The same credential that could not read this record a moment ago can
+        // read it now, and nothing was granted to make that true.
+        assertEquals("200", snippets.run("read-in-run").lastLine());
+    }
+
+    @Test
+    @Order(68)
+    @DisplayName("and nothing else, whatever its type")
+    void andNothingElseWhateverItsType() throws Exception {
+        assertEquals(0, snippets.run("another-patient").status());
+        assertEquals("404\n404", snippets.run("read-outside-reach").text(),
+                "a run reached a patient it was never given");
+    }
+
+    @Test
+    @Order(69)
+    @DisplayName("the context says what it answers for")
+    void theContextSaysWhatItAnswersFor() throws Exception {
+        assertEquals("Patient", snippets.run("run-metadata").text(),
+                "the context advertises more than the step declared");
+    }
+
+    @Test
+    @Order(70)
+    @DisplayName("the run is a record, and it says what it is over and who holds it")
+    void theRunIsARecord() throws Exception {
+        String record = snippets.run("run-as-a-record").text();
+        // The process and the step are separate codings on the record, not the
+        // joined identifier the endpoint is addressed by.
+        assertTrue(record.contains("hogwarts.admission"),
+                "the run record does not name the process: " + record);
+        assertTrue(record.contains("admit"),
+                "the run record does not name the step: " + record);
+        assertTrue(record.contains("input"),
+                "the run record does not carry the slot it was filled with: " + record);
+    }
+
 
     private static boolean served(String tenant) throws Exception {
         Process probe = new ProcessBuilder("curl", "-sf", "-o", "/dev/null",

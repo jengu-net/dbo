@@ -93,6 +93,10 @@ Another patient — the same type the step declared, held by the same tenant,
 readable a moment ago by the deployment's own credential:
 
 ```bash
+--8<-- "docs/guide/examples/snippets/another-patient.sh"
+```
+
+```bash
 --8<-- "docs/guide/examples/snippets/read-outside-reach.sh"
 ```
 
