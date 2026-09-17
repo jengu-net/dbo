@@ -382,6 +382,10 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             java.util.Set<String> seen = new java.util.HashSet<>();
             for (Object one : Json.array(root, "steps")) {
                 String stepCode = Json.str(one, "code");
+                // A step's name is the engine's, so it is checked against the
+                // engine's rule here rather than at the first run of it: the
+                // spec is read once and the run is attempted under load.
+                cloud.jengu.dbo.core.process.StepId.of(stepCode);
                 if (!seen.add(stepCode)) {
                     throw new IllegalArgumentException(code + ": step '" + stepCode
                             + "' is declared twice, and a run addressed by that name could "
