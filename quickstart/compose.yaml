@@ -41,7 +41,7 @@ services:
       - /var/lib/postgresql/data
 
   dbo:
-    image: ghcr.io/jengu-net/dbo-server:main-3db8bf7ceb3e8c764bc1467bfd45c6179c339012
+    image: ghcr.io/jengu-net/dbo-server:main-c8412740b0ac742c9ff344fb89046f0c84551375
     depends_on:
       db:
         condition: service_healthy
@@ -58,7 +58,19 @@ services:
       # With an authority wired instead, every request needs one — which is
       # the right shape for a deployment and the wrong shape for a first
       # five minutes.
-      DBO_AUTH_DISABLED: "true"
+      # Guarded, because the first thing somebody runs is the thing they
+      # copy. A store whose point is who-may-see-what demonstrated with that
+      # switched off teaches the wrong shape in the first sixty seconds, and
+      # "do not copy this" is the most ignored sentence in software.
+      #
+      # Both values are what a deployment already decided and wrote down: the
+      # key its tenants seal credentials with, and the secret it holds for each
+      # tenant's own bootstrap client. An operator generates and holds these;
+      # here the compose file is the vault, which is fine for a world whose
+      # data is invented.
+      DBO_AUTH_KEK: "ZGJvLXF1aWNrc3RhcnQtbm90LWEtc2VjcmV0LWtleSE="
+      DBO_BOOTSTRAP_SECRETS: "quickstart=quickstart-secret,demo=demo-secret,\
+clinic=clinic-secret"
 
       # Tenant specs are read from a directory and reconciled continuously: a
       # *.json dropped in brings a tenant up, and removing one takes it down.
