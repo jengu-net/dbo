@@ -33,6 +33,10 @@ assumes the split it describes.
   root, and how systems and people get in.
 - [**Data isolation**](data-isolation/README.md) (§14) — tenant from tenant, person
   from everyone, and what is declared to cross.
+- [**Reaching the data**](reaching-the-data/README.md) — by what route anything
+  gets at a tenant's records: a run of a step, or one of five enumerated
+  reasons a task is impossible. A design, not yet built, written down so what
+  is added later has something to be consistent with.
 - [**Declared rules**](declared-rules/README.md) (§15, §17) — what a tenant must do,
   what its jurisdiction says, and how the two layer.
 
