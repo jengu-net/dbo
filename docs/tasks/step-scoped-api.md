@@ -20,7 +20,22 @@ own door.
 
 ## Where it stands
 
-Not started. The pieces it builds on all exist:
+Groomed; nothing built. **Half of what this looked like is already proven**, so
+the slice is enforcement rather than design:
+
+- `REQ-DBO-PROC-STEP-DECLARES-ITS-SLOTS` — PROVEN. A step declaration names its
+  input slots, ordered.
+- `REQ-DBO-PROC-RUN-INPUTS-FILL-THE-SLOTS` — PROVEN. A run's inputs fill them,
+  fixed at creation; undeclared and unfilled slots are refused by name.
+- `REQ-DBO-PROC-TASK-CARRIES-THE-INPUTS` — PROVEN. Each input renders as
+  `Task.input`.
+
+All three by `WorkLeavesTheClinicAndComesBackIT`. `Run` carries
+`Map<String, String> inputs` — slot to `Type/id`. The anchor is not invented
+here and not stored here. What is missing is that nothing enforces it, and
+nothing outside the JVM can declare a step or start a run.
+
+The other pieces it builds on:
 
 - **`Run`** carries `process`, `step`, a `key`, an assignment and what it
   produced.
@@ -38,19 +53,25 @@ that into a boundary, and a credential bound to a run.
 
 ## Sequence
 
-1. A step declares its slots — name, allowed types, required or not. **todo**
-2. Starting a run names a document per slot; the run stores them. **todo**
-3. A run-scoped FHIR base, `/t/{code}/run/{key}/fhir/…`, serving the named
-   documents and refusing everything else. **todo**
-4. A credential bound to one run, so a request cannot carry a broad grant into
-   the context. **todo**
-5. The context's `/metadata` lists only the declared types. **todo**
-6. A guide chapter using it, with executed examples. **todo**
+1. ~~A step declares its slots~~ — **done already**, and proven.
+2. ~~A run's inputs fill them~~ — **done already**, and proven.
+3. A tenant declares its steps in its spec, beside `types`. **todo**
+4. Starting a run over HTTP, naming a document per slot. **todo**
+5. A run-scoped read surface at `/t/{code}/run/{key}/fhir/…`, answering for
+   `run.inputs()` and 404 for everything else. **todo**
+6. A client holding `work` and not `system/*`, so the same token is refused by
+   the general surface. **todo** — registration, not a change.
+7. The context's `/metadata` lists only the declared types. **todo**
+8. A guide chapter using it, with executed examples. **todo**
+
+The promise this claims: `PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS`, proven by
+`AStepReachesOnlyWhatItNamedIT`.
 
 ## Decisions
 
 **Reach is the documents the run names, and nothing else.** No graph traversal
-in this slice. `Manifest.inputs` already has the shape, the boundary is trivial
+in this slice. `Run.inputs` already holds exactly that, and the slot discipline
+around it is proven, the boundary is trivial
 to state and to test, and reference-following can be added later without
 changing what a step declares. Traversal first would have meant designing depth
 limits and cycle rules before anything could be demonstrated.
