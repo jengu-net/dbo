@@ -1279,4 +1279,46 @@ ref = json.load(sys.stdin)["input"][0]["valueReference"]
 raise SystemExit(0 if "reference" not in ref and "display" in ref else 1)' \
     || fail "the run envelope resolved its subject instead of displaying it"
 
+step "a runner asks the lane for work, and is told what it may have"
+# --8<-- [start:lane-poll]
+RUNNER='{"name":"ward-runner","version":"1","provider":"hogwarts",
+         "scope":{"at":"ORGANISATION","code":"hogwarts"}}'
+
+curl -s -w '\n' -X POST -H "Authorization: Bearer $HOSPITAL" \
+    -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/work/poll \
+    -d "{\"participant\":\"ward-runner\",\"identity\":$RUNNER,
+         \"steps\":[\"hogwarts.admission.admit\"],\"limit\":5}"
+# --8<-- [end:lane-poll]
+echo
+polled=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" \
+    -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/work/poll \
+    -d "{\"participant\":\"ward-runner\",\"identity\":$RUNNER,
+         \"steps\":[\"hogwarts.admission.admit\"],\"limit\":5}" \
+    | python3 -c 'import sys,json;print("result" in json.load(sys.stdin))')
+[ "$polled" = "True" ] || fail "the lane did not answer a poll"
+
+step "and a refusal on the lane says why, rather than going quiet"
+# --8<-- [start:lane-refuses]
+curl -s -w '\n' -X POST -H "Authorization: Bearer $HOSPITAL" \
+    -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/work/rummage -d '{}'
+
+curl -s -w '\n' -H "Authorization: Bearer $HOSPITAL" \
+    http://localhost:8090/t/hogwarts/work/poll
+
+curl -s -w '\n' -X POST -H "Authorization: Bearer $HOSPITAL" \
+    -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/work/poll -d '{}'
+# --8<-- [end:lane-refuses]
+echo
+for verb in rummage poll; do
+    reason=$(curl -s -X POST -H "Authorization: Bearer $HOSPITAL" \
+        -H 'Content-Type: application/json' \
+        "http://localhost:8090/t/hogwarts/work/$verb" -d '{}' \
+        | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("reason","")!="" and d.get("refused") is True)')
+    [ "$reason" = "True" ] || fail "the lane refused $verb without saying why"
+done
+
 printf '\nguide: chapters one to ten work\n'
