@@ -21,15 +21,15 @@ answers to one question, drifting apart on their own schedule.
 
 | You might be building | The store already has |
 |---|---|
+| a job table, a worker loop, retries | processes, steps and runs |
+| a purpose or lawful-basis story assembled for an auditor | the step is the purpose, and the run records it |
 | a per-customer database and its provisioning | tenants, each a database |
 | an authentication flow, token issuing and validation | a per-tenant authority, federated to a broker |
 | a user table, roles and a permission matrix | authorisation from the records you keep anyway |
 | an audit log table and the code that writes it | the trail, as records, append-only against everyone |
-| a purpose or lawful-basis story assembled for an auditor | the step is the purpose, and the run records it |
 | field-level encryption and a key table | identifying material sealed with the person's key |
 | a "delete this person everywhere" script | erasure that reaches copies you cannot recall |
 | an export job and an import job | one archive, both ways, sealed to the owner |
-| a job table, a worker loop, retries | processes, steps and runs |
 | a queue or a broker between services | lanes and feeds, on the database you already have |
 | a change-notification table and pollers | one feed, with named consumers and durable positions |
 | a terminology table and code lookups | terminology as records |
@@ -43,19 +43,30 @@ This is prose.
 
 ## The shape in one paragraph
 
-A **tenant** is a database. It holds **records** of the **types it declared**,
-served over a **face** — a standard it speaks, FHIR today. Who may act comes
-from the tenant's own records. What is done to records is **work**: processes
-with steps, where access is granted to a step rather than to a person. Records
+Start with **work**, because everything else hangs off it. Work is declared as
+a **process** with **steps**, and a step is the unit everything attaches to:
+what data it may touch, who may perform it, and why. Performing one is a
+**run**, and the run is the reason the data was reached — which is what the
+**trail** records.
+
+Everything else is what work acts on or through. A **tenant** is a database,
+and it holds the **records** of the **types it declared**, served over a
+**face** — a standard it speaks, FHIR today. Who may perform a step comes from
+the tenant's own records rather than from a user table beside them. Records
 reach other tenants over **feeds**, and only where the receiving tenant
-declared it. A **zone** is a tenant holding a jurisdiction's rules. Everything
-is records — the audit trail, the configuration, and the definitions the store
-validates against.
+declared it. A **zone** is a tenant holding a jurisdiction's rules. And all of
+it is records: the trail, the configuration, the definitions validated against,
+and the work itself.
 
-## The world every example runs in
+That order is deliberate. A store that only answers questions is a database,
+and there are good ones. What makes this one worth its constraints is that
+reaching the data is an act with a declared purpose attached — so the chapters
+begin there, and the storage is explained as what that acts upon.
 
-One cast, used by every chapter, so a name in chapter two still means the same
-thing in chapter fourteen. It is six tenant specs and nothing else.
+## The tenants in the examples
+
+Six of them, the same six throughout, so a name in one chapter means the same
+thing in the next.
 
 | Tenant | Face | What it is |
 |---|---|---|
