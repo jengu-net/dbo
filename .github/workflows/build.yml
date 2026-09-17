@@ -229,6 +229,35 @@ jobs:
       - name: Run the guide against the tree
         run: ./docs/guide/examples/check-tree.sh
 
+  guide-as-tests:
+    # The same chapters, as JUnit, against the pinned image.
+    #
+    # It overlaps the job above on purpose and only for now. This is where the
+    # guide's coverage is going — a failure names the step rather than ending a
+    # script at line nine hundred, a step can be run on its own, and a step can
+    # cite the promise it demonstrates, which is what the shell harness can
+    # never do and the reason this migration comes before the promises move.
+    #
+    # Running both is what keeps the migration honest while it is unfinished:
+    # one step is deliberately not ported, and the shell harness is what still
+    # covers it.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Run the guide as tests
+        run: ./gradlew :guide:test
+      - name: What the world said, when a step failed
+        if: failure()
+        run: docker compose -f docs/guide/examples/compose.yaml logs --tail 200 dbo
+
   publish:
     needs: build
     # Never on pull_request, and never without a repository to publish to.
