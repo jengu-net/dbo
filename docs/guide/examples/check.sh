@@ -218,6 +218,23 @@ printf '%s' "$outcome" | grep -q '4.0.1' \
     || fail "the refusal should name the version it validated against: $outcome"
 printf '%s' "$outcome" | grep -q 'OperationOutcome' || fail "expected an OperationOutcome"
 
+step "a credential is for one tenant, and an id means nothing in another"
+# --8<-- [start:isolation]
+curl -s -o /dev/null -w '%{http_code}\n' \
+    -H "Authorization: Bearer $HOSPITAL" "$GRINGOTTS/Patient/$id"
+
+curl -s -o /dev/null -w '%{http_code}\n' \
+    -H "Authorization: Bearer $INSURER" "$GRINGOTTS/Patient/$id"
+# --8<-- [end:isolation]
+wrong_tenant=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer $HOSPITAL" "$GRINGOTTS/Patient/$id")
+[ "$wrong_tenant" = "401" ] \
+    || fail "the hospital's credential was admitted by the insurer, got $wrong_tenant"
+unknown_here=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer $INSURER" "$GRINGOTTS/Patient/$id")
+[ "$unknown_here" = "404" ] \
+    || fail "an id from another tenant resolved here, got $unknown_here"
+
 step "the same person twice is refused, not duplicated"
 # --8<-- [start:duplicate-identity]
 curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
