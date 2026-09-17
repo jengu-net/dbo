@@ -30,7 +30,7 @@ services:
       - /var/lib/postgresql/data
 
   dbo:
-    image: ghcr.io/jengu-net/dbo-server:main-7da3590a8aa0c3e4e55c29b6716c3c9d8e63f3a1
+    image: ghcr.io/jengu-net/dbo-server:main-3db8bf7ceb3e8c764bc1467bfd45c6179c339012
     depends_on:
       db:
         condition: service_healthy
@@ -41,7 +41,16 @@ services:
       # The distribution refuses to serve without a working authority. That
       # refusal is promised behaviour; switching it off is this explicit flag,
       # and the flag is what lets the guide's commands run without a token.
-      DBO_AUTH_DISABLED: "true"
+      # The world is guarded, because a store whose point is who-may-see-what
+      # should not be demonstrated with that switched off. Both values here are
+      # what a deployment already decided and wrote down: the key its tenants
+      # seal credentials with, and the secret it holds for each tenant's own
+      # bootstrap client. In a cluster an operator generates and holds these;
+      # here the compose file is the vault, which is fine for a world whose
+      # data is invented and would not be anywhere else.
+      DBO_AUTH_KEK: "ZGJvLWd1aWRlLXdvcmxkLW5vdC1hLXNlY3JldC1rZXk="
+      DBO_BOOTSTRAP_SECRETS: "mom=mom-secret,rl=rl-secret,fhir-r5=r5-secret,\
+fhir-r4=r4-secret,hogwarts=hogwarts-secret,gringotts=gringotts-secret"
 
       DBO_TENANT_DIR: /etc/dbo/tenants
 

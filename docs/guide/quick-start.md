@@ -12,6 +12,12 @@ You need Docker and nothing else. Every command on this page is executed
 against the pinned image on every build, so if one of them does not work here,
 that is a defect rather than a typo on the page.
 
+The world runs with its authority on, so the commands here obtain a token and
+send it. That is a few more characters per line than a walkthrough with
+security switched off, and it is the only version of this store that would ever
+be deployed — a guide that demonstrated the other one would be teaching a shape
+you cannot ship.
+
 ## Start the world
 
 ```bash
@@ -28,6 +34,37 @@ Two of the six are the ones you will use:
 ```bash
 --8<-- "docs/guide/examples/check.sh:bases"
 ```
+
+## Get a credential
+
+The world is guarded, which is the point of it. Ask without one and you are
+refused:
+
+```bash
+--8<-- "docs/guide/examples/check.sh:no-token"
+```
+
+```
+401
+```
+
+Every tenant runs its own authority — its own issuer, its own keys, its own
+clients — so a credential is always *for a tenant*, never for the deployment.
+Each of these is a client-credentials exchange against the tenant you are about
+to talk to:
+
+```bash
+--8<-- "docs/guide/examples/check.sh:token"
+```
+
+`tenant-bootstrap` is the client the deployment holds for each tenant. Its
+secret is the one this world's compose file names — in a real deployment an
+operator generates it and keeps it in a vault, and the store is told what it
+already decided rather than inventing one nobody can present.
+
+Three tokens because there are three tenants in play, and a token for the
+hospital will not open the insurer. From here every command carries one, which
+is what a client of this store actually looks like.
 
 ## Ask each one what it speaks
 
