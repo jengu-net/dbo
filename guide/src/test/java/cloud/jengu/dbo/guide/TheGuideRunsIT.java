@@ -535,6 +535,208 @@ class TheGuideRunsIT {
         return false;
     }
 
+
+    @Test
+    @Order(32)
+    @DisplayName("an element the face does not define is refused, not quietly kept")
+    void anUndefinedElementIsRefused() throws Exception {
+        String refused = snippets.run("unknown-element").text();
+        assertTrue(refused.contains("favouriteColour"),
+                "the refusal should name the element: " + refused);
+        assertTrue(refused.contains("extension"),
+                "the refusal should point at the sanctioned way to carry it: " + refused);
+        assertEquals(422, postCode("HOSPITAL", "/Patient",
+                """
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"urn:rl:nid","value":"RL-0006"}],
+                 "favouriteColour":"blue"}"""));
+        assertEquals(0, entries(ask("HOSPITAL", "/Patient?identifier=urn:rl:nid|RL-0006")),
+                "a refused write left a record behind");
+    }
+
+    @Test
+    @Order(33)
+    @DisplayName("a code outside a required binding is refused, and the refusal names the element")
+    void aCodeOutsideARequiredBindingIsRefused() throws Exception {
+        String refused = snippets.run("validate-binding").text();
+        assertEquals("422", refused.lines().findFirst().orElse(""),
+                "a code outside a required binding was not refused: " + refused);
+        assertTrue(refused.contains("Patient.gender"),
+                "the refusal should name the element: " + refused);
+        assertEquals(0, entries(ask("HOSPITAL", "/Patient?identifier=urn:rl:nid|RL-0002")),
+                "a refused write left a record behind");
+    }
+
+    @Test
+    @Order(34)
+    @DisplayName("a malformed value and a missing required element are refused the same way")
+    void aMalformedValueAndAMissingElementAreRefusedTheSameWay() throws Exception {
+        // One is a value that cannot be read as what it claims to be and the
+        // other is an absence, and the point of the step is that the store does
+        // not grade them differently.
+        assertEquals("422\n422", snippets.run("validate-shape").text());
+    }
+
+    @Test
+    @Order(35)
+    @DisplayName("the same mistake at both faces, each naming the version it validated against")
+    void theSameMistakeAtBothFaces() throws Exception {
+        assertEquals("administrative-gender|5.0.0\nadministrative-gender|4.0.1",
+                snippets.run("validate-versions").text(),
+                "each face should validate against its own release");
+    }
+
+    @Test
+    @Order(36)
+    @DisplayName("asking for the verdict without writing")
+    void askingForTheVerdictWithoutWriting() throws Exception {
+        String verdict = snippets.run("validate-ahead").text();
+        assertTrue(verdict.contains("Observation.status"),
+                "the verdict should name the missing element: " + verdict);
+        assertTrue(verdict.contains("warning"),
+                "the verdict should carry advice as well as errors: " + verdict);
+        // A verdict was reached, which is what the operation was asked for —
+        // so it answers 200 even though the verdict is that this would fail.
+        assertEquals(200, postCode("HOSPITAL", "/Observation/$validate",
+                """
+                {"resourceType":"Observation","code":{"text":"house points"}}"""));
+    }
+
+    @Test
+    @Order(37)
+    @DisplayName("the hospital declared the zone, so it answers the zone's codes as its own")
+    void theZonesCodesReachTheHospital() throws Exception {
+        // The first sync from a zone runs some minutes after a tenant comes up;
+        // once the stream is running a change propagates in a second or two.
+        // The wait is for the first one, and it is the reason this step sits
+        // where it does rather than beside the zone's own chapter.
+        assertTrue(waitFor(120, () ->
+                        entries(ask("HOSPITAL", "/CodeSystem?url=urn:rl:wards")) == 1),
+                "the zone's terminology never reached the hospital");
+        assertTrue(snippets.run("zone-reaches-hospital").text().contains("Spell Damage"),
+                "the hospital cannot answer a code it holds from its zone");
+    }
+
+    @Test
+    @Order(38)
+    @DisplayName("the insurer declared the code systems and not the value sets, and that is what it has")
+    void theInsurerTookOnlyWhatItDeclared() throws Exception {
+        // The insurer's copy travels further than the hospital's: the zone
+        // speaks R5 and the insurer R4, so it arrives through the projection.
+        // Waiting for the hospital was not waiting for this.
+        assertTrue(waitFor(120, () ->
+                        entries(ask("INSURER", "/CodeSystem?url=urn:rl:wards")) == 1),
+                "the zone's terminology never reached the insurer");
+        String held = snippets.run("zone-partial-at-insurer").text();
+        assertTrue(held.contains("Spell Damage"),
+                "the insurer declared CodeSystem from the zone and did not get it: " + held);
+        assertTrue(held.contains("0 value sets"),
+                "the insurer took a type it never declared: " + held);
+    }
+
+    @Test
+    @Order(39)
+    @DisplayName("and the standard's own terminology is there by the same mechanism")
+    void theStandardsTerminologyIsThereTheSameWay() throws Exception {
+        assertTrue(snippets.run("core-terminology").text().contains("Female"),
+                "the core code system is not answerable");
+    }
+
+    @Test
+    @Order(40)
+    @DisplayName("a face root is a tenant, and its definitions are records")
+    void aFaceRootIsATenant() throws Exception {
+        snippets.remember("FACE_R5", credentialFor("fhir-r5", "r5-secret"));
+        snippets.remember("FACE_R4", credentialFor("fhir-r4", "r4-secret"));
+        String held = snippets.run("face-roots").text();
+        for (String line : held.lines().toList()) {
+            String[] said = line.split(" ");
+            assertTrue(Integer.parseInt(said[1]) > 300,
+                    said[0] + " should hold the version's definitions, got " + held);
+        }
+        assertEquals(2, held.lines().count(), "both face roots should answer: " + held);
+    }
+
+    @Test
+    @Order(41)
+    @DisplayName("the zone runs the ceremony its members federate to")
+    void theZoneRunsItsOwnCeremony() throws Exception {
+        assertEquals("200", snippets.run("zone-ceremony").lastLine());
+    }
+
+    @Test
+    @Order(42)
+    @DisplayName("a projection converts the zone once, for the face that needs it")
+    void aProjectionConvertsTheZoneOnce() throws Exception {
+        assertTrue(waitUntilServed("rl-on-r4", 90), "the projection never came up");
+        assertEquals("4.0.1\n5.0.0", snippets.run("projection").text(),
+                "the projection should speak the face it serves while the zone keeps its own");
+    }
+
+    @Test
+    @Order(43)
+    @DisplayName("the version that deleted a record is gone, not missing")
+    void theVersionThatDeletedARecordIsGone() throws Exception {
+        // Three answers: what the delete said, then the version that performed
+        // it, then the one before. 410 rather than 404 is the whole point —
+        // the store knows what was there and will not serve it.
+        String answers = snippets.run("vread-gone").text();
+        java.util.List<String> said = answers.lines().toList();
+        assertEquals(3, said.size(), "the snippet did not answer three times: " + answers);
+        assertEquals("410", said.get(1),
+                "the version that deleted it should be gone, not missing: " + answers);
+        assertEquals("200", said.get(2),
+                "deleting took the history with it: " + answers);
+    }
+
+
+    /** Posts a body and reports only the status, for the steps about refusals. */
+    private int postCode(String tenant, String path, String body) throws Exception {
+        Process curl = new ProcessBuilder("curl", "-s", "-o", "/dev/null",
+                "-w", "%{http_code}", "-X", "POST", "-H",
+                "Authorization: Bearer " + snippets.recall(tenant),
+                "-H", "Content-Type: application/fhir+json", "-d", body,
+                "http://localhost:8090/t/" + tenantOf(tenant) + "/fhir" + path).start();
+        String code = new String(curl.getInputStream().readAllBytes(),
+                java.nio.charset.StandardCharsets.UTF_8).strip();
+        curl.waitFor();
+        return Integer.parseInt(code);
+    }
+
+    /**
+     * A credential for a tenant the chapters do not hand one out for.
+     *
+     * <p>It sources the published token snippet and calls the function that
+     * snippet defines, rather than writing the request again here: a second
+     * spelling of the token exchange is a second thing to keep true.
+     */
+    private String credentialFor(String tenant, String secret) throws Exception {
+        Snippets.Ran got = snippets.sh(
+                "source docs/guide/examples/snippets/token.sh; token " + tenant + " " + secret);
+        assertEquals(0, got.status(), "no credential for " + tenant + ": " + got.err());
+        return got.lastLine();
+    }
+
+    /** Polls a condition the guide waits on, rather than sleeping a guessed amount. */
+    private boolean waitFor(int attempts, Waiting condition) throws Exception {
+        for (int attempt = 0; attempt < attempts; attempt++) {
+            try {
+                if (condition.met()) {
+                    return true;
+                }
+            } catch (RuntimeException notYet) {
+                // A tenant still building answers in shapes this cannot read.
+            }
+            TimeUnit.SECONDS.sleep(5);
+        }
+        return false;
+    }
+
+    @FunctionalInterface
+    private interface Waiting {
+        boolean met() throws Exception;
+    }
+
     private static boolean served(String tenant) throws Exception {
         Process probe = new ProcessBuilder("curl", "-sf", "-o", "/dev/null",
                 "http://localhost:8090/t/" + tenant + "/fhir/metadata").start();
