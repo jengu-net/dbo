@@ -200,8 +200,38 @@ public final class PersonVault {
 
     // ------------------------------------------------------------- records
 
-    /** The person a record speaks about, if this vault has been told. */
+    /**
+     * Whether this is an id this store would have assigned.
+     *
+     * <p>Ids here are store-assigned UUIDs, so anything else cannot name a
+     * record the vault holds — and asking the database to decide that turns
+     * the caller's mistake into the server's.
+     */
+    public static boolean storeAssigned(String recordId) {
+        if (recordId == null) {
+            return false;
+        }
+        try {
+            java.util.UUID.fromString(recordId);
+            return true;
+        } catch (IllegalArgumentException notOne) {
+            return false;
+        }
+    }
+
+    /**
+     * The person a record speaks about, if this vault has been told.
+     *
+     * <p>A record id the store never assigned is answered as nothing held,
+     * before the database is asked. Handing it {@code ?::uuid} instead made a
+     * caller's malformed id raise {@code invalid input syntax} — so a tenant
+     * with a vault answered 500 where the same request answered 400 without
+     * one, and turning the membrane on turned a refusal into a fault.
+     */
     public Optional<String> personOf(String typeName, String recordId) {
+        if (!storeAssigned(recordId)) {
+            return Optional.empty();
+        }
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "SELECT person_id FROM pdi.record"
@@ -265,7 +295,24 @@ public final class PersonVault {
     }
 
     /** Says that this record speaks about this person; idempotent. */
+    /**
+     * Binds a record to the person it speaks about.
+     *
+     * <p>Refuses an id this store never assigned, the way the engine refuses
+     * one: {@link IllegalArgumentException}, which is a caller's mistake and
+     * answers as one. Handing it to the database as a cast instead made it a
+     * server fault, and made a tenant with a vault answer 500 where the same
+     * write answers 400 without one.
+     *
+     * <p>A lookup for such an id answers nothing held, because a read for
+     * something that cannot exist is an answer. A write naming one is not.
+     */
     public void bind(String typeName, String recordId, String personId) {
+        if (!storeAssigned(recordId)) {
+            throw new IllegalArgumentException(
+                    "a record id this store did not assign cannot be bound to a person: "
+                            + recordId);
+        }
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("""
                      INSERT INTO pdi.record (type_name, record_id, person_id)

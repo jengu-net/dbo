@@ -773,6 +773,40 @@ public enum DboPromises implements Promise {
             + "managing tenant to hold records reads its source directly, because nothing "
             + "can bootstrap out of a store it has not built yet."),
 
+    TEN_A_STALE_INDEX_IS_REMEMBERED_UNTIL_IT_IS_REBUILT("A reindex that did not finish is "
+            + "remembered against the tenant and retried until it does. The feed's events are "
+            + "acknowledged before the rebuild runs — deliberately, so a broken profile is "
+            + "not re-read forever — which left a failed reindex with nothing to bring it "
+            + "back: the index stayed stale behind one warning, and a stale envelope does not "
+            + "slow a search down, it makes it miss, which reads as nobody here. The warning "
+            + "is said once rather than every round, because a log that repeats itself stops "
+            + "being read, and the recovery says so when it comes."),
+
+    SRCH_A_REINDEX_HOLDS_NO_TRANSACTION_WHILE_IT_EXTRACTS("A reindex reads a batch in one "
+            + "transaction, extracts with none open, and writes in another — so how long "
+            + "extraction takes cannot decide whether the reindex survives. Extracting "
+            + "between two statements of an open transaction left the connection idle in "
+            + "transaction, and this store sets a sixty-second guard on every tenant "
+            + "database, so on a loaded node its own guard terminated its own reindex. The "
+            + "write is conditional on the version the row was read at: a row rewritten "
+            + "meanwhile already carries an envelope from the write that changed it, and "
+            + "replacing it would restore the staleness the rebuild exists to remove."),
+
+    PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL("A search refused for want of a stated purpose "
+            + "answers as a refusal the caller can act on, never as a fault: the request was "
+            + "well formed and this store is not broken, it declined. Answering 500 told a "
+            + "caller to retry and report it, under a message written to tell them to state "
+            + "a purpose instead — so the one refusal the design argues hardest for was the "
+            + "one a caller was least able to read."),
+
+    PDI_AN_ID_THE_STORE_NEVER_ASSIGNED_IS_NOT_A_FAULT("A vault lookup for a record id "
+            + "this store never assigned answers that it holds nothing, decided before the "
+            + "database is asked. A caller's malformed id is the caller's mistake, and "
+            + "handing it to the database to cast made it the server's: a tenant with a "
+            + "vault answered 500 where the same request answered 400 without one, so "
+            + "turning the membrane on turned a refusal into a fault — and the membrane is "
+            + "supposed to be invisible to everything except what it protects."),
+
     TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES("A tenant publishes what it is as facts, "
             + "and an activity states which tenants it is for rather than working it out "
             + "where it runs: it declares a filter over those facts, or it applies to "

@@ -2179,6 +2179,7 @@ cloud.jengu.dbo.pdi.PersonVault                                        restrict(
 cloud.jengu.dbo.pdi.PersonVault                                        restricted(String):boolean
 cloud.jengu.dbo.pdi.PersonVault                                        sealedUnder(Collection):Map
 cloud.jengu.dbo.pdi.PersonVault                                        shred(String):cloud.jengu.dbo.pdi.PersonVault.Shred
+cloud.jengu.dbo.pdi.PersonVault                                        storeAssigned(String):boolean
 cloud.jengu.dbo.pdi.PersonVault                                        survivorOf(String):String
 cloud.jengu.dbo.pdi.PersonVault                                        whoAnswersTo(String,String):Optional
 cloud.jengu.dbo.pdi.PersonVault.Sealed                                 equals(Object):boolean
@@ -2519,6 +2520,8 @@ cloud.jengu.dbo.promises.DboPromises                                   OPS_NUMBE
 cloud.jengu.dbo.promises.DboPromises                                   OPS_RUNTIME_SAYS_WHAT_IT_SERVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   OPS_TENANT_BLOBS_ARE_TENANT_DATA:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   OPS_TENANT_BLOB_STORAGE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PDI_AN_ID_THE_STORE_NEVER_ASSIGNED_IS_NOT_A_FAULT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_BLIND_OPERATIONS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_CRYPTO_SHREDDING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_ERASURE_IS_A_RUN:cloud.jengu.dbo.promises.DboPromises
@@ -2657,6 +2660,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SHAPE_TOO
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_UNPARSEABLE_VERSION_REFUSED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SHAPE_WRITTEN_UNDER_STAMPED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SRCH_A_REINDEX_HOLDS_NO_TRANSACTION_WHILE_IT_EXTRACTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_CUSTOM_PARAMETERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_DECLARED_INDEXES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_HONEST_CAPABILITY:cloud.jengu.dbo.promises.DboPromises
@@ -2684,6 +2688,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DEC
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REDECLARATION_IS_NOTICED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STALE_INDEX_IS_REMEMBERED_UNTIL_IT_IS_REBUILT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TYPE_DECLARES_ITS_DOMAIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE:cloud.jengu.dbo.promises.DboPromises

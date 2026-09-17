@@ -391,6 +391,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
             new java.util.concurrent.CopyOnWriteArrayList<>();
     /** What each served tenant published about itself, for the later points. */
     private final Map<String, TenantFacts> publishedFacts = new ConcurrentHashMap<>();
+    /**
+     * Tenants whose index is stale because a reindex did not finish.
+     *
+     * <p>Held against the tenant rather than against the feed, because the
+     * feed's events are acknowledged before the rebuild runs — deliberately,
+     * so a broken profile is not re-read forever — which left a failed
+     * reindex with nothing to bring it back.
+     */
+    private final java.util.Set<String> reindexPending = ConcurrentHashMap.newKeySet();
 
     /** A tenant that is not serving, and why — the reason a card has to carry. */
     private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
@@ -2586,21 +2595,41 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // yet. What it costs is different, so it is said differently:
                 // a reindex is work, and a round that quietly spent four
                 // minutes on one is a deployment nobody can account for.
-                if (searchMoved) {
+                // The events are acked above, BEFORE this runs, which is
+                // right for a broken profile and was wrong for a reindex: a
+                // reindex that failed was never re-read, so the index stayed
+                // stale behind one warning, and a stale envelope does not make
+                // a search slow — it makes it MISS, which reads as nobody
+                // here. So the need to reindex is remembered against the
+                // tenant rather than against the feed, and retried until it
+                // takes.
+                if (searchMoved || reindexPending.contains(runtime.spec().code())) {
                     long began = System.currentTimeMillis();
                     int reindexed = runtime.store().searchParametersChanged();
                     if (reindexed > 0) {
                         rebuilt++;
                     }
-                    LOG.info("tenant {} honoured a search parameter change: reindexed={} in {}ms",
-                            runtime.spec().code(), reindexed,
-                            System.currentTimeMillis() - began);
+                    if (reindexPending.remove(runtime.spec().code())) {
+                        LOG.info("tenant {} finished the reindex it could not complete "
+                                + "earlier: reindexed={}", runtime.spec().code(), reindexed);
+                    } else {
+                        LOG.info("tenant {} honoured a search parameter change: "
+                                        + "reindexed={} in {}ms", runtime.spec().code(),
+                                reindexed, System.currentTimeMillis() - began);
+                    }
                 }
             } catch (RuntimeException e) {
-                // One tenant's broken profile never stops the others, and the
-                // next round retries from the acked cursor.
-                LOG.warn("could not refresh validation shapes for tenant {}",
-                        runtime.spec().code(), e);
+                // One tenant's broken profile never stops the others.
+                //
+                // Said once. A reindex that keeps failing is retried every
+                // round, and a warning every round for the same cause is how
+                // a log stops being read at all — the recovery says so when
+                // it comes.
+                if (reindexPending.add(runtime.spec().code())) {
+                    LOG.warn("could not refresh validation shapes for tenant {} — its index "
+                            + "is stale and the reindex will be retried until it completes",
+                            runtime.spec().code(), e);
+                }
             }
         }
         return rebuilt;

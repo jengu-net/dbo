@@ -2,6 +2,7 @@
   "code": "hogwarts",
   "face": "r5",
   "zone": "rl",
+  "pdi": true,
   "audit": { "level": "writes" },
   "dependencies": [
     { "name": "fhir-r5", "face": true,

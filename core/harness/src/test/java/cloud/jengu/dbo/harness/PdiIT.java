@@ -64,6 +64,8 @@ class PdiIT {
     static PGSimpleDataSource ds;
     static PersonVault vault;
     static PdiObjectStore store;
+    /** The membrane behind an actual door, because the defect was in the door. */
+    static cloud.jengu.dbo.rest.FhirHttpServer server;
     static byte[] ownerKey = new byte[32];
     static String personId;
 
@@ -105,10 +107,19 @@ class PdiIT {
                 // From the SAME pre-transform list the registrations came from:
                 // what identifies a person type is gone from them afterwards.
                 PdiSetup.identifiedBy(personality.registrations(), spec));
+        // Served over HTTP as well, because what went wrong was not what the
+        // store decided but how the door reported it.
+        server = new cloud.jengu.dbo.rest.FhirHttpServer(
+                new cloud.jengu.dbo.fhir.r4.R4Store(store, personality,
+                        "http://127.0.0.1/fhir"),
+                null, "127.0.0.1", 0, "/fhir");
     }
 
     @AfterAll
     void down() {
+        if (server != null) {
+            server.close();
+        }
     }
 
     private static byte[] patient(String family, String code) {
@@ -215,6 +226,65 @@ class PdiIT {
                 .map(i -> new String(i.payload(), StandardCharsets.UTF_8))
                 .reduce("", String::concat);
         assertFalse(feed.contains(NAME) || feed.contains(CODE_37), "feed must be pseudonymous");
+    }
+
+    /**
+     * A caller's malformed id is the caller's mistake, and the vault must not
+     * make it the server's.
+     *
+     * <p>This is the test that was missing. `personOf` handed the record id to
+     * the database as {@code ?::uuid}, so a readable id raised
+     * {@code invalid input syntax} — and a tenant with a vault answered 500 to
+     * a request that answers 400 without one. The membrane is meant to be
+     * invisible to everything except what it protects, and it was visible in
+     * the error code for every malformed id anybody sent.
+     */
+    @Test
+    @Proving(DboPromises.PDI_AN_ID_THE_STORE_NEVER_ASSIGNED_IS_NOT_A_FAULT)
+    void anIdTheStoreNeverAssignedIsAnsweredRatherThanThrown() {
+        assertTrue(vault.personOf("Patient", "harry").isEmpty(),
+                "a readable id reached the database as a cast and came back as a fault");
+        assertTrue(vault.personOf("Patient", "").isEmpty());
+        assertTrue(vault.personOf("Patient", null).isEmpty());
+        // And one that IS well formed still answers from the vault rather
+        // than being refused by the shortcut.
+        assertTrue(vault.personOf("Patient", java.util.UUID.randomUUID().toString()).isEmpty());
+
+        // A write naming such an id is a different matter: a read for
+        // something that cannot exist is an answer, a write is a mistake, and
+        // it answers as the engine's own would rather than as a fault.
+        assertThrows(IllegalArgumentException.class,
+                () -> vault.bind("Patient", "harry", java.util.UUID.randomUUID().toString()),
+                "binding a readable id reached the database as a cast, so it came back a fault");
+    }
+
+    /**
+     * A refusal reaches the caller as a refusal.
+     *
+     * <p>The store's decision here was always right — an identifying search
+     * without a stated purpose is declined rather than answered empty, because
+     * empty reads as <i>nobody here is called that</i>. What was wrong was the
+     * status it arrived under: no arm mapped it, so it fell to the generic
+     * handler and came back 500. A caller was told the server had broken, in a
+     * message carefully written to tell them to state a purpose.
+     */
+    @Test
+    @Proving(DboPromises.PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL)
+    void anIdentifyingSearchWithoutAPurposeIsRefusedAndNotFaulted() throws Exception {
+        java.net.http.HttpResponse<String> answer = java.net.http.HttpClient.newHttpClient()
+                .send(java.net.http.HttpRequest.newBuilder(java.net.URI.create(
+                                server.baseUrl() + "/Patient?identifier="
+                                        + java.net.URLEncoder.encode(EID + "|" + CODE_37,
+                                                StandardCharsets.UTF_8)))
+                        .GET().build(),
+                        java.net.http.HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(403, answer.statusCode(),
+                "an identifying search without a purpose answered " + answer.statusCode()
+                        + ", and 500 tells a caller to retry and report a fault when what "
+                        + "they must do is say why they are asking");
+        assertTrue(answer.body().contains("stated purpose"),
+                "the refusal no longer says what to do about it: " + answer.body());
     }
 
     /** No-implicit-merge survives the split: the claim lives in the vault. */
