@@ -29,7 +29,10 @@ COMPOSE_FILE="${DBO_GUIDE_COMPOSE:-docs/guide/examples/compose.yaml}"
 COMPOSE="docker compose -f $COMPOSE_FILE"
 step() { printf '\n=== %s\n' "$1"; }
 fail() { echo "guide: $1" >&2; exit 1; }
-cleanup() { $COMPOSE down --remove-orphans >/dev/null 2>&1 || true; }
+cleanup() {
+    rm -f "$PWD/hogwarts.archive"
+    $COMPOSE down --remove-orphans >/dev/null 2>&1 || true
+}
 trap cleanup EXIT
 
 step "starting the world"
@@ -643,4 +646,62 @@ tomb=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPITA
 before_it=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$doomed/_history/1")
 [ "$before_it" = "200" ] || fail "deleting took the history with it, got $before_it"
 
-printf '\nguide: chapters one to eight work\n'
+step "what the tenant holds, before anything moves"
+# --8<-- [start:inventory]
+ADMIN=http://localhost:8090/t/hogwarts/admin
+
+curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" | python3 -c '
+import sys, json
+held = json.load(sys.stdin)["types"]
+for one in held:
+    if one["domain"] != "definitions":
+        print("%-10s %-20s %s" % (one["domain"], one["name"], one["total"]))
+print("definitions:", sum(o["total"] for o in held if o["domain"] == "definitions"))'
+# --8<-- [end:inventory]
+inventory=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin)["types"]))')
+[ "$inventory" -gt 3 ] || fail "the inventory should name what the tenant holds, got $inventory"
+
+step "the archive is sealed under a key the store does not hold"
+# --8<-- [start:archive-no-key]
+curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/archive"
+# --8<-- [end:archive-no-key]
+nokey=$(curl -s -o /tmp/dbo-guide-nokey -w '%{http_code}' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" "$ADMIN/archive")
+[ "$nokey" = "400" ] || fail "an archive with no owner key should be refused, got $nokey"
+grep -q "does not hold" /tmp/dbo-guide-nokey \
+    || fail "the refusal should say why: $(cat /tmp/dbo-guide-nokey)"
+
+step "the whole tenant leaves as one file"
+# --8<-- [start:archive]
+OWNER_KEY=$(printf 'hogwarts-owns-this-key-32-bytes!' | base64 | tr -d '\n')
+
+curl -s -X POST -H "Authorization: Bearer $HOSPITAL" \
+    -H "X-Owner-Key: $OWNER_KEY" \
+    "$ADMIN/archive" -o hogwarts.archive -w '%{http_code} %{size_download} bytes\n'
+# --8<-- [end:archive]
+[ -s hogwarts.archive ] || fail "the archive is empty"
+
+step "and whoever stores it can read nothing in it"
+# --8<-- [start:archive-opaque]
+grep -c "Potter" hogwarts.archive || true
+# --8<-- [end:archive-opaque]
+if grep -q "Potter" hogwarts.archive; then
+    fail "a name is legible in the archive, which is the one thing it must not be"
+fi
+
+step "coming back is a ceremony, and the store cannot perform it alone"
+# --8<-- [start:import-needs-signatures]
+curl -s -X POST -H "Authorization: Bearer $HOSPITAL" \
+    -H "X-Owner-Key: $OWNER_KEY" \
+    --data-binary @hogwarts.archive "$ADMIN/import"
+# --8<-- [end:import-needs-signatures]
+unsigned=$(curl -s -o /tmp/dbo-guide-unsigned -w '%{http_code}' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" -H "X-Owner-Key: $OWNER_KEY" \
+    --data-binary @hogwarts.archive "$ADMIN/import")
+[ "$unsigned" = "400" ] || fail "an unsigned import should be refused, got $unsigned"
+grep -q "cannot sign for either of them" /tmp/dbo-guide-unsigned \
+    || fail "the refusal should name what is missing: $(cat /tmp/dbo-guide-unsigned)"
+rm -f hogwarts.archive
+
+printf '\nguide: chapters one to nine work\n'
