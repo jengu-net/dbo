@@ -201,6 +201,34 @@ jobs:
       - name: Run the guide's examples
         run: ./docs/guide/examples/check.sh
 
+  guide-on-tree:
+    # The same guide, against THIS tree.
+    #
+    # The job above runs the published commands against the PINNED image, which
+    # is what makes it a guard against the guide rotting — and means it never
+    # tests the code under review. A change that breaks a documented behaviour
+    # passes it, and surfaces later as somebody else's confusing failure when
+    # the pin moves. That is how a chapter's 404 and a membrane's 500s came to
+    # wait for a pin bump to be found.
+    #
+    # It does NOT need the build: what it needs is the server distribution and
+    # a docker daemon, so it runs beside the suite rather than behind it. That
+    # is also the point — a documented behaviour that broke is named here in
+    # minutes instead of by a thirty-eight minute suite.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Run the guide against the tree
+        run: ./docs/guide/examples/check-tree.sh
+
   publish:
     needs: build
     # Never on pull_request, and never without a repository to publish to.
