@@ -2434,6 +2434,7 @@ cloud.jengu.dbo.promises.DboFeatures                                   promises(
 cloud.jengu.dbo.promises.DboFeatures                                   title():String
 cloud.jengu.dbo.promises.DboFeatures                                   valueOf(String):cloud.jengu.dbo.promises.DboFeatures
 cloud.jengu.dbo.promises.DboFeatures                                   values():cloud.jengu.dbo.promises.DboFeatures[]
+cloud.jengu.dbo.promises.DboPromises                                   AUTH_A_ZONE_IS_ITS_OWN_BROKER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_BEARER_LOCAL_VALIDATION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_BOOTSTRAP_SECRET_IS_CUSTODY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_CREDENTIAL_FACTORS_BY_KIND:cloud.jengu.dbo.promises.DboPromises

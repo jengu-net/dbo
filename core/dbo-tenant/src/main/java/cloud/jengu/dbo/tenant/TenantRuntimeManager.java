@@ -318,6 +318,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * signing key has to be REMOVED eventually, or it goes on verifying and
      * the rotation was only cosmetic.
      */
+    /**
+     * The credential each zone's hub holds at that zone's authority.
+     *
+     * <p>Kept so the record the authority ensures and the secret the hub
+     * presents stay the same string across a rebuild of the hub. It is minted
+     * here because both sides of this ceremony are this deployment: where a
+     * zone federates somewhere else, the secret is custody's and arrives
+     * through broker secrets like any other.
+     */
+    private final Map<String, String> zoneHubSecrets =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     private final Map<String, cloud.jengu.dbo.auth.TenantAuthority> authorities =
             new ConcurrentHashMap<>();
     private final Map<String, String> maintenanceContexts = new java.util.concurrent.ConcurrentHashMap<>();
@@ -2693,12 +2705,45 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     defaultBroker = broker.code();
                 }
             }
+            String hubBase0 = authorityConfig.issuerBase() != null
+                    ? authorityConfig.issuerBase() : "http://" + host + ":" + port();
             if (upstreams.isEmpty()) {
-                throw new IllegalStateException("zone '" + zone + "' declares no brokers");
+                // A zone is a tenant, and every tenant carries an authority.
+                // So a zone that names no broker is not misconfigured: it is
+                // its own, and the ceremony its members federate to is the one
+                // it already runs.
+                //
+                // This used to refuse the tenant instead — which made
+                // declaring a zone for the reasons a zone is usually declared,
+                // its rules and its terminology, depend on having first
+                // configured an external identity provider for people who may
+                // never log in. A deployment that federates nowhere else was
+                // not expressible, though it is the ordinary case for a single
+                // organisation and the only one a self-contained deployment
+                // can be.
+                cloud.jengu.dbo.auth.TenantAuthority zoneAuthority = authorities.get(zone);
+                if (zoneAuthority == null) {
+                    // The same shape as any upstream that has not arrived:
+                    // expected on the way up, answered by the next scan, and
+                    // not a fault anybody has to act on.
+                    throw new UpstreamNotReady(spec.code(), zone);
+                }
+                // The hub is a relying party of the zone, so it is registered
+                // as one: its callback is the only redirect it may return to,
+                // named here rather than left open, because a broker that will
+                // send a code anywhere is not a broker.
+                String hubClient = "zone-" + zone + "-hub";
+                String hubSecret = zoneHubSecrets.computeIfAbsent(zone,
+                        ignored -> java.util.UUID.randomUUID().toString());
+                zoneAuthority.ensureClient(hubClient, hubSecret,
+                        java.util.List.of("user/*.read"), "confidential",
+                        java.util.List.of(hubBase0 + "/z/" + zone + "/hub/callback"));
+                upstreams.put(zone, new cloud.jengu.dbo.auth.IdentityHub.Upstream(
+                        hubBase0 + "/t/" + zone + "/oidc", hubClient, hubSecret, null));
+                defaultBroker = zone;
             }
             String subjectSystem = zoneSubjectSystem(zoneStore);
-            String hubBase = authorityConfig.issuerBase() != null
-                    ? authorityConfig.issuerBase() : "http://" + host + ":" + port();
+            String hubBase = hubBase0;
             String path = "/z/" + zone + "/hub";
             cloud.jengu.dbo.auth.IdentityHub hub = new cloud.jengu.dbo.auth.IdentityHub(
                     upstreams, defaultBroker, subjectSystem, hubBase, path, 28_800);
