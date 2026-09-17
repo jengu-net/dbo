@@ -84,6 +84,58 @@ kind alone would not express the conditions that already exist.
 Property names under `dbo.tenant.` belong to dbo, on the same terms as the
 `dbo.` kind namespace: a service that publishes one is refused.
 
+## Several APIs, not one
+
+The points above are the tenant's own lifecycle. They are not the only thing
+worth extending, and the rest should not be piled into the same interface: a
+bundle implements the one it cares about, and each carries a different contract.
+
+The split is not a taste decision — it is already in the storage. A tenant's
+records are partitioned into **domains**, each with a feed of its own
+(`PgChangeFeed(dataSource, domain)`): the content domain, `work`, `audit` and
+`identity`. So the extension APIs mirror the domains, plus one that has no
+domain because it is not a record in the tenant's database at all:
+
+| API | What it observes | Backed by |
+|---|---|---|
+| `TenantLifecycle` | the points above | **nothing today — this is the new one** |
+| `WorkEvents` | runs, claims, milestones, closes | the `work` domain feed |
+| `RecordEvents` | writes to the tenant's records | the content domain feed |
+| `AuditEvents` | the trail | the `audit` domain feed |
+| `IdentityEvents` | credentials, delegations, provisioning | the `identity` domain feed |
+
+### The rule that decides which is which
+
+**Where a durable feed already exists, the API is a consumer of it and not a
+callback.**
+
+A callback is a fine mechanism for something rare that happens once per tenant
+and can be re-derived if missed. It is the wrong one for anything at volume or
+anything that must not be lost: a synchronous callback puts another bundle in
+the path of the work, and it loses every event that happened while its bundle
+was down.
+
+The feed is the opposite on both counts. It has named consumers and durable
+keyset cursors, so a consumer that was absent for an hour resumes where it left
+off rather than missing the hour.
+
+This is what makes the billing case work properly. Billing a kind **by action**
+is a `WorkEvents` or `RecordEvents` consumer filtered to that kind: durable,
+replayable, and it survives a restart without losing money. Billing a kind
+**per tenant created** is a `TenantLifecycle` activity. Two different APIs,
+each with the semantics its job actually needs, instead of one callback
+interface that is wrong for one of them.
+
+Tenant lifecycle gets a callback because it genuinely has no feed: a tenant
+coming up is not a record in the database being created.
+
+### What they share
+
+One selector language. *Which tenants does this apply to* is the same question
+for all of them, so every API is filtered the same way, over the same published
+properties. Each API defines its own vocabulary of points or events; none of
+them defines its own way of saying where it applies.
+
 ## How an activity says where it applies
 
 An activity is an OSGi service registered against the point it runs at, with a
