@@ -1411,4 +1411,61 @@ for verb in rummage poll; do
     [ "$reason" = "True" ] || fail "the lane refused $verb without saying why"
 done
 
+step "the directory provisions a person, and the capacity comes with them"
+# --8<-- [start:scim-create]
+SCIM=http://localhost:8090/t/hogwarts/scim/v2
+
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/oidc/admin/clients \
+    -d '{"client_id":"staff-directory","secret":"directory-secret","scope":["scim"]}'
+
+DIRECTORY=$(token hogwarts directory-secret staff-directory)
+
+curl -s -X POST -H "Authorization: Bearer $DIRECTORY" \
+    -H 'Content-Type: application/scim+json' "$SCIM/Users" \
+    -d '{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+         "externalId":"HOG-0042","userName":"mmcgonagall",
+         "name":{"familyName":"McGonagall","givenName":"Minerva"},
+         "active":true}' | python3 -c '
+import sys, json
+user = json.load(sys.stdin)
+print("externalId", user["externalId"])
+print("userName  ", user["userName"])
+print("active    ", user["active"])'
+# --8<-- [end:scim-create]
+provisioned=$(curl -sf -G -H "Authorization: Bearer $DIRECTORY" "$SCIM/Users" \
+    --data-urlencode 'filter=userName eq "mmcgonagall"' \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["totalResults"])')
+[ "$provisioned" = "1" ] || fail "the directory did not provision the person, got $provisioned"
+
+step "and that credential reaches the store no further than the door it was given"
+# --8<-- [start:scim-blind]
+curl -s -o /dev/null -w '%{http_code}\n' \
+    -H "Authorization: Bearer $DIRECTORY" "$HOGWARTS/Patient"
+
+curl -s -o /dev/null -w '%{http_code}\n' \
+    -H "Authorization: Bearer $HOSPITAL" "$SCIM/Users"
+# --8<-- [end:scim-blind]
+blind=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer $DIRECTORY" "$HOGWARTS/Patient")
+[ "$blind" = "403" ] || fail "a directory credential read the store, got $blind"
+shut=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer $HOSPITAL" "$SCIM/Users")
+[ "$shut" = "403" ] || fail "a store credential reached the provisioning door, got $shut"
+
+step "and who is an administrator here is not the directory's to say"
+# --8<-- [start:scim-groups]
+curl -s -X POST -H "Authorization: Bearer $DIRECTORY" \
+    -H 'Content-Type: application/scim+json' "$SCIM/Groups" \
+    -d '{"displayName":"matron"}' | python3 -c '
+import sys, json
+print(json.load(sys.stdin)["detail"])'
+# --8<-- [end:scim-groups]
+governance=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+    -H "Authorization: Bearer $DIRECTORY" -H 'Content-Type: application/scim+json' \
+    "$SCIM/Groups" -d '{"displayName":"matron"}')
+[ "$governance" = "405" ] \
+    || fail "role governance arrived by provisioning, got $governance"
+
 printf '\nguide: chapters one to ten work\n'

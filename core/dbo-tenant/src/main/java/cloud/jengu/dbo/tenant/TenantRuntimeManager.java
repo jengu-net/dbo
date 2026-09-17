@@ -393,6 +393,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, TenantFacts> publishedFacts = new ConcurrentHashMap<>();
     /** Tenants whose index is stale because a reindex did not finish. */
     private final StaleIndexes staleIndexes = new StaleIndexes();
+    /** Which refused declarations have already been reported. */
+    private final Refusals refusals = new Refusals();
 
     /** A tenant that is not serving, and why — the reason a card has to carry. */
     private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
@@ -785,6 +787,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 TenantSpec spec = TenantSpec.parse(new String(declaration.payload(),
                         java.nio.charset.StandardCharsets.UTF_8));
                 declared.add(spec.code());
+                // It parsed and it is being served, so a later refusal of the
+                // same file is news rather than a repeat.
+                refusals.applied(named);
                 states.putIfAbsent(spec.code(), TenantState.State.COMING_UP);
                 trouble.remove(spec.code());
                 trouble.remove("spec:" + named);
@@ -1353,6 +1358,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 room.acquireUninterruptibly();
                 try {
                     each.accept(one);
+                } catch (Throwable escaped) {
+                    // Whatever the work did not catch for itself. A virtual
+                    // thread that dies takes its reason with it: join()
+                    // returns normally, the scan reports what it served, and
+                    // the tenant that did not come up leaves NO log line, no
+                    // state and no trouble record — it is simply not there.
+                    //
+                    // That is worse than any failure it could be reporting,
+                    // because there is nothing to search for. So this is the
+                    // floor: the work still owns its own failures, and this
+                    // catches only what got past them.
+                    LOG.error("bring-up died with nothing catching it: work={}", one, escaped);
                 } finally {
                     room.release();
                 }
@@ -3157,6 +3174,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             directory, TenantDeclarationModel.TYPE, ".json"),
                     declarationsOf(applied, management));
             trouble.remove(SOURCE_TROUBLE);
+            sayWhatWasRefused(outcome);
             return outcome;
         } catch (RuntimeException e) {
             // Same rule as the sweep below: the deployment keeps serving
@@ -3169,6 +3187,32 @@ public final class TenantRuntimeManager implements AutoCloseable {
             LOG.warn("the declarations could not be read; the tenants already declared are "
                     + "unaffected and the records stand as they were", e);
             throw e;
+        }
+    }
+
+    /**
+     * Says, once, which declarations were refused and why.
+     *
+     * <p>A refusal is already a card in front of a person, which is the right
+     * home for it: somebody has to change the file. What it was not is
+     * VISIBLE. A tenant whose spec will not parse never reaches bring-up, so
+     * none of the reporting there fires, and the deployment answers what it
+     * serves without mentioning the one it could not — six of seven looks
+     * exactly like six.
+     *
+     * <p>The reason exists and is usually precise enough to fix the file from.
+     * It was being written to a card and to nowhere an operator was looking.
+     *
+     * <p>Said once per declaration and reason, on the same suppression the
+     * bring-up failures use: a pass runs on every beat, and a refusal repeated
+     * every few seconds is how a log stops being read.
+     */
+    private void sayWhatWasRefused(cloud.jengu.dbo.sync.ConfigApplication.Outcome outcome) {
+        for (cloud.jengu.dbo.sync.ConfigApplication.Card card
+                : refusals.worthSaying(outcome.cards())) {
+            LOG.error("a declaration was refused and this deployment is not serving it: "
+                    + "declaration={} reason={} (said again only if the reason changes)",
+                    card.declaration(), card.reason());
         }
     }
 

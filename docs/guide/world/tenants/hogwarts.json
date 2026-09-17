@@ -3,6 +3,7 @@
   "face": "r5",
   "zone": "rl",
   "pdi": true,
+  "scim": { "system": "urn:rl:staff-directory" },
   "audit": { "level": "writes" },
   "dependencies": [
     { "name": "fhir-r5", "face": true,
@@ -19,7 +20,8 @@
     { "name": "CodeSystem", "identity": "canonical", "handling": "replicated" },
     { "name": "Organization", "identity": "identifier", "systems": ["urn:rl:org"],
       "handling": "operational" },
-    { "name": "Person", "identity": "identifier", "systems": ["urn:rl:nid"],
+    { "name": "Person", "identity": "identifier",
+      "systems": ["urn:rl:nid", "urn:rl:staff-directory"],
       "handling": "operational" },
     { "name": "Practitioner", "identity": "identifier", "systems": ["urn:rl:nid"],
       "handling": "operational" },

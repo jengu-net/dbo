@@ -773,6 +773,17 @@ public enum DboPromises implements Promise {
             + "managing tenant to hold records reads its source directly, because nothing "
             + "can bootstrap out of a store it has not built yet."),
 
+    TEN_A_REFUSED_DECLARATION_IS_SAID_ONCE("A declaration this deployment refused is "
+            + "reported by name with its reason, and a deployment that is not serving "
+            + "something it was told to serve does not answer as though it were. The refusal "
+            + "was already a card in front of a person, which is where it belongs; what it "
+            + "was not is visible, because a spec that will not parse never reaches bring-up "
+            + "and none of the reporting there fires — six tenants of seven reads exactly "
+            + "like six. Said once per declaration and reason, since the pass runs on every "
+            + "beat and a refusal repeated every few seconds is how a log stops being read; "
+            + "said again when the reason changes, because somebody fixing a file works "
+            + "through its problems one at a time."),
+
     TEN_A_STALE_INDEX_IS_REMEMBERED_UNTIL_IT_IS_REBUILT("A reindex that did not finish is "
             + "remembered against the tenant and retried until it does. The feed's events are "
             + "acknowledged before the rebuild runs — deliberately, so a broken profile is "

@@ -132,8 +132,21 @@ final class TenantObservations {
                     }
                 });
         return () -> {
+            // Asked first, and only made to stop if it does not — the same
+            // reason the subscription dispatcher is stopped this way. The loop
+            // checks the flag and sleeps between passes, so an idle observer
+            // stops on its own; interrupting one that is inside a JDBC call
+            // closes the socket under pgjdbc and destroys a pooled connection
+            // that had nothing wrong with it.
             running.set(false);
-            thread.interrupt();
+            try {
+                thread.join(2_000);
+            } catch (InterruptedException stopping) {
+                Thread.currentThread().interrupt();
+            }
+            if (thread.isAlive()) {
+                thread.interrupt();
+            }
         };
     }
 }

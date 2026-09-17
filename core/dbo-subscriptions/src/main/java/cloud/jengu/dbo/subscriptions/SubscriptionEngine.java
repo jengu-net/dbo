@@ -349,11 +349,37 @@ public final class SubscriptionEngine implements AutoCloseable {
         });
     }
 
+    /**
+     * How long a stopping dispatcher is given to notice, before it is made to.
+     *
+     * <p>Long enough to cover a poll that is waiting on the database, short
+     * enough that nothing perceptible waits on a tenant going away.
+     */
+    private static final long GRACE_MILLIS = 2_000;
+
     @Override
     public synchronized void close() {
         running = false;
         if (dispatcherThread != null) {
-            dispatcherThread.interrupt();
+            // Asked first, and only made to stop if it does not.
+            //
+            // The loop already checks `running` and sleeps between passes, so
+            // clearing the flag is enough for a dispatcher that is idle — and
+            // idle is where it is almost always found. Interrupting outright
+            // caught it inside a JDBC call often enough to matter: pgjdbc is
+            // not interrupt-safe, so the socket is closed under it, the pooled
+            // connection is destroyed, and a WARN about a broken connection is
+            // logged for a tenant that shut down perfectly normally.
+            try {
+                dispatcherThread.join(GRACE_MILLIS);
+            } catch (InterruptedException stopping) {
+                Thread.currentThread().interrupt();
+            }
+            if (dispatcherThread.isAlive()) {
+                // It is in something long. Now the interrupt is the right
+                // answer, and a broken connection is the price of not hanging.
+                dispatcherThread.interrupt();
+            }
         }
         dbos.shutdown();
     }
