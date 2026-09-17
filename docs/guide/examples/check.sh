@@ -513,6 +513,44 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8090/t/stmungos/fhir/m
 curl -sf -o /dev/null "http://localhost:8090/t/stmungos/fhir/metadata" \
     || fail "stmungos never came up"
 
+step "changing the declaration rebuilds the tenant where it stands"
+# --8<-- [start:change-in-place]
+python3 - <<'NARROW'
+import json, pathlib
+spec = pathlib.Path("docs/guide/world/tenants/stmungos.json")
+declared = json.loads(spec.read_text())
+declared["types"] = [t for t in declared["types"] if t["name"] != "Observation"]
+spec.write_text(json.dumps(declared, indent=2) + "\n")
+NARROW
+# --8<-- [end:change-in-place]
+for _ in $(seq 1 60); do
+    serving=$(curl -s http://localhost:8090/t/stmungos/fhir/metadata \
+        | python3 -c '
+import sys, json
+try:
+    print(",".join(r["type"] for r in json.load(sys.stdin)["rest"][0]["resource"]))
+except Exception:
+    print("")' 2>/dev/null)
+    case "$serving" in
+        "") sleep 3 ;;
+        *Observation*) sleep 3 ;;
+        *Patient*) break ;;
+        *) sleep 3 ;;
+    esac
+done
+# --8<-- [start:change-took]
+curl -s http://localhost:8090/t/stmungos/fhir/metadata | python3 -c '
+import sys, json
+served = [r["type"] for r in json.load(sys.stdin)["rest"][0]["resource"]]
+print("Patient" in served, "Observation" in served)'
+# --8<-- [end:change-took]
+took=$(curl -sf http://localhost:8090/t/stmungos/fhir/metadata | python3 -c '
+import sys, json
+served = [r["type"] for r in json.load(sys.stdin)["rest"][0]["resource"]]
+print("Patient" in served, "Observation" in served)')
+[ "$took" = "True False" ] \
+    || fail "the narrowed declaration did not take where it stood: $took"
+
 step "and stops when its spec goes"
 # --8<-- [start:remove-tenant]
 rm docs/guide/world/tenants/stmungos.json

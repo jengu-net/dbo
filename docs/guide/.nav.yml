@@ -34,7 +34,6 @@ nav:
       - isolation.md
       - the-face.md
       - tenant-types.md
-      - dependencies.md
       - lifecycle.md
       - export-and-import.md
   - Zones:
