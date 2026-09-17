@@ -1411,6 +1411,69 @@ for verb in rummage poll; do
     [ "$reason" = "True" ] || fail "the lane refused $verb without saying why"
 done
 
+step "and what an operator with the database sees instead"
+# The published form names the guide's own compose file, because that is what a
+# reader types. A candidate world is reached by the same verb on the file
+# DBO_GUIDE_COMPOSE names — the branch exists so the literal below can stay
+# literal, exactly as the one that starts the world does.
+if [ -n "${DBO_GUIDE_COMPOSE:-}" ]; then
+    $COMPOSE exec -T db psql -U postgres -d tenant_hogwarts -tAc \
+        "SELECT convert_from(payload,'UTF8') FROM state.r5_data WHERE type='Patient' LIMIT 1" \
+      | python3 -c '
+import sys, json
+stored = json.loads(sys.stdin.read())
+print(*sorted(stored), sep="\n")'
+else
+# --8<-- [start:pdi-ciphertext]
+docker compose -f docs/guide/examples/compose.yaml exec -T db \
+    psql -U postgres -d tenant_hogwarts -tAc \
+    "SELECT convert_from(payload,'UTF8') FROM state.r5_data WHERE type='Patient' LIMIT 1" \
+  | python3 -c '
+import sys, json
+stored = json.loads(sys.stdin.read())
+print(*sorted(stored), sep="\n")'
+# --8<-- [end:pdi-ciphertext]
+fi
+stored=$($COMPOSE exec -T db psql -U postgres -d tenant_hogwarts -tAc \
+    "SELECT convert_from(payload,'UTF8') FROM state.r5_data WHERE type='Patient' LIMIT 1" \
+  | python3 -c '
+import sys, json
+print(",".join(sorted(json.loads(sys.stdin.read()))))')
+case "$stored" in
+    *name*|*identifier*) fail "the stored payload carries identifying elements: $stored" ;;
+esac
+case "$stored" in
+    *__pdiEnc*) ;;
+    *) fail "the stored payload carries no ciphertext: $stored" ;;
+esac
+
+step "asking by name is refused, not answered empty"
+# --8<-- [start:pdi-name-search]
+curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
+    --data-urlencode "family=Potter" | python3 -c '
+import sys, json
+print(json.load(sys.stdin)["issue"][0]["diagnostics"])'
+# --8<-- [end:pdi-name-search]
+byName=$(curl -s -o /dev/null -w '%{http_code}' -G -H "Authorization: Bearer $HOSPITAL" \
+    "$HOGWARTS/Patient" --data-urlencode "family=Potter")
+[ "$byName" = "403" ] \
+    || fail "a name search under the membrane answered $byName; an empty bundle would have said nobody is called that"
+
+step "and an identifying lookup without a stated reason is refused too"
+# --8<-- [start:pdi-no-purpose]
+# The same credential, minted without saying what it is for.
+NO_REASON=$(token hogwarts hogwarts-secret)
+
+curl -s -G -H "Authorization: Bearer $NO_REASON" "$HOGWARTS/Patient" \
+    --data-urlencode "identifier=urn:rl:nid|RL-0001" | python3 -c '
+import sys, json
+print(json.load(sys.stdin)["issue"][0]["diagnostics"])'
+# --8<-- [end:pdi-no-purpose]
+unstated=$(curl -s -o /dev/null -w '%{http_code}' -G -H "Authorization: Bearer $NO_REASON" \
+    "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0001")
+[ "$unstated" = "403" ] \
+    || fail "a person was resolved without a stated purpose, got $unstated"
+
 step "the directory provisions a person, and the capacity comes with them"
 # --8<-- [start:scim-create]
 SCIM=http://localhost:8090/t/hogwarts/scim/v2
@@ -1467,5 +1530,58 @@ governance=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
     "$SCIM/Groups" -d '{"displayName":"matron"}')
 [ "$governance" = "405" ] \
     || fail "role governance arrived by provisioning, got $governance"
+
+step "somebody asks to be forgotten"
+# A patient of their own, because erasure is irreversible and every step above
+# this one is still using Harry.
+forgettable=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" \
+    -H 'Content-Type: application/fhir+json' "$HOGWARTS/Patient" \
+    -d '{"resourceType":"Patient",
+         "identifier":[{"system":"urn:rl:nid","value":"RL-FORGET"}],
+         "name":[{"family":"Riddle","given":["Tom"]}],"birthDate":"1926-12-31"}' \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
+[ -n "$forgettable" ] || fail "the patient who asks to be forgotten was not written"
+
+# --8<-- [start:erasure-ask]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/oidc/admin/clients \
+    -d '{"client_id":"rights-desk","secret":"desk-secret","scope":["erasure"]}'
+
+RIGHTS=$(token hogwarts desk-secret rights-desk)
+
+curl -s -X POST -H "Authorization: Bearer $RIGHTS" \
+    -H 'Content-Type: application/json' \
+    http://localhost:8090/t/hogwarts/erasure \
+    -d "{\"subject\":\"Patient/$forgettable\"}"
+# --8<-- [end:erasure-ask]
+echo
+receipt=$(curl -sf -X POST -H "Authorization: Bearer $RIGHTS" \
+    -H 'Content-Type: application/json' http://localhost:8090/t/hogwarts/erasure \
+    -d "{\"subject\":\"Patient/$forgettable\"}" \
+    | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("run","") != "")')
+[ "$receipt" = "True" ] || fail "the erasure answered without a run to show for it"
+
+step "and their number resolves to nobody"
+# --8<-- [start:erasure-unfindable]
+curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
+    --data-urlencode "identifier=urn:rl:nid|RL-FORGET" \
+  | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])), "found")'
+# --8<-- [end:erasure-unfindable]
+left=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
+    --data-urlencode "identifier=urn:rl:nid|RL-FORGET" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$left" = "0" ] || fail "an erased person is still resolvable by their number, got $left"
+
+step "while the record keeps its shape and loses the person"
+# --8<-- [start:erasure-remains]
+curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$forgettable"
+# --8<-- [end:erasure-remains]
+echo
+remains=$(curl -sf -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$forgettable" \
+    | python3 -c 'import sys,json;print(",".join(sorted(json.load(sys.stdin))))')
+case "$remains" in
+    *name*|*identifier*|*birthDate*) fail "the erased record still carries the person: $remains" ;;
+esac
 
 printf '\nguide: chapters one to ten work\n'

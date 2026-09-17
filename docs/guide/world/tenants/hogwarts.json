@@ -5,6 +5,8 @@
   "pdi": true,
   "scim": { "system": "urn:rl:staff-directory" },
   "audit": { "level": "writes" },
+  "retention": { "perType": {
+    "Observation": { "keepAtLeast": "P10Y", "removeAfter": "P30Y" } } },
   "dependencies": [
     { "name": "fhir-r5", "face": true,
       "types": ["StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"] },
