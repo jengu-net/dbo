@@ -63,6 +63,13 @@ class TheGuideRunsIT {
     @AfterAll
     void theWorldGoesDown() throws Exception {
         compose("down", "-v", "--remove-orphans");
+        // Two steps add a tenant by writing its spec into the world and remove
+        // it by deleting the file again. If one of them fails in between, the
+        // file is left in a checked-in directory — so the teardown takes it
+        // away whatever happened, rather than leaving the repository dirty for
+        // whoever runs next.
+        java.nio.file.Files.deleteIfExists(
+                Path.of("..", "docs", "guide", "world", "tenants", "stmungos.json"));
     }
 
     @Test
@@ -361,6 +368,171 @@ class TheGuideRunsIT {
         snippets.run("batch");
         assertEquals(1, entries(ask("HOSPITAL", "/Patient?identifier=urn:rl:nid|RL-0011")),
                 "a batch's good entry did not land beside its bad one");
+    }
+
+
+    @Test
+    @Order(22)
+    @DisplayName("a tenant appears when its spec does")
+    void aTenantAppearsWhenItsSpecDoes() throws Exception {
+        assertEquals(0, snippets.run("add-tenant").status(), "the spec was not written");
+        assertTrue(waitUntilServed("stmungos", 60), "stmungos never came up");
+        assertEquals("200", snippets.run("new-tenant-serves").lastLine());
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("changing the declaration rebuilds the tenant where it stands")
+    void changingTheDeclarationRebuildsInPlace() throws Exception {
+        assertEquals(0, snippets.run("change-in-place").status(), "the spec was not narrowed");
+        // A rebuild is not instant and it is not a restart either: the tenant
+        // keeps answering throughout, so the only way to see it land is to
+        // watch what it says it holds.
+        for (int attempt = 0; attempt < 60; attempt++) {
+            if ("True False".equals(snippets.run("change-took").text())) {
+                break;
+            }
+            TimeUnit.SECONDS.sleep(3);
+        }
+        assertEquals("True False", snippets.run("change-took").text(),
+                "the narrowed declaration did not take where it stood");
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("and stops when its spec goes")
+    void andStopsWhenItsSpecGoes() throws Exception {
+        assertEquals(0, snippets.run("remove-tenant").status());
+        for (int attempt = 0; attempt < 40; attempt++) {
+            if (!served("stmungos")) {
+                break;
+            }
+            TimeUnit.SECONDS.sleep(2);
+        }
+        assertTrue(!served("stmungos"), "stmungos was still served after its spec was removed");
+    }
+
+    @Test
+    @Order(25)
+    @DisplayName("the hospital still has its own records")
+    void theHospitalStillHasItsOwnRecords() throws Exception {
+        // A neighbour arriving and leaving is the loudest thing that happens to
+        // this world, and the tenant beside it should not have noticed.
+        assertEquals(1, entries(ask("HOSPITAL", "/Patient?identifier=urn:rl:nid|RL-0001")),
+                "the hospital lost a record when a neighbour went away");
+    }
+
+    @Test
+    @Order(26)
+    @DisplayName("what this tenant says it can be asked")
+    void whatThisTenantSaysItCanBeAsked() throws Exception {
+        String declared = snippets.run("capability-search").text();
+        assertTrue(declared.lines().count() > 10,
+                "the capability statement declares too few Patient parameters: " + declared);
+        assertTrue(declared.lines().anyMatch("family"::equals),
+                "a parameter the guide goes on to use is not declared: " + declared);
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("a modifier the parameter does not have is refused by name")
+    void anUnknownModifierIsRefusedByName() throws Exception {
+        String refused = snippets.run("unknown-modifier").text();
+        assertTrue(refused.contains("family:nosuch"),
+                "the refusal should name what it refused: " + refused);
+    }
+
+    @Test
+    @Order(28)
+    @DisplayName("counting without fetching")
+    void countingWithoutFetching() throws Exception {
+        String counted = snippets.run("count").text();
+        assertTrue(counted.contains("\"total\""), "a count answered without a total: " + counted);
+        assertEquals(0, entries(counted), "a count carried the records it was asked not to fetch");
+    }
+
+    @Test
+    @Order(29)
+    @DisplayName("a page, and the cursor that follows it")
+    void aPageAndTheCursorThatFollowsIt() throws Exception {
+        for (String family : java.util.List.of(
+                "Granger", "Longbottom", "Lovegood", "Malfoy", "Diggory")) {
+            Snippets.Ran made = snippets.sh("""
+                    curl -sf -o /dev/null -X POST -H "Authorization: Bearer $HOSPITAL" \
+                        "$HOGWARTS/Patient" -H 'Content-Type: application/fhir+json' \
+                        -d '{"resourceType":"Patient",
+                             "identifier":[{"system":"urn:rl:nid","value":"RL-90-%s"}],
+                             "name":[{"family":"%s"}]}'
+                    """.formatted(family, family));
+            assertEquals(0, made.status(), "could not create " + family + ": " + made.err());
+        }
+
+        String page = snippets.run("first-page").text();
+        assertEquals(2, entries(page), "a page of two did not carry two: " + page);
+        // The url follows the relation inside each link, so the text AFTER the
+        // marker is the one wanted. Reading backwards from it found the self
+        // link instead — which still looked like a plausible url, and said so
+        // by carrying no cursor.
+        String next = page.split("\"relation\":\"next\"", 2)[1];
+        next = next.substring(next.indexOf("\"url\":\"") + 7);
+        next = next.substring(0, next.indexOf('"'));
+        assertTrue(next.contains("_cursor="), "the next link carries no cursor: " + next);
+        // The following snippet reads it by name, the way the chapter's prose
+        // says to: the link the page handed you, not one you construct.
+        snippets.remember("next", next);
+        snippets.remember("first", idsIn(page));
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("a write lands between the pages, and the next page does not repeat")
+    void aWriteLandsBetweenThePages() throws Exception {
+        Snippets.Ran between = snippets.sh("""
+                curl -sf -o /dev/null -X POST -H "Authorization: Bearer $HOSPITAL" \
+                    "$HOGWARTS/Patient" -H 'Content-Type: application/fhir+json' \
+                    -d '{"resourceType":"Patient",
+                         "identifier":[{"system":"urn:rl:nid","value":"RL-90-Between"}],
+                         "name":[{"family":"Aaaa"}]}'
+                """);
+        assertEquals(0, between.status(),
+                "the write that lands between the pages did not: " + between.err());
+
+        String page = snippets.run("next-page").text();
+        java.util.Set<String> seen = new java.util.LinkedHashSet<>(
+                java.util.List.of(snippets.recall("first").split(" ")));
+        seen.retainAll(java.util.List.of(idsIn(page).split(" ")));
+        assertTrue(seen.isEmpty(),
+                "a page repeated what the previous page already returned: " + seen);
+    }
+
+    @Test
+    @Order(31)
+    @DisplayName("an unsupported search parameter is refused, not ignored")
+    void anUnsupportedSearchParameterIsRefused() throws Exception {
+        assertEquals("400", snippets.run("strict-search").lastLine());
+    }
+
+
+    /** The ids a searchset carried, in the order it carried them. */
+    private static String idsIn(String bundle) {
+        java.util.List<String> ids = new java.util.ArrayList<>();
+        for (String entry : bundle.split("\"fullUrl\"")) {
+            int at = entry.indexOf("\"id\":\"");
+            if (at >= 0) {
+                ids.add(entry.substring(at + 6, entry.indexOf('"', at + 6)));
+            }
+        }
+        return String.join(" ", ids);
+    }
+
+    private boolean waitUntilServed(String tenant, int attempts) throws Exception {
+        for (int attempt = 0; attempt < attempts; attempt++) {
+            if (served(tenant)) {
+                return true;
+            }
+            TimeUnit.SECONDS.sleep(5);
+        }
+        return false;
     }
 
     private static boolean served(String tenant) throws Exception {

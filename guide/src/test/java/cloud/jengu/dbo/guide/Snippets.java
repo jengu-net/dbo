@@ -118,7 +118,13 @@ final class Snippets {
         // that had "failed". Two layers of inference about somebody else's
         // output format, to learn something bash can simply be asked.
         // What the snippet defined, by comparing before with after rather
-        // than by insisting names look a certain way. The published commands
+        // than by insisting names look a certain way — and the comparison is
+        // on name AND value, so a snippet that changes something it inherited
+        // is still seen, while the several hundred variables this process
+        // happens to have been started with are not reported as the guide's
+        // doing. Snapshotting the names alone was the first attempt, and it
+        // left every inherited name in the record: harmless until a failure
+        // printed them, which is how it was found. The published commands
         // set `id` and `bones` as readily as HOSPITAL, and a runner that only
         // captured shouting ones would quietly drop half of them — or, worse,
         // make the documentation spell its variables to suit the test.
@@ -126,13 +132,16 @@ final class Snippets {
         // The file is sourced verbatim, so what runs is what the chapter
         // publishes; the snapshotting is around it.
         ProcessBuilder bash = new ProcessBuilder("bash", "-euo", "pipefail", "-c",
-                "__before=$(compgen -v | sort); "
+                "__before=$(for __n in $(compgen -v); do "
+                        + "  printf '%s=%s\\n' \"$__n\" \"${!__n-}\"; done); "
                         + "source \"$1\"; "
                         + "printf '\\n" + STATE + "\\n'; "
                         + "for __name in $(compgen -v); do "
                         + "  case \"$__name\" in __*|BASH*|FUNCNAME|PIPESTATUS|_) continue ;; esac; "
                         + "  __value=\"${!__name-}\"; "
                         + "  case \"$__value\" in *$'\\n'*) continue ;; esac; "
+                        + "  case $'\\n'\"$__before\"$'\\n' in "
+                        + "    *$'\\n'\"$__name=$__value\"$'\\n'*) continue ;; esac; "
                         + "  printf '%s=%s\\n' \"$__name\" \"$__value\"; "
                         + "done",
                 "snippet", file.toAbsolutePath().toString());
