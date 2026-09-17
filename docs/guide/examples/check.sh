@@ -271,6 +271,93 @@ etag=$(curl -s -o /dev/null -D - -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS
 printf '%s' "$etag" | grep -q 'W/"1"' \
     || fail "a version read must carry THAT version's validator, got: $etag"
 
+step "several writes as one act"
+# --8<-- [start:transaction]
+curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Bundle","type":"transaction","entry":[
+      {"fullUrl":"urn:uuid:admitted",
+       "resource":{"resourceType":"Patient",
+                   "identifier":[{"system":"urn:rl:nid","value":"RL-0009"}],
+                   "name":[{"family":"Bones","given":["Susan"]}]},
+       "request":{"method":"POST","url":"Patient"}},
+      {"resource":{"resourceType":"Observation","status":"final",
+                   "code":{"text":"height"},
+                   "subject":{"reference":"urn:uuid:admitted"}},
+       "request":{"method":"POST","url":"Observation"}}]}' \
+  | python3 -c '
+import sys, json
+for entry in json.load(sys.stdin)["entry"]:
+    print(entry["response"]["status"])'
+# --8<-- [end:transaction]
+bones=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
+    --data-urlencode "identifier=urn:rl:nid|RL-0009" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["entry"][0]["resource"]["id"])')
+[ -n "$bones" ] || fail "the transaction did not land its patient"
+
+step "and the reference between them resolved to what was created"
+# --8<-- [start:transaction-reference]
+curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
+    --data-urlencode "_count=50" | python3 -c '
+import sys, json
+for entry in json.load(sys.stdin).get("entry", []):
+    resource = entry["resource"]
+    if resource.get("code", {}).get("text") == "height":
+        print(resource["subject"]["reference"])'
+# --8<-- [end:transaction-reference]
+pointed=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
+    --data-urlencode "_count=50" | python3 -c '
+import sys, json
+for entry in json.load(sys.stdin).get("entry", []):
+    resource = entry["resource"]
+    if resource.get("code", {}).get("text") == "height":
+        print(resource["subject"]["reference"])')
+[ "$pointed" = "Patient/$bones" ] \
+    || fail "the placeholder did not resolve to the created patient: $pointed"
+
+step "one bad entry takes the whole transaction with it"
+# --8<-- [start:transaction-refused]
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Bundle","type":"transaction","entry":[
+      {"resource":{"resourceType":"Patient",
+                   "identifier":[{"system":"urn:rl:nid","value":"RL-0010"}],
+                   "name":[{"family":"Doge"}]},
+       "request":{"method":"POST","url":"Patient"}},
+      {"resource":{"resourceType":"Observation","code":{"text":"no status"}},
+       "request":{"method":"POST","url":"Observation"}}]}'
+
+curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
+    --data-urlencode "identifier=urn:rl:nid|RL-0010" \
+  | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])), "entries")'
+# --8<-- [end:transaction-refused]
+rolled=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
+    --data-urlencode "identifier=urn:rl:nid|RL-0010" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$rolled" = "0" ] || fail "a refused transaction left a record behind"
+
+step "a batch answers for each entry separately"
+# --8<-- [start:batch]
+curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS" \
+    -H 'Content-Type: application/fhir+json' \
+    -d '{"resourceType":"Bundle","type":"batch","entry":[
+      {"resource":{"resourceType":"Patient",
+                   "identifier":[{"system":"urn:rl:nid","value":"RL-0011"}],
+                   "name":[{"family":"Abbott"}]},
+       "request":{"method":"POST","url":"Patient"}},
+      {"resource":{"resourceType":"Observation","code":{"text":"no status"}},
+       "request":{"method":"POST","url":"Observation"}}]}' \
+  | python3 -c '
+import sys, json
+for entry in json.load(sys.stdin)["entry"]:
+    print(entry["response"]["status"])'
+# --8<-- [end:batch]
+kept=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
+    --data-urlencode "identifier=urn:rl:nid|RL-0011" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$kept" = "1" ] || fail "a batch's good entry did not land, got $kept"
+
 step "a write made against a version that has moved is refused"
 stale=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
     -H 'Content-Type: application/fhir+json' \
