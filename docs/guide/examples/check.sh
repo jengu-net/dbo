@@ -838,6 +838,13 @@ for pair in "fhir-r5 $FACE_R5" "fhir-r4 $FACE_R4"; do
     [ "$held" -gt 300 ] || fail "$1 should hold the version's definitions, got $held"
 done
 
+step "the zone runs the ceremony its members federate to"
+# --8<-- [start:zone-ceremony]
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8090/z/rl/hub/jwks.json
+# --8<-- [end:zone-ceremony]
+ceremony=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/z/rl/hub/jwks.json)
+[ "$ceremony" = "200" ] || fail "the zone has no ceremony of its own, got $ceremony"
+
 step "a projection converts the zone once, for the face that needs it"
 for _ in $(seq 1 90); do
     curl -sf -o /dev/null "http://localhost:8090/t/rl-on-r4/fhir/metadata" && break

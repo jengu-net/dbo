@@ -39,7 +39,6 @@ nav:
   - Zones:
       - zones.md
       - zone-terminology.md
-      - zone-services.md
       - zone-chain.md
   - Work:
       - work.md
