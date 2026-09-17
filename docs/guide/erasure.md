@@ -18,7 +18,7 @@ This store does not chase them. It destroys the key.
 ## Asking
 
 ```bash
---8<-- "docs/guide/examples/check.sh:erasure-ask"
+--8<-- "docs/guide/examples/snippets/erasure-ask.sh"
 ```
 
 ```json
@@ -47,7 +47,7 @@ code.
 ## What it did
 
 ```bash
---8<-- "docs/guide/examples/check.sh:erasure-unfindable"
+--8<-- "docs/guide/examples/snippets/erasure-unfindable.sh"
 ```
 
 ```
@@ -63,7 +63,7 @@ them.
 The record itself is still there, and empty of them:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:erasure-remains"
+--8<-- "docs/guide/examples/snippets/erasure-remains.sh"
 ```
 
 ```json

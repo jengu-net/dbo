@@ -30,7 +30,7 @@ The hospital declares the zone as a dependency, naming the types it wants:
 Having declared it, the hospital answers the zone's codes as its own:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:zone-reaches-hospital"
+--8<-- "docs/guide/examples/snippets/zone-reaches-hospital.sh"
 ```
 
 ```json
@@ -43,7 +43,7 @@ The insurer is in the same zone and declared only `CodeSystem` from it — not
 `ValueSet`. So it has exactly that, and not the other:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:zone-partial-at-insurer"
+--8<-- "docs/guide/examples/snippets/zone-partial-at-insurer.sh"
 ```
 
 ```json

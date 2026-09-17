@@ -21,7 +21,7 @@ There is no bundled copy of the specification. The definitions live in a tenant
 that exists to hold them:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:face-roots"
+--8<-- "docs/guide/examples/snippets/face-roots.sh"
 ```
 
 ```

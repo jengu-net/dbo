@@ -15,7 +15,7 @@ came from the tenant it was about to talk to.
 ## Each tenant is its own issuer
 
 ```bash
---8<-- "docs/guide/examples/check.sh:issuer"
+--8<-- "docs/guide/examples/snippets/issuer.sh"
 ```
 
 ```
@@ -35,7 +35,7 @@ its database, alongside everything else it owns.
 ## Getting a token
 
 ```bash
---8<-- "docs/guide/examples/check.sh:token"
+--8<-- "docs/guide/examples/snippets/token.sh"
 ```
 
 A client-credentials exchange, which is the machine half of this. `tenant-bootstrap`
@@ -47,7 +47,7 @@ nobody could present.
 Ask without a token and the answer is plain:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:no-token"
+--8<-- "docs/guide/examples/snippets/no-token.sh"
 ```
 
 ```
@@ -59,7 +59,7 @@ Ask without a token and the answer is plain:
 Registering one says what it may do:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:worker-credential"
+--8<-- "docs/guide/examples/snippets/worker-credential.sh"
 ```
 
 ```

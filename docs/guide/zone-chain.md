@@ -26,7 +26,7 @@ because nothing makes two tenants convert identically.
 Neither. A **projection** appears: the zone, as seen on a face.
 
 ```bash
---8<-- "docs/guide/examples/check.sh:projection"
+--8<-- "docs/guide/examples/snippets/projection.sh"
 ```
 
 ```

@@ -15,7 +15,7 @@ and they belong to the tenant as much as anything else does.
 ## Writing one
 
 ```bash
---8<-- "docs/guide/examples/check.sh:blob-write"
+--8<-- "docs/guide/examples/snippets/blob-write.sh"
 ```
 
 ```json
@@ -29,7 +29,7 @@ assignment like any other id — you do not choose it, for the same reason
 ## Reading it back
 
 ```bash
---8<-- "docs/guide/examples/check.sh:blob-read"
+--8<-- "docs/guide/examples/snippets/blob-read.sh"
 ```
 
 ```
@@ -69,7 +69,7 @@ A blob is not behind a scope of its own. It is guarded by the scope for
 `Binary` — the type in the specification that *is* binary content:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:blob-unheld"
+--8<-- "docs/guide/examples/snippets/blob-unheld.sh"
 ```
 
 ```

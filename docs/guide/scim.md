@@ -41,7 +41,7 @@ claim about a directory.
 ## A User is the person, and the capacity comes with them
 
 ```bash
---8<-- "docs/guide/examples/check.sh:scim-create"
+--8<-- "docs/guide/examples/snippets/scim-create.sh"
 ```
 
 ```
@@ -66,7 +66,7 @@ The SCIM client's scope admits the SCIM surface and nothing else. Both
 directions hold:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:scim-blind"
+--8<-- "docs/guide/examples/snippets/scim-blind.sh"
 ```
 
 ```
@@ -98,7 +98,7 @@ enumeration-shaped questions about people.
 ## Groups are read-only, permanently
 
 ```bash
---8<-- "docs/guide/examples/check.sh:scim-groups"
+--8<-- "docs/guide/examples/snippets/scim-groups.sh"
 ```
 
 ```

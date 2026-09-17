@@ -40,7 +40,7 @@ Harry is already in the hospital's store from the quick start. Create him again,
 with the same national identifier:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:duplicate-identity"
+--8<-- "docs/guide/examples/snippets/duplicate-identity.sh"
 ```
 
 ```
@@ -63,7 +63,7 @@ the normal case when a message arrives from somewhere else — write against the
 identity directly:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:conditional-update"
+--8<-- "docs/guide/examples/snippets/conditional-update.sh"
 ```
 
 ```
@@ -88,7 +88,7 @@ Identity behaves differently for definitions, and the difference is the point
 of having classes at all. The zone holds code systems, identified canonically:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:canonical"
+--8<-- "docs/guide/examples/snippets/canonical.sh"
 ```
 
 ```

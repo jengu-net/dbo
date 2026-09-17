@@ -23,7 +23,7 @@ The capability statement is generated from what the tenant actually holds, not
 written by hand:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:capability-search"
+--8<-- "docs/guide/examples/snippets/capability-search.sh"
 ```
 
 ```
@@ -52,7 +52,7 @@ the tenant at runtime rather than a constant to compile in.
 ## Ask for something else and you are refused
 
 ```bash
---8<-- "docs/guide/examples/check.sh:strict-search"
+--8<-- "docs/guide/examples/snippets/strict-search.sh"
 ```
 
 ```
@@ -63,7 +63,7 @@ Not an empty bundle, and not a bundle that ignored the parameter. The same
 applies one level down, to a modifier a parameter does not have:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:unknown-modifier"
+--8<-- "docs/guide/examples/snippets/unknown-modifier.sh"
 ```
 
 ```json
@@ -83,7 +83,7 @@ records it is the one that matters.
 ## Counting without fetching
 
 ```bash
---8<-- "docs/guide/examples/check.sh:count"
+--8<-- "docs/guide/examples/snippets/count.sh"
 ```
 
 ```json
@@ -98,7 +98,7 @@ number beside a filter without paying for the rows.
 Ask for a page:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:first-page"
+--8<-- "docs/guide/examples/snippets/first-page.sh"
 ```
 
 The bundle comes back with a `next` link, and the link carries a `_cursor`:
@@ -115,7 +115,7 @@ Now the part that earns it. Write a record *between* fetching page one and
 page two, then follow the cursor:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:next-page"
+--8<-- "docs/guide/examples/snippets/next-page.sh"
 ```
 
 Page two contains nothing page one already gave you. That is asserted on every

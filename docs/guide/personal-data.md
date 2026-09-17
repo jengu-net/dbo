@@ -70,7 +70,7 @@ What changes is not reading. It is *asking*.
 ## Asking by name is refused, not answered empty
 
 ```bash
---8<-- "docs/guide/examples/check.sh:pdi-name-search"
+--8<-- "docs/guide/examples/snippets/pdi-name-search.sh"
 ```
 
 ```
@@ -102,13 +102,13 @@ is the question a real integration asks — a national number, a chart number,
 somebody arriving with a referral.
 
 ```bash
---8<-- "docs/guide/examples/check.sh:search"
+--8<-- "docs/guide/examples/snippets/search.sh"
 ```
 
 But the credential has to have said what it is for:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:pdi-no-purpose"
+--8<-- "docs/guide/examples/snippets/pdi-no-purpose.sh"
 ```
 
 ```

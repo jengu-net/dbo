@@ -48,7 +48,7 @@ A tenant's records are partitioned into domains, and each carries a feed of its
 own. Ask a tenant what it holds:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:feed-domains"
+--8<-- "docs/guide/examples/snippets/feed-domains.sh"
 ```
 
 ```
@@ -83,7 +83,7 @@ A consumer reads under a name, and the store remembers where that name got to.
 Ask what is reading and how far behind:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:feed-consumers"
+--8<-- "docs/guide/examples/snippets/feed-consumers.sh"
 ```
 
 ```

@@ -34,7 +34,7 @@ Change the declaration of a tenant that is already running — here, by removing
 a type from it:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:change-in-place"
+--8<-- "docs/guide/examples/snippets/change-in-place.sh"
 ```
 
 The tenant is not deleted and recreated. It is **rebuilt where it stands**: the
@@ -42,7 +42,7 @@ same database, the same records, the same history, with the declaration applied
 over it. What it serves afterwards reflects the change:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:change-took"
+--8<-- "docs/guide/examples/snippets/change-took.sh"
 ```
 
 ```

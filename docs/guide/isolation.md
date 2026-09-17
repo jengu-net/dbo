@@ -16,7 +16,7 @@ This is what follows from that, shown rather than asserted.
 The hospital's own credential, pointed at the insurer:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:isolation"
+--8<-- "docs/guide/examples/snippets/isolation.sh"
 ```
 
 ```

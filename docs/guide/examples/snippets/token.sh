@@ -8,7 +8,7 @@ token() {
 
 # The hospital holds people behind the membrane, so its credential says what it
 # is for: reading somebody by their national number is a disclosure, and one
-# without a stated reason is refused.
+# without a stated reason is refused rather than answered.
 HOSPITAL=$(token hogwarts hogwarts-secret tenant-bootstrap TREAT)
 INSURER=$(token gringotts gringotts-secret)
 JURISDICTION=$(token rl rl-secret)

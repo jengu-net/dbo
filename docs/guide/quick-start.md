@@ -21,7 +21,7 @@ you cannot ship.
 ## Start the world
 
 ```bash
---8<-- "docs/guide/examples/check.sh:up"
+--8<-- "docs/guide/examples/snippets/up.sh"
 ```
 
 Six tenants come up, and the first time is slow: each is a database provisioned
@@ -32,7 +32,7 @@ which is why a world is something you bring up and keep.
 Two of the six are the ones you will use:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:bases"
+--8<-- "docs/guide/examples/snippets/bases.sh"
 ```
 
 ## Get a credential
@@ -41,7 +41,7 @@ The world is guarded, which is the point of it. Ask without one and you are
 refused:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:no-token"
+--8<-- "docs/guide/examples/snippets/no-token.sh"
 ```
 
 ```
@@ -54,7 +54,7 @@ Each of these is a client-credentials exchange against the tenant you are about
 to talk to:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:token"
+--8<-- "docs/guide/examples/snippets/token.sh"
 ```
 
 `tenant-bootstrap` is the client the deployment holds for each tenant. Its
@@ -69,7 +69,7 @@ is what a client of this store actually looks like.
 ## Ask each one what it speaks
 
 ```bash
---8<-- "docs/guide/examples/check.sh:versions"
+--8<-- "docs/guide/examples/snippets/versions.sh"
 ```
 
 ```
@@ -83,7 +83,7 @@ a different face. Neither is a gateway in front of the other.
 ## Admit a patient
 
 ```bash
---8<-- "docs/guide/examples/check.sh:create"
+--8<-- "docs/guide/examples/snippets/create.sh"
 ```
 
 The response is the record as stored, with two things added: an `id`, and a
@@ -93,7 +93,7 @@ The response is the record as stored, with two things added: an `id`, and a
 are refused:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:readable-id"
+--8<-- "docs/guide/examples/snippets/readable-id.sh"
 ```
 
 ```json
@@ -109,7 +109,7 @@ with `"identity": "identifier"` over the system the zone publishes.
 ## Find him by that identifier
 
 ```bash
---8<-- "docs/guide/examples/check.sh:search"
+--8<-- "docs/guide/examples/snippets/search.sh"
 ```
 
 One match, the record you wrote. Note the `--data-urlencode`: a token search
@@ -119,7 +119,7 @@ Search here is strict. Ask for something the tenant never declared and you get
 a refusal rather than a bundle that quietly ignored half your question:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:strict-search"
+--8<-- "docs/guide/examples/snippets/strict-search.sh"
 ```
 
 ```
@@ -132,7 +132,7 @@ you asked for, which is the failure you cannot detect. So it does not happen.
 ## Change him, and read what he was
 
 ```bash
---8<-- "docs/guide/examples/check.sh:history"
+--8<-- "docs/guide/examples/snippets/history.sh"
 ```
 
 Two entries come back. Nothing was overwritten: the first version is still
@@ -143,7 +143,7 @@ history and you did not configure it. The type declared `"handling":
 ## The same person, at the insurer
 
 ```bash
---8<-- "docs/guide/examples/check.sh:insurer"
+--8<-- "docs/guide/examples/snippets/insurer.sh"
 ```
 
 He exists twice now, once in each organisation, with the same national
@@ -158,7 +158,7 @@ The insurer speaks R4. Send it an R5-shaped `Coverage` — `kind` is an R5
 element, and R4 requires `payor` — and watch what comes back:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:version-refusal"
+--8<-- "docs/guide/examples/snippets/version-refusal.sh"
 ```
 
 ```json

@@ -46,7 +46,7 @@ way, from the zone. So what happens if
 the hospital writes one itself?
 
 ```bash
---8<-- "docs/guide/examples/check.sh:replicated-refused"
+--8<-- "docs/guide/examples/snippets/replicated-refused.sh"
 ```
 
 ```json

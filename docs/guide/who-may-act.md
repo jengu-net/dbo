@@ -22,7 +22,7 @@ This store has one.
 ## The organisation is a record
 
 ```bash
---8<-- "docs/guide/examples/check.sh:org-and-people"
+--8<-- "docs/guide/examples/snippets/org-and-people.sh"
 ```
 
 ```
@@ -36,7 +36,7 @@ trail like anything else. Nothing about them is special to security yet.
 ## A role is a record too
 
 ```bash
---8<-- "docs/guide/examples/check.sh:the-role"
+--8<-- "docs/guide/examples/snippets/the-role.sh"
 ```
 
 ```
@@ -57,7 +57,7 @@ The records say she is a matron. What a matron may do is the tenant's own
 statement:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:role-grant"
+--8<-- "docs/guide/examples/snippets/role-grant.sh"
 ```
 
 ```json

@@ -32,7 +32,7 @@ So a runner cannot browse. It can be given work, and it can answer about the
 work it was given. Asking for some looks like this:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:lane-poll"
+--8<-- "docs/guide/examples/snippets/lane-poll.sh"
 ```
 
 ```json
@@ -175,7 +175,7 @@ retrying.
 Every refusal carries its reason, and they are specific enough to act on:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:lane-refuses"
+--8<-- "docs/guide/examples/snippets/lane-refuses.sh"
 ```
 
 ```json
