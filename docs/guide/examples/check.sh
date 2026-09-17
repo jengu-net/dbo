@@ -1073,6 +1073,9 @@ started=$(curl -sf -X POST -H "Authorization: Bearer $PORTER" \
 CONTEXT=http://localhost:8090$(printf '%s' "$started" \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["context"])')
 [ -n "$CONTEXT" ] || fail "the run returned no context"
+run=$(printf '%s' "$started" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["run"])')
+[ -n "$run" ] || fail "the run returned no id"
 
 step "inside the run, the patient it was given"
 # --8<-- [start:read-in-run]
@@ -1108,5 +1111,30 @@ print(*[r["type"] for r in rest["resource"]], sep="\n")'
 serves=$(curl -sf -H "Authorization: Bearer $PORTER" "$CONTEXT/metadata" \
     | python3 -c 'import sys,json;print(",".join(r["type"] for r in json.load(sys.stdin)["rest"][0]["resource"]))')
 [ "$serves" = "Patient" ] || fail "the context advertises more than the step declared: $serves"
+
+step "the run is a record, and it says what it is over and who holds it"
+# --8<-- [start:run-as-a-record]
+curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Task/$run" | python3 -c '
+import sys, json
+task = json.load(sys.stdin)["entry"][0]["resource"]
+code = {c["system"]: c["code"] for c in task["code"]["coding"]}
+print("process ", code["urn:dbo:process"])
+print("step    ", code["urn:dbo:step"])
+print("holder  ", task["businessStatus"]["coding"][0]["code"])
+for i in task["input"]:
+    print("input   ", i["type"]["coding"][0]["code"], "=", i["valueReference"]["display"])'
+# --8<-- [end:run-as-a-record]
+record=$(curl -sf -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Task/$run" \
+    | python3 -c 'import sys,json;print(json.dumps(json.load(sys.stdin)["entry"][0]["resource"]))')
+echo "$record" | grep -q '"urn:dbo:run:input"' \
+    || fail "the run record does not carry the slot it was filled with"
+# The reference is DISPLAYED and not resolvable, which is the whole point of
+# the envelope: a run says what state it is in without disclosing its subject
+# to whoever may read runs.
+echo "$record" | python3 -c '
+import sys, json
+ref = json.load(sys.stdin)["input"][0]["valueReference"]
+raise SystemExit(0 if "reference" not in ref and "display" in ref else 1)' \
+    || fail "the run envelope resolved its subject instead of displaying it"
 
 printf '\nguide: chapters one to ten work\n'
