@@ -33,8 +33,11 @@ theme:
     # A top-level tab strip, which is what makes "Why DBO" a menu beside
     # "Documentation" rather than a folder inside one.
     - navigation.tabs
-    - navigation.sections
+    # NOT navigation.sections: that renders a group as an always-open header,
+    # which is exactly what stops a two-level menu folding. Without it Material
+    # collapses a section to its title and opens the one you are in.
     - navigation.top
+    - navigation.prune
     - navigation.indexes
     - toc.follow
     - search.suggest
