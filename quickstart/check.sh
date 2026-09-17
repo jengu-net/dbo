@@ -33,6 +33,10 @@ docker compose up -d --quiet-pull
 step "waiting for the demo tenant to be served"
 # Two tenants are provisioned from nothing on a cold start — a database each,
 # a terminology baseline each — so this is tens of seconds, not seconds.
+#
+# What a tenant can be ASKED is public — the capability statement says which
+# types it holds and how they can be searched, and a consumer reads it to find
+# out whether to bother authenticating. What it HOLDS is not.
 for _ in $(seq 1 90); do
     if curl -sf -o /dev/null "$BASE/metadata"; then break; fi
     sleep 2
@@ -42,8 +46,23 @@ curl -sf -o /dev/null "$BASE/metadata" || {
     fail "the demo tenant never came up"
 }
 
+step "a credential, because the store is guarded"
+token() {
+    curl -sf -X POST "http://localhost:8090/t/$1/oidc/token" \
+        -H 'Content-Type: application/x-www-form-urlencoded' \
+        -d "grant_type=client_credentials&client_id=tenant-bootstrap&client_secret=$2" \
+      | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])'
+}
+DEMO=$(token demo demo-secret)
+[ -n "$DEMO" ] || fail "no token for the demo tenant"
+AUTH="Authorization: Bearer $DEMO"
+
+step "and without one, the store says no"
+[ "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/Patient")" = "401" ] \
+    || fail "the store answered a request that carried no credential"
+
 step "writing a Patient"
-created=$(curl -sf -X POST "$BASE/Patient" \
+created=$(curl -sf -H "$AUTH" -X POST "$BASE/Patient" \
     -H 'Content-Type: application/fhir+json' \
     -d '{"resourceType":"Patient",
          "identifier":[{"system":"urn:dbo:demo:mrn","value":"12345"}],
@@ -55,35 +74,51 @@ echo "id=$id"
 step "finding it by identifier"
 # --data-urlencode, because a token search carries a | and curl will not
 # escape it for you. The page says the same thing for the same reason.
-found=$(curl -sf -G "$BASE/Patient" \
+found=$(curl -sf -H "$AUTH" -G "$BASE/Patient" \
     --data-urlencode "identifier=urn:dbo:demo:mrn|12345" \
     | python3 -c 'import sys,json;b=json.load(sys.stdin);print(len(b.get("entry",[])))')
 [ "$found" = "1" ] || fail "expected one match, got $found"
 
 step "changing it, then reading what it was"
-curl -sf -o /dev/null -X PUT "$BASE/Patient/$id" \
+curl -sf -H "$AUTH" -o /dev/null -X PUT "$BASE/Patient/$id" \
     -H 'Content-Type: application/fhir+json' \
     -d "{\"resourceType\":\"Patient\",\"id\":\"$id\",
          \"identifier\":[{\"system\":\"urn:dbo:demo:mrn\",\"value\":\"12345\"}],
          \"name\":[{\"family\":\"Lovelace\",\"given\":[\"A.\"]}]}"
-versions=$(curl -sf "$BASE/Patient/$id/_history" \
+versions=$(curl -sf -H "$AUTH" "$BASE/Patient/$id/_history" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$versions" = "2" ] || fail "expected two versions in history, got $versions"
 
 step "an unsupported search parameter is refused, not ignored"
-code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/Patient?favourite-colour=blue")
+code=$(curl -s -H "$AUTH" -o /dev/null -w '%{http_code}' "$BASE/Patient?favourite-colour=blue")
 [ "$code" = "400" ] || fail "expected 400 for an unknown parameter, got $code"
 
 step "a tenant appears when its spec does"
 sed 's/"demo"/"clinic"/; s/urn:dbo:demo:mrn/urn:dbo:clinic:mrn/' \
     tenants/demo.json > tenants/clinic.json
 trap 'rm -f "$PWD/tenants/clinic.json"; cleanup' EXIT
+# Serving and refusing is up: 401 means the tenant is there and guarded, and
+# 404 means it is not there at all. Those are the two answers this step is
+# telling apart, in both directions.
 for _ in $(seq 1 40); do
     if curl -sf -o /dev/null "http://localhost:8090/t/clinic/fhir/metadata"; then break; fi
     sleep 2
 done
 curl -sf -o /dev/null "http://localhost:8090/t/clinic/fhir/metadata" \
     || fail "the clinic tenant never came up"
+
+step "and its own credential opens it, not the demo tenant's"
+CLINIC=$(token clinic clinic-secret)
+[ -n "$CLINIC" ] || fail "no token for the clinic tenant"
+[ "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLINIC" \
+    "http://localhost:8090/t/clinic/fhir/Patient")" = "200" ] \
+    || fail "the clinic tenant refused its own credential"
+# 401 rather than 403: each tenant is its own authority, so a token minted by
+# another one is not a credential here at all. Not a valid credential refused —
+# no credential.
+[ "$(curl -s -o /dev/null -w '%{http_code}' -H "$AUTH" \
+    "http://localhost:8090/t/clinic/fhir/Patient")" = "401" ] \
+    || fail "one tenant's credential was admitted by another"
 
 step "and goes when its spec does"
 rm -f tenants/clinic.json
