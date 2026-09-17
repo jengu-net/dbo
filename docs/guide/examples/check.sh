@@ -884,6 +884,32 @@ tomb=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPITA
 before_it=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$doomed/_history/1")
 [ "$before_it" = "200" ] || fail "deleting took the history with it, got $before_it"
 
+step "the trail records the act, and who did it"
+# --8<-- [start:trail]
+curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
+    --data-urlencode "_count=1" | python3 -c '
+import sys, json
+entry = json.load(sys.stdin)["entry"][0]["resource"]
+print("action ", entry["action"])
+print("who    ", entry["agent"][0]["who"]["identifier"]["value"])
+print("what   ", entry["entity"][0]["what"]["reference"])'
+# --8<-- [end:trail]
+recorded=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
+    --data-urlencode "_count=1" \
+    | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
+[ "$recorded" = "1" ] || fail "the trail recorded nothing, got $recorded"
+
+step "and the trail is searched the way it is asked about"
+# --8<-- [start:trail-search]
+curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
+    --data-urlencode "agent=tenant-bootstrap" \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"], "by that credential")'
+# --8<-- [end:trail-search]
+by_agent=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
+    --data-urlencode "agent=tenant-bootstrap" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"])')
+[ "$by_agent" -gt 0 ] || fail "the trail cannot be searched by who acted"
+
 step "what the tenant holds, before anything moves"
 # --8<-- [start:inventory]
 ADMIN=http://localhost:8090/t/hogwarts/admin
