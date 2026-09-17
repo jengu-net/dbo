@@ -871,14 +871,7 @@ governance=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
     || fail "role governance arrived by provisioning, got $governance"
 
 step "somebody asks to be forgotten"
-# A patient of their own, because erasure is irreversible and every step above
-# this one is still using Harry.
-forgettable=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" \
-    -H 'Content-Type: application/fhir+json' "$HOGWARTS/Patient" \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-FORGET"}],
-         "name":[{"family":"Riddle","given":["Tom"]}],"birthDate":"1926-12-31"}' \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
+source docs/guide/examples/snippets/somebody-to-forget.sh
 [ -n "$forgettable" ] || fail "the patient who asks to be forgotten was not written"
 
 source docs/guide/examples/snippets/erasure-ask.sh

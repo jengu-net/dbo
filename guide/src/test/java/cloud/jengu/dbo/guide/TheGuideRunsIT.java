@@ -1068,6 +1068,137 @@ class TheGuideRunsIT {
     }
 
 
+
+    @Test
+    @Order(71)
+    @DisplayName("and the run envelope displays its subject rather than resolving it")
+    void theRunEnvelopeDisplaysItsSubject() throws Exception {
+        // The whole point of the envelope: a run says what state it is in
+        // without disclosing its subject to whoever may read runs.
+        String task = ask("HOSPITAL", "/Task/" + snippets.recall("run"));
+        String slot = task.split("\"valueReference\"", 2)[1].split("}", 2)[0];
+        assertTrue(slot.contains("\"display\""),
+                "the run envelope does not display its subject: " + slot);
+        assertTrue(!slot.contains("\"reference\""),
+                "the run envelope resolved its subject instead of displaying it: " + slot);
+    }
+
+    @Test
+    @Order(72)
+    @DisplayName("a runner asks the lane for work, and is told what it may have")
+    void aRunnerAsksTheLaneForWork() throws Exception {
+        assertTrue(snippets.run("lane-poll").text().contains("result"),
+                "the lane did not answer a poll");
+    }
+
+    @Test
+    @Order(73)
+    @DisplayName("and a refusal on the lane says why, rather than going quiet")
+    void aRefusalOnTheLaneSaysWhy() throws Exception {
+        // A lane that answered an unusable request with an empty list would be
+        // indistinguishable from one with no work, which is the failure mode
+        // this step exists to prevent.
+        for (String refusal : snippets.run("lane-refuses").text().lines().toList()) {
+            assertTrue(refusal.contains("\"refused\":true"),
+                    "the lane answered without refusing: " + refusal);
+            assertTrue(refusal.contains("\"reason\""),
+                    "the lane refused without saying why: " + refusal);
+        }
+    }
+
+    @Test
+    @Order(74)
+    @DisplayName("and what an operator with the database sees instead")
+    void whatAnOperatorWithTheDatabaseSees() throws Exception {
+        java.util.List<String> stored = snippets.run("pdi-ciphertext").text().lines().toList();
+        assertTrue(!stored.contains("name") && !stored.contains("identifier"),
+                "the stored payload carries identifying elements: " + stored);
+        assertTrue(stored.contains("__pdiEnc"),
+                "the stored payload carries no ciphertext: " + stored);
+    }
+
+    @Test
+    @Order(75)
+    @DisplayName("asking by name is refused, not answered empty")
+    void askingByNameIsRefused() throws Exception {
+        // An empty bundle would have said nobody is called that, which is a
+        // different and false statement.
+        assertEquals(403, status("HOSPITAL", "/Patient?family=Potter"));
+        assertTrue(!snippets.run("pdi-name-search").text().isBlank(),
+                "the refusal did not say what it was");
+    }
+
+    @Test
+    @Order(76)
+    @DisplayName("and an identifying lookup without a stated reason is refused too")
+    void anIdentifyingLookupWithoutAReasonIsRefused() throws Exception {
+        String refused = snippets.run("pdi-no-purpose", "token").text();
+        assertTrue(refused.contains("purpose"),
+                "a person was resolved without a stated purpose: " + refused);
+    }
+
+    @Test
+    @Order(77)
+    @DisplayName("the directory provisions a person, and the capacity comes with them")
+    void theDirectoryProvisionsAPerson() throws Exception {
+        String provisioned = snippets.run("scim-create", "token").text();
+        assertTrue(provisioned.contains("mmcgonagall"),
+                "the directory did not provision the person: " + provisioned);
+    }
+
+    @Test
+    @Order(78)
+    @DisplayName("and that credential reaches the store no further than the door it was given")
+    void theDirectoryCredentialReachesNoFurther() throws Exception {
+        // Both ways round, which is the part worth asserting: the door does
+        // not open onto the store, and the store's own credential does not
+        // open the door.
+        assertEquals("403\n403", snippets.run("scim-blind").text());
+    }
+
+    @Test
+    @Order(79)
+    @DisplayName("and who is an administrator here is not the directory's to say")
+    void roleGovernanceDoesNotArriveByProvisioning() throws Exception {
+        assertTrue(snippets.run("scim-groups").text().contains("read-only"),
+                "role governance arrived by provisioning");
+    }
+
+    @Test
+    @Order(80)
+    @DisplayName("somebody asks to be forgotten")
+    void somebodyAsksToBeForgotten() throws Exception {
+        assertEquals(0, snippets.run("somebody-to-forget").status(),
+                "the patient who asks to be forgotten was not written");
+        String receipt = snippets.run("erasure-ask", "token").text();
+        assertTrue(receipt.contains("\"run\""),
+                "the erasure answered without a run to show for it: " + receipt);
+    }
+
+    @Test
+    @Order(81)
+    @DisplayName("and their number resolves to nobody")
+    void andTheirNumberResolvesToNobody() throws Exception {
+        assertEquals("0 found", snippets.run("erasure-unfindable").lastLine(),
+                "an erased person is still resolvable by their number");
+    }
+
+    @Test
+    @Order(82)
+    @DisplayName("while the record keeps its shape and loses the person")
+    void theRecordKeepsItsShapeAndLosesThePerson() throws Exception {
+        // Shredding never rewrites a record. What is gone is gone because the
+        // key is, so the record is still there and still a Patient.
+        String remains = snippets.run("erasure-remains").text();
+        assertTrue(remains.contains("\"resourceType\":\"Patient\""),
+                "the record lost its shape as well as its person: " + remains);
+        for (String element : java.util.List.of("name", "identifier", "birthDate")) {
+            assertTrue(!remains.contains("\"" + element + "\""),
+                    "the erased record still carries the person's " + element + ": " + remains);
+        }
+    }
+
+
     private static boolean served(String tenant) throws Exception {
         Process probe = new ProcessBuilder("curl", "-sf", "-o", "/dev/null",
                 "http://localhost:8090/t/" + tenant + "/fhir/metadata").start();
