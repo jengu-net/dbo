@@ -53,6 +53,16 @@ final class Snippets {
         }
     }
 
+    private static Path resolve(String snippet) {
+        Path file = DIRECTORY.resolve(snippet + ".sh");
+        if (!Files.exists(file)) {
+            throw new IllegalArgumentException("no such snippet: " + file.toAbsolutePath()
+                    + " — a chapter including it would fail the site build, so this is "
+                    + "the same mistake caught earlier");
+        }
+        return file;
+    }
+
     void remember(String name, String value) {
         known.put(name, value);
     }
@@ -96,13 +106,9 @@ final class Snippets {
      * <p>The snippet is run by {@code bash} exactly as it is written, so a
      * reader pasting it into their own shell gets what the test got.
      */
-    Ran run(String snippet) throws IOException, InterruptedException {
-        Path file = DIRECTORY.resolve(snippet + ".sh");
-        if (!Files.exists(file)) {
-            throw new IllegalArgumentException("no such snippet: " + file.toAbsolutePath()
-                    + " — a chapter including it would fail the site build, so this is "
-                    + "the same mistake caught earlier");
-        }
+    Ran run(String snippet, String... alreadyInTheShell)
+            throws IOException, InterruptedException {
+        Path file = resolve(snippet);
         // SOURCED, not executed, and then asked what it left behind. A
         // snippet like the one that fetches tokens sets variables and prints
         // nothing; run in its own process those values die with it, and the
@@ -131,10 +137,25 @@ final class Snippets {
         //
         // The file is sourced verbatim, so what runs is what the chapter
         // publishes; the snapshotting is around it.
-        ProcessBuilder bash = new ProcessBuilder("bash", "-euo", "pipefail", "-c",
-                "__before=$(for __n in $(compgen -v); do "
+        // What a reader has in their terminal by the time they reach this
+        // block. A snippet that calls a function an earlier snippet defined —
+        // `claims`, `token`, `token_exchange` — works in their shell because
+        // they ran that one first, and fails here unless this says so. Naming
+        // the chain is the honest form of it: a snippet whose prerequisites
+        // are not named is one a reader cannot run either, which is how a
+        // published command calling an undefined function went unnoticed.
+        java.util.List<String> command = new java.util.ArrayList<>(
+                java.util.List.of("snippet", file.toAbsolutePath().toString()));
+        for (String earlier : alreadyInTheShell) {
+            command.add(resolve(earlier).toAbsolutePath().toString());
+        }
+        java.util.List<String> invocation = new java.util.ArrayList<>(
+                java.util.List.of("bash", "-euo", "pipefail", "-c",
+                "__target=\"$1\"; shift; "
+                        + "for __earlier in \"$@\"; do source \"$__earlier\" >/dev/null; done; "
+                        + "__before=$(for __n in $(compgen -v); do "
                         + "  printf '%s=%s\\n' \"$__n\" \"${!__n-}\"; done); "
-                        + "source \"$1\"; "
+                        + "source \"$__target\"; "
                         + "printf '\\n" + STATE + "\\n'; "
                         + "for __name in $(compgen -v); do "
                         + "  case \"$__name\" in __*|BASH*|FUNCNAME|PIPESTATUS|_) continue ;; esac; "
@@ -143,8 +164,9 @@ final class Snippets {
                         + "  case $'\\n'\"$__before\"$'\\n' in "
                         + "    *$'\\n'\"$__name=$__value\"$'\\n'*) continue ;; esac; "
                         + "  printf '%s=%s\\n' \"$__name\" \"$__value\"; "
-                        + "done",
-                "snippet", file.toAbsolutePath().toString());
+                        + "done"));
+        invocation.addAll(command);
+        ProcessBuilder bash = new ProcessBuilder(invocation);
         bash.environment().putAll(known);
         // The repository root, because a snippet that names a compose file
         // names it the way a reader would: from where they cloned.

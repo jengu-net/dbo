@@ -737,6 +737,165 @@ class TheGuideRunsIT {
         boolean met() throws Exception;
     }
 
+
+    @Test
+    @Order(44)
+    @DisplayName("the hospital is an organisation, with people and what they may do")
+    void theHospitalIsAnOrganisation() throws Exception {
+        assertEquals("201\n201", snippets.run("org-and-people").text());
+        snippets.remember("org", onlyIdIn(ask("HOSPITAL",
+                "/Organization?identifier=urn:rl:org|hogwarts")));
+        snippets.remember("matron", onlyIdIn(ask("HOSPITAL",
+                "/Practitioner?identifier=urn:rl:nid|RL-POMFREY")));
+    }
+
+    @Test
+    @Order(45)
+    @DisplayName("a role is a record, not a column")
+    void aRoleIsARecordNotAColumn() throws Exception {
+        assertEquals("201", snippets.run("the-role").lastLine());
+        // Counted from the entries rather than read from a total: a searchset
+        // that matched nothing does not carry one, so reading it would turn an
+        // assertion that should fail into an error that says nothing.
+        assertTrue(entries(ask("HOSPITAL", "/PractitionerRole")) > 0, "the role did not land");
+    }
+
+    @Test
+    @Order(46)
+    @DisplayName("and what that role may do is declared, and readable")
+    void whatThatRoleMayDoIsReadable() throws Exception {
+        String grants = snippets.run("role-grant").text();
+        assertTrue(grants.contains("matron"),
+                "the tenant does not say what it grants: " + grants);
+        assertTrue(grants.contains("user/Patient.read"),
+                "the grant does not say what it carries: " + grants);
+    }
+
+    @Test
+    @Order(47)
+    @DisplayName("a person signs in, and the store works out what she is here")
+    void aPersonSignsIn() throws Exception {
+        assertEquals("201", snippets.run("a-person-signs-in").lastLine());
+        snippets.remember("person", onlyIdIn(ask("HOSPITAL",
+                "/Person?identifier=urn:rl:nid|RL-POMFREY")));
+        // The admin endpoints answer 200, not the 201 the FHIR faces answer:
+        // they are not creating records, they are stating what the tenant's
+        // own authority holds.
+        assertEquals("200\n200", snippets.run("her-credential").text(),
+                "her login and the console she signs into were not both created");
+
+        assertEquals(0, snippets.run("sign-in").status(), "signing in failed");
+        assertTrue(snippets.recall("HUMAN").startsWith("ey"),
+                "the code did not exchange for a token");
+
+        // The credential binds to the person, and the capacity is resolved
+        // from the person's own link — which is the distinction the chapter
+        // stops on, and the one a test can actually hold.
+        assertTrue(snippets.run("who-she-is").text()
+                        .contains("Practitioner/" + snippets.recall("matron")),
+                "the token names the wrong capacity");
+    }
+
+    @Test
+    @Order(48)
+    @DisplayName("a process acts in her name, and carries both names")
+    void aProcessActsInHerName() throws Exception {
+        String acting = snippets.run("acting-for-her", "token-exchange", "who-she-is").text();
+        assertTrue(acting.contains("night-ledger"),
+                "the delegated token does not name the actor: " + acting);
+        assertTrue(acting.contains(snippets.recall("person")),
+                "the delegated token lost the person: " + acting);
+    }
+
+    @Test
+    @Order(49)
+    @DisplayName("and cannot acquire authority she never had")
+    void andCannotAcquireAuthoritySheNeverHad() throws Exception {
+        assertTrue(snippets.run("attenuation").text().contains("access_denied"),
+                "a delegated token widened past its subject");
+    }
+
+    @Test
+    @Order(50)
+    @DisplayName("work that outlives the token holds a delegation")
+    void workThatOutlivesTheTokenHoldsADelegation() throws Exception {
+        String granted = snippets.run("a-delegation").text();
+        assertTrue(granted.contains("delegation_id"), "no delegation was recorded: " + granted);
+        snippets.remember("delegation", after(granted, "\"delegation_id\":\""));
+
+        assertTrue(snippets.run("exchange-a-delegation", "token-exchange", "who-she-is")
+                        .text().contains(snippets.recall("person")),
+                "the delegation lost the person it was granted by");
+    }
+
+    @Test
+    @Order(51)
+    @DisplayName("and ending it stops the next exchange")
+    void andEndingItStopsTheNextExchange() throws Exception {
+        String ended = snippets.run("ending-a-delegation").text();
+        assertTrue(ended.contains("invalid_grant"),
+                "an ended delegation still exchanged: " + ended);
+    }
+
+    @Test
+    @Order(52)
+    @DisplayName("every tenant issues its own tokens")
+    void everyTenantIssuesItsOwnTokens() throws Exception {
+        // The issuer carries the address the node was told to bind to, and
+        // this world binds to everything — so what matters is the tail, which
+        // is the tenant's own path. The same thing shows in a paging link.
+        java.util.List<String> issuers = snippets.run("issuer").text().lines().toList();
+        assertEquals(2, issuers.size());
+        assertTrue(issuers.get(0).endsWith("/t/hogwarts/oidc"),
+                "the hospital's issuer is not its own: " + issuers.get(0));
+        assertTrue(issuers.get(1).endsWith("/t/gringotts/oidc"),
+                "the insurer's issuer is not its own: " + issuers.get(1));
+    }
+
+    @Test
+    @Order(53)
+    @DisplayName("the trail records the act, and who did it")
+    void theTrailRecordsTheAct() throws Exception {
+        // Asked by the REFERENCE, because that is the form the entry hands
+        // back and the form a reader copies. Matched against the id alone it
+        // returned an empty bundle, which reads as nothing having happened.
+        String recorded = snippets.run("trail").text();
+        assertTrue(recorded.contains("Patient/" + snippets.recall("id")),
+                "the trail cannot be asked about the record it names: " + recorded);
+        assertTrue(recorded.contains("tenant-bootstrap"),
+                "the trail does not say who acted: " + recorded);
+    }
+
+    @Test
+    @Order(54)
+    @DisplayName("and the trail is searched the way it is asked about")
+    void theTrailIsSearchedTheWayItIsAskedAbout() throws Exception {
+        String byAgent = snippets.run("trail-search").text();
+        assertTrue(Integer.parseInt(byAgent.split(" ")[0]) > 0,
+                "the trail cannot be searched by who acted: " + byAgent);
+    }
+
+
+    /** The id of the one record a search was expected to match. */
+    private static String onlyIdIn(String bundle) {
+        String ids = idsIn(bundle);
+        if (ids.isBlank() || ids.contains(" ")) {
+            throw new IllegalStateException(
+                    "expected exactly one record, and the search matched: '" + ids + "'");
+        }
+        return ids;
+    }
+
+    /** What follows a marker, up to the quote that ends it. */
+    private static String after(String text, String marker) {
+        int at = text.indexOf(marker);
+        if (at < 0) {
+            throw new IllegalStateException("nothing said " + marker + " in: " + text);
+        }
+        String rest = text.substring(at + marker.length());
+        return rest.substring(0, rest.indexOf('"'));
+    }
+
     private static boolean served(String tenant) throws Exception {
         Process probe = new ProcessBuilder("curl", "-sf", "-o", "/dev/null",
                 "http://localhost:8090/t/" + tenant + "/fhir/metadata").start();

@@ -70,22 +70,7 @@ source docs/guide/examples/snippets/token.sh
 [ -n "$JURISDICTION" ] || fail "no token for the zone"
 FACE_R5=$(token fhir-r5 r5-secret)
 
-# Two shapes of the token endpoint that the chapters show in place rather than
-# as a helper, so they are written out here once for the assertions to use.
-token_code() {
-    curl -sf -X POST http://localhost:8090/t/hogwarts/oidc/token \
-        -H 'Content-Type: application/x-www-form-urlencoded' \
-        -d "grant_type=authorization_code&code=$1&redirect_uri=https%3A%2F%2Fward.example%2Fcb&client_id=ward-console&client_secret=console-secret" \
-      | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])'
-}
-token_exchange() {
-    local form="grant_type=urn:ietf:params:oauth:grant-type:token-exchange"
-    form="$form&client_id=night-ledger&client_secret=ledger-secret"
-    for part in "$@"; do form="$form&$part"; done
-    curl -sf -X POST http://localhost:8090/t/hogwarts/oidc/token \
-        -H 'Content-Type: application/x-www-form-urlencoded' -d "$form" \
-      | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])'
-}
+source docs/guide/examples/snippets/token-exchange.sh
 
 FACE_R4=$(token fhir-r4 r4-secret)
 
@@ -592,15 +577,8 @@ person=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Person" \
 
 source docs/guide/examples/snippets/her-credential.sh
 
-# The authorization code arrives where a browser would be sent, so the
-# redirect is read rather than followed.
-code=$(curl -s -o /dev/null -D - -X POST \
-    http://localhost:8090/t/hogwarts/oidc/authorize/login \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    -d "client_id=ward-console&redirect_uri=https%3A%2F%2Fward.example%2Fcb&login=pomfrey&password=a-strong-secret" \
-    | sed -n 's/.*[?&]code=\([^&[:space:]]*\).*/\1/p' | tr -d '\r')
+source docs/guide/examples/snippets/sign-in.sh
 [ -n "$code" ] || fail "signing in produced no authorization code"
-HUMAN=$(token_code "$code")
 [ -n "$HUMAN" ] || fail "the code did not exchange for a token"
 
 source docs/guide/examples/snippets/who-she-is.sh

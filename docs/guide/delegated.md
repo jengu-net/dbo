@@ -49,7 +49,15 @@ a role; this gives her a person record linking to that capacity, and a login:
 --8<-- "docs/guide/examples/snippets/her-credential.sh"
 ```
 
-She signs in, and the token says who she is and what she may do:
+She signs in. There is no browser here, so the redirect the store would have
+sent one to is read instead of followed, and the code in it is exchanged the
+way the console would have:
+
+```bash
+--8<-- "docs/guide/examples/snippets/sign-in.sh"
+```
+
+And the token says who she is and what she may do:
 
 ```bash
 --8<-- "docs/guide/examples/snippets/who-she-is.sh"
@@ -77,6 +85,13 @@ it asked for. Not a union, and not a copy.
     nothing delegable remains the exchange is refused outright. A process
     cannot acquire, by being asked to act for somebody, an authority that
     person never had.
+
+The exchange itself is one request, and the chapter makes it more than once,
+so it is worth a function in your shell before going on:
+
+```bash
+--8<-- "docs/guide/examples/snippets/token-exchange.sh"
+```
 
 Here is a process taking her authority for one job:
 
