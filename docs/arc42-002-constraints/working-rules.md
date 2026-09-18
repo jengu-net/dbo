@@ -250,6 +250,117 @@ reference: docs/arc42-002-constraints/working-rules.md#re-recording-what-is-gene
   bisects through it later.
 <!-- /skill -->
 
+## Testing against the shared world
+
+Most integration tests here build a world of their own — a database, a tenant
+runtime, a spec file, a credential — to run a few seconds of assertions. That
+is the right shape for some of them and pure overhead for the rest, and the
+difference is worth deciding deliberately rather than by copying whichever test
+was open.
+
+### Which world a test belongs in
+
+**The shared world**, driven over HTTP by `guide/` — one set of tenants brought
+up once, and every step runs against it. A test belongs here when what it
+proves is reachable through a face: a write, a read, a search, a refusal, a
+token, a run, a provisioning call, an entry in the trail.
+
+**A world of its own**, in the harness. A test belongs here when it reaches for
+something a face does not expose — the store's own API, the database behind it,
+the server log, the OSGi container — or when the situation it needs is one no
+other test may see: a tampered row, a first boot, a tenant held out of service.
+These are not failures to migrate. A test that tampers with a version behind
+the store's back cannot share a world with anything, because the tampering is
+the point.
+
+The question that decides it: **could a reader do this with curl?** If yes, the
+shared world already has a tenant for it.
+
+### Preconditions come from the tools a reader would use
+
+A tenant is declared by writing its spec where the deployment reads specs. A
+credential comes from the tenant's own token endpoint. A record is written
+through the face. Nothing is inserted into the database to arrange a situation,
+and nothing reaches past the surface to set one up — a test whose precondition
+was hacked into place proves that the store handles a state it cannot itself
+produce.
+
+The corollary is that the world's shape is shared cost. Adding a tenant to it
+is paid by every run of every test in it, so a test that does not fit what is
+declared is better left where it is than used as a reason to grow the world.
+
+### One action, then everything worth asserting about it
+
+A story reads as a sequence of acts, and each act is asserted from every angle
+that act settles. Audit is the clearest case: that an action is recorded
+belongs beside the action, where the act and its entry are asserted together,
+not in a later pass that goes looking for entries and hopes it finds the right
+one. The same holds for what a write returns, what it leaves behind, and what
+it makes findable.
+
+Only situations that can really arise. A refusal nobody would ever provoke is a
+test that fails one day for a reason nobody can act on.
+
+### What a shared world does to an assertion
+
+Four rules, each learnt by breaking it.
+
+- **Read the state you depend on; never count the writes above you.** A record
+  is on whatever version the stories before yours left it on, and one of them
+  gaining a write should not redden your test.
+- **A step belongs in the story that creates what it reads.** Grouping by
+  subject rather than by dependency puts a read before the write it needs.
+- **Assert the request happened before reading anything into the answer.** A
+  step that shells out can fail to run at all — an unset variable, a quoted
+  `$` — and an assertion that something is absent is then satisfied by nothing
+  having happened.
+- **Do not assert what the tenant's own configuration takes away.** Behind the
+  membrane the identifying elements are sealed out of a payload and reassembled
+  on the way out, so their order is not the author's to keep.
+
+### Moving a promise out of a test that owns a world
+
+Claim it where it is proven, not where it is mentioned. A step that
+acknowledges an answer does not prove a promise about what comes back
+afterwards; if the citation needs an assertion the step does not make, add the
+assertion to that step rather than a story of its own.
+
+Then, in the same change: run the catalogue projection, read the promise's row,
+and check the new site is listed. Only then delete the old test, and only when
+everything it asserted is asserted somewhere — a promise's row going from two
+sites to one is not the same as its coverage surviving.
+
+<!-- skill: dbo-shared-world-tests -->
+```yaml
+name: dbo-shared-world-tests
+applies-when: >-
+  Writing a new integration test, deciding where one belongs, moving a promise
+  onto a shared-world step, or considering deleting an integration test that
+  builds a world of its own. Triggers on adding a test that needs a tenant, a
+  credential or a record, and on any change that would add a world to the
+  build.
+reference: docs/arc42-002-constraints/working-rules.md#testing-against-the-shared-world
+```
+**Rules**
+- MUST put a test in the shared world when what it proves is reachable over
+  HTTP, and keep it in a world of its own when it reaches for the store's own
+  API, the database, the server log or the container.
+- MUST arrange every precondition with the tools a reader would use — a spec
+  file, the tenant's token endpoint, a write through the face — and never by
+  inserting state behind the surface.
+- MUST assert everything one action settles beside that action, including the
+  audit entry it emits, rather than in a later pass that goes looking.
+- MUST read the state a step depends on rather than counting the writes above
+  it, and put a step in the story that creates what it reads.
+- MUST assert that a shelled-out request actually ran before reading anything
+  into its answer.
+- MUST NOT grow the shared world to fit one test; that cost is paid by every
+  run of every test in it.
+- MUST prove a promise where the assertion is made, run the catalogue
+  projection, and confirm the new site is listed before deleting the test the
+  promise came from.
+<!-- /skill -->
+
 ## Claiming a behaviour
 
 The catalogue is generated, and the generation is a separate step from the

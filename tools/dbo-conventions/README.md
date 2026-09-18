@@ -20,6 +20,7 @@ it says, and a link to the document that argues it.
 - **dbo-reachability** ← `docs/arc42-002-constraints/working-rules.md`
 - **dbo-comments** ← `docs/arc42-002-constraints/working-rules.md`
 - **dbo-recorded-projections** ← `docs/arc42-002-constraints/working-rules.md`
+- **dbo-shared-world-tests** ← `docs/arc42-002-constraints/working-rules.md`
 - **dbo-promise** ← `docs/arc42-002-constraints/working-rules.md`
 - **dbo-using** ← `docs/using-dbo.md`
 

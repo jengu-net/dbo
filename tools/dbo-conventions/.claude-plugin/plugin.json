@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dbo-conventions",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Working rules for this store, projected from its constraints documents. Generated \u2014 do not hand-edit.",
   "author": {
     "name": "jengu-net"

@@ -56,6 +56,9 @@ CLAUDE_MD = ROOT / "CLAUDE.md"
 
 PLUGIN = "dbo-conventions"
 
+# 0.2.0 adds dbo-shared-world-tests.
+PLUGIN_VERSION = "0.2.0"
+
 SKILL_BLOCK = re.compile(
     r"<!--\s*skill:\s*(?P<name>[\w-]+)\s*-->(?P<body>.*?)<!--\s*/skill\s*-->",
     re.DOTALL,
@@ -240,7 +243,12 @@ def main() -> int:
     (OUT / ".claude-plugin" / "plugin.json").write_text(json.dumps({
         "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
         "name": PLUGIN,
-        "version": "0.1.0",
+        # Bumped whenever the SET of skills changes, not when their text does:
+        # an installed plugin is served from a cache keyed by this version, so
+        # a session that installed 0.1.0 keeps seeing 0.1.0's skills however
+        # many times the projection reruns. A skill added and never released
+        # is a rule only the repository knows about.
+        "version": PLUGIN_VERSION,
         "description": "Working rules for this store, projected from its constraints "
                        "documents. Generated — do not hand-edit.",
         "author": {"name": "jengu-net"},
