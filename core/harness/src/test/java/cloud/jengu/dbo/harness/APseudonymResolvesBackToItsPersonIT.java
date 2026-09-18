@@ -55,15 +55,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class APseudonymResolvesBackToItsPersonIT {
 
-    private static final String CLINIC = "tagasi-klinik";
-    private static final String EID = "https://eid.test/ni";
+    static SharedTenants.Tenant tenant;
+    static String CLINIC;
+    /** The shape declares which system a Person is keyed by, so it is not this
+     * class's to choose any more. */
+    private static final String EID = SharedTenants.EID;
     private static final String WHY = "reuniting a health fact with the person it is about";
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static String her;
     static String him;
     static String them;
@@ -71,39 +70,18 @@ class APseudonymResolvesBackToItsPersonIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-whois");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("APseudonymResolvesBackToItsPersonIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CLINIC + ".json"), """
-                {"code":"%s","face":"r4","pdi":true,"audit":{"level":"none"},
-                 "types":[
-                  {"name":"Person","identity":"identifier","systems":["%s"],
-                   "handling":"operational"}]}"""
-                .formatted(CLINIC, EID));
-        UntilServed.scan(manager, CLINIC);
-        manager.authority(CLINIC).ensureClient("broker", "broker-secret",
+        // Shared. What it proves is about a pseudonym and the number behind
+        // it, and every question it asks the database is asked about a value
+        // this class itself wrote — which is what lets it share a tenant.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_PDI_PERSON);
+        CLINIC = tenant.code();
+        tenant.authority().ensureClient("broker", "broker-secret",
                 List.of(cloud.jengu.dbo.auth.Scopes.IDENTITY, "system/*.write",
                         "system/*.read"));
-        manager.authority(CLINIC).ensureClient("desk", "desk-secret", List.of("erasure"));
+        tenant.authority().ensureClient("desk", "desk-secret", List.of("erasure"));
         her = aPerson("39002020288");
         him = aPerson("39002020299");
         them = aPerson("39002020300");
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -347,10 +325,9 @@ class APseudonymResolvesBackToItsPersonIT {
 
     private static org.postgresql.ds.PGSimpleDataSource tenant() {
         var ds = new org.postgresql.ds.PGSimpleDataSource();
-        ds.setUrl(SharedPostgres.urlFor("APseudonymResolvesBackToItsPersonIT")
-                .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + CLINIC.replace('-', '_')));
-        ds.setUser(postgres.getUsername());
-        ds.setPassword(postgres.getPassword());
+        ds.setUrl(tenant.databaseUrl());
+        ds.setUser(SharedPostgres.get().getUsername());
+        ds.setPassword(SharedPostgres.get().getPassword());
         return ds;
     }
 
@@ -387,7 +364,7 @@ class APseudonymResolvesBackToItsPersonIT {
 
     private static String aPerson(String number) throws Exception {
         HttpResponse<String> person = HTTP.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(CLINIC) + "/Person"))
+                        URI.create(tenant.fhir() + "/Person"))
                         .header("Authorization", "Bearer " + token("broker", "broker-secret"))
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString("""
@@ -429,7 +406,7 @@ class APseudonymResolvesBackToItsPersonIT {
     }
 
     private static String base() {
-        return manager.baseUrl(CLINIC).replace("/fhir", "");
+        return tenant.fhir().replace("/fhir", "");
     }
 
     private static String token(String client, String secret) throws Exception {

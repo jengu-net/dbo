@@ -46,14 +46,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ContentIsSealedToThePersonItIsAboutIT {
 
-    private static final String CLINIC = "pitseri-klinik";
-    private static final String EID = "https://eid.test/ni";
+    static SharedTenants.Tenant tenant;
+    static String CLINIC;
+    /** The shape declares which system a Person is keyed by. */
+    private static final String EID = SharedTenants.EID;
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static String writer;
     static String personId;
     static String location;
@@ -61,26 +59,14 @@ class ContentIsSealedToThePersonItIsAboutIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-sealed-blob");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ContentIsSealedToThePersonItIsAboutIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CLINIC + ".json"), """
-                {"code":"%s","face":"r4","pdi":true,"audit":{"level":"none"},
-                 "types":[
-                  {"name":"Person","identity":"identifier","systems":["%s"],
-                   "handling":"operational"},
-                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
-                .formatted(CLINIC, EID));
-        UntilServed.scan(manager, CLINIC);
-        manager.authority(CLINIC).ensureClient("a-writer", "writer-secret",
+        // Shared. Its at-rest check is now asked about the blob it wrote, by
+        // the key the store handed back, so nothing here depends on being the
+        // only class using the tenant.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_PDI_PERSON);
+        CLINIC = tenant.code();
+        tenant.authority().ensureClient("a-writer", "writer-secret",
                 List.of("system/*.write", "system/*.read"));
-        manager.authority(CLINIC).ensureClient("desk", "desk-secret", List.of("erasure"));
+        tenant.authority().ensureClient("desk", "desk-secret", List.of("erasure"));
         writer = token("a-writer", "writer-secret");
 
         HttpResponse<String> person = HTTP.send(HttpRequest.newBuilder(
@@ -95,16 +81,6 @@ class ContentIsSealedToThePersonItIsAboutIT {
         assertEquals(201, person.statusCode(), person.body());
         personId = person.headers().firstValue("Location").orElseThrow()
                 .replaceAll(".*/([^/]+)$", "$1");
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -147,14 +123,19 @@ class ContentIsSealedToThePersonItIsAboutIT {
         // would: if the recording is lying there in the clear, destroying a key
         // destroys nothing.
         var ds = new org.postgresql.ds.PGSimpleDataSource();
-        ds.setUrl(SharedPostgres.urlFor("ContentIsSealedToThePersonItIsAboutIT")
-                .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + CLINIC.replace('-', '_')));
-        ds.setUser(postgres.getUsername());
-        ds.setPassword(postgres.getPassword());
+        ds.setUrl(tenant.databaseUrl());
+        ds.setUser(SharedPostgres.get().getUsername());
+        ds.setPassword(SharedPostgres.get().getPassword());
+        // Asked about the blob this class wrote, by the key the store handed
+        // back in Location. It used to take whichever row came first, which is
+        // only the right row on a tenant nobody else is using.
+        String key = location.substring(location.lastIndexOf('/') + 1);
         try (var c = ds.getConnection();
-             var ps = c.prepareStatement("SELECT content, person::text FROM state.blob");
-             var rs = ps.executeQuery()) {
-            assertTrue(rs.next(), "nothing was stored");
+             var ps = c.prepareStatement(
+                     "SELECT content, person::text FROM state.blob WHERE key = ?::uuid")) {
+            ps.setString(1, key);
+            var rs = ps.executeQuery();
+            assertTrue(rs.next(), "nothing was stored under " + key);
             byte[] atRest = rs.getBytes(1);
             String whose = rs.getString(2);
             assertTrue(whose != null && !whose.isBlank(),
@@ -204,7 +185,7 @@ class ContentIsSealedToThePersonItIsAboutIT {
     }
 
     private static String base() {
-        return manager.baseUrl(CLINIC).replace("/fhir", "");
+        return tenant.base();
     }
 
     /**
@@ -212,7 +193,7 @@ class ContentIsSealedToThePersonItIsAboutIT {
      * it to the tenant's own base asks for the tenant twice.
      */
     private static String root() {
-        return "http://127.0.0.1:" + manager.port();
+        return "http://127.0.0.1:" + SharedTenants.manager().port();
     }
 
     private static String token(String client, String secret) throws Exception {

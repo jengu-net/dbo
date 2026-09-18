@@ -66,23 +66,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * answers is the shape the contract forbids; what the store can show is what
  * the right shape produces when the edge never answers — the claim lapses
  * and the run reads released, visibly still owed.
+ *
+ * <p><b>A world of its own, and it was tried the other way.</b> On a shared
+ * tenant this class passes on its own and passes beside the other work
+ * classes, and then fails once enough unrelated classes are running beside it
+ * — the lane offers nothing within the window and the failure reads as work
+ * that was never declared. It is deterministic, it is not this class being
+ * wrong, and it is not understood; sharing a lane is where the shared-world
+ * conversion stops until it is.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ARouterHoldsTheClaimIT {
 
-    static SharedTenants.Tenant tenant;
-    static String TENANT;
-    // Named for this class rather than for the domain: a step declaration
-    // is tenant-scoped and keyed by name, so two classes sharing a tenant
-    // and declaring the same step fight over its version. That is what
-    // happened here — one class introduced it at 1.0 while another
-    // expected 2.1, and the failure read as the lane losing a declaration.
-    private static final String STEP = "dbo.router.assay";
+    private static final String TENANT = "routerhost";
+    private static final String STEP = "dbo.lab.assay";
     private static final String MARKER = "specimen-plaintext-4a71";
     private static final StepDeclaration ASSAY = StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
             .taking("specimen", "https://meristem.example/shape/specimen");
 
+    static PostgreSQLContainer<?> postgres;
+    static Path dir;
+    static LocalDatabasePerTenantProvisioner provisioner;
+    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
     static URI laneUri;
     static ObjectStore engine;
@@ -93,30 +99,48 @@ class ARouterHoldsTheClaimIT {
 
     @BeforeAll
     void up() throws Exception {
-        // Shared. What this proves is about a router holding a claim it
-        // cannot open, not about a tenant: it needs somewhere to keep a Basic
-        // and two enrolled participants, and a shared tenant takes both
-        // without the next class noticing.
-        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
-        TENANT = tenant.code();
-        laneUri = URI.create(tenant.base() + "/work");
-        engine = tenant.engine();
+        postgres = SharedPostgres.get();
+        dir = Files.createTempDirectory("dbo-router-claim");
+        provisioner = new LocalDatabasePerTenantProvisioner(
+                SharedPostgres.urlFor("ARouterHoldsTheClaimIT"),
+                postgres.getUsername(), postgres.getPassword());
+        byte[] kek = new byte[32];
+        new java.security.SecureRandom().nextBytes(kek);
+        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
+                new TenantRuntimeManager.AuthorityConfig(kek, null));
+        Files.writeString(dir.resolve(TENANT + ".json"), """
+                {"code":"%s","face":"r4","audit":{"level":"writes"},"types":[
+                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
+                .formatted(TENANT));
+        UntilServed.scan(manager, TENANT);
+        laneUri = URI.create("http://127.0.0.1:" + manager.port() + "/t/" + TENANT + "/work");
+        engine = manager.runtime(TENANT).orElseThrow().engine();
         runs = new Runs(engine);
 
         // The gateway: a credential and no keys — it opens nothing. The
         // edge: enrolled with both keys, reachable only through the gateway.
-        tenant.authority().ensureClient("gateway", "gateway-secret", List.of("work/" + STEP));
+        manager.authority(TENANT).ensureClient("gateway", "gateway-secret", List.of("work/" + STEP));
         edgeSealing = KeyWrap.newParticipantKeyPair();
         edgeSigning = SigningKey.newKeyPair();
-        tenant.authority().ensureClient("bench-7", "bench-secret", List.of(),
+        manager.authority(TENANT).ensureClient("bench-7", "bench-secret", List.of(),
                 ParticipantKey.of(edgeSealing.getPublic()), SigningKey.of(edgeSigning.getPublic()));
-        tenant.authority().ensureClient("bench-9", "bench-secret", List.of());
+        manager.authority(TENANT).ensureClient("bench-9", "bench-secret", List.of());
         gateway = HttpLane.to(laneUri, () -> token("gateway", "gateway-secret"), TENANT, "gateway",
                 new Executor("gateway", "1.0", "cloud.jengu.test", Scope.BASELINE));
         gateway.introduce(ASSAY);
         gateway.routes(List.of(
                 Trackable.routed("bench-7", "analyser", "gateway", Map.of("power", "on")),
                 Trackable.routed("bench-9", "analyser", "gateway", Map.of("power", "on"))));
+    }
+
+    @AfterAll
+    void down() {
+        if (manager != null) {
+            manager.close();
+        }
+        if (provisioner != null) {
+            SuiteDatabases.retire(provisioner);
+        }
     }
 
     @Test
@@ -257,7 +281,8 @@ class ARouterHoldsTheClaimIT {
                     + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
                     + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
             String body = http.send(HttpRequest.newBuilder(
-                                    URI.create(tenant.base() + "/oidc/token"))
+                                    URI.create("http://127.0.0.1:" + manager.port()
+                                            + "/t/" + TENANT + "/oidc/token"))
                             .header("Content-Type", "application/x-www-form-urlencoded")
                             .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                     HttpResponse.BodyHandlers.ofString()).body();
