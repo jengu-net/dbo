@@ -41,44 +41,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AZoneHandsOverItsContentIT {
 
-    static final String CLINIC = "handed-over";
+    static SharedTenants.Tenant tenant;
+    static String CLINIC;
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static String bearer;
     static final HttpClient HTTP = HttpClient.newHttpClient();
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-handed-over");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("AZoneHandsOverItsContentIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CLINIC + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"ValueSet","identity":"canonical","handling":"operational"}]}"""
-                .formatted(CLINIC));
-        UntilServed.scan(manager, CLINIC);
-        manager.authority(CLINIC).ensureClient("a-loader", "loader-secret",
+        // Shared. What is handed over is a value set this class writes and
+        // then reads back by its own canonical url, so it needs somewhere
+        // holding canonical content rather than a zone of its own.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_IDENTIFIER);
+        CLINIC = tenant.code();
+        tenant.authority().ensureClient("a-loader", "loader-secret",
                 List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
         bearer = token();
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     private static String valueSet(int i) {
@@ -106,7 +84,7 @@ class AZoneHandsOverItsContentIT {
         assertTrue(answered.body().contains("\"applied\":5"), answered.body());
         assertTrue(answered.body().contains("\"skipped\":1"), answered.body());
 
-        Run pass = new Runs(manager.runtime(CLINIC).orElseThrow().engine())
+        Run pass = new Runs(tenant.engine())
                 .byKey(ConfigApplication.PROCESS + "/" + ConfigApplication.STEP + "/" + CLINIC)
                 .orElseThrow(() -> new AssertionError("handed over and never recorded"));
         assertEquals("commit:abc123", pass.correlated().orElseThrow(),
@@ -122,10 +100,10 @@ class AZoneHandsOverItsContentIT {
     @Order(2)
     @Proving(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS)
     void aCredentialWithoutTheGrantHandsOverNothing() throws Exception {
-        manager.authority(CLINIC).ensureClient("a-writer", "writer-secret",
+        tenant.authority().ensureClient("a-writer", "writer-secret",
                 List.of("system/*.write"));
         HttpRequest.Builder request = HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(CLINIC).replace("/fhir", "/configuration")))
+                        URI.create(tenant.base() + "/configuration"))
                 .header("Authorization", "Bearer " + token("a-writer", "writer-secret",
                         "system/*.write"))
                 .POST(HttpRequest.BodyPublishers.ofString(
@@ -139,7 +117,7 @@ class AZoneHandsOverItsContentIT {
 
     private HttpResponse<String> hand(String body) throws Exception {
         return HTTP.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(CLINIC).replace("/fhir", "/configuration")))
+                        URI.create(tenant.base() + "/configuration"))
                         .header("Authorization", "Bearer " + bearer)
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -152,7 +130,7 @@ class AZoneHandsOverItsContentIT {
      * over — which is the point of the scope, not an inconvenience of it.
      */
     private long held() {
-        return manager.runtime(CLINIC).orElseThrow().engine()
+        return tenant.engine()
                 .count(cloud.jengu.dbo.core.api.Criteria.of("ValueSet"));
     }
 
@@ -165,7 +143,7 @@ class AZoneHandsOverItsContentIT {
                 + "&client_secret=" + secret + "&scope="
                 + URLEncoder.encode(scope, StandardCharsets.UTF_8);
         String body = HTTP.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(CLINIC).replace("/fhir", "/oidc/token")))
+                        URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
