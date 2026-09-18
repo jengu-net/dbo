@@ -58,6 +58,13 @@ public final class StreamDoor implements AutoCloseable {
      */
     static final String NUDGE = "{\"nudge\":true}";
 
+    /**
+     * The field an answer carries instead of itself when it was too large to
+     * travel in the message. Its value is the key the bytes wait under; see
+     * {@link Spill}.
+     */
+    static final String SPILLED = "spilled";
+
     /** The substrate's name for a tenant's door, by generation. */
     public static String workflowId(String tenant, int generation) {
         return "dbo-lane-door-" + tenant + "-" + generation;
@@ -117,11 +124,13 @@ public final class StreamDoor implements AutoCloseable {
     private volatile Thread keeper;
 
     private final LaneHandler.SignedGrants grants;
+    private final Spill spill;
 
     public StreamDoor(DataSource substrate, String tenant, LaneHandler.SignedGrants grants,
             LaneHandler.Lanes lanes) {
         this.tenant = tenant;
         this.grants = grants;
+        this.spill = new Spill(substrate);
         // No token door: on this plane an ask is authenticated by signature,
         // so the service is handed an access already decided.
         this.service = new LaneVerbService(authorization -> new LaneHandler.Denied(401, null,
@@ -248,12 +257,38 @@ public final class StreamDoor implements AutoCloseable {
                 // The verb itself runs as a step: a workflow replayed after a
                 // crash must not claim twice for one ask, and a step's result
                 // is what replay hands back instead of running it again.
-                String answer = dbos.runStep(() -> answer(ask), "verb-" + id);
+                // Spilled INSIDE the step, not after it. A step's result is
+                // what replay hands back instead of running it again, which
+                // means the substrate records it — so a large answer returned
+                // from here would sit in the substrate's own tables under its
+                // retention, which is the whole of what the spill exists to
+                // prevent. What this step returns is already the small note.
+                String answer = dbos.runStep(() -> spilling(id, answer(ask)), "verb-" + id);
                 dbos.setEvent(id, answer);
                 served++;
             }
             return "served " + served;
         }
+    }
+
+    /**
+     * The answer, or a note saying where it is.
+     *
+     * <p>The decision is made on the bytes that would have travelled and
+     * nowhere else: nothing above this knows a spill happened, because the
+     * lane puts the two back together before anything sees them. A binding
+     * whose large payloads behaved differently from its small ones would be a
+     * binding a runner could tell apart from the other two, which is the
+     * contract this carrier is held to.
+     */
+    private String spilling(String id, String answer) {
+        if (answer.length() <= Spill.SPILL_OVER) {
+            return answer;
+        }
+        Map<String, Object> note = new LinkedHashMap<>();
+        note.put("status", 200);
+        note.put(SPILLED, spill.keep(tenant, id, answer));
+        return RecordWire.write(note);
     }
 
     private String answer(Map<String, Object> ask) {
