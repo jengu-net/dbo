@@ -24,7 +24,7 @@ world that is `rl` — why it is the one holding them is the subject of the
 zones chapter; here it is simply a tenant with the types declared.
 
 ```bash
---8<-- "docs/guide/examples/check.sh:zone-publishes"
+--8<-- "docs/guide/examples/snippets/zone-publishes.sh"
 ```
 
 ```
@@ -41,7 +41,7 @@ replaces it rather than making a second.
 A code system that is only stored is a document. Ask it something:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:zone-lookup"
+--8<-- "docs/guide/examples/snippets/zone-lookup.sh"
 ```
 
 ```json
@@ -53,7 +53,7 @@ A code system that is only stored is a document. Ask it something:
 And a value set composed over it expands to the concepts it includes:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:zone-expand"
+--8<-- "docs/guide/examples/snippets/zone-expand.sh"
 ```
 
 ```
@@ -74,7 +74,7 @@ The value set that refused `purple` in [Validation](validation.md) is not a
 special case:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:core-terminology"
+--8<-- "docs/guide/examples/snippets/core-terminology.sh"
 ```
 
 ```json

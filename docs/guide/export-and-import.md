@@ -20,7 +20,7 @@ possible moment, which is the moment somebody is leaving.
 Before moving anything, ask what there is:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:inventory"
+--8<-- "docs/guide/examples/snippets/inventory.sh"
 ```
 
 ```
@@ -44,7 +44,7 @@ but a count of the records it holds. There is nothing else to enumerate.
 Ask for the archive with no key and you are refused:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:archive-no-key"
+--8<-- "docs/guide/examples/snippets/archive-no-key.sh"
 ```
 
 ```json
@@ -62,7 +62,7 @@ the file afterwards, which is usually a third party nobody thought about.
 ## The whole tenant, as one file
 
 ```bash
---8<-- "docs/guide/examples/check.sh:archive"
+--8<-- "docs/guide/examples/snippets/archive.sh"
 ```
 
 ```
@@ -80,7 +80,7 @@ specification behind them, for when the receiver already has it.
 And the thing the file must never be:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:archive-opaque"
+--8<-- "docs/guide/examples/snippets/archive-opaque.sh"
 ```
 
 ```
@@ -96,7 +96,7 @@ cheap a decision about durability rather than about disclosure.
 Push the archive back and the store refuses:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:import-needs-signatures"
+--8<-- "docs/guide/examples/snippets/import-needs-signatures.sh"
 ```
 
 ```json

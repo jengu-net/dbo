@@ -32,7 +32,7 @@ refused when the file is read, not when somebody first tries to use it.
 ## A credential for doing work is not a credential for reading
 
 ```bash
---8<-- "docs/guide/examples/check.sh:worker-credential"
+--8<-- "docs/guide/examples/snippets/worker-credential.sh"
 ```
 
 ```
@@ -43,7 +43,7 @@ That client holds `work` and nothing else. Point it at a record the ordinary
 way and it gets nowhere:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:worker-cannot-read"
+--8<-- "docs/guide/examples/snippets/worker-cannot-read.sh"
 ```
 
 ```
@@ -57,7 +57,7 @@ formality.
 ## Start a run, over something
 
 ```bash
---8<-- "docs/guide/examples/check.sh:start-a-run"
+--8<-- "docs/guide/examples/snippets/start-a-run.sh"
 ```
 
 ```json
@@ -76,7 +76,7 @@ out links that work nowhere.
 ## Inside the run
 
 ```bash
---8<-- "docs/guide/examples/check.sh:read-in-run"
+--8<-- "docs/guide/examples/snippets/read-in-run.sh"
 ```
 
 ```
@@ -93,7 +93,11 @@ Another patient — the same type the step declared, held by the same tenant,
 readable a moment ago by the deployment's own credential:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:read-outside-reach"
+--8<-- "docs/guide/examples/snippets/another-patient.sh"
+```
+
+```bash
+--8<-- "docs/guide/examples/snippets/read-outside-reach.sh"
 ```
 
 ```
@@ -114,7 +118,7 @@ answer, for the same reason.
 ## What the context will answer for
 
 ```bash
---8<-- "docs/guide/examples/check.sh:run-metadata"
+--8<-- "docs/guide/examples/snippets/run-metadata.sh"
 ```
 
 ```

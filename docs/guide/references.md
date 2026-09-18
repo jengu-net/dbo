@@ -18,7 +18,7 @@ about a patient. Ask for it by the
 reference:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:reference-search"
+--8<-- "docs/guide/examples/snippets/reference-search.sh"
 ```
 
 ```
@@ -40,7 +40,7 @@ Now the part people expect to go the other way. Write an observation about a
 patient this store has never heard of:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:reference-unheld"
+--8<-- "docs/guide/examples/snippets/reference-unheld.sh"
 ```
 
 ```

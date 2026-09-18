@@ -47,7 +47,7 @@ own surface — [the next chapter](runs.md) is where it gets started, this is
 what it leaves behind:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:run-as-a-record"
+--8<-- "docs/guide/examples/snippets/run-as-a-record.sh"
 ```
 
 ```

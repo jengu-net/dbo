@@ -44,7 +44,7 @@ A zone that names no external identity broker is not misconfigured. It is its
 own: every tenant carries an authority, and a zone is a tenant.
 
 ```bash
---8<-- "docs/guide/examples/check.sh:zone-ceremony"
+--8<-- "docs/guide/examples/snippets/zone-ceremony.sh"
 ```
 
 ```

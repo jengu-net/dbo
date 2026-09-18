@@ -49,7 +49,7 @@ The hospital declared `Observation`. The insurer did not. So the same request
 gets a different answer depending on which door it arrives at:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:undeclared-type"
+--8<-- "docs/guide/examples/snippets/undeclared-type.sh"
 ```
 
 ```
@@ -68,13 +68,13 @@ is a tenant that appears — provisioned a database of its own, brought up, and
 served:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:add-tenant"
+--8<-- "docs/guide/examples/snippets/add-tenant.sh"
 ```
 
 Wait for it, and it answers:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:new-tenant-serves"
+--8<-- "docs/guide/examples/snippets/new-tenant-serves.sh"
 ```
 
 ```
@@ -93,7 +93,7 @@ project, but it is not free either.
 ## Taking it away stops it
 
 ```bash
---8<-- "docs/guide/examples/check.sh:remove-tenant"
+--8<-- "docs/guide/examples/snippets/remove-tenant.sh"
 ```
 
 The tenant stops being served. Note what that is and is not: retracting a spec

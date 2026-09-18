@@ -19,7 +19,7 @@ The most direct way to see it is to go around the store entirely and read the
 table an operator would read:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:pdi-ciphertext"
+--8<-- "docs/guide/examples/snippets/pdi-ciphertext.sh"
 ```
 
 ```

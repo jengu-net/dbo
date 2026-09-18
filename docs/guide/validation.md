@@ -22,7 +22,7 @@ The hospital declares `Patient`. FHIR declares that `Patient.gender` takes a
 code from a particular value set. Write something else:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:validate-binding"
+--8<-- "docs/guide/examples/snippets/validate-binding.sh"
 ```
 
 ```
@@ -49,7 +49,7 @@ The same 422 covers a value that is not of the declared type, and an element
 the definition requires and you did not send:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:validate-shape"
+--8<-- "docs/guide/examples/snippets/validate-shape.sh"
 ```
 
 ```
@@ -70,7 +70,7 @@ Here is the part that is hard to retrofit. The hospital speaks R5, the insurer
 speaks R4. Send the identical mistake to both:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:validate-versions"
+--8<-- "docs/guide/examples/snippets/validate-versions.sh"
 ```
 
 ```
@@ -95,7 +95,7 @@ Sometimes you want the verdict without the write — a form to check, an import
 to dry-run, a queue to triage before it lands:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:validate-ahead"
+--8<-- "docs/guide/examples/snippets/validate-ahead.sh"
 ```
 
 ```
@@ -127,7 +127,7 @@ Being precise about the edge. Send a field that is not part of the definition
 at all:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:unknown-element"
+--8<-- "docs/guide/examples/snippets/unknown-element.sh"
 ```
 
 ```json

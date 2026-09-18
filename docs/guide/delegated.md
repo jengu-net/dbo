@@ -42,17 +42,25 @@ matron from [Who may act](who-may-act.md) already exists as a practitioner with
 a role; this gives her a person record linking to that capacity, and a login:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:a-person-signs-in"
+--8<-- "docs/guide/examples/snippets/a-person-signs-in.sh"
 ```
 
 ```bash
---8<-- "docs/guide/examples/check.sh:her-credential"
+--8<-- "docs/guide/examples/snippets/her-credential.sh"
 ```
 
-She signs in, and the token says who she is and what she may do:
+She signs in. There is no browser here, so the redirect the store would have
+sent one to is read instead of followed, and the code in it is exchanged the
+way the console would have:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:who-she-is"
+--8<-- "docs/guide/examples/snippets/sign-in.sh"
+```
+
+And the token says who she is and what she may do:
+
+```bash
+--8<-- "docs/guide/examples/snippets/who-she-is.sh"
 ```
 
 ```
@@ -78,10 +86,17 @@ it asked for. Not a union, and not a copy.
     cannot acquire, by being asked to act for somebody, an authority that
     person never had.
 
+The exchange itself is one request, and the chapter makes it more than once,
+so it is worth a function in your shell before going on:
+
+```bash
+--8<-- "docs/guide/examples/snippets/token-exchange.sh"
+```
+
 Here is a process taking her authority for one job:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:acting-for-her"
+--8<-- "docs/guide/examples/snippets/acting-for-her.sh"
 ```
 
 ```
@@ -98,7 +113,7 @@ thing this job needs, out of the two she holds.
 Now ask for something she cannot do:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:attenuation"
+--8<-- "docs/guide/examples/snippets/attenuation.sh"
 ```
 
 ```json
@@ -134,7 +149,7 @@ And it is deliberately *not* a stored copy of the person's authority:
     delegation does not quietly inherit it.
 
 ```bash
---8<-- "docs/guide/examples/check.sh:a-delegation"
+--8<-- "docs/guide/examples/snippets/a-delegation.sh"
 ```
 
 ```json
@@ -145,7 +160,7 @@ That id is all the process keeps. Exchanging it produces the same two-named
 token as before — no browser, nobody present, and her own token long expired:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:exchange-a-delegation"
+--8<-- "docs/guide/examples/snippets/exchange-a-delegation.sh"
 ```
 
 ```
@@ -188,7 +203,7 @@ existed, and the period during which a process could act for somebody is
 exactly the kind of fact an investigation needs to establish afterwards.
 
 ```bash
---8<-- "docs/guide/examples/check.sh:ending-a-delegation"
+--8<-- "docs/guide/examples/snippets/ending-a-delegation.sh"
 ```
 
 ```json

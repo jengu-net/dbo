@@ -27,7 +27,7 @@ that decided for you how much you are willing to pay.
 ## What an entry says
 
 ```bash
---8<-- "docs/guide/examples/check.sh:trail"
+--8<-- "docs/guide/examples/snippets/trail.sh"
 ```
 
 ```
@@ -51,7 +51,7 @@ it.
 ## It is searched, not scrolled
 
 ```bash
---8<-- "docs/guide/examples/check.sh:trail-search"
+--8<-- "docs/guide/examples/snippets/trail-search.sh"
 ```
 
 ```

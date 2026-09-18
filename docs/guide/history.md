@@ -27,7 +27,7 @@ originally written.
 The bundle gives you all of them; this gives you one:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:vread"
+--8<-- "docs/guide/examples/snippets/vread.sh"
 ```
 
 ```json
@@ -51,7 +51,7 @@ make a conditional update built on a stale read look safe.
 Create a record, delete it, and ask for the version that did the deleting:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:vread-gone"
+--8<-- "docs/guide/examples/snippets/vread-gone.sh"
 ```
 
 ```
@@ -74,7 +74,7 @@ Now the part the versions are for. Read a record at version 1, take your time
 deciding, and write back — while somebody else has already changed it:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:stale-write"
+--8<-- "docs/guide/examples/snippets/stale-write.sh"
 ```
 
 ```

@@ -44,16 +44,10 @@ $COMPOSE pull --quiet >/dev/null 2>&1 || true
 if [ -n "${DBO_GUIDE_COMPOSE:-}" ]; then
     $COMPOSE up -d
 else
-# --8<-- [start:up]
-docker compose -f docs/guide/examples/compose.yaml up -d
-# --8<-- [end:up]
+source docs/guide/examples/snippets/up.sh
 fi
 
-# --8<-- [start:bases]
-HOGWARTS=http://localhost:8090/t/hogwarts/fhir
-GRINGOTTS=http://localhost:8090/t/gringotts/fhir
-ZONE=http://localhost:8090/t/rl/fhir
-# --8<-- [end:bases]
+source docs/guide/examples/snippets/bases.sh
 
 step "waiting for the world to be served"
 # Six databases are provisioned from nothing, with a terminology baseline
@@ -70,108 +64,43 @@ curl -sf -o /dev/null "$HOGWARTS/metadata" || {
 curl -sf -o /dev/null "$GRINGOTTS/metadata" || fail "gringotts never came up"
 
 step "a credential, because the world is guarded"
-# --8<-- [start:token]
-token() {
-    curl -sf -X POST "http://localhost:8090/t/$1/oidc/token" \
-        -H 'Content-Type: application/x-www-form-urlencoded' \
-        -d "grant_type=client_credentials&client_id=${3:-tenant-bootstrap}&client_secret=$2\
-&purpose_of_use=${4:-}" \
-      | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])'
-}
-
-# The hospital holds people behind the membrane, so its credential says what it
-# is for: reading somebody by their national number is a disclosure, and one
-# without a stated reason is refused rather than answered.
-HOSPITAL=$(token hogwarts hogwarts-secret tenant-bootstrap TREAT)
-INSURER=$(token gringotts gringotts-secret)
-JURISDICTION=$(token rl rl-secret)
-# --8<-- [end:token]
+source docs/guide/examples/snippets/token.sh
 [ -n "$HOSPITAL" ] || fail "no token for the hospital"
 [ -n "$INSURER" ] || fail "no token for the insurer"
 [ -n "$JURISDICTION" ] || fail "no token for the zone"
 FACE_R5=$(token fhir-r5 r5-secret)
 
-# Two shapes of the token endpoint that the chapters show in place rather than
-# as a helper, so they are written out here once for the assertions to use.
-token_code() {
-    curl -sf -X POST http://localhost:8090/t/hogwarts/oidc/token \
-        -H 'Content-Type: application/x-www-form-urlencoded' \
-        -d "grant_type=authorization_code&code=$1&redirect_uri=https%3A%2F%2Fward.example%2Fcb&client_id=ward-console&client_secret=console-secret" \
-      | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])'
-}
-token_exchange() {
-    local form="grant_type=urn:ietf:params:oauth:grant-type:token-exchange"
-    form="$form&client_id=night-ledger&client_secret=ledger-secret"
-    for part in "$@"; do form="$form&$part"; done
-    curl -sf -X POST http://localhost:8090/t/hogwarts/oidc/token \
-        -H 'Content-Type: application/x-www-form-urlencoded' -d "$form" \
-      | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])'
-}
+source docs/guide/examples/snippets/token-exchange.sh
 
 FACE_R4=$(token fhir-r4 r4-secret)
 
 step "and without one, the store says no"
-# --8<-- [start:no-token]
-curl -s -o /dev/null -w '%{http_code}\n' "$HOGWARTS/Patient"
-# --8<-- [end:no-token]
+source docs/guide/examples/snippets/no-token.sh
 refused=$(curl -s -o /dev/null -w '%{http_code}' "$HOGWARTS/Patient")
 [ "$refused" = "401" ] || fail "an unauthenticated read should be refused, got $refused"
 
 step "the zone publishes terminology of its own"
-# --8<-- [start:zone-publishes]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $JURISDICTION" "$ZONE/CodeSystem" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"CodeSystem","url":"urn:rl:wards","version":"1",
-         "status":"active","content":"complete",
-         "concept":[{"code":"dai","display":"Dai Llewellyn Ward"},
-                    {"code":"spell","display":"Spell Damage"},
-                    {"code":"creature","display":"Creature-Induced Injuries"},
-                    {"code":"potion","display":"Potion and Plant Poisoning"}]}'
-
-curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $JURISDICTION" "$ZONE/ValueSet" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"ValueSet","url":"urn:rl:wards:vs","version":"1",
-         "status":"active","compose":{"include":[{"system":"urn:rl:wards"}]}}'
-# --8<-- [end:zone-publishes]
+source docs/guide/examples/snippets/zone-publishes.sh
 
 step "and answers questions about it"
-# --8<-- [start:zone-lookup]
-curl -s -H "Authorization: Bearer $JURISDICTION" "$ZONE/CodeSystem/\$lookup?system=urn:rl:wards&code=dai"
-# --8<-- [end:zone-lookup]
+source docs/guide/examples/snippets/zone-lookup.sh
 looked=$(curl -s -H "Authorization: Bearer $JURISDICTION" "$ZONE/CodeSystem/\$lookup?system=urn:rl:wards&code=dai")
 printf '%s' "$looked" | grep -q 'Dai Llewellyn' || fail "the zone cannot look up its own code: $looked"
 
-# --8<-- [start:zone-expand]
-curl -s -H "Authorization: Bearer $JURISDICTION" "$ZONE/ValueSet/\$expand?url=urn:rl:wards:vs" | python3 -c '
-import sys, json
-expansion = json.load(sys.stdin)["expansion"]
-print(expansion["total"], "concepts")
-for concept in expansion["contains"]:
-    print(" ", concept["code"], concept["display"])'
-# --8<-- [end:zone-expand]
+source docs/guide/examples/snippets/zone-expand.sh
 expanded=$(curl -s -H "Authorization: Bearer $JURISDICTION" "$ZONE/ValueSet/\$expand?url=urn:rl:wards:vs" \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["expansion"]["total"])')
 [ "$expanded" = "4" ] || fail "expected the value set to expand to 4 concepts, got $expanded"
 
 step "asking each tenant which version it speaks"
-# --8<-- [start:versions]
-curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/metadata"  | python3 -c 'import sys,json;print(json.load(sys.stdin)["fhirVersion"])'
-curl -s -H "Authorization: Bearer $INSURER" "$GRINGOTTS/metadata" | python3 -c 'import sys,json;print(json.load(sys.stdin)["fhirVersion"])'
-# --8<-- [end:versions]
+source docs/guide/examples/snippets/versions.sh
 h=$(curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/metadata" | python3 -c 'import sys,json;print(json.load(sys.stdin)["fhirVersion"])')
 g=$(curl -s -H "Authorization: Bearer $INSURER" "$GRINGOTTS/metadata" | python3 -c 'import sys,json;print(json.load(sys.stdin)["fhirVersion"])')
 [ "$h" = "5.0.0" ] || fail "hogwarts should speak 5.0.0, said $h"
 [ "$g" = "4.0.1" ] || fail "gringotts should speak 4.0.1, said $g"
 
 step "admitting a patient"
-# --8<-- [start:create]
-created=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
-         "name":[{"family":"Potter","given":["Harry"]}]}')
-id=$(printf '%s' "$created" | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
-# --8<-- [end:create]
+source docs/guide/examples/snippets/create.sh
 [ -n "$id" ] || fail "the write returned no id"
 echo "id=$id"
 case "$id" in
@@ -180,11 +109,7 @@ case "$id" in
 esac
 
 step "a readable id is refused"
-# --8<-- [start:readable-id]
-curl -s -X PUT -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/harry" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient","id":"harry"}'
-# --8<-- [end:readable-id]
+source docs/guide/examples/snippets/readable-id.sh
 refused=$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/harry" \
     -H 'Content-Type: application/fhir+json' -d '{"resourceType":"Patient","id":"harry"}')
 [ "$refused" = "400" ] || fail "expected 400 for a readable id, got $refused"
@@ -192,47 +117,25 @@ refused=$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H "Authorization: Beare
 step "finding him by the identifier the zone declares"
 # --data-urlencode, because a token search carries a | and curl will not
 # escape it for you.
-# --8<-- [start:search]
-curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    --data-urlencode "identifier=urn:rl:nid|RL-0001"
-# --8<-- [end:search]
+source docs/guide/examples/snippets/search.sh
 found=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0001" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$found" = "1" ] || fail "expected one match, got $found"
 
 step "changing him, and reading what he was"
-# --8<-- [start:history]
-curl -sf -o /dev/null -X PUT -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$id" \
-    -H 'Content-Type: application/fhir+json' \
-    -d "{\"resourceType\":\"Patient\",\"id\":\"$id\",
-         \"identifier\":[{\"system\":\"urn:rl:nid\",\"value\":\"RL-0001\"}],
-         \"name\":[{\"family\":\"Potter\",\"given\":[\"H.\"]}]}"
-
-curl -sf -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$id/_history"
-# --8<-- [end:history]
+source docs/guide/examples/snippets/history.sh
 versions=$(curl -sf -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$id/_history" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$versions" = "2" ] || fail "expected two versions, got $versions"
 
 step "the same person at the insurer, which is a version behind"
-# --8<-- [start:insurer]
-curl -sf -X POST -H "Authorization: Bearer $INSURER" "$GRINGOTTS/Patient" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
-         "name":[{"family":"Potter","given":["Harry"]}]}'
-# --8<-- [end:insurer]
+source docs/guide/examples/snippets/insurer.sh
 at_insurer=$(curl -sf -G -H "Authorization: Bearer $INSURER" "$GRINGOTTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0001" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$at_insurer" = "1" ] || fail "expected the person at the insurer, got $at_insurer"
 
 step "and the older version refuses what it does not have"
-# --8<-- [start:version-refusal]
-curl -s -X POST -H "Authorization: Bearer $INSURER" "$GRINGOTTS/Coverage" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Coverage","status":"active","kind":"insurance",
-         "beneficiary":{"reference":"Patient/x"}}'
-# --8<-- [end:version-refusal]
+source docs/guide/examples/snippets/version-refusal.sh
 outcome=$(curl -s -X POST -H "Authorization: Bearer $INSURER" "$GRINGOTTS/Coverage" \
     -H 'Content-Type: application/fhir+json' \
     -d '{"resourceType":"Coverage","status":"active","kind":"insurance","beneficiary":{"reference":"Patient/x"}}')
@@ -241,13 +144,7 @@ printf '%s' "$outcome" | grep -q '4.0.1' \
 printf '%s' "$outcome" | grep -q 'OperationOutcome' || fail "expected an OperationOutcome"
 
 step "a credential is for one tenant, and an id means nothing in another"
-# --8<-- [start:isolation]
-curl -s -o /dev/null -w '%{http_code}\n' \
-    -H "Authorization: Bearer $HOSPITAL" "$GRINGOTTS/Patient/$id"
-
-curl -s -o /dev/null -w '%{http_code}\n' \
-    -H "Authorization: Bearer $INSURER" "$GRINGOTTS/Patient/$id"
-# --8<-- [end:isolation]
+source docs/guide/examples/snippets/isolation.sh
 wrong_tenant=$(curl -s -o /dev/null -w '%{http_code}' \
     -H "Authorization: Bearer $HOSPITAL" "$GRINGOTTS/Patient/$id")
 [ "$wrong_tenant" = "401" ] \
@@ -258,13 +155,7 @@ unknown_here=$(curl -s -o /dev/null -w '%{http_code}' \
     || fail "an id from another tenant resolved here, got $unknown_here"
 
 step "the same person twice is refused, not duplicated"
-# --8<-- [start:duplicate-identity]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
-         "name":[{"family":"Potter","given":["Harry","James"]}]}'
-# --8<-- [end:duplicate-identity]
+source docs/guide/examples/snippets/duplicate-identity.sh
 dup=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
     -H 'Content-Type: application/fhir+json' \
     -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
@@ -275,14 +166,7 @@ count=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" --d
 [ "$count" = "1" ] || fail "expected one record for one identity, got $count"
 
 step "updating by identity rather than by id"
-# --8<-- [start:conditional-update]
-curl -s -o /dev/null -w '%{http_code}\n' -X PUT \
-    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient?identifier=urn:rl:nid%7CRL-0001" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
-         "name":[{"family":"Potter","given":["Harry","James"]}]}'
-# --8<-- [end:conditional-update]
+source docs/guide/examples/snippets/conditional-update.sh
 cond=$(curl -s -o /dev/null -w '%{http_code}' -X PUT \
     -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient?identifier=urn:rl:nid%7CRL-0001" \
     -H 'Content-Type: application/fhir+json' \
@@ -294,11 +178,7 @@ after=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" --d
 [ "$after" = "1" ] || fail "a conditional update should not add a record, got $after"
 
 step "reading one version by number"
-# --8<-- [start:vread]
-curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$id/_history/1"
-
-curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$id/_history/99"
-# --8<-- [end:vread]
+source docs/guide/examples/snippets/vread.sh
 first=$(curl -sf -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$id/_history/1")
 printf '%s' "$first" | grep -q '"given":\["Harry"\]' \
     || fail "version 1 did not come back as it was written: $first"
@@ -311,13 +191,7 @@ printf '%s' "$etag" | grep -q 'W/"1"' \
     || fail "a version read must carry THAT version's validator, got: $etag"
 
 step "a type declared replicated is not writable here"
-# --8<-- [start:replicated-refused]
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/CodeSystem" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"CodeSystem","url":"urn:hogwarts:local","version":"1",
-         "status":"active","content":"complete",
-         "concept":[{"code":"x","display":"Local"}]}'
-# --8<-- [end:replicated-refused]
+source docs/guide/examples/snippets/replicated-refused.sh
 readonly_here=$(curl -s -o /tmp/dbo-guide-readonly -w '%{http_code}' -X POST \
     -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/CodeSystem" \
     -H 'Content-Type: application/fhir+json' \
@@ -329,39 +203,14 @@ grep -q "read-only-here" /tmp/dbo-guide-readonly \
     || fail "the refusal should name the rule: $(cat /tmp/dbo-guide-readonly)"
 
 step "several writes as one act"
-# --8<-- [start:transaction]
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Bundle","type":"transaction","entry":[
-      {"fullUrl":"urn:uuid:admitted",
-       "resource":{"resourceType":"Patient",
-                   "identifier":[{"system":"urn:rl:nid","value":"RL-0009"}],
-                   "name":[{"family":"Bones","given":["Susan"]}]},
-       "request":{"method":"POST","url":"Patient"}},
-      {"resource":{"resourceType":"Observation","status":"final",
-                   "code":{"text":"height"},
-                   "subject":{"reference":"urn:uuid:admitted"}},
-       "request":{"method":"POST","url":"Observation"}}]}' \
-  | python3 -c '
-import sys, json
-for entry in json.load(sys.stdin)["entry"]:
-    print(entry["response"]["status"])'
-# --8<-- [end:transaction]
+source docs/guide/examples/snippets/transaction.sh
 bones=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
     --data-urlencode "identifier=urn:rl:nid|RL-0009" \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["entry"][0]["resource"]["id"])')
 [ -n "$bones" ] || fail "the transaction did not land its patient"
 
 step "and the reference between them resolved to what was created"
-# --8<-- [start:transaction-reference]
-curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
-    --data-urlencode "_count=50" | python3 -c '
-import sys, json
-for entry in json.load(sys.stdin).get("entry", []):
-    resource = entry["resource"]
-    if resource.get("code", {}).get("text") == "height":
-        print(resource["subject"]["reference"])'
-# --8<-- [end:transaction-reference]
+source docs/guide/examples/snippets/transaction-reference.sh
 pointed=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
     --data-urlencode "_count=50" | python3 -c '
 import sys, json
@@ -373,71 +222,28 @@ for entry in json.load(sys.stdin).get("entry", []):
     || fail "the placeholder did not resolve to the created patient: $pointed"
 
 step "one bad entry takes the whole transaction with it"
-# --8<-- [start:transaction-refused]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Bundle","type":"transaction","entry":[
-      {"resource":{"resourceType":"Patient",
-                   "identifier":[{"system":"urn:rl:nid","value":"RL-0010"}],
-                   "name":[{"family":"Doge"}]},
-       "request":{"method":"POST","url":"Patient"}},
-      {"resource":{"resourceType":"Observation","code":{"text":"no status"}},
-       "request":{"method":"POST","url":"Observation"}}]}'
-
-curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    --data-urlencode "identifier=urn:rl:nid|RL-0010" \
-  | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])), "entries")'
-# --8<-- [end:transaction-refused]
+source docs/guide/examples/snippets/transaction-refused.sh
 rolled=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
     --data-urlencode "identifier=urn:rl:nid|RL-0010" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$rolled" = "0" ] || fail "a refused transaction left a record behind"
 
 step "a batch answers for each entry separately"
-# --8<-- [start:batch]
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Bundle","type":"batch","entry":[
-      {"resource":{"resourceType":"Patient",
-                   "identifier":[{"system":"urn:rl:nid","value":"RL-0011"}],
-                   "name":[{"family":"Abbott"}]},
-       "request":{"method":"POST","url":"Patient"}},
-      {"resource":{"resourceType":"Observation","code":{"text":"no status"}},
-       "request":{"method":"POST","url":"Observation"}}]}' \
-  | python3 -c '
-import sys, json
-for entry in json.load(sys.stdin)["entry"]:
-    print(entry["response"]["status"])'
-# --8<-- [end:batch]
+source docs/guide/examples/snippets/batch.sh
 kept=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
     --data-urlencode "identifier=urn:rl:nid|RL-0011" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$kept" = "1" ] || fail "a batch's good entry did not land, got $kept"
 
 step "what belongs to a record is found by the reference to it"
-# --8<-- [start:reference-search]
-curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
-    --data-urlencode "subject=Patient/$bones" \
-  | python3 -c '
-import sys, json
-for entry in json.load(sys.stdin).get("entry", []):
-    print(entry["resource"]["code"]["text"])'
-# --8<-- [end:reference-search]
+source docs/guide/examples/snippets/reference-search.sh
 belonging=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
     --data-urlencode "subject=Patient/$bones" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$belonging" = "1" ] || fail "the reference did not find what belongs to the record, got $belonging"
 
 step "a reference to something this store does not hold is kept, not refused"
-# --8<-- [start:reference-unheld]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Observation","status":"final",
-         "code":{"text":"referred elsewhere"},
-         "subject":{"reference":"Patient/01a00000-0000-7000-8000-00000000dead"}}'
-# --8<-- [end:reference-unheld]
+source docs/guide/examples/snippets/reference-unheld.sh
 elsewhere=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
     -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
     -H 'Content-Type: application/fhir+json' \
@@ -458,25 +264,7 @@ curl -sf -o /dev/null -X PUT -H "Authorization: Bearer $HOSPITAL" \
     -d "{\"resourceType\":\"Patient\",\"id\":\"$stale\",
          \"identifier\":[{\"system\":\"urn:rl:nid\",\"value\":\"RL-0008\"}],
          \"name\":[{\"family\":\"Prewett\",\"given\":[\"Molly\"]}]}"
-# --8<-- [start:stale-write]
-curl -s -o /dev/null -w '%{http_code}\n' -X PUT \
-    -H "Authorization: Bearer $HOSPITAL" \
-    -H 'If-Match: W/"1"' \
-    "$HOGWARTS/Patient/$stale" \
-    -H 'Content-Type: application/fhir+json' \
-    -d "{\"resourceType\":\"Patient\",\"id\":\"$stale\",
-         \"identifier\":[{\"system\":\"urn:rl:nid\",\"value\":\"RL-0008\"}],
-         \"name\":[{\"family\":\"Prewett\",\"given\":[\"Fabian\"]}]}"
-
-curl -s -o /dev/null -w '%{http_code}\n' -X PUT \
-    -H "Authorization: Bearer $HOSPITAL" \
-    -H 'If-Match: W/"2"' \
-    "$HOGWARTS/Patient/$stale" \
-    -H 'Content-Type: application/fhir+json' \
-    -d "{\"resourceType\":\"Patient\",\"id\":\"$stale\",
-         \"identifier\":[{\"system\":\"urn:rl:nid\",\"value\":\"RL-0008\"}],
-         \"name\":[{\"family\":\"Prewett\",\"given\":[\"Fabian\"]}]}"
-# --8<-- [end:stale-write]
+source docs/guide/examples/snippets/stale-write.sh
 refused_stale=$(curl -s -o /dev/null -w '%{http_code}' -X PUT \
     -H "Authorization: Bearer $HOSPITAL" -H 'If-Match: W/"1"' \
     "$HOGWARTS/Patient/$stale" -H 'Content-Type: application/fhir+json' \
@@ -487,20 +275,7 @@ refused_stale=$(curl -s -o /dev/null -w '%{http_code}' -X PUT \
     || fail "a write against a version that has moved should be refused, got $refused_stale"
 
 step "a definition is identified by its url, so writing it twice replaces it"
-# --8<-- [start:canonical]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $JURISDICTION" "$ZONE/CodeSystem" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"CodeSystem","url":"urn:rl:houses","version":"1",
-         "status":"active","content":"complete",
-         "concept":[{"code":"gry","display":"Gryffindor"}]}'
-
-curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $JURISDICTION" "$ZONE/CodeSystem" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"CodeSystem","url":"urn:rl:houses","version":"1",
-         "status":"active","content":"complete",
-         "concept":[{"code":"gry","display":"Gryffindor"},
-                    {"code":"sly","display":"Slytherin"}]}'
-# --8<-- [end:canonical]
+source docs/guide/examples/snippets/canonical.sh
 held=$(curl -sf -G -H "Authorization: Bearer $JURISDICTION" "$ZONE/CodeSystem" --data-urlencode "url=urn:rl:houses" \
     | python3 -c 'import sys,json;d=json.load(sys.stdin);e=d.get("entry",[]);print(str(len(e))+":"+(e[0]["resource"]["meta"]["versionId"] if e else "-"))')
 [ "$held" = "1:2" ] || fail "expected one code system at version 2, got $held"
@@ -508,43 +283,25 @@ held=$(curl -sf -G -H "Authorization: Bearer $JURISDICTION" "$ZONE/CodeSystem" -
 step "a type the tenant never declared is refused"
 # The hospital declared Observation. The insurer did not — it holds Patient
 # and Coverage — so the same request is answered differently by each.
-# --8<-- [start:undeclared-type]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $INSURER" "$GRINGOTTS/Observation" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Observation","status":"final",
-         "code":{"text":"house points"}}'
-# --8<-- [end:undeclared-type]
+source docs/guide/examples/snippets/undeclared-type.sh
 undeclared=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $INSURER" "$GRINGOTTS/Observation" \
     -H 'Content-Type: application/fhir+json' \
     -d '{"resourceType":"Observation","status":"final","code":{"text":"house points"}}')
 [ "$undeclared" = "404" ] || fail "expected 404 for an undeclared type, got $undeclared"
 
 step "a tenant appears when its spec does"
-# --8<-- [start:add-tenant]
-sed 's/"hogwarts"/"stmungos"/' \
-    docs/guide/world/tenants/hogwarts.json > docs/guide/world/tenants/stmungos.json
-# --8<-- [end:add-tenant]
+source docs/guide/examples/snippets/add-tenant.sh
 trap 'rm -f "$PWD/docs/guide/world/tenants/stmungos.json"; cleanup' EXIT
 for _ in $(seq 1 60); do
     if curl -sf -o /dev/null "http://localhost:8090/t/stmungos/fhir/metadata"; then break; fi
     sleep 5
 done
-# --8<-- [start:new-tenant-serves]
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8090/t/stmungos/fhir/metadata
-# --8<-- [end:new-tenant-serves]
+source docs/guide/examples/snippets/new-tenant-serves.sh
 curl -sf -o /dev/null "http://localhost:8090/t/stmungos/fhir/metadata" \
     || fail "stmungos never came up"
 
 step "changing the declaration rebuilds the tenant where it stands"
-# --8<-- [start:change-in-place]
-python3 - <<'NARROW'
-import json, pathlib
-spec = pathlib.Path("docs/guide/world/tenants/stmungos.json")
-declared = json.loads(spec.read_text())
-declared["types"] = [t for t in declared["types"] if t["name"] != "Observation"]
-spec.write_text(json.dumps(declared, indent=2) + "\n")
-NARROW
-# --8<-- [end:change-in-place]
+source docs/guide/examples/snippets/change-in-place.sh
 for _ in $(seq 1 60); do
     serving=$(curl -s http://localhost:8090/t/stmungos/fhir/metadata \
         | python3 -c '
@@ -560,12 +317,7 @@ except Exception:
         *) sleep 3 ;;
     esac
 done
-# --8<-- [start:change-took]
-curl -s http://localhost:8090/t/stmungos/fhir/metadata | python3 -c '
-import sys, json
-served = [r["type"] for r in json.load(sys.stdin)["rest"][0]["resource"]]
-print("Patient" in served, "Observation" in served)'
-# --8<-- [end:change-took]
+source docs/guide/examples/snippets/change-took.sh
 took=$(curl -sf http://localhost:8090/t/stmungos/fhir/metadata | python3 -c '
 import sys, json
 served = [r["type"] for r in json.load(sys.stdin)["rest"][0]["resource"]]
@@ -574,9 +326,7 @@ print("Patient" in served, "Observation" in served)')
     || fail "the narrowed declaration did not take where it stood: $took"
 
 step "and stops when its spec goes"
-# --8<-- [start:remove-tenant]
-rm docs/guide/world/tenants/stmungos.json
-# --8<-- [end:remove-tenant]
+source docs/guide/examples/snippets/remove-tenant.sh
 for _ in $(seq 1 40); do
     [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/t/stmungos/fhir/metadata)" != "200" ] && break
     sleep 2
@@ -591,14 +341,7 @@ still=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" --d
 [ "$still" = "1" ] || fail "the hospital lost a record when a neighbour went away"
 
 step "what this tenant says it can be asked"
-# --8<-- [start:capability-search]
-curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/metadata" | python3 -c '
-import sys, json
-rest = json.load(sys.stdin)["rest"][0]
-for resource in rest["resource"]:
-    if resource["type"] == "Patient":
-        print(*sorted(p["name"] for p in resource["searchParam"]), sep="\n")'
-# --8<-- [end:capability-search]
+source docs/guide/examples/snippets/capability-search.sh
 declared=$(curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/metadata" | python3 -c '
 import sys, json
 rest = json.load(sys.stdin)["rest"][0]
@@ -608,17 +351,13 @@ for resource in rest["resource"]:
 [ "$declared" -gt 10 ] || fail "expected the capability statement to declare Patient search parameters, got $declared"
 
 step "a modifier the parameter does not have is refused by name"
-# --8<-- [start:unknown-modifier]
-curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" --data-urlencode "family:nosuch=Granger"
-# --8<-- [end:unknown-modifier]
+source docs/guide/examples/snippets/unknown-modifier.sh
 modifier=$(curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" --data-urlencode "family:nosuch=Granger")
 printf '%s' "$modifier" | grep -q "family:nosuch" \
     || fail "the refusal should name what it refused: $modifier"
 
 step "counting without fetching"
-# --8<-- [start:count]
-curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" --data-urlencode "_summary=count"
-# --8<-- [end:count]
+source docs/guide/examples/snippets/count.sh
 before=$(curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" --data-urlencode "_summary=count" \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"])')
 
@@ -632,9 +371,7 @@ for family in Granger Longbottom Lovegood Malfoy Diggory; do
 done
 
 step "a page, and the cursor that follows it"
-# --8<-- [start:first-page]
-curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" --data-urlencode "_count=2"
-# --8<-- [end:first-page]
+source docs/guide/examples/snippets/first-page.sh
 page1=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" --data-urlencode "_count=2")
 first=$(printf '%s' "$page1" | python3 -c 'import sys,json;print(" ".join(e["resource"]["id"] for e in json.load(sys.stdin)["entry"]))')
 next=$(printf '%s' "$page1" | python3 -c 'import sys,json;print([l["url"] for l in json.load(sys.stdin)["link"] if l["relation"]=="next"][0])')
@@ -649,10 +386,7 @@ curl -sf -o /dev/null -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Pa
 # The link carries the address the node was told to bind to. A deployment
 # names itself properly; this world binds to everything, so the example
 # points the same cursor at the host the reader is on.
-# --8<-- [start:next-page]
-curl -s -H "Authorization: Bearer $HOSPITAL" \
-    "$(printf '%s' "$next" | sed 's|http://0.0.0.0:8090|http://localhost:8090|')"
-# --8<-- [end:next-page]
+source docs/guide/examples/snippets/next-page.sh
 page2=$(curl -sf -H "Authorization: Bearer $HOSPITAL" \
     "$(printf '%s' "$next" | sed 's|http://0.0.0.0:8090|http://localhost:8090|')")
 second=$(printf '%s' "$page2" | python3 -c 'import sys,json;print(" ".join(e["resource"]["id"] for e in json.load(sys.stdin).get("entry",[])))')
@@ -663,20 +397,12 @@ sys.exit(1 if a & b else 0)
 OVERLAP
 
 step "an unsupported search parameter is refused, not ignored"
-# --8<-- [start:strict-search]
-curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient?favourite-colour=blue"
-# --8<-- [end:strict-search]
+source docs/guide/examples/snippets/strict-search.sh
 code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient?favourite-colour=blue")
 [ "$code" = "400" ] || fail "expected 400 for an unknown parameter, got $code"
 
 step "an element the face does not define is refused, not quietly kept"
-# --8<-- [start:unknown-element]
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0006"}],
-         "favouriteColour":"blue"}'
-# --8<-- [end:unknown-element]
+source docs/guide/examples/snippets/unknown-element.sh
 invented=$(curl -s -o /tmp/dbo-guide-invented -w '%{http_code}' -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
     -H 'Content-Type: application/fhir+json' \
     -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0006"}],
@@ -691,25 +417,7 @@ landed=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" --
 [ "$landed" = "0" ] || fail "a refused write left a record behind"
 
 step "a code outside a required binding is refused, and the refusal names the element"
-# --8<-- [start:validate-binding]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0002"}],
-         "gender":"purple"}'
-
-# The outcome repeats itself at length; this prints the first clause of
-# each issue, which is the part naming what was wrong and where.
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0002"}],
-         "gender":"purple"} ' \
-  | python3 -c '
-import sys, json
-for issue in json.load(sys.stdin)["issue"]:
-    print(issue["severity"], "|", issue["diagnostics"].split(";")[0])'
-# --8<-- [end:validate-binding]
+source docs/guide/examples/snippets/validate-binding.sh
 binding=$(curl -s -o /tmp/dbo-guide-binding -w '%{http_code}' -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
     -H 'Content-Type: application/fhir+json' \
     -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0002"}],
@@ -722,17 +430,7 @@ rejected=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" 
 [ "$rejected" = "0" ] || fail "a refused write left a record behind"
 
 step "a malformed value and a missing required element are refused the same way"
-# --8<-- [start:validate-shape]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0003"}],
-         "birthDate":"not-a-date"}'
-
-curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Observation","code":{"text":"house points"}}'
-# --8<-- [end:validate-shape]
+source docs/guide/examples/snippets/validate-shape.sh
 badday=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
     -H 'Content-Type: application/fhir+json' \
     -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0003"}],
@@ -744,21 +442,7 @@ nostatus=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bea
 [ "$nostatus" = "422" ] || fail "expected 422 for a missing required element, got $nostatus"
 
 step "the same mistake at both faces, each naming the version it validated against"
-# --8<-- [start:validate-versions]
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0004"}],
-         "gender":"purple"}' \
-  | grep -o 'administrative-gender|[0-9.]*' | head -1
-
-curl -s -X POST -H "Authorization: Bearer $INSURER" "$GRINGOTTS/Patient" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0004"}],
-         "gender":"purple"}' \
-  | grep -o 'administrative-gender|[0-9.]*' | head -1
-# --8<-- [end:validate-versions]
+source docs/guide/examples/snippets/validate-versions.sh
 r5said=$(curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" -H 'Content-Type: application/fhir+json' \
     -d '{"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0004"}],
          "gender":"purple"}' | grep -o 'administrative-gender|[0-9.]*' | head -1)
@@ -771,15 +455,7 @@ r4said=$(curl -s -X POST -H "Authorization: Bearer $INSURER" "$GRINGOTTS/Patient
     || fail "the insurer should validate against its own release, said $r4said"
 
 step "asking for the verdict without writing"
-# --8<-- [start:validate-ahead]
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation/\$validate" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Observation","code":{"text":"house points"}}' \
-  | python3 -c '
-import sys, json
-for issue in json.load(sys.stdin)["issue"]:
-    print(issue["severity"], "|", issue["diagnostics"][:85])'
-# --8<-- [end:validate-ahead]
+source docs/guide/examples/snippets/validate-ahead.sh
 ahead=$(curl -s -o /tmp/dbo-guide-ahead -w '%{http_code}' -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Observation/\$validate" \
     -H 'Content-Type: application/fhir+json' \
     -d '{"resourceType":"Observation","code":{"text":"house points"}}')
@@ -800,9 +476,7 @@ for _ in $(seq 1 120); do
 done
 
 step "the hospital declared the zone, so it answers the zone's codes as its own"
-# --8<-- [start:zone-reaches-hospital]
-curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/CodeSystem/\$lookup?system=urn:rl:wards&code=spell"
-# --8<-- [end:zone-reaches-hospital]
+source docs/guide/examples/snippets/zone-reaches-hospital.sh
 at_hospital=$(curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/CodeSystem/\$lookup?system=urn:rl:wards&code=spell")
 printf '%s' "$at_hospital" | grep -q 'Spell Damage' \
     || fail "the zone's terminology never reached the hospital: $at_hospital"
@@ -819,12 +493,7 @@ for _ in $(seq 1 120); do
 done
 
 step "the insurer declared the code systems and not the value sets, and that is what it has"
-# --8<-- [start:zone-partial-at-insurer]
-curl -s -w '\n' -H "Authorization: Bearer $INSURER" "$GRINGOTTS/CodeSystem/\$lookup?system=urn:rl:wards&code=spell"
-
-curl -sf -G -H "Authorization: Bearer $INSURER" "$GRINGOTTS/ValueSet" --data-urlencode "url=urn:rl:wards:vs" \
-  | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])), "value sets")'
-# --8<-- [end:zone-partial-at-insurer]
+source docs/guide/examples/snippets/zone-partial-at-insurer.sh
 insurer_code=$(curl -s -H "Authorization: Bearer $INSURER" "$GRINGOTTS/CodeSystem/\$lookup?system=urn:rl:wards&code=spell")
 printf '%s' "$insurer_code" | grep -q 'Spell Damage' \
     || fail "the insurer declared CodeSystem from the zone and did not get it: $insurer_code"
@@ -833,24 +502,12 @@ insurer_vs=$(curl -sf -G -H "Authorization: Bearer $INSURER" "$GRINGOTTS/ValueSe
 [ "$insurer_vs" = "0" ] || fail "the insurer took a type it never declared, got $insurer_vs"
 
 step "and the standard's own terminology is there by the same mechanism"
-# --8<-- [start:core-terminology]
-curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/CodeSystem/\$lookup?system=http://hl7.org/fhir/administrative-gender&code=female"
-# --8<-- [end:core-terminology]
+source docs/guide/examples/snippets/core-terminology.sh
 core=$(curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/CodeSystem/\$lookup?system=http://hl7.org/fhir/administrative-gender&code=female")
 printf '%s' "$core" | grep -q 'Female' || fail "the core code system is not answerable: $core"
 
 step "a face root is a tenant, and its definitions are records"
-# --8<-- [start:face-roots]
-curl -s -G -H "Authorization: Bearer $FACE_R5" \
-    "http://localhost:8090/t/fhir-r5/fhir/StructureDefinition" \
-    --data-urlencode "_summary=count" \
-  | python3 -c "import sys,json;print('fhir-r5', json.load(sys.stdin)['total'])"
-
-curl -s -G -H "Authorization: Bearer $FACE_R4" \
-    "http://localhost:8090/t/fhir-r4/fhir/StructureDefinition" \
-    --data-urlencode "_summary=count" \
-  | python3 -c "import sys,json;print('fhir-r4', json.load(sys.stdin)['total'])"
-# --8<-- [end:face-roots]
+source docs/guide/examples/snippets/face-roots.sh
 for pair in "fhir-r5 $FACE_R5" "fhir-r4 $FACE_R4"; do
     set -- $pair
     held=$(curl -sf -G -H "Authorization: Bearer $2" \
@@ -861,9 +518,7 @@ for pair in "fhir-r5 $FACE_R5" "fhir-r4 $FACE_R4"; do
 done
 
 step "the zone runs the ceremony its members federate to"
-# --8<-- [start:zone-ceremony]
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8090/z/rl/hub/jwks.json
-# --8<-- [end:zone-ceremony]
+source docs/guide/examples/snippets/zone-ceremony.sh
 ceremony=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/z/rl/hub/jwks.json)
 [ "$ceremony" = "200" ] || fail "the zone has no ceremony of its own, got $ceremony"
 
@@ -872,13 +527,7 @@ for _ in $(seq 1 90); do
     curl -sf -o /dev/null "http://localhost:8090/t/rl-on-r4/fhir/metadata" && break
     sleep 10
 done
-# --8<-- [start:projection]
-curl -s http://localhost:8090/t/rl-on-r4/fhir/metadata \
-  | python3 -c 'import sys,json;print(json.load(sys.stdin)["fhirVersion"])'
-
-curl -s http://localhost:8090/t/rl/fhir/metadata \
-  | python3 -c 'import sys,json;print(json.load(sys.stdin)["fhirVersion"])'
-# --8<-- [end:projection]
+source docs/guide/examples/snippets/projection.sh
 projected=$(curl -sf http://localhost:8090/t/rl-on-r4/fhir/metadata \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["fhirVersion"])')
 [ "$projected" = "4.0.1" ] || fail "the projection should speak the face it serves, said $projected"
@@ -887,41 +536,14 @@ source_face=$(curl -sf http://localhost:8090/t/rl/fhir/metadata \
 [ "$source_face" = "5.0.0" ] || fail "the zone should still speak its own face, said $source_face"
 
 step "the version that deleted a record is gone, not missing"
-# --8<-- [start:vread-gone]
-doomed=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-0007"}],
-         "name":[{"family":"Fleeting"}]}' \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
-
-curl -s -o /dev/null -w '%{http_code}\n' -X DELETE -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$doomed"
-
-curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$doomed/_history/2"
-
-curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$doomed/_history/1"
-# --8<-- [end:vread-gone]
+source docs/guide/examples/snippets/vread-gone.sh
 tomb=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$doomed/_history/2")
 [ "$tomb" = "410" ] || fail "the version that deleted it should be gone, got $tomb"
 before_it=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$doomed/_history/1")
 [ "$before_it" = "200" ] || fail "deleting took the history with it, got $before_it"
 
 step "the hospital is an organisation, with people and what they may do"
-# --8<-- [start:org-and-people]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Organization" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Organization",
-         "identifier":[{"system":"urn:rl:org","value":"hogwarts"}],
-         "name":"Hogwarts Hospital"}'
-
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Practitioner" \
-    -H 'Content-Type: application/fhir+json' \
-    -d '{"resourceType":"Practitioner",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-POMFREY"}],
-         "name":[{"family":"Pomfrey","given":["Poppy"]}]}'
-# --8<-- [end:org-and-people]
+source docs/guide/examples/snippets/org-and-people.sh
 org=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Organization" \
     --data-urlencode "identifier=urn:rl:org|hogwarts" \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["entry"][0]["resource"]["id"])')
@@ -931,15 +553,7 @@ matron=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Practitione
 [ -n "$org" ] && [ -n "$matron" ] || fail "the organisation or the practitioner is missing"
 
 step "a role is a record, not a column"
-# --8<-- [start:the-role]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/PractitionerRole" \
-    -H 'Content-Type: application/fhir+json' \
-    -d "{\"resourceType\":\"PractitionerRole\",\"active\":true,
-         \"practitioner\":{\"reference\":\"Practitioner/$matron\"},
-         \"organization\":{\"reference\":\"Organization/$org\"},
-         \"code\":[{\"coding\":[{\"system\":\"urn:rl:role\",\"code\":\"matron\"}]}]}"
-# --8<-- [end:the-role]
+source docs/guide/examples/snippets/the-role.sh
 # Counted from the entries rather than read from "total": a searchset that
 # matched nothing does not carry one, so reading it turns an assertion that
 # should fail into a traceback that says nothing.
@@ -948,100 +562,40 @@ roles=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Practitioner
 [ "$roles" -gt 0 ] || fail "the role did not land"
 
 step "and what that role may do is declared, and readable"
-# --8<-- [start:role-grant]
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" \
-    -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/oidc/admin/role-grants \
-    -d '{"role":"matron","organisation":"hogwarts",
-         "scopes":["user/Patient.read","user/Observation.read"]}'
-
-curl -s -H "Authorization: Bearer $HOSPITAL" \
-    http://localhost:8090/t/hogwarts/oidc/admin/role-grants
-# --8<-- [end:role-grant]
+source docs/guide/examples/snippets/role-grant.sh
 granted=$(curl -sf -H "Authorization: Bearer $HOSPITAL" \
     http://localhost:8090/t/hogwarts/oidc/admin/role-grants \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["grants"][0]["role"])')
 [ "$granted" = "matron" ] || fail "the tenant does not say what it grants, got $granted"
 
 step "a person signs in, and the store works out what she is here"
-# --8<-- [start:a-person-signs-in]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Person" \
-    -H 'Content-Type: application/fhir+json' \
-    -d "{\"resourceType\":\"Person\",
-         \"identifier\":[{\"system\":\"urn:rl:nid\",\"value\":\"RL-POMFREY\"}],
-         \"name\":[{\"family\":\"Pomfrey\",\"given\":[\"Poppy\"]}],
-         \"link\":[{\"target\":{\"reference\":\"Practitioner/$matron\"}}]}"
-# --8<-- [end:a-person-signs-in]
+source docs/guide/examples/snippets/a-person-signs-in.sh
 person=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Person" \
     --data-urlencode "identifier=urn:rl:nid|RL-POMFREY" \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["entry"][0]["resource"]["id"])')
 [ -n "$person" ] || fail "the person was not written"
 
-# --8<-- [start:her-credential]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/oidc/admin/credentials \
-    -d "{\"login\":\"pomfrey\",\"secret\":\"a-strong-secret\",\"personId\":\"$person\"}"
+source docs/guide/examples/snippets/her-credential.sh
 
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/oidc/admin/clients \
-    -d '{"client_id":"ward-console","secret":"console-secret",
-         "scope":["user/Patient.read","user/Observation.read"],
-         "redirect_uris":["https://ward.example/cb"]}'
-# --8<-- [end:her-credential]
-
-# The authorization code arrives where a browser would be sent, so the
-# redirect is read rather than followed.
-code=$(curl -s -o /dev/null -D - -X POST \
-    http://localhost:8090/t/hogwarts/oidc/authorize/login \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    -d "client_id=ward-console&redirect_uri=https%3A%2F%2Fward.example%2Fcb&login=pomfrey&password=a-strong-secret" \
-    | sed -n 's/.*[?&]code=\([^&[:space:]]*\).*/\1/p' | tr -d '\r')
+source docs/guide/examples/snippets/sign-in.sh
 [ -n "$code" ] || fail "signing in produced no authorization code"
-HUMAN=$(token_code "$code")
 [ -n "$HUMAN" ] || fail "the code did not exchange for a token"
 
-# --8<-- [start:who-she-is]
-claims() { python3 -c '
-import base64, json, sys
-payload = sys.argv[1].split(".")[1]
-claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
-for name in ("sub", "fhirUser", "act", "scope"):
-    if name in claims:
-        actor = claims[name]
-        print(name.ljust(9), actor["sub"] if name == "act" else actor)' "$1"; }
-
-claims "$HUMAN"
-# --8<-- [end:who-she-is]
+source docs/guide/examples/snippets/who-she-is.sh
 echo "$HUMAN" | grep -q . || fail "no human token"
 capacity=$(claims "$HUMAN" | awk '$1=="fhirUser"{print $2}')
 [ "$capacity" = "Practitioner/$matron" ] \
     || fail "the token names the wrong capacity: $capacity"
 
 step "a process acts in her name, and carries both names"
-# --8<-- [start:acting-for-her]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/oidc/admin/clients \
-    -d '{"client_id":"night-ledger","secret":"ledger-secret",
-         "scope":["user/Patient.read"]}'
-
-ACT=$(token_exchange "subject_token=$HUMAN" "scope=user%2FPatient.read")
-claims "$ACT"
-# --8<-- [end:acting-for-her]
+source docs/guide/examples/snippets/acting-for-her.sh
 actor=$(claims "$ACT" | awk '$1=="act"{print $2}')
 [ "$actor" = "night-ledger" ] || fail "the delegated token does not name the actor"
 onbehalf=$(claims "$ACT" | awk '$1=="sub"{print $2}')
 [ "$onbehalf" = "$person" ] || fail "the delegated token lost the person"
 
 step "and cannot acquire authority she never had"
-# --8<-- [start:attenuation]
-curl -s -X POST http://localhost:8090/t/hogwarts/oidc/token \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token=$HUMAN&client_id=night-ledger&client_secret=ledger-secret&scope=user%2FPatient.write"
-# --8<-- [end:attenuation]
+source docs/guide/examples/snippets/attenuation.sh
 widened=$(curl -s -X POST http://localhost:8090/t/hogwarts/oidc/token \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token=$HUMAN&client_id=night-ledger&client_secret=ledger-secret&scope=user%2FPatient.write" \
@@ -1050,12 +604,7 @@ widened=$(curl -s -X POST http://localhost:8090/t/hogwarts/oidc/token \
     || fail "a delegated token widened past its subject, got $widened"
 
 step "work that outlives the token holds a delegation"
-# --8<-- [start:a-delegation]
-curl -s -w '\n' -X POST http://localhost:8090/t/hogwarts/oidc/delegation \
-    -H "Authorization: Bearer $HUMAN" \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    -d "client_id=night-ledger&scope=user/Patient.read&valid_until=$(( $(date +%s) + 86400 ))"
-# --8<-- [end:a-delegation]
+source docs/guide/examples/snippets/a-delegation.sh
 delegation=$(curl -sf -X POST http://localhost:8090/t/hogwarts/oidc/delegation \
     -H "Authorization: Bearer $HUMAN" \
     -H 'Content-Type: application/x-www-form-urlencoded' \
@@ -1063,23 +612,12 @@ delegation=$(curl -sf -X POST http://localhost:8090/t/hogwarts/oidc/delegation \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["delegation_id"])')
 [ -n "$delegation" ] || fail "no delegation was recorded"
 
-# --8<-- [start:exchange-a-delegation]
-LEDGER=$(token_exchange "delegation_id=$delegation")
-claims "$LEDGER"
-# --8<-- [end:exchange-a-delegation]
+source docs/guide/examples/snippets/exchange-a-delegation.sh
 still=$(claims "$LEDGER" | awk '$1=="sub"{print $2}')
 [ "$still" = "$person" ] || fail "the delegation lost the person it was granted by"
 
 step "and ending it stops the next exchange"
-# --8<-- [start:ending-a-delegation]
-curl -s -o /dev/null -w '%{http_code}\n' -X DELETE \
-    -H "Authorization: Bearer $HUMAN" \
-    "http://localhost:8090/t/hogwarts/oidc/delegation/$delegation"
-
-curl -s -X POST http://localhost:8090/t/hogwarts/oidc/token \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange&delegation_id=$delegation&client_id=night-ledger&client_secret=ledger-secret"
-# --8<-- [end:ending-a-delegation]
+source docs/guide/examples/snippets/ending-a-delegation.sh
 ended=$(curl -s -X POST http://localhost:8090/t/hogwarts/oidc/token \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange&delegation_id=$delegation&client_id=night-ledger&client_secret=ledger-secret" \
@@ -1088,31 +626,13 @@ ended=$(curl -s -X POST http://localhost:8090/t/hogwarts/oidc/token \
 
 
 step "every tenant issues its own tokens"
-# --8<-- [start:issuer]
-curl -s http://localhost:8090/t/hogwarts/oidc/.well-known/openid-configuration \
-  | python3 -c 'import sys,json;print(json.load(sys.stdin)["issuer"])'
-
-curl -s http://localhost:8090/t/gringotts/oidc/.well-known/openid-configuration \
-  | python3 -c 'import sys,json;print(json.load(sys.stdin)["issuer"])'
-# --8<-- [end:issuer]
+source docs/guide/examples/snippets/issuer.sh
 own=$(curl -sf http://localhost:8090/t/hogwarts/oidc/.well-known/openid-configuration \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["issuer"])')
 case "$own" in *"/t/hogwarts/oidc") ;; *) fail "the tenant's issuer is not its own: $own" ;; esac
 
 step "the trail records the act, and who did it"
-# --8<-- [start:trail]
-# Asked about the record, rather than taking whatever the trail happened to
-# return first: a tenant's trail holds every write since it came up, and the
-# question worth asking is about one patient.
-curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
-    --data-urlencode "entity=Patient/$id" --data-urlencode "action=C" \
-    --data-urlencode "_count=1" | python3 -c '
-import sys, json
-entry = json.load(sys.stdin)["entry"][0]["resource"]
-print("action ", entry["action"])
-print("who    ", entry["agent"][0]["who"]["identifier"]["value"])
-print("what   ", entry["entity"][0]["what"]["reference"])'
-# --8<-- [end:trail]
+source docs/guide/examples/snippets/trail.sh
 # Asserted by the REFERENCE, because that is the form the entry hands back and
 # the form a reader copies. It was matched against the id alone, so asking the
 # way the answer is written returned an empty bundle — which reads as nothing
@@ -1125,39 +645,20 @@ recorded=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEven
     || fail "the trail cannot be asked about the record it names, got $recorded"
 
 step "and the trail is searched the way it is asked about"
-# --8<-- [start:trail-search]
-curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
-    --data-urlencode "agent=tenant-bootstrap" \
-  | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"], "by that credential")'
-# --8<-- [end:trail-search]
+source docs/guide/examples/snippets/trail-search.sh
 by_agent=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
     --data-urlencode "agent=tenant-bootstrap" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$by_agent" -gt 0 ] || fail "the trail cannot be searched by who acted"
 
 step "what the tenant holds, before anything moves"
-# --8<-- [start:inventory]
-ADMIN=http://localhost:8090/t/hogwarts/admin
-
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" | python3 -c '
-import sys, json
-held = json.load(sys.stdin)["types"]
-for one in held:
-    if one["domain"] != "definitions":
-        print("%-10s %-20s %s" % (one["domain"], one["name"], one["total"]))
-print("definitions:", sum(o["total"] for o in held if o["domain"] == "definitions"))'
-# --8<-- [end:inventory]
+source docs/guide/examples/snippets/inventory.sh
 inventory=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin)["types"]))')
 [ "$inventory" -gt 3 ] || fail "the inventory should name what the tenant holds, got $inventory"
 
 step "the streams a tenant carries, one per domain"
-# --8<-- [start:feed-domains]
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" | python3 -c '
-import sys, json
-held = json.load(sys.stdin)["types"]
-print(*sorted({one["domain"] for one in held}), sep="\n")'
-# --8<-- [end:feed-domains]
+source docs/guide/examples/snippets/feed-domains.sh
 domains=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" \
     | python3 -c 'import sys,json;print(",".join(sorted({o["domain"] for o in json.load(sys.stdin)["types"]})))')
 case "$domains" in
@@ -1170,12 +671,7 @@ case "$domains" in
 esac
 
 step "and what is reading them, with how far behind it is"
-# --8<-- [start:feed-consumers]
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" | python3 -c '
-import sys, json
-for one in json.load(sys.stdin)["delivery"]:
-    print("%-12s %-18s lag %s" % (one["domain"], one["consumer"], one["lag"]))'
-# --8<-- [end:feed-consumers]
+source docs/guide/examples/snippets/feed-consumers.sh
 reading=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/inventory" \
     | python3 -c '
 import sys, json
@@ -1186,25 +682,11 @@ print(all("consumer" in r and "lag" in r and "domain" in r for r in rows) and le
     || fail "the tenant does not say what is reading it, or says it without a position"
 
 step "content a tenant holds whole"
-# --8<-- [start:blob-write]
-BLOBS=http://localhost:8090/t/hogwarts/blob
-
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" \
-    -H 'Content-Type: application/pdf' \
-    --data-binary 'PDF-ish bytes' "$BLOBS"
-# --8<-- [end:blob-write]
-echo
-blob=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" \
-    -H 'Content-Type: application/pdf' \
-    --data-binary 'PDF-ish bytes' "$BLOBS" \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["key"])')
+source docs/guide/examples/snippets/blob-write.sh
 [ -n "$blob" ] || fail "the blob was not written"
 
 step "handed back as it was given"
-# --8<-- [start:blob-read]
-curl -s -D - -o /dev/null -H "Authorization: Bearer $HOSPITAL" "$BLOBS/$blob" \
-    | grep -iE '^content-type|^content-length'
-# --8<-- [end:blob-read]
+source docs/guide/examples/snippets/blob-read.sh
 kind=$(curl -sf -D - -o /dev/null -H "Authorization: Bearer $HOSPITAL" "$BLOBS/$blob" \
     | grep -i '^content-type' | tr -d '\r' | awk '{print $2}')
 [ "$kind" = "application/pdf" ] \
@@ -1213,12 +695,7 @@ back=$(curl -sf -H "Authorization: Bearer $HOSPITAL" "$BLOBS/$blob")
 [ "$back" = "PDF-ish bytes" ] || fail "the bytes came back changed"
 
 step "and it is guarded by the grant that covers binary content"
-# --8<-- [start:blob-unheld]
-curl -s -o /dev/null -w '%{http_code}\n' "$BLOBS/$blob"
-
-curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $HOSPITAL" \
-    "$BLOBS/01a00000-0000-7000-8000-00000000dead"
-# --8<-- [end:blob-unheld]
+source docs/guide/examples/snippets/blob-unheld.sh
 unheld=$(curl -s -o /dev/null -w '%{http_code}' "$BLOBS/$blob")
 [ "$unheld" = "401" ] || fail "a blob was served without a credential, got $unheld"
 absent=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPITAL" \
@@ -1228,9 +705,7 @@ absent=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $HOSPI
 
 
 step "the archive is sealed under a key the store does not hold"
-# --8<-- [start:archive-no-key]
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" "$ADMIN/archive"
-# --8<-- [end:archive-no-key]
+source docs/guide/examples/snippets/archive-no-key.sh
 nokey=$(curl -s -o /tmp/dbo-guide-nokey -w '%{http_code}' -X POST \
     -H "Authorization: Bearer $HOSPITAL" "$ADMIN/archive")
 [ "$nokey" = "400" ] || fail "an archive with no owner key should be refused, got $nokey"
@@ -1238,29 +713,17 @@ grep -q "does not hold" /tmp/dbo-guide-nokey \
     || fail "the refusal should say why: $(cat /tmp/dbo-guide-nokey)"
 
 step "the whole tenant leaves as one file"
-# --8<-- [start:archive]
-OWNER_KEY=$(printf 'hogwarts-owns-this-key-32-bytes!' | base64 | tr -d '\n')
-
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" \
-    -H "X-Owner-Key: $OWNER_KEY" \
-    "$ADMIN/archive" -o hogwarts.archive -w '%{http_code} %{size_download} bytes\n'
-# --8<-- [end:archive]
+source docs/guide/examples/snippets/archive.sh
 [ -s hogwarts.archive ] || fail "the archive is empty"
 
 step "and whoever stores it can read nothing in it"
-# --8<-- [start:archive-opaque]
-grep -c "Potter" hogwarts.archive || true
-# --8<-- [end:archive-opaque]
+source docs/guide/examples/snippets/archive-opaque.sh
 if grep -q "Potter" hogwarts.archive; then
     fail "a name is legible in the archive, which is the one thing it must not be"
 fi
 
 step "coming back is a ceremony, and the store cannot perform it alone"
-# --8<-- [start:import-needs-signatures]
-curl -s -X POST -H "Authorization: Bearer $HOSPITAL" \
-    -H "X-Owner-Key: $OWNER_KEY" \
-    --data-binary @hogwarts.archive "$ADMIN/import"
-# --8<-- [end:import-needs-signatures]
+source docs/guide/examples/snippets/import-needs-signatures.sh
 unsigned=$(curl -s -o /tmp/dbo-guide-unsigned -w '%{http_code}' -X POST \
     -H "Authorization: Bearer $HOSPITAL" -H "X-Owner-Key: $OWNER_KEY" \
     --data-binary @hogwarts.archive "$ADMIN/import")
@@ -1270,92 +733,42 @@ grep -q "cannot sign for either of them" /tmp/dbo-guide-unsigned \
 rm -f hogwarts.archive
 
 step "a credential that may act in work, and not read the tenant"
-# --8<-- [start:worker-credential]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" \
-    -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/oidc/admin/clients \
-    -d '{"client_id":"a-porter","secret":"porter-secret","scope":["work"]}'
-
-PORTER=$(token hogwarts porter-secret a-porter)
-# --8<-- [end:worker-credential]
+source docs/guide/examples/snippets/worker-credential.sh
 [ -n "$PORTER" ] || fail "no token for the porter"
 
 step "and that credential cannot read a record directly"
-# --8<-- [start:worker-cannot-read]
-curl -s -o /dev/null -w '%{http_code}\n' \
-    -H "Authorization: Bearer $PORTER" "$HOGWARTS/Patient/$id"
-# --8<-- [end:worker-cannot-read]
+source docs/guide/examples/snippets/worker-cannot-read.sh
 blocked=$(curl -s -o /dev/null -w '%{http_code}' \
     -H "Authorization: Bearer $PORTER" "$HOGWARTS/Patient/$id")
 [ "$blocked" = "403" ] || [ "$blocked" = "401" ] \
     || fail "the work credential read a record directly, got $blocked"
 
 step "a run of the step the hospital offers, over one patient"
-# --8<-- [start:start-a-run]
-curl -s -X POST -H "Authorization: Bearer $PORTER" \
-    -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/step/hogwarts.admission.admit \
-    -d "{\"inputs\":{\"patient\":\"Patient/$id\"}}"
-# --8<-- [end:start-a-run]
-started=$(curl -sf -X POST -H "Authorization: Bearer $PORTER" \
-    -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/step/hogwarts.admission.admit \
-    -d "{\"inputs\":{\"patient\":\"Patient/$id\"}}")
-CONTEXT=http://localhost:8090$(printf '%s' "$started" \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["context"])')
+source docs/guide/examples/snippets/start-a-run.sh
 [ -n "$CONTEXT" ] || fail "the run returned no context"
-run=$(printf '%s' "$started" \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["run"])')
 [ -n "$run" ] || fail "the run returned no id"
 
 step "inside the run, the patient it was given"
-# --8<-- [start:read-in-run]
-curl -s -o /dev/null -w '%{http_code}\n' \
-    -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$id"
-# --8<-- [end:read-in-run]
+source docs/guide/examples/snippets/read-in-run.sh
 inside=$(curl -s -o /dev/null -w '%{http_code}' \
     -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$id")
 [ "$inside" = "200" ] || fail "the run could not read what it was given, got $inside"
 
 step "and nothing else, whatever its type"
-other=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    --data-urlencode "identifier=urn:rl:nid|RL-90-Granger" \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["entry"][0]["resource"]["id"])')
-# --8<-- [start:read-outside-reach]
-curl -s -o /dev/null -w '%{http_code}\n' \
-    -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$other"
-
-curl -s -o /dev/null -w '%{http_code}\n' \
-    -H "Authorization: Bearer $PORTER" "$CONTEXT/Observation/$other"
-# --8<-- [end:read-outside-reach]
+source docs/guide/examples/snippets/another-patient.sh
+source docs/guide/examples/snippets/read-outside-reach.sh
 withheld=$(curl -s -o /dev/null -w '%{http_code}' \
     -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$other")
 [ "$withheld" = "404" ] || fail "a run reached a patient it was never given, got $withheld"
 
 step "the context says what it answers for"
-# --8<-- [start:run-metadata]
-curl -s -H "Authorization: Bearer $PORTER" "$CONTEXT/metadata" | python3 -c '
-import sys, json
-rest = json.load(sys.stdin)["rest"][0]
-print(*[r["type"] for r in rest["resource"]], sep="\n")'
-# --8<-- [end:run-metadata]
+source docs/guide/examples/snippets/run-metadata.sh
 serves=$(curl -sf -H "Authorization: Bearer $PORTER" "$CONTEXT/metadata" \
     | python3 -c 'import sys,json;print(",".join(r["type"] for r in json.load(sys.stdin)["rest"][0]["resource"]))')
 [ "$serves" = "Patient" ] || fail "the context advertises more than the step declared: $serves"
 
 step "the run is a record, and it says what it is over and who holds it"
-# --8<-- [start:run-as-a-record]
-curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Task/$run" | python3 -c '
-import sys, json
-task = json.load(sys.stdin)["entry"][0]["resource"]
-code = {c["system"]: c["code"] for c in task["code"]["coding"]}
-print("process ", code["urn:dbo:process"])
-print("step    ", code["urn:dbo:step"])
-print("holder  ", task["businessStatus"]["coding"][0]["code"])
-for i in task["input"]:
-    print("input   ", i["type"]["coding"][0]["code"], "=", i["valueReference"]["display"])'
-# --8<-- [end:run-as-a-record]
+source docs/guide/examples/snippets/run-as-a-record.sh
 record=$(curl -sf -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Task/$run" \
     | python3 -c 'import sys,json;print(json.dumps(json.load(sys.stdin)["entry"][0]["resource"]))')
 echo "$record" | grep -q '"urn:dbo:run:input"' \
@@ -1370,16 +783,7 @@ raise SystemExit(0 if "reference" not in ref and "display" in ref else 1)' \
     || fail "the run envelope resolved its subject instead of displaying it"
 
 step "a runner asks the lane for work, and is told what it may have"
-# --8<-- [start:lane-poll]
-RUNNER='{"name":"ward-runner","version":"1","provider":"hogwarts",
-         "scope":{"at":"ORGANISATION","code":"hogwarts"}}'
-
-curl -s -w '\n' -X POST -H "Authorization: Bearer $HOSPITAL" \
-    -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/work/poll \
-    -d "{\"participant\":\"ward-runner\",\"identity\":$RUNNER,
-         \"steps\":[\"hogwarts.admission.admit\"],\"limit\":5}"
-# --8<-- [end:lane-poll]
+source docs/guide/examples/snippets/lane-poll.sh
 echo
 polled=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" \
     -H 'Content-Type: application/json' \
@@ -1390,18 +794,7 @@ polled=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" \
 [ "$polled" = "True" ] || fail "the lane did not answer a poll"
 
 step "and a refusal on the lane says why, rather than going quiet"
-# --8<-- [start:lane-refuses]
-curl -s -w '\n' -X POST -H "Authorization: Bearer $HOSPITAL" \
-    -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/work/rummage -d '{}'
-
-curl -s -w '\n' -H "Authorization: Bearer $HOSPITAL" \
-    http://localhost:8090/t/hogwarts/work/poll
-
-curl -s -w '\n' -X POST -H "Authorization: Bearer $HOSPITAL" \
-    -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/work/poll -d '{}'
-# --8<-- [end:lane-refuses]
+source docs/guide/examples/snippets/lane-refuses.sh
 echo
 for verb in rummage poll; do
     reason=$(curl -s -X POST -H "Authorization: Bearer $HOSPITAL" \
@@ -1424,15 +817,7 @@ import sys, json
 stored = json.loads(sys.stdin.read())
 print(*sorted(stored), sep="\n")'
 else
-# --8<-- [start:pdi-ciphertext]
-docker compose -f docs/guide/examples/compose.yaml exec -T db \
-    psql -U postgres -d tenant_hogwarts -tAc \
-    "SELECT convert_from(payload,'UTF8') FROM state.r5_data WHERE type='Patient' LIMIT 1" \
-  | python3 -c '
-import sys, json
-stored = json.loads(sys.stdin.read())
-print(*sorted(stored), sep="\n")'
-# --8<-- [end:pdi-ciphertext]
+source docs/guide/examples/snippets/pdi-ciphertext.sh
 fi
 stored=$($COMPOSE exec -T db psql -U postgres -d tenant_hogwarts -tAc \
     "SELECT convert_from(payload,'UTF8') FROM state.r5_data WHERE type='Patient' LIMIT 1" \
@@ -1448,68 +833,28 @@ case "$stored" in
 esac
 
 step "asking by name is refused, not answered empty"
-# --8<-- [start:pdi-name-search]
-curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    --data-urlencode "family=Potter" | python3 -c '
-import sys, json
-print(json.load(sys.stdin)["issue"][0]["diagnostics"])'
-# --8<-- [end:pdi-name-search]
+source docs/guide/examples/snippets/pdi-name-search.sh
 byName=$(curl -s -o /dev/null -w '%{http_code}' -G -H "Authorization: Bearer $HOSPITAL" \
     "$HOGWARTS/Patient" --data-urlencode "family=Potter")
 [ "$byName" = "403" ] \
     || fail "a name search under the membrane answered $byName; an empty bundle would have said nobody is called that"
 
 step "and an identifying lookup without a stated reason is refused too"
-# --8<-- [start:pdi-no-purpose]
-# The same credential, minted without saying what it is for.
-NO_REASON=$(token hogwarts hogwarts-secret)
-
-curl -s -G -H "Authorization: Bearer $NO_REASON" "$HOGWARTS/Patient" \
-    --data-urlencode "identifier=urn:rl:nid|RL-0001" | python3 -c '
-import sys, json
-print(json.load(sys.stdin)["issue"][0]["diagnostics"])'
-# --8<-- [end:pdi-no-purpose]
+source docs/guide/examples/snippets/pdi-no-purpose.sh
 unstated=$(curl -s -o /dev/null -w '%{http_code}' -G -H "Authorization: Bearer $NO_REASON" \
     "$HOGWARTS/Patient" --data-urlencode "identifier=urn:rl:nid|RL-0001")
 [ "$unstated" = "403" ] \
     || fail "a person was resolved without a stated purpose, got $unstated"
 
 step "the directory provisions a person, and the capacity comes with them"
-# --8<-- [start:scim-create]
-SCIM=http://localhost:8090/t/hogwarts/scim/v2
-
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/oidc/admin/clients \
-    -d '{"client_id":"staff-directory","secret":"directory-secret","scope":["scim"]}'
-
-DIRECTORY=$(token hogwarts directory-secret staff-directory)
-
-curl -s -X POST -H "Authorization: Bearer $DIRECTORY" \
-    -H 'Content-Type: application/scim+json' "$SCIM/Users" \
-    -d '{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
-         "externalId":"HOG-0042","userName":"mmcgonagall",
-         "name":{"familyName":"McGonagall","givenName":"Minerva"},
-         "active":true}' | python3 -c '
-import sys, json
-user = json.load(sys.stdin)
-print("externalId", user["externalId"])
-print("userName  ", user["userName"])
-print("active    ", user["active"])'
-# --8<-- [end:scim-create]
+source docs/guide/examples/snippets/scim-create.sh
 provisioned=$(curl -sf -G -H "Authorization: Bearer $DIRECTORY" "$SCIM/Users" \
     --data-urlencode 'filter=userName eq "mmcgonagall"' \
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["totalResults"])')
 [ "$provisioned" = "1" ] || fail "the directory did not provision the person, got $provisioned"
 
 step "and that credential reaches the store no further than the door it was given"
-# --8<-- [start:scim-blind]
-curl -s -o /dev/null -w '%{http_code}\n' \
-    -H "Authorization: Bearer $DIRECTORY" "$HOGWARTS/Patient"
-
-curl -s -o /dev/null -w '%{http_code}\n' \
-    -H "Authorization: Bearer $HOSPITAL" "$SCIM/Users"
-# --8<-- [end:scim-blind]
+source docs/guide/examples/snippets/scim-blind.sh
 blind=$(curl -s -o /dev/null -w '%{http_code}' \
     -H "Authorization: Bearer $DIRECTORY" "$HOGWARTS/Patient")
 [ "$blind" = "403" ] || fail "a directory credential read the store, got $blind"
@@ -1518,13 +863,7 @@ shut=$(curl -s -o /dev/null -w '%{http_code}' \
 [ "$shut" = "403" ] || fail "a store credential reached the provisioning door, got $shut"
 
 step "and who is an administrator here is not the directory's to say"
-# --8<-- [start:scim-groups]
-curl -s -X POST -H "Authorization: Bearer $DIRECTORY" \
-    -H 'Content-Type: application/scim+json' "$SCIM/Groups" \
-    -d '{"displayName":"matron"}' | python3 -c '
-import sys, json
-print(json.load(sys.stdin)["detail"])'
-# --8<-- [end:scim-groups]
+source docs/guide/examples/snippets/scim-groups.sh
 governance=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
     -H "Authorization: Bearer $DIRECTORY" -H 'Content-Type: application/scim+json' \
     "$SCIM/Groups" -d '{"displayName":"matron"}')
@@ -1532,29 +871,10 @@ governance=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
     || fail "role governance arrived by provisioning, got $governance"
 
 step "somebody asks to be forgotten"
-# A patient of their own, because erasure is irreversible and every step above
-# this one is still using Harry.
-forgettable=$(curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" \
-    -H 'Content-Type: application/fhir+json' "$HOGWARTS/Patient" \
-    -d '{"resourceType":"Patient",
-         "identifier":[{"system":"urn:rl:nid","value":"RL-FORGET"}],
-         "name":[{"family":"Riddle","given":["Tom"]}],"birthDate":"1926-12-31"}' \
-    | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
+source docs/guide/examples/snippets/somebody-to-forget.sh
 [ -n "$forgettable" ] || fail "the patient who asks to be forgotten was not written"
 
-# --8<-- [start:erasure-ask]
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-    -H "Authorization: Bearer $HOSPITAL" -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/oidc/admin/clients \
-    -d '{"client_id":"rights-desk","secret":"desk-secret","scope":["erasure"]}'
-
-RIGHTS=$(token hogwarts desk-secret rights-desk)
-
-curl -s -X POST -H "Authorization: Bearer $RIGHTS" \
-    -H 'Content-Type: application/json' \
-    http://localhost:8090/t/hogwarts/erasure \
-    -d "{\"subject\":\"Patient/$forgettable\"}"
-# --8<-- [end:erasure-ask]
+source docs/guide/examples/snippets/erasure-ask.sh
 echo
 receipt=$(curl -sf -X POST -H "Authorization: Bearer $RIGHTS" \
     -H 'Content-Type: application/json' http://localhost:8090/t/hogwarts/erasure \
@@ -1563,20 +883,14 @@ receipt=$(curl -sf -X POST -H "Authorization: Bearer $RIGHTS" \
 [ "$receipt" = "True" ] || fail "the erasure answered without a run to show for it"
 
 step "and their number resolves to nobody"
-# --8<-- [start:erasure-unfindable]
-curl -s -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
-    --data-urlencode "identifier=urn:rl:nid|RL-FORGET" \
-  | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])), "found")'
-# --8<-- [end:erasure-unfindable]
+source docs/guide/examples/snippets/erasure-unfindable.sh
 left=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
     --data-urlencode "identifier=urn:rl:nid|RL-FORGET" \
     | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("entry",[])))')
 [ "$left" = "0" ] || fail "an erased person is still resolvable by their number, got $left"
 
 step "while the record keeps its shape and loses the person"
-# --8<-- [start:erasure-remains]
-curl -s -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$forgettable"
-# --8<-- [end:erasure-remains]
+source docs/guide/examples/snippets/erasure-remains.sh
 echo
 remains=$(curl -sf -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient/$forgettable" \
     | python3 -c 'import sys,json;print(",".join(sorted(json.load(sys.stdin))))')

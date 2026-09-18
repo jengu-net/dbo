@@ -18,7 +18,7 @@ not having it.
 ## A transaction
 
 ```bash
---8<-- "docs/guide/examples/check.sh:transaction"
+--8<-- "docs/guide/examples/snippets/transaction.sh"
 ```
 
 ```
@@ -36,7 +36,7 @@ Look at what the bundle said. The patient is written with a placeholder id —
 knows yet:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:transaction-reference"
+--8<-- "docs/guide/examples/snippets/transaction-reference.sh"
 ```
 
 ```
@@ -51,7 +51,7 @@ the client first inventing ids or making a round trip to learn them.
 ## One bad entry takes the rest with it
 
 ```bash
---8<-- "docs/guide/examples/check.sh:transaction-refused"
+--8<-- "docs/guide/examples/snippets/transaction-refused.sh"
 ```
 
 ```
@@ -74,7 +74,7 @@ other. Failing all of them because one was malformed would be its own kind of
 wrong.
 
 ```bash
---8<-- "docs/guide/examples/check.sh:batch"
+--8<-- "docs/guide/examples/snippets/batch.sh"
 ```
 
 ```

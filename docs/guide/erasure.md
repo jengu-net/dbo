@@ -17,8 +17,16 @@ This store does not chase them. It destroys the key.
 
 ## Asking
 
+Somebody to forget, first — and somebody of their own rather than a patient the
+earlier chapters are still using, because this is the one operation here that
+cannot be undone:
+
 ```bash
---8<-- "docs/guide/examples/check.sh:erasure-ask"
+--8<-- "docs/guide/examples/snippets/somebody-to-forget.sh"
+```
+
+```bash
+--8<-- "docs/guide/examples/snippets/erasure-ask.sh"
 ```
 
 ```json
@@ -47,7 +55,7 @@ code.
 ## What it did
 
 ```bash
---8<-- "docs/guide/examples/check.sh:erasure-unfindable"
+--8<-- "docs/guide/examples/snippets/erasure-unfindable.sh"
 ```
 
 ```
@@ -63,7 +71,7 @@ them.
 The record itself is still there, and empty of them:
 
 ```bash
---8<-- "docs/guide/examples/check.sh:erasure-remains"
+--8<-- "docs/guide/examples/snippets/erasure-remains.sh"
 ```
 
 ```json
