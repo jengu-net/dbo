@@ -39,52 +39,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ATypeSaysWhoDecidesAWriteOfItIT {
 
-    private static final String ROOT = "otsustaja-juur";
+    static SharedTenants.Tenant tenant;
+    static String ROOT;
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-verdict");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ATypeSaysWhoDecidesAWriteOfItIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        // A face root, so the version's definitions are records here and the
-        // database has something to decide from.
-        Files.writeString(dir.resolve(ROOT + ".json"), """
-                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
-                 "types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
-                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
-                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
-                  {"name":"Patient","identity":"internal","handling":"operational",
-                   "verdict":"database"},
-                  {"name":"Observation","identity":"internal","handling":"operational"}]}"""
-                .formatted(ROOT));
-        UntilServed.scan(manager, ROOT);
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        // Shared. A face root holds the version's whole definition set,
+        // which is the most expensive thing this suite builds — and four
+        // classes were each building one to ask a question about what the
+        // version says, not about the tenant holding it.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_FACE_ROOT);
+        ROOT = tenant.code();
     }
 
     private static void write(String document) {
-        manager.runtime(ROOT).orElseThrow().store().create(document);
+        tenant.store().create(document);
     }
 
     @Test

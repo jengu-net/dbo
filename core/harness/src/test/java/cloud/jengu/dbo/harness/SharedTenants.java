@@ -58,7 +58,7 @@ public final class SharedTenants {
                 [{"name":"Patient","identity":"internal","handling":"operational"},
                  {"name":"Observation","identity":"internal","handling":"operational"},
                  {"name":"Encounter","identity":"internal","handling":"operational"},
-                 {"name":"Basic","identity":"internal","handling":"operational"}]""", "r4", false),
+                 {"name":"Basic","identity":"internal","handling":"operational"}]""", "r4", "", "full"),
 
         /** r4 with patients keyed by the national identifier, plus canonical content. */
         R4_IDENTIFIER("""
@@ -69,7 +69,7 @@ public final class SharedTenants {
                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"}]"""
-                .formatted(EID), "r4", false),
+                .formatted(EID), "r4", "", "full"),
 
         /** r4 behind the isolation membrane, with the person types a directory writes. */
         R4_ISOLATED("""
@@ -77,22 +77,47 @@ public final class SharedTenants {
                   "handling":"operational"},
                  {"name":"Person","identity":"internal","handling":"operational"},
                  {"name":"Practitioner","identity":"internal","handling":"operational"}]"""
-                .formatted(EID), "r4", true),
+                .formatted(EID), "r4", ",\"pdi\":true", "full"),
 
         /** r5, for anything that has to be served beside r4 rather than instead of it. */
         R5("""
                 [{"name":"Patient","identity":"internal","handling":"operational"},
                  {"name":"Observation","identity":"internal","handling":"operational"}]""",
-                "r5", false);
+                "r5", "", "full"),
+
+        /**
+         * A face root: it holds the version's whole definition set as records,
+         * which is the expensive thing in this suite and was being built four
+         * times over. Patient declares the database as its verdict because one
+         * class needs that and the others never write a Patient.
+         */
+        R4_FACE_ROOT("""
+                [{"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                 {"name":"SearchParameter","identity":"canonical","handling":"operational"},
+                 {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                 {"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                 {"name":"Patient","identity":"internal","handling":"operational",
+                  "verdict":"database"},
+                 {"name":"Observation","identity":"internal","handling":"operational"}]""",
+                "r4", ",\"faceRoot\":true", "none");
 
         private final String types;
         private final String face;
-        private final boolean isolated;
+        /** What sits beside the types — the flags a shape turns on for itself. */
+        private final String extras;
+        /**
+         * Its audit level. Full for the ordinary shapes, because a trail is
+         * part of what they are for; none for a face root, which would
+         * otherwise write an entry for every definition of the version it
+         * holds and spend longer doing that than bringing the face up.
+         */
+        private final String audit;
 
-        Shape(String types, String face, boolean isolated) {
+        Shape(String types, String face, String extras, String audit) {
             this.types = types;
             this.face = face;
-            this.isolated = isolated;
+            this.extras = extras;
+            this.audit = audit;
         }
 
         /** The tenant code, which is the shape's own name: shared means shared. */
@@ -136,9 +161,8 @@ public final class SharedTenants {
         return UP.computeIfAbsent(shape, s -> {
             try {
                 Files.writeString(directory.resolve(s.code() + ".json"), """
-                        {"code":"%s","face":"%s"%s,"audit":{"level":"full"},"types":%s}"""
-                        .formatted(s.code(), s.face, s.isolated ? ",\"pdi\":true" : "",
-                                s.types));
+                        {"code":"%s","face":"%s"%s,"audit":{"level":"%s"},"types":%s}"""
+                        .formatted(s.code(), s.face, s.extras, s.audit, s.types));
                 UntilServed.scan(MANAGER, s.code());
                 return new Tenant(s.code());
             } catch (Exception e) {
@@ -163,6 +187,24 @@ public final class SharedTenants {
 
         public ObjectStore engine() {
             return MANAGER.runtime(code).orElseThrow().engine();
+        }
+
+        /** The facade a face serves through, for the classes that drive it directly. */
+        public cloud.jengu.dbo.fhir.common.FhirStoreFacade store() {
+            return MANAGER.runtime(code).orElseThrow().store();
+        }
+
+        /**
+         * The URL of this tenant's own database.
+         *
+         * <p>For the few classes that look at what was actually stored. It is
+         * derived from the shared provisioner's URL rather than from a class
+         * name, which is what a converted class would otherwise keep pointing
+         * at — a database belonging to the world it no longer builds.
+         */
+        public String databaseUrl() {
+            return SharedPostgres.urlFor("sharedtenants")
+                    .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + code.replace('-', '_'));
         }
 
         public ChangeFeed feed() {

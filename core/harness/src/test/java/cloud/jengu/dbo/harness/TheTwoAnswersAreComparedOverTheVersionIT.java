@@ -51,7 +51,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TheTwoAnswersAreComparedOverTheVersionIT {
 
-    private static final String ROOT = "korpus-juur";
+    static SharedTenants.Tenant tenant;
+    static String ROOT;
 
     /**
      * Per type, so the slow ones do not decide how long this takes and the
@@ -62,43 +63,17 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
 
     private static final Path BASELINE = Path.of("..", "..", "config", "divergence-baseline.txt");
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static DefinitionStore definitions;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-corpus");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("TheTwoAnswersAreComparedOverTheVersionIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(ROOT + ".json"), """
-                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
-                 "types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
-                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
-                  {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
-                .formatted(ROOT));
-        UntilServed.scan(manager, ROOT);
+        // Shared. A face root holds the version's whole definition set,
+        // which is the most expensive thing this suite builds — and four
+        // classes were each building one to ask a question about what the
+        // version says, not about the tenant holding it.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_FACE_ROOT);
+        ROOT = tenant.code();
         definitions = new DefinitionStore(source());
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -184,7 +159,7 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
 
     private boolean theToolchainRefuses(byte[] document) {
         try {
-            String outcome = manager.runtime(ROOT).orElseThrow().store()
+            String outcome = tenant.store()
                     .validationOutcome(new String(document, StandardCharsets.UTF_8));
             return outcome.contains("\"severity\":\"error\"")
                     || outcome.contains("\"severity\":\"fatal\"");
@@ -275,10 +250,9 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
 
     private static PGSimpleDataSource source() {
         PGSimpleDataSource source = new PGSimpleDataSource();
-        source.setUrl(SharedPostgres.urlFor("x")
-                .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + ROOT.replace('-', '_')));
-        source.setUser(postgres.getUsername());
-        source.setPassword(postgres.getPassword());
+        source.setUrl(tenant.databaseUrl());
+        source.setUser(SharedPostgres.get().getUsername());
+        source.setPassword(SharedPostgres.get().getPassword());
         return source;
     }
 }
