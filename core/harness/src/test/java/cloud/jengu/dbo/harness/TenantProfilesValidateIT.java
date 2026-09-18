@@ -51,41 +51,28 @@ class TenantProfilesValidateIT {
             {"resourceType":"Observation","status":"final","code":{"text":"pulse"},
              "meta":{"profile":["https://sonavara.example/StructureDefinition/observed-on-somebody"]}}""";
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
+    static SharedTenants.Tenant tenant;
     static String base;
+    static String token;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-tenants-profiles");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("TenantProfilesValidateIT"),
-                postgres.getUsername(), postgres.getPassword());
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
-        Files.writeString(dir.resolve("profiilid.json"), """
-                {"code":"profiilid","face":"r4","types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"Observation","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, up -> up.contains("profiilid"));
-        base = manager.baseUrl("profiilid");
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        // Shared. This is about a profile the tenant authored taking effect
+        // where it stands, which needs a tenant holding canonical
+        // StructureDefinitions rather than one of its own. The profile binds
+        // only the documents that claim it by meta.profile, so no other class
+        // writing an Observation here is held to it.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_IDENTIFIER);
+        base = tenant.fhir();
+        // The private runtime here carried no authority, so its surface
+        // answered anybody. A shared tenant is guarded like the real thing.
+        token = tenant.token("tenant-profiles", "system/*.read", "system/*.write");
     }
 
     private static HttpResponse<String> post(String path, String body) throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create(base + path))
+                        .header("Authorization", "Bearer " + token)
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());

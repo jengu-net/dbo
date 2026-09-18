@@ -15,7 +15,13 @@ cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 own=0
 shared=0
 for test in $(find core -name '*IT.java' -path '*/src/test/*' -not -path '*/build/*'); do
-    if grep -qE 'TenantRuntimeManager|PostgreSQLContainer|SharedPostgres|SharedTenants' "$test"; then
+    # A class that takes a shared tenant is NOT paying for a world, even
+    # though it still names the harness's fixtures — so the shared case is
+    # asked first. Getting this the wrong way round counted every conversion
+    # as no progress at all.
+    if grep -q 'SharedTenants\.' "$test"; then
+        shared=$((shared + 1))
+    elif grep -qE 'TenantRuntimeManager|PostgreSQLContainer|SharedPostgres' "$test"; then
         own=$((own + 1))
     else
         shared=$((shared + 1))

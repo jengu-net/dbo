@@ -71,16 +71,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ARouterHoldsTheClaimIT {
 
-    private static final String TENANT = "routerhost";
+    static SharedTenants.Tenant tenant;
+    static String TENANT;
     private static final String STEP = "dbo.lab.assay";
     private static final String MARKER = "specimen-plaintext-4a71";
     private static final StepDeclaration ASSAY = StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
             .taking("specimen", "https://meristem.example/shape/specimen");
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
     static URI laneUri;
     static ObjectStore engine;
@@ -91,48 +88,30 @@ class ARouterHoldsTheClaimIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-router-claim");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ARouterHoldsTheClaimIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"writes"},"types":[
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(TENANT));
-        UntilServed.scan(manager, TENANT);
-        laneUri = URI.create("http://127.0.0.1:" + manager.port() + "/t/" + TENANT + "/work");
-        engine = manager.runtime(TENANT).orElseThrow().engine();
+        // Shared. What this proves is about a router holding a claim it
+        // cannot open, not about a tenant: it needs somewhere to keep a Basic
+        // and two enrolled participants, and a shared tenant takes both
+        // without the next class noticing.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
+        TENANT = tenant.code();
+        laneUri = URI.create(tenant.base() + "/work");
+        engine = tenant.engine();
         runs = new Runs(engine);
 
         // The gateway: a credential and no keys — it opens nothing. The
         // edge: enrolled with both keys, reachable only through the gateway.
-        manager.authority(TENANT).ensureClient("gateway", "gateway-secret", List.of("work/" + STEP));
+        tenant.authority().ensureClient("gateway", "gateway-secret", List.of("work/" + STEP));
         edgeSealing = KeyWrap.newParticipantKeyPair();
         edgeSigning = SigningKey.newKeyPair();
-        manager.authority(TENANT).ensureClient("bench-7", "bench-secret", List.of(),
+        tenant.authority().ensureClient("bench-7", "bench-secret", List.of(),
                 ParticipantKey.of(edgeSealing.getPublic()), SigningKey.of(edgeSigning.getPublic()));
-        manager.authority(TENANT).ensureClient("bench-9", "bench-secret", List.of());
+        tenant.authority().ensureClient("bench-9", "bench-secret", List.of());
         gateway = HttpLane.to(laneUri, () -> token("gateway", "gateway-secret"), TENANT, "gateway",
                 new Executor("gateway", "1.0", "cloud.jengu.test", Scope.BASELINE));
         gateway.introduce(ASSAY);
         gateway.routes(List.of(
                 Trackable.routed("bench-7", "analyser", "gateway", Map.of("power", "on")),
                 Trackable.routed("bench-9", "analyser", "gateway", Map.of("power", "on"))));
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -273,8 +252,7 @@ class ARouterHoldsTheClaimIT {
                     + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
                     + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
             String body = http.send(HttpRequest.newBuilder(
-                                    URI.create("http://127.0.0.1:" + manager.port()
-                                            + "/t/" + TENANT + "/oidc/token"))
+                                    URI.create(tenant.base() + "/oidc/token"))
                             .header("Content-Type", "application/x-www-form-urlencoded")
                             .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                     HttpResponse.BodyHandlers.ofString()).body();

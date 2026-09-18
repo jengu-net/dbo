@@ -38,49 +38,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContentHeldWholeIsReachableOverTheWireIT {
 
-    private static final String CLINIC = "sisu-klinik";
+    static SharedTenants.Tenant tenant;
+    static String CLINIC;
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static String writer;
     static String reader;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-blob-wire");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ContentHeldWholeIsReachableOverTheWireIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CLINIC + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"none"},
-                 "types":[
-                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
-                .formatted(CLINIC));
-        UntilServed.scan(manager, CLINIC);
-        manager.authority(CLINIC).ensureClient("a-writer", "writer-secret",
-                List.of("system/*.write", "system/*.read"));
-        manager.authority(CLINIC).ensureClient("a-reader", "reader-secret",
-                List.of("system/*.read"));
-        writer = token("a-writer", "writer-secret", "system/*.write system/*.read");
-        reader = token("a-reader", "reader-secret", "system/*.read");
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        // Shared. Blobs are keyed by what the store assigns, so every
+        // assertion below is about the bytes this class just wrote and none
+        // of them counts what the tenant holds.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
+        CLINIC = tenant.code();
+        writer = tenant.token("blob-wire-writer", "system/*.write", "system/*.read");
+        reader = tenant.token("blob-wire-reader", "system/*.read");
     }
 
     @Test
@@ -188,7 +161,7 @@ class ContentHeldWholeIsReachableOverTheWireIT {
     }
 
     private static String base() {
-        return "http://127.0.0.1:" + manager.port();
+        return "http://127.0.0.1:" + SharedTenants.manager().port();
     }
 
     private static HttpResponse<String> put(byte[] content, String media, String bearer)
@@ -214,7 +187,7 @@ class ContentHeldWholeIsReachableOverTheWireIT {
                 + "&client_secret=" + secret + "&scope="
                 + URLEncoder.encode(scope, StandardCharsets.UTF_8);
         String body = HTTP.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(CLINIC).replace("/fhir", "/oidc/token")))
+                        URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
