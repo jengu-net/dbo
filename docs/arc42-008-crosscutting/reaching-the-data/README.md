@@ -213,6 +213,67 @@ its reach.
 belongs on the data plane, under the same run, and reachable by the same
 erasure.
 
+### Running inside the container is not an answer
+
+The question arrives the first time something *inside* the runtime wants a
+feed: a bundle beside the store could open the tables directly, so what does a
+feed hand it that it could not already have?
+
+Nothing — and the argument still fails, because it proves too much. It would
+excuse every surface the runtime grows, including the general records door this
+document exists to close. It is also an answer about **trust**, and the three
+things a step confers are authorisation, purpose and accountability. A bundle
+being trustworthy supplies none of them: a feed it consumes has no run to name
+in the trail, and no reason attached to what it saw.
+
+So the discriminator is not *where the code runs*. It is **whether what flows
+was declared**:
+
+| | declared? | |
+|---|---|---|
+| a run's inputs, delivered to a runner | yes — they are what the step named | inside, by construction |
+| a domain feed of record content | no — the domain is handed over whole | a crossing |
+
+A queued or carried task is safe for a reason that has nothing to do with
+trust: its payload is exactly the reach the step declared, so the delivery
+*is* the declaration being honoured. A feed has no such bound.
+
+### A feed says what changed, not what it says
+
+The obvious repair — let an observer declare the types it may receive — is the
+one this document has already refused, a few paragraphs up: a declaration of
+types with no anchor is *"type-level access control wearing a step's clothing,
+which is weaker than a decent role model and worse for being mistaken for a
+boundary."* A feed cannot carry an anchor, because a feed is not about
+anything; it is everything, in order. So it can never reach the bar, and
+pretending otherwise would put the decorative boundary back with a declaration
+stapled to it.
+
+What a feed may carry is therefore **the fact of a change and not its
+content**: the type, the identity, the version, when it happened, whether it
+was a deletion. A consumer that needs the record performs a step and reads it
+in the run context, where the three things arrive together as they do for
+everybody else.
+
+This is not a loss of function. A feed is for noticing, and most consumers of
+one want to notice: an encounter closed, a document arrived, a claim is ready
+to bill. The ones that genuinely need every payload were the ones taking the
+feed instead of the data plane, which is the case this rule is about.
+
+Two domains are exempt, and each says which of the five reasons it is:
+
+- **`work`** is *self-reference*. Runs, claims and closes are the machinery's
+  own bookkeeping, and a task describing the delivery of a task does not
+  terminate.
+- **`identity`** is the same: credentials, delegations and provisioning are how
+  a task comes to be authorised at all, so requiring a task to observe them is
+  the regress that reason exists for.
+
+**`audit` is not exempt**, and it is the one where the temptation is greatest.
+This document already says reading the trail is the most sensitive read in the
+store, because it says who saw whom — so an observer of it learns that an entry
+was written, and reads it through a step like anyone else.
+
 ## Where this stands
 
 **One slice is built.** A tenant declares the steps it offers beside the types

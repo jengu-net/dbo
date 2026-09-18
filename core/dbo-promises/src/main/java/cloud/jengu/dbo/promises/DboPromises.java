@@ -837,6 +837,21 @@ public enum DboPromises implements Promise {
             + "does not have. A filter that cannot be parsed is refused where it is "
             + "registered, because one consulted later would match nothing in silence."),
 
+    TEN_A_FEED_SAYS_WHAT_CHANGED_NOT_WHAT_IT_SAYS("An observer of a tenant's records or "
+            + "of its trail is told that something changed — the type, the identity, the "
+            + "version, when, and whether it was a deletion — and never the content. A "
+            + "consumer that needs the record performs a step and reads it in the run "
+            + "context, where authorisation, purpose and accountability arrive together. "
+            + "Running inside the container is not an exemption: that is a fact about "
+            + "trust, and a feed confers none of the three, because there is no run to "
+            + "name in the trail and no reason attached to what was seen. Nor can a feed "
+            + "declare its way across, since a declaration of types with no anchor is "
+            + "type-level access control wearing a step's clothing and a feed has no "
+            + "anchor to give. Work and identity carry their content, each because one of "
+            + "the enumerated reasons already admits it: they are the machinery's own "
+            + "bookkeeping, and a task describing the delivery of a task does not "
+            + "terminate."),
+
     TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS("Configuration a declarer holds — value "
             + "sets, profiles, search parameters, whatever a loader keeps — is handed over "
             + "and applied to a tenant as one recorded pass rather than posted a resource "
