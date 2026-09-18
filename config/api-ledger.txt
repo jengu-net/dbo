@@ -2936,6 +2936,7 @@ cloud.jengu.dbo.runner.ProvingLane                                     routes(Li
 cloud.jengu.dbo.runner.ProvingLane                                     sealed(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.SealedWork
 cloud.jengu.dbo.runner.ProvingLane                                     sealed(cloud.jengu.dbo.work.Run,List):cloud.jengu.dbo.work.SealedWork
 cloud.jengu.dbo.runner.ProvingLane                                     tenant():String
+cloud.jengu.dbo.runner.ProvingLane                                     wakeups():Optional
 cloud.jengu.dbo.runner.ProvingLane                                     withdraw(cloud.jengu.dbo.work.Declarations.Declared):void
 cloud.jengu.dbo.runner.ProvingLane.Ended                               CLOSED:cloud.jengu.dbo.runner.ProvingLane.Ended
 cloud.jengu.dbo.runner.ProvingLane.Ended                               NOT_YET:cloud.jengu.dbo.runner.ProvingLane.Ended
@@ -3093,6 +3094,7 @@ cloud.jengu.dbo.runner.http.WireLane                                   routes(Li
 cloud.jengu.dbo.runner.http.WireLane                                   sealed(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.SealedWork
 cloud.jengu.dbo.runner.http.WireLane                                   sealed(cloud.jengu.dbo.work.Run,List):cloud.jengu.dbo.work.SealedWork
 cloud.jengu.dbo.runner.http.WireLane                                   tenant():String
+cloud.jengu.dbo.runner.http.WireLane                                   wakeups():Optional
 cloud.jengu.dbo.runner.http.WireLane                                   withdraw(cloud.jengu.dbo.work.Declarations.Declared):void
 cloud.jengu.dbo.runner.http.WireLane.Reply                             body():String
 cloud.jengu.dbo.runner.http.WireLane.Reply                             equals(Object):boolean

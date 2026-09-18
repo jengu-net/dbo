@@ -204,10 +204,16 @@ public interface Lane {
      * it waited.
      *
      * <p>What arrives is a nudge and never work: see {@link Wakeups}.
+     *
+     * <p>Abstract, not defaulted, for the reason every verb here is: a lane
+     * that inherited this would be a lane nothing ever wakes, and it would say
+     * so nowhere. Empty is the right answer for most bindings and it is worth
+     * one line to say it, because the binding that could have woken and
+     * forgot to is indistinguishable from the one that cannot — by design,
+     * from above the facade, which is exactly why it cannot be left to a
+     * default down here.
      */
-    default Optional<Wakeups> wakeups() {
-        return Optional.empty();
-    }
+    Optional<Wakeups> wakeups();
 
     /** Takes one, or does not — the claim race is the scheduler. */
     Optional<Run> claim(Run run, Duration holdFor);

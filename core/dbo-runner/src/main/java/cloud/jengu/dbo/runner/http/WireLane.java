@@ -4,6 +4,7 @@ import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.core.wire.RecordWire;
 import cloud.jengu.dbo.runner.Lane;
+import cloud.jengu.dbo.runner.Wakeups;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Run;
@@ -100,6 +101,17 @@ public class WireLane implements Lane {
     @Override
     public Executor identity() {
         return identity;
+    }
+
+    /**
+     * Nothing, because plain HTTP has no way back: this lane asks and is
+     * answered, and the far side holds no channel on which to say that work
+     * appeared. A runner over one of these waits out its tick, which is what
+     * every runner did before a lane could say anything at all.
+     */
+    @Override
+    public Optional<Wakeups> wakeups() {
+        return Optional.empty();
     }
 
     @Override
