@@ -353,6 +353,38 @@ public interface Lane {
     cloud.jengu.dbo.work.SealedWork sealed(Run run, List<String> recipients);
 
     /**
+     * Identity, reassembled by the tenant and sealed back to the asker.
+     *
+     * <p>Opening a sealed payload yields the <b>carrier form</b>: the record
+     * with its identifying elements still under the person's key. That is
+     * enough for most work, and it is why a runner needs no vault to do its
+     * job. Putting a person back together is a further act, and this is it.
+     *
+     * <p><b>A callback, everywhere, and not only where the runner is far
+     * away.</b> Handing a runner the vault would put identity reassembly
+     * somewhere nothing records it, and the trail exists to answer who saw
+     * whom. Asking the tenant makes every reassembly an act performed where
+     * it can be written down, with the run that occasioned it and the purpose
+     * that was stated for it. In an appliance this is a local call, so the one
+     * rule costs nothing to keep.
+     *
+     * <p><b>The answer comes back sealed.</b> On the stream it crosses a plane
+     * that holds nothing readable, and returning reassembled identity in the
+     * clear there would put identifying data on the one plane a ratchet reads
+     * every row of. Sealed to the asker alone — not to the recipients a
+     * payload may be shared with, because this is the answer to a question
+     * this participant asked.
+     *
+     * <p>Refused for a reference the run does not name, which is the same
+     * boundary every other reach has, and refused without a stated purpose,
+     * because an identifying read with no reason is what the store refuses
+     * everywhere else.
+     *
+     * @param purpose an HL7 PurposeOfUse code, recorded with the disclosure
+     */
+    cloud.jengu.dbo.work.SealedPayload identified(Run run, String reference, String purpose);
+
+    /**
      * This identity opened one sealed document of the run, with the key it
      * holds. Reported from where the key is used, because that is the only
      * place the opening is a fact; lands on the document as its access
@@ -843,6 +875,93 @@ public interface Lane {
                                 current.inputs(), List.copyOf(recipients.keySet()),
                                 head(current)),
                         payload);
+            }
+
+            @Override
+            public cloud.jengu.dbo.work.SealedPayload identified(Run run, String reference,
+                    String purpose) {
+                Run current = claimedByThisIdentity(run);
+                if (!current.inputs().containsValue(reference)) {
+                    throw new IllegalStateException(tenant + ": run '" + current.key()
+                            + "' names no input '" + reference + "' to identify");
+                }
+                if (!cloud.jengu.dbo.core.api.Disclosure.statable(purpose)) {
+                    throw new IllegalStateException(tenant + ": putting a person back together "
+                            + "is an identifying read and needs a stated purpose — an HL7 "
+                            + "PurposeOfUse code such as TREAT or PATRQT");
+                }
+                cloud.jengu.dbo.core.api.seal.ParticipantKey key = keys == null
+                        ? null : keys.of(identity.name()).orElse(null);
+                if (key == null) {
+                    // Not an oversight to seal to nobody: the answer is the
+                    // one thing on this lane that must not travel readable,
+                    // so a participant with no key cannot be given it at all.
+                    throw new IllegalStateException(tenant + ": '" + identity.name()
+                            + "' offered no key at enrolment, and reassembled identity is "
+                            + "not handed over in the clear");
+                }
+                if (objects == null) {
+                    throw new IllegalStateException(tenant + ": this host holds no records to "
+                            + "identify from");
+                }
+                if (trail == null) {
+                    // The same rule an opening is held to, and this is the
+                    // stronger case: what is handed back here is the person,
+                    // so a host with nowhere to write that down may not do it
+                    // at all. Refused here rather than performed quietly,
+                    // because the callback's entire advantage over handing
+                    // the vault to the runner is that it is recorded.
+                    throw new IllegalStateException(tenant + ": this host keeps no trail to "
+                            + "record a reassembly in, and identity is not put back together "
+                            + "off the record");
+                }
+                int slash = reference.indexOf('/');
+                if (slash <= 0 || reference.indexOf('/', slash + 1) >= 0) {
+                    throw new IllegalStateException(tenant + ": '" + reference
+                            + "' is not a Type/id");
+                }
+                String slot = current.inputs().entrySet().stream()
+                        .filter(input -> reference.equals(input.getValue()))
+                        .map(Map.Entry::getKey).findFirst().orElseThrow();
+                // The read that reassembles, performed HERE: the run is named
+                // so the entry lands on the document with this run as its
+                // occasion, and the purpose is stated so the entry says what
+                // it was said to be for. Both are why this is a callback
+                // rather than a vault handed over.
+                String outer = cloud.jengu.dbo.core.api.Caller.run();
+                cloud.jengu.dbo.core.api.Caller.setRun(current.key());
+                cloud.jengu.dbo.core.api.Disclosure.set(
+                        cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE, purpose);
+                StoredObject whole;
+                try {
+                    whole = objects.get(reference.substring(0, slash),
+                                    reference.substring(slash + 1))
+                            .orElseThrow(() -> new IllegalStateException(tenant + ": '"
+                                    + reference + "' is not here to identify"));
+                } finally {
+                    cloud.jengu.dbo.core.api.Disclosure.clear();
+                    if (outer == null) {
+                        cloud.jengu.dbo.core.api.Caller.clearRun();
+                    } else {
+                        cloud.jengu.dbo.core.api.Caller.setRun(outer);
+                    }
+                }
+                // Authored by the store, and unsigned by the participant on
+                // purpose. An opening reported through opened() carries the
+                // participant's signature because the participant did it
+                // somewhere the store cannot see; this one the store did
+                // itself, at the participant's request, so there is nothing
+                // for the participant to attest and nothing it could refuse
+                // to have attested.
+                String previous = head(current);
+                String link = cloud.jengu.dbo.work.RunChain.accessLink(previous, current.key(),
+                        reference, identity.name());
+                trail.opened(current, identity.name(), reference.substring(0, slash),
+                        reference.substring(slash + 1),
+                        new cloud.jengu.dbo.work.RunChain.Link("access", previous, link,
+                                identity.name(), reference, null));
+                return cloud.jengu.dbo.work.SealedPayload.seal(slot, reference, whole,
+                        Map.of(identity.name(), key));
             }
 
             @Override

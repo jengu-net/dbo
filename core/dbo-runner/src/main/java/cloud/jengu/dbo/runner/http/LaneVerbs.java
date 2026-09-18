@@ -34,7 +34,12 @@ public enum LaneVerbs {
     /** The same run's inputs, sealed to the asker's enrolment key: what a keyed participant gets. */
     SEALED("sealed"),
     /** The asker opened one sealed document — the access entry, from where the key was used. */
-    OPENED("opened");
+    OPENED("opened"),
+    /**
+     * One of the run's documents with its person put back together, sealed to
+     * the asker: the reassembly performed at the tenant, where it is recorded.
+     */
+    IDENTIFIED("identified");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
     public static final String PARTICIPANT = "participant";
@@ -69,6 +74,12 @@ public enum LaneVerbs {
     public static final String LINK = "link";
     public static final String SIGNATURE = "signature";
     public static final String RESULT = "result";
+    /**
+     * Why an identifying read is being asked for — an HL7 PurposeOfUse code.
+     * Stated by the asker and recorded by the tenant; stating it is not
+     * authorisation, and what it does is put the reason in the trail.
+     */
+    public static final String PURPOSE = "purpose";
     /** A refusal travels as a refusal: this flag, and why. */
     public static final String REFUSED = "refused";
 

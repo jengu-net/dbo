@@ -135,7 +135,12 @@ class ALaneStaysTransportShapedTest {
         // over answers empty and its runner waits out its tick. It is abstract
         // for the second rule's reason, unweakened — a lane that inherited it
         // would be a lane nothing ever wakes, saying so nowhere.
-        assertEquals(20, verbs.size(),
+        // 21 since identity is reassembled at the tenant. A run, a
+        // reference and a purpose go out and a sealed payload comes back —
+        // all four are data, which is what keeps this verb inside the first
+        // rule: what it does NOT do is hand over the vault, and a verb that
+        // did would have named a handle here and failed.
+        assertEquals(21, verbs.size(),
                 "the verb count changed; a new verb is exactly what these rules are for");
         return verbs;
     }

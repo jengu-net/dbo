@@ -373,6 +373,21 @@ public final class ProvingLane implements Lane {
         throw new UnsupportedOperationException(notHere("routing for an edge"));
     }
 
+    /**
+     * Refused, and said rather than returned empty. This lane has no store,
+     * no vault and no trail, so there is no person here to put back together
+     * and nowhere to record having done it — and a fixture that answered
+     * anyway would let a service be proven against an identity nobody
+     * disclosed.
+     */
+    @Override
+    public cloud.jengu.dbo.work.SealedPayload identified(Run run, String reference,
+            String purpose) {
+        throw new UnsupportedOperationException("a proving lane holds no identity to "
+                + "reassemble, and no trail to record a disclosure in: prove a step that "
+                + "needs one against a tenant");
+    }
+
     @Override
     public cloud.jengu.dbo.work.SealedWork sealed(Run run) {
         throw new UnsupportedOperationException(notHere("sealed work"));
