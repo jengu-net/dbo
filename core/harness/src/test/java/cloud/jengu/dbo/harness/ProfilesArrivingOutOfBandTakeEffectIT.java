@@ -62,50 +62,37 @@ class ProfilesArrivingOutOfBandTakeEffectIT {
             {"resourceType":"Observation","status":"final","code":{"text":"pulse"},
              "meta":{"profile":["%s"]}}""".formatted(CANONICAL);
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
+    static SharedTenants.Tenant tenant;
     static String base;
+    static String token;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-tenants-outofband");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ProfilesArrivingOutOfBandTakeEffectIT"),
-                postgres.getUsername(), postgres.getPassword());
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
-        Files.writeString(dir.resolve("saabuja.json"), """
-                {"code":"saabuja","face":"r4","types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"Observation","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, up -> up.contains("saabuja"));
-        base = manager.baseUrl("saabuja");
+        // Shared. What this class is about is a profile arriving by a path no
+        // facade served and taking effect anyway — it needs a tenant that
+        // holds canonical StructureDefinitions, not one of its own. The
+        // profiles it writes are claimed by meta.profile, so they bind only
+        // the documents that claim them and no other class is held to them.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_IDENTIFIER);
+        base = tenant.fhir();
+        // A private tenant here was built without an authority, so its surface
+        // answered anybody. A shared one is guarded like the real thing, which
+        // is the more honest surface to be testing against anyway.
+        token = tenant.token("out-of-band-profiles", "system/*.read", "system/*.write");
         // whatever the bring-up feed already holds is somebody else's news
-        manager.shapesRound();
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        SharedTenants.manager().shapesRound();
     }
 
     @Test
     @Order(1)
     void aProfileWrittenPastTheFacadeIsInTheStore() {
-        manager.runtime("saabuja").orElseThrow().engine().put(PutRequest.create(
+        tenant.engine().put(PutRequest.create(
                 "StructureDefinition", PROFILE.getBytes(StandardCharsets.UTF_8)));
         // The one written here, not the only one there: the face publishes its
         // own definitions into every tenant, so a count is a statement about
         // how many OTHER things exist and breaks when one is added.
-        assertTrue(manager.runtime("saabuja").orElseThrow().engine()
+        assertTrue(tenant.engine()
                         .select(cloud.jengu.dbo.core.api.Criteria.of("StructureDefinition"))
                         .stream()
                         .map(o -> new String(o.payload(), StandardCharsets.UTF_8))
@@ -132,7 +119,7 @@ class ProfilesArrivingOutOfBandTakeEffectIT {
     @Test
     @Order(3)
     void afterTheRoundTheTenantsOwnRuleApplies() throws Exception {
-        assertEquals(1, manager.shapesRound(),
+        assertEquals(1, SharedTenants.manager().shapesRound(),
                 "exactly one tenant had a profile arrive without its facade knowing");
 
         HttpResponse<String> refused = post("/Observation", WITHOUT_SUBJECT);
@@ -153,12 +140,13 @@ class ProfilesArrivingOutOfBandTakeEffectIT {
     @Test
     @Order(4)
     void aRoundWithNothingNewDoesNothing() {
-        assertEquals(0, manager.shapesRound(),
+        assertEquals(0, SharedTenants.manager().shapesRound(),
                 "the feed is the trigger, so a quiet round costs a read and no rebuild");
     }
 
     private static HttpResponse<String> post(String path, String body) throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create(base + path))
+                        .header("Authorization", "Bearer " + token)
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
