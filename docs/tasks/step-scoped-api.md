@@ -20,8 +20,7 @@ own door.
 
 ## Where it stands
 
-Built and proven; the chapter that demonstrates it lands with the pin that can
-serve it. The slice turned out to be enforcement rather than design:
+Built and proven. The slice turned out to be enforcement rather than design:
 three promises were already PROVEN — a step declaration names its input slots,
 a run's inputs fill them fixed at creation with undeclared and unfilled slots
 both refused by name, and each input renders as `Task.input`, all by
@@ -46,11 +45,8 @@ context is read-only, and the general surface is untouched.
 5. ~~A run-scoped read surface answering for `run.inputs()`~~ — **done**.
 6. ~~A client holding `work` and not `system/*`~~ — **done**; registration.
 7. ~~The context's metadata lists only the declared types~~ — **done**.
-8. A guide chapter using it. **Written and verified against a tree-built
-   image, and it lands with the pin.** The guide's world runs the pinned
-   image, so a chapter demonstrating a surface the pin does not carry fails
-   the build it is added in — which is why the chapter, and the pin that can
-   serve it, move together in a second change.
+8. ~~A guide chapter using it~~ — **done**: `runs.md`, running as twenty-one
+   steps of the shared world and in `docs/guide/examples/check.sh`.
 9. ~~The reading is on the record, naming the run~~ — **done**. The mechanism
    was already there: `Caller.setRun` makes the engine record an access entry
    whatever the tenant's audit level, and this surface simply never set it.
@@ -58,16 +54,10 @@ context is read-only, and the general surface is untouched.
     for ending it. A run is over when nobody holds it.
 
 `PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS` and
-`PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN`, both proven by
-`AStepReachesOnlyWhatItNamedIT`, which also gains the disclosure site for
-`POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES`.
-
-**That test builds a world of its own and should not.** Everything it asserts
-is reachable over HTTP, which is where the rule about which world a test
-belongs in puts it — in the shared one. It is kept only until the guide's world
-runs an image carrying this surface, and it goes in the same change that moves
-the pin and adds the chapter, because a promise proven nowhere is worse than a
-promise proven in a world of its own.
+`PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN`, both proven on shared-world steps;
+`POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES` gains a site there. The harness
+test that owned a world for this is gone — everything it asserted is asserted
+over HTTP, which is where the rule about which world a test belongs in puts it.
 
 ## Decisions
 
@@ -124,8 +114,8 @@ rather than a bespoke protocol.
 
 ## Verifying
 
-Every line of the acceptance is asserted, and every one of them is written as
-a step of the shared world's work story waiting on the pin:
+Every line of the acceptance is a step of the shared world's work story, and
+the same commands run in `docs/guide/examples/check.sh`:
 
 - a request inside a run reads a document the run names — 200;
 - the same credential, same document, outside any run — refused;
@@ -139,11 +129,12 @@ a step of the shared world's work story waiting on the pin:
   run that never existed.
 
 ```
-./gradlew :core:harness:test --tests '*AStepReachesOnlyWhatItNamed*'
+./gradlew :guide:test --tests '*WorkAndHowFarARunReaches*'
 ./docs/guide/examples/check-tree.sh
 ```
 
-`check-tree.sh` builds the server from the tree and runs the whole guide
-against it, which is how the chapter is verified before the pin can carry it.
-`check.sh` and `:guide:test` run against the pinned image and take the chapter
-when the pin moves.
+The pin moves with the chapter, in both compose files, because a chapter
+demonstrating a surface the pinned image does not carry fails the build it
+arrives in — and the image that could carry it is only built from a main the
+chapter would have reddened. So the code lands first and the chapter follows
+the image built from it.

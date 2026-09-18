@@ -61,13 +61,18 @@ formality.
 ```
 
 ```json
-{"run":"01a0af1c-…","step":"hogwarts.admission.admit",
+{"run":"01a0af1c-…","key":"hogwarts.admission.admit/01a0af1b-…",
+ "step":"hogwarts.admission.admit",
  "context":"/t/hogwarts/run/01a0af1c-…/fhir"}
 ```
 
 The run names the patient it is for, and what comes back is a **context** — a
 path you resolve against the host you are already talking to. It is a FHIR base
 URL: point a client at it and the ordinary resource paths work underneath.
+
+Two names come back, and they answer different questions. The `run` is the id
+the context is addressed by. The `key` is what the rest of the work model is
+asked by, including the trail — which is the next section.
 
 It is a path rather than an absolute address on purpose. What a node is bound
 to is not what a caller reached it by, and a context that guessed would hand
@@ -129,6 +134,56 @@ A capability statement for this context alone, naming the step's own types. An
 integrator reads it to find out what this run can be asked, exactly as they
 would read a tenant's.
 
+## The reading is on the record
+
+```bash
+--8<-- "docs/guide/examples/snippets/run-trail.sh"
+```
+
+```
+R Patient/01a0ae7d-… by a-porter
+```
+
+The hospital keeps its trail at `writes`, so reading a patient the ordinary way
+leaves nothing behind. This read is not ordinary traffic: it is somebody being
+handed a document to do a named piece of work with, so it is recorded whatever
+the tenant's audit level says, and the entry lands on the **document** — beside
+every other reading of it — carrying the run as its occasion.
+
+That is what makes both questions answerable from one trail. *Who has read this
+patient* is asked at the document, by somebody who need not know that work
+exists. *What did this run open* is asked at the run, which is what the command
+above does.
+
+## The work ends, and so does the way in
+
+```bash
+--8<-- "docs/guide/examples/snippets/end-a-run.sh"
+```
+
+```
+holder nobody
+```
+
+A run nobody holds is over. The context goes with it:
+
+```bash
+--8<-- "docs/guide/examples/snippets/read-after-run.sh"
+```
+
+```
+404
+```
+
+Same request, same credential, same patient, and the answer is now the one a
+run that never existed would get — because saying *this run is over* would
+confirm that it was real.
+
+This is the difference between access granted to a step and access granted
+*once, by way of* a step. A context that kept answering would be a standing way
+in left behind by a piece of work nobody is doing any more, which is the shape
+of every long-lived integration credential this door exists to replace.
+
 ## What this does not do yet
 
 Being plain about the edges, because the chapter is small on purpose.
@@ -138,8 +193,13 @@ patient references an organisation, that reference is not resolvable here.
 Traversal needs rules about depth and cycles that are worth designing once
 rather than guessing now.
 
-**Reads only.** The boundary is the claim, and a boundary is proven by what it
-refuses to answer.
+**The context reads, and does nothing else.** Writing through a run means
+deciding what happens to a write that references something out of reach, and
+that question needs traversal before it means anything.
+
+**Synchronous only.** The caller here starts the run, does the work and says it
+is done. Queued steps, with runners claiming work off a lane, are the larger
+half of the work model — and the half you cannot show with a curl.
 
 **The direct door is still open.** Every other chapter still works, and the
 deployment's own credential still reads any record. Closing it is a separate
