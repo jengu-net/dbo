@@ -128,10 +128,14 @@ class ALaneStaysTransportShapedTest {
         // Guards against passing vacuously: if the verbs ever move to a
         // superinterface, getDeclaredMethods returns nothing and both rules
         // above become true of an empty list.
-        // 19 since the supervisory verb: reopening a closed run is an act on
-        // the tenant's work like the rest, and it is expressible as a message
-        // — a run and a reason — so it belongs behind both rules above.
-        assertEquals(19, verbs.size(),
+        // 20 since a lane may say it has work. That verb answers with a
+        // handle rather than a message, which looks like the first rule's
+        // offence and is not: what it hands over is a way to be told that
+        // something changed, never the work, so a lane with nothing to hand
+        // over answers empty and its runner waits out its tick. It is abstract
+        // for the second rule's reason, unweakened — a lane that inherited it
+        // would be a lane nothing ever wakes, saying so nowhere.
+        assertEquals(20, verbs.size(),
                 "the verb count changed; a new verb is exactly what these rules are for");
         return verbs;
     }

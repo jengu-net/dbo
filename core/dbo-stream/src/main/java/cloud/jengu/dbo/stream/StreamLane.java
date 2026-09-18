@@ -74,6 +74,25 @@ public final class StreamLane extends WireLane implements AutoCloseable {
         return inputsInTheClear(run);
     }
 
+    /**
+     * How this lane is told its tenant has work.
+     *
+     * <p>One virtual thread per listener, waiting on the event key the door
+     * has not set yet — which is what makes the wait notify-driven rather than
+     * another poll: the substrate's trigger on its events table wakes it, and
+     * `getEvent` returns the moment the door publishes.
+     *
+     * <p>Catching up is deliberate and harmless. A listener starting at a door
+     * that has already emitted several wake-ups finds each of them set and
+     * runs through them at once before blocking on the next — and since a
+     * wake-up means <em>look again</em>, being told five times in a row is the
+     * same instruction as being told once.
+     */
+    @Override
+    public java.util.Optional<cloud.jengu.dbo.runner.Wakeups> wakeups() {
+        return java.util.Optional.of(substrate::listen);
+    }
+
     @Override
     public void close() {
         substrate.close();
@@ -83,6 +102,16 @@ public final class StreamLane extends WireLane implements AutoCloseable {
     private static final class Substrate implements Transport, AutoCloseable {
 
         private static final Duration ANSWER = Duration.ofSeconds(30);
+        /**
+         * How long one wait for a wake-up lasts before it is asked again.
+         *
+         * <p>Not a poll interval: the wait itself is notify-driven and this is
+         * only how long a single wait blocks, so that a generation rotating or
+         * a substrate going away is noticed rather than waited on for ever.
+         */
+        private static final Duration WAKEUP = Duration.ofSeconds(30);
+        /** How long to pause when there is no door to listen to at all. */
+        private static final Duration WAKEUP_IDLE = Duration.ofSeconds(2);
         private final DBOS dbos;
         private final String tenant;
         private final String participant;
@@ -104,9 +133,70 @@ public final class StreamLane extends WireLane implements AutoCloseable {
             dbos.launch();
         }
 
-        @Override
-        public Reply post(LaneVerbs verb, String body) {
-            String id = UUID.randomUUID().toString();
+        /**
+         * Waits for the door to say there is work, and keeps waiting.
+         *
+         * <p>The wait is on the key for the <em>next</em> wake-up of the
+         * generation this lane is talking to. A key nobody has set yet is what
+         * {@code getEvent} blocks on, and the substrate's trigger is what ends
+         * the block — so this is a listener rather than a second poll.
+         *
+         * <p>A timeout is not a failure and is not reported as one: it means
+         * the tenant has been quiet, and the runner's own poll has been
+         * happening underneath the whole time. The same is true of a
+         * generation that rotates — the sequence restarts with the door, so
+         * the count is reset and the wait begins again at one.
+         */
+        AutoCloseable listen(Runnable woken) {
+            java.util.concurrent.atomic.AtomicBoolean listening =
+                    new java.util.concurrent.atomic.AtomicBoolean(true);
+            Thread waiting = Thread.ofVirtual()
+                    .name("dbo-lane-wakeups-" + tenant + "-" + participant)
+                    .start(() -> {
+                        int on = 0;
+                        long next = 1;
+                        while (listening.get()) {
+                            try {
+                                String door = door();
+                                if (door == null) {
+                                    Thread.sleep(WAKEUP_IDLE.toMillis());
+                                    continue;
+                                }
+                                if (generation != on) {
+                                    // A new door counts from one again.
+                                    on = generation;
+                                    next = 1;
+                                }
+                                if (dbos.getEvent(door, StreamDoor.workKey(next), WAKEUP)
+                                        .isPresent()) {
+                                    next++;
+                                    woken.run();
+                                }
+                            } catch (InterruptedException stopping) {
+                                Thread.currentThread().interrupt();
+                                return;
+                            } catch (RuntimeException notHeard) {
+                                // The substrate is away or the door has gone.
+                                // Neither loses work — the poll underneath is
+                                // what this sits on top of — so it is not
+                                // shouted about once per idle interval.
+                                try {
+                                    Thread.sleep(WAKEUP_IDLE.toMillis());
+                                } catch (InterruptedException stopping) {
+                                    Thread.currentThread().interrupt();
+                                    return;
+                                }
+                            }
+                        }
+                    });
+            return () -> {
+                listening.set(false);
+                waiting.interrupt();
+            };
+        }
+
+        /** One ask, signed — built here so telling and asking spell it once. */
+        private Map<String, Object> asked(String id, LaneVerbs verb, String body) {
             Map<String, Object> ask = new LinkedHashMap<>();
             ask.put("id", id);
             ask.put("participant", participant);
@@ -120,6 +210,37 @@ public final class StreamLane extends WireLane implements AutoCloseable {
             // implementation of the same sentence.
             ask.put("signature", cloud.jengu.dbo.core.api.seal.SigningKey.sign(
                     StreamAsk.signedOver(id, verb.path(), body), signing));
+            return ask;
+        }
+
+        /**
+         * Handed to the substrate and left there.
+         *
+         * <p>The send is the durable part: the message is a row the far side
+         * will find whether or not it was listening when it landed, so this is
+         * not fire-and-forget in the sense of unreliable — it is fire-and-forget
+         * in the sense of not waiting. The answer this does not wait for is the
+         * one the caller was going to discard.
+         */
+        @Override
+        public Reply tell(LaneVerbs verb, String body) {
+            String door = door();
+            if (door == null) {
+                // Not an exception: the caller is telling, not asking, and a
+                // door between generations is a moment rather than a fault.
+                // What is lost is one re-said declaration, and the next cycle
+                // says it again.
+                return new Reply(200, "");
+            }
+            String id = UUID.randomUUID().toString();
+            dbos.send(door, RecordWire.write(asked(id, verb, body)), StreamDoor.TOPIC, id);
+            return new Reply(200, "");
+        }
+
+        @Override
+        public Reply post(LaneVerbs verb, String body) {
+            String id = UUID.randomUUID().toString();
+            Map<String, Object> ask = asked(id, verb, body);
             String door = door();
             for (int patience = 0; door == null && patience < 20; patience++) {
                 // A generation hands over to the next in a moment nobody can

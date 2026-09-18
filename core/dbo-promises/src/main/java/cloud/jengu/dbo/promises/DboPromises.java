@@ -193,6 +193,18 @@ public enum DboPromises implements Promise {
             + "is the difference between access granted to a step and access granted once "
             + "by way of one."),
 
+    PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES("A lane may say that it has work, and a runner "
+            + "waiting on one looks again instead of waiting out its tick. What arrives is "
+            + "that something changed and never the work: the runner then polls and claims "
+            + "through the ordinary path, because the claim race is what decides who takes "
+            + "a run and a second mechanism deciding it would be a second answer beside the "
+            + "run record's account of what is owed and by whom. The poll stays underneath "
+            + "as the fallback, so a runner whose lane can say nothing — or whose wake-up "
+            + "never arrives — does the work anyway, and a delivery that goes missing is a "
+            + "latency bug rather than a lost run. A lane that cannot say is not degraded, "
+            + "and nothing above the facade can tell which kind it holds except by how long "
+            + "it waited."),
+
     PROC_RUN_INPUTS_FILL_THE_SLOTS("A run's inputs fill the step's declared slots, fixed "
             + "at creation: a slot the step does not declare and a declared slot left "
             + "unfilled are both refused by name, and the record round-trips them in "

@@ -10,6 +10,7 @@ import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.runner.Outcome;
 import cloud.jengu.dbo.runner.StepRunner;
 import cloud.jengu.dbo.runner.StepService;
+import cloud.jengu.dbo.runner.Wakeups;
 import cloud.jengu.dbo.runner.Work;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
@@ -151,6 +152,16 @@ class ARemoteLaneIsIndistinguishableIT {
         @Override
         public Executor identity() {
             return farSide.identity();
+        }
+
+        /**
+         * Nothing, and deliberately not the far side's answer: a wake-up is a
+         * live handle, and this relay exists to stand for a wire, which has
+         * nothing to send in its place.
+         */
+        @Override
+        public Optional<Wakeups> wakeups() {
+            return Optional.empty();
         }
 
         @Override

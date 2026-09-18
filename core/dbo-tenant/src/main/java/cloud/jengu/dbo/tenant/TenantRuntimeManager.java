@@ -282,6 +282,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, String> fleetContexts = new ConcurrentHashMap<>();
     private final Map<String, String> erasureContexts = new ConcurrentHashMap<>();
     private final Map<String, String> blobContexts = new ConcurrentHashMap<>();
+    /**
+     * Who to tell, per tenant, when one of its runs becomes claimable.
+     *
+     * <p>Held here as well as handed to the tenant's runs, so an in-JVM host
+     * embedding this store can subscribe to the same seam its own lanes are
+     * driven by — the appliance shape, where the store and the runner share a
+     * process and there is no substrate between them.
+     */
+    private final Map<String, cloud.jengu.dbo.runner.InProcessWakeups> wakeups =
+            new ConcurrentHashMap<>();
     private final Map<String, String> scimContexts = new ConcurrentHashMap<>();
     private final Map<String, cloud.jengu.dbo.pdi.PersonVault> vaults = new ConcurrentHashMap<>();
     private volatile cloud.jengu.dbo.auth.IdentityHub identityHub;
@@ -554,6 +564,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
     /** What a tenant publishes about itself, once it is up. */
     public java.util.Optional<TenantFacts> factsOf(String code) {
         return java.util.Optional.ofNullable(publishedFacts.get(code));
+    }
+
+    /**
+     * How to be told that one of a tenant's runs became claimable.
+     *
+     * <p>For a host that embeds this store in its own JVM and builds its own
+     * lanes — the appliance shape, where there is no substrate between the
+     * store and the runner and so nothing to carry a wake-up. It hands what
+     * comes back to {@code Lane.inProcess}, and its runner stops waiting out
+     * its tick.
+     *
+     * <p>Empty for a tenant that is not up. What arrives through it is a nudge
+     * and never work: the taker still polls and claims, because the claim race
+     * is what decides who gets a run.
+     */
+    public java.util.Optional<cloud.jengu.dbo.runner.Wakeups> wakeupsFor(String code) {
+        return java.util.Optional.ofNullable(wakeups.get(code));
     }
 
     /**
@@ -1856,10 +1883,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // test, which builds whatever it needs. Composed rather than
         // installed-only, so a participant's introduced step is held to the
         // declaration it introduced, exactly as the authoring surface is.
+        // Who is told when one of this tenant's runs becomes claimable. One
+        // object, because the store's end and the listeners' end have to be
+        // the same one: a deployment that built two would have a store telling
+        // nobody and a door listening to nothing, and neither half would look
+        // wrong on its own.
+        //
+        // Nothing may be listening, and that is the ordinary case — then this
+        // costs a reference comparison per run and the takers poll as they
+        // always did.
+        cloud.jengu.dbo.runner.InProcessWakeups claimable =
+                new cloud.jengu.dbo.runner.InProcessWakeups();
+        wakeups.put(spec.code(), claimable);
         cloud.jengu.dbo.work.Runs laneRuns = new cloud.jengu.dbo.work.Runs(
                 runStores.get(spec.code()),
                 new cloud.jengu.dbo.work.Introductions(runStores.get(spec.code()), steps)
-                        .composedWith());
+                        .composedWith(),
+                claimable);
         // Built here rather than beside the door it used to be built beside.
         // A lane needs no authority — an authority answers "who is asking",
         // which is a question the framework's own registry never poses — so
@@ -2105,8 +2145,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // door so a door that fails to open leaves nothing mounted
                 // that a retry would trip over.
                 WorkGrants grants = new WorkGrants(authority);
-                doors.put(spec.code(), new cloud.jengu.dbo.stream.StreamDoor(substrate,
-                        spec.code(), grants, laneFactory));
+                cloud.jengu.dbo.stream.StreamDoor door =
+                        new cloud.jengu.dbo.stream.StreamDoor(substrate, spec.code(), grants,
+                                laneFactory);
+                doors.put(spec.code(), door);
+                // The door is how a tenant says it has work to a fleet that
+                // holds no connection into it: a run becoming claimable
+                // reaches the door, which publishes it on the substrate the
+                // participants are already listening to. Subscribed here
+                // rather than inside the door, because the seam belongs to the
+                // tenant and the door is one of possibly several listeners.
+                leftBehind.add(claimable.wake(door::workAppeared));
             }
             if (spec.managedBy() != null) {
                 // The relation, made true at the door: the partner's own
@@ -3158,6 +3207,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (door != null) {
             door.close();
         }
+        // After the subscriptions above have been closed, so nothing is left
+        // holding a reference to a door that is going: a seam that outlived
+        // its tenant would wake somebody on behalf of a tenant nobody serves.
+        wakeups.remove(code);
         String replicationPath = replicationContexts.remove(code);
         if (replicationPath != null) {
             sharedServer.removeContext(replicationPath);
