@@ -54,14 +54,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Driven over a real HTTP lane rather than in-process, because the claim is
  * precisely that it survives the boundary — and the wire is walked from the
  * record's own components, so a field that fails to travel fails here.
- *
- * <p><b>A world of its own, and it was tried the other way.</b> On a shared
- * tenant this class passes on its own and passes beside the other work
- * classes, and then fails once enough unrelated classes are running beside it
- * — the lane offers nothing within the window and the failure reads as work
- * that was never declared. It is deterministic, it is not this class being
- * wrong, and it is not understood; sharing a lane is where the shared-world
- * conversion stops until it is.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -71,12 +63,16 @@ class OneRunIsOneChainAcrossTwoProcessesIT {
     private static final String UPSTREAM =
             "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
 
-    private static final String TENANT = "ahel";
+    /**
+     * Shared. This class is about a chain across two processes, not about a
+     * tenant — every assertion is scoped to the run it just started, so it
+     * needs somewhere to keep a Basic and nothing else of its own.
+     */
+    static SharedTenants.Tenant tenant;
+    static String TENANT;
     private static final String PROCESS = "dbo.lab";
     private static final String STEP = "validate-traced";
 
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
     static URI laneUri;
     static Runs runs;
@@ -84,40 +80,20 @@ class OneRunIsOneChainAcrossTwoProcessesIT {
 
     @BeforeAll
     void up() throws Exception {
-        Path dir = Files.createTempDirectory("dbo-trace-lane");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("OneRunIsOneChainAcrossTwoProcessesIT"),
-                SharedPostgres.get().getUsername(), SharedPostgres.get().getPassword());
-        byte[] kek = new byte[32];
-        new SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(TENANT));
-        UntilServed.scan(manager, TENANT);
-        laneUri = URI.create("http://127.0.0.1:" + manager.port() + "/t/" + TENANT + "/work");
-        runs = new Runs(manager.runtime(TENANT).orElseThrow().engine());
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
+        TENANT = tenant.code();
+        laneUri = URI.create(tenant.base() + "/work");
+        runs = new Runs(tenant.engine());
 
-        String secret = "bench-secret";
-        manager.authority(TENANT).ensureClient("bench", secret, List.of("work/" + PROCESS + "." + STEP));
-        remote = HttpLane.to(laneUri, () -> token("bench", secret), TENANT, "bench",
-                new Executor("bench", "1.0", "cloud.jengu.test", Scope.BASELINE));
+        String secret = "one-run-chain-secret";
+        tenant.authority().ensureClient("one-run-chain", secret,
+                List.of("work/" + PROCESS + "." + STEP));
+        remote = HttpLane.to(laneUri, () -> token("one-run-chain", secret), TENANT, "one-run-chain",
+                new Executor("one-run-chain", "1.0", "cloud.jengu.test", Scope.BASELINE));
         // Nothing installed this step, so it reaches the catalogue the way a
         // remote participant's does — as an introduction over the lane.
         remote.introduce(cloud.jengu.dbo.core.process.StepDeclaration.of(
                 PROCESS + "." + STEP, "1.0", WorkModel.DOMAIN));
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -174,8 +150,7 @@ class OneRunIsOneChainAcrossTwoProcessesIT {
                     + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
                     + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
             HttpResponse<String> issued = http.send(HttpRequest.newBuilder(
-                            URI.create("http://127.0.0.1:" + manager.port()
-                                    + "/t/" + TENANT + "/oidc/token"))
+                            URI.create(tenant.base() + "/oidc/token"))
                             .header("Content-Type", "application/x-www-form-urlencoded")
                             .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                     HttpResponse.BodyHandlers.ofString());

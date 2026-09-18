@@ -29,6 +29,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -194,7 +195,20 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving({DboPromises.PROC_CLAIM_IS_THE_INTERSECTION,
             DboPromises.PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED})
     void whatItMayTakeIsTheIntersection() throws Exception {
-        List<Run> offered = bench.poll(Set.of("assay"), 10);
+        // Polled the way a runner polls: repeatedly. A poll is not a query
+        // for this participant's work — it reads the next chunk of the
+        // tenant's work feed from this participant's cursor and filters by
+        // step afterwards, so a run of somebody else's sitting in front of
+        // this one simply is not in the first chunk. One poll was enough while
+        // this tenant was ours alone, and Runner.runOnce is called "one round"
+        // for exactly this reason.
+        List<Run> offered = new ArrayList<>();
+        for (int round = 0; round < 20; round++) {
+            offered.addAll(bench.poll(Set.of("assay"), 10));
+            if (offered.stream().anyMatch(r -> runKey.equals(r.key()))) {
+                break;
+            }
+        }
         assertTrue(offered.stream().anyMatch(r -> runKey.equals(r.key())),
                 "the assay it is entitled to was not offered: " + offered);
 
