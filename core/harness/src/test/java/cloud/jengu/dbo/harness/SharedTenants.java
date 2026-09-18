@@ -86,6 +86,23 @@ public final class SharedTenants {
                 "r5", "", "full"),
 
         /**
+         * r4 behind the membrane, with the person keyed by their number.
+         *
+         * <p>Distinct from {@link #R4_ISOLATED} by which record is keyed how:
+         * there the Patient carries the identifier and the Person is
+         * internal, here it is the other way round. That is not a detail two
+         * shapes can split the difference on — a type declares one identity
+         * class — so the family of classes asking about a person behind the
+         * membrane gets its own.
+         */
+        R4_PDI_PERSON("""
+                [{"name":"Person","identity":"identifier","systems":["%s"],
+                  "handling":"operational"},
+                 {"name":"Patient","identity":"internal","handling":"operational"},
+                 {"name":"Practitioner","identity":"internal","handling":"operational"}]"""
+                .formatted(EID), "r4", ",\"pdi\":true", "none"),
+
+        /**
          * A face root: it holds the version's whole definition set as records,
          * which is the expensive thing in this suite and was being built four
          * times over. Patient declares the database as its verdict because one

@@ -34,48 +34,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ProvisionedPdiCoarsensIT {
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+
+    static SharedTenants.Tenant tenant;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-tenants-pdi-coarse");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ProvisionedPdiCoarsensIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve("varjatud.json"), """
-                {"code":"varjatud","face":"r4","pdi":true,"types":[
-                  {"name":"Patient","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, up -> up.contains("varjatud"));
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        // Shared. What it asks is what a provisioned tenant does to a birth
+        // date behind the membrane — a question about the membrane, not about
+        // a tenant of its own.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_PDI_PERSON);
     }
 
     @Test
     void aGeneralisedElementIsCoarseAtRest() throws Exception {
-        String id = manager.runtime("varjatud").orElseThrow().engine()
+        String id = tenant.engine()
                 .put(PutRequest.create("Patient", ("""
                         {"resourceType":"Patient","birthDate":"1970-01-01",
                          "name":[{"family":"Coarse"}]}""")
                         .getBytes(StandardCharsets.UTF_8)))
                 .id();
 
-        String stored = atRest("varjatud", id);
+        String stored = atRest(id);
         assertTrue(stored.contains("\"birthDate\":\"1970\""),
                 "the year must survive in the clear, or a reader with no right to the full "
                         + "date gets nothing where a clinician needs an age: " + stored);
@@ -83,12 +62,20 @@ class ProvisionedPdiCoarsensIT {
                 "and the full date rides encrypted like the rest: " + stored);
     }
 
-    /** The payload as the inner engine holds it, under the encryption. */
-    private static String atRest(String tenant, String id) throws Exception {
-        try (java.sql.Connection c = provisioner.provision(
-                        cloud.jengu.dbo.tenant.TenantSpec.parse(
-                                Files.readString(dir.resolve(tenant + ".json"))))
-                        .dataSource().getConnection();
+    /**
+     * What the database holds, read straight from the tenant's own.
+     *
+     * <p>It used to provision the tenant again from its spec file to get a
+     * connection. On a shared tenant there is no spec file of this class's
+     * own, and provisioning a second time to read one row was never what the
+     * test meant — it meant "look at what is actually stored".
+     */
+    private static String atRest(String id) throws Exception {
+        org.postgresql.ds.PGSimpleDataSource source = new org.postgresql.ds.PGSimpleDataSource();
+        source.setUrl(tenant.databaseUrl());
+        source.setUser(SharedPostgres.get().getUsername());
+        source.setPassword(SharedPostgres.get().getPassword());
+        try (java.sql.Connection c = source.getConnection();
              java.sql.PreparedStatement ps = c.prepareStatement(
                      "SELECT payload FROM state.r4_data WHERE id = ?::uuid")) {
             ps.setString(1, id);
@@ -98,4 +85,5 @@ class ProvisionedPdiCoarsensIT {
             }
         }
     }
+
 }

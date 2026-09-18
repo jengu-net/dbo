@@ -47,49 +47,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AHumanHeldAsTwoRecordsIT {
 
-    private static final String CLINIC = "kaksrida";
+    static SharedTenants.Tenant tenant;
+    static String CLINIC;
     private static final String EID = "https://ee.ee/eid";
     private static final String NID = "47101010033";
     private static final String UNDECLARED = "https://kliinik.example/kaart";
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-two-records");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("AHumanHeldAsTwoRecordsIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        // Exactly the reported shape: Person is the type identified by that
-        // system; Patient is internal and merely carries the number.
-        Files.writeString(dir.resolve(CLINIC + ".json"), """
-                {"code":"%s","face":"r4","pdi":true,"audit":{"level":"writes"},
-                 "types":[
-                  {"name":"Person","identity":"identifier","systems":["%s"],
-                   "handling":"operational"},
-                  {"name":"Patient","identity":"internal","handling":"operational"},
-                  {"name":"Practitioner","identity":"internal","handling":"operational"}]}"""
-                .formatted(CLINIC, EID));
-        UntilServed.scan(manager, CLINIC);
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        // Shared. Every assertion here is about the person or record this
+        // class just wrote — which is what lets it share a tenant with the
+        // rest of the family asking about the membrane.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_PDI_PERSON);
+        CLINIC = tenant.code();
     }
 
     @Test
@@ -333,7 +305,7 @@ class AHumanHeldAsTwoRecordsIT {
 
     /** What the erasure door admits: its own scope, not a broad write grant. */
     private String eraser() throws Exception {
-        manager.authority(CLINIC).ensureClient("desk", "desk-secret", List.of("erasure"));
+        tenant.authority().ensureClient("desk", "desk-secret", List.of("erasure"));
         return http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
@@ -349,7 +321,7 @@ class AHumanHeldAsTwoRecordsIT {
     }
 
     private String token() throws Exception {
-        manager.authority(CLINIC).ensureClient("emr", "emr-secret",
+        tenant.authority().ensureClient("emr", "emr-secret",
                 List.of("system/*.read", "system/*.write"));
         return http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
@@ -361,7 +333,7 @@ class AHumanHeldAsTwoRecordsIT {
     }
 
     private String base() {
-        return "http://127.0.0.1:" + manager.port() + "/t/" + CLINIC;
+        return tenant.base();
     }
 
     private HttpResponse<String> post(String path, String body, String token) throws Exception {

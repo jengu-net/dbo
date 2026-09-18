@@ -73,7 +73,12 @@ class ARouterHoldsTheClaimIT {
 
     static SharedTenants.Tenant tenant;
     static String TENANT;
-    private static final String STEP = "dbo.lab.assay";
+    // Named for this class rather than for the domain: a step declaration
+    // is tenant-scoped and keyed by name, so two classes sharing a tenant
+    // and declaring the same step fight over its version. That is what
+    // happened here — one class introduced it at 1.0 while another
+    // expected 2.1, and the failure read as the lane losing a declaration.
+    private static final String STEP = "dbo.router.assay";
     private static final String MARKER = "specimen-plaintext-4a71";
     private static final StepDeclaration ASSAY = StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
             .taking("specimen", "https://meristem.example/shape/specimen");

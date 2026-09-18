@@ -65,7 +65,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TheEnvelopeIsTheSameFromEitherSideIT {
 
-    private static final String ROOT = "umbrik-juur";
+    static SharedTenants.Tenant tenant;
+    static String ROOT;
 
     /** Per type, so the crowded ones do not decide the number for the rest. */
     private static final int PER_TYPE = 25;
@@ -73,41 +74,14 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
     private static final Path BASELINE = Path.of("..", "..", "config", "envelope-baseline.txt");
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-envelope");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("TheEnvelopeIsTheSameFromEitherSideIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(ROOT + ".json"), """
-                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
-                 "types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
-                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
-                  {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
-                .formatted(ROOT));
-        UntilServed.scan(manager, ROOT);
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        // Shared. It compares what two sides make of the same document over
+        // the version's own definitions, which is a question about the
+        // version rather than about a tenant.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_FACE_ROOT);
+        ROOT = tenant.code();
     }
 
     @Test
@@ -636,10 +610,9 @@ class TheEnvelopeIsTheSameFromEitherSideIT {
 
     private static PGSimpleDataSource tenantSource() {
         PGSimpleDataSource source = new PGSimpleDataSource();
-        source.setUrl(SharedPostgres.urlFor("x")
-                .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + ROOT.replace('-', '_')));
-        source.setUser(postgres.getUsername());
-        source.setPassword(postgres.getPassword());
+        source.setUrl(tenant.databaseUrl());
+        source.setUser(SharedPostgres.get().getUsername());
+        source.setPassword(SharedPostgres.get().getPassword());
         return source;
     }
 }

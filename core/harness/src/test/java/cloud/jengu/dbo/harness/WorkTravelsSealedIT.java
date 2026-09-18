@@ -60,18 +60,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>The tenant's audit level is deliberately <b>full</b>: every ordinary
  * read is recorded, which is what makes the absence of one for the sealing
  * read an assertion rather than a default.
+ *
+ * <p><b>A world of its own, and it has to be.</b> The trail assertions read
+ * every AuditEntry the tenant holds and filter in Java, and that select is
+ * paged — on a shared tenant the entry this test is about falls off the end
+ * of the page behind everybody else's, and the failure reads as the store not
+ * having recorded an opening it recorded perfectly well. Scoping the question
+ * at the query rather than after it would make this shareable; filtering a
+ * page and calling it the trail would not.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class WorkTravelsSealedIT {
 
-    static SharedTenants.Tenant tenant;
-    static String TENANT;
+    private static final String TENANT = "sealhost";
     private static final String STEP = "dbo.lab.assay";
     private static final String MARKER = "specimen-plaintext-9f2c";
     private static final StepDeclaration ASSAY = StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
             .taking("specimen", "https://meristem.example/shape/specimen");
 
+    static PostgreSQLContainer<?> postgres;
+    static Path dir;
+    static LocalDatabasePerTenantProvisioner provisioner;
+    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
     static URI laneUri;
     static cloud.jengu.dbo.core.api.ObjectStore engine;
@@ -82,26 +93,45 @@ class WorkTravelsSealedIT {
 
     @BeforeAll
     void up() throws Exception {
-        // Shared. The sealing is between two participants this class enrols
-        // and the work it sends them; none of it is about the tenant, which
-        // only has to hold a Basic and keep a trail.
-        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
-        TENANT = tenant.code();
-        laneUri = URI.create(tenant.base() + "/work");
-        engine = tenant.engine();
+        postgres = SharedPostgres.get();
+        dir = Files.createTempDirectory("dbo-sealed-work");
+        provisioner = new LocalDatabasePerTenantProvisioner(
+                SharedPostgres.urlFor("WorkTravelsSealedIT"),
+                postgres.getUsername(), postgres.getPassword());
+        byte[] kek = new byte[32];
+        new java.security.SecureRandom().nextBytes(kek);
+        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
+                new TenantRuntimeManager.AuthorityConfig(kek, null));
+        Files.writeString(dir.resolve(TENANT + ".json"), """
+                {"code":"%s","face":"r4","audit":{"level":"full"},"types":[
+                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
+                .formatted(TENANT));
+        UntilServed.scan(manager, TENANT);
+        laneUri = URI.create("http://127.0.0.1:" + manager.port() + "/t/" + TENANT + "/work");
+        engine = manager.runtime(TENANT).orElseThrow().engine();
         runs = new Runs(engine);
 
         // The analyser generated its keypair before it was enrolled, and
         // offered the public half; the courier enrolled with none.
         analyser = KeyWrap.newParticipantKeyPair();
         analyserSigning = cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
-        tenant.authority().ensureClient("analyser", analyserSecret,
+        manager.authority(TENANT).ensureClient("analyser", analyserSecret,
                 List.of("work/" + STEP), ParticipantKey.of(analyser.getPublic()),
                 cloud.jengu.dbo.core.api.seal.SigningKey.of(analyserSigning.getPublic()));
-        tenant.authority().ensureClient("courier", "courier-secret",
+        manager.authority(TENANT).ensureClient("courier", "courier-secret",
                 List.of("work/" + STEP));
         HttpLane.to(laneUri, () -> token("courier", "courier-secret"), TENANT, "courier",
                 executor("courier")).introduce(ASSAY);
+    }
+
+    @AfterAll
+    void down() {
+        if (manager != null) {
+            manager.close();
+        }
+        if (provisioner != null) {
+            SuiteDatabases.retire(provisioner);
+        }
     }
 
     @Test
@@ -231,7 +261,8 @@ class WorkTravelsSealedIT {
                     + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
                     + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
             String body = http.send(HttpRequest.newBuilder(
-                                    URI.create(tenant.base() + "/oidc/token"))
+                                    URI.create("http://127.0.0.1:" + manager.port()
+                                            + "/t/" + TENANT + "/oidc/token"))
                             .header("Content-Type", "application/x-www-form-urlencoded")
                             .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                     HttpResponse.BodyHandlers.ofString()).body();
