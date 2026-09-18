@@ -116,6 +116,14 @@ final class TenantCodes {
                 declared.add(new Declaration(literal.group(1), name, "written by name"));
                 continue;
             }
+            // A literal that is not a .json file is not a tenant spec. The
+            // write pattern matches any writeString into a resolved path, and
+            // a class that writes an ordinary file beside one — a fixture, a
+            // marker, a recorded baseline — was being reported as declaring a
+            // tenant under a name nothing could read.
+            if (expr.startsWith("\"") && expr.endsWith("\"")) {
+                continue;
+            }
             Matcher named = NAMED.matcher(expr);
             if (!named.matches()) {
                 unreadable.computeIfAbsent(name, f -> new ArrayList<>()).add(expr);
