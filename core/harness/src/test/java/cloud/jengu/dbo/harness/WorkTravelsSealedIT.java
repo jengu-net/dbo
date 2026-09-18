@@ -73,16 +73,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class WorkTravelsSealedIT {
 
-    private static final String TENANT = "sealhost";
-    private static final String STEP = "dbo.lab.assay";
+    static SharedTenants.Tenant tenant;
+    static String TENANT;
+    private static final String STEP = "dbo.sealed.assay";
     private static final String MARKER = "specimen-plaintext-9f2c";
     private static final StepDeclaration ASSAY = StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
             .taking("specimen", "https://meristem.example/shape/specimen");
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
     static URI laneUri;
     static cloud.jengu.dbo.core.api.ObjectStore engine;
@@ -93,45 +90,26 @@ class WorkTravelsSealedIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-sealed-work");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("WorkTravelsSealedIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"full"},"types":[
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(TENANT));
-        UntilServed.scan(manager, TENANT);
-        laneUri = URI.create("http://127.0.0.1:" + manager.port() + "/t/" + TENANT + "/work");
-        engine = manager.runtime(TENANT).orElseThrow().engine();
+        // Shared. The sealing is between two participants this class enrols
+        // and the work it sends them; none of it is about the tenant, which
+        // only has to hold a Basic and keep a trail.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
+        TENANT = tenant.code();
+        laneUri = URI.create(tenant.base() + "/work");
+        engine = tenant.engine();
         runs = new Runs(engine);
 
         // The analyser generated its keypair before it was enrolled, and
         // offered the public half; the courier enrolled with none.
         analyser = KeyWrap.newParticipantKeyPair();
         analyserSigning = cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
-        manager.authority(TENANT).ensureClient("analyser", analyserSecret,
+        tenant.authority().ensureClient("analyser", analyserSecret,
                 List.of("work/" + STEP), ParticipantKey.of(analyser.getPublic()),
                 cloud.jengu.dbo.core.api.seal.SigningKey.of(analyserSigning.getPublic()));
-        manager.authority(TENANT).ensureClient("courier", "courier-secret",
+        tenant.authority().ensureClient("courier", "courier-secret",
                 List.of("work/" + STEP));
         HttpLane.to(laneUri, () -> token("courier", "courier-secret"), TENANT, "courier",
                 executor("courier")).introduce(ASSAY);
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -247,11 +225,22 @@ class WorkTravelsSealedIT {
         return answer.body();
     }
 
+    /**
+     * The trail about one document, asked for as one document's trail.
+     *
+     * <p>It used to select every AuditEntry the tenant held and filter in
+     * Java. A select is paged, so that only ever meant "the whole trail" on a
+     * tenant nobody else was using — and the entry this class is about fell
+     * off the end behind everybody else's the moment one did. Both target
+     * fields are envelope values, so the question can be asked rather than
+     * sorted out afterwards.
+     */
     private static List<String> entries(String targetType, String targetId) {
-        return engine.select(Criteria.of("AuditEntry")).stream()
+        return engine.select(Criteria.of("AuditEntry")
+                        .eq("targetType", cloud.jengu.dbo.core.api.EnvelopeValue.of(targetType))
+                        .eq("targetId", cloud.jengu.dbo.core.api.EnvelopeValue.of(targetId)))
+                .stream()
                 .map(o -> new String(o.payload(), StandardCharsets.UTF_8))
-                .filter(e -> e.contains("\"targetType\":\"" + targetType + "\""))
-                .filter(e -> e.contains("\"targetId\":\"" + targetId + "\""))
                 .toList();
     }
 
@@ -261,8 +250,7 @@ class WorkTravelsSealedIT {
                     + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
                     + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
             String body = http.send(HttpRequest.newBuilder(
-                                    URI.create("http://127.0.0.1:" + manager.port()
-                                            + "/t/" + TENANT + "/oidc/token"))
+                                    URI.create(tenant.base() + "/oidc/token"))
                             .header("Content-Type", "application/x-www-form-urlencoded")
                             .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                     HttpResponse.BodyHandlers.ofString()).body();
