@@ -51,54 +51,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class IdentificationIsReachableFromOutsideIT {
 
-    private static final String TENANT = "tuvastaja";
-    private static final String EID = "https://ee.ee/eid";
+    static SharedTenants.Tenant tenant;
+    static String TENANT;
+    /** The shape declares which system a Person is keyed by. */
+    private static final String EID = SharedTenants.EID;
     /** A person the store already holds, so a claim has something to match. */
     private static final String KNOWN = "38001010001";
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
     static URI door;
     static String subjectId;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-tenants-tuvastaja");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("IdentificationIsReachableFromOutsideIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"Person","identity":"identifier","systems":["%s"],
-                   "handling":"operational"},
-                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
-                .formatted(TENANT, EID));
-        UntilServed.scan(manager, TENANT);
-        door = URI.create("http://127.0.0.1:" + manager.port() + "/t/" + TENANT + "/identity");
+        // Shared. The identity door is what the vault is for, so asking it
+        // behind the membrane is asking it where it actually lives.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_PDI_PERSON);
+        TENANT = tenant.code();
+        door = URI.create(tenant.base() + "/identity");
 
-        subjectId = manager.runtime(TENANT).orElseThrow().engine()
+        subjectId = tenant.engine()
                 .put(PutRequest.create("Person", ("""
                         {"resourceType":"Person","identifier":[{"system":"%s","value":"%s"}],
                          "name":[{"family":"Tuntud"}]}""".formatted(EID, KNOWN))
                         .getBytes(StandardCharsets.UTF_8))).id();
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -259,13 +235,12 @@ class IdentificationIsReachableFromOutsideIT {
 
     private static String token(String clientId, String... scopes) throws Exception {
         String secret = clientId + "-secret";
-        manager.authority(TENANT).ensureClient(clientId, secret, List.of(scopes));
+        tenant.authority().ensureClient(clientId, secret, List.of(scopes));
         String form = "grant_type=client_credentials&client_id="
                 + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
                 + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
         String body = http.send(HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + manager.port()
-                                        + "/t/" + TENANT + "/oidc/token"))
+                                URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
