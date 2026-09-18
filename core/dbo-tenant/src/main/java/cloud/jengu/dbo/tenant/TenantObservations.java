@@ -50,6 +50,9 @@ final class TenantObservations {
                     + "consumer, and none was given");
         }
         Filter filter = null;
+        // One selector language means one ratchet over it: an observer asks
+        // about the facts a tenant publishes, exactly as an activity does.
+        TenantFacts.refuseUnpublishedFacts(target, name);
         if (target != null && !target.isBlank()) {
             try {
                 filter = FrameworkUtil.createFilter(target);

@@ -75,8 +75,13 @@ dbo.tenant.zone                      = rl
 dbo.tenant.holdsRecordsInFaceDomain  = true
 dbo.tenant.hasSteps                  = true
 dbo.tenant.hasScim                   = false
+dbo.tenant.hasAuthority              = true
 dbo.tenant.hasVault                  = false
+dbo.tenant.holdsIdentities           = true
 ```
+
+`kind` waits on the declared kind. Everything else is published, and a
+selector may ask about nothing but these — see the ratchet below.
 
 The kind is the coarse fact and the rest are the specific ones. Both matter:
 the step surface keys on *having steps* rather than on a kind, so selecting on
@@ -228,13 +233,46 @@ point: a face root and a projection hold no records on their face, so an
 observer of content is **not started** for them. That is the original defect in
 its second disguise, and the mechanism now refuses it in both.
 
+Then the surfaces, at a `surfaces` point of their own. Four of them are
+registered activities now, each with the condition it already carried said out
+loud as a selector instead of written as an `if` at the site that created the
+context:
+
+| Surface | Selector |
+|---|---|
+| `/erasure` | `(&(hasVault=true)(hasAuthority=true))` |
+| `/blob` | `(hasAuthority=true)` |
+| `/identity` | `(&(holdsIdentities=true)(hasAuthority=true))` |
+| `/step`, `/run` | `(&(hasSteps=true)(hasAuthority=true))` |
+
+Three facts were added to make those sayable — `hasAuthority`, `hasVault` and
+`holdsIdentities` — and each is **resolved** rather than inferred, for the
+reason the face-domain fact is: whether a tenant has an authority follows from
+how the deployment is configured, and whether it has a vault from whether one
+was built.
+
+And the ratchet has something exact to enforce, at the point of registration:
+**a selector may only ask about facts a tenant publishes.** A filter naming
+`dbo.tenant.hasVualt` parses perfectly and matches nothing, for ever, saying
+nothing — the same shape of silent wrongness the whole mechanism replaced. It
+is refused where it is registered, named, with the vocabulary in the message.
+Observers meet the same check, because there is one selector language.
+
+`/scim/v2` is the one surface with a condition that did **not** move, and the
+reason is worth writing down rather than leaving as an omission: its block is
+not only a mount. It refuses the bring-up when scim is declared and unservable
+— no authority, no vault, no person types — and an activity's failure is
+reported rather than fatal. Converting it as it stands would turn a tenant that
+refuses to come up misconfigured into one that serves without the door it
+declared. The conversion wants the declaration check moved to where
+declarations are checked first; until then the condition stays inline and
+`hasScim` is published and unused.
+
+The doors that are conditional only on the enclosing `if (authority != null)` —
+`/configuration`, `/admin`, `/work`, `/fleet`, `/replication` — are still
+mounted inline. Their condition is the block itself rather than a fact they
+each derive, so converting them buys the arrangement and not the argument.
+
 The remaining points in the table are named and not yet run at. They are
 converted one at a time, because a point nothing runs at is a promise rather
 than a mechanism.
-
-## First conversions
-
-The defect, and the ones that already carry their condition inline, in that
-order: `dispatch`, then the surfaces. Converting the surfaces is what proves
-the mechanism covers the conditions the runtime actually has, rather than the
-one it forgot.

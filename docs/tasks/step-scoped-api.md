@@ -20,17 +20,19 @@ own door.
 
 ## Where it stands
 
-Built and proven, except the chapter's harness run. The slice turned out to be
-enforcement rather than design: three promises were already PROVEN — a step
-declaration names its input slots, a run's inputs fill them fixed at creation
-with undeclared and unfilled slots both refused by name, and each input renders
-as `Task.input`, all by `WorkLeavesTheClinicAndComesBackIT`. `Run` already
-carried the slot-to-reference map, so the anchor was neither invented nor
-stored here.
+Built and proven; the chapter that demonstrates it lands with the pin that can
+serve it. The slice turned out to be enforcement rather than design:
+three promises were already PROVEN — a step declaration names its input slots,
+a run's inputs fill them fixed at creation with undeclared and unfilled slots
+both refused by name, and each input renders as `Task.input`, all by
+`WorkLeavesTheClinicAndComesBackIT`. `Run` already carried the slot-to-reference
+map, so the anchor was neither invented nor stored here.
 
 What this added: a tenant declaring the steps it offers, a door that turns a
-call into a run, a run context that answers for what the run named, and the
-proof that a withheld record and an invented id answer identically.
+call into a run, a run context that answers for what the run named, a reading
+through that context recorded as a disclosure naming the run, an end to the run
+that takes its context with it, and the proof that a withheld record and an
+invented id answer identically — as do an ended run and one that never was.
 
 Still open, deliberately: reach is the named documents with no traversal, the
 context is read-only, and the general surface is untouched.
@@ -44,11 +46,28 @@ context is read-only, and the general surface is untouched.
 5. ~~A run-scoped read surface answering for `run.inputs()`~~ — **done**.
 6. ~~A client holding `work` and not `system/*`~~ — **done**; registration.
 7. ~~The context's metadata lists only the declared types~~ — **done**.
-8. A guide chapter using it. **written, not yet run** — the harness needs an
-   image carrying the surface, so it waits on the pin moving.
+8. A guide chapter using it. **Written and verified against a tree-built
+   image, and it lands with the pin.** The guide's world runs the pinned
+   image, so a chapter demonstrating a surface the pin does not carry fails
+   the build it is added in — which is why the chapter, and the pin that can
+   serve it, move together in a second change.
+9. ~~The reading is on the record, naming the run~~ — **done**. The mechanism
+   was already there: `Caller.setRun` makes the engine record an access entry
+   whatever the tenant's audit level, and this surface simply never set it.
+10. ~~The context stops answering when the run ends~~ — **done**, with a verb
+    for ending it. A run is over when nobody holds it.
 
-`PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS`, proven by
-`AStepReachesOnlyWhatItNamedIT`.
+`PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS` and
+`PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN`, both proven by
+`AStepReachesOnlyWhatItNamedIT`, which also gains the disclosure site for
+`POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES`.
+
+**That test builds a world of its own and should not.** Everything it asserts
+is reachable over HTTP, which is where the rule about which world a test
+belongs in puts it — in the shared one. It is kept only until the guide's world
+runs an image carrying this surface, and it goes in the same change that moves
+the pin and adds the chapter, because a promise proven nowhere is worse than a
+promise proven in a world of its own.
 
 ## Decisions
 
@@ -73,6 +92,17 @@ distinction elsewhere — no authority answer says whether a subject exists.
 migration; this slice adds a door rather than closing one. The guide will say
 which is which.
 
+**A run is ended at its own address, not on the lane.** The lane's `closed`
+verb takes the run a participant was handed by a poll, which is the
+asynchronous half — and this slice is the synchronous one, where the caller
+starts the run, performs it inline and says so. Sending it round the lane would
+have meant a poll and a claim to close work nobody queued, and none of it
+demonstrable with a curl. So the run door ends the run, and a participant that
+polls still closes on the lane.
+
+**Ending it twice is not an error.** The second call finds a run nobody holds,
+which answers as a run that is not there — which is what it asked for.
+
 **A run context is addressed by the run's key, in the path.** It is honest,
 it is greppable in a log, and a FHIR client configured with that base URL works
 unmodified — which is the property that makes this an integration surface
@@ -94,18 +124,26 @@ rather than a bespoke protocol.
 
 ## Verifying
 
-The slice is done when these pass and the guide chapter runs in
-`docs/guide/examples/check.sh`:
+Every line of the acceptance is asserted, and every one of them is written as
+a step of the shared world's work story waiting on the pin:
 
 - a request inside a run reads a document the run names — 200;
 - the same credential, same document, outside any run — refused;
-- a document of a declared type that the run does *not* name — 404;
+- a document of a declared type that the run does *not* name — 404, byte for
+  byte the answer an invented id gets;
 - a type the step never declared — 404, and absent from the context's
   `/metadata`;
-- the trail shows the read, naming the run;
-- a run's context stops answering once the run has ended.
+- the trail shows the read, naming the run — from the run, for what it opened,
+  and from the document, for who read it;
+- a run's context stops answering once the run has ended, byte for byte as a
+  run that never existed.
 
 ```
-./gradlew :core:harness:test --tests '*StepScopedAccessIT*'
-./docs/guide/examples/check.sh
+./gradlew :core:harness:test --tests '*AStepReachesOnlyWhatItNamed*'
+./docs/guide/examples/check-tree.sh
 ```
+
+`check-tree.sh` builds the server from the tree and runs the whole guide
+against it, which is how the chapter is verified before the pin can carry it.
+`check.sh` and `:guide:test` run against the pinned image and take the chapter
+when the pin moves.

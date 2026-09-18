@@ -38,8 +38,19 @@ import java.util.Optional;
  * it that the thing exists. The authority already refuses that distinction for
  * subjects; this refuses it for documents.
  *
- * <p>Reads only. The acceptance this was built against is a boundary claim,
- * and a boundary is proven by what it refuses to answer.
+ * <p><b>The context lasts as long as the work does.</b> A run nobody holds is
+ * over, and its base url answers like a run that never existed. Otherwise
+ * performing a piece of work once would leave a standing way in behind it,
+ * which is the opposite of granting access to a step.
+ *
+ * <p><b>A read here is a disclosure, and is recorded as one.</b> The entry
+ * lands on the document, beside every other reading of it, and names the run
+ * as its occasion — so it is answerable both from the document, by somebody
+ * who need not know work exists, and from the run.
+ *
+ * <p>The context reads and does nothing else. The one act beside reading is
+ * ending the run, at the run's own address rather than inside its context,
+ * because it is a statement about the work and not about a document.
  */
 final class StepSurface implements HttpHandler {
 
@@ -75,9 +86,14 @@ final class StepSurface implements HttpHandler {
             while (relative.startsWith("/")) {
                 relative = relative.substring(1);
             }
-            if (!admitted(exchange)) {
+            TenantAuthority.AuthContext admitted = admitted(exchange);
+            if (admitted == null) {
                 return;
             }
+            // Who is asking, before anything is read. The trail's actor comes
+            // from the authority and never from the request, exactly as it
+            // does on the records surface.
+            cloud.jengu.dbo.core.api.Caller.set(admitted.clientId());
             if (starting) {
                 start(exchange, relative);
             } else {
@@ -88,6 +104,9 @@ final class StepSurface implements HttpHandler {
         } catch (RuntimeException failed) {
             fail(exchange, 500, "failed", "the request did not complete");
         } finally {
+            // Cleared on the way out, because the thread is reused: a run left
+            // behind would occasion the next request's read.
+            cloud.jengu.dbo.core.api.Caller.clear();
             exchange.close();
         }
     }
@@ -98,8 +117,11 @@ final class StepSurface implements HttpHandler {
      * <p>The point of the surface is that holding it is not holding the
      * store: a token admitted here is refused by the tenant's own records
      * surface, and one admitted there has no business arriving through a run.
+     *
+     * @return who is asking, or null when the request has already been
+     *         answered with a refusal
      */
-    private boolean admitted(HttpExchange exchange) throws IOException {
+    private TenantAuthority.AuthContext admitted(HttpExchange exchange) throws IOException {
         String header = exchange.getRequestHeaders().getFirst("Authorization");
         String bearer = header != null && header.regionMatches(true, 0, "Bearer ", 0, 7)
                 ? header.substring(7).trim() : null;
@@ -109,9 +131,9 @@ final class StepSurface implements HttpHandler {
             exchange.getResponseHeaders().set("WWW-Authenticate", "Bearer");
             fail(exchange, context.isEmpty() ? 401 : 403, "access_denied",
                     "this surface admits a credential that may act in work");
-            return false;
+            return null;
         }
-        return true;
+        return context.get();
     }
 
     /** POST /step/&lt;module.process.step&gt; — a run over the documents named. */
@@ -147,7 +169,14 @@ final class StepSurface implements HttpHandler {
         String scope = Optional.ofNullable(Json.strOpt(body, "scope"))
                 .orElseGet(cloud.jengu.dbo.core.UuidV7::newId);
         Run run = runs.of(declaration(step), RunKind.PIPELINE, scope, inputs);
-        respond(exchange, 201, "{\"run\":" + quote(run.id()) + ",\"step\":" + quote(stepCode)
+        // The key as well as the id, because they answer different questions
+        // and only one of them is this surface's. The id addresses the
+        // context; the key is the name the rest of the work model is asked by
+        // — the trail's `run` parameter among them — so a caller that started
+        // a run here can ask what it did without first holding a credential
+        // that may read the run's own record to find its name out.
+        respond(exchange, 201, "{\"run\":" + quote(run.id()) + ",\"key\":" + quote(run.key())
+                + ",\"step\":" + quote(stepCode)
                 + ",\"context\":" + quote(runPath + "/" + run.id() + "/fhir") + "}");
     }
 
@@ -160,19 +189,38 @@ final class StepSurface implements HttpHandler {
         return declaration;
     }
 
-    /** GET /run/&lt;id&gt;/fhir/… — the documents the run named, and nothing else. */
+    /**
+     * The run's own address: its context at {@code /fhir/…}, and the one act
+     * that is not a read.
+     *
+     * <p>Ending a run is here rather than on the lane because this slice is
+     * the synchronous half: the caller starts a run, reads what it was given,
+     * does the work and says it is done, all with a curl. Claiming queued work
+     * is the lane's, and a participant that polls closes there with the run it
+     * was handed.
+     */
     private void read(HttpExchange exchange, String relative) throws IOException {
+        String[] segments = relative.split("/");
+        if (segments.length == 2 && "done".equals(segments[1])) {
+            done(exchange, segments[0]);
+            return;
+        }
         if (!"GET".equals(exchange.getRequestMethod())) {
             fail(exchange, 405, "invalid_request", "a run context is read");
             return;
         }
-        String[] segments = relative.split("/");
         if (segments.length < 3 || !"fhir".equals(segments[1])) {
             fail(exchange, 404, "not_found", "a run context is /run/<id>/fhir/…");
             return;
         }
         Optional<Run> found = runs.byId(segments[0]);
-        if (found.isEmpty()) {
+        // A run that has ended answers exactly as one that never existed. The
+        // context is the work, so it lasts as long as the work does: a run
+        // closed an hour ago whose base url still served would be a standing
+        // grant left behind by a piece of work nobody is doing — and it is
+        // the same answer either way, because saying "this run is over"
+        // confirms it was real.
+        if (found.isEmpty() || found.get().holder() == cloud.jengu.dbo.work.Holder.NOBODY) {
             fail(exchange, 404, "not_found", "no such run");
             return;
         }
@@ -193,12 +241,61 @@ final class StepSurface implements HttpHandler {
             fail(exchange, 404, "not_found", "this run was not given " + reference);
             return;
         }
-        FhirStoreFacade.ReadResult result = store.readForServing(segments[2], segments[3]);
+        // Occasioned by the run, which is what makes the read answerable from
+        // both ends: the access entry lands on the DOCUMENT, beside every
+        // other reading of it, and carries the run — so "who has read this"
+        // is answerable by somebody who need not know work exists, and "what
+        // did this run open" by somebody who does. Without it the entry is
+        // the tenant's ordinary read traffic, kept or dropped by the audit
+        // level, and a disclosure made through a run would be the one reading
+        // nobody could account for.
+        FhirStoreFacade.ReadResult result;
+        cloud.jengu.dbo.core.api.Caller.setRun(run.key());
+        try {
+            result = store.readForServing(segments[2], segments[3]);
+        } finally {
+            cloud.jengu.dbo.core.api.Caller.clearRun();
+        }
         if (result == null) {
             fail(exchange, 404, "not_found", reference + " is named by the run and not held");
             return;
         }
         respond(exchange, 200, result.resourceJson());
+    }
+
+    /**
+     * POST /run/&lt;id&gt;/done — the work is finished, and the context closes
+     * with it.
+     *
+     * <p>The same answer as a read for a run that is not there, and for the
+     * same reason: a caller that may end a run it cannot name would be told,
+     * by the difference between the two refusals, which runs exist. Ending a
+     * run twice is not an error — the second call finds a run nobody holds,
+     * which is what it asked for.
+     */
+    private void done(HttpExchange exchange, String id) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            fail(exchange, 405, "invalid_request", "a run is ended by POSTing to it");
+            return;
+        }
+        Optional<Run> found = runs.byId(id);
+        if (found.isEmpty() || found.get().holder() == cloud.jengu.dbo.work.Holder.NOBODY) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        Run ended;
+        try {
+            ended = runs.closed(found.get());
+        } catch (Runs.NotAnAction refused) {
+            // A step that declares its actions and omits close has said its
+            // closure is somebody else's act. Told by name rather than as a
+            // fault, because it is an answer about the step and not a
+            // breakage.
+            fail(exchange, 409, "not_an_action", String.valueOf(refused.getMessage()));
+            return;
+        }
+        respond(exchange, 200, "{\"run\":" + quote(ended.id()) + ",\"key\":"
+                + quote(ended.key()) + ",\"holder\":" + quote(ended.holder().wire()) + "}");
     }
 
     /** What this context answers for: the step's types, and no others. */
