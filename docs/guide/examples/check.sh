@@ -782,6 +782,36 @@ ref = json.load(sys.stdin)["input"][0]["valueReference"]
 raise SystemExit(0 if "reference" not in ref and "display" in ref else 1)' \
     || fail "the run envelope resolved its subject instead of displaying it"
 
+step "the read through the run is on the record, naming the run that occasioned it"
+source docs/guide/examples/snippets/run-trail.sh
+# The hospital keeps its trail at `writes`, so an ordinary read of the same
+# patient leaves nothing. What makes this one recorded is the run.
+opened=$(curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
+    --data-urlencode "run=$key" --data-urlencode "action=R" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"])')
+[ "$opened" -ge 1 ] || fail "the trail cannot say what the run opened"
+# And from the other end: the entry is on the DOCUMENT, and names the run.
+curl -sf -G -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/AuditEvent" \
+    --data-urlencode "entity=Patient/$id" --data-urlencode "action=R" \
+  | grep -q "$key" \
+    || fail "the reading of the document does not name the run it was for"
+
+step "the work ends, and the way in closes behind it"
+source docs/guide/examples/snippets/end-a-run.sh
+source docs/guide/examples/snippets/read-after-run.sh
+gone=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$id")
+[ "$gone" = "404" ] \
+    || fail "the context still answers for a run that is over, got $gone"
+# And the run that is over answers exactly as one that never was, so asking is
+# not a way to find out which runs happened.
+invented=01a00000-0000-7000-8000-0000000000ff
+over=$(curl -s -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$id")
+never=$(curl -s -H "Authorization: Bearer $PORTER" \
+    "http://localhost:8090/t/hogwarts/run/$invented/fhir/Patient/$id")
+[ "$over" = "$never" ] \
+    || fail "an ended run and one that never existed answer differently"
+
 step "a runner asks the lane for work, and is told what it may have"
 source docs/guide/examples/snippets/lane-poll.sh
 echo

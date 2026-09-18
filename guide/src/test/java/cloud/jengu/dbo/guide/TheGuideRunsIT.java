@@ -1558,6 +1558,7 @@ class TheGuideRunsIT {
         @Test
         @Order(2)
         @DisplayName("and that credential cannot read a record directly")
+        @Proving(DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS)
         void andThatCredentialCannotReadARecordDirectly() throws Exception {
             String blocked = snippets.run("worker-cannot-read").lastLine();
             assertTrue(blocked.equals("403") || blocked.equals("401"),
@@ -1573,11 +1574,21 @@ class TheGuideRunsIT {
             assertTrue(snippets.recall("CONTEXT").endsWith("/fhir"),
                     "the context is not a FHIR base: " + snippets.recall("CONTEXT"));
             assertTrue(!snippets.recall("run").isBlank(), "the run returned no id");
+            // A PATH, not an absolute url. What a node is bound to is not what
+            // a caller reached it by, so a context that named a host would
+            // hand out links that work nowhere; the caller resolves it against
+            // the origin it already used, which is what the snippet does.
+            assertTrue(started.contains("\"context\":\"/t/hogwarts/run/"),
+                    "the context names a host rather than a path: " + started);
+            assertTrue(snippets.recall("key").startsWith("hogwarts.admission.admit/"),
+                    "the run came back without the name the rest of the work model knows it "
+                            + "by: " + snippets.recall("key"));
         }
 
         @Test
         @Order(4)
         @DisplayName("inside the run, the patient it was given")
+        @Proving(DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS)
         void insideTheRunThePatientItWasGiven() throws Exception {
             // The same credential that could not read this record a moment ago can
             // read it now, and nothing was granted to make that true.
@@ -1587,15 +1598,36 @@ class TheGuideRunsIT {
         @Test
         @Order(5)
         @DisplayName("and nothing else, whatever its type")
+        @Proving(DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS)
         void andNothingElseWhateverItsType() throws Exception {
             assertEquals(0, snippets.run("another-patient").status());
             assertEquals("404\n404", snippets.run("read-outside-reach").text(),
                     "a run reached a patient it was never given");
+
+            // The status alone is not the property. The asker already knows the
+            // id it asked for; what it must not be able to learn is whether the
+            // tenant holds it. So the two refusals are compared BODY to body —
+            // a withheld record and an invented id — and any difference between
+            // them is a way to enumerate what exists.
+            Snippets.Ran refusals = snippets.sh("""
+                    invented=01a00000-0000-7000-8000-00000000beef
+                    curl -s -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$other"
+                    printf '\\n'
+                    curl -s -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$invented" \\
+                        | sed "s/$invented/$other/"
+                    """);
+            assertEquals(0, refusals.status(), "the requests were never made: " + refusals.err());
+            String[] both = refusals.text().split("\n");
+            assertEquals(2, both.length, "two refusals were expected: " + refusals.text());
+            assertEquals(both[0], both[1],
+                    "a withheld record and an absent one answer differently, so asking is a "
+                            + "way to find out which records exist");
         }
 
         @Test
         @Order(6)
         @DisplayName("the context says what it answers for")
+        @Proving(DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS)
         void theContextSaysWhatItAnswersFor() throws Exception {
             assertEquals("Patient", snippets.run("run-metadata").text(),
                     "the context advertises more than the step declared");
@@ -1628,6 +1660,69 @@ class TheGuideRunsIT {
                     "the run envelope does not display its subject: " + slot);
             assertTrue(!slot.contains("\"reference\""),
                     "the run envelope resolved its subject instead of displaying it: " + slot);
+        }
+
+        @Test
+        @Order(71)
+        @DisplayName("the read through the run is on the record, naming the run that occasioned it")
+        @Proving(DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES)
+        void theReadThroughTheRunIsOnTheRecord() throws Exception {
+            // Worth asserting HERE and not only that an entry exists: this
+            // tenant keeps its trail at `writes`, so an ordinary read of the
+            // same patient by the same credential leaves nothing. What makes
+            // this one recorded is that a run occasioned it.
+            String opened = snippets.run("run-trail").text();
+            assertTrue(opened.contains("Patient/" + snippets.recall("id")),
+                    "the trail cannot say what the run opened: " + opened);
+            assertTrue(opened.contains("a-porter"),
+                    "the trail does not say who read it: " + opened);
+
+            // And from the other end, which is the half that matters to
+            // somebody asking about a person rather than about work: the entry
+            // is on the DOCUMENT, beside every other reading of it.
+            String onTheRecord = ask("HOSPITAL", "/AuditEvent?entity=Patient/"
+                    + snippets.recall("id") + "&action=R");
+            assertTrue(onTheRecord.contains(snippets.recall("key")),
+                    "the reading of the document does not name the run it was for: "
+                            + onTheRecord);
+        }
+
+        @Test
+        @Order(71)
+        @DisplayName("the work ends, and the way in closes behind it")
+        @Proving(DboPromises.PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN)
+        void theWorkEndsAndTheWayInClosesBehindIt() throws Exception {
+            assertEquals("holder nobody", snippets.run("end-a-run").text(),
+                    "the run did not end");
+            // The same request that answered 200 a few steps ago. Asserted as
+            // the last thing this story does, because everything before it
+            // needs the context open.
+            assertEquals("404", snippets.run("read-after-run").lastLine(),
+                    "the context still answers for a run that is over, which is a standing "
+                            + "way in left behind by work nobody is doing");
+
+            // And it is as absent as a run that never was. Asserted here
+            // rather than as a step of its own, because it can only be asked
+            // once this one has ended the run — and two steps sharing an
+            // order are not two steps in an order.
+            //
+            // The refusal for a run that really happened, against the refusal
+            // for an id nothing ever minted. A difference between them would
+            // say which runs existed, which is the property the withheld
+            // record is held to one level up.
+            Snippets.Ran refusals = snippets.sh("""
+                    invented=01a00000-0000-7000-8000-0000000000ff
+                    curl -s -H "Authorization: Bearer $PORTER" "$CONTEXT/Patient/$id"
+                    printf '\\n'
+                    curl -s -H "Authorization: Bearer $PORTER" \\
+                        "http://localhost:8090/t/hogwarts/run/$invented/fhir/Patient/$id"
+                    """);
+            assertEquals(0, refusals.status(), "the requests were never made: " + refusals.err());
+            String[] both = refusals.text().split("\n");
+            assertEquals(2, both.length, "two refusals were expected: " + refusals.text());
+            assertEquals(both[0], both[1],
+                    "an ended run and one that never existed answer differently, so asking "
+                            + "is a way to find out which runs happened");
         }
 
     }
