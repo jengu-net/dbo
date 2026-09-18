@@ -60,45 +60,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AProvisioningClientConvergesTheGrantsIT {
 
-    private static final String CODE = "lepitus";
-    private static final String LOGIN = "https://logins.test/login";
+    static SharedTenants.Tenant tenant;
+    static String CODE;
+    /** The shape declares what people are keyed by here. */
+    static final String LOGIN = SharedTenants.LOGINS;
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-converge");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("AProvisioningClientConvergesTheGrantsIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CODE + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"Practitioner","identity":"identifier","systems":["%s"],
-                   "handling":"operational"},
-                  {"name":"PractitionerRole","identity":"internal","handling":"operational"}]}"""
-                .formatted(CODE, LOGIN));
-        UntilServed.scan(manager, CODE);
-        manager.authority(CODE).ensureClient("svc", "svc-secret",
+        // Shared. It is about what a grant does and stops doing, not about a
+        // tenant, and every assertion names the person this class created.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_GRANTS);
+        CODE = tenant.code();
+        tenant.authority().ensureClient("svc", "svc-secret",
                 List.of("system/*.read", "system/*.write"));
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -198,7 +174,7 @@ class AProvisioningClientConvergesTheGrantsIT {
         assertEquals(401, HTTP.send(HttpRequest.newBuilder(URI.create(door())).GET().build(),
                 HttpResponse.BodyHandlers.ofString()).statusCode());
 
-        manager.authority(CODE).ensureClient("inimene", "inimene-secret",
+        tenant.authority().ensureClient("inimene", "inimene-secret",
                 List.of("user/*.read"));
         String human = tokenFor("inimene", "inimene-secret");
         assertEquals(403, HTTP.send(HttpRequest.newBuilder(URI.create(door()))
@@ -236,7 +212,7 @@ class AProvisioningClientConvergesTheGrantsIT {
     }
 
     private static String door() {
-        return manager.baseUrl(CODE).replace("/fhir", "/oidc/admin/role-grants");
+        return tenant.base() + "/oidc/admin/role-grants";
     }
 
     private static int grant(String body) throws Exception {
@@ -264,7 +240,7 @@ class AProvisioningClientConvergesTheGrantsIT {
         String form = "grant_type=client_credentials&client_id=" + client + "&client_secret="
                 + URLEncoder.encode(secret, StandardCharsets.UTF_8);
         return HTTP.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(CODE).replace("/fhir", "/oidc/token")))
+                        URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString())

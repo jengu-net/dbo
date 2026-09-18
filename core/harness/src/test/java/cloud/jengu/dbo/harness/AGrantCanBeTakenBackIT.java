@@ -45,49 +45,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AGrantCanBeTakenBackIT {
 
-    static final String CODE = "tagasi-votmine";
-    static final String LOGIN = "https://logins.test/login";
+    static SharedTenants.Tenant tenant;
+    static String CODE;
+    /** The shape declares what people are keyed by here. */
+    static final String LOGIN = SharedTenants.LOGINS;
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static String personId;
     static final HttpClient HTTP = HttpClient.newHttpClient();
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-withdraw");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("AGrantCanBeTakenBackIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CODE + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"Practitioner","identity":"identifier","systems":["%s"],
-                   "handling":"operational"},
-                  {"name":"Person","identity":"identifier","systems":["%s"],
-                   "handling":"operational"},
-                  {"name":"PractitionerRole","identity":"internal","handling":"operational"}]}"""
-                .formatted(CODE, LOGIN, LOGIN));
-        UntilServed.scan(manager, CODE);
+        // Shared. It is about what a grant does and stops doing, not about a
+        // tenant, and every assertion names the person this class created.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_GRANTS);
+        CODE = tenant.code();
 
-        manager.authority(CODE).ensureRoleGrant("laborant", List.of("user/Specimen.read"));
+        tenant.authority().ensureRoleGrant("laborant", List.of("user/Specimen.read"));
         personId = aClinician("minerva@hogwarts.scot");
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -96,11 +70,11 @@ class AGrantCanBeTakenBackIT {
             + "rather than finding nothing")
     @Proving(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL)
     void theRoleGrantsBeforeItIsTakenBack() {
-        TenantAuthority.Grants grants = manager.authority(CODE).evaluateGrants(personId);
+        TenantAuthority.Grants grants = tenant.authority().evaluateGrants(personId);
         assertTrue(grants.scopes().contains("user/Specimen.read"),
                 "the role granted nothing to begin with, so this proves nothing about "
                         + "withdrawing it: " + grants.scopes());
-        assertTrue(manager.authority(CODE).activeRoleCodes().contains("laborant"));
+        assertTrue(tenant.authority().activeRoleCodes().contains("laborant"));
     }
 
     @Test
@@ -109,14 +83,14 @@ class AGrantCanBeTakenBackIT {
             + "built rather than at the next sweep")
     @Proving(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL)
     void withdrawingStopsTheGrant() {
-        assertTrue(manager.authority(CODE).withdrawRoleGrant("laborant"),
+        assertTrue(tenant.authority().withdrawRoleGrant("laborant"),
                 "there was an active grant and the withdrawal says there was not");
 
-        TenantAuthority.Grants after = manager.authority(CODE).evaluateGrants(personId);
+        TenantAuthority.Grants after = tenant.authority().evaluateGrants(personId);
         assertFalse(after.scopes().contains("user/Specimen.read"),
                 "the role still grants what it granted, so an operator who removed it from "
                         + "configuration is told it is gone and it is not: " + after.scopes());
-        assertFalse(manager.authority(CODE).activeRoleCodes().contains("laborant"),
+        assertFalse(tenant.authority().activeRoleCodes().contains("laborant"),
                 "the directory still lists a role nobody holds any more");
     }
 
@@ -126,9 +100,9 @@ class AGrantCanBeTakenBackIT {
             + "client re-runs on every boot")
     @Proving(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL)
     void withdrawingTwiceIsNotAFailure() {
-        assertFalse(manager.authority(CODE).withdrawRoleGrant("laborant"),
+        assertFalse(tenant.authority().withdrawRoleGrant("laborant"),
                 "withdrawing what is already withdrawn said it had just taken something away");
-        assertFalse(manager.authority(CODE).withdrawRoleGrant("never-granted"),
+        assertFalse(tenant.authority().withdrawRoleGrant("never-granted"),
                 "withdrawing a grant that never existed said it had just taken something away");
     }
 
@@ -151,8 +125,8 @@ class AGrantCanBeTakenBackIT {
         var ds = new org.postgresql.ds.PGSimpleDataSource();
         ds.setUrl(SharedPostgres.urlFor("AGrantCanBeTakenBackIT")
                 .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + CODE.replace('-', '_')));
-        ds.setUser(postgres.getUsername());
-        ds.setPassword(postgres.getPassword());
+        ds.setUser(SharedPostgres.get().getUsername());
+        ds.setPassword(SharedPostgres.get().getPassword());
         try (var c = ds.getConnection();
              var ps = c.prepareStatement("SELECT convert_from(payload, 'UTF8') FROM "
                      + cloud.jengu.dbo.core.api.Domains.tables(
@@ -206,7 +180,7 @@ class AGrantCanBeTakenBackIT {
 
     private static HttpResponse<String> post(String path, String body, String token)
             throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CODE) + path))
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Authorization", "Bearer " + token)
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
@@ -214,18 +188,18 @@ class AGrantCanBeTakenBackIT {
     }
 
     private static String read(String path) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CODE) + path))
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Authorization", "Bearer " + serviceToken()).GET().build(),
                 HttpResponse.BodyHandlers.ofString()).body();
     }
 
     private static String serviceToken() throws Exception {
-        manager.authority(CODE).ensureClient("svc", "svc-secret",
+        tenant.authority().ensureClient("svc", "svc-secret",
                 List.of("system/*.read", "system/*.write"));
         String form = "grant_type=client_credentials&client_id=svc&client_secret="
                 + URLEncoder.encode("svc-secret", StandardCharsets.UTF_8);
         return HTTP.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(CODE).replace("/fhir", "/oidc/token")))
+                        URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString())

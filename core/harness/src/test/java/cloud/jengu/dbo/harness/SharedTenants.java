@@ -86,6 +86,24 @@ public final class SharedTenants {
                 "r5", "", "full"),
 
         /**
+         * r4 for the classes about who may act: an organisation, the people in
+         * it, and the role that joins them.
+         *
+         * <p>Three classes wanted this set and each wrote it out, differing
+         * only in which systems they keyed by — which a shape cannot split, so
+         * the systems are the shape's.
+         */
+        R4_GRANTS("""
+                [{"name":"Organization","identity":"identifier","systems":["%s"],
+                  "handling":"operational"},
+                 {"name":"Practitioner","identity":"identifier","systems":["%s"],
+                  "handling":"operational"},
+                 {"name":"Person","identity":"identifier","systems":["%s"],
+                  "handling":"operational"},
+                 {"name":"PractitionerRole","identity":"internal","handling":"operational"}]"""
+                .formatted(ORGS, LOGINS, LOGINS), "r4", "", "none"),
+
+        /**
          * r4 holding declarations: what a participant says it is, and the
          * organisation a declaration names.
          *
@@ -166,11 +184,15 @@ public final class SharedTenants {
     /** What a participant declaration is keyed by, for the shape that holds them. */
     public static final String PARTICIPANTS = "https://shared.test/participant";
 
-    /** And the organisation a declaration names. */
+    /** And the organisation a declaration names, or that a grant is at. */
     public static final String ORGS = "https://shared.test/org";
 
+    /** What a person signs in as, for the shapes that key people by login. */
+    public static final String LOGINS = "https://shared.test/login";
+
     private static final HttpClient HTTP = HttpClient.newHttpClient();
-    private static final Map<Shape, Tenant> UP = new ConcurrentHashMap<>();
+    /** Keyed by tenant CODE rather than by shape, since a shape can have several. */
+    private static final Map<String, Tenant> UP = new ConcurrentHashMap<>();
     private static final TenantRuntimeManager MANAGER = start();
     private static Path directory;
 
@@ -198,16 +220,39 @@ public final class SharedTenants {
 
     /** The tenant of this shape, brought up on first ask and shared after it. */
     public static synchronized Tenant of(Shape shape) {
-        return UP.computeIfAbsent(shape, s -> {
+        return of(shape, 1);
+    }
+
+    /**
+     * The {@code nth} tenant of this shape — a second and a third, for the
+     * classes whose whole point is that two tenants cannot see each other.
+     *
+     * <p>Those classes were the ones a shared world seemed unable to serve:
+     * they need several tenants AT ONCE, and a fixture handing out one per
+     * shape has nothing to give them. Numbering is all that was missing. Two
+     * classes asking for the same pair get the same pair, and what each proves
+     * about isolation stays true, because each still asks only about the
+     * records it wrote.
+     *
+     * <p>The discipline is the one sharing always asks for, and it bites
+     * harder here: scope every assertion to what this class made, and give
+     * anything claimed by identity — a step name, an identifier value — a name
+     * of this class's own.
+     */
+    public static synchronized Tenant of(Shape shape, int nth) {
+        if (nth < 1) {
+            throw new IllegalArgumentException("there is no tenant before the first: " + nth);
+        }
+        String code = nth == 1 ? shape.code() : shape.code() + nth;
+        return UP.computeIfAbsent(code, c -> {
             try {
-                Files.writeString(directory.resolve(s.code() + ".json"), """
+                Files.writeString(directory.resolve(c + ".json"), """
                         {"code":"%s","face":"%s"%s,"audit":{"level":"%s"},"types":%s}"""
-                        .formatted(s.code(), s.face, s.extras, s.audit, s.types));
-                UntilServed.scan(MANAGER, s.code());
-                return new Tenant(s.code());
+                        .formatted(c, shape.face, shape.extras, shape.audit, shape.types));
+                UntilServed.scan(MANAGER, c);
+                return new Tenant(c);
             } catch (Exception e) {
-                throw new IllegalStateException("shared tenant " + s.code() + " did not "
-                        + "come up", e);
+                throw new IllegalStateException("shared tenant " + c + " did not come up", e);
             }
         });
     }
