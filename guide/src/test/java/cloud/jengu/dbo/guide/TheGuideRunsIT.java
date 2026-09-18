@@ -362,11 +362,19 @@ class TheGuideRunsIT {
                     "the name did not come back as it was written: " + held);
             assertTrue(held.contains("\"system\":\"urn:rl:nid\",\"value\":\"RL-0001\""),
                     "the identifier did not come back as one object: " + held);
-            // Order included. A store that rebuilt this from columns would be
-            // free to hand the elements back in whatever order it stored them,
-            // and would almost certainly not choose the author's.
-            assertTrue(held.indexOf("\"name\"") < held.indexOf("\"identifier\""),
-                    "the elements came back in an order the author did not write: " + held);
+            // NOT element order, and the reason is worth keeping: this tenant
+            // is behind the membrane, so the identifying elements are sealed
+            // out of the payload and put back on the way out. Their order is
+            // not the author's to keep, and an assertion on it passed on one
+            // run and failed on the next before that was understood.
+            //
+            // What the promise does hold to is that nothing was added and
+            // nothing silently dropped.
+            assertTrue(!held.contains("\"text\""),
+                    "the store added a narrative the author did not write: " + held);
+            assertEquals(2, held.split("\"system\"", -1).length - 1,
+                    "the record came back with more or fewer systems than were written: "
+                            + held);
         }
 
         @Test
@@ -1095,9 +1103,24 @@ class TheGuideRunsIT {
 
         @Test
         @Order(41)
-        @DisplayName("the zone runs the ceremony its members federate to")
+        @DisplayName("the zone runs the ceremony its members federate to, because it names "
+                + "no broker of its own")
+        @Proving(DboPromises.AUTH_A_ZONE_IS_ITS_OWN_BROKER)
         void theZoneRunsItsOwnCeremony() throws Exception {
             assertEquals("200", snippets.run("zone-ceremony").lastLine());
+            // The 200 is not the promise. A zone that named an identity broker
+            // would federate to it; this one names none, so it is its own —
+            // and what makes that true is the hub having keys of its own to
+            // sign its assertions with.
+            Snippets.Ran hub = snippets.sh(
+                    "curl -sf http://localhost:8090/z/rl/hub/jwks.json");
+            assertEquals(0, hub.status(), "the zone's hub answered nothing: " + hub.err());
+            assertTrue(hub.text().contains("\"keys\""),
+                    "the hub has no keys of its own, so nothing federates to it: " + hub.text());
+            // And its members serve, which is the half that would be missing
+            // if a brokerless zone simply held its tenants out of service.
+            assertTrue(served("hogwarts") && served("gringotts"),
+                    "a member of a brokerless zone is not being served");
         }
 
         @Test
