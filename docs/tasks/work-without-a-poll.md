@@ -11,102 +11,178 @@ queue in a database.
 **There are three.** `dbo-stream` carries the same verbs over the store's own
 substrate: a workflow per tenant as a door, an ask sent to it and the answer
 returned as an event, DBOS embedded privately in the bundle exactly as it is in
-`dbo-subscriptions`. A host in the store's own deployment already holds a lane
-that opens nothing towards a tenant and accepts no callback, and a runner
-cannot tell it from the other two. The deployment shape the issue describes is
-built.
+`dbo-subscriptions`. The deployment shape the issue describes is built.
 
-What the issue is actually about survives the correction, and is sharper for
-it. All three bindings are **ask and answer**. `StreamLane` sends a verb and
-waits; `StepRunner` carries a `pollEvery`. So a claim is a round trip and ready
+What the issue is actually about survives the correction and is sharper for it.
+All three bindings are **ask and answer**, so a claim is a round trip and ready
 work waits for the next tick over the substrate exactly as it does over HTTP.
-The cost the issue objects to is not the transport. It is the **activation
-model**.
+The cost is not the transport. It is the **activation model**.
 
-## What is actually being asked for
+## What DBOS actually gives, read from its source
 
-Push activation: work that is ready reaches a runner because it became ready,
-rather than because a runner asked again.
+This decided the design, so it is written down rather than remembered. Read
+from `dev.dbos:transact` 1.0.0 and confirmed unchanged in 1.1.0-m30:
 
-## The shape that survives the facade
+| path | mechanism |
+|---|---|
+| queue dequeue | **polled** — one `QueueListenerTask` per queue at its own `pollingInterval`, with jitter and exponential backoff |
+| `send`/`recv`, workflow events, streams | **LISTEN/NOTIFY** — `pg_notify` triggers on the `notifications`, `workflow_events` and stream tables |
 
-The issue sets its own test, and it is the right one:
+There is **no trigger on `workflow_status`**, which is where queued work lives,
+and `QueueListenerTask` has no signal input: its only timing knobs are the
+polling interval, the backoff factor, and a `speedup` field that exists for
+tests. So enqueuing wakes nobody, and a queue cannot be poked.
 
-> If that distinction does not survive contact with the code, this issue is
-> wrong and the answer is no.
+Three consequences follow, and together they chose the design.
 
-The distinction is between a transport under the facade and an orchestrator
-above it. A queue that **hands work to a runner** does not survive it, and the
-reason is written on `StepRunner`:
+**Queue dispatch would not remove the poll, it would move it.** dbo's tick
+would become DBOS's tick. Meanwhile `StreamLane` already talks to its door
+through `send` and events — which *are* notify-driven — so the transport is
+already push and the tick above it is the whole of the latency.
 
-> One loop thread, deliberately: a runner scales by being **deployed** more —
-> a pod per step, replicas up — never by relaxing the claim; a pool inside one
-> runner is the first step of the coordination the claim exists to make
-> unnecessary. **The claim race is the scheduler.**
+**Queue topology would be a correctness requirement rather than a tuning
+choice.** The dequeue selects by queue name only:
 
-A queue with a deduplication id is that coordination, moved into a database.
-It also moves the global truth: the run record says what is owed and by whom,
-and a queue that assigns would hold a second answer to the same question.
+```sql
+SELECT workflow_uuid FROM workflow_status
+WHERE queue_name = ? AND status = 'ENQUEUED' AND (application_version = ? OR ...)
+ORDER BY priority ASC, created_at ASC
+```
 
-So:
+It marks the rows `PENDING` and only then looks for the function, throwing
+`DBOSWorkflowFunctionNotFoundException` if this process does not implement that
+step — from inside a loop with no per-item catch. So a process that dequeues a
+step it cannot perform **strands the whole batch in `PENDING`**, where the next
+poll (which selects only `ENQUEUED`) will not find it again, and backs itself
+off exponentially while doing so. Avoiding that needs one queue per step, per
+tenant — because reach is per-tenant — and every runner setting `listenQueues`,
+whose default is *listen on all queues*.
 
-> **The queue is a wake-up, not an assignment.**
+**That queue count is the bill.** Tenants × steps queues, each a listener task
+on a scheduled pool sized to the processor count, each polling the system
+database on its interval.
 
-An enqueue when a run becomes claimable. A runner woken by it then claims on
-the lane exactly as it does now, with the same verbs, and the run record stays
-the only account of who holds what. `pollEvery` stays, demoted to a fallback —
-which is what makes a missed wake-up a latency bug rather than a lost run.
+## What is being built instead: the hybrid
 
-Nothing above the facade changes, which is the acceptance the issue asks for:
-a `StepService` compiles with no DBOS on its classpath, the same service runs
-unchanged under every binding, and nothing can tell which one it has.
+> **Dispatch keeps dbo's claim model and gains a wake-up. The feedback path is
+> DBOS messaging, which is notify-driven.**
 
-## What a runner author sees
+Push in both directions, no poller per queue, and the run record stays the only
+account of what is owed and by whom.
 
-Their code does not change. That is the point rather than a convenience.
+What is given up, deliberately and by name: **priority ordering** and
+**worker-concurrency caps**. Those are the two things DBOS queues offer that
+dbo cannot express, and they are not worth *tenants × steps* pollers until
+something needs them. When something does, this document is the argument to
+revisit rather than a decision to unpick.
 
-| | today | with this |
+### Dispatch: the wake-up
+
+A wake-up **carries nothing** — not the run, not its inputs, not a claim. It
+says *look again*, and the runner then polls and claims through the ordinary
+path, because the claim race is what decides who takes a run and a second
+mechanism deciding it would sit beside the run record's answer to the same
+question. The listener takes a `Runnable`, so there is no argument for work to
+arrive in and the compiler is the check.
+
+**The poll is the fallback, not the mechanism.** A runner waits for a wake-up
+only up to its poll interval and then looks anyway, so a lane that can say
+nothing is not degraded and a wake-up that never arrives costs latency rather
+than work. That is the property worth testing, and it is tested: the defect
+this area came from was a failure repeating in silence, and a delivery nobody
+notices going missing would be the same shape again.
+
+Built: `Wakeups`, `Lane.wakeups()`, the wait in `StepRunner`, `Runs.Claimable`
+as the store's end, and `InProcessWakeups` joining both ends in one JVM. That
+last one is reachable by a host embedding the store in its own JVM — the
+appliance shape, a consumer's code — and **not** by the deployment this issue
+is about.
+
+Still to build: the wake-up for `StreamLane`, which is the deployment this
+issue is about. It travels on DBOS messaging like everything else here.
+
+### The feedback path
+
+The runner's outcome, its milestones, the audit entries its work produced and
+its metrics go back as **messages** rather than as synchronous lane verbs.
+Durable in the `notifications` table, delivered on `pg_notify`, and waiting
+there if the store is down rather than being lost in flight. The store's side
+applies them: advancing the run, writing the trail, recording the numbers.
+
+`Manifest.head` already carries the head of the run's chain, so a result
+arriving asynchronously has something to commit to — the chain does not need
+inventing for this path.
+
+### What travels
+
+The message is a `SealedWork`: a `Manifest` — tenant, step, run, slot to
+`Type/id`, recipients, chain head — and the `SealedPayload`s it names. That
+object already exists and is proven; nothing is invented here.
+
+**Sealed payload in the message, by default.** A reference would have to be
+resolved somewhere, and the only blob door is the tenant's own — so resolving
+one would make the runner open a connection back to the tenant and hold a
+credential for it, which is the coupling this binding exists to remove. It is
+also already the design: inputs leave in the carrier form, so a shred reaches a
+copy in flight with no special case, and a reference would need its own erasure
+path beside that one.
+
+Above a size threshold the payload spills to a store **on the substrate** and
+is referenced from the message — on the substrate, because that keeps the
+runner touching one thing. The reason for the threshold is not purity: DBOS
+re-reads workflow inputs on recovery, keeps them under its own retention rather
+than the tenant's `removeAfter`, and Postgres will TOAST large values into a
+blob store with none of a blob store's lifecycle. Spilled bytes need the same
+shred reach as in-message ones, or erasure has a hole exactly where the large
+payloads are.
+
+### Who may know who the work is about
+
+`SealedPayload` is two layers, and conflating them grants more than the work
+needs:
+
+| layer | sealed with | opened by |
 |---|---|---|
-| the step service | `StepService`, no DBOS on the classpath | unchanged |
-| wiring | install the runner and the stream carrier, name the substrate, the tenants and the enrolment | unchanged |
-| configuration | — | one property: this runner shares the store's deployment |
-| latency to start ready work | the next poll tick | milliseconds |
-| traffic while idle | a claim round trip per tick per lane | none |
+| outer | a per-payload data key, wrapped to each recipient's enrolment key | the runner, with its own private key — **no vault** |
+| inner | the person's key | only through the vault, or a callback |
 
-## The three the issue left open, and what the wake-up does to them
+The outer seal yields the **carrier form** — identifying elements still under
+the person's key — which is enough for most work. So a runner needs no vault to
+do its job, and reassembling identity is a further, separate act.
 
-**The result path.** It does not arise. The outcome goes back the way it
-already goes — a lane verb — because the runner still holds a lane. A binding
-that removed the wire one way and kept it the other would have moved the cost;
-this removes a poll and moves nothing.
+**That act is a callback to the tenant, everywhere — not only in cloud.**
+Handing a runner the vault would put identity reassembly where nothing records
+it, and the trail exists to answer who saw whom. A callback makes every
+reassembly an act performed at the tenant, which is where it can be recorded as
+a disclosure. In an appliance it is a local call, so one rule costs nothing.
 
-**Snapshot size.** It does not arise either, and this is the strongest argument
-for the wake-up reading. Nothing rides in the queue but the fact that a run is
-claimable, so the system database never holds a document. The issue's own worry
-— that workflow inputs live in the system database and it is not a blob store —
-is designed out rather than mitigated. (jengu-net/dbo#248 has since closed, so
-the blob wire exists if a later slice wants it; this one does not need it.)
+**The callback's answer comes back sealed to the asker.** If it is a DBOS
+activity its result is stored in the system database — the shared plane — and
+returning reassembled identity there would put identifying data on the plane a
+ratchet already checks by reading every row and asserting it holds the
+manifest, no content and no token.
 
-**Who is sealed to.** Unchanged. Inputs arrive with the work over the lane, in
-the carrier form, sealed to the participant that enrolled — the machinery that
-already exists. A wake-up carries no content and so is sealed to nobody.
+## What would have to be true to finish it
 
-## What would have to be true to build it
-
-- an enqueue at the point a run becomes claimable, which is `Runs`' business
-  and not a door's;
-- a runner-side subscription that wakes the loop instead of sleeping out the
-  tick, behind the same `Lane` it already holds;
-- the fallback poll kept, and a test that proves a runner with its wake-up
-  suppressed still does the work — because the alternative is a mechanism whose
-  failure is invisible, which is the defect jengu-net/dbo#281 was about.
+- a wake-up for `StreamLane`, on DBOS messaging;
+- the feedback path: outcomes, milestones, trail entries and metrics as
+  messages, and the store's side applying them;
+- the spill, with its shred reach;
+- the identity callback, with a sealed answer;
+- and the test that a runner with its wake-up suppressed still does the work,
+  which is what keeps the poll a fallback rather than a thing that quietly
+  became load-bearing.
 
 ## Not doing
 
-- **The queue as assignment.** See above; it moves the contract line.
-- **A sealed snapshot in the task.** Nothing in the queue but readiness.
-- **A second datastore.** The issue proposed a process database holding tasks.
-  A wake-up needs no such thing: the substrate is already there and already
-  carries the doors.
+- **Queues as dispatch.** See the source reading above: they would move the
+  poll rather than remove it, and cost *tenants × steps* pollers to avoid a
+  stranding failure that only exists because of them.
+- **The queue as assignment.** It moves the contract line: a deduplication id
+  is the coordination the claim exists to make unnecessary, and it puts a
+  second answer beside the run record.
+- **A process database.** The substrate is already there and already carries
+  the doors.
 - **Touching the HTTP binding.** An external actor's runner keeps the door with
-  an authority in front of it. That surface is the point, not an overhead.
+  an authority in front of it. That surface is the point, not an overhead — and
+  its far side cannot be pushed to, so it keeps the poll and is right to.
