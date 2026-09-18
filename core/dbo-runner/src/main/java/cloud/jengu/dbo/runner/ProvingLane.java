@@ -181,6 +181,16 @@ public final class ProvingLane implements Lane {
         return new Executor("proving-lane", "1.0", "cloud.jengu.dbo", Scope.BASELINE);
     }
 
+    /**
+     * Nothing. A proof drives the runner a cycle at a time and asserts what it
+     * did; a wake-up would make when it looked part of what is being proven,
+     * which is the one thing these fixtures are built not to depend on.
+     */
+    @Override
+    public Optional<Wakeups> wakeups() {
+        return Optional.empty();
+    }
+
     @Override
     public List<Run> poll(Set<String> steps, int limit) {
         return offered != null && steps.contains(offered.step())

@@ -194,6 +194,27 @@ public interface Lane {
     /** The work waiting for {@code steps}, from where this lane left off. */
     List<Run> poll(Set<String> steps, int limit);
 
+    /**
+     * How this lane says it may have work, when it can say so at all.
+     *
+     * <p>Empty is the honest default and the honest answer for a binding whose
+     * far side cannot reach back. A runner holding one of those waits out its
+     * tick exactly as every runner did before this existed, which is why
+     * nothing above the facade can tell which binding it has — only how long
+     * it waited.
+     *
+     * <p>What arrives is a nudge and never work: see {@link Wakeups}.
+     *
+     * <p>Abstract, not defaulted, for the reason every verb here is: a lane
+     * that inherited this would be a lane nothing ever wakes, and it would say
+     * so nowhere. Empty is the right answer for most bindings and it is worth
+     * one line to say it, because the binding that could have woken and
+     * forgot to is indistinguishable from the one that cannot — by design,
+     * from above the facade, which is exactly why it cannot be left to a
+     * default down here.
+     */
+    Optional<Wakeups> wakeups();
+
     /** Takes one, or does not — the claim race is the scheduler. */
     Optional<Run> claim(Run run, Duration holdFor);
 
@@ -474,7 +495,33 @@ public interface Lane {
             cloud.jengu.dbo.core.api.ObjectStore objects,
             cloud.jengu.dbo.work.Introductions introductions,
             Entitlement entitlement, Trackables trackables, Trail trail, Keys keys) {
+        return inProcess(tenant, runs, feed, declarations, participant, identity, objects,
+                introductions, entitlement, trackables, trail, keys, null);
+    }
+
+    /**
+     * The same, able to say when it has work.
+     *
+     * <p>A host that wires none is not degraded: its runner waits out the poll
+     * interval exactly as every runner did before wake-ups existed, which is
+     * the property that keeps the poll a fallback rather than a thing this
+     * replaced. What is wired here is the same object the tenant's {@code Runs}
+     * was given as its {@link Runs.Claimable} — it has to be, or the store
+     * tells nobody and the runner listens to nothing, and neither half looks
+     * wrong on its own.
+     */
+    static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
+            Declarations declarations, String participant, Executor identity,
+            cloud.jengu.dbo.core.api.ObjectStore objects,
+            cloud.jengu.dbo.work.Introductions introductions,
+            Entitlement entitlement, Trackables trackables, Trail trail, Keys keys,
+            Wakeups wakeups) {
         return new Lane() {
+
+            @Override
+            public Optional<Wakeups> wakeups() {
+                return Optional.ofNullable(wakeups);
+            }
 
             @Override
             public String tenant() {

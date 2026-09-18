@@ -28,12 +28,44 @@ public final class Runs {
 
     private final ObjectStore store;
     private final Automations automations;
+    private final Claimable claimable;
 
     /**
      * The step catalogue, for reporting through declared actions.
      * Empty means nothing is declared here and no verb is narrowed.
      */
     private final cloud.jengu.dbo.core.process.Steps steps;
+
+    /**
+     * Told when a run becomes claimable, so whoever is waiting for work need
+     * not wait out its next look.
+     *
+     * <p><b>A nudge, never a handover.</b> What arrives is that something
+     * changed, and the taker still polls and claims through the ordinary path
+     * — because the claim race is what decides who gets the work, and a second
+     * mechanism that decided it would be a second answer to the question the
+     * run record already answers.
+     *
+     * <p>Told after the write has landed, so anybody woken by it finds the run
+     * rather than racing the transaction that created it. Told on a best
+     * effort: a listener that throws is not allowed to fail the write that
+     * happened, because the work is real whether or not anyone was told, and
+     * the taker's own poll is underneath this.
+     *
+     * <p><b>A listener reports its own failures.</b> This module carries the
+     * core and nothing else, so there is no logger here to say that nobody was
+     * told — and buying one for that line would be paid by every bundle that
+     * embeds this. An implementation that can fail silently should not: it has
+     * a logger where it lives.
+     */
+    @FunctionalInterface
+    public interface Claimable {
+
+        /** Nobody is waiting, which is the ordinary case and costs nothing. */
+        Claimable NOBODY = run -> { };
+
+        void appeared(Run run);
+    }
 
     public Runs(ObjectStore store) {
         this(store, cloud.jengu.dbo.core.process.Steps.of());
@@ -48,6 +80,17 @@ public final class Runs {
      *              rule, and two copies is how a rule forks.
      */
     public Runs(ObjectStore store, cloud.jengu.dbo.core.process.Steps steps) {
+        this(store, steps, Claimable.NOBODY);
+    }
+
+    /**
+     * The same, telling somebody when a run becomes claimable.
+     *
+     * @param claimable told after the write lands; see {@link Claimable}
+     */
+    public Runs(ObjectStore store, cloud.jengu.dbo.core.process.Steps steps,
+            Claimable claimable) {
+        this.claimable = claimable == null ? Claimable.NOBODY : claimable;
         this.store = store;
         this.steps = steps;
         // Built here rather than passed in, for the reason the note above
@@ -773,6 +816,47 @@ public final class Runs {
         }
     }
 
+    /**
+     * Tells whoever is waiting, when this run is now there to be taken.
+     *
+     * <p>Here rather than at each verb that might produce one, because the two
+     * places a run lands — the write and the advance — are the two places it
+     * can become claimable, and a list of verbs to remember is a list somebody
+     * eventually adds to without remembering.
+     *
+     * <p>Claimable means nobody is holding it: a run under an unexpired claim
+     * has a taker already, and waking somebody for it would be inviting a race
+     * that the claim exists to have settled.
+     */
+    private Run announced(Run run) {
+        if (claimable == Claimable.NOBODY) {
+            return run;
+        }
+        if (run.holder() != Holder.AUTOMATION || run.claimed(java.time.Instant.now())) {
+            return run;
+        }
+        try {
+            claimable.appeared(run);
+        } catch (RuntimeException listenerFailed) {
+            // The work happened whether or not anybody was told, and the
+            // taker's own poll is underneath this — so a listener cannot fail
+            // a write that already landed.
+            //
+            // Not logged HERE, and that is not an oversight: this module
+            // carries the core and nothing else, and a logging dependency
+            // bought for one line would be paid by every bundle that embeds
+            // it. Saying so is the listener's job, where a logger already
+            // exists — see the contract on Claimable.
+            ignored(listenerFailed);
+        }
+        return run;
+    }
+
+    /** Named, so that swallowing this reads as a decision rather than a gap. */
+    private static void ignored(RuntimeException listenersOwnProblem) {
+        // deliberately nothing; see announced()
+    }
+
     private Run write(State state) {
         if (WorkModel.authoredElsewhere(state.key())) {
             // A locally authored key that looked mirrored would be advanceable
@@ -784,8 +868,8 @@ public final class Runs {
         }
         PutResult result = store.putIfAbsent(IdentityRef.identifier(WorkModel.KEY_SYSTEM,
                 state.key()), PutRequest.create(WorkModel.TYPE, state.payload()));
-        return byKey(state.key()).orElseThrow(() -> new IllegalStateException(
-                "a run was written as " + result.id() + " and cannot be read back"));
+        return announced(byKey(state.key()).orElseThrow(() -> new IllegalStateException(
+                "a run was written as " + result.id() + " and cannot be read back")));
     }
 
     /**
@@ -828,7 +912,7 @@ public final class Runs {
             try {
                 store.put(new PutRequest(WorkModel.TYPE, stored.id(), stored.versionId(),
                         state.payload()));
-                return byKey(state.key()).orElseThrow();
+                return announced(byKey(state.key()).orElseThrow());
             } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
                 if (attempt == ATTEMPTS) {
                     throw new Contended(run.key(), lost);
