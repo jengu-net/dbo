@@ -341,7 +341,7 @@ class TheGuideRunsIT {
     class APatientAdmittedAndChanged {
 
         @Test
-        @Order(5)
+        @Order(1)
         @DisplayName("admitting a patient, and reading back what was written")
         @Proving({DboPromises.CORE_PAYLOAD_IS_TRUTH, DboPromises.CORE_READ_YOUR_WRITES})
         void admittingAPatient() throws Exception {
@@ -378,7 +378,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(6)
+        @Order(2)
         @DisplayName("a readable id is refused")
         void aReadableIdIsRefused() throws Exception {
             Snippets.Ran refused = snippets.run("readable-id");
@@ -387,7 +387,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(7)
+        @Order(3)
         @DisplayName("finding him by the identifier the zone declares")
         @Proving(DboPromises.CORE_EXTERNAL_IDENTIFIERS)
         void findingHimByIdentifier() throws Exception {
@@ -398,7 +398,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(8)
+        @Order(4)
         @DisplayName("changing him, and reading what he was")
         @Proving(DboPromises.CORE_VERSIONED_HISTORY)
         void changingHimAndReadingWhatHeWas() throws Exception {
@@ -406,7 +406,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(11)
+        @Order(5)
         @DisplayName("the same person twice is refused, not duplicated")
         @Proving({DboPromises.CORE_NO_IMPLICIT_MERGE,
                 DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS})
@@ -417,7 +417,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(12)
+        @Order(6)
         @DisplayName("updating by identity rather than by id adds nothing")
         @Proving({DboPromises.CORE_CONDITIONAL_UPSERT,
                 DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS})
@@ -428,7 +428,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(13)
+        @Order(7)
         @DisplayName("reading one version by number, and the validator it carries")
         @Proving(DboPromises.CORE_VERSIONED_HISTORY)
         void readingOneVersionByNumber() throws Exception {
@@ -502,7 +502,7 @@ class TheGuideRunsIT {
     class TheSamePersonAtAnotherTenant {
 
         @Test
-        @Order(9)
+        @Order(1)
         @DisplayName("the same person at the insurer, a release behind, and its refusal names the version")
         void theSamePersonAtTheInsurer() throws Exception {
             assertTrue(snippets.run("insurer").text().contains("RL-0001"),
@@ -514,7 +514,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(10)
+        @Order(2)
         @DisplayName("a credential is for one tenant, and an id means nothing in another")
         void aCredentialIsForOneTenant() throws Exception {
             // 401 then 404: not a valid credential refused, but no credential —
@@ -523,7 +523,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(14)
+        @Order(3)
         @DisplayName("a type declared replicated is not writable here, and the refusal names the rule")
         void aReplicatedTypeIsNotWritableHere() throws Exception {
             String refused = snippets.run("replicated-refused").text();
@@ -547,7 +547,7 @@ class TheGuideRunsIT {
     class SeveralWritesAsOneAct {
 
         @Test
-        @Order(15)
+        @Order(1)
         @DisplayName("several writes as one act, and the reference between them resolved")
         @Proving({DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE,
                 DboPromises.CORE_CONDITIONAL_REFERENCES})
@@ -562,7 +562,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(16)
+        @Order(2)
         @DisplayName("one bad entry takes the whole transaction with it")
         @Proving(DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE)
         void oneBadEntryTakesTheWholeTransaction() throws Exception {
@@ -572,7 +572,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(17)
+        @Order(3)
         @DisplayName("a batch answers for each entry separately")
         @Proving(DboPromises.CORE_BATCH_ANSWERS_PER_ENTRY)
         void aBatchAnswersForEachEntry() throws Exception {
@@ -586,7 +586,7 @@ class TheGuideRunsIT {
         // the other reads it ran before its own precondition existed, and the
         // ordering said so rather than passing on a record somebody else left.
         @Test
-        @Order(18)
+        @Order(4)
         @DisplayName("what belongs to a record is found by the reference, and one pointing out is kept")
         @Proving(DboPromises.CORE_REFERENCE_EDGES)
         void referencesAreFoundAndKept() throws Exception {
@@ -603,7 +603,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(20)
+        @Order(5)
         @DisplayName("a definition is identified by its url, so writing it twice replaces it")
         void aDefinitionIsIdentifiedByItsUrl() throws Exception {
             assertEquals("201\n201", snippets.run("canonical").text());
@@ -614,7 +614,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(21)
+        @Order(6)
         @DisplayName("a type the tenant never declared is refused")
         void anUndeclaredTypeIsRefused() throws Exception {
             // The hospital declared Observation and the insurer did not, so the
@@ -639,7 +639,7 @@ class TheGuideRunsIT {
     class ATenantsLife {
 
         @Test
-        @Order(22)
+        @Order(1)
         @DisplayName("a tenant appears when its spec does")
         void aTenantAppearsWhenItsSpecDoes() throws Exception {
             assertEquals(0, snippets.run("add-tenant").status(), "the spec was not written");
@@ -648,7 +648,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(23)
+        @Order(2)
         @DisplayName("changing the declaration rebuilds the tenant where it stands")
         void changingTheDeclarationRebuildsInPlace() throws Exception {
             assertEquals(0, snippets.run("change-in-place").status(), "the spec was not narrowed");
@@ -666,7 +666,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(24)
+        @Order(3)
         @DisplayName("and stops when its spec goes")
         void andStopsWhenItsSpecGoes() throws Exception {
             assertEquals(0, snippets.run("remove-tenant").status());
@@ -680,7 +680,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(25)
+        @Order(4)
         @DisplayName("the hospital still has its own records")
         void theHospitalStillHasItsOwnRecords() throws Exception {
             // A neighbour arriving and leaving is the loudest thing that happens to
@@ -706,7 +706,7 @@ class TheGuideRunsIT {
     class AskingTheStore {
 
         @Test
-        @Order(26)
+        @Order(1)
         @DisplayName("what this tenant says it can be asked")
         @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
         void whatThisTenantSaysItCanBeAsked() throws Exception {
@@ -718,7 +718,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(27)
+        @Order(2)
         @DisplayName("a modifier the parameter does not have is refused by name")
         @Proving(DboPromises.SRCH_STRICT_BY_DEFAULT)
         void anUnknownModifierIsRefusedByName() throws Exception {
@@ -728,7 +728,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(28)
+        @Order(3)
         @DisplayName("counting without fetching")
         void countingWithoutFetching() throws Exception {
             String counted = snippets.run("count").text();
@@ -737,7 +737,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(29)
+        @Order(4)
         @DisplayName("a page, and the cursor that follows it")
         void aPageAndTheCursorThatFollowsIt() throws Exception {
             for (String family : java.util.List.of(
@@ -769,7 +769,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(30)
+        @Order(5)
         @DisplayName("a write lands between the pages, and the next page does not repeat")
         void aWriteLandsBetweenThePages() throws Exception {
             Snippets.Ran between = snippets.sh("""
@@ -791,7 +791,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(31)
+        @Order(6)
         @DisplayName("an unsupported search parameter is refused, not ignored")
         @Proving(DboPromises.SRCH_STRICT_BY_DEFAULT)
         void anUnsupportedSearchParameterIsRefused() throws Exception {
@@ -816,7 +816,7 @@ class TheGuideRunsIT {
     class WhatTheStoreWillNotStore {
 
         @Test
-        @Order(32)
+        @Order(1)
         @DisplayName("an element the face does not define is refused, not quietly kept")
         @Proving(DboPromises.VER_WHAT_THIS_FACE_CANNOT_READ_IS_REFUSED)
         void anUndefinedElementIsRefused() throws Exception {
@@ -840,7 +840,7 @@ class TheGuideRunsIT {
         // type and a nested position, which would be repetition in prose and
         // is the whole of the claim in a test.
         @Test
-        @Order(32)
+        @Order(2)
         @DisplayName("nested, and on another type, because the rule is the parser's rather "
                 + "than a list of field names")
         @Proving(DboPromises.VER_WHAT_THIS_FACE_CANNOT_READ_IS_REFUSED)
@@ -867,7 +867,7 @@ class TheGuideRunsIT {
         // about extra data: FHIR has a way to carry what a resource does not
         // define, and refusing that too would be a different promise.
         @Test
-        @Order(32)
+        @Order(3)
         @DisplayName("and the sanctioned way to carry the same fact is accepted")
         @Proving(DboPromises.VER_WHAT_THIS_FACE_CANNOT_READ_IS_REFUSED)
         void anExtensionCarriesItInstead() throws Exception {
@@ -885,7 +885,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(33)
+        @Order(4)
         @DisplayName("a code outside a required binding is refused, and the refusal names the element")
         @Proving(DboPromises.VAL_BINDING_STRENGTH_IS_THE_ANSWER)
         void aCodeOutsideARequiredBindingIsRefused() throws Exception {
@@ -899,7 +899,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(34)
+        @Order(5)
         @DisplayName("a malformed value and a missing required element are refused the same way")
         @Proving(DboPromises.VER_SPECIFIED_VALIDATION)
         void aMalformedValueAndAMissingElementAreRefusedTheSameWay() throws Exception {
@@ -910,7 +910,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(35)
+        @Order(6)
         @DisplayName("the same mistake at both faces, each naming the version it validated against")
         @Proving({DboPromises.VER_CONCURRENT_VERSIONS, DboPromises.VER_SPECIFIED_VALIDATION})
         void theSameMistakeAtBothFaces() throws Exception {
@@ -920,7 +920,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(36)
+        @Order(7)
         @DisplayName("asking for the verdict without writing, and the write agreeing with it")
         @Proving({DboPromises.VER_VALIDATION_WITHOUT_WRITING,
                 DboPromises.VER_WHAT_THIS_FACE_CANNOT_READ_IS_REFUSED})
@@ -947,7 +947,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(36)
+        @Order(8)
         @DisplayName("and what it accepts, a write accepts — with nothing written by asking")
         @Proving(DboPromises.VER_VALIDATION_WITHOUT_WRITING)
         void whatItAcceptsAWriteAcceptsAndNothingIsWritten() throws Exception {
@@ -980,7 +980,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(36)
+        @Order(9)
         @DisplayName("an unsupported mode is refused, and a type the tenant does not serve is "
                 + "not found rather than quietly valid")
         @Proving(DboPromises.VER_VALIDATION_WITHOUT_WRITING)
@@ -1006,7 +1006,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(36)
+        @Order(10)
         @DisplayName("and the operation the statement declares is the operation that answers")
         @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
         void declaredAndRoutableAreTheSameSet() throws Exception {
@@ -1034,7 +1034,7 @@ class TheGuideRunsIT {
     class TerminologyAndHowItArrives {
 
         @Test
-        @Order(37)
+        @Order(1)
         @DisplayName("the hospital declared the zone, so it answers the zone's codes as its own")
         void theZonesCodesReachTheHospital() throws Exception {
             // The first sync from a zone runs some minutes after a tenant comes up;
@@ -1049,7 +1049,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(38)
+        @Order(2)
         @DisplayName("the insurer declared the code systems and not the value sets, and that is what it has")
         void theInsurerTookOnlyWhatItDeclared() throws Exception {
             // The insurer's copy travels further than the hospital's: the zone
@@ -1066,7 +1066,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(39)
+        @Order(3)
         @DisplayName("and the standard's own terminology is there by the same mechanism")
         void theStandardsTerminologyIsThereTheSameWay() throws Exception {
             assertTrue(snippets.run("core-terminology").text().contains("Female"),
@@ -1087,7 +1087,7 @@ class TheGuideRunsIT {
     class FacesAndTheZone {
 
         @Test
-        @Order(40)
+        @Order(1)
         @DisplayName("a face root is a tenant, and its definitions are records")
         void aFaceRootIsATenant() throws Exception {
             snippets.remember("FACE_R5", credentialFor("fhir-r5", "r5-secret"));
@@ -1102,7 +1102,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(41)
+        @Order(2)
         @DisplayName("the zone runs the ceremony its members federate to, because it names "
                 + "no broker of its own")
         @Proving(DboPromises.AUTH_A_ZONE_IS_ITS_OWN_BROKER)
@@ -1124,7 +1124,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(42)
+        @Order(3)
         @DisplayName("a projection converts the zone once, for the face that needs it")
         void aProjectionConvertsTheZoneOnce() throws Exception {
             assertTrue(waitUntilServed("rl-on-r4", 90), "the projection never came up");
@@ -1133,7 +1133,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(43)
+        @Order(4)
         @DisplayName("the version that deleted a record is gone, not missing")
         @Proving(DboPromises.CORE_VERSIONED_HISTORY)
         void theVersionThatDeletedARecordIsGone() throws Exception {
@@ -1170,7 +1170,7 @@ class TheGuideRunsIT {
     class WhoMayActHere {
 
         @Test
-        @Order(44)
+        @Order(1)
         @DisplayName("the hospital is an organisation, with people and what they may do")
         void theHospitalIsAnOrganisation() throws Exception {
             assertEquals("201\n201", snippets.run("org-and-people").text());
@@ -1181,7 +1181,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(45)
+        @Order(2)
         @DisplayName("a role is a record, not a column")
         void aRoleIsARecordNotAColumn() throws Exception {
             assertEquals("201", snippets.run("the-role").lastLine());
@@ -1192,7 +1192,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(46)
+        @Order(3)
         @DisplayName("and what that role may do is declared, and readable")
         void whatThatRoleMayDoIsReadable() throws Exception {
             String grants = snippets.run("role-grant").text();
@@ -1220,7 +1220,7 @@ class TheGuideRunsIT {
     class ActingForSomebody {
 
         @Test
-        @Order(47)
+        @Order(1)
         @DisplayName("a person signs in, and the store works out what she is here")
         void aPersonSignsIn() throws Exception {
             assertEquals("201", snippets.run("a-person-signs-in").lastLine());
@@ -1245,7 +1245,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(48)
+        @Order(2)
         @DisplayName("a process acts in her name, and carries both names")
         void aProcessActsInHerName() throws Exception {
             String acting = snippets.run("acting-for-her", "token-exchange", "who-she-is").text();
@@ -1256,7 +1256,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(49)
+        @Order(3)
         @DisplayName("and cannot acquire authority she never had")
         void andCannotAcquireAuthoritySheNeverHad() throws Exception {
             assertTrue(snippets.run("attenuation").text().contains("access_denied"),
@@ -1264,7 +1264,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(50)
+        @Order(4)
         @DisplayName("work that outlives the token holds a delegation")
         void workThatOutlivesTheTokenHoldsADelegation() throws Exception {
             String granted = snippets.run("a-delegation").text();
@@ -1277,7 +1277,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(51)
+        @Order(5)
         @DisplayName("and ending it stops the next exchange")
         void andEndingItStopsTheNextExchange() throws Exception {
             String ended = snippets.run("ending-a-delegation").text();
@@ -1286,7 +1286,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(52)
+        @Order(6)
         @DisplayName("every tenant issues its own tokens")
         @Proving(DboPromises.AUTH_TENANT_SCOPED_ISSUER)
         void everyTenantIssuesItsOwnTokens() throws Exception {
@@ -1321,8 +1321,10 @@ class TheGuideRunsIT {
     class TheTrail {
 
         @Test
-        @Order(53)
+        @Order(1)
         @DisplayName("the trail records the act, and who did it")
+        @Proving({DboPromises.POL_AUDIT_AS_RECORDS, DboPromises.POL_ACTOR_FROM_AUTHORITY,
+                DboPromises.POL_FHIR_AUDIT_PROJECTION})
         void theTrailRecordsTheAct() throws Exception {
             // Asked by the REFERENCE, because that is the form the entry hands
             // back and the form a reader copies. Matched against the id alone it
@@ -1332,10 +1334,55 @@ class TheGuideRunsIT {
                     "the trail cannot be asked about the record it names: " + recorded);
             assertTrue(recorded.contains("tenant-bootstrap"),
                     "the trail does not say who acted: " + recorded);
+
+            // Pseudonymous, which is the part of "audit entries are records"
+            // that is easiest to lose: an entry naming the patient would make
+            // the trail a second copy of what the membrane exists to seal.
+            String entry = ask("HOSPITAL", "/AuditEvent?entity=Patient/"
+                    + snippets.recall("id") + "&action=C&_count=1");
+            assertTrue(!entry.contains("Potter"),
+                    "the trail carries the person it is about: " + entry);
+            // And it is served as AuditEvent — a native record rendered per
+            // face, not a log line with a resourceType glued on.
+            assertTrue(entry.contains("\"resourceType\":\"AuditEvent\""),
+                    "the trail is not projected as the face's own type: " + entry);
         }
 
         @Test
-        @Order(54)
+        @Order(2)
+        @DisplayName("and an entry cannot be changed or taken back, whatever the tenant's "
+                + "write discipline says")
+        @Proving(DboPromises.POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY)
+        void anEntryCannotBeChangedOrTakenBack() throws Exception {
+            // The trail is the record of what happened, so a tenant that could
+            // edit it holds nothing worth producing to anybody. This is not the
+            // tenant's policy to set — it is true under every discipline.
+            String recorded = ask("HOSPITAL", "/AuditEvent?_count=1");
+            String entry = onlyIdIn(recorded);
+
+            Snippets.Ran amended = snippets.sh("""
+                    curl -s -o /dev/null -w '%%{http_code}' -X PUT \
+                        -H "Authorization: Bearer $HOSPITAL" \
+                        -H 'Content-Type: application/fhir+json' \
+                        "$HOGWARTS/AuditEvent/%s" \
+                        -d '{"resourceType":"AuditEvent","id":"%s"}'
+                    """.formatted(entry, entry));
+            assertEquals(0, amended.status(), "the request was never made: " + amended.err());
+            assertTrue(!amended.lastLine().startsWith("2"),
+                    "an audit entry was amended, and answered " + amended.lastLine());
+
+            Snippets.Ran dropped = snippets.sh("""
+                    curl -s -o /dev/null -w '%%{http_code}' -X DELETE \
+                        -H "Authorization: Bearer $HOSPITAL" \
+                        "$HOGWARTS/AuditEvent/%s"
+                    """.formatted(entry));
+            assertEquals(0, dropped.status(), "the request was never made: " + dropped.err());
+            assertTrue(!dropped.lastLine().startsWith("2"),
+                    "an audit entry was taken back, and answered " + dropped.lastLine());
+        }
+
+        @Test
+        @Order(3)
         @DisplayName("and the trail is searched the way it is asked about")
         void theTrailIsSearchedTheWayItIsAskedAbout() throws Exception {
             String byAgent = snippets.run("trail-search").text();
@@ -1359,7 +1406,7 @@ class TheGuideRunsIT {
     class WhatATenantHolds {
 
         @Test
-        @Order(55)
+        @Order(1)
         @DisplayName("what the tenant holds, before anything moves")
         void whatTheTenantHoldsBeforeAnythingMoves() throws Exception {
             String inventory = snippets.run("inventory").text();
@@ -1370,7 +1417,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(56)
+        @Order(2)
         @DisplayName("the streams a tenant carries, one per domain")
         void theStreamsATenantCarries() throws Exception {
             java.util.List<String> domains = snippets.run("feed-domains").text().lines().toList();
@@ -1381,7 +1428,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(57)
+        @Order(3)
         @DisplayName("and what is reading them, with how far behind it is")
         void andWhatIsReadingThem() throws Exception {
             java.util.List<String> reading = snippets.run("feed-consumers").text().lines().toList();
@@ -1406,7 +1453,7 @@ class TheGuideRunsIT {
     class ContentHeldWhole {
 
         @Test
-        @Order(58)
+        @Order(1)
         @DisplayName("content a tenant holds whole")
         void contentATenantHoldsWhole() throws Exception {
             String written = snippets.run("blob-write").text();
@@ -1416,7 +1463,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(59)
+        @Order(2)
         @DisplayName("handed back as it was given")
         void handedBackAsItWasGiven() throws Exception {
             String headers = snippets.run("blob-read").text();
@@ -1428,7 +1475,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(60)
+        @Order(3)
         @DisplayName("and it is guarded by the grant that covers binary content")
         void andItIsGuardedByTheGrant() throws Exception {
             // Unheld and absent, in that order: a blob is not public, and one that
@@ -1453,7 +1500,7 @@ class TheGuideRunsIT {
     class LeavingAndComingBack {
 
         @Test
-        @Order(61)
+        @Order(1)
         @DisplayName("the archive is sealed under a key the store does not hold")
         void theArchiveIsSealedUnderAKeyTheStoreDoesNotHold() throws Exception {
             String refused = snippets.run("archive-no-key").text();
@@ -1462,7 +1509,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(62)
+        @Order(2)
         @DisplayName("the whole tenant leaves as one file, and whoever stores it can read nothing in it")
         void theWholeTenantLeavesAsOneFile() throws Exception {
             String taken = snippets.run("archive").text();
@@ -1473,7 +1520,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(63)
+        @Order(3)
         @DisplayName("coming back is a ceremony, and the store cannot perform it alone")
         void comingBackIsACeremony() throws Exception {
             String refused = snippets.run("import-needs-signatures").text();
@@ -1500,7 +1547,7 @@ class TheGuideRunsIT {
     class WorkAndHowFarARunReaches {
 
         @Test
-        @Order(64)
+        @Order(1)
         @DisplayName("a credential that may act in work, and not read the tenant")
         void aCredentialThatMayActInWork() throws Exception {
             assertEquals("200", snippets.run("worker-credential", "token").text().lines()
@@ -1509,7 +1556,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(65)
+        @Order(2)
         @DisplayName("and that credential cannot read a record directly")
         void andThatCredentialCannotReadARecordDirectly() throws Exception {
             String blocked = snippets.run("worker-cannot-read").lastLine();
@@ -1518,7 +1565,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(66)
+        @Order(3)
         @DisplayName("a run of the step the hospital offers, over one patient")
         void aRunOfTheStepTheHospitalOffers() throws Exception {
             String started = snippets.run("start-a-run").text();
@@ -1529,7 +1576,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(67)
+        @Order(4)
         @DisplayName("inside the run, the patient it was given")
         void insideTheRunThePatientItWasGiven() throws Exception {
             // The same credential that could not read this record a moment ago can
@@ -1538,7 +1585,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(68)
+        @Order(5)
         @DisplayName("and nothing else, whatever its type")
         void andNothingElseWhateverItsType() throws Exception {
             assertEquals(0, snippets.run("another-patient").status());
@@ -1547,7 +1594,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(69)
+        @Order(6)
         @DisplayName("the context says what it answers for")
         void theContextSaysWhatItAnswersFor() throws Exception {
             assertEquals("Patient", snippets.run("run-metadata").text(),
@@ -1555,7 +1602,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(70)
+        @Order(7)
         @DisplayName("the run is a record, and it says what it is over and who holds it")
         void theRunIsARecord() throws Exception {
             String record = snippets.run("run-as-a-record").text();
@@ -1570,7 +1617,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(71)
+        @Order(8)
         @DisplayName("and the run envelope displays its subject rather than resolving it")
         void theRunEnvelopeDisplaysItsSubject() throws Exception {
             // The whole point of the envelope: a run says what state it is in
@@ -1597,7 +1644,7 @@ class TheGuideRunsIT {
     class TheLane {
 
         @Test
-        @Order(72)
+        @Order(1)
         @DisplayName("a runner asks the lane for work, and is told what it may have")
         void aRunnerAsksTheLaneForWork() throws Exception {
             assertTrue(snippets.run("lane-poll").text().contains("result"),
@@ -1605,7 +1652,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(73)
+        @Order(2)
         @DisplayName("and a refusal on the lane says why, rather than going quiet")
         void aRefusalOnTheLaneSaysWhy() throws Exception {
             // A lane that answered an unusable request with an empty list would be
@@ -1637,8 +1684,9 @@ class TheGuideRunsIT {
     class TheMembrane {
 
         @Test
-        @Order(74)
+        @Order(1)
         @DisplayName("and what an operator with the database sees instead")
+        @Proving(DboPromises.PDI_STRUCTURAL_VAULT)
         void whatAnOperatorWithTheDatabaseSees() throws Exception {
             java.util.List<String> stored = snippets.run("pdi-ciphertext").text().lines().toList();
             assertTrue(!stored.contains("name") && !stored.contains("identifier"),
@@ -1648,7 +1696,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(75)
+        @Order(2)
         @DisplayName("asking by name is refused, not answered empty")
         void askingByNameIsRefused() throws Exception {
             // An empty bundle would have said nobody is called that, which is a
@@ -1659,8 +1707,10 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(76)
+        @Order(3)
         @DisplayName("and an identifying lookup without a stated reason is refused too")
+        @Proving({DboPromises.PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL,
+                DboPromises.AUTH_PURPOSE_IS_STATED_PER_REQUEST})
         void anIdentifyingLookupWithoutAReasonIsRefused() throws Exception {
             String refused = snippets.run("pdi-no-purpose", "token").text();
             assertTrue(refused.contains("purpose"),
@@ -1681,17 +1731,136 @@ class TheGuideRunsIT {
     class TheDirectoryAtTheDoor {
 
         @Test
-        @Order(77)
+        @Order(1)
         @DisplayName("the directory provisions a person, and the capacity comes with them")
+        @Proving(DboPromises.SCIM_USER_IS_THE_PERSON)
         void theDirectoryProvisionsAPerson() throws Exception {
             String provisioned = snippets.run("scim-create", "token").text();
             assertTrue(provisioned.contains("mmcgonagall"),
                     "the directory did not provision the person: " + provisioned);
+
+            // A provisioned User is not a row in a directory table beside the
+            // store — it IS a person here, which is the whole claim. So the
+            // check is made on the store's own surface rather than on SCIM's.
+            String person = ask("HOSPITAL",
+                    "/Person?identifier=urn:rl:staff-directory|HOG-0042");
+            assertEquals(1, entries(person),
+                    "the User did not land as a Person claiming its externalId: " + person);
+            assertTrue(person.contains("\"link\""),
+                    "the person arrived without the capacity they act in: " + person);
         }
 
         @Test
-        @Order(78)
+        @Order(2)
+        @DisplayName("reads and both filters answer, and a filter on anything else is refused")
+        @Proving(DboPromises.SCIM_ENUMERATION_STAYS_INSIDE)
+        void readsAndFiltersAnswerAndNothingElseDoes() throws Exception {
+            String byName = scim("/Users?filter=" + query("userName eq \"mmcgonagall\""));
+            assertTrue(byName.contains("\"totalResults\":1"),
+                    "a filter on the userName the directory set answered nothing: " + byName);
+            assertTrue(scim("/Users?filter=" + query("externalId eq \"HOG-0042\""))
+                            .contains("\"totalResults\":1"),
+                    "a filter on the externalId the directory set answered nothing");
+
+            // The two the directory itself assigned are the two it may ask by.
+            // Anything else would be a way to walk the tenant's people from
+            // outside, one question at a time.
+            String refused = scimCode("/Users?filter=" + query("name.familyName eq \"McGonagall\""));
+            assertEquals("400", refused,
+                    "the directory could filter by something it did not assign, got " + refused);
+        }
+
+        @Test
+        @Order(3)
+        @DisplayName("a second User claiming the same externalId is refused rather than "
+                + "quietly making a second person")
+        @Proving(DboPromises.SCIM_USER_IS_THE_PERSON)
+        void aDuplicateExternalIdIsRefused() throws Exception {
+            Snippets.Ran again = snippets.sh("""
+                    curl -s -o /dev/null -w '%{http_code}' -X POST \
+                        -H "Authorization: Bearer $DIRECTORY" \
+                        -H 'Content-Type: application/scim+json' "$SCIM/Users" \
+                        -d '{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+                             "externalId":"HOG-0042","userName":"mmcgonagall2",
+                             "name":{"familyName":"McGonagall","givenName":"Minerva"},
+                             "active":true}'
+                    """);
+            assertEquals(0, again.status(), "the request was never made: " + again.err());
+            assertEquals("409", again.lastLine(),
+                    "the same person was provisioned twice, and answered " + again.lastLine());
+        }
+
+        @Test
+        @Order(4)
+        @DisplayName("deprovisioning is a state the person keeps, not a deletion")
+        @Proving(DboPromises.SCIM_DEPROVISION_IS_A_STATE)
+        void deprovisioningIsAState() throws Exception {
+            String held = scim("/Users?filter=" + query("userName eq \"mmcgonagall\""));
+            String user = after(held, "\"id\":\"");
+
+            Snippets.Ran gone = snippets.sh("""
+                    curl -s -X PUT -H "Authorization: Bearer $DIRECTORY" \
+                        -H 'Content-Type: application/scim+json' "$SCIM/Users/%s" \
+                        -d '{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+                             "externalId":"HOG-0042","userName":"mmcgonagall",
+                             "name":{"familyName":"McGonagall","givenName":"Minerva"},
+                             "active":false}'
+                    """.formatted(user));
+            assertEquals(0, gone.status(), "the request was never made: " + gone.err());
+            assertTrue(gone.text().contains("\"active\":false"),
+                    "deprovisioning did not take: " + gone.text());
+
+            // Still there, still the same person. A directory that deleted
+            // them would take the history of what they did with them.
+            assertEquals(1, entries(ask("HOSPITAL",
+                            "/Person?identifier=urn:rl:staff-directory|HOG-0042")),
+                    "deprovisioning removed the person rather than deactivating them");
+
+            // A replace carrying a version that has moved is refused, the way
+            // it is on the store's own surface — a directory pushing a state
+            // computed from what it read a while ago should be told, not obeyed.
+            Snippets.Ran stale = snippets.sh("""
+                    curl -s -o /dev/null -w '%%{http_code}' -X PUT \
+                        -H "Authorization: Bearer $DIRECTORY" \
+                        -H 'Content-Type: application/scim+json' \
+                        -H 'If-Match: W/"99"' "$SCIM/Users/%s" \
+                        -d '{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+                             "externalId":"HOG-0042","userName":"mmcgonagall","active":true}'
+                    """.formatted(user));
+            assertEquals(0, stale.status(), "the request was never made: " + stale.err());
+            assertEquals("412", stale.lastLine(),
+                    "a replace against a version that had moved was accepted");
+
+            // And erasure is not a provisioning operation. Taking somebody out
+            // of the directory is not the same act as erasing them, and a door
+            // that conflated them would let a directory outage read as a
+            // request to forget people.
+            Snippets.Ran deleted = snippets.sh("""
+                    curl -s -o /dev/null -w '%{http_code}' -X DELETE \
+                        -H "Authorization: Bearer $DIRECTORY" "$SCIM/Users/%s"
+                    """.replace("%s", user));
+            assertEquals(0, deleted.status(), "the request was never made: " + deleted.err());
+            assertEquals("405", deleted.lastLine(),
+                    "the directory could erase a person by deprovisioning them");
+        }
+
+        @Test
+        @Order(5)
+        @DisplayName("and every operation on the door is one recorded disclosure")
+        @Proving(DboPromises.SCIM_EVERY_OP_IS_A_DISCLOSURE)
+        void everyOperationIsADisclosure() throws Exception {
+            // The door is outside the store and reaches people inside it, so
+            // what it did has to be answerable from the tenant's own trail
+            // rather than from the directory's word for it.
+            String trail = ask("HOSPITAL", "/AuditEvent?agent=staff-directory");
+            assertTrue(entries(trail) > 0,
+                    "the directory acted and the tenant's trail says nothing: " + trail);
+        }
+
+        @Test
+        @Order(6)
         @DisplayName("and that credential reaches the store no further than the door it was given")
+        @Proving(DboPromises.SCIM_DIRECTORY_CREDENTIAL)
         void theDirectoryCredentialReachesNoFurther() throws Exception {
             // Both ways round, which is the part worth asserting: the door does
             // not open onto the store, and the store's own credential does not
@@ -1700,8 +1869,9 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(79)
+        @Order(7)
         @DisplayName("and who is an administrator here is not the directory's to say")
+        @Proving(DboPromises.SCIM_GROUPS_READ_ONLY)
         void roleGovernanceDoesNotArriveByProvisioning() throws Exception {
             assertTrue(snippets.run("scim-groups").text().contains("read-only"),
                     "role governance arrived by provisioning");
@@ -1724,8 +1894,9 @@ class TheGuideRunsIT {
     class BeingForgotten {
 
         @Test
-        @Order(80)
+        @Order(1)
         @DisplayName("somebody asks to be forgotten")
+        @Proving({DboPromises.PDI_ERASURE_IS_A_RUN, DboPromises.PDI_ERASURE_SAYS_HOW_FAR_IT_GOT})
         void somebodyAsksToBeForgotten() throws Exception {
             assertEquals(0, snippets.run("somebody-to-forget").status(),
                     "the patient who asks to be forgotten was not written");
@@ -1735,16 +1906,18 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(81)
+        @Order(2)
         @DisplayName("and their number resolves to nobody")
+        @Proving({DboPromises.PDI_UNFINDABLE_AFTER_ERASURE, DboPromises.PDI_EXACT_RESOLUTION})
         void andTheirNumberResolvesToNobody() throws Exception {
             assertEquals("0 found", snippets.run("erasure-unfindable").lastLine(),
                     "an erased person is still resolvable by their number");
         }
 
         @Test
-        @Order(82)
+        @Order(3)
         @DisplayName("while the record keeps its shape and loses the person")
+        @Proving({DboPromises.PDI_CRYPTO_SHREDDING, DboPromises.POL_ERASURE_COMPATIBLE})
         void theRecordKeepsItsShapeAndLosesThePerson() throws Exception {
             // Shredding never rewrites a record. What is gone is gone because the
             // key is, so the record is still there and still a Patient.
@@ -1757,6 +1930,28 @@ class TheGuideRunsIT {
             }
         }
 
+    }
+
+    /** A read on the provisioning door, which is not the store's own surface. */
+    private String scim(String pathAndQuery) throws Exception {
+        Snippets.Ran ran = snippets.sh(
+                "curl -sf -H \"Authorization: Bearer $DIRECTORY\" \"$SCIM" + pathAndQuery + "\"");
+        assertEquals(0, ran.status(), "the door answered nothing for " + pathAndQuery
+                + ": " + ran.err());
+        return ran.text();
+    }
+
+    /** The same, when the answer being looked for is a refusal. */
+    private String scimCode(String pathAndQuery) throws Exception {
+        Snippets.Ran ran = snippets.sh("curl -s -o /dev/null -w '%{http_code}' "
+                + "-H \"Authorization: Bearer $DIRECTORY\" \"$SCIM" + pathAndQuery + "\"");
+        assertEquals(0, ran.status(), "the request was never made: " + ran.err());
+        return ran.lastLine();
+    }
+
+    /** A SCIM filter, encoded the way a URL needs it. */
+    private static String query(String filter) {
+        return java.net.URLEncoder.encode(filter, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     private static boolean served(String tenant) throws Exception {
