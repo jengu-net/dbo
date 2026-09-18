@@ -25,6 +25,17 @@ public enum TenantPoint {
     DISPATCH,
 
     /**
+     * The tenant's HTTP surfaces are mounted.
+     *
+     * <p>The clearest evidence that this design already existed implicitly:
+     * every surface here already carried its own condition, written inline as
+     * an {@code if} over the spec's shape. The conditions are the same ones;
+     * what changed is that each is now declared beside the thing it governs,
+     * where its absence would be a statement rather than an oversight.
+     */
+    SURFACES,
+
+    /**
      * The tenant is about to be announced as serving. Everything it offers is
      * mounted; nothing after this point changes what it can be asked.
      */

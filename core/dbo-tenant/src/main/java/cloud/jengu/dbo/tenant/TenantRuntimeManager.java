@@ -606,6 +606,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 .anyMatch(registration -> recordDomain.equals(registration.domain()));
     }
 
+    /**
+     * dbo's own activities, declared on the same terms as anybody else's.
+     *
+     * <p>Every one of these carried its condition inline before, written at
+     * the site that mounted it and derived from the spec's shape — except the
+     * first, which carried none at all and is the defect this mechanism was
+     * built for. Saying them here is what makes the composition root stop
+     * asking what kind of tenant it is holding.
+     *
+     * <p>Registered once, at construction, so an activity closes over nothing
+     * per-tenant: everything it acts on arrives in the
+     * {@link TenantActivities.Provisioned} it is handed. That is not tidiness
+     * — an activity that could reach a local of the bring-up would be deriving
+     * its own applicability again, by another route.
+     */
     private void registerOwnActivities() {
         activities.register(TenantPoint.DISPATCH,
                 "(" + TenantFacts.HOLDS_RECORDS_IN_FACE_DOMAIN + "=true)",
@@ -614,6 +629,105 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                 new PgChangeFeed(tenant.dataSource(), tenant.recordDomain()),
                                 tenant.dataSource(), SUBSCRIPTION_POLL.toMillis())
                         .orElse(null));
+
+        // Asking to be forgotten. Its own door and its own scope, beside
+        // maintenance rather than inside it: archiving and reshaping are
+        // things done to the store, and an erasure is an act performed for
+        // somebody that has to leave a run behind.
+        activities.register(TenantPoint.SURFACES,
+                "(&(" + TenantFacts.HAS_VAULT + "=true)("
+                        + TenantFacts.HAS_AUTHORITY + "=true))",
+                "the erasure door",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    String erasurePath = "/t/" + code + "/erasure";
+                    cloud.jengu.dbo.pdi.PersonVault vault = tenant.vault();
+                    cloud.jengu.dbo.work.Runs erasureRuns =
+                            new cloud.jengu.dbo.work.Runs(runStores.get(code));
+                    erasureContexts.put(code, erasurePath);
+                    sharedServer.createContext(erasurePath, new ErasureHandler(tenant.authority(),
+                            new PersonErasure(vault, erasureRuns),
+                            // A reference names a RECORD and an erasure
+                            // destroys a PERSON, and they are not the same
+                            // thing: a human held as a Person and a Patient is
+                            // spoken about by two records and has one key. So
+                            // the reference is resolved through the vault, and
+                            // erasing by either record reaches the whole human
+                            // — which is what the promise says happens and,
+                            // while a person was a row, did not.
+                            reference -> {
+                                int slash = reference.lastIndexOf('/');
+                                if (slash < 0 || slash == reference.length() - 1) {
+                                    return java.util.Optional.<String>empty();
+                                }
+                                return vault.personOf(reference.substring(0, slash),
+                                        reference.substring(slash + 1));
+                            }));
+                    return null;
+                });
+
+        // Content held whole, over the wire. The store keeps it and an archive
+        // carries it; without a door none of that is reachable from outside
+        // this process, which is a capability built and unreachable rather
+        // than one that is missing.
+        activities.register(TenantPoint.SURFACES,
+                "(" + TenantFacts.HAS_AUTHORITY + "=true)",
+                "the blob door",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    String blobPath = "/t/" + code + "/blob";
+                    // Remembered like every other door, because a tenant that
+                    // is rebuilt comes back through here: a path left
+                    // registered refuses the second registration and the whole
+                    // bring-up fails, having served perfectly the first time.
+                    blobContexts.put(code, blobPath);
+                    sharedServer.createContext(blobPath,
+                            new BlobHandler(tenant.guard(), tenant.runtime().blobs(), blobPath));
+                    return null;
+                });
+
+        // Identification. Beside erasure rather than inside maintenance, and
+        // for the same reason erasure is: identifying somebody is an act
+        // performed for a person, not something done to the store.
+        //
+        // For a tenant that declares a type to hold identities. Without one
+        // there is nothing to resolve against, and a door answering "no
+        // candidates" for every claim would be a surface reporting emptiness
+        // as an answer.
+        activities.register(TenantPoint.SURFACES,
+                "(&(" + TenantFacts.HOLDS_IDENTITIES + "=true)("
+                        + TenantFacts.HAS_AUTHORITY + "=true))",
+                "the identification door",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    String identityPath = "/t/" + code + "/identity";
+                    sharedServer.createContext(identityPath, new IdentityHandler(
+                            tenant.authority(), tenant.runtime().engine(), identityPath,
+                            identityTypeOf(tenant.spec()), tenant.vault()));
+                    identityContexts.put(code, identityPath);
+                    return null;
+                });
+
+        // Work as the way in. A tenant that declares no steps offers no such
+        // door — the surface exists because something was declared, never as a
+        // default somebody has to remember to close.
+        activities.register(TenantPoint.SURFACES,
+                "(&(" + TenantFacts.HAS_STEPS + "=true)("
+                        + TenantFacts.HAS_AUTHORITY + "=true))",
+                "the step door",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    String startPath = "/t/" + code + "/step";
+                    String runPath = "/t/" + code + "/run";
+                    sharedServer.createContext(startPath, new StepSurface(tenant.authority(),
+                            tenant.laneRuns(), tenant.runtime().store(), tenant.spec().steps(),
+                            runPath, true));
+                    sharedServer.createContext(runPath, new StepSurface(tenant.authority(),
+                            tenant.laneRuns(), tenant.runtime().store(), tenant.spec().steps(),
+                            runPath, false));
+                    stepContexts.put(code, java.util.List.of(startPath, runPath));
+                    return null;
+                });
     }
 
     public int port() {
@@ -1696,8 +1810,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // answer and was not, because a tenant holding only definitional types
         // keeps them in the definitions domain whatever kind it is — which is
         // true of a zone, and a zone is neither of those things.
-        TenantFacts facts = TenantFacts.of(spec,
-                holdsRecordsInFaceDomain(declared.registrations(), version.domain()));
+        //
+        // The rest are resolved the same way, and for the same reason: whether
+        // a tenant has an authority follows from how the deployment is
+        // configured, whether it has a vault from whether one was built, and
+        // which type holds identities from what was declared. Each used to be
+        // re-derived at the site that needed it.
+        TenantFacts facts = TenantFacts.of(spec, new TenantFacts.Resolved(
+                holdsRecordsInFaceDomain(declared.registrations(), version.domain()),
+                authority != null,
+                vaults.get(spec.code()) != null,
+                identityTypeOf(spec) != null));
         java.util.List<AutoCloseable> leftBehind = new java.util.ArrayList<>(
                 activities.runAt(TenantPoint.DISPATCH,
                         new TenantActivities.Provisioned(facts, db.dataSource(), store,
@@ -1852,65 +1975,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             cloud.jengu.dbo.core.face.DocumentEquivalence.class)
                             .orElse(null)));
             maintenanceContexts.put(spec.code(), adminPath);
-            // Asking for a person's erasure. Its own door and its own
-            // scope, beside maintenance rather than inside it: archiving and
-            // reshaping are things done to the store, and an erasure is an act
-            // performed for somebody that has to leave a run behind. The run
-            // is the answer this returns.
-            cloud.jengu.dbo.pdi.PersonVault vault = vaults.get(spec.code());
-            if (vault != null) {
-                String erasurePath = "/t/" + spec.code() + "/erasure";
-                cloud.jengu.dbo.work.Runs erasureRuns =
-                        new cloud.jengu.dbo.work.Runs(runStores.get(spec.code()));
-                erasureContexts.put(spec.code(), erasurePath);
-                sharedServer.createContext(erasurePath, new ErasureHandler(authority,
-                        new PersonErasure(vault, erasureRuns),
-                        // A reference names a RECORD and an erasure destroys a
-                        // PERSON, and they are not the same thing: a human held
-                        // as a Person and a Patient is spoken about by two
-                        // records and has one key. So the reference is resolved
-                        // through the vault, and erasing by either record
-                        // reaches the whole human — which is what the promise
-                        // says happens and, while a person was a row, did not.
-                        reference -> {
-                            int slash = reference.lastIndexOf('/');
-                            if (slash < 0 || slash == reference.length() - 1) {
-                                return java.util.Optional.<String>empty();
-                            }
-                            return vault.personOf(reference.substring(0, slash),
-                                    reference.substring(slash + 1));
-                        }));
-            }
-            // Content held whole, over the wire. The store keeps it and an
-            // archive carries it; without a door none of that is reachable
-            // from outside this process, which is a capability built and
-            // unreachable rather than one that is missing.
-            if (guard != null) {
-                String blobPath = "/t/" + spec.code() + "/blob";
-                // Remembered like every other door, because a tenant that is
-                // rebuilt comes back through here: a path left registered
-                // refuses the second registration and the whole bring-up
-                // fails, having served perfectly the first time.
-                blobContexts.put(spec.code(), blobPath);
-                sharedServer.createContext(blobPath,
-                        new BlobHandler(guard, runtime.blobs(), blobPath));
-            }
-            // Identification. Beside erasure rather than inside maintenance,
-            // and for the same reason erasure is: identifying somebody is an
-            // act performed for a person, not something done to the store.
-            //
-            // Mounted for a tenant that declares a type to hold identities.
-            // Without one there is nothing to resolve against, and a door
-            // answering "no candidates" for every claim would be a surface
-            // reporting emptiness as an answer.
-            String identityType = identityTypeOf(spec);
-            if (identityType != null) {
-                String identityPath = "/t/" + spec.code() + "/identity";
-                sharedServer.createContext(identityPath, new IdentityHandler(
-                        authority, runtime.engine(), identityPath, identityType,
-                        vaults.get(spec.code())));
-                identityContexts.put(spec.code(), identityPath);
-            }
+            // The erasure door, the blob door and the identification door
+            // stood here, each behind an `if` of its own. They are registered
+            // activities now, with those same conditions said out loud as
+            // selectors, and they run at the surfaces point below.
             // The participation surface: where a host that is NOT the
             // container obtains a lane. An appliance running dbo in-JVM builds
             // its own over its own store and never comes here; a cloud, whose
@@ -2068,18 +2136,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
                     workPath, new WorkGrants(authority), laneFactory));
             workContexts.put(spec.code(), workPath);
-            // Work as the way in. A tenant that declares no steps offers no
-            // such door — the surface exists because something was declared,
-            // never as a default somebody has to remember to close.
-            if (!spec.steps().isEmpty()) {
-                String startPath = "/t/" + spec.code() + "/step";
-                String runPath = "/t/" + spec.code() + "/run";
-                sharedServer.createContext(startPath, new StepSurface(authority, laneRuns,
-                        runtime.store(), spec.steps(), runPath, true));
-                sharedServer.createContext(runPath, new StepSurface(authority, laneRuns,
-                        runtime.store(), spec.steps(), runPath, false));
-                stepContexts.put(spec.code(), java.util.List.of(startPath, runPath));
-            }
+            // The step door stood here too, behind `!spec.steps().isEmpty()`.
+            // Same conversion, same place below.
             // What this tenant knows about the things behind its
             // participants. Beside replication rather than as a verb on the
             // lane: a lane is what one participant may do, and an operator
@@ -2106,6 +2164,25 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     runtime::replication));
             replicationContexts.put(spec.code(), replicationPath);
         }
+        // The surfaces whose condition is a fact about the tenant, mounted by
+        // the activities that declared it. The doors above are still mounted
+        // inline because their condition is the enclosing block itself; these
+        // four each carried an `if` of their own, derived here from the spec's
+        // shape, and each of those is now a selector beside the thing it
+        // governs — where a missing one would be a statement rather than the
+        // silence that put subscription dispatch on every tenant.
+        //
+        // Into the SAME list the dispatch point filled, which teardown already
+        // holds: an activity registered here returns what it wants closed when
+        // the tenant goes, and a second list would be a second place to
+        // remember. dbo's own four return nothing, because a mounted context
+        // comes down with the rest of them.
+        leftBehind.addAll(activities.runAt(TenantPoint.SURFACES,
+                new TenantActivities.Provisioned(facts, db.dataSource(), store,
+                        version.domain(), spec, authority, runtime, guard,
+                        vaults.get(spec.code()), laneRuns),
+                (name, failed) -> LOG.warn("tenant {}: activity {} failed at {}",
+                        spec.code(), name, TenantPoint.SURFACES.spelling(), failed)));
         wireDependencies(spec, runtime, db.dataSource());
         readyOnItsFace(spec, runtime);
         readyOnItsZones(spec);

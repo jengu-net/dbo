@@ -36,13 +36,20 @@ class AnActivitySaysWhichTenantsItIsForTest {
     private static TenantFacts ordinary() {
         return TenantFacts.of(TenantSpec.parse("""
                 {"code":"hogwarts","face":"r5","zone":"rl",
-                 "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}"""), true);
+                 "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}"""),
+                holding(true));
     }
 
     private static TenantFacts faceRoot() {
         return TenantFacts.of(TenantSpec.parse("""
                 {"code":"fhir-r5","face":"r5","faceRoot":true,
-                 "types":[{"name":"StructureDefinition","identity":"canonical","handling":"operational"}]}"""), false);
+                 "types":[{"name":"StructureDefinition","identity":"canonical","handling":"operational"}]}"""),
+                holding(false));
+    }
+
+    /** The resolved facts, varying only the one these tests are about. */
+    private static TenantFacts.Resolved holding(boolean recordsOnItsFace) {
+        return new TenantFacts.Resolved(recordsOnItsFace, true, false, false);
     }
 
     private static TenantActivities.Provisioned provisioned(TenantFacts facts) {
@@ -84,7 +91,8 @@ class AnActivitySaysWhichTenantsItIsForTest {
         assertFalse((Boolean) TenantFacts.of(TenantSpec.parse("""
                 {"code":"rl-on-r4","face":"r4",
                  "dependencies":[{"name":"fhir-r4","face":true,"types":["ValueSet"]}],
-                 "types":[{"name":"ValueSet","identity":"canonical","handling":"replicated"}]}"""), false)
+                 "types":[{"name":"ValueSet","identity":"canonical","handling":"replicated"}]}"""),
+                holding(false))
                 .properties().get(TenantFacts.HOLDS_RECORDS_IN_FACE_DOMAIN));
     }
 
@@ -114,6 +122,90 @@ class AnActivitySaysWhichTenantsItIsForTest {
         assertTrue(refused.getMessage().contains("broken"),
                 "the refusal does not name the registration, and a deployment with several "
                         + "would not know which one to fix");
+    }
+
+    @Test
+    @Proving(DboPromises.TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES)
+    @DisplayName("a filter asking about a fact no tenant publishes is refused, rather than "
+            + "matching nothing for ever")
+    void aSelectorAsksAboutFactsATenantActuallyPublishes() {
+        // The failure this refuses is the one the whole mechanism is about,
+        // one level up: a filter with a typo in it parses, matches nothing,
+        // and says nothing — so an activity that never runs looks exactly like
+        // an activity whose tenants never arrived.
+        TenantActivities activities = new TenantActivities();
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> activities.register(TenantPoint.SURFACES,
+                        "(dbo.tenant.hasVualt=true)", "the erasure door", tenant -> null));
+        assertTrue(refused.getMessage().contains("hasVualt"),
+                "the refusal does not say which fact is not a fact: " + refused.getMessage());
+        assertTrue(refused.getMessage().contains(TenantFacts.HAS_VAULT),
+                "the refusal does not say what a tenant does publish, which is the one thing "
+                        + "the person who typed it needs: " + refused.getMessage());
+
+        // An observer is filtered by the same language, so it meets the same
+        // ratchet — one selector vocabulary, not two that drift.
+        assertThrows(IllegalArgumentException.class,
+                () -> new TenantObservations().register(TenantDomain.WORK, "billing",
+                        "(dbo.tenant.kind=ext.clinic)", "billing", (tenant, items) -> { }),
+                "an observer could select on a fact no tenant publishes");
+    }
+
+    @Test
+    @Proving(DboPromises.TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES)
+    @DisplayName("a surface is mounted for the tenants whose facts its selector names")
+    void aSurfaceIsMountedByItsSelectorRatherThanByAnIfAtTheMountSite() {
+        // The conditions the runtime already had, said out loud. Each of these
+        // was an `if` at the site that created the context, derived there from
+        // the spec's shape — which is the arrangement that left one surface's
+        // condition unwritten.
+        TenantFacts hospital = TenantFacts.of(TenantSpec.parse("""
+                {"code":"hogwarts","face":"r5","zone":"rl","pdi":true,
+                 "steps":[{"code":"hogwarts.admission.admit","slots":{"patient":"Patient"}}],
+                 "types":[{"name":"Person","identity":"internal","handling":"operational"},
+                          {"name":"Patient","identity":"internal","handling":"operational"}]}"""),
+                new TenantFacts.Resolved(true, true, true, true));
+        TenantFacts gadgets = TenantFacts.of(TenantSpec.parse("""
+                {"code":"widgets","face":"r5",
+                 "types":[{"name":"Device","identity":"internal","handling":"operational"}]}"""),
+                new TenantFacts.Resolved(true, true, false, false));
+
+        TenantActivities activities = new TenantActivities();
+        List<String> mounted = new ArrayList<>();
+        activities.register(TenantPoint.SURFACES,
+                "(&(" + TenantFacts.HAS_VAULT + "=true)(" + TenantFacts.HAS_AUTHORITY + "=true))",
+                "the erasure door",
+                tenant -> {
+                    mounted.add("erasure:" + tenant.facts().code());
+                    return null;
+                });
+        activities.register(TenantPoint.SURFACES,
+                "(&(" + TenantFacts.HOLDS_IDENTITIES + "=true)("
+                        + TenantFacts.HAS_AUTHORITY + "=true))",
+                "the identification door",
+                tenant -> {
+                    mounted.add("identity:" + tenant.facts().code());
+                    return null;
+                });
+        activities.register(TenantPoint.SURFACES,
+                "(&(" + TenantFacts.HAS_STEPS + "=true)(" + TenantFacts.HAS_AUTHORITY + "=true))",
+                "the step door",
+                tenant -> {
+                    mounted.add("step:" + tenant.facts().code());
+                    return null;
+                });
+
+        activities.runAt(TenantPoint.SURFACES, provisioned(hospital), (n, e) -> { });
+        assertEquals(List.of("erasure:hogwarts", "identity:hogwarts", "step:hogwarts"), mounted,
+                "a tenant with a vault, a person type and a declared step was not offered the "
+                        + "doors those facts are the condition for");
+
+        // A store of gadgets identifies nobody, erases nobody and performs no
+        // declared step. Three doors it does not get, and none of that is a
+        // gap — which is exactly what the mount site used to have to know.
+        activities.runAt(TenantPoint.SURFACES, provisioned(gadgets), (n, e) -> { });
+        assertEquals(List.of("erasure:hogwarts", "identity:hogwarts", "step:hogwarts"), mounted,
+                "a tenant was given a surface for a capability it never declared");
     }
 
     @Test

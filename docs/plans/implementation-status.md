@@ -58,8 +58,22 @@ registry property, all on one shared port at `/t/<code>/fhir`. Retracting a
 tenant stops serving it; erasing one is an explicit deprovision that drops
 the database.
 
+A tenant **publishes what it is** under `dbo.tenant.` — its code, face and
+zone, whether it holds records in its face's domain, whether it has an
+authority, a vault, identities, steps or scim — and things done to a tenant
+**declare** which tenants they are for, as a filter over those facts, rather
+than working it out at the site that does them. Subscription dispatch and four
+surfaces (`/erasure`, `/blob`, `/identity`, `/step` with `/run`) are registered
+that way; a selector naming a fact no tenant publishes is refused where it is
+registered rather than matching nothing for ever. Two extension APIs share the
+one selector language: `TenantLifecycleListener`, a callback, for the points a
+tenant passes through, and `TenantObserver`, a named durable consumer, for the
+streams that are records.
+
 *Registry-scoped access, dynamic services, credential-blind provisioning, the
-dedicated-database tier and erasure are done. Dedicated instances, the shared
+dedicated-database tier, erasure, and declared applicability at the dispatch,
+surfaces and serving points are done. The remaining lifecycle points are named
+and not yet run at; the declared tenant kind, dedicated instances, the shared
 tier and quotas are specified, not built.*
 
 ### AUTH — tenant authority and surface protection
@@ -331,8 +345,11 @@ which the run was not given, answers not-found exactly as one that never
 existed, so the context cannot be used to discover what the tenant holds. The
 credential that enters a run context holds the work scope and is refused by the
 tenant's own records surface, which is what makes entering through a run worth
-anything. Reads only; reach is what the run names, and nothing is followed from
-it.
+anything. A reading through the context is recorded whatever the tenant's audit
+level — on the document, beside every other reading of it, naming the run as its
+occasion — and the context stops answering when the run ends, as absent then as
+one that never existed. Reads only; reach is what the run names, and nothing is
+followed from it.
 
 A participant's own container is configuration rather than code: installing
 the runner brings the whiteboard, installing the stream carrier beside it and

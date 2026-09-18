@@ -184,6 +184,15 @@ public enum DboPromises implements Promise {
             + "document of a declared type the run was not given is as absent as one that "
             + "never existed, so a credential that may act in a step cannot use it to read "
             + "past what the step was handed."),
+
+    PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN(
+            "A run context answers only while its run is held. A run nobody holds is over, "
+            + "and its base url then answers exactly as a run that never existed — the "
+            + "same answer either way, because saying that a run is over confirms that it "
+            + "was real. So performing a step leaves no standing way in behind it, which "
+            + "is the difference between access granted to a step and access granted once "
+            + "by way of one."),
+
     PROC_RUN_INPUTS_FILL_THE_SLOTS("A run's inputs fill the step's declared slots, fixed "
             + "at creation: a slot the step does not declare and a declared slot left "
             + "unfilled are both refused by name, and the record round-trips them in "

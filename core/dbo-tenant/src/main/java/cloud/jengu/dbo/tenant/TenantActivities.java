@@ -27,9 +27,42 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 final class TenantActivities {
 
-    /** Everything an activity is given: the facts, and what it acts on. */
+    /**
+     * The tenant as it stands at the point an activity runs, and what it acts
+     * on.
+     *
+     * <p>What is populated depends on the point, because a tenant is not the
+     * same thing at all of them: at {@code dispatch} the store exists and no
+     * door does, so everything from {@link #authority()} on is null. Rather
+     * than a second context type per point, the record says what a tenant IS
+     * and each activity takes what its own point guarantees — which is the
+     * whole argument for having points at all.
+     *
+     * @param spec      what was declared, for an activity that needs more than
+     *                  the facts it selected on
+     * @param authority the tenant's own, or null when it has none — the
+     *                  {@code hasAuthority} fact is the selector for it
+     * @param runtime   assembled and staged, from {@code surfaces} onward
+     * @param guard     the request guard built over that authority, and the
+     *                  same object the records surface is guarded by — a
+     *                  second one would be a second answer to who is asking
+     * @param vault     the person vault, or null — {@code hasVault} selects
+     * @param laneRuns  the tenant's runs, with its step catalogue composed in
+     */
     record Provisioned(TenantFacts facts, javax.sql.DataSource dataSource,
-            cloud.jengu.dbo.fhir.common.FhirStoreFacade store, String recordDomain) {
+            cloud.jengu.dbo.fhir.common.FhirStoreFacade store, String recordDomain,
+            TenantSpec spec,
+            cloud.jengu.dbo.auth.TenantAuthority authority,
+            TenantRuntimeManager.TenantRuntime runtime,
+            cloud.jengu.dbo.rest.RequestAuthenticator guard,
+            cloud.jengu.dbo.pdi.PersonVault vault,
+            cloud.jengu.dbo.work.Runs laneRuns) {
+
+        /** What a tenant is before it has a door: the shape dispatch runs on. */
+        Provisioned(TenantFacts facts, javax.sql.DataSource dataSource,
+                cloud.jengu.dbo.fhir.common.FhirStoreFacade store, String recordDomain) {
+            this(facts, dataSource, store, recordDomain, null, null, null, null, null, null);
+        }
     }
 
     /**
@@ -60,6 +93,7 @@ final class TenantActivities {
      */
     void register(TenantPoint point, String target, String name, Activity activity) {
         Filter filter = null;
+        TenantFacts.refuseUnpublishedFacts(target, name);
         if (target != null && !target.isBlank()) {
             try {
                 filter = FrameworkUtil.createFilter(target);

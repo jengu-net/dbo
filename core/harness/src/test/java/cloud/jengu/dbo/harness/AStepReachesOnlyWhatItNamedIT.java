@@ -42,7 +42,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * type that this run was not given, and a type the step never declared, are
  * both as absent as a record that does not exist — not forbidden, because an
  * answer that distinguishes the two tells whoever asks that the thing is
- * there.
+ * there. So is the run itself, once it is over.
+ *
+ * <p><b>This world is temporary.</b> Everything here is reachable over HTTP,
+ * which is where the rule about which world a test belongs in puts it — in the
+ * shared one. It stays until the guide's world runs an image carrying this
+ * surface, because a promise proven nowhere is worse than a promise proven in
+ * a world of its own.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -62,6 +68,7 @@ class AStepReachesOnlyWhatItNamedIT {
     static String withheld;
     static String observation;
     static String runContext;
+    static String runKey;
     static String worker;
 
     @BeforeAll
@@ -124,6 +131,13 @@ class AStepReachesOnlyWhatItNamedIT {
                                 "{\"inputs\":{\"patient\":\"Patient/" + given + "\"}}"))
                         .build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(201, started.statusCode(), started.body());
+        // Two names, answering different questions. The key is what the rest
+        // of the work model is asked by — the trail included — and the id is
+        // what the context is addressed by.
+        runKey = started.body().replaceAll("(?s).*\"key\":\"([^\"]+)\".*", "$1");
+        assertTrue(runKey.startsWith(STEP + "/"),
+                "the run came back without the name the work model knows it by: "
+                        + started.body());
         // A path rather than an absolute url: what the node is bound to is not
         // what a caller reached it by, and a context that guessed would hand
         // out links that work nowhere. The caller resolves it against the
@@ -178,6 +192,63 @@ class AStepReachesOnlyWhatItNamedIT {
 
     @Test
     @Order(4)
+    @DisplayName("the read through the run is on the record, naming the run that occasioned it")
+    @Proving(DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES)
+    void theReadIsRecordedAsADisclosureNamingTheRun() throws Exception {
+        // Asked at the RUN, for what this piece of work opened, and the entry
+        // itself is on the document — beside every other reading of it — so
+        // the same trail answers who has read this patient, for somebody who
+        // need not know that work exists.
+        HttpResponse<String> opened = HTTP.send(HttpRequest.newBuilder(
+                        URI.create(base + "/AuditEvent?action=R&run="
+                                + URLEncoder.encode(runKey, StandardCharsets.UTF_8)))
+                        .header("Authorization", "Bearer " + token("the-clinic", "clinic-secret"))
+                        .GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, opened.statusCode(), opened.body());
+        assertTrue(opened.body().contains("Patient/" + given),
+                "the trail cannot say what the run opened, so a disclosure made through a "
+                        + "run is the one reading nobody can account for: " + opened.body());
+        assertTrue(opened.body().contains("a-worker"),
+                "the trail does not say who read it: " + opened.body());
+    }
+
+    @Test
+    @Order(5)
+    @DisplayName("the work ends, and the context is then as absent as a run that never was")
+    @Proving(DboPromises.PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN)
+    void theContextEndsWithTheRun() throws Exception {
+        HttpResponse<String> ended = HTTP.send(HttpRequest.newBuilder(
+                        URI.create(runContext.replace("/fhir", "/done")))
+                        .header("Authorization", "Bearer " + worker)
+                        .POST(HttpRequest.BodyPublishers.noBody()).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, ended.statusCode(), ended.body());
+        assertTrue(ended.body().contains("\"holder\":\"nobody\""),
+                "the run did not end: " + ended.body());
+
+        // The same request that answered 200 in the first story. A context
+        // that went on answering would be a standing way in left behind by a
+        // piece of work nobody is doing, which is access granted ONCE BY WAY
+        // OF a step rather than access granted to one.
+        HttpResponse<String> after = inContext("Patient/" + given);
+        assertEquals(404, after.statusCode(), after.body());
+
+        // And indistinguishable from a run that never existed, for the reason
+        // the withheld record is: saying that a run is over confirms it was
+        // real.
+        HttpResponse<String> never = HTTP.send(HttpRequest.newBuilder(
+                        URI.create(base.replace("/fhir", "/run/"
+                                + "01a00000-0000-7000-8000-0000000000ff/fhir/Patient/" + given)))
+                        .header("Authorization", "Bearer " + worker).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(404, never.statusCode(), never.body());
+        assertEquals(never.body(), after.body(),
+                "an ended run and one that never existed answer differently, so asking is a "
+                        + "way to find out which runs happened");
+    }
+
+    @Test
+    @Order(6)
     @DisplayName("the credential that may act in work cannot read the tenant's records "
             + "directly, which is what makes the run context worth having")
     @Proving(DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS)
