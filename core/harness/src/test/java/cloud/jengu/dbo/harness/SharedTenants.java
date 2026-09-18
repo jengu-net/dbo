@@ -79,6 +79,29 @@ public final class SharedTenants {
                  {"name":"Practitioner","identity":"internal","handling":"operational"}]"""
                 .formatted(EID), "r4", true),
 
+        /**
+         * The same as {@link #R4_INTERNAL}, for classes that <b>poll a lane</b>.
+         *
+         * <p>Not a different configuration, which is the one reason this enum
+         * says a shape should exist — so it needs its reason written down. A
+         * lane poll reads the work feed from a participant's cursor, takes a
+         * bounded batch, and keeps what matches its own steps. Another class's
+         * runs on the same feed therefore fill that batch with work this one
+         * will discard, and a poll that should have offered an assay offers
+         * nothing at all.
+         *
+         * <p>Which is this document's existing rule about reading a change
+         * feed, met by a surface that does not look like one: a lane is a feed
+         * consumer underneath. Two classes that poll may share a runtime and
+         * must not share a work feed.
+         */
+        R4_WORK("""
+                [{"name":"Patient","identity":"internal","handling":"operational"},
+                 {"name":"Observation","identity":"internal","handling":"operational"},
+                 {"name":"Encounter","identity":"internal","handling":"operational"},
+                 {"name":"Basic","identity":"internal","handling":"operational"}]""",
+                "r4", false),
+
         /** r5, for anything that has to be served beside r4 rather than instead of it. */
         R5("""
                 [{"name":"Patient","identity":"internal","handling":"operational"},

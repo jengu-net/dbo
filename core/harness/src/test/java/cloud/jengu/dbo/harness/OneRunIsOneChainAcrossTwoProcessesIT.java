@@ -80,7 +80,13 @@ class OneRunIsOneChainAcrossTwoProcessesIT {
 
     @BeforeAll
     void up() throws Exception {
-        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
+        // R4_WORK rather than R4_INTERNAL: this class polls a lane, and so
+        // does the clinic's, and a lane poll reads a bounded batch of the work
+        // feed and discards what is not its own. Sharing the feed made one
+        // class's runs crowd the other's out of the batch — a poll that
+        // answered nothing rather than a refusal, which is the hardest shape
+        // of failure to read.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_WORK);
         TENANT = tenant.code();
         laneUri = URI.create(tenant.base() + "/work");
         runs = new Runs(tenant.engine());
