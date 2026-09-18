@@ -33,12 +33,26 @@ val dboTenantTestOutput = project(":core:dbo-tenant")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
+// The guide suite's citation index.
+//
+// It is compiled elsewhere and never RUN from here — a Test task scans its own
+// testClassesDirs rather than its classpath, so nothing in this module starts a
+// docker world. What is wanted is the META-INF/promise/proofs resource the
+// processor writes beside its classes: the projection and the guards over it
+// read citations off the classpath, so a promise proven in the guide world
+// reads PLANNED here unless that output is on it.
+evaluationDependsOn(":guide")
+val guideTestOutput = project(":guide")
+        .extensions.getByType(SourceSetContainer::class.java)
+        .getByName("test").output
+
 evaluationDependsOn(":karaf:commands")
 val karafCommandsTestOutput = project(":karaf:commands")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
 dependencies {
+    testRuntimeOnly(guideTestOutput)
     testImplementation(karafCommandsTestOutput)
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))
