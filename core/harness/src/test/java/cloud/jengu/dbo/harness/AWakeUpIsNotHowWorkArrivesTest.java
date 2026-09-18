@@ -76,6 +76,57 @@ class AWakeUpIsNotHowWorkArrivesTest {
 
     @Test
     @Proving(DboPromises.PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES)
+    @DisplayName("and a runner whose wake-up never arrives does the work anyway, late")
+    void aSuppressedWakeUpCostsLatencyAndNothingElse() throws Exception {
+        // The harder half. Above, the lane could not say anything and the
+        // runner was never waiting to be told. Here it CAN say, the runner is
+        // listening, and the delivery does not come — which is what a dropped
+        // notification, a closed connection or a door that stopped sending
+        // looks like from this side, and the failure this whole area came from.
+        //
+        // The work appears AFTER the runner is asleep, and that is the whole
+        // design of this test: a lane that offered work up front would have it
+        // taken on the first cycle, before the runner had waited for anything,
+        // so a runner that never looked again would pass.
+        ProvingLane lane = ProvingLane.offering("clinic.admission.admit")
+                .wakeable().notYet().lane();
+        assertTrue(lane.wakeups().isPresent(),
+                "the lane offers no wake-up, so nothing is being suppressed and this test "
+                        + "is the one above it wearing a different name");
+
+        AtomicInteger performed = new AtomicInteger();
+        CountDownLatch done = new CountDownLatch(1);
+        try (StepRunner runner = new StepRunner(Duration.ofMinutes(5), Duration.ofMillis(20))
+                .register(new Counting("clinic.admission.admit", performed, done))
+                .attach(lane)
+                .start()) {
+            // Waited for rather than slept through: one poll that found
+            // nothing means the runner is past its first cycle and into the
+            // wait this test is about. Deliberately one and not two — a runner
+            // that waits for a wake-up it will never get polls exactly once,
+            // and demanding two would fail it here, on the setup, instead of
+            // on the thing being proven.
+            long until = System.nanoTime() + Duration.ofSeconds(10).toNanos();
+            while (lane.polls() < 1 && System.nanoTime() < until) {
+                Thread.onSpinWait();
+            }
+            assertTrue(lane.polls() >= 1, "the runner never looked at all");
+
+            // Work appears. saysItHasWork is deliberately never called: this
+            // is the notification that went missing.
+            lane.workAppears();
+
+            assertTrue(done.await(10, TimeUnit.SECONDS),
+                    "a runner attached to a lane that can wake it stopped looking on its "
+                            + "own, so the poll is no longer underneath the wake-up — and "
+                            + "one lost notification is now a lost run rather than a slow "
+                            + "one");
+        }
+        assertEquals(1, performed.get());
+    }
+
+    @Test
+    @Proving(DboPromises.PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES)
     @DisplayName("and a wake-up carries nothing: the store tells it to look, and it claims "
             + "the way it always did")
     void aWakeUpSaysLookAgainAndNothingElse() throws Exception {
