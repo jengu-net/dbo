@@ -86,6 +86,23 @@ public final class SharedTenants {
                 "r5", "", "full"),
 
         /**
+         * r4 holding declarations: what a participant says it is, and the
+         * organisation a declaration names.
+         *
+         * <p>Two classes ask about declarations and neither is about a tenant.
+         * They chose different identifier systems for the same types, which a
+         * shape cannot split — so the systems are the shape's and both classes
+         * name them from here.
+         */
+        R4_DECLARATIONS("""
+                [{"name":"ParticipantDeclaration","identity":"identifier","systems":["%s"],
+                  "handling":"operational","definition":"none"},
+                 {"name":"Organization","identity":"identifier","systems":["%s"],
+                  "handling":"operational"},
+                 {"name":"Patient","identity":"internal","handling":"operational"}]"""
+                .formatted(PARTICIPANTS, ORGS), "r4", "", "none"),
+
+        /**
          * r4 behind the membrane, with the person keyed by their number.
          *
          * <p>Distinct from {@link #R4_ISOLATED} by which record is keyed how:
@@ -145,6 +162,12 @@ public final class SharedTenants {
 
     /** The identifier system the identifier-keyed shapes are declared against. */
     public static final String EID = "https://ee.ee/eid";
+
+    /** What a participant declaration is keyed by, for the shape that holds them. */
+    public static final String PARTICIPANTS = "https://shared.test/participant";
+
+    /** And the organisation a declaration names. */
+    public static final String ORGS = "https://shared.test/org";
 
     private static final HttpClient HTTP = HttpClient.newHttpClient();
     private static final Map<Shape, Tenant> UP = new ConcurrentHashMap<>();

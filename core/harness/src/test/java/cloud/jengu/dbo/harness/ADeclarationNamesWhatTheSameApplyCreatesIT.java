@@ -61,52 +61,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ADeclarationNamesWhatTheSameApplyCreatesIT {
 
-    private static final String CLINIC = "viide";
-    private static final String ORGS = "https://viide.example/org";
+    static SharedTenants.Tenant tenant;
+    static String CLINIC;
+    /** Both systems are the shape's, because a type declares one set. */
+    private static final String ORGS = SharedTenants.ORGS;
     /** A type this face has no definition for, declared through the same door. */
-    private static final String PARTICIPANTS = "https://viide.example/participant";
+    private static final String PARTICIPANTS = SharedTenants.PARTICIPANTS;
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-refs");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ADeclarationNamesWhatTheSameApplyCreatesIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CLINIC + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"Organization","identity":"identifier","systems":["%s"],
-                   "handling":"operational"},
-                  {"name":"ParticipantDeclaration","identity":"identifier","systems":["%s"],
-                   "handling":"operational","definition":"none"}]}"""
-                .formatted(CLINIC, ORGS, PARTICIPANTS));
-        UntilServed.scan(manager, CLINIC);
-        manager.authority(CLINIC).ensureClient("a-loader", "loader-secret",
+        // Shared. What it proves is that one apply creates what the
+        // declaration names, which is about the declaration rather than about
+        // a tenant of its own.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_DECLARATIONS);
+        CLINIC = tenant.code();
+        tenant.authority().ensureClient("a-loader", "loader-secret",
                 java.util.List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
         // Reading is a different right from declaring, and this door does not
         // imply that one — which is the arrangement working, not an obstacle.
-        manager.authority(CLINIC).ensureClient("a-reader", "reader-secret",
+        tenant.authority().ensureClient("a-reader", "reader-secret",
                 java.util.List.of("system/*.read"));
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -202,7 +178,7 @@ class ADeclarationNamesWhatTheSameApplyCreatesIT {
     }
 
     private static String readParticipant(String name) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CLINIC)
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir()
                         + "/ParticipantDeclaration?identifier="
                         + URLEncoder.encode(PARTICIPANTS + "|" + name, StandardCharsets.UTF_8)))
                         .header("Authorization", "Bearer " + reader()).GET().build(),
@@ -226,7 +202,7 @@ class ADeclarationNamesWhatTheSameApplyCreatesIT {
     private static HttpResponse<String> apply(String... declarations) throws Exception {
         String body = "{\"declarations\":[" + String.join(",", declarations) + "]}";
         return HTTP.send(HttpRequest.newBuilder(URI.create(
-                        manager.baseUrl(CLINIC).replace("/fhir", "/configuration")))
+                        tenant.base() + "/configuration"))
                         .header("Authorization", "Bearer " + token())
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
@@ -234,7 +210,7 @@ class ADeclarationNamesWhatTheSameApplyCreatesIT {
     }
 
     private static String read(String code) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CLINIC)
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir()
                         + "/Organization?identifier="
                         + URLEncoder.encode(ORGS + "|" + code, StandardCharsets.UTF_8)))
                         .header("Authorization", "Bearer " + reader()).GET().build(),
@@ -258,7 +234,7 @@ class ADeclarationNamesWhatTheSameApplyCreatesIT {
                 + URLEncoder.encode(secret, StandardCharsets.UTF_8)
                 + "&scope=" + URLEncoder.encode(scope, StandardCharsets.UTF_8);
         return HTTP.send(HttpRequest.newBuilder(URI.create(
-                        manager.baseUrl(CLINIC).replace("/fhir", "/oidc/token")))
+                        tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString())

@@ -48,51 +48,35 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ATenantHoldsItsOwnDeclarationIT {
 
-    static final String CODE = "holds-its-own";
-    static final String SYS = "https://declarations.test/participant";
+    static SharedTenants.Tenant tenant;
+    static String CODE;
+    /** The shape declares what a participant declaration is keyed by. */
+    static final String SYS = SharedTenants.PARTICIPANTS;
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static String service;
     static String id;
     static final HttpClient HTTP = HttpClient.newHttpClient();
 
     /** As a declarer writes it: no resourceType is required of it, and none is added. */
+    /**
+     * Named for this class. An identity is claimed once per tenant, so two
+     * classes sharing one and claiming the same value collide — the second
+     * is told the identifier is already claimed, which is the store being
+     * right about a tenant that now holds both.
+     */
+    static final String WHO = "holds-its-own-lab";
+
     static final String DECLARATION = "{\"resourceType\":\"ParticipantDeclaration\","
-            + "\"identifier\":[{\"system\":\"" + SYS + "\",\"value\":\"main-lab\"}],"
+            + "\"identifier\":[{\"system\":\"" + SYS + "\",\"value\":\"" + WHO + "\"}],"
             + "\"zone\":\"ee\",\"repo\":\"https://git.test/cfg\"}";
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-holds-its-own");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ATenantHoldsItsOwnDeclarationIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CODE + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"none"},"types":[
-                  {"name":"ParticipantDeclaration","identity":"identifier","systems":["%s"],
-                   "handling":"operational","definition":"none"},
-                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
-                .formatted(CODE, SYS));
-        UntilServed.scan(manager, CODE);
+        // Shared. A declaration is a record here like any other, and every
+        // assertion is about the one this class wrote.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_DECLARATIONS);
+        CODE = tenant.code();
         service = token();
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -125,11 +109,11 @@ class ATenantHoldsItsOwnDeclarationIT {
     @DisplayName("it is found by the identity its type declares")
     void foundByItsIdentity() throws Exception {
         String found = get("/ParticipantDeclaration?identifier="
-                + URLEncoder.encode(SYS + "|main-lab", StandardCharsets.UTF_8)).body();
+                + URLEncoder.encode(SYS + "|" + WHO, StandardCharsets.UTF_8)).body();
 
         assertTrue(found.contains("\"fullUrl\""),
                 "declared findable by its identity and not found by it: " + found);
-        assertTrue(found.contains("main-lab"), found);
+        assertTrue(found.contains(WHO), found);
     }
 
     /**
@@ -157,7 +141,7 @@ class ATenantHoldsItsOwnDeclarationIT {
     }
 
     private static HttpResponse<String> post(String path, String body) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CODE) + path))
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Authorization", "Bearer " + service)
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
@@ -165,18 +149,18 @@ class ATenantHoldsItsOwnDeclarationIT {
     }
 
     private static HttpResponse<String> get(String path) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CODE) + path))
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Authorization", "Bearer " + service).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
     private static String token() throws Exception {
-        manager.authority(CODE).ensureClient("holder", "holder-secret",
+        tenant.authority().ensureClient("holder", "holder-secret",
                 List.of("system/*.read", "system/*.write"));
         String form = "grant_type=client_credentials&client_id=holder&client_secret="
                 + URLEncoder.encode("holder-secret", StandardCharsets.UTF_8);
         return HTTP.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(CODE).replace("/fhir", "/oidc/token")))
+                        URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                         HttpResponse.BodyHandlers.ofString()).body()
