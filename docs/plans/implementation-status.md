@@ -58,6 +58,17 @@ registry property, all on one shared port at `/t/<code>/fhir`. Retracting a
 tenant stops serving it; erasing one is an explicit deprovision that drops
 the database.
 
+**A feed says what changed, not what it says.** A `TenantObserver` of a
+tenant's records or of its trail learns the type, the identity, the version,
+when, and whether it was a deletion — and never the content, which is reached
+by performing a step. Running inside the container is not an exemption: that is
+a fact about trust, and a feed confers none of authorisation, purpose or
+accountability, since there is no run to name in the trail. Declaring the types
+instead is refused for the reason the boundary document already gives — a
+declaration with no anchor is type-level access control wearing a step's
+clothing, and a feed has no anchor to give. Work and identity carry their
+content, each because self-reference already admits it.
+
 *Registry-scoped access, dynamic services, credential-blind provisioning, the
 dedicated-database tier and erasure are done. Dedicated instances, the shared
 tier and quotas are specified, not built.*

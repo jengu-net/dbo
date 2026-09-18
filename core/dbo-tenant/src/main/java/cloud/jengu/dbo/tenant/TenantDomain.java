@@ -17,20 +17,44 @@ package cloud.jengu.dbo.tenant;
  */
 public enum TenantDomain {
 
-    /** Runs, claims, milestones and closes. */
-    WORK("work"),
+    /**
+     * Runs, claims, milestones and closes.
+     *
+     * <p>Carries its content, because it is the machinery's own bookkeeping:
+     * a task describing the delivery of a task does not terminate, which is
+     * the self-reference the direct list already admits.
+     */
+    WORK("work", true),
 
-    /** The trail. */
-    AUDIT("audit"),
+    /**
+     * The trail.
+     *
+     * <p><b>Does not carry its content</b>, and it is the domain where the
+     * temptation is greatest. Reading the trail is the most sensitive read in
+     * the store, because it says who saw whom — so an observer of it learns
+     * that an entry was written and reads it through a step like anyone else.
+     */
+    AUDIT("audit", false),
 
-    /** Credentials, delegations and provisioning. */
-    IDENTITY("identity"),
+    /**
+     * Credentials, delegations and provisioning.
+     *
+     * <p>Carries its content, on the same reason as work: these are how a task
+     * comes to be authorised at all, so requiring a task to observe them is
+     * the regress self-reference exists for.
+     */
+    IDENTITY("identity", true),
 
     /**
      * The tenant's own records, in whichever domain this tenant keeps them.
      * A tenant that holds none is not observed for it.
+     *
+     * <p><b>Does not carry its content.</b> This is the surface the boundary
+     * document names: a feed of record content on the control plane makes
+     * every integrator take the feed instead of the data plane, and the
+     * boundary is decorative.
      */
-    CONTENT(null);
+    CONTENT(null, false);
 
     /** The property an observer carries to say which stream it wants. */
     public static final String DOMAIN = "dbo.tenant.domain";
@@ -45,9 +69,25 @@ public enum TenantDomain {
     public static final String CONSUMER = "dbo.tenant.consumer";
 
     private final String fixed;
+    private final boolean carriesContent;
 
-    TenantDomain(String fixed) {
+    TenantDomain(String fixed, boolean carriesContent) {
         this.fixed = fixed;
+        this.carriesContent = carriesContent;
+    }
+
+    /**
+     * Whether an observer of this stream is handed what changed as well as
+     * that it changed.
+     *
+     * <p>True only where one of the five enumerated reasons already admits a
+     * direct operation, and each constant says which. Everything else is a
+     * crossing of the boundary a run draws, and a feed cannot declare its way
+     * across it: a declaration of types with no anchor is type-level access
+     * control wearing a step's clothing, and a feed has no anchor to give.
+     */
+    boolean carriesContent() {
+        return carriesContent;
     }
 
     /** How this domain is spelled in a registration. */

@@ -2686,6 +2686,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_CHA
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARATION_IS_A_RECORD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARATION_NAMES_ITS_REFERENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_FEED_SAYS_WHAT_CHANGED_NOT_WHAT_IT_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REDECLARATION_IS_NOTICED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REFUSED_DECLARATION_IS_SAID_ONCE:cloud.jengu.dbo.promises.DboPromises
@@ -3457,6 +3458,18 @@ cloud.jengu.dbo.tenant.BlobHandler                                     RESOURCE:
 cloud.jengu.dbo.tenant.BlobHandler                                     class
 cloud.jengu.dbo.tenant.BlobHandler                                     handle(HttpExchange):void
 cloud.jengu.dbo.tenant.BlobHandler                                     new(cloud.jengu.dbo.rest.RequestAuthenticator,cloud.jengu.dbo.core.api.BlobStore,String)
+cloud.jengu.dbo.tenant.Change                                          committedAt():Instant
+cloud.jengu.dbo.tenant.Change                                          content():Optional
+cloud.jengu.dbo.tenant.Change                                          deleted():boolean
+cloud.jengu.dbo.tenant.Change                                          equals(Object):boolean
+cloud.jengu.dbo.tenant.Change                                          hashCode():int
+cloud.jengu.dbo.tenant.Change                                          new(long,String,String,long,Instant,boolean,Optional)
+cloud.jengu.dbo.tenant.Change                                          objectId():String
+cloud.jengu.dbo.tenant.Change                                          record
+cloud.jengu.dbo.tenant.Change                                          seq():long
+cloud.jengu.dbo.tenant.Change                                          toString():String
+cloud.jengu.dbo.tenant.Change                                          typeName():String
+cloud.jengu.dbo.tenant.Change                                          versionId():long
 cloud.jengu.dbo.tenant.ConfigurationHandler                            SCOPE:String
 cloud.jengu.dbo.tenant.ConfigurationHandler                            class
 cloud.jengu.dbo.tenant.ConfigurationHandler                            handle(HttpExchange):void

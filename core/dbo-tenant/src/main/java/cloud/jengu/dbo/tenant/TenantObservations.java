@@ -88,6 +88,22 @@ final class TenantObservations {
         return running;
     }
 
+    /**
+     * The feed's items as an observer learns of them.
+     *
+     * <p>Package-private and static so the rule can be asserted directly: a
+     * test that went through a running poller would be proving the plumbing
+     * and hoping about the boundary.
+     */
+    static List<Change> asChanges(TenantDomain domain, List<FeedItem> items) {
+        List<Change> changes = new ArrayList<>(items.size());
+        for (FeedItem item : items) {
+            changes.add(domain.carriesContent()
+                    ? Change.withContent(item) : Change.withoutContent(item));
+        }
+        return changes;
+    }
+
     private AutoCloseable start(Registered one, TenantFacts facts, ChangeFeed feed,
             java.util.function.BiConsumer<String, Exception> failed) {
         java.util.concurrent.atomic.AtomicBoolean running =
@@ -109,7 +125,13 @@ final class TenantObservations {
                                 Thread.sleep(IDLE_MILLIS);
                                 continue;
                             }
-                            one.observer().observed(facts, items);
+                            // What the observer is told, which is not what the
+                            // feed carries. The payload is dropped here — at
+                            // the one place every observer of every domain
+                            // passes through — rather than being left to each
+                            // observer to ignore, because a boundary somebody
+                            // has to remember to honour is not one.
+                            one.observer().observed(facts, asChanges(one.domain(), items));
                             // Acknowledged only after it returned: a batch an
                             // observer did not survive arrives again rather
                             // than being lost.
