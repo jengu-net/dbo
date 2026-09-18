@@ -46,6 +46,26 @@ public class WireLane implements Lane {
     @FunctionalInterface
     public interface Transport {
         Reply post(LaneVerbs verb, String body);
+
+        /**
+         * The same, for a verb whose answer nobody reads.
+         *
+         * <p>A carrier that can hand work over durably and return — a message
+         * on a stream rather than a request on a wire — says so by overriding
+         * this. The default is {@link #post}, so a transport that has no such
+         * thing is not degraded and nothing above notices which it holds.
+         *
+         * <p><b>Only for a verb whose answer nobody reads</b>, which is a
+         * narrower set than it sounds. A report that can be <em>refused</em>
+         * must keep its answer: losing a refusal is how a runner comes to
+         * believe it closed a run the store declined to close, and silence is
+         * the failure mode this whole area exists to remove. What qualifies is
+         * what the store cannot refuse and nothing decides on — vitals, so
+         * far.
+         */
+        default Reply tell(LaneVerbs verb, String body) {
+            return post(verb, body);
+        }
     }
 
     private final Transport transport;
@@ -159,11 +179,25 @@ public class WireLane implements Lane {
         return released instanceof Number n ? n.intValue() : 0;
     }
 
+    /**
+     * Told, not asked — the one verb on this lane that is.
+     *
+     * <p>A declaration is re-said on every cycle, including a quiet one,
+     * because "still here, nothing waiting" is itself a vital sign. Over a
+     * carrier that waits for an answer that is what a runner pays for most:
+     * one round trip per step per tenant per tick, for numbers that are
+     * explicitly lossy and that nothing decides on.
+     *
+     * <p>It qualifies because the store cannot refuse it. A declaration is
+     * idempotent by key and replaces rather than accumulates, so there is no
+     * answer worth waiting for and nothing is lost by a carrier that drops
+     * one — the next cycle says it again a moment later.
+     */
     @Override
     public void declare(Declarations.Declared declared) {
         Map<String, Object> body = verb();
         body.put(LaneVerbs.DECLARED, RecordWire.encode(declared));
-        post(LaneVerbs.DECLARE, body);
+        tell(LaneVerbs.DECLARE, body);
     }
 
     @Override
@@ -299,6 +333,21 @@ public class WireLane implements Lane {
             body.put(LaneVerbs.ENTITLED_STEPS, RecordWire.encode(List.copyOf(boundTo)));
         }
         return body;
+    }
+
+    /**
+     * A verb whose answer nobody reads, handed to the carrier and left there.
+     *
+     * <p>Where the carrier has a durable one-way — a message on a stream — the
+     * runner stops waiting for an answer it was going to discard. Over a
+     * carrier that has none this is exactly {@link #post}, so the only
+     * difference anybody can observe is how long the cycle took.
+     *
+     * <p>A refusal cannot be reported back through this, which is why the one
+     * verb that uses it is the one the store cannot refuse.
+     */
+    private void tell(LaneVerbs verb, Map<String, Object> body) {
+        transport.tell(verb, RecordWire.write(body));
     }
 
     /** The verb's answer, or the refusal it was met with. */

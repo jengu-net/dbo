@@ -44,10 +44,41 @@ public final class StreamDoor implements AutoCloseable {
     /** How many verbs one generation serves before handing over to the next. */
     static final int GENERATION = 5000;
     private static final Duration IDLE = Duration.ofSeconds(2);
+    /** The window a burst of claimable runs becomes one wake-up over. */
+    private static final long COALESCE_MILLIS = 200;
+    /**
+     * A message that is not a verb: the store saying this tenant has work.
+     *
+     * <p>It arrives on the door's own inbox because that is the one channel
+     * the door listens on, and because the substrate's trigger on that table
+     * is what makes the door hear it at once rather than on a timer. The store
+     * sends it to itself, through the database, deliberately: the alternative
+     * was an in-memory flag that the serving loop would notice on its next
+     * idle wake, which is a timer wearing a different hat.
+     */
+    static final String NUDGE = "{\"nudge\":true}";
 
     /** The substrate's name for a tenant's door, by generation. */
     public static String workflowId(String tenant, int generation) {
         return "dbo-lane-door-" + tenant + "-" + generation;
+    }
+
+    /**
+     * The event key a waiting lane watches for the {@code n}th wake-up of a
+     * generation.
+     *
+     * <p>A sequence rather than one key re-set, because an event is read by
+     * its key and a key already set answers at once: a lane watching a fixed
+     * key would be told about the same nudge for ever. Watching the key that
+     * does not exist yet is what makes the wait notify-driven — the substrate
+     * has the trigger, and the lane is woken by it rather than by asking.
+     *
+     * <p>Per generation, so the count restarts with the door and a lane that
+     * finds a new generation starts at one rather than having to be told where
+     * the last one got to.
+     */
+    static String workKey(long nudge) {
+        return "work-" + nudge;
     }
 
     /** What the door does, as the substrate sees it. */
@@ -61,6 +92,28 @@ public final class StreamDoor implements AutoCloseable {
     private final DBOS dbos;
     private final Flows flows;
     private final AtomicBoolean closing = new AtomicBoolean();
+    /**
+     * How many wake-ups this generation has emitted, which is the next key's
+     * number.
+     */
+    private final java.util.concurrent.atomic.AtomicLong nudges =
+            new java.util.concurrent.atomic.AtomicLong();
+    /**
+     * When the last one went out, so a burst becomes one.
+     *
+     * <p>A wake-up says <em>look again</em>, and saying it six times in a
+     * second is the same instruction as saying it once — while costing six
+     * rows in the substrate's events table for a door that may live for
+     * thousands of verbs. Coalescing is therefore not a nicety: it is what
+     * keeps a nudge per claimable run from becoming a write per claimable run
+     * on the shared plane.
+     *
+     * <p>What a coalesced nudge costs is latency on the runs it dropped, and
+     * the poll underneath is exactly what that is for.
+     */
+    private volatile long lastNudge;
+    /** The generation now open, so a nudge is addressed to the door that exists. */
+    private volatile int serving;
     private volatile Thread keeper;
 
     private final LaneHandler.SignedGrants grants;
@@ -92,6 +145,12 @@ public final class StreamDoor implements AutoCloseable {
         int generation = nextGeneration();
         while (!closing.get()) {
             final int opening = generation;
+            // Published before the generation starts serving, and its wake-up
+            // sequence restarts with it: the keys are per generation, so a
+            // lane that finds a new door begins at one rather than having to
+            // be told where the last one got to.
+            nudges.set(0);
+            serving = opening;
             try {
                 dbos.startWorkflow(() -> flows.serve(tenant, opening),
                         new StartWorkflowOptions(workflowId(tenant, opening))).getResult();
@@ -116,6 +175,44 @@ public final class StreamDoor implements AutoCloseable {
         return generation;
     }
 
+    /**
+     * Tells whoever is waiting on this tenant's stream that there is work.
+     *
+     * <p>Called by the store when a run becomes claimable — the same seam the
+     * in-JVM wake-up uses — and carrying nothing, because a wake-up says
+     * <em>look again</em> and the taker then polls and claims through the
+     * ordinary path.
+     *
+     * <p>Best effort in the strict sense: coalesced within a short window, and
+     * swallowed if the substrate refuses it. A wake-up that does not go out
+     * costs the latency a runner had before wake-ups existed, and the poll
+     * underneath is what makes that true — so failing here must not disturb
+     * the write that already landed.
+     */
+    public void workAppeared() {
+        long now = System.currentTimeMillis();
+        if (closing.get() || now - lastNudge < COALESCE_MILLIS) {
+            return;
+        }
+        int open = serving;
+        if (open == 0) {
+            return;
+        }
+        lastNudge = now;
+        try {
+            String id = java.util.UUID.randomUUID().toString();
+            dbos.send(workflowId(tenant, open), NUDGE, TOPIC, id);
+        } catch (RuntimeException notSent) {
+            // Said once rather than per run: the substrate being unable to
+            // take a nudge is worth knowing, and repeating it for every
+            // claimable run would be the same noise the poll loop's silence
+            // was, from the other side.
+            org.slf4j.LoggerFactory.getLogger(StreamDoor.class).debug(
+                    "tenant {}: a wake-up did not reach the stream, the poll stands: {}",
+                    tenant, notSent.getMessage());
+        }
+    }
+
     /** The serving loop: one message, one answer, one event — until the generation is spent. */
     private final class Serving implements Flows {
 
@@ -129,6 +226,19 @@ public final class StreamDoor implements AutoCloseable {
             while (served < GENERATION && !closing.get()) {
                 Optional<String> message = dbos.recv(TOPIC, IDLE);
                 if (message.isEmpty()) {
+                    continue;
+                }
+                if (NUDGE.equals(message.get())) {
+                    // Published here because only a workflow may: an event
+                    // belongs to the workflow that set it, and the store's
+                    // side of the door is not one. The key is the next in this
+                    // generation's sequence, so a lane waiting on a key nobody
+                    // has set yet is woken by the substrate's own trigger
+                    // rather than by asking again.
+                    dbos.setEvent(workKey(nudges.incrementAndGet()), "1");
+                    // NOT counted against the generation: a nudge is not a
+                    // verb, and spending a door's life on wake-ups would
+                    // rotate a generation for work nobody asked for.
                     continue;
                 }
                 // The body is kept as the text it arrived as, because that

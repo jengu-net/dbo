@@ -3103,6 +3103,7 @@ cloud.jengu.dbo.runner.http.WireLane.Reply                             status():
 cloud.jengu.dbo.runner.http.WireLane.Reply                             toString():String
 cloud.jengu.dbo.runner.http.WireLane.Transport                         interface
 cloud.jengu.dbo.runner.http.WireLane.Transport                         post(cloud.jengu.dbo.runner.http.LaneVerbs,String):cloud.jengu.dbo.runner.http.WireLane.Reply
+cloud.jengu.dbo.runner.http.WireLane.Transport                         tell(cloud.jengu.dbo.runner.http.LaneVerbs,String):cloud.jengu.dbo.runner.http.WireLane.Reply
 cloud.jengu.dbo.scim.ScimHandler                                       class
 cloud.jengu.dbo.scim.ScimHandler                                       handle(HttpExchange):void
 cloud.jengu.dbo.scim.ScimHandler                                       new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,String,String)
@@ -3116,6 +3117,7 @@ cloud.jengu.dbo.stream.StreamAsk                                       signedOve
 cloud.jengu.dbo.stream.StreamDoor                                      class
 cloud.jengu.dbo.stream.StreamDoor                                      close():void
 cloud.jengu.dbo.stream.StreamDoor                                      new(DataSource,String,cloud.jengu.dbo.runner.http.LaneHandler.SignedGrants,cloud.jengu.dbo.runner.http.LaneHandler.Lanes)
+cloud.jengu.dbo.stream.StreamDoor                                      workAppeared():void
 cloud.jengu.dbo.stream.StreamDoor                                      workflowId(String,int):String
 cloud.jengu.dbo.stream.StreamDoor.Flows                                interface
 cloud.jengu.dbo.stream.StreamDoor.Flows                                serve(String,int):String
@@ -3123,6 +3125,7 @@ cloud.jengu.dbo.stream.StreamLane                                      askedInTh
 cloud.jengu.dbo.stream.StreamLane                                      class
 cloud.jengu.dbo.stream.StreamLane                                      close():void
 cloud.jengu.dbo.stream.StreamLane                                      holding(DataSource,String,String,cloud.jengu.dbo.work.Executor,PrivateKey,PrivateKey):cloud.jengu.dbo.stream.StreamLane
+cloud.jengu.dbo.stream.StreamLane                                      wakeups():Optional
 cloud.jengu.dbo.subscriptions.NotificationComposer                     compose(cloud.jengu.dbo.subscriptions.TopicSubscription,cloud.jengu.dbo.subscriptions.TopicSpec,cloud.jengu.dbo.core.api.feed.FeedItem,long):String
 cloud.jengu.dbo.subscriptions.NotificationComposer                     interface
 cloud.jengu.dbo.subscriptions.NotificationTransport                    deliver(String,String):void
@@ -3698,6 +3701,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            substrate
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            syncRound():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            tenantStates():List
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            troubles():Map
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            wakeupsFor(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            whatTheVersionCouldNotCarry(String):List
 cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            brokerSecrets():Map
 cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            equals(Object):boolean
