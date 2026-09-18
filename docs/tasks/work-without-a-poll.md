@@ -162,16 +162,44 @@ returning reassembled identity there would put identifying data on the plane a
 ratchet already checks by reading every row and asserting it holds the
 manifest, no content and no token.
 
-## What would have to be true to finish it
+## Where it stands
 
-- a wake-up for `StreamLane`, on DBOS messaging;
-- the feedback path: outcomes, milestones, trail entries and metrics as
-  messages, and the store's side applying them;
-- the spill, with its shred reach;
-- the identity callback, with a sealed answer;
-- and the test that a runner with its wake-up suppressed still does the work,
-  which is what keeps the poll a fallback rather than a thing that quietly
-  became load-bearing.
+All of it is built.
+
+- ~~a wake-up for `StreamLane`, on DBOS messaging~~ — **done**, on the door's
+  own inbox, because an event belongs to the workflow that set it.
+- ~~the feedback path~~ — **done**.
+- ~~the spill, with its shred reach~~ — **done**. What is spilled is what would
+  have travelled: the same sealed carrier form, moved and not transformed,
+  which is the whole of why an erasure reaches it. Spilled *inside* the verb's
+  step rather than after it — a step's result is what replay hands back, so
+  the substrate records it, and an answer set aside after the fact leaves the
+  bytes in the substrate's own tables with only the event made small.
+- ~~the identity callback, with a sealed answer~~ — **done**, as a lane verb.
+  Refused for a document the run does not name, refused without a stated
+  purpose, refused outright on a host with no trail, and recorded as an
+  opening naming its run.
+- ~~and the test that a runner with its wake-up suppressed still does the
+  work~~ — **done**, and it is the one that needed the most care: work offered
+  before the runner sleeps is taken on its first cycle, so the first version
+  of it would have passed against a runner that never looked again.
+
+Two things worth keeping when this document goes.
+
+**The assertions that could not fail.** Three of them here, each found by
+mutation rather than by reading. A spill's plane scan passes whether or not
+the spill happened, because sealed bytes carry no marker wherever they sit —
+the assertion has to be about *size*, not content. A check that reassembled
+identity did not travel readable passes on plaintext, because every byte array
+renders as Base64 on the wire. And a suppression test whose guard is too strict
+fails on the guard rather than on the property, which is a red test proving the
+wrong thing.
+
+**A payload moves through the store in time quadratic in its size** — 96 KiB in
+42 seconds, 400 KiB in 632. Filed separately with the measurements. It matters
+here because this whole design assumes large payloads are normal, and it is
+invisible to every other suite, where documents are a few hundred bytes and
+`n²` and `n` look the same.
 
 ## Not doing
 

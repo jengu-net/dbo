@@ -384,6 +384,19 @@ predecessor reads unchained. A departed routee is kept with its last
 attestation. A partner is a tenant that manages others, declared at creation;
 it follows their journeys as an audience and reads no document.
 
+A runner needs no vault, because the carrier form is what work arrives as.
+**Identity is put back together at the tenant**, asked for by a lane verb
+naming the run, the document and a purpose, and the answer comes back sealed
+to the asker alone — refused for a document the run does not name, refused
+without a stated purpose, refused outright where there is no trail, and
+recorded as an opening. A payload too large to travel in the message waits
+beside the door on the substrate and the message carries its key, taken once
+on collection and swept by age: the same sealed bytes, moved and not
+transformed, so an erasure reaches a spilled copy exactly as it reaches one
+in the message. Dispatch is push in both directions with the poll underneath
+as the fallback, and a runner whose wake-up never arrives does the work
+anyway, late.
+
 The replication lane between two appliances of one tenant has both of its
 bounds: patient data by work, arriving with a task and leaving with it, and
 declarations by type, filed under their source and never revoked. What a run
