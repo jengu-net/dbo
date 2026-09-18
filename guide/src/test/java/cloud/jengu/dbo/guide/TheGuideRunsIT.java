@@ -40,6 +40,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * presented. That is a property of the documentation rather than a weakness of
  * the test — the guide is arranged so nothing is used before it is explained,
  * and the suite follows the same line.
+ *
+ * <p><b>The stories are the unit.</b> Each nested class is one, and its
+ * paragraph says what it is about, what state it leaves for the stories after
+ * it, and what kind of promise belongs in it. That last part is what the
+ * grouping is for: a promise coming out of a test that built a world of its
+ * own has to land somewhere, and a flat list of steps gives no answer.
+ *
+ * <p>Two rules this world imposes, both learnt by breaking them.
+ *
+ * <p><b>A step reads the state it depends on; it does not count the writes
+ * above it.</b> Harry is on his third version by the time the version story
+ * reads him, because stories in between moved him on. A step that hard-codes
+ * a number is a step that breaks when a story it never heard of gains a write.
+ *
+ * <p><b>A step belongs in the story that creates what it reads.</b> Grouping
+ * by subject rather than by dependency put the reference step before the
+ * transaction that writes the record it looks for.
+ *
+ * <p>What earns a citation is worth stating too, because the cheap version of
+ * this migration is annotating what is already here. A step that acknowledges
+ * an answer does not prove a promise about what comes back afterwards — so the
+ * verification joins the action rather than becoming a story of its own, which
+ * is also what keeps one world enough.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestClassOrder(ClassOrderer.OrderAnnotation.class)
@@ -890,7 +913,7 @@ class TheGuideRunsIT {
 
         @Test
         @Order(36)
-        @DisplayName("asking for the verdict without writing")
+        @DisplayName("asking for the verdict without writing, and the write agreeing with it")
         @Proving({DboPromises.VER_VALIDATION_WITHOUT_WRITING,
                 DboPromises.VER_WHAT_THIS_FACE_CANNOT_READ_IS_REFUSED})
         void askingForTheVerdictWithoutWriting() throws Exception {
@@ -904,6 +927,86 @@ class TheGuideRunsIT {
             assertEquals(200, postCode("HOSPITAL", "/Observation/$validate",
                     """
                     {"resourceType":"Observation","code":{"text":"house points"}}"""));
+
+            // The verdict is worth nothing unless the write agrees with it. A
+            // writer asks first precisely so they do not have to find out by
+            // writing, and the two answers parting company is the failure that
+            // makes asking pointless.
+            assertEquals(422, postCode("HOSPITAL", "/Observation",
+                    """
+                    {"resourceType":"Observation","code":{"text":"house points"}}"""),
+                    "the write accepted what $validate said it would refuse");
+        }
+
+        @Test
+        @Order(36)
+        @DisplayName("and what it accepts, a write accepts — with nothing written by asking")
+        @Proving(DboPromises.VER_VALIDATION_WITHOUT_WRITING)
+        void whatItAcceptsAWriteAcceptsAndNothingIsWritten() throws Exception {
+            String sound = """
+                    {"resourceType":"Patient",
+                     "identifier":[{"system":"urn:rl:nid","value":"RL-0018"}],
+                     "name":[{"family":"Vector"}]}""";
+            // The operation's name is a literal dollar in the path, not a shell
+            // variable. Unescaped, bash expanded it to nothing under set -u,
+            // the request never happened, and "no error in the verdict" was
+            // satisfied by there being no verdict at all — which is why the
+            // assertions below insist on an outcome before reading into it.
+            Snippets.Ran asked = snippets.sh("""
+                    curl -s -X POST -H "Authorization: Bearer $HOSPITAL" \
+                        "$HOGWARTS/Patient/\\$validate" \
+                        -H 'Content-Type: application/fhir+json' -d '%s'
+                    """.formatted(sound.replace("\n", " ")));
+            assertEquals(0, asked.status(), "asking for a verdict failed: " + asked.err());
+            String verdict = asked.text();
+            assertTrue(verdict.contains("OperationOutcome"),
+                    "no verdict came back at all: '" + verdict + "'");
+            assertTrue(!verdict.contains("\"severity\":\"error\""),
+                    "a sound document was reported as an error: " + verdict);
+            // Asking is not writing, which is the half of this promise a
+            // verdict alone cannot show.
+            assertEquals(0, entries(ask("HOSPITAL", "/Patient?identifier=urn:rl:nid|RL-0018")),
+                    "asking for a verdict wrote the record");
+            assertEquals(201, postCode("HOSPITAL", "/Patient", sound),
+                    "the write refused what $validate accepted");
+        }
+
+        @Test
+        @Order(36)
+        @DisplayName("an unsupported mode is refused, and a type the tenant does not serve is "
+                + "not found rather than quietly valid")
+        @Proving(DboPromises.VER_VALIDATION_WITHOUT_WRITING)
+        void anUnsupportedModeAndAnUnknownType() throws Exception {
+            // Both are the same mistake seen twice: an answer that looks like
+            // approval because the question was not understood.
+            Snippets.Ran refusal = snippets.sh("""
+                    curl -s -o /dev/null -w '%{http_code}' -X POST \
+                        -H "Authorization: Bearer $HOSPITAL" \
+                        "$HOGWARTS/Patient/\\$validate?mode=nonsense" \
+                        -H 'Content-Type: application/fhir+json' \
+                        -d '{"resourceType":"Patient"}'
+                    """);
+            assertEquals(0, refusal.status(), "the request was never made: " + refusal.err());
+            assertEquals("400", refusal.lastLine(),
+                    "an unsupported validation mode was not refused");
+
+            assertEquals(404, postCode("HOSPITAL", "/Nonexistent/$validate",
+                    """
+                    {"resourceType":"Nonexistent"}"""),
+                    "a type the tenant does not serve answered a verdict instead of saying "
+                            + "it does not serve it");
+        }
+
+        @Test
+        @Order(36)
+        @DisplayName("and the operation the statement declares is the operation that answers")
+        @Proving(DboPromises.SRCH_HONEST_CAPABILITY)
+        void declaredAndRoutableAreTheSameSet() throws Exception {
+            // A statement that advertised an operation nothing answered would
+            // be a promise the tenant cannot keep, and it is the kind that is
+            // found in production rather than here.
+            assertTrue(ask("HOSPITAL", "/metadata").contains("\"name\":\"validate\""),
+                    "the statement does not declare the operation it answers");
         }
 
     }

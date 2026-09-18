@@ -9,8 +9,11 @@ import java.time.Duration
 // waiting thirty-eight minutes to find out one of them rotted is how a check
 // stops being run.
 //
-// NOT wired into `build` yet. It is added to CI deliberately, once it covers
-// what the harness script covers.
+// It runs in CI as its own job, beside the tree-built shell run rather than
+// instead of it, and it is where promises move as they come out of tests that
+// each build a world of their own. Its citation index is read by the promise
+// projection in `:core:harness`, which is why that module depends on this
+// one's test output.
 
 plugins {
     id("java")
