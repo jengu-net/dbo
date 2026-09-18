@@ -26,6 +26,34 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ACitedPromiseIsADeclaredOneTest {
 
     @Test
+    @DisplayName("a checkout nested inside this one is somebody else's tree, and its codes "
+            + "are not read as this one's")
+    void aNestedCheckoutIsNotThisTree() throws Exception {
+        // A second worktree of this repository under .claude/worktrees/ is how
+        // this was found: it holds another branch's catalogue, and a promise
+        // that branch declares reads here as one nobody does. Excluding .git
+        // did not cover it, because a nested worktree's .git is a file rather
+        // than a directory and everything beside it looks like project source.
+        Path root = java.nio.file.Files.createTempDirectory("dbo-nested");
+        java.nio.file.Files.writeString(root.resolve("mine.md"), "nothing cited here\n");
+
+        Path elsewhere = java.nio.file.Files.createDirectories(
+                root.resolve("worktrees").resolve("another-branch"));
+        java.nio.file.Files.writeString(elsewhere.resolve(".git"),
+                "gitdir: /somewhere/else/.git/worktrees/another-branch\n");
+        // Assembled rather than spelled: this file is itself part of the tree
+        // the real scan walks, so a fake code written out here would be found
+        // by the very guard it is a fixture for. It was, on the first run.
+        String theirs = String.join("-", "REQ", "DBO", "NOTHING", "THIS", "BRANCH",
+                "EVER", "DECLARED");
+        java.nio.file.Files.writeString(elsewhere.resolve("theirs.md"), theirs + "\n");
+
+        assertTrue(PromiseCitations.unresolved(root, getClass().getClassLoader()).isEmpty(),
+                "a code from a checkout nested inside this one was read as this tree's: "
+                        + theirs);
+    }
+
+    @Test
     @DisplayName("a code spelled out in the tree is one a catalogue declares, or the "
             + "ledger says why not — re-record with ./gradlew :core:harness:promiseCitations")
     void everyCitedCodeIsDeclaredOrRecorded() throws Exception {

@@ -62,11 +62,36 @@ final class PromiseCitations {
                 "\\b(?:" + String.join("|", namespaces) + ")-[A-Z0-9]+(?:-[A-Z0-9]+)*");
     }
 
+    /**
+     * Every checkout nested inside this one.
+     *
+     * <p>A second worktree of this repository can live under it — an agent's
+     * scratch checkout under {@code .claude/worktrees/} is the case that found
+     * this — and it holds another branch's whole tree, catalogue included. A
+     * code that branch declares and this one does not is then read as a code
+     * nobody declares, and the guard fails on a file that is not part of this
+     * checkout at all.
+     *
+     * <p>Excluding {@code .git} was not enough: a nested worktree's {@code
+     * .git} is a FILE pointing at the real one, so its contents look like
+     * ordinary project files. What marks a nested checkout is that it carries
+     * a {@code .git} of either kind of its own, which is what this looks for.
+     */
+    private static Set<Path> nestedCheckouts(Path root) throws IOException {
+        try (Stream<Path> tree = Files.walk(root)) {
+            return tree.filter(p -> ".git".equals(p.getFileName().toString()))
+                    .map(Path::getParent)
+                    .filter(p -> p != null && !p.equals(root))
+                    .collect(java.util.stream.Collectors.toSet());
+        }
+    }
+
     /** Code to the one file that first spells it, for a reader who has to go and look. */
     static Map<String, String> unresolved(Path root, ClassLoader loader) throws IOException {
         Set<String> declared = declared(loader);
         Pattern cited = citation(loader);
         Map<String, String> found = new TreeMap<>();
+        Set<Path> nested = nestedCheckouts(root);
         try (Stream<Path> tree = Files.walk(root)) {
             for (Path file : tree.filter(Files::isRegularFile).sorted().toList()) {
                 String rel = root.relativize(file).toString();
@@ -81,7 +106,8 @@ final class PromiseCitations {
                 // bad code there is a bad code in the source it came from, said
                 // twice. Reading them also made this task consume another's
                 // output, which Gradle refuses as an undeclared dependency.
-                if (rel.contains("build/") || rel.startsWith(".git")
+                if (nested.stream().anyMatch(file::startsWith)
+                        || rel.contains("build/") || rel.startsWith(".git")
                         || rel.startsWith("docs/tasks/") || rel.startsWith("config/")
                         || rel.startsWith("tools/dbo-conventions/")
                         || rel.equals("CLAUDE.md")
