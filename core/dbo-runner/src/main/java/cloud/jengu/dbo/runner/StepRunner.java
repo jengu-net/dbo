@@ -69,6 +69,24 @@ public final class StepRunner implements AutoCloseable {
      * rather than leaving a count a re-attached lane would inherit.
      */
     private final Map<String, Map<String, Vitals>> vitals = new ConcurrentHashMap<>();
+    /**
+     * What a lane's wake-ups are listened to through, per lane, so detaching
+     * one stops its listening — keyed like everything else here, because a
+     * subscription outliving its lane would wake a runner on behalf of a
+     * tenant it no longer serves.
+     */
+    private final Map<String, AutoCloseable> listening = new ConcurrentHashMap<>();
+    /**
+     * The loop's sleep, endable.
+     *
+     * <p>One permit counter for every lane together, not one per lane: the
+     * cycle sweeps them all, so being told twice and being told by two tenants
+     * are the same instruction — look again. Permits are drained after the
+     * wait for that reason, or a burst of six wake-ups would buy six immediate
+     * cycles over the same empty lanes.
+     */
+    private final java.util.concurrent.Semaphore woken =
+            new java.util.concurrent.Semaphore(0);
     private volatile Thread loop;
     private volatile boolean running;
 
@@ -111,6 +129,19 @@ public final class StepRunner implements AutoCloseable {
     public synchronized StepRunner attach(Lane lane) {
         lanes.put(lane.tenant(), lane);
         services.keySet().forEach(step -> declare(lane, step));
+        // A lane that can say when it has work is listened to; one that
+        // cannot is not, and the loop then waits out its tick for it exactly
+        // as it always did. A failure to subscribe is logged and not fatal
+        // for the same reason: the poll is underneath this, so the worst it
+        // costs is the latency the runner had before.
+        lane.wakeups().ifPresent(wakeups -> {
+            try {
+                listening.put(lane.tenant(), wakeups.wake(woken::release));
+            } catch (RuntimeException notListening) {
+                LOG.warn("lane attached without wake-ups, falling back to the poll: "
+                        + "tenant={} {}", lane.tenant(), notListening.getMessage());
+            }
+        });
         LOG.info("lane attached: tenant={}", lane.tenant());
         return this;
     }
@@ -121,7 +152,21 @@ public final class StepRunner implements AutoCloseable {
         if (lane != null) {
             services.keySet().forEach(step -> lane.withdraw(declared(lane, step)));
             vitals.remove(tenant);
+            stopListening(tenant);
             LOG.info("lane detached: tenant={}", tenant);
+        }
+    }
+
+    private void stopListening(String tenant) {
+        AutoCloseable subscription = listening.remove(tenant);
+        if (subscription == null) {
+            return;
+        }
+        try {
+            subscription.close();
+        } catch (Exception stopping) {
+            LOG.warn("a lane's wake-ups did not stop: tenant={} {}",
+                    tenant, stopping.getMessage());
         }
     }
 
@@ -251,7 +296,16 @@ public final class StepRunner implements AutoCloseable {
         while (running) {
             try {
                 cycle();
-                Thread.sleep(pollEvery.toMillis());
+                // The tick, or less if a lane said to look again. The poll is
+                // the FALLBACK and not the mechanism: a wake-up that never
+                // arrives costs the latency a runner had before wake-ups
+                // existed, and loses nothing — which is what keeps a silent
+                // delivery failure from being invisible in the way that
+                // matters.
+                woken.tryAcquire(pollEvery.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+                // Being told six times is the same instruction as being told
+                // once, and the cycle that follows sweeps every lane.
+                woken.drainPermits();
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 return;
