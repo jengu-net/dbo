@@ -1864,6 +1864,31 @@ class TheGuideRunsIT {
                     "a person was resolved without a stated purpose: " + refused);
         }
 
+        @Test
+        @Order(4)
+        @DisplayName("but reading the record is answered, with the person taken out of it")
+        @Proving(DboPromises.IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED)
+        void aReadWithoutAReasonIsAnsweredWithoutThePerson() throws Exception {
+            // The credential the step above minted: it may write every type
+            // here and states no reason. Refusing would be the safe-looking
+            // answer and the wrong one — what a recipient sees follows the
+            // declaration rather than how much they could write, and work
+            // that never needed the person still runs.
+            //
+            // The answer is established before anything is said to be missing.
+            // The first version of this called a shell function an earlier
+            // snippet defined, which is not in scope here: curl never ran, and
+            // the absence of her name was the absence of an answer.
+            Snippets.Ran read = snippets.sh("curl -sf -H \"Authorization: Bearer $NO_REASON\""
+                    + " \"$HOGWARTS/Patient/" + snippets.recall("id") + "\"");
+            assertEquals(0, read.status(), "the read never happened: " + read.err());
+            String seen = read.text();
+            assertTrue(seen.contains("\"resourceType\":\"Patient\""),
+                    "the record was refused rather than answered: " + seen);
+            assertTrue(!seen.contains("Potter") && !seen.contains("RL-0001"),
+                    "a broad write grant read the person back: " + seen);
+        }
+
     }
 
     /**
@@ -2075,6 +2100,25 @@ class TheGuideRunsIT {
                 assertTrue(!remains.contains("\"" + element + "\""),
                         "the erased record still carries the person's " + element + ": " + remains);
             }
+        }
+
+        @Test
+        @Order(4)
+        @DisplayName("while the trail still says something happened to her record, and can "
+                + "no longer say to whom")
+        @Proving(DboPromises.POL_ERASURE_COMPATIBLE)
+        void theTrailOutlivesThePerson() throws Exception {
+            // Scoped to her record. A page of the tenant's trail would be an
+            // answer about whatever it did lately, not about whether the
+            // account of HER request survived — and erasure is the one place
+            // that distinction has to hold.
+            String trail = ask("HOSPITAL",
+                    "/AuditEvent?entity=Patient/" + snippets.recall("forgettable"));
+            assertTrue(entries(trail) > 0,
+                    "the account went with the person, so the clinic cannot show it handled "
+                            + "her request at all: " + trail);
+            assertTrue(!trail.contains("Riddle"),
+                    "the trail still names her, so erasure stopped at the record: " + trail);
         }
 
     }
