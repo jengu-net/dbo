@@ -2,9 +2,6 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -13,14 +10,11 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,51 +35,34 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class R6TenantIT {
 
-    private static final String EID = "https://ee.ee/eid";
+    private static final String EID = SharedTenants.EID;
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant tenant;
     static final HttpClient http = HttpClient.newHttpClient();
     static String base;
+    static String bearer;
 
     @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        String jdbcUrl = SharedPostgres.urlFor("R6TenantIT");
-        dir = Files.createTempDirectory("dbo-tenants-r6");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                jdbcUrl, postgres.getUsername(), postgres.getPassword());
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
-        Files.writeString(dir.resolve("kuues.json"), """
-                {"code":"kuues","face":"r6","types":[
-                  {"name":"Patient","identity":"identifier","systems":["%s"],"handling":"operational"},
-                  {"name":"Observation","identity":"internal","handling":"operational"}]}"""
-                .formatted(EID));
-        UntilServed.scan(manager, up -> up.contains("kuues"));
-        base = manager.baseUrl("kuues");
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+    void up() {
+        // Shared. A face binds one version, so this tenant is r6 and nothing
+        // else here is — and every question below is asked about the patient
+        // this class itself writes.
+        tenant = SharedTenants.of(SharedTenants.Shape.R6);
+        base = tenant.fhir();
+        bearer = tenant.token("r6-tenant-it", "system/*.read", "system/*.write");
     }
 
     private HttpResponse<String> post(String url, String body) throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create(url))
                         .header("Content-Type", "application/fhir+json")
+                        .header("Authorization", "Bearer " + bearer)
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
     private HttpResponse<String> get(String url) throws Exception {
-        return http.send(HttpRequest.newBuilder(URI.create(url)).GET().build(),
+        return http.send(HttpRequest.newBuilder(URI.create(url))
+                        .header("Authorization", "Bearer " + bearer).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
@@ -93,7 +70,7 @@ class R6TenantIT {
     @Order(1)
     @DisplayName("a spec declaring a version with no generated model becomes a live tenant")
     void aTenantOnR6ComesUp() throws Exception {
-        assertTrue(manager.runtime("kuues").isPresent(),
+        assertTrue(SharedTenants.manager().runtime(tenant.code()).isPresent(),
                 "a tenant on a face the container carries must come up");
 
         HttpResponse<String> metadata = get(base + "/metadata");
@@ -170,6 +147,7 @@ class R6TenantIT {
         HttpResponse<String> updated = http.send(HttpRequest.newBuilder(
                         URI.create(base + "/Patient/" + id))
                 .header("Content-Type", "application/fhir+json")
+                .header("Authorization", "Bearer " + bearer)
                 .PUT(HttpRequest.BodyPublishers.ofString("""
                         {"resourceType":"Patient","id":"%s",
                          "identifier":[{"system":"%s","value":"38001010001"}],
