@@ -79,6 +79,27 @@ something your own users create and they cannot write it at all. The engine
 tells you immediately in the second case, which is the safer of the two
 mistakes to make.
 
+## When one thing has more than one writer
+
+Sooner or later you will meet something that looks like it needs two answers at
+once. A device is the usual one: a bench analyser written down in the
+configuration repository, a box that dials in and is enrolled once somebody
+approves it, and a third that a driver finds on the network and simply records.
+Declare the type for the first and the other two cannot be written at all.
+
+The answer is not a handling loose enough for all three. It is that those are
+not three ways of writing one record. A declaration says *this ought to be
+here* and belongs to whatever declares it; an observation says *this is here*
+and nobody authors it — it is true because something looked. They have
+different owners and different lifetimes, and the day they disagree you want to
+be able to see both rather than having watched one overwrite the other.
+
+So declare two types: the declared one `replicated`, the observed one
+`operational`, and let the declaration seed or approve what is observed rather
+than becoming it. You also get the state that matters most operationally and
+that a single type cannot hold — the thing that was declared and never
+appeared.
+
 ## What is declared, and what is a record
 
 A tenant's spec is not the place for everything true about an organisation, and

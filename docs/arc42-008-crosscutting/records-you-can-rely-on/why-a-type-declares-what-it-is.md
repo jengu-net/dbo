@@ -81,6 +81,45 @@ the vendor included — there is no interface that edits an entry, because an
 audit trail somebody can edit is a document rather than evidence. That is
 [The Trail Is Records](../patterns/pattern-the-trail-is-records.md).
 
+## One type, one owner
+
+The label also names who the type belongs to, and the refusal quotes that owner
+back at whoever tried: *published by the configuration lane, and only that lane
+may write it — an edit made here would be silently overwritten by the next
+sync, or silently kept.* That sentence is the rule. It is worth reading twice,
+because it is only true of a type whose records all come from one place.
+
+Real things often have more than one writer. A bench analyser is written down
+in the configuration repository by an operator; a box dials in and is enrolled
+by the platform once a human approves it; a driver finds a third on the network
+and records that it is there. It is tempting to read that as one type with
+three writers and a rule too strict for two of them.
+
+It is not. Those are three different statements about the world, and they
+differ in what makes them true rather than in who happened to type them. A
+declaration says *this ought to be here*, and it belongs to the repository that
+declares it — correcting it anywhere else is the edit the refusal describes. An
+observation says *this is here*, and nobody authors it: it is true because
+something looked, and it stops being true when the thing goes away. They have
+different owners, different lifetimes, and different answers to what a
+contradiction between them means.
+
+So they are different types, and each says what it is. The declared one is the
+repository's and is read-only here; the observed one is observed, and whatever
+sees the world writes it. A declaration may seed an observed record, or be what
+approves one, or sit beside it unmatched — which is a state worth being able to
+represent, because a device that was declared and never appeared is exactly the
+thing an operator wants to know about.
+
+Collapsing them costs more than it looks. Relaxing the rule to fit the widest
+writer removes the protection from the declared half and leaves the refusal's
+sentence false for the records it no longer applies to. Attaching the owner to
+each record instead of the type sounds tidier and is worse: what a caller may
+write would then depend on which record it reached rather than on what the type
+declared, so nothing could be known about a write before making it — and being
+able to know that, from the declaration alone, is the whole of what the label
+is for.
+
 <div class="further" markdown>
 The five reliances, the physical layout that makes the payload-and-derivation
 split visible, and the shape-governance rules are in
