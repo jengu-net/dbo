@@ -1,0 +1,41 @@
+{
+  // A tenant's life, and the three points something can be told about.
+  //
+  // Written as a flow — nodes and links — because that is what it is. The
+  // first draft drew the same figure as a grid with spacer cells and hand
+  // placed line elements, which is how you build a flow when you have not
+  // read that the compiler has one.
+  //
+  // The three points are drawn as the stages they are, because that is the
+  // claim: they are moments in the tenant's own coming-up, not a mechanism
+  // beside it.
+  //
+  // It draws the coming-up and nothing else. A first version carried the two
+  // ways out as well and came to eleven hundred points wide on a page that is
+  // seven hundred and sixty — a flow lays its nodes on one rank, so branching
+  // makes it wider rather than taller. The prose says what a changed or
+  // removed declaration does, and says it better than two more boxes would.
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |point::box| { fill: --accent-soft; stroke: --accent; }
+  |done::box|  { fill: --seal-soft; stroke: --seal; }
+  |gone::box|  { fill: none; stroke: --line; stroke-style: dashed;
+                 color: --faint; }
+}
+
+|box#declared|    "a declaration\nappears"
+|box#provisioned| "provisioned"
+|point#dispatch|  "dispatch"
+|point#surfaces|  "surfaces"
+|done#serving|    "serving"
+
+declared -> provisioned -> dispatch -> surfaces -> serving

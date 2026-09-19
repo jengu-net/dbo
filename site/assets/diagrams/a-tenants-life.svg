@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-346.0645 -56.6 692.129 113.2" width="692.129" height="113.2" class="lini lini-scope-bddcce39" role="img" aria-labelledby="a-tenants-life-title a-tenants-life-desc">
+  <title id="a-tenants-life-title">A tenant's life, and the three points something can be told about</title>
+  <desc id="a-tenants-life-desc">A declaration appears and the tenant is provisioned, then reaches dispatch — its store and feeds exist — then surfaces, where its endpoints are mounted, then serving, after which nothing more changes what it can be asked. Those last three are the points a lifecycle listener is registered against.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-bddcce39 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-bddcce39[data-theme="dark"], [data-theme="dark"] .lini-scope-bddcce39 { color-scheme: dark; }
+      .lini-scope-bddcce39[data-theme="light"], [data-theme="light"] .lini-scope-bddcce39 { color-scheme: light; }
+    }
+    .lini-scope-bddcce39 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-bddcce39 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-bddcce39 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-bddcce39 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-bddcce39 .lini-point { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-bddcce39 .lini-done { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-bddcce39 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-bddcce39 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-box lini-block" data-id="declared" transform="translate(-265.8175,0)">
+      <rect x="-59.247" y="-35.6" width="118.494" height="71.2" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0"><tspan x="0" y="-3.146">a declaration</tspan><tspan x="0" dy="15.6">appears</tspan></text>
+    </g>
+    <g class="lini-node lini-box lini-block" data-id="provisioned" transform="translate(-113.0025,0)">
+      <rect x="-55.568" y="-26.5" width="111.136" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">provisioned</text>
+    </g>
+    <g class="lini-node lini-point lini-box lini-block" data-id="dispatch" transform="translate(26.6695,0)">
+      <rect x="-46.104" y="-26.5" width="92.208" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">dispatch</text>
+    </g>
+    <g class="lini-node lini-point lini-box lini-block" data-id="surfaces" transform="translate(156.7345,0)">
+      <rect x="-45.961" y="-26.5" width="91.922" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">surfaces</text>
+    </g>
+    <g class="lini-node lini-done lini-box lini-block" data-id="serving" transform="translate(282.88,0)">
+      <rect x="-42.1845" y="-26.5" width="84.369" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">serving</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="declared" data-to="provisioned">
+      <path d="M -205.5705 0 L -173.0705 0"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-169.0705,0 -178.0705,4.5 -178.0705,-4.5"/>
+    </g>
+    <g class="lini-link" data-from="provisioned" data-to="dispatch">
+      <path d="M -56.4345 0 L -23.9345 0"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-19.9345,0 -28.9345,4.5 -28.9345,-4.5"/>
+    </g>
+    <g class="lini-link" data-from="dispatch" data-to="surfaces">
+      <path d="M 73.7735 0 L 106.2735 0"/>
+      <polygon class="lini-marker lini-marker-arrow" points="110.2735,0 101.2735,4.5 101.2735,-4.5"/>
+    </g>
+    <g class="lini-link" data-from="surfaces" data-to="serving">
+      <path d="M 203.6955 0 L 236.1955 0"/>
+      <polygon class="lini-marker lini-marker-arrow" points="240.1955,0 231.1955,4.5 231.1955,-4.5"/>
+    </g>
+  </g>
+</svg>

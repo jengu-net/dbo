@@ -1,0 +1,6 @@
+A tenant's life, and the three points something can be told about
+
+A declaration appears and the tenant is provisioned, then reaches dispatch —
+its store and feeds exist — then surfaces, where its endpoints are mounted,
+then serving, after which nothing more changes what it can be asked. Those
+last three are the points a lifecycle listener is registered against.

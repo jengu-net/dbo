@@ -638,6 +638,17 @@ fun diagramSources(): List<File> =
         .toList()
         .sortedBy { it.name }
 
+// The companion text is an INPUT, not just a file the task happens to read.
+//
+// Without this, editing a description leaves the compile up to date while the
+// committed SVG still carries the old words — and `siteDiagramsCheck`, which
+// recompiles into a scratch directory, reports drift that the task it tells
+// you to run then refuses to fix. That is the worst shape of stale: a failure
+// with a remedy that does nothing.
+fun diagramDescriptions(): List<File> =
+    diagramSources().map { File(it.parentFile, it.nameWithoutExtension + ".desc") }
+        .filter { it.exists() }
+
 fun liniCommand(target: File) = listOf(
     "bash", "-c",
     diagramSources().joinToString(" && ") { src ->
@@ -686,7 +697,7 @@ fun describe(target: File) {
 val siteDiagrams by tasks.registering(Exec::class) {
     group = "documentation"
     description = "Compiles site/diagrams/*.lini to site/assets/diagrams/*.svg."
-    inputs.files(diagramSources())
+    inputs.files(diagramSources(), diagramDescriptions())
     outputs.dir(diagramOut)
     doFirst { diagramOut.asFile.mkdirs() }
     commandLine(liniCommand(diagramOut.asFile))
@@ -744,7 +755,7 @@ val siteDiagramsCheck by tasks.registering {
     // Asked for in the same invocation as the compile, Gradle is free to run
     // this first and fail against SVGs that were about to be rewritten.
     mustRunAfter(siteDiagrams)
-    inputs.files(diagramSources())
+    inputs.files(diagramSources(), diagramDescriptions())
     inputs.dir(diagramOut)
     val scratch = layout.buildDirectory.dir("site-diagrams-check")
     doLast {

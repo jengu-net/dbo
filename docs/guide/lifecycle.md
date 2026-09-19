@@ -12,6 +12,13 @@ template: essay.html
 up, the file goes and it stops. This is what happens in between, and what each
 step actually costs.
 
+--8<-- "assets/diagrams/a-tenants-life.svg"
+
+<p class="diagram-caption">A declaration appears and the tenant is built in
+order: its store and feeds first, then its surfaces, then it is announced as
+serving. The three marked stages are where something of yours can be told —
+moments in that same line rather than a mechanism beside it.</p>
+
 ## Coming up is not free
 
 The first bring-up of a tenant is minutes, not seconds. A database is
