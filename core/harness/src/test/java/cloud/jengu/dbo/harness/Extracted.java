@@ -92,6 +92,42 @@ final class Extracted {
         return String.valueOf(value);
     }
 
+    /**
+     * The id of the one resource a search answered with.
+     *
+     * <p>A search bundle has no id of its own — the thing being asked for is
+     * inside it — so this walks to the entry rather than looking for the name
+     * anywhere in the text. What it replaced took the LAST {@code id} in the
+     * document, which is the right one only while the bundle holds exactly one
+     * entry, and silently the wrong one the day a search matches two.
+     *
+     * <p>So it says how many it found instead. A test that searched by a
+     * unique identifier and got two back has learnt something worth stopping
+     * for.
+     */
+    static String soleMatchId(String bundle) {
+        Object parsed;
+        try {
+            parsed = cloud.jengu.dbo.core.wire.RecordWire.read(bundle);
+        } catch (RuntimeException notJson) {
+            return fail("not a bundle at all: " + shortened(bundle));
+        }
+        if (!(parsed instanceof java.util.Map<?, ?> document)
+                || !(document.get("entry") instanceof java.util.List<?> entries)) {
+            return fail("no entries in what should be a search bundle: " + shortened(bundle));
+        }
+        if (entries.size() != 1) {
+            return fail("a search that should have matched one thing matched " + entries.size()
+                    + ": " + shortened(bundle));
+        }
+        if (!(entries.get(0) instanceof java.util.Map<?, ?> entry)
+                || !(entry.get("resource") instanceof java.util.Map<?, ?> resource)
+                || resource.get("id") == null) {
+            return fail("the one entry carries no resource with an id: " + shortened(bundle));
+        }
+        return String.valueOf(resource.get("id"));
+    }
+
     /** One query parameter of a url, by name. */
     static String queryParam(String url, String name) {
         return one(Pattern.compile(Pattern.quote(name) + "=([^&]+)"), url,

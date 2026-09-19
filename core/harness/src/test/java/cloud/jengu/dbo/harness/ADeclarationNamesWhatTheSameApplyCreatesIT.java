@@ -218,7 +218,7 @@ class ADeclarationNamesWhatTheSameApplyCreatesIT {
     }
 
     private static String idOf(String bundle) {
-        return Extracted.field(bundle, "id");
+        return Extracted.soleMatchId(bundle);
     }
 
     private static String reader() throws Exception {
