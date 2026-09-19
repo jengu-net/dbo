@@ -9,6 +9,7 @@ import cloud.jengu.dbo.core.api.TypeRegistration;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -76,5 +77,28 @@ public final class ZoneModel {
     public static byte[] identifierDomainPayload(String use, String system) {
         return ("{\"use\":\"" + use + "\",\"system\":\"" + system + "\",\"status\":\"active\"}")
                 .getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * The system a declared domain resolves subjects in, if it names one.
+     *
+     * <p>Read here, beside the line that writes it, and parsed rather than
+     * matched. A pattern over the text answered two questions wrongly and
+     * neither loudly: it took the LAST thing in the document shaped like a
+     * system, which is not the field if anything after it ever quotes one;
+     * and for a record naming no system at all it returned the document
+     * itself, because a replacement that matches nothing yields what it was
+     * given. A zone would then have resolved its subjects in a system whose
+     * name was a JSON object.
+     *
+     * <p>Empty rather than a throw: a domain record that does not name a
+     * system is a declaration that has not said this yet, and the caller has
+     * a configured answer to fall back to. What it must not do is fall back
+     * silently to something that is not a system at all.
+     */
+    public static Optional<String> identifierDomainSystem(byte[] payload) {
+        Object node = Json.parse(new String(payload, StandardCharsets.UTF_8));
+        String system = Json.strOpt(node, "system");
+        return system == null || system.isBlank() ? Optional.empty() : Optional.of(system);
     }
 }

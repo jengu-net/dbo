@@ -285,6 +285,7 @@ cloud.jengu.dbo.auth.ZoneModel                                         IDENTIFIE
 cloud.jengu.dbo.auth.ZoneModel                                         USE_PERSON_PRIMARY:String
 cloud.jengu.dbo.auth.ZoneModel                                         class
 cloud.jengu.dbo.auth.ZoneModel                                         identifierDomainPayload(String,String):byte[]
+cloud.jengu.dbo.auth.ZoneModel                                         identifierDomainSystem(byte[]):Optional
 cloud.jengu.dbo.auth.ZoneModel                                         registrations():List
 cloud.jengu.dbo.auth.ZoneModel.Broker                                  assuranceLevel():String
 cloud.jengu.dbo.auth.ZoneModel.Broker                                  clientId():String

@@ -3084,11 +3084,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                 cloud.jengu.dbo.auth.ZoneModel.IDENTIFIER_USE_SYSTEM,
                                 cloud.jengu.dbo.auth.ZoneModel.USE_PERSON_PRIMARY))).stream()
                 .findFirst()
-                .map(record -> {
-                    String payload = new String(record.payload(),
-                            java.nio.charset.StandardCharsets.UTF_8);
-                    return payload.replaceAll(".*\"system\":\"([^\"]+)\".*", "$1");
-                })
+                // Asked of the model that writes these records rather than
+                // matched out of the text here: the domain knows its own
+                // shape, and a record naming no system falls back to the
+                // configured one instead of answering with itself.
+                .flatMap(record ->
+                        cloud.jengu.dbo.auth.ZoneModel.identifierDomainSystem(record.payload()))
                 .orElse(authorityConfig.subjectSystem());
     }
 
