@@ -76,10 +76,6 @@ class AReshapeConvergesOnlyWhatItWasAimedAtIT {
                   "target":[{"context":"tgt","contextType":"variable","element":"meta",
                              "transform":"copy","parameter":[{"valueId":"m"}]}]}]}]}""";
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient HTTP = HttpClient.newHttpClient();
     static String base;
     static String adminBase;
@@ -88,25 +84,16 @@ class AReshapeConvergesOnlyWhatItWasAimedAtIT {
     static String coldHistory;
     private static volatile String cachedToken;
 
+    static SharedTenants.Tenant tenant;
+
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-tenants-aimed");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("AReshapeConvergesOnlyWhatItWasAimedAtIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve("sihtmark.json"), """
-                {"code":"sihtmark","face":"r4","types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"StructureMap","identity":"canonical","handling":"operational"},
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, "sihtmark");
-        base = manager.baseUrl("sihtmark");
-        adminBase = "http://127.0.0.1:" + manager.port() + "/t/sihtmark/admin";
+        // Shared. It reshapes only what it aimed at, which is the whole
+        // claim — a run that converged somebody else's stock would be the
+        // very bug this class looks for, so sharing is a test of it.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_RESHAPE);
+        base = tenant.fhir();
+        adminBase = tenant.base() + "/admin";
 
         assertEquals(201, post("/StructureDefinition", shape("2.0.0")).statusCode());
 
@@ -122,16 +109,6 @@ class AReshapeConvergesOnlyWhatItWasAimedAtIT {
                 + URLEncoder.encode(SHAPE, StandardCharsets.UTF_8),
                 shape("3.0.0")).statusCode() < 300);
         assertEquals(201, post("/StructureMap", MAP.formatted(SHAPE, SHAPE)).statusCode());
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -303,11 +280,10 @@ class AReshapeConvergesOnlyWhatItWasAimedAtIT {
             return cachedToken;
         }
         String form = "grant_type=client_credentials&client_id=tenant-bootstrap&client_secret="
-                + URLEncoder.encode(provisioner.bootstrapClientSecret("sihtmark"),
+                + URLEncoder.encode(tenant.bootstrapSecret(),
                         StandardCharsets.UTF_8);
         String body = HTTP.send(HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + manager.port()
-                                        + "/t/sihtmark/oidc/token"))
+                                URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();

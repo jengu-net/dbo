@@ -59,35 +59,31 @@ class ReshapeIT {
                   "target":[{"context":"tgt","contextType":"variable","element":"meta",
                              "transform":"copy","parameter":[{"valueId":"m"}]}]}]}]}""";
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
     static String base;
     static String adminBase;
     static String oldStock;
     private static volatile String cachedToken;
 
+    static SharedTenants.Tenant tenant;
+
+    /** What the shared tenant actually stored, for the counts taken below. */
+    private static javax.sql.DataSource stockSource() {
+        org.postgresql.ds.PGSimpleDataSource source = new org.postgresql.ds.PGSimpleDataSource();
+        source.setUrl(tenant.databaseUrl());
+        source.setUser(SharedPostgres.username());
+        source.setPassword(SharedPostgres.password());
+        return source;
+    }
+
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-tenants-reshape");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ReshapeIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve("kuju.json"), """
-                {"code":"kuju","face":"r4","types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"StructureMap","identity":"canonical","handling":"operational"},
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, "kuju");
-        base = manager.baseUrl("kuju");
-        adminBase = "http://127.0.0.1:" + manager.port() + "/t/kuju/admin";
+        // Shared. It reshapes only what it aimed at, which is the whole
+        // claim — a run that converged somebody else's stock would be the
+        // very bug this class looks for, so sharing is a test of it.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_RESHAPE);
+        base = tenant.fhir();
+        adminBase = tenant.base() + "/admin";
 
         HttpResponse<String> firstShape = post("/StructureDefinition", shape(SHAPE, "2.0.0"));
         assertEquals(201, firstShape.statusCode(), firstShape.body());
@@ -106,16 +102,6 @@ class ReshapeIT {
                 shape(SHAPE, "3.0.0")).statusCode() < 300);
         HttpResponse<String> mapWritten = post("/StructureMap", MAP.formatted(SHAPE, SHAPE));
         assertEquals(201, mapWritten.statusCode(), mapWritten.body());
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     private static String shape(String url, String version) {
@@ -201,8 +187,12 @@ class ReshapeIT {
                 .body().contains(stranded),
                 "stock stamped under the withdrawn version is still findable");
         assertTrue(cloud.jengu.dbo.maintenance.TenantInventory.shapes(
-                        provisioner.provision(cloud.jengu.dbo.tenant.TenantSpec.parse(
-                                Files.readString(dir.resolve("kuju.json")))).dataSource())
+                        // The tenant's own database, read directly. It used to
+                        // provision the tenant a SECOND time from its spec
+                        // file to get a connection; there is no spec file of
+                        // this class's own now, and re-provisioning to count
+                        // rows was never what it meant.
+                        stockSource())
                 .stream().anyMatch(l -> "2.0.0".equals(l.version())
                         && UNCOVERED.equals(l.profile())),
                 "and still counted under the version that stamped it");
@@ -321,11 +311,10 @@ class ReshapeIT {
             return cachedToken;
         }
         String form = "grant_type=client_credentials&client_id=tenant-bootstrap&client_secret="
-                + URLEncoder.encode(provisioner.bootstrapClientSecret("kuju"),
+                + URLEncoder.encode(tenant.bootstrapSecret(),
                         StandardCharsets.UTF_8);
         String body = http.send(HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + manager.port()
-                                        + "/t/kuju/oidc/token"))
+                                URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
