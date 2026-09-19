@@ -1086,6 +1086,26 @@ class TheGuideRunsIT {
                     "the core code system is not answerable");
         }
 
+        @Test
+        @Order(4)
+        @DisplayName("a copy names the upstream it came from and says it is not this "
+                + "tenant's to change, while the tenant's own records say neither")
+        @Proving(DboPromises.SYNC_PROVENANCE_COPIES)
+        void aCopySaysWhoseItIs() throws Exception {
+            // Both read with the hospital's own credential, so the only thing
+            // that differs between them is where the record came from.
+            String copied = ask("HOSPITAL", "/CodeSystem?url=urn:rl:wards");
+            assertTrue(copied.contains("\"source\":\"urn:dbo:upstream:rl\"")
+                            && copied.contains("\"code\":\"replicated\""),
+                    "a copy must name its upstream and the class governing it: " + copied);
+
+            String own = ask("HOSPITAL", "/Patient?identifier=urn:rl:nid|RL-0001");
+            assertTrue(!own.contains("urn:dbo:upstream:")
+                            && own.contains("\"code\":\"operational\""),
+                    "a record this tenant authored claims an upstream, or does not say it "
+                            + "is the tenant's own to change: " + own);
+        }
+
     }
 
     /**
