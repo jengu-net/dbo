@@ -54,13 +54,6 @@ class ASurfaceSaysWhereItAppliesRatherThanWorkingItOutTest {
      * out loud as a selector instead.
      */
     private static final Map<String, String> STILL_INLINE = new TreeMap<>(Map.of(
-            "scimPath",
-            "its block is not only a mount: it REFUSES the bring-up when scim is declared and "
-                    + "unservable. An activity's failure is reported and the tenant still "
-                    + "serves, so converting it as it stands would turn a tenant that refuses "
-                    + "to come up misconfigured into one that serves without the door it "
-                    + "declared. The declaration check moves to where declarations are "
-                    + "checked first",
             "oidcPath",
             "the authority's own door, and the authority is what every other selector asks "
                     + "about — it exists before the facts a tenant publishes are resolved",

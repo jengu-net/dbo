@@ -53,6 +53,8 @@ class WhatIdentifiesSomebodyIsSaidOnceTest {
                  "scim":{"system":"%s"},
                  "types":[
                   {"name":"Person","identity":"identifier","systems":["%s"],
+                   "handling":"operational"},
+                  {"name":"Practitioner","identity":"internal",
                    "handling":"operational"}]}""".formatted(SYSTEM, SYSTEM));
         assertEquals(SYSTEM, spec.scim().system());
         assertTrue(spec.types().stream()
@@ -62,15 +64,32 @@ class WhatIdentifiesSomebodyIsSaidOnceTest {
     }
 
     @Test
-    @DisplayName("a tenant declaring no Person at all is still bring-up's to refuse, "
-            + "because a missing type is a different mistake from a disagreeing one")
-    void aMissingPersonTypeIsNotThisCheck() {
-        TenantSpec spec = TenantSpec.parse("""
-                {"code":"kolm","face":"r4","pdi":true,
-                 "scim":{"system":"%s"},
-                 "types":[
-                  {"name":"Observation","identity":"internal","handling":"operational"}]}"""
-                .formatted(SYSTEM));
-        assertEquals(SYSTEM, spec.scim().system());
+    @DisplayName("a tenant declaring no Person at all is refused here too, because a file "
+            + "naming a door it does not carry the parts for is still a file to change")
+    void aMissingPersonTypeIsAlsoThisFilesProblem() {
+        // This used to parse, on the reading that a missing type is a
+        // different mistake from a disagreeing one and therefore bring-up's
+        // to refuse. The first half of that is true and the second did not
+        // follow from it: what decides where a mistake is caught, everywhere
+        // else in this constructor, is whether the file alone can be wrong
+        // about it. A face is left to bring-up because whether anything
+        // serves it depends on what is installed; a step id is refused at
+        // parse because a typo is a typo. A Person that was never declared is
+        // the second kind.
+        //
+        // It also stopped being bring-up's in fact rather than only in
+        // principle: the scim door is an activity now, selected on the one
+        // condition a file cannot answer, so there is no half-built tenant
+        // left for a missing type to be discovered in.
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> TenantSpec.parse("""
+                        {"code":"kolm","face":"r4","pdi":true,
+                         "scim":{"system":"%s"},
+                         "types":[
+                          {"name":"Observation","identity":"internal",
+                           "handling":"operational"}]}"""
+                        .formatted(SYSTEM)));
+
+        assertTrue(refused.getMessage().contains("Person"), refused.getMessage());
     }
 }

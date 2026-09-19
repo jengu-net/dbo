@@ -735,6 +735,49 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     return null;
                 });
 
+        // Provisioning. What the spec can be wrong about the spec already
+        // refused — a declaration naming scim without the vault its
+        // enumeration reads or the person types its mapping writes does not
+        // parse — so the only condition left here is the one no file can
+        // answer: whether this deployment configured an authority.
+        activities.register(TenantPoint.SURFACES,
+                "(&(" + TenantFacts.HAS_SCIM + "=true)("
+                        + TenantFacts.HAS_AUTHORITY + "=true))",
+                "the provisioning door",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    String scimPath = "/t/" + code + "/scim/v2";
+                    sharedServer.createContext(scimPath, new cloud.jengu.dbo.scim.ScimHandler(
+                            tenant.authority(), tenant.runtime().engine(), tenant.vault(),
+                            tenant.spec().scim().system(), scimPath));
+                    scimContexts.put(code, scimPath);
+                    return null;
+                });
+
+        // And the other half of that condition, which is an activity rather
+        // than an omission on purpose.
+        //
+        // A tenant that declared this door and cannot be given one used to be
+        // refused its whole bring-up. Serving without the door and saying
+        // nothing would be worse than that; serving WITH it said is better
+        // than both, and is the trade the mandatory steps already made —
+        // turning a degradation into an outage is the worse of the two.
+        //
+        // So this exists to fail. Its failure is reported once, by name,
+        // against the tenant, which goes on serving everything else it
+        // declared; it clears when the deployment is given an authority.
+        activities.register(TenantPoint.SURFACES,
+                "(&(" + TenantFacts.HAS_SCIM + "=true)("
+                        + TenantFacts.HAS_AUTHORITY + "=false))",
+                "the provisioning door, undeliverable",
+                tenant -> {
+                    throw new IllegalStateException(tenant.facts().code() + ": scim is "
+                            + "declared and this deployment has no authority for the tenant. "
+                            + "Scim's tokens are the authority's, so the door is not mounted "
+                            + "and provisioning cannot reach this tenant — everything else it "
+                            + "declared is being served");
+                });
+
         // Work as the way in. A tenant that declares no steps offers no such
         // door — the surface exists because something was declared, never as a
         // default somebody has to remember to close.
@@ -1774,33 +1817,6 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         version.face());
         if (authority != null) {
             authority.attachSubjects(engine); // §16.1: subjects are the tenant's records
-        }
-        if (spec.scim() != null) {
-            // The provisioning door needs the authority (its scope and its
-            // tokens), the vault (the internal enumeration) and the person
-            // types the mapping writes. Each absence is named: a door that
-            // half-exists answers stranger questions than one that refused.
-            java.util.List<String> missing = new java.util.ArrayList<>();
-            if (authority == null) {
-                missing.add("a tenant authority (scim tokens are its tokens)");
-            }
-            if (vaults.get(spec.code()) == null) {
-                missing.add("the person vault (pdi)");
-            }
-            java.util.Set<String> typeNames = new java.util.HashSet<>();
-            spec.types().forEach(type -> typeNames.add(type.typeName()));
-            if (!typeNames.contains("Person") || !typeNames.contains("Practitioner")) {
-                missing.add("declared Person and Practitioner types (the mapping writes them)");
-            }
-            if (!missing.isEmpty()) {
-                throw new IllegalStateException(spec.code() + ": scim declared but unservable — "
-                        + String.join("; ", missing));
-            }
-            String scimPath = "/t/" + spec.code() + "/scim/v2";
-            sharedServer.createContext(scimPath, new cloud.jengu.dbo.scim.ScimHandler(
-                    authority, engine, vaults.get(spec.code()),
-                    spec.scim().system(), scimPath));
-            scimContexts.put(spec.code(), scimPath);
         }
         // With the tenant's database: a face that validates against current
         // data — the tenant's terminology, and in time its own structure

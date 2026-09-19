@@ -172,23 +172,25 @@ class ATenantThatIsNotUpSaysWhyIT {
     @Order(3)
     @Proving(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES)
     void aBringUpThatFailedHalfWayStillSaysWhyOnEveryLaterPass() throws Exception {
-        // Parseable, and unservable only once the tenant is being built: the
-        // SCIM door needs the person types the mapping writes, and this spec
-        // declares none of them.
+        // Parseable, and unservable only once the tenant is being built: a
+        // zone is a name in a file and a tenant in a deployment, and nothing
+        // here is serving one called this. It used to be a scim door with no
+        // person types, which the spec itself now refuses — what a file can
+        // be wrong about on its own stopped being a bring-up's business, and
+        // this test is about the bring-ups that are.
         Files.writeString(dir.resolve("halted-clinic.json"), """
-                {"code":"halted-clinic","face":"r4","pdi":true,"types":[
-                  {"name":"Observation","identity":"internal","handling":"operational"}],
-                 "scim":{"system":"https://staff.test/ids"}}""");
+                {"code":"halted-clinic","face":"r4","zone":"nowhere","types":[
+                  {"name":"Observation","identity":"internal","handling":"operational"}]}""");
 
         manager.scanOnce();
         String first = manager.troubles().get("halted-clinic");
-        assertTrue(first != null && first.contains("scim declared but unservable"),
+        assertTrue(first != null && first.contains("zone"),
                 "troubles=" + manager.troubles() + " states=" + manager.tenantStates());
         assertEquals(TenantState.State.FAILED, stateOf("halted-clinic"));
 
         manager.scanOnce();
         String second = manager.troubles().get("halted-clinic");
-        assertTrue(second.contains("scim declared but unservable"),
+        assertTrue(second.contains("zone"),
                 "the retry met its own leftovers instead of the reason: " + second);
         assertEquals(first, second, "the same wrong spec has to read the same way twice");
     }
