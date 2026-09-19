@@ -2,16 +2,12 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.maintenance.ArchiveAttestation;
 import cloud.jengu.dbo.maintenance.SealedArchive;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.MaintenanceHandler;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.io.ByteArrayInputStream;
 import java.net.URI;
@@ -20,8 +16,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.util.Base64;
@@ -51,49 +45,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AnArchiveCanBeGivenBackIT {
 
-    private static final String LEFT = "lahkuja";
-    private static final String ARRIVED = "saabuja";
     private static final byte[] OWNER_KEY = new byte[32];
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant left;
+    static SharedTenants.Tenant arrived;
     static HttpClient http;
 
     @BeforeAll
     void up() throws Exception {
         new java.security.SecureRandom().nextBytes(OWNER_KEY);
-        postgres = SharedPostgres.get();
         http = HttpClient.newHttpClient();
-        dir = Files.createTempDirectory("dbo-given-back");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("AnArchiveCanBeGivenBackIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        for (String code : List.of(LEFT, ARRIVED)) {
-            Files.writeString(dir.resolve(code + ".json"), """
-                    {"code":"%s","face":"r4","audit":{"level":"none"},"types":[
-                      {"name":"Patient","identity":"internal","handling":"operational"}]}"""
-                    .formatted(code));
-        }
-        UntilServed.scan(manager, LEFT, ARRIVED);
+        // A pair of numbered tenants. The destination is counted whole — one
+        // patient, and the archive's own vocabulary beside it — so it has to
+        // be a tenant nobody else writes a Patient into.
+        left = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL, 4);
+        arrived = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL, 5);
 
-        assertEquals(201, fhir(LEFT, """
+        assertEquals(201, fhir(left, """
                 {"resourceType":"Patient","name":[{"family":"Lahkuja"}]}""").statusCode());
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -114,8 +83,8 @@ class AnArchiveCanBeGivenBackIT {
                 .signedBy(ArchiveAttestation.Party.TENANT, tenant.getPrivate().getEncoded());
 
         HttpResponse<String> given = http.send(HttpRequest.newBuilder(
-                        URI.create(admin(ARRIVED) + "/import"))
-                .header("Authorization", "Bearer " + systemToken(ARRIVED))
+                        URI.create(admin(arrived) + "/import"))
+                .header("Authorization", "Bearer " + systemToken(arrived))
                 .header(MaintenanceHandler.OWNER_KEY_HEADER, Base64.getEncoder().encodeToString(OWNER_KEY))
                 .header(MaintenanceHandler.ATTESTATION_HEADER, Base64.getEncoder()
                         .encodeToString(attestation.toJson().getBytes(StandardCharsets.UTF_8)))
@@ -144,8 +113,8 @@ class AnArchiveCanBeGivenBackIT {
                         + given.body());
 
         HttpResponse<String> there = http.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(ARRIVED) + "/Patient?_summary=count"))
-                .header("Authorization", "Bearer " + systemToken(ARRIVED)).GET().build(),
+                        URI.create(arrived.fhir() + "/Patient?_summary=count"))
+                .header("Authorization", "Bearer " + systemToken(arrived)).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
         assertTrue(there.body().contains("\"total\":1"),
                 "the record is not in the tenant that received the archive: " + there.body());
@@ -154,8 +123,8 @@ class AnArchiveCanBeGivenBackIT {
     /** The archive, taken the way a customer takes one. */
     private static byte[] taken() throws Exception {
         HttpResponse<byte[]> archive = http.send(HttpRequest.newBuilder(
-                        URI.create(admin(LEFT) + "/archive"))
-                .header("Authorization", "Bearer " + systemToken(LEFT))
+                        URI.create(admin(left) + "/archive"))
+                .header("Authorization", "Bearer " + systemToken(left))
                 .header(MaintenanceHandler.OWNER_KEY_HEADER, Base64.getEncoder().encodeToString(OWNER_KEY))
                 .header(MaintenanceHandler.KIND_HEADER, "portable-export")
                 .POST(HttpRequest.BodyPublishers.noBody()).build(),
@@ -176,29 +145,20 @@ class AnArchiveCanBeGivenBackIT {
         throw new IllegalStateException("no digest list in the archive");
     }
 
-    private static String admin(String code) {
-        return "http://127.0.0.1:" + manager.port() + "/t/" + code + "/admin";
+    private static String admin(SharedTenants.Tenant tenant) {
+        return tenant.base() + "/admin";
     }
 
-    private static HttpResponse<String> fhir(String code, String body) throws Exception {
-        return http.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(code) + "/Patient"))
-                        .header("Authorization", "Bearer " + systemToken(code))
+    private static HttpResponse<String> fhir(SharedTenants.Tenant tenant, String body)
+            throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + "/Patient"))
+                        .header("Authorization", "Bearer " + systemToken(tenant))
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
-    private static String systemToken(String code) throws Exception {
-        manager.authority(code).ensureClient("keeper", "keeper-secret",
-                List.of("system/*.read", "system/*.write"));
-        String form = "grant_type=client_credentials&client_id=keeper&client_secret="
-                + URLEncoder.encode("keeper-secret", StandardCharsets.UTF_8);
-        return http.send(HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + manager.port()
-                                        + "/t/" + code + "/oidc/token"))
-                        .header("Content-Type", "application/x-www-form-urlencoded")
-                        .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
-                        HttpResponse.BodyHandlers.ofString()).body()
-                .replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+    private static String systemToken(SharedTenants.Tenant tenant) {
+        return tenant.token("archive-keeper", "system/*.read", "system/*.write");
     }
 }
