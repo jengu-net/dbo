@@ -139,15 +139,25 @@ class TheStandardMovesUnderTheDataIT {
             + "current major' is a query rather than a scan somebody writes")
     @Proving(DboPromises.SHAPE_QUERYABLE_BY_VERSION)
     void stockIsFindableByBound() throws Exception {
-        HttpResponse<String> below = get("/Observation?_shape-below="
-                + enc(CANONICAL + "|3"));
+        // The observation stands at 3.0.0 by now, so the bound that finds it
+        // is the one above it. This step used to ask only for stock below 3
+        // and accept either an answer or a refusal — and an empty answer to
+        // that is CORRECT, because stock stamped at 3 is not below 3. It
+        // passed whatever the store did, including doing nothing.
+        HttpResponse<String> below4 = get("/Observation?_shape-below="
+                + enc(CANONICAL + "|4"));
+        assertEquals(200, below4.statusCode(), below4.body());
+        assertTrue(below4.body().contains(observationId),
+                "stock under the bound was not findable by it, which is the scan this "
+                        + "parameter exists to replace: " + below4.body());
 
-        assertTrue(below.statusCode() == 200 || below.statusCode() == 400, below.body());
-        if (below.statusCode() == 400) {
-            assertTrue(below.body().contains("shape"),
-                    "an unsupported spelling is refused naming what it is about rather than "
-                            + "ignored: " + below.body());
-        }
+        // And the boundary, which is what makes the line a bound rather than
+        // a filter that matches everything.
+        HttpResponse<String> below3 = get("/Observation?_shape-below="
+                + enc(CANONICAL + "|3"));
+        assertEquals(200, below3.statusCode(), below3.body());
+        assertFalse(below3.body().contains(observationId),
+                "stock stamped AT the bound came back as below it: " + below3.body());
     }
 
     @Test
