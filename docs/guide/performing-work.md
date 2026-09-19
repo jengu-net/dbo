@@ -18,6 +18,8 @@ once.
 
 ## The interface
 
+You implement `StepService`.
+
 ```java
 --8<-- "docs/guide/examples/java/cloud/jengu/dbo/guide/examples/AssayStep.java"
 ```
