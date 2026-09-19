@@ -251,7 +251,19 @@ class ZoneIT {
                                         + URLEncoder.encode(provisioner.bootstrapClientSecret(code),
                                                 StandardCharsets.UTF_8))).build(),
                 HttpResponse.BodyHandlers.ofString());
-        return response.body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+        // Asserted rather than pattern-matched out. replaceAll returns its
+        // INPUT when nothing matches, so a refusal here used to become the
+        // bearer token: the whole error document, sent as a credential, and
+        // the test went on to fail somewhere else entirely with no trace of
+        // what had actually gone wrong.
+        assertEquals(200, response.statusCode(),
+                "no service token for '" + code + "': " + response.body());
+        java.util.regex.Matcher token = java.util.regex.Pattern
+                .compile("\"access_token\":\"([^\"]+)\"").matcher(response.body());
+        assertTrue(token.find(),
+                "the token answer for '" + code + "' carried no access_token: "
+                        + response.body());
+        return token.group(1);
     }
 
     private HttpResponse<String> fhirPost(String code, String path, String token, String body)
@@ -263,9 +275,22 @@ class ZoneIT {
                 HttpResponse.BodyHandlers.ofString());
     }
 
+    /**
+     * The id of what was just written, or what the store said instead.
+     *
+     * <p>The answer is read for its Location, and a write that did not
+     * produce one has not failed quietly — it has failed, and this is the
+     * only place that still holds what it said. Reported with the status and
+     * the body, because the bare missing-value this used to throw named a
+     * line in this file and nothing about the store: an ordinary refusal, a
+     * tenant that was not serving yet and a credential that was never a
+     * credential all arrived here looking identical.
+     */
     private static String idOf(HttpResponse<String> created) {
-        return created.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        String location = created.headers().firstValue("Location").orElseThrow(
+                () -> new AssertionError("a write answered " + created.statusCode()
+                        + " with no Location to take an id from: " + created.body()));
+        return location.replaceAll(".*/([^/]+)$", "$1");
     }
 
     private String federatedLogin(String code) throws Exception {
