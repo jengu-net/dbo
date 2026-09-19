@@ -1623,7 +1623,9 @@ class TheGuideRunsIT {
 
         @Test
         @Order(3)
-        @DisplayName("a run of the step the hospital offers, over one patient")
+        @DisplayName("a run of the step the hospital offers, over one patient — and a "
+                + "document that breaks the step's rules refused by name on the same door")
+        @Proving(DboPromises.PROC_WORK_IS_AUTHORED_ON_THE_SURFACE)
         void aRunOfTheStepTheHospitalOffers() throws Exception {
             String started = snippets.run("start-a-run").text();
             assertTrue(started.contains("\"context\""), "the run returned no context: " + started);
@@ -1639,6 +1641,28 @@ class TheGuideRunsIT {
             assertTrue(snippets.recall("key").startsWith("hogwarts.admission.admit/"),
                     "the run came back without the name the rest of the work model knows it "
                             + "by: " + snippets.recall("key"));
+
+            // Becoming a run is half of it. The other half is the same door
+            // refusing a document that does not meet the step's rules, and
+            // saying which rule — an author told only "no" has to guess
+            // between a step nobody offers and a slot nobody declared.
+            for (String[] wrong : java.util.List.of(
+                    new String[] {"hogwarts.admission.nosuchstep",
+                        "\\\"patient\\\":\\\"Patient/$id\\\"", "offers no step"},
+                    new String[] {"hogwarts.admission.admit",
+                        "\\\"patient\\\":\\\"Patient/$id\\\",\\\"ward\\\":\\\"Location/x\\\"",
+                        "declares no slot"},
+                    new String[] {"hogwarts.admission.admit", "", "is unfilled"})) {
+                Snippets.Ran refused = snippets.sh(
+                        "curl -s -X POST -H \"Authorization: Bearer $PORTER\""
+                                + " -H 'Content-Type: application/json'"
+                                + " http://localhost:8090/t/hogwarts/step/" + wrong[0]
+                                + " -d \"{\\\"inputs\\\":{" + wrong[1] + "}}\"");
+                assertEquals(0, refused.status(), "the request was never made: " + refused.err());
+                assertTrue(refused.text().contains(wrong[2]),
+                        "a document breaking '" + wrong[2] + "' was not refused by name: "
+                                + refused.text());
+            }
         }
 
         @Test
