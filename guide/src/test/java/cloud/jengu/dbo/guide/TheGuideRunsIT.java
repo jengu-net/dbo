@@ -1053,7 +1053,7 @@ class TheGuideRunsIT {
         @Test
         @Order(1)
         @DisplayName("the hospital declared the zone, so it answers the zone's codes as its own")
-        @Proving(DboPromises.SYNC_TERMINOLOGY_GRAIN_SURVIVES)
+        @Proving({DboPromises.SYNC_TERMINOLOGY_GRAIN_SURVIVES, DboPromises.SYNC_ANY_TYPE})
         void theZonesCodesReachTheHospital() throws Exception {
             // The first sync from a zone runs some minutes after a tenant comes up;
             // once the stream is running a change propagates in a second or two.
@@ -1064,6 +1064,15 @@ class TheGuideRunsIT {
                     "the zone's terminology never reached the hospital");
             assertTrue(snippets.run("zone-reaches-hospital").text().contains("Spell Damage"),
                     "the hospital cannot answer a code it holds from its zone");
+
+            // The hospital declared two types from this zone, and terminology's
+            // grain is both — the code system and the value sets standing on
+            // it. The insurer below declared only the first and has only the
+            // first, which is what makes this an arrival rather than
+            // everything arriving regardless.
+            assertTrue(waitFor(120, () ->
+                            entries(ask("HOSPITAL", "/ValueSet?url=urn:rl:wards:vs")) == 1),
+                    "the hospital declared the zone's value sets and did not get them");
         }
 
         @Test
