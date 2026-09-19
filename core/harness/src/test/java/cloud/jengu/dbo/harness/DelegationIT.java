@@ -1,21 +1,14 @@
 package cloud.jengu.dbo.harness;
 
-import cloud.jengu.dbo.auth.IdentityModel;
-import cloud.jengu.dbo.auth.KeyProtector;
 import cloud.jengu.dbo.auth.TenantAuthority;
-import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -26,8 +19,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -48,19 +39,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DelegationIT {
 
-    static final String EID = "https://eesti.ee/isikukood";
+    static final String EID = SharedTenants.LOGINS;
     static final String REDIRECT = "http://127.0.0.1/cb";
     static final String ENGINE_SECRET = "engine-salajane-32-taht";
 
-    static PostgreSQLContainer<?> postgres;
-    static String jdbcUrl;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
-    static byte[] kek = new byte[32];
+    static SharedTenants.Tenant tenant;
     static final HttpClient http = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.NEVER).build();
-    static TenantAuthority sideAuthority;
+    static TenantAuthority authority;
     static String practitionerId;
     static String personId;
     static String roleId;
@@ -69,22 +55,10 @@ class DelegationIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        jdbcUrl = SharedPostgres.urlFor("DelegationIT");
-        new SecureRandom().nextBytes(kek);
-        dir = Files.createTempDirectory("dbo-delegation");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                jdbcUrl, postgres.getUsername(), postgres.getPassword());
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve("esindus.json"), """
-                {"code":"esindus","face":"r4","audit":{"level":"writes"},"types":[
-                  {"name":"Patient","identity":"internal","handling":"operational"},
-                  {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
-                  {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
-                  {"name":"PractitionerRole","identity":"internal","handling":"operational"},
-                  {"name":"Encounter","identity":"internal","handling":"operational"}]}""".formatted(EID, EID));
-        UntilServed.scan(manager, "esindus");
+        // Shared. The person, the capacity and the role below are this
+        // class's own records, named by an identifier value of its own, and
+        // the trail is read scoped to the encounter this class just wrote.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_DELEGATION);
 
         String service = serviceToken();
         practitionerId = idOf(fhirPost("/Practitioner", service, """
@@ -103,36 +77,27 @@ class DelegationIT {
                  "code":[{"coding":[{"system":"urn:example:role","code":"doctor"}]}]}"""
                 .formatted(practitionerId)));
 
-        org.postgresql.ds.PGSimpleDataSource ds = new org.postgresql.ds.PGSimpleDataSource();
-        String jdbcBase = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
-        ds.setUrl(jdbcBase + "tenant_esindus");
-        ds.setUser(postgres.getUsername());
-        ds.setPassword(postgres.getPassword());
-        sideAuthority = new TenantAuthority(new PgObjectStore(ds, IdentityModel.registrations()),
-                base() + "/oidc", new KeyProtector(kek));
-        sideAuthority.ensureRoleGrant("doctor", List.of("user/*.read", "user/Encounter.write"));
-        sideAuthority.ensureLocalCredential("volitaja", "salakala8", personId);
-        sideAuthority.ensureClient("webapp", null, List.of("user/*.read", "user/*.write"),
+        // The tenant's own authority, rather than a second one assembled
+        // over its database: they are the same authority, and one of them
+        // needs the deployment's key handed to a test.
+        authority = tenant.authority();
+        authority.ensureRoleGrant("doctor", List.of("user/*.read", "user/Encounter.write"));
+        authority.ensureLocalCredential("volitaja", "salakala8", personId);
+        authority.ensureClient("webapp", null, List.of("user/*.read", "user/*.write"),
                 "public-pkce", List.of(REDIRECT));
-        sideAuthority.ensureClient("engine", ENGINE_SECRET, List.of());
+        authority.ensureClient("engine", ENGINE_SECRET, List.of());
 
         humanToken = loginForToken();
     }
 
-    @AfterAll
-    void down() {
-        manager.close();
-        SuiteDatabases.retire(provisioner);
-    }
-
     private String base() {
-        return "http://127.0.0.1:" + manager.port() + "/t/esindus";
+        return tenant.base();
     }
 
     private String serviceToken() throws Exception {
         return tokenField(post(base() + "/oidc/token",
                 "grant_type=client_credentials&client_id=tenant-bootstrap&client_secret="
-                        + URLEncoder.encode(provisioner.bootstrapClientSecret("esindus"),
+                        + URLEncoder.encode(tenant.bootstrapSecret(),
                                 StandardCharsets.UTF_8)), "access_token");
     }
 
@@ -204,16 +169,21 @@ class DelegationIT {
                 "scopes attenuate to the request ∩ the subject's");
 
         // the delegated token can write Encounters but not read (attenuated away)
-        assertEquals(201, fhirPost("/Encounter", actToken,
-                "{\"resourceType\":\"Encounter\",\"status\":\"planned\",\"class\":{\"code\":\"AMB\"}}")
-                .statusCode());
+        HttpResponse<String> written = fhirPost("/Encounter", actToken,
+                "{\"resourceType\":\"Encounter\",\"status\":\"planned\",\"class\":{\"code\":\"AMB\"}}");
+        assertEquals(201, written.statusCode());
+        String encounterId = idOf(written);
         assertEquals(403, http.send(HttpRequest.newBuilder(
                         URI.create(base() + "/fhir/Patient?_summary=count"))
                         .header("Authorization", "Bearer " + actToken).GET().build(),
                 HttpResponse.BodyHandlers.ofString()).statusCode());
 
         // the audit trail names BOTH: the engine, on behalf of the human
-        String trail = http.send(HttpRequest.newBuilder(URI.create(base() + "/fhir/AuditEvent?action=C"))
+        // Scoped to the encounter this test just wrote. A page of the trail
+        // is a question about whatever the tenant has been doing lately,
+        // and the answer to it drifts off the first page as the tenant fills.
+        String trail = http.send(HttpRequest.newBuilder(URI.create(
+                        base() + "/fhir/AuditEvent?action=C&entity=Encounter/" + encounterId))
                         .header("Authorization", "Bearer " + serviceToken()).GET().build(),
                 HttpResponse.BodyHandlers.ofString()).body();
         assertTrue(trail.contains("\"value\":\"engine\"")
@@ -307,7 +277,7 @@ class DelegationIT {
                 .statusCode());
 
         // widen the human's grant — the delegation must NOT widen with it
-        sideAuthority.ensureRoleGrant("doctor",
+        authority.ensureRoleGrant("doctor",
                 List.of("user/*.read", "user/Encounter.write", "user/Patient.write"));
         String widened = tokenField(post(base() + "/oidc/token",
                 "grant_type=" + URLEncoder.encode("urn:ietf:params:oauth:grant-type:token-exchange",
