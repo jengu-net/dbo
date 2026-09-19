@@ -318,6 +318,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("the zone publishes terminology of its own, and answers about it")
+        @Proving(DboPromises.TERM_EVERY_TENANT_ANSWERS)
         void theZonePublishesTerminology() throws Exception {
             assertEquals(0, snippets.run("zone-publishes").status());
             assertTrue(snippets.run("zone-lookup").text().contains("Dai Llewellyn"),
@@ -538,6 +539,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("a type declared replicated is not writable here, and the refusal names the rule")
+        @Proving(DboPromises.SYNC_PROVENANCE_COPIES)
         void aReplicatedTypeIsNotWritableHere() throws Exception {
             String refused = snippets.run("replicated-refused").text();
             assertTrue(refused.contains("read-only-here"),
@@ -1164,6 +1166,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("a projection converts the zone once, for the face that needs it")
+        @Proving(DboPromises.ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION)
         void aProjectionConvertsTheZoneOnce() throws Exception {
             assertTrue(waitUntilServed("rl-on-r4", 90), "the projection never came up");
             assertEquals("4.0.1\n5.0.0", snippets.run("projection").text(),
