@@ -228,6 +228,35 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                         code + ": mandatory step — " + e.getMessage());
             }
         }
+        // Scim declared without what scim is made of, refused here for the
+        // reason a malformed step id is: what a spec can be wrong about on its
+        // own, the spec answers for, and a file somebody has to change is
+        // better named now than at a bring-up that got further.
+        //
+        // Two of the three things that door needs are the spec's own — the
+        // vault it enumerates through, and the person types its mapping
+        // writes. The third is an authority, which is how the deployment is
+        // configured rather than anything this file says, so it is not asked
+        // about here and cannot be.
+        if (scim != null) {
+            List<String> missing = new java.util.ArrayList<>();
+            if (!pdi) {
+                missing.add("pdi (the enumeration answering the user list is a vault method, "
+                        + "and without a vault there is nothing to enumerate)");
+            }
+            Set<String> declared = new java.util.HashSet<>();
+            for (FhirTypeConfig type : types) {
+                declared.add(type.typeName());
+            }
+            if (!declared.contains("Person") || !declared.contains("Practitioner")) {
+                missing.add("declared Person and Practitioner types (the mapping writes them, "
+                        + "and a User is the person with a capacity beside it)");
+            }
+            if (!missing.isEmpty()) {
+                throw new IllegalArgumentException(code + ": scim is declared and this spec "
+                        + "does not carry what it is made of — " + String.join("; ", missing));
+            }
+        }
     }
 
     /**
