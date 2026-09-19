@@ -71,7 +71,16 @@ class AProvisioningClientConvergesTheGrantsIT {
     void up() throws Exception {
         // Shared. It is about what a grant does and stops doing, not about a
         // tenant, and every assertion names the person this class created.
-        tenant = SharedTenants.of(SharedTenants.Shape.R4_GRANTS);
+        // The SECOND grants tenant, and it has to be its own.
+        //
+        // What this class asserts is the tenant's WHOLE set of role grants —
+        // that configuration converged and withdrew what it no longer names.
+        // That is not an assertion that can be scoped to what this class
+        // wrote: any other class adding a role to the same tenant makes it
+        // false, which is exactly what happened when one did. So it takes a
+        // numbered instance nobody else asks for, and still costs a tenant
+        // rather than a runtime.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_GRANTS, 2);
         CODE = tenant.code();
         tenant.authority().ensureClient("svc", "svc-secret",
                 List.of("system/*.read", "system/*.write"));
