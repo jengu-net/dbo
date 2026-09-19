@@ -122,12 +122,12 @@ class ATenantSubscribesToItsVersionIT {
     void nobodyBuiltTheCarriedContext() throws Exception {
         manager.authority(SUBSCRIBER).ensureClient("writer", "writer-secret",
                 List.of("system/*.read", "system/*.write"));
-        String token = http.send(HttpRequest.newBuilder(URI.create(base(SUBSCRIBER) + "/oidc/token"))
+        String token = Extracted.tokenIn(http.send(HttpRequest.newBuilder(URI.create(base(SUBSCRIBER) + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
                                 "grant_type=client_credentials&client_id=writer&client_secret=writer-secret"))
                         .build(), HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
         HttpResponse<String> accepted = http.send(HttpRequest.newBuilder(
                         URI.create(base(SUBSCRIBER) + "/fhir/Observation"))
                         .header("Authorization", "Bearer " + token)
@@ -160,12 +160,12 @@ class ATenantSubscribesToItsVersionIT {
     void aBindingIsAnsweredFromTheRecordsTheSubscriberHolds() throws Exception {
         manager.authority(SUBSCRIBER).ensureClient("writer", "writer-secret",
                 List.of("system/*.read", "system/*.write"));
-        String token = http.send(HttpRequest.newBuilder(URI.create(base(SUBSCRIBER) + "/oidc/token"))
+        String token = Extracted.tokenIn(http.send(HttpRequest.newBuilder(URI.create(base(SUBSCRIBER) + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
                                 "grant_type=client_credentials&client_id=writer&client_secret=writer-secret"))
                         .build(), HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
         HttpResponse<String> unicorn = http.send(HttpRequest.newBuilder(
                         URI.create(base(SUBSCRIBER) + "/fhir/Patient"))
                         .header("Authorization", "Bearer " + token)
@@ -323,13 +323,13 @@ class ATenantSubscribesToItsVersionIT {
 
     private static String token(String code) throws Exception {
         manager.authority(code).ensureClient("reader", "reader-secret", List.of("system/*.read"));
-        return http.send(HttpRequest.newBuilder(URI.create(base(code) + "/oidc/token"))
+        return Extracted.tokenIn(http.send(HttpRequest.newBuilder(URI.create(base(code) + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
                                 "grant_type=client_credentials&client_id=reader&client_secret="
                                         + "reader-secret")).build(),
                 HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
     }
 
     private static String base(String code) {

@@ -269,7 +269,7 @@ class AReshapeConvergesOnlyWhatItWasAimedAtIT {
 
     private static String idOf(HttpResponse<String> created) {
         assertEquals(201, created.statusCode(), created.body());
-        return created.body().replaceAll("(?s).*?\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+        return Extracted.field(created.body(), "id");
     }
 
     private static HttpResponse<String> post(String path, String body) throws Exception {
@@ -311,7 +311,7 @@ class AReshapeConvergesOnlyWhatItWasAimedAtIT {
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
-        cachedToken = body.replaceAll("(?s).*\"access_token\":\"([^\"]+)\".*", "$1");
+        cachedToken = Extracted.tokenIn(body);
         return cachedToken;
     }
 }

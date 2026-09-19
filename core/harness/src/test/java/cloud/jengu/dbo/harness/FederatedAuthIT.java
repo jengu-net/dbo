@@ -234,7 +234,7 @@ class FederatedAuthIT {
                                         + URLEncoder.encode(provisioner.bootstrapClientSecret(code),
                                                 StandardCharsets.UTF_8))).build(),
                 HttpResponse.BodyHandlers.ofString());
-        return response.body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+        return Extracted.tokenIn(response.body());
     }
 
     private HttpResponse<String> fhirPost(String code, String path, String token, String body)
@@ -247,8 +247,7 @@ class FederatedAuthIT {
     }
 
     private static String idOf(HttpResponse<String> created) {
-        return created.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        return Extracted.lastSegment(created.headers().firstValue("Location").orElseThrow());
     }
 
     /** Follows redirects manually (the cookie manager rides along) until the RP callback. */
@@ -264,9 +263,9 @@ class FederatedAuthIT {
         for (int hop = 0; hop < 8; hop++) {
             if (location.startsWith(REDIRECT)) {
                 if (location.contains("error=")) {
-                    return "error:" + location.replaceAll(".*error=([^&]+).*", "$1");
+                    return "error:" + Extracted.queryParam(location, "error");
                 }
-                String authCode = location.replaceAll(".*code=([^&]+).*", "$1");
+                String authCode = Extracted.queryParam(location, "code");
                 HttpResponse<String> tokens = http.send(HttpRequest.newBuilder(
                                 URI.create(base(code) + "/oidc/token"))
                                 .header("Content-Type", "application/x-www-form-urlencoded")
@@ -276,7 +275,7 @@ class FederatedAuthIT {
                                                 + "&code_verifier=" + verifier)).build(),
                         HttpResponse.BodyHandlers.ofString());
                 assertEquals(200, tokens.statusCode(), tokens.body());
-                return tokens.body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                return Extracted.tokenIn(tokens.body());
             }
             HttpResponse<String> hopResponse = http.send(HttpRequest.newBuilder(
                     URI.create(location)).GET().build(), HttpResponse.BodyHandlers.ofString());

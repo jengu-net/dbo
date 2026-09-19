@@ -118,7 +118,7 @@ class APersonExercisesTheirRightsIT {
                  "name":[{"family":"Tamm","given":["Liis"]}],
                  "birthDate":"1990-01-01"}""".formatted(EID), clinical());
         assertEquals(201, created.statusCode(), created.body());
-        patientId = created.body().replaceAll("(?s).*\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+        patientId = Extracted.field(created.body(), "id");
 
         // The strict mode is the DEFAULT rather than something a surface opts
         // into. A door that has not thought about disclosure cannot leak by
@@ -303,7 +303,7 @@ class APersonExercisesTheirRightsIT {
                  "externalId":"emp-9001","userName":"jaan@kevadkliinik.ee",
                  "name":{"familyName":"Kuusk","givenName":"Jaan"},"active":true}""", directory);
         assertEquals(201, hired.statusCode(), hired.body());
-        staffId = hired.body().replaceAll("(?s).*\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+        staffId = Extracted.field(hired.body(), "id");
 
         HttpResponse<String> left = scim("PUT", "/Users/" + staffId, """
                 {"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -398,8 +398,7 @@ class APersonExercisesTheirRightsIT {
 
     private static String mint(String clientId, String... scopes) throws Exception {
         manager.authority(CLINIC).ensureClient(clientId, clientId + "-secret", List.of(scopes));
-        return tokenResponse(clientId, clientId + "-secret").body()
-                .replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+        return Extracted.tokenIn(tokenResponse(clientId, clientId + "-secret").body());
     }
 
     private static HttpResponse<String> tokenResponse(String clientId, String secret)

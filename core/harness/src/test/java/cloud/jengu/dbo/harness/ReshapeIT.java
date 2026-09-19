@@ -96,7 +96,7 @@ class ReshapeIT {
         // Stock written while the pack stood at 2.0.0 — stamped as it was.
         HttpResponse<String> created = post("/Basic", note(SHAPE));
         assertEquals(201, created.statusCode(), created.body());
-        oldStock = created.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+        oldStock = Extracted.field(created.body(), "id");
         assertTrue(get("/Basic/" + oldStock).body().contains("\"valueString\":\"2.0.0\""),
                 "the stock starts stamped 2.0.0");
 
@@ -171,7 +171,7 @@ class ReshapeIT {
     void uncoveredIsNamedAndLeftBehind() throws Exception {
         HttpResponse<String> created = post("/Basic", note(UNCOVERED));
         assertEquals(201, created.statusCode(), created.body());
-        String orphan = created.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+        String orphan = Extracted.field(created.body(), "id");
 
         String run = reshape(UNCOVERED, 3);
         assertTrue(run.contains("\"converted\":0"), run);
@@ -188,8 +188,7 @@ class ReshapeIT {
     @DisplayName("a stamp outlives the pack version that made it: re-numbering the shape "
             + "leaves the stock findable and countable under what stamped it")
     void stampOutlivesItsPack() throws Exception {
-        String stranded = post("/Basic", note(UNCOVERED)).body()
-                .replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+        String stranded = Extracted.field(post("/Basic", note(UNCOVERED)).body(), "id");
 
         // The pack re-numbers the shape out from under stock already stamped.
         assertTrue(put("/StructureDefinition?url="
@@ -276,7 +275,7 @@ class ReshapeIT {
 
     private static String idOf(HttpResponse<String> created) {
         assertEquals(201, created.statusCode(), created.body());
-        return created.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+        return Extracted.field(created.body(), "id");
     }
 
     // ---------------------------------------------------------- plumbing
@@ -329,7 +328,7 @@ class ReshapeIT {
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
-        cachedToken = body.replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+        cachedToken = Extracted.tokenIn(body);
         return cachedToken;
     }
 }

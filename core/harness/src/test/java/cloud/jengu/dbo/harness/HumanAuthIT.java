@@ -170,8 +170,7 @@ class HumanAuthIT {
     }
 
     private static String idOf(HttpResponse<String> created) {
-        return created.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        return Extracted.lastSegment(created.headers().firstValue("Location").orElseThrow());
     }
 
     private static String claimsOf(String jwt) {
@@ -208,7 +207,7 @@ class HumanAuthIT {
         assertEquals(302, login.statusCode(), login.body());
         String location = login.headers().firstValue("Location").orElseThrow();
         assertTrue(location.startsWith(REDIRECT) && location.contains("state=xyz"), location);
-        String code = location.replaceAll(".*code=([^&]+).*", "$1");
+        String code = Extracted.queryParam(location, "code");
 
         HttpResponse<String> tokens = http.send(HttpRequest.newBuilder(
                         URI.create(base("arst") + "/oidc/token"))
@@ -219,8 +218,8 @@ class HumanAuthIT {
                                         + "&code_verifier=" + verifier)).build(),
                 HttpResponse.BodyHandlers.ofString());
         assertEquals(200, tokens.statusCode(), tokens.body());
-        accessToken = tokens.body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
-        refreshToken = tokens.body().replaceAll(".*\"refresh_token\":\"([^\"]+)\".*", "$1");
+        accessToken = Extracted.tokenIn(tokens.body());
+        refreshToken = Extracted.field(tokens.body(), "refresh_token");
 
         String claims = claimsOf(accessToken);
         assertTrue(claims.contains("\"fhirUser\":\"Practitioner/" + practitionerId + "\""), claims);
@@ -277,8 +276,7 @@ class HumanAuthIT {
                                                         .digest("other".getBytes(StandardCharsets.US_ASCII)))
                                         + "&login=albus&password=kaljuke9")).build(),
                 HttpResponse.BodyHandlers.ofString());
-        String code = login.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*code=([^&]+).*", "$1");
+        String code = Extracted.queryParam(login.headers().firstValue("Location").orElseThrow(), "code");
         HttpResponse<String> exchange = http.send(HttpRequest.newBuilder(
                         URI.create(base("arst") + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
@@ -347,8 +345,7 @@ class HumanAuthIT {
                                         + "&nonce=n-0xSpr1ng&login=albus&password=kaljuke9")).build(),
                 HttpResponse.BodyHandlers.ofString());
         assertEquals(302, login.statusCode(), login.body());
-        String code = login.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*code=([^&]+).*", "$1");
+        String code = Extracted.queryParam(login.headers().firstValue("Location").orElseThrow(), "code");
         HttpResponse<String> tokens = http.send(HttpRequest.newBuilder(
                         URI.create(base("arst") + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
@@ -360,14 +357,14 @@ class HumanAuthIT {
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
         assertEquals(200, tokens.statusCode(), tokens.body());
-        String claims = claimsOf(tokens.body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1"));
+        String claims = claimsOf(Extracted.tokenIn(tokens.body()));
         assertTrue(claims.contains("\"roles\":[\"doctor\"]")
                 && claims.contains("\"client_id\":\"dbo-rp\""), claims);
 
         // OIDC proper: the id_token is what the RP builds its principal from —
         // audience is the CLIENT, the nonce echoes, roles + fhirUser ride along
         assertTrue(tokens.body().contains("\"id_token\""), tokens.body());
-        String idClaims = claimsOf(tokens.body().replaceAll(".*\"id_token\":\"([^\"]+)\".*", "$1"));
+        String idClaims = claimsOf(Extracted.field(tokens.body(), "id_token"));
         assertTrue(idClaims.contains("\"aud\":\"dbo-rp\"")
                 && idClaims.contains("\"nonce\":\"n-0xSpr1ng\"")
                 && idClaims.contains("\"roles\":[\"doctor\"]")
@@ -716,16 +713,16 @@ class HumanAuthIT {
     }
 
     private String codeFlowAccessToken(String login, String password) throws Exception {
-        String code = frontChannelLogin(login, password).headers().firstValue("Location")
-                .orElseThrow().replaceAll(".*code=([^&]+).*", "$1");
-        return http.send(HttpRequest.newBuilder(URI.create(base("arst") + "/oidc/token"))
+        String code = Extracted.queryParam(frontChannelLogin(login, password).headers().firstValue("Location")
+                .orElseThrow(), "code");
+        return Extracted.tokenIn(http.send(HttpRequest.newBuilder(URI.create(base("arst") + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
                                 "grant_type=authorization_code&client_id=dbo-rp&code=" + code
                                         + "&redirect_uri="
                                         + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8))).build(),
                 HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
     }
 
     private String codeFlowAccessToken() throws Exception {
@@ -737,8 +734,7 @@ class HumanAuthIT {
                                         + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
                                         + "&login=albus&password=kaljuke9")).build(),
                 HttpResponse.BodyHandlers.ofString());
-        String code = login.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*code=([^&]+).*", "$1");
+        String code = Extracted.queryParam(login.headers().firstValue("Location").orElseThrow(), "code");
         String body = http.send(HttpRequest.newBuilder(URI.create(base("arst") + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
@@ -748,7 +744,7 @@ class HumanAuthIT {
                                                 provisioner.rpClientSecret("arst"), StandardCharsets.UTF_8)))
                         .build(),
                 HttpResponse.BodyHandlers.ofString()).body();
-        return body.replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+        return Extracted.tokenIn(body);
     }
 
     /**

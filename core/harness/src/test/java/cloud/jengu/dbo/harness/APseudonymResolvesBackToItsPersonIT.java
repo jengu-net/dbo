@@ -332,7 +332,7 @@ class APseudonymResolvesBackToItsPersonIT {
     }
 
     private static String personIn(String body) {
-        return body.replaceAll("(?s).*\"person\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+        return Extracted.field(body, "person");
     }
 
     private static HttpResponse<String> resolve(String pseudonym, String scope, String purpose)
@@ -346,7 +346,7 @@ class APseudonymResolvesBackToItsPersonIT {
         HttpResponse<String> answered = ask("/identity/pseudonym",
                 "{\"subject\":\"" + subject + "\",\"scope\":\"" + scope + "\"}");
         assertEquals(200, answered.statusCode(), answered.body());
-        return answered.body().replaceAll("(?s).*\"pseudonym\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+        return Extracted.field(answered.body(), "pseudonym");
     }
 
     private static HttpResponse<String> ask(String path, String body) throws Exception {
@@ -374,8 +374,7 @@ class APseudonymResolvesBackToItsPersonIT {
                                 .formatted(EID, number))).build(),
                 HttpResponse.BodyHandlers.ofString());
         assertEquals(201, person.statusCode(), person.body());
-        return person.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        return Extracted.lastSegment(person.headers().firstValue("Location").orElseThrow());
     }
 
     /** How many rows anywhere in this tenant carry the value. */
@@ -412,10 +411,10 @@ class APseudonymResolvesBackToItsPersonIT {
     private static String token(String client, String secret) throws Exception {
         String form = "grant_type=client_credentials&client_id=" + client
                 + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
-        return HTTP.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
+        return Extracted.tokenIn(HTTP.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll("(?s).*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
     }
 }

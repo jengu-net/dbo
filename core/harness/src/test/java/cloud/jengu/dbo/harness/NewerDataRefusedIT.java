@@ -158,7 +158,7 @@ class NewerDataRefusedIT {
 
     private static String idOf(HttpResponse<String> created) {
         assertEquals(201, created.statusCode(), created.body());
-        return created.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+        return Extracted.field(created.body(), "id");
     }
 
     private static HttpResponse<String> post(String path, String body) throws Exception {

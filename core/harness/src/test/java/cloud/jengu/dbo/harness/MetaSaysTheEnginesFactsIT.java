@@ -93,7 +93,7 @@ class MetaSaysTheEnginesFactsIT {
         HttpResponse<String> created = post(base("allikas") + "/Patient",
                 "{\"resourceType\":\"Patient\",\"gender\":\"female\"}");
         assertEquals(201, created.statusCode(), created.body());
-        String id = created.body().replaceAll("(?s).*?\"id\":\"([^\"]+)\".*", "$1");
+        String id = Extracted.field(created.body(), "id");
 
         String served = get(base("allikas") + "/Patient/" + id).body();
         assertTrue(served.contains("\"system\":\"urn:dbo:handling\"")
@@ -131,7 +131,7 @@ class MetaSaysTheEnginesFactsIT {
                 {"resourceType":"Patient",
                  "meta":{"security":[{"system":"http://terminology.hl7.org/CodeSystem/v3-Confidentiality","code":"R"}]}}""");
         assertEquals(201, created.statusCode(), created.body());
-        String id = created.body().replaceAll("(?s).*?\"id\":\"([^\"]+)\".*", "$1");
+        String id = Extracted.field(created.body(), "id");
 
         String served = get(base("allikas") + "/Patient/" + id).body();
         assertTrue(served.contains("v3-Confidentiality") && served.contains("\"code\":\"R\""),
@@ -146,7 +146,7 @@ class MetaSaysTheEnginesFactsIT {
         HttpResponse<String> roundTripped = post(base("allikas") + "/Patient",
                 served.replaceAll(",\"id\":\"[^\"]+\"", ""));
         assertEquals(201, roundTripped.statusCode(), roundTripped.body());
-        String secondId = roundTripped.body().replaceAll("(?s).*?\"id\":\"([^\"]+)\".*", "$1");
+        String secondId = Extracted.field(roundTripped.body(), "id");
         String again = get(base("allikas") + "/Patient/" + secondId).body();
         assertEquals(1, count(again, "urn:dbo:handling"),
                 "a served document written back does not accumulate stamps: " + again);

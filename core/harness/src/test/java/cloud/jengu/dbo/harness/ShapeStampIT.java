@@ -103,7 +103,7 @@ class ShapeStampIT {
     void acceptStamps() throws Exception {
         HttpResponse<String> created = post("/Observation", CLAIMING);
         assertEquals(201, created.statusCode(), created.body());
-        observationId = created.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+        observationId = Extracted.field(created.body(), "id");
 
         String served = get("/Observation/" + observationId).body();
         assertTrue(served.contains("\"url\":\"urn:dbo:shape\""), served);
@@ -157,7 +157,7 @@ class ShapeStampIT {
     void undeclaredIsUnstamped() throws Exception {
         HttpResponse<String> created = post("/Observation", PLAIN);
         assertEquals(201, created.statusCode(), created.body());
-        String id = created.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+        String id = Extracted.field(created.body(), "id");
         assertFalse(get("/Observation/" + id).body().contains("urn:dbo:shape"),
                 "the store stamps only shapes the pack publishes a version for");
     }
@@ -213,7 +213,7 @@ class ShapeStampIT {
                 .statusCode() < 300);
         HttpResponse<String> created = post("/Observation", CLAIMING);
         assertEquals(201, created.statusCode(), created.body());
-        String fresh = created.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+        String fresh = Extracted.field(created.body(), "id");
 
         String below = get("/Observation?_shape-below="
                 + java.net.URLEncoder.encode(CANONICAL + "|4",

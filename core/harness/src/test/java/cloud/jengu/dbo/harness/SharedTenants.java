@@ -339,7 +339,7 @@ public final class SharedTenants {
                                 .header("Content-Type", "application/x-www-form-urlencoded")
                                 .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                         HttpResponse.BodyHandlers.ofString());
-                return issued.body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                return Extracted.tokenIn(issued.body());
             } catch (Exception e) {
                 throw new IllegalStateException("no token for " + clientId, e);
             }

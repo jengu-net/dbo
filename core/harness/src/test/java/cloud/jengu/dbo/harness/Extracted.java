@@ -1,0 +1,107 @@
+package cloud.jengu.dbo.harness;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.junit.jupiter.api.Assertions.fail;
+
+/**
+ * Pulling one value out of an answer, and saying so when it is not there.
+ *
+ * <p><b>Why this exists.</b> The suite pulled tokens, ids and query parameters
+ * out of responses with {@code replaceAll(".*name=([^&]+).*", "$1")}, which
+ * has a failure mode nobody writes on purpose: <b>a replacement that matches
+ * nothing returns what it was given</b>. So a refused token request did not
+ * fail — it became the token, as the whole error document, and travelled on as
+ * a bearer credential. The test then failed somewhere else entirely, with the
+ * cause already discarded.
+ *
+ * <p>That is not hypothetical. It cost a CI cycle: a zone test died three
+ * frames deep as {@code NoSuchElementException: No value present}, which named
+ * a line in the test and nothing about the store, and the run had to be
+ * repeated to learn anything. A refusal, a tenant that was not serving yet and
+ * a credential that was never a credential all arrive there looking identical.
+ *
+ * <p>On a match these answer exactly what the replacement answered, so nothing
+ * about a passing run changes. What changes is the failing one: it says which
+ * value was wanted, and shows what it was looking in.
+ */
+final class Extracted {
+
+    private static final Pattern ACCESS_TOKEN =
+            Pattern.compile("\"access_token\":\"([^\"]+)\"", Pattern.DOTALL);
+
+    private Extracted() {
+    }
+
+    /** The access token in an authority's answer, or a failure naming the answer. */
+    static String tokenIn(String body) {
+        return one(ACCESS_TOKEN, body, "an access token");
+    }
+
+    /**
+     * The last segment of a path or url — the id in a {@code Location}.
+     *
+     * <p>Rejects a value with no segment to take rather than handing back the
+     * whole thing, which is what a path-shaped answer that is actually an
+     * error document would otherwise do.
+     */
+    static String lastSegment(String location) {
+        if (location == null || location.isBlank() || location.endsWith("/")
+                || location.indexOf('/') < 0) {
+            return fail("no id to take from the end of '" + location + "'");
+        }
+        return location.substring(location.lastIndexOf('/') + 1);
+    }
+
+    /**
+     * A named string field of a JSON answer.
+     *
+     * <p>The FIRST one, which is a change from what several of these did: a
+     * greedy pattern reading to the end of the document took the LAST field of
+     * that name, so a body carrying a nested one answered with the inner
+     * value. Nothing depended on it — the suite says so — and it is the same
+     * flaw a zone had, where the system a tenant resolved subjects in was
+     * whichever the document mentioned last.
+     */
+    static String field(String json, String name) {
+        return one(Pattern.compile("\"" + Pattern.quote(name) + "\"\\s*:\\s*\"([^\"]+)\"",
+                Pattern.DOTALL), json, "a '" + name + "' field");
+    }
+
+    /** One query parameter of a url, by name. */
+    static String queryParam(String url, String name) {
+        return one(Pattern.compile(Pattern.quote(name) + "=([^&]+)"), url,
+                "a '" + name + "' parameter");
+    }
+
+    /** Whether a url carries a parameter at all — for the answers that are a choice. */
+    static boolean hasQueryParam(String url, String name) {
+        return url != null && Pattern.compile(Pattern.quote(name) + "=([^&]+)")
+                .matcher(url).find();
+    }
+
+    /**
+     * The first group of the first match, or a failure that shows where it
+     * looked.
+     *
+     * <p>Trimmed to a few hundred characters: the thing being searched is
+     * regularly a whole response body, and a failure message that is a
+     * kilobyte of JSON is one nobody reads to the end.
+     */
+    static String one(Pattern pattern, String text, String what) {
+        if (text == null) {
+            return fail("looked for " + what + " in nothing at all");
+        }
+        Matcher found = pattern.matcher(text);
+        if (!found.find()) {
+            return fail("no " + what + " in: " + shortened(text));
+        }
+        return found.group(1);
+    }
+
+    private static String shortened(String text) {
+        return text.length() <= 400 ? text : text.substring(0, 400) + "… (" + text.length()
+                + " characters)";
+    }
+}

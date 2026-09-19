@@ -250,11 +250,11 @@ class ATenantDeliversWhatItSubscribedToIT {
         String form = "grant_type=client_credentials&client_id=tenant-bootstrap&client_secret="
                 + URLEncoder.encode(provisioner.bootstrapClientSecret(tenant),
                         StandardCharsets.UTF_8);
-        return HTTP.send(HttpRequest.newBuilder(URI.create(
+        return Extracted.tokenIn(HTTP.send(HttpRequest.newBuilder(URI.create(
                         manager.baseUrl(tenant).replace("/fhir", "/oidc/token")))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll("(?s).*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
     }
 }

@@ -239,11 +239,11 @@ class AProvisioningClientConvergesTheGrantsIT {
     private static String tokenFor(String client, String secret) throws Exception {
         String form = "grant_type=client_credentials&client_id=" + client + "&client_secret="
                 + URLEncoder.encode(secret, StandardCharsets.UTF_8);
-        return HTTP.send(HttpRequest.newBuilder(
+        return Extracted.tokenIn(HTTP.send(HttpRequest.newBuilder(
                         URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll("(?s).*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
     }
 }
