@@ -40,64 +40,37 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ADeclaredRelationGrantsIT {
 
-    static final String CODE = "declared-roles";
-    static final String LOGIN = "https://logins.test/login";
-    static final String ORG_CODE = "https://orgs.test/code";
+    static SharedTenants.Tenant tenant;
+    static String CODE;
+    /** The shape declares what people and organisations are keyed by here. */
+    static final String LOGIN = SharedTenants.LOGINS;
+    static final String ORG_CODE = SharedTenants.ORGS;
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static String service;
     static String organisationId;
     static final HttpClient HTTP = HttpClient.newHttpClient();
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-declared-roles");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ADeclaredRelationGrantsIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CODE + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"Organization","identity":"identifier","systems":["%s"],
-                   "handling":"operational"},
-                  {"name":"Practitioner","identity":"identifier","systems":["%s"],
-                   "handling":"operational"},
-                  {"name":"Person","identity":"identifier","systems":["%s"],
-                   "handling":"operational"},
-                  {"name":"PractitionerRole","identity":"internal","handling":"operational"}]}"""
-                .formatted(CODE, ORG_CODE, LOGIN, LOGIN));
-        UntilServed.scan(manager, CODE);
+        // Shared. It is about what a declared role grants and where it
+        // reaches, which is about the role rather than about a tenant — and
+        // every assertion names the person and organisation it wrote.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_GRANTS);
+        CODE = tenant.code();
         service = serviceToken();
 
         organisationId = idOf(post("/Organization", """
-                {"resourceType":"Organization","identifier":[{"system":"%s","value":"main-lab"}],
+                {"resourceType":"Organization","identifier":[{"system":"%s","value":"declared-roles-lab"}],
                  "name":"Main Lab"}""".formatted(ORG_CODE)));
 
         // Two grants for one role code: one tenant-wide, one at the lab. If the
         // organisation of a declared role cannot be resolved, the role reads as
         // held nowhere in particular and the tenant-wide one applies — which is
         // the silent widening this has to catch, not merely an absent scope.
-        TenantAuthority authority = manager.authority(CODE);
+        TenantAuthority authority = tenant.authority();
         authority.ensureRoleGrant("lab-tech", List.of("user/*.read"));
-        authority.ensureRoleGrant("lab-tech", "main-lab",
+        authority.ensureRoleGrant("lab-tech", "declared-roles-lab",
                 List.of("user/*.read", "user/Observation.write"));
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     /**
@@ -112,11 +85,11 @@ class ADeclaredRelationGrantsIT {
         String personId = aClinician("albus@hogwarts.scot", """
                 {"resourceType":"PractitionerRole",
                  "practitioner":{"identifier":{"system":"%s","value":"albus@hogwarts.scot"}},
-                 "organization":{"identifier":{"system":"%s","value":"main-lab"}},
+                 "organization":{"identifier":{"system":"%s","value":"declared-roles-lab"}},
                  "code":[{"coding":[{"system":"urn:example:role","code":"lab-tech"}]}]}"""
                 .formatted(LOGIN, ORG_CODE));
 
-        TenantAuthority.Grants grants = manager.authority(CODE).evaluateGrants(personId);
+        TenantAuthority.Grants grants = tenant.authority().evaluateGrants(personId);
 
         assertTrue(grants.roles().contains("lab-tech"),
                 "the role was applied, is findable, and granted nothing: " + grants);
@@ -147,7 +120,7 @@ class ADeclaredRelationGrantsIT {
                  "code":[{"coding":[{"system":"urn:example:role","code":"lab-tech"}]}]}"""
                 .formatted(practitionerId, organisationId)).statusCode());
 
-        TenantAuthority.Grants grants = manager.authority(CODE).evaluateGrants(personId);
+        TenantAuthority.Grants grants = tenant.authority().evaluateGrants(personId);
 
         assertTrue(grants.scopes().contains("user/Observation.write"), grants.toString());
         assertTrue(grants.organisations().contains(organisationId), grants.toString());
@@ -176,7 +149,7 @@ class ADeclaredRelationGrantsIT {
     }
 
     private static HttpResponse<String> post(String path, String body) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CODE) + path))
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Authorization", "Bearer " + service)
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
@@ -184,7 +157,7 @@ class ADeclaredRelationGrantsIT {
     }
 
     private static HttpResponse<String> get(String path) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CODE) + path))
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Authorization", "Bearer " + service).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
     }
@@ -198,12 +171,12 @@ class ADeclaredRelationGrantsIT {
     }
 
     private static String serviceToken() throws Exception {
-        manager.authority(CODE).ensureClient("seeder", "seeder-secret",
+        tenant.authority().ensureClient("seeder", "seeder-secret",
                 List.of("system/*.read", "system/*.write"));
         String form = "grant_type=client_credentials&client_id=seeder&client_secret="
                 + URLEncoder.encode("seeder-secret", StandardCharsets.UTF_8);
         return Extracted.tokenIn(HTTP.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(CODE).replace("/fhir", "/oidc/token")))
+                        URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                         HttpResponse.BodyHandlers.ofString()).body());
