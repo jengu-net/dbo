@@ -273,6 +273,39 @@ The doors that are conditional only on the enclosing `if (authority != null)` �
 mounted inline. Their condition is the block itself rather than a fact they
 each derive, so converting them buys the arrangement and not the argument.
 
+**What keeps that honest is now a check rather than this paragraph.** The rule
+the points exist for — no activity derives its own applicability — is the
+registration's own shape for an activity: the selector is an argument, and
+passing nothing is a choice somebody had to make. What had nothing enforcing it
+is the half the defect came from, which is a door mounted with an `if` at the
+site that creates it. Every surface converted so far was exactly that, and the
+one that started this was the same mistake with the condition left out
+altogether.
+
+So the doors still mounted inline are counted, by name, with why each is still
+inline, and a new one fails. Not because mounting inline is forbidden — two of
+them have reasons that will outlive this document — but because it should be a
+decision somebody wrote down rather than the path of least resistance. The list
+is also the remaining work, and it can only shrink: converting a door and
+leaving it listed fails just as adding one does.
+
+The check reads the runtime's source rather than a run, which is what lets it
+answer before a suite is spent finding out. A per-tenant door is told from a
+deployment's or a zone's by what its path is built from — a tenant's door has
+the tenant in it — because the alternative was a heuristic about how the
+variable was spelled, and the zone's hub was the first thing it got wrong.
+
 The remaining points in the table are named and not yet run at. They are
 converted one at a time, because a point nothing runs at is a promise rather
-than a mechanism.
+than a mechanism. Three exist: `dispatch`, `surfaces` and `serving` — and
+`serving` is reached, so listeners are told, while dbo registers nothing of its
+own there yet.
+
+Two things this document said that the code does not. A tenant does **not**
+publish `kind`: the coarse fact belongs to the declared tenant kind, which is
+specified and not built, and nothing left here needs it — the selectors ask
+about resolved facts instead, which is what the correction at the top of this
+document was about. And the facts it does publish include `hasAuthority` and
+`holdsIdentities`, which were added to make the surfaces sayable and are not in
+the list above. `hasScim` is published and still has no consumer, which is
+defensible exactly as long as the scim door has not moved.
