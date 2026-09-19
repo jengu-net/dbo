@@ -1221,6 +1221,7 @@ class TheGuideRunsIT {
         @Test
         @Order(2)
         @DisplayName("a role is a record, not a column")
+        @Proving(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL)
         void aRoleIsARecordNotAColumn() throws Exception {
             assertEquals("201", snippets.run("the-role").lastLine());
             // Counted from the entries rather than read from a total: a searchset
@@ -1232,6 +1233,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("and what that role may do is declared, and readable")
+        @Proving(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE)
         void whatThatRoleMayDoIsReadable() throws Exception {
             String grants = snippets.run("role-grant").text();
             assertTrue(grants.contains("matron"),
@@ -1291,6 +1293,7 @@ class TheGuideRunsIT {
         @Test
         @Order(2)
         @DisplayName("a process acts in her name, and carries both names")
+        @Proving(DboPromises.AUTH_ON_BEHALF_OF)
         void aProcessActsInHerName() throws Exception {
             String acting = snippets.run("acting-for-her", "token-exchange", "who-she-is").text();
             assertTrue(acting.contains("night-ledger"),
@@ -1302,6 +1305,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("and cannot acquire authority she never had")
+        @Proving(DboPromises.AUTH_ON_BEHALF_OF)
         void andCannotAcquireAuthoritySheNeverHad() throws Exception {
             assertTrue(snippets.run("attenuation").text().contains("access_denied"),
                     "a delegated token widened past its subject");
@@ -1310,6 +1314,7 @@ class TheGuideRunsIT {
         @Test
         @Order(4)
         @DisplayName("work that outlives the token holds a delegation")
+        @Proving(DboPromises.AUTH_ON_BEHALF_OF)
         void workThatOutlivesTheTokenHoldsADelegation() throws Exception {
             String granted = snippets.run("a-delegation").text();
             assertTrue(granted.contains("delegation_id"), "no delegation was recorded: " + granted);
