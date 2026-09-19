@@ -663,6 +663,7 @@ class TheGuideRunsIT {
         @Test
         @Order(2)
         @DisplayName("changing the declaration rebuilds the tenant where it stands")
+        @Proving(DboPromises.TEN_A_CHANGE_IS_NOT_A_RETRACTION)
         void changingTheDeclarationRebuildsInPlace() throws Exception {
             assertEquals(0, snippets.run("change-in-place").status(), "the spec was not narrowed");
             // A rebuild is not instant and it is not a restart either: the tenant
@@ -1049,6 +1050,7 @@ class TheGuideRunsIT {
         @Test
         @Order(1)
         @DisplayName("the hospital declared the zone, so it answers the zone's codes as its own")
+        @Proving(DboPromises.SYNC_TERMINOLOGY_GRAIN_SURVIVES)
         void theZonesCodesReachTheHospital() throws Exception {
             // The first sync from a zone runs some minutes after a tenant comes up;
             // once the stream is running a change propagates in a second or two.
@@ -1064,6 +1066,7 @@ class TheGuideRunsIT {
         @Test
         @Order(2)
         @DisplayName("the insurer declared the code systems and not the value sets, and that is what it has")
+        @Proving(DboPromises.SYNC_DECLARED_ONLY)
         void theInsurerTookOnlyWhatItDeclared() throws Exception {
             // The insurer's copy travels further than the hospital's: the zone
             // speaks R5 and the insurer R4, so it arrives through the projection.
@@ -1122,6 +1125,7 @@ class TheGuideRunsIT {
         @Test
         @Order(1)
         @DisplayName("a face root is a tenant, and its definitions are records")
+        @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
         void aFaceRootIsATenant() throws Exception {
             snippets.remember("FACE_R5", credentialFor("fhir-r5", "r5-secret"));
             snippets.remember("FACE_R4", credentialFor("fhir-r4", "r4-secret"));
