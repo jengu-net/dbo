@@ -51,6 +51,16 @@ val karafCommandsTestOutput = project(":karaf:commands")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
+// The guide's Java example is compiled here.
+//
+// A chapter that shows an interface has to show one that still exists, and
+// prose cannot be made to fail. The example lives beside the guide's other
+// examples — the site copies docs/ wholesale, so a chapter includes it the
+// same way it includes a shell snippet — and it is compiled against the real
+// dbo-runner, so renaming a method on StepService breaks the build rather than
+// the documentation.
+sourceSets["test"].java.srcDir(rootProject.file("docs/guide/examples/java"))
+
 dependencies {
     testRuntimeOnly(guideTestOutput)
     testImplementation(karafCommandsTestOutput)
