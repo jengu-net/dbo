@@ -54,14 +54,14 @@ public final class SharedTenants {
     public enum Shape {
 
         /** r4, everything internal — somewhere to write when identity is not the point. */
-        R4_INTERNAL("""
+        R4_INTERNAL("sharedr4internal", """
                 [{"name":"Patient","identity":"internal","handling":"operational"},
                  {"name":"Observation","identity":"internal","handling":"operational"},
                  {"name":"Encounter","identity":"internal","handling":"operational"},
                  {"name":"Basic","identity":"internal","handling":"operational"}]""", "r4", "", "full"),
 
         /** r4 with patients keyed by the national identifier, plus canonical content. */
-        R4_IDENTIFIER("""
+        R4_IDENTIFIER("sharedr4identifier", """
                 [{"name":"Patient","identity":"identifier","systems":["%s"],
                   "handling":"operational"},
                  {"name":"Observation","identity":"internal","handling":"operational"},
@@ -72,7 +72,7 @@ public final class SharedTenants {
                 .formatted(EID), "r4", "", "full"),
 
         /** r4 behind the isolation membrane, with the person types a directory writes. */
-        R4_ISOLATED("""
+        R4_ISOLATED("sharedr4isolated", """
                 [{"name":"Patient","identity":"identifier","systems":["%s"],
                   "handling":"operational"},
                  {"name":"Person","identity":"internal","handling":"operational"},
@@ -80,7 +80,7 @@ public final class SharedTenants {
                 .formatted(EID), "r4", ",\"pdi\":true", "full"),
 
         /** r5, for anything that has to be served beside r4 rather than instead of it. */
-        R5("""
+        R5("sharedr5", """
                 [{"name":"Patient","identity":"internal","handling":"operational"},
                  {"name":"Observation","identity":"internal","handling":"operational"}]""",
                 "r5", "", "full"),
@@ -93,7 +93,7 @@ public final class SharedTenants {
          * only in which systems they keyed by — which a shape cannot split, so
          * the systems are the shape's.
          */
-        R4_GRANTS("""
+        R4_GRANTS("sharedr4grants", """
                 [{"name":"Organization","identity":"identifier","systems":["%s"],
                   "handling":"operational"},
                  {"name":"Practitioner","identity":"identifier","systems":["%s"],
@@ -112,7 +112,7 @@ public final class SharedTenants {
          * shape cannot split — so the systems are the shape's and both classes
          * name them from here.
          */
-        R4_DECLARATIONS("""
+        R4_DECLARATIONS("sharedr4declarations", """
                 [{"name":"ParticipantDeclaration","identity":"identifier","systems":["%s"],
                   "handling":"operational","definition":"none"},
                  {"name":"Organization","identity":"identifier","systems":["%s"],
@@ -130,7 +130,7 @@ public final class SharedTenants {
          * class — so the family of classes asking about a person behind the
          * membrane gets its own.
          */
-        R4_PDI_PERSON("""
+        R4_PDI_PERSON("sharedr4pdiperson", """
                 [{"name":"Person","identity":"identifier","systems":["%s"],
                   "handling":"operational"},
                  {"name":"Patient","identity":"internal","handling":"operational"},
@@ -143,7 +143,7 @@ public final class SharedTenants {
          * times over. Patient declares the database as its verdict because one
          * class needs that and the others never write a Patient.
          */
-        R4_FACE_ROOT("""
+        R4_FACE_ROOT("sharedr4faceroot", """
                 [{"name":"StructureDefinition","identity":"canonical","handling":"operational"},
                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
@@ -153,6 +153,18 @@ public final class SharedTenants {
                  {"name":"Observation","identity":"internal","handling":"operational"}]""",
                 "r4", ",\"faceRoot\":true", "none");
 
+        /**
+         * The tenant code, spelled out rather than derived from the constant's
+         * own name.
+         *
+         * <p>Derived read better and could not be read. The check that scans
+         * this suite for two classes opening one tenant code resolves names
+         * bound to literals; a code assembled at runtime from {@code name()}
+         * left this class — the one class that hands the same tenant to
+         * everybody — invisible to the scan that exists for exactly that
+         * hazard. A literal is the same string and can be found by looking.
+         */
+        private final String code;
         private final String types;
         private final String face;
         /** What sits beside the types — the flags a shape turns on for itself. */
@@ -165,16 +177,17 @@ public final class SharedTenants {
          */
         private final String audit;
 
-        Shape(String types, String face, String extras, String audit) {
+        Shape(String code, String types, String face, String extras, String audit) {
+            this.code = code;
             this.types = types;
             this.face = face;
             this.extras = extras;
             this.audit = audit;
         }
 
-        /** The tenant code, which is the shape's own name: shared means shared. */
+        /** The tenant code: shared means shared. */
         public String code() {
-            return "shared" + name().toLowerCase(java.util.Locale.ROOT).replace("_", "");
+            return code;
         }
     }
 
@@ -244,15 +257,22 @@ public final class SharedTenants {
             throw new IllegalArgumentException("there is no tenant before the first: " + nth);
         }
         String code = nth == 1 ? shape.code() : shape.code() + nth;
-        return UP.computeIfAbsent(code, c -> {
+        // The local, not the lambda's parameter, and they are the same value:
+        // computeIfAbsent hands the key back. The check that reads this suite
+        // for two classes taking one tenant code resolves a literal, a field,
+        // a local or an argument at the call site, and a parameter bound
+        // somewhere it cannot follow reads as a spec written under no name it
+        // knows — so this class would drop out of the scan that exists to
+        // notice exactly the collision this class makes easy.
+        return UP.computeIfAbsent(code, unused -> {
             try {
-                Files.writeString(directory.resolve(c + ".json"), """
+                Files.writeString(directory.resolve(code + ".json"), """
                         {"code":"%s","face":"%s"%s,"audit":{"level":"%s"},"types":%s}"""
-                        .formatted(c, shape.face, shape.extras, shape.audit, shape.types));
-                UntilServed.scan(MANAGER, c);
-                return new Tenant(c);
+                        .formatted(code, shape.face, shape.extras, shape.audit, shape.types));
+                UntilServed.scan(MANAGER, code);
+                return new Tenant(code);
             } catch (Exception e) {
-                throw new IllegalStateException("shared tenant " + c + " did not come up", e);
+                throw new IllegalStateException("shared tenant " + code + " did not come up", e);
             }
         });
     }

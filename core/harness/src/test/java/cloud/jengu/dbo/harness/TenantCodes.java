@@ -29,6 +29,12 @@ import java.util.stream.Stream;
  * run in the same JVM. This reads the sources instead, so a collision is
  * answered by whoever wrote it rather than by whoever next runs the suite.
  *
+ * <p><b>What it does not cover.</b> A code built by appending to another —
+ * a second tenant of one shape, numbered — is not among the literals, so a
+ * class taking that exact string would not be reported. The base codes are,
+ * which is where the collisions this exists for actually happen: two classes
+ * each writing a tenant they thought was theirs.
+ *
  * <p><b>What it cannot read, it refuses.</b> A scan that skips what it does
  * not understand is one that quietly stops covering things, so a spec written
  * under a name this cannot resolve fails and says which expression stopped it.
@@ -48,6 +54,26 @@ final class TenantCodes {
     /** `for (String x : List.of("a", "b"))` — several specs from one write. */
     private static final Pattern OVER_A_LIST = Pattern.compile(
             "for\\s*\\(\\s*String\\s+(\\w+)\\s*:\\s*List\\.of\\(([^)]*)\\)\\s*\\)");
+
+    /**
+     * `String code = … shape.code() …` — a name standing for any shape's code.
+     *
+     * <p>One write, many codes, like the loop above: a class that hands the
+     * same tenants to everybody picks which one at runtime, so the name at the
+     * write site is every code its shapes declare rather than one of them.
+     */
+    private static final Pattern FROM_A_SHAPE = Pattern.compile(
+            "String\\s+(\\w+)\\s*=[^;]*\\.code\\(\\)");
+
+    /**
+     * `R4_INTERNAL("sharedr4internal", …` — an enum constant naming its code.
+     *
+     * <p>Which is why those codes are spelled out rather than assembled from
+     * the constant's own name: derived, they cannot be found by looking, and a
+     * check that cannot read a declaration is not checking it.
+     */
+    private static final Pattern A_SHAPES_CODE = Pattern.compile(
+            "(?m)^\\s+[A-Z][A-Z0-9_]*\\(\\s*\"([^\"]+)\"");
 
     /**
      * A method that takes the code and writes the spec for its callers.
@@ -106,6 +132,22 @@ final class TenantCodes {
         m = OVER_A_LIST.matcher(src);
         while (m.find()) {
             lists.put(m.group(1), literalsIn(m.group(2)));
+        }
+        // A name taken from a shape's code stands for every code the shapes in
+        // this file declare. Only when there are shapes to read: the pattern
+        // for a constant naming its code is loose enough to match other
+        // things, and an empty list would turn a readable write into a
+        // declaration of nothing.
+        List<String> shapeCodes = new ArrayList<>();
+        m = A_SHAPES_CODE.matcher(src);
+        while (m.find()) {
+            shapeCodes.add(m.group(1));
+        }
+        if (!shapeCodes.isEmpty()) {
+            m = FROM_A_SHAPE.matcher(src);
+            while (m.find()) {
+                lists.putIfAbsent(m.group(1), shapeCodes);
+            }
         }
 
         m = WRITE.matcher(src);
