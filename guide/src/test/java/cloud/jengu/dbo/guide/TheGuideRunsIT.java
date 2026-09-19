@@ -1688,6 +1688,7 @@ class TheGuideRunsIT {
         @Test
         @Order(7)
         @DisplayName("the run is a record, and it says what it is over and who holds it")
+        @Proving(DboPromises.PROC_RUN_HAS_A_RECORD)
         void theRunIsARecord() throws Exception {
             String record = snippets.run("run-as-a-record").text();
             // The process and the step are separate codings on the record, not the
@@ -1703,6 +1704,7 @@ class TheGuideRunsIT {
         @Test
         @Order(8)
         @DisplayName("and the run envelope displays its subject rather than resolving it")
+        @Proving(DboPromises.PROC_TASK_CARRIES_THE_INPUTS)
         void theRunEnvelopeDisplaysItsSubject() throws Exception {
             // The whole point of the envelope: a run says what state it is in
             // without disclosing its subject to whoever may read runs.
