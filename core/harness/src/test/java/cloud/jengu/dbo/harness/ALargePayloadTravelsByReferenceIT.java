@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -87,11 +88,15 @@ class ALargePayloadTravelsByReferenceIT {
     private static final String MARKER = "spilled-marker-4f2a-never-written-by-accident";
 
     /**
-     * Comfortably over the threshold once sealed and wire-encoded, and built
-     * from one repeated run of text so the document is large for the reason
-     * an imaging payload is: there is a lot of it.
+     * Several times over the threshold, and built from one repeated run of
+     * text so the document is large for the reason an imaging payload is:
+     * there is a lot of it.
+     *
+     * <p>It costs about two seconds, which is worth saying because it cost
+     * ten minutes until the assertion below stopped pulling the text back out
+     * with a greedy regex. Nothing in the store was slow.
      */
-    private static final int BIG = 96 * 1024;
+    private static final int BIG = 400 * 1024;
 
     /**
      * What no row of the substrate's own tables may reach. Above the verbs —
@@ -174,10 +179,16 @@ class ALargePayloadTravelsByReferenceIT {
                 sealing.getPrivate(), signing.getPrivate())) {
             Run held = lane.claim(heavy, Duration.ofMinutes(5)).orElseThrow();
             byte[] arrived = lane.inputs(held).get("scan").payload();
-            assertEquals(BIG, new String(arrived, StandardCharsets.UTF_8)
-                            .replaceAll(".*\"text\":\"", "").replaceAll("\".*", "").length(),
-                    "the large document did not arrive whole, so the spill lost or truncated "
-                            + "what the message was too small to carry");
+            // Against the record itself, byte for byte. Not by pulling the
+            // text back out with a regex: a greedy match over a payload-sized
+            // string backtracks, which costs time quadratic in the document
+            // and says nothing about the store — an earlier version of this
+            // line was measured, believed and filed as a defect in the
+            // carrier before it was read.
+            assertArrayEquals(engine.get("Basic", big).orElseThrow().payload(), arrived,
+                    "the large document did not arrive as the record holds it, so the spill "
+                            + "lost, truncated or altered what the message was too small to "
+                            + "carry");
             lane.closed(held);
 
             Run also = lane.claim(light, Duration.ofMinutes(5)).orElseThrow();
