@@ -193,12 +193,11 @@ class AnArchiveCanBeGivenBackIT {
                 List.of("system/*.read", "system/*.write"));
         String form = "grant_type=client_credentials&client_id=keeper&client_secret="
                 + URLEncoder.encode("keeper-secret", StandardCharsets.UTF_8);
-        return http.send(HttpRequest.newBuilder(
+        return Extracted.tokenIn(http.send(HttpRequest.newBuilder(
                                 URI.create("http://127.0.0.1:" + manager.port()
                                         + "/t/" + code + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
-                        HttpResponse.BodyHandlers.ofString()).body()
-                .replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                        HttpResponse.BodyHandlers.ofString()).body());
     }
 }

@@ -237,7 +237,7 @@ class AStreamLaneIsToldItHasWorkIT {
                             .header("Content-Type", "application/x-www-form-urlencoded")
                             .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                     HttpResponse.BodyHandlers.ofString()).body();
-            return body.replaceAll("(?s).*\"access_token\":\"([^\"]+)\".*", "$1");
+            return Extracted.tokenIn(body);
         } catch (Exception unreachable) {
             throw new IllegalStateException("no token for " + clientId, unreachable);
         }

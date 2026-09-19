@@ -76,7 +76,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
                  "name":[{"family":"Tamm","given":["Liis"]}],
                  "birthDate":"1990-01-01"}""".formatted(EID));
         assertEquals(201, created.statusCode(), created.body());
-        patientId = created.body().replaceAll("(?s).*\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+        patientId = Extracted.field(created.body(), "id");
 
         HttpResponse<String> read = get("/Patient/" + patientId);
         assertEquals(200, read.statusCode(), read.body());
@@ -274,7 +274,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
                  "identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Vale","given":["Sisestus"]}]}"""
                 .formatted(EID, mistaken), null).body();
-        String wrongId = created.replaceAll("(?s).*\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+        String wrongId = Extracted.field(created, "id");
 
         assertTrue(delete("/Patient/" + wrongId).statusCode() < 300, "the mistake is removed");
 

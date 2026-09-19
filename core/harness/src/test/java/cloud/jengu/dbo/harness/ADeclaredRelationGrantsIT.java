@@ -202,11 +202,10 @@ class ADeclaredRelationGrantsIT {
                 List.of("system/*.read", "system/*.write"));
         String form = "grant_type=client_credentials&client_id=seeder&client_secret="
                 + URLEncoder.encode("seeder-secret", StandardCharsets.UTF_8);
-        return HTTP.send(HttpRequest.newBuilder(
+        return Extracted.tokenIn(HTTP.send(HttpRequest.newBuilder(
                         URI.create(manager.baseUrl(CODE).replace("/fhir", "/oidc/token")))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
-                        HttpResponse.BodyHandlers.ofString()).body()
-                .replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                        HttpResponse.BodyHandlers.ofString()).body());
     }
 }

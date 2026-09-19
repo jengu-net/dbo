@@ -88,14 +88,14 @@ class AShutdownIsQuietIT {
                 java.util.List.of("system/*.read", "system/*.write"));
         String zoneBase = "http://127.0.0.1:" + manager.port() + "/t/" + ZONE;
         java.net.http.HttpClient http = java.net.http.HttpClient.newHttpClient();
-        String token = http.send(java.net.http.HttpRequest.newBuilder(
+        String token = Extracted.tokenIn(http.send(java.net.http.HttpRequest.newBuilder(
                         java.net.URI.create(zoneBase + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(java.net.http.HttpRequest.BodyPublishers.ofString(
                                 "grant_type=client_credentials&client_id=loader&client_secret="
                                         + "loader-secret")).build(),
                 java.net.http.HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
         for (int i = 0; i < 150; i++) {
             http.send(java.net.http.HttpRequest.newBuilder(
                             java.net.URI.create(zoneBase + "/fhir/CodeSystem"))

@@ -79,8 +79,7 @@ class ContentIsSealedToThePersonItIsAboutIT {
                                  "name":[{"family":"Sepp"}]}""".formatted(EID))).build(),
                 HttpResponse.BodyHandlers.ofString());
         assertEquals(201, person.statusCode(), person.body());
-        personId = person.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        personId = Extracted.lastSegment(person.headers().firstValue("Location").orElseThrow());
     }
 
     @Test
@@ -199,10 +198,10 @@ class ContentIsSealedToThePersonItIsAboutIT {
     private static String token(String client, String secret) throws Exception {
         String form = "grant_type=client_credentials&client_id=" + client
                 + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
-        return HTTP.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
+        return Extracted.tokenIn(HTTP.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
     }
 }

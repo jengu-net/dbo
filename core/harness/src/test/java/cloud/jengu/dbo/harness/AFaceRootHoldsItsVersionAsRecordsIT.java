@@ -72,13 +72,13 @@ class AFaceRootHoldsItsVersionAsRecordsIT {
         UntilServed.scan(manager, ROOT);
         manager.authority(ROOT).ensureClient("reader", "reader-secret",
                 List.of("system/*.read"));
-        token = http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
+        token = Extracted.tokenIn(http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
                                 "grant_type=client_credentials&client_id=reader&client_secret="
                                         + "reader-secret")).build(),
                 HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
     }
 
     @AfterAll
@@ -142,13 +142,13 @@ class AFaceRootHoldsItsVersionAsRecordsIT {
 
         manager.authority(later).ensureClient("reader", "reader-secret", List.of("system/*.read"));
         String laterBase = "http://127.0.0.1:" + manager.port() + "/t/" + later;
-        String laterToken = http.send(HttpRequest.newBuilder(URI.create(laterBase + "/oidc/token"))
+        String laterToken = Extracted.tokenIn(http.send(HttpRequest.newBuilder(URI.create(laterBase + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
                                 "grant_type=client_credentials&client_id=reader&client_secret="
                                         + "reader-secret")).build(),
                 HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
         HttpResponse<String> patient = http.send(HttpRequest.newBuilder(
                         URI.create(laterBase + "/fhir/StructureDefinition?url="
                                 + URLEncoder.encode(PATIENT, StandardCharsets.UTF_8)))

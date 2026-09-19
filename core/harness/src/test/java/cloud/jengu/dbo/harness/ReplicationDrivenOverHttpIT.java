@@ -211,6 +211,6 @@ class ReplicationDrivenOverHttpIT {
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
-        return body.replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+        return Extracted.tokenIn(body);
     }
 }

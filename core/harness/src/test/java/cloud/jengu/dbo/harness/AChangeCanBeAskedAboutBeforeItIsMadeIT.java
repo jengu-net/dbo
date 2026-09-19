@@ -229,11 +229,11 @@ class AChangeCanBeAskedAboutBeforeItIsMadeIT {
                 + "&client_secret=" + URLEncoder.encode("operator-secret", StandardCharsets.UTF_8)
                 + "&scope=" + URLEncoder.encode(cloud.jengu.dbo.auth.Scopes.CONFIGURATION,
                         StandardCharsets.UTF_8);
-        return HTTP.send(HttpRequest.newBuilder(URI.create(
+        return Extracted.tokenIn(HTTP.send(HttpRequest.newBuilder(URI.create(
                         manager.baseUrl(management).replace("/fhir", "/oidc/token")))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll("(?s).*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
     }
 }

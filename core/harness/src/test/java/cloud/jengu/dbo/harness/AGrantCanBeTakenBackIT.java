@@ -162,8 +162,7 @@ class AGrantCanBeTakenBackIT {
                 {"resourceType":"Practitioner","identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Minerva"}]}""".formatted(LOGIN, login), token);
         assertEquals(201, practitioner.statusCode(), practitioner.body());
-        String practitionerId = practitioner.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        String practitionerId = Extracted.lastSegment(practitioner.headers().firstValue("Location").orElseThrow());
         HttpResponse<String> person = post("/Person", """
                 {"resourceType":"Person","identifier":[{"system":"%s","value":"%s"}],
                  "link":[{"target":{"reference":"Practitioner/%s"},"assurance":"level3"}]}"""
@@ -174,8 +173,7 @@ class AGrantCanBeTakenBackIT {
                  "practitioner":{"reference":"Practitioner/%s"},
                  "code":[{"coding":[{"system":"urn:example:role","code":"laborant"}]}]}"""
                 .formatted(practitionerId), token).statusCode());
-        return person.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        return Extracted.lastSegment(person.headers().firstValue("Location").orElseThrow());
     }
 
     private static HttpResponse<String> post(String path, String body, String token)
@@ -198,11 +196,11 @@ class AGrantCanBeTakenBackIT {
                 List.of("system/*.read", "system/*.write"));
         String form = "grant_type=client_credentials&client_id=svc&client_secret="
                 + URLEncoder.encode("svc-secret", StandardCharsets.UTF_8);
-        return HTTP.send(HttpRequest.newBuilder(
+        return Extracted.tokenIn(HTTP.send(HttpRequest.newBuilder(
                         URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll("(?s).*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
     }
 }

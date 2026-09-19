@@ -290,7 +290,7 @@ class ZoneIT {
         String location = created.headers().firstValue("Location").orElseThrow(
                 () -> new AssertionError("a write answered " + created.statusCode()
                         + " with no Location to take an id from: " + created.body()));
-        return location.replaceAll(".*/([^/]+)$", "$1");
+        return Extracted.lastSegment(location);
     }
 
     private String federatedLogin(String code) throws Exception {
@@ -305,9 +305,9 @@ class ZoneIT {
         for (int hop = 0; hop < 10; hop++) {
             if (location.startsWith(REDIRECT)) {
                 if (location.contains("error=")) {
-                    return "error:" + location.replaceAll(".*error=([^&]+).*", "$1");
+                    return "error:" + Extracted.queryParam(location, "error");
                 }
-                String authCode = location.replaceAll(".*code=([^&]+).*", "$1");
+                String authCode = Extracted.queryParam(location, "code");
                 HttpResponse<String> tokens = http.send(HttpRequest.newBuilder(
                                 URI.create(base(code) + "/oidc/token"))
                                 .header("Content-Type", "application/x-www-form-urlencoded")
@@ -317,7 +317,7 @@ class ZoneIT {
                                                 + "&code_verifier=" + verifier)).build(),
                         HttpResponse.BodyHandlers.ofString());
                 assertEquals(200, tokens.statusCode(), tokens.body());
-                return tokens.body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                return Extracted.tokenIn(tokens.body());
             }
             HttpResponse<String> hopResponse = http.send(HttpRequest.newBuilder(
                     URI.create(location)).GET().build(), HttpResponse.BodyHandlers.ofString());

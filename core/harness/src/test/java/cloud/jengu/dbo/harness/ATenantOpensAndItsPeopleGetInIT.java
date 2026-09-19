@@ -220,7 +220,7 @@ class ATenantOpensAndItsPeopleGetInIT {
                  "externalId":"emp-4711","userName":"maarja@kevadkliinik.ee",
                  "name":{"familyName":"Kask","givenName":"Maarja"},"active":true}""");
         assertEquals(201, created.statusCode(), created.body());
-        personId = created.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+        personId = Extracted.field(created.body(), "id");
 
         String person = new String(manager.runtime(CLINIC).orElseThrow().engine()
                 .get("Person", personId).orElseThrow().payload(), StandardCharsets.UTF_8);
@@ -312,7 +312,7 @@ class ATenantOpensAndItsPeopleGetInIT {
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
-        return body.replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+        return Extracted.tokenIn(body);
     }
 
     private static void assertNotNull(Object value, String because) {

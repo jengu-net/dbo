@@ -103,7 +103,7 @@ class TheStandardMovesUnderTheDataIT {
     void whatItWasValidatedUnderIsRecorded() throws Exception {
         HttpResponse<String> created = post("/Observation", claiming());
         assertEquals(201, created.statusCode(), created.body());
-        observationId = created.body().replaceAll("(?s).*\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+        observationId = Extracted.field(created.body(), "id");
 
         String served = get("/Observation/" + observationId).body();
         assertTrue(served.contains("\"valueString\":\"2.0.0\""),

@@ -100,7 +100,7 @@ class ScimProvisioningIT {
                  "externalId":"emp-1001","userName":"pomona@hogwarts.scot",
                  "name":{"familyName":"Sprout","givenName":"Pomona"},"active":true}""");
         assertEquals(201, created.statusCode(), created.body());
-        userId = created.body().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+        userId = Extracted.field(created.body(), "id");
         assertTrue(created.body().contains("\"externalId\":\"emp-1001\""), created.body());
 
         String person = new String(manager.runtime("staffed").orElseThrow().engine()
@@ -153,7 +153,8 @@ class ScimProvisioningIT {
     @Proving(DboPromises.SCIM_DEPROVISION_IS_A_STATE)
     void replaceAndDeprovision() throws Exception {
         HttpResponse<String> current = scim("GET", "/Users/" + userId, null);
-        String version = current.body().replaceAll(".*\"version\":\"W/\\\\\"(\\d+)\\\\\"\".*", "$1");
+        String version = Extracted.one(java.util.regex.Pattern.compile(
+                "\"version\":\"W/\\\\\"(\\d+)\\\\\"\""), current.body(), "a weak etag version");
 
         HttpResponse<String> stale = scimWithHeader("PUT", "/Users/" + userId, """
                 {"externalId":"emp-1001","userName":"pomona@hogwarts.scot","active":true}""",
@@ -170,7 +171,8 @@ class ScimProvisioningIT {
         var engine = manager.runtime("staffed").orElseThrow().engine();
         String person = new String(engine.get("Person", userId).orElseThrow().payload(),
                 StandardCharsets.UTF_8);
-        String practitionerId = person.replaceAll(".*Practitioner/([0-9a-f-]+).*", "$1");
+        String practitionerId = Extracted.one(java.util.regex.Pattern.compile(
+                "Practitioner/([0-9a-f-]+)"), person, "a Practitioner reference");
         assertTrue(new String(engine.get("Practitioner", practitionerId).orElseThrow()
                         .payload(), StandardCharsets.UTF_8).contains("\"active\":false"),
                 "deprovision reaches the capacity");
@@ -304,7 +306,7 @@ class ScimProvisioningIT {
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
-        return body.replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+        return Extracted.tokenIn(body);
     }
 
     /** Whether any audit entry this tenant holds carries the phrase. */

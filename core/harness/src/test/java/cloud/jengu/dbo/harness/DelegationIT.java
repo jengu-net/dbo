@@ -145,8 +145,7 @@ class DelegationIT {
         HttpResponse<String> login = post(base() + "/oidc/authorize/login",
                 "client_id=webapp&redirect_uri=" + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
                         + "&code_challenge=" + challenge + "&login=volitaja&password=salakala8");
-        String code = login.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*code=([^&]+).*", "$1");
+        String code = Extracted.queryParam(login.headers().firstValue("Location").orElseThrow(), "code");
         return tokenField(post(base() + "/oidc/token",
                 "grant_type=authorization_code&client_id=webapp&code=" + code
                         + "&redirect_uri=" + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
@@ -170,13 +169,12 @@ class DelegationIT {
 
     private static String tokenField(HttpResponse<String> response, String field) {
         assertEquals(200, response.statusCode(), response.body());
-        return response.body().replaceAll(".*\"" + field + "\":\"([^\"]+)\".*", "$1");
+        return Extracted.field(response.body(), field);
     }
 
     private static String idOf(HttpResponse<String> created) {
         assertEquals(201, created.statusCode(), created.body());
-        return created.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        return Extracted.lastSegment(created.headers().firstValue("Location").orElseThrow());
     }
 
     private static String claimsOf(String jwt) {
@@ -295,7 +293,7 @@ class DelegationIT {
                                         + "&valid_until=" + (System.currentTimeMillis() / 1000 + 3600))).build(),
                 HttpResponse.BodyHandlers.ofString());
         assertEquals(201, created.statusCode(), created.body());
-        delegationId = created.body().replaceAll(".*\"delegation_id\":\"([^\"]+)\".*", "$1");
+        delegationId = Extracted.field(created.body(), "delegation_id");
 
         // NO subject token in this exchange — the record authorizes
         String actToken = tokenField(post(base() + "/oidc/token",
@@ -344,15 +342,14 @@ class DelegationIT {
                         + "acting as themselves discloses under no stated reason: "
                         + claimsOf(live));
 
-        String durable = http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/delegation"))
+        String durable = Extracted.field(http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/delegation"))
                         .header("Authorization", "Bearer " + humanToken)
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
                                 "client_id=engine&scope=" + URLEncoder.encode("user/Encounter.write",
                                         StandardCharsets.UTF_8)
                                         + "&valid_until=" + (System.currentTimeMillis() / 1000 + 3600))).build(),
-                HttpResponse.BodyHandlers.ofString()).body()
-                .replaceAll(".*\"delegation_id\":\"([^\"]+)\".*", "$1");
+                HttpResponse.BodyHandlers.ofString()).body(), "delegation_id");
         String delegated = tokenField(post(base() + "/oidc/token",
                 "grant_type=" + URLEncoder.encode("urn:ietf:params:oauth:grant-type:token-exchange",
                         StandardCharsets.UTF_8)
@@ -412,14 +409,14 @@ class DelegationIT {
         assertTrue(refused.body().contains("invalid_grant"), refused.body());
 
         // a fresh delegation dies with the human's role
-        String fresh = http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/delegation"))
+        String fresh = Extracted.field(http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/delegation"))
                         .header("Authorization", "Bearer " + humanToken)
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
                                 "client_id=engine&scope=" + URLEncoder.encode("user/Encounter.write",
                                         StandardCharsets.UTF_8)
                                         + "&valid_until=" + (System.currentTimeMillis() / 1000 + 3600))).build(),
-                HttpResponse.BodyHandlers.ofString()).body().replaceAll(".*\"delegation_id\":\"([^\"]+)\".*", "$1");
+                HttpResponse.BodyHandlers.ofString()).body(), "delegation_id");
         assertEquals(200, http.send(HttpRequest.newBuilder(
                         URI.create(base() + "/fhir/PractitionerRole/" + roleId))
                         .header("Authorization", "Bearer " + serviceToken())

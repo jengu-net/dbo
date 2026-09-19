@@ -153,6 +153,6 @@ class ADeploymentPresentsItsOwnCredentialIT {
         if (answer.statusCode() != 200) {
             return "";
         }
-        return answer.body().replaceAll("(?s).*\"access_token\":\"([^\"]+)\".*", "$1");
+        return Extracted.tokenIn(answer.body());
     }
 }

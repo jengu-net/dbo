@@ -84,14 +84,13 @@ class AHumanHeldAsTwoRecordsIT {
                 "the Patient carries the number that identifies the Person and was refused as "
                         + "a conflict against it, so a human cannot be held as both — which is "
                         + "the ordinary way of holding one: " + patient.body());
-        String patientId = patient.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        String patientId = Extracted.lastSegment(patient.headers().firstValue("Location").orElseThrow());
 
         // The same write arriving in the order that made this look like an
         // update problem: a record given the number after it existed.
-        String later = post("/Patient", """
+        String later = Extracted.lastSegment(post("/Patient", """
                 {"resourceType":"Patient","name":[{"family":"Ilves"}]}""", token)
-                .headers().firstValue("Location").orElseThrow().replaceAll(".*/([^/]+)$", "$1");
+                .headers().firstValue("Location").orElseThrow());
         assertEquals(200, put("/Patient/" + later, """
                 {"resourceType":"Patient","id":"%s",
                  "identifier":[{"system":"%s","value":"%s"}],
@@ -129,9 +128,9 @@ class AHumanHeldAsTwoRecordsIT {
 
         // A record carrying a name and no identifier of its own: identifying
         // data, sealed under a person nobody can reach by any number.
-        String bare = post("/Patient", """
+        String bare = Extracted.lastSegment(post("/Patient", """
                 {"resourceType":"Patient","name":[{"family":"Sepp"}]}""", token)
-                .headers().firstValue("Location").orElseThrow().replaceAll(".*/([^/]+)$", "$1");
+                .headers().firstValue("Location").orElseThrow());
 
         // The tenant says who they are, by writing it down.
         HttpResponse<String> person = post("/Person", """
@@ -141,8 +140,7 @@ class AHumanHeldAsTwoRecordsIT {
                  "link":[{"target":{"reference":"Patient/%s"}}]}"""
                 .formatted(EID, bare), token);
         assertEquals(201, person.statusCode(), person.body());
-        String personId = person.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        String personId = Extracted.lastSegment(person.headers().firstValue("Location").orElseThrow());
 
         // Erasing the human, asked for by the record that names them.
         HttpResponse<String> erased = http.send(HttpRequest.newBuilder(
@@ -169,9 +167,9 @@ class AHumanHeldAsTwoRecordsIT {
         // And a link that would join two people who are each identified is
         // refused rather than decided here. The target is claimed because a
         // Person already named it as theirs.
-        String theirs = post("/Patient", """
+        String theirs = Extracted.lastSegment(post("/Patient", """
                 {"resourceType":"Patient","name":[{"family":"Oja"}]}""", token)
-                .headers().firstValue("Location").orElseThrow().replaceAll(".*/([^/]+)$", "$1");
+                .headers().firstValue("Location").orElseThrow());
         assertEquals(201, post("/Person", """
                 {"resourceType":"Person",
                  "identifier":[{"system":"%s","value":"38804010006"}],
@@ -248,8 +246,7 @@ class AHumanHeldAsTwoRecordsIT {
                 {"resourceType":"%s","identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Otsitav"}]}""".formatted(type, system, value), token);
         assertEquals(201, written.statusCode(), written.body());
-        String id = written.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        String id = Extracted.lastSegment(written.headers().firstValue("Location").orElseThrow());
 
         HttpResponse<String> found = http.send(HttpRequest.newBuilder(
                         URI.create(base() + "/fhir/" + type + "?identifier="
@@ -281,8 +278,7 @@ class AHumanHeldAsTwoRecordsIT {
 
         HttpResponse<String> first = conditionalCreate("/Patient", document, question, token);
         assertEquals(201, first.statusCode(), first.body());
-        String id = first.headers().firstValue("Location").orElseThrow()
-                .replaceAll(".*/([^/]+)$", "$1");
+        String id = Extracted.lastSegment(first.headers().firstValue("Location").orElseThrow());
 
         HttpResponse<String> again = conditionalCreate("/Patient", document, question, token);
         assertTrue(again.headers().firstValue("Location").orElse("").contains(id),
@@ -306,13 +302,13 @@ class AHumanHeldAsTwoRecordsIT {
     /** What the erasure door admits: its own scope, not a broad write grant. */
     private String eraser() throws Exception {
         tenant.authority().ensureClient("desk", "desk-secret", List.of("erasure"));
-        return http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
+        return Extracted.tokenIn(http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
                                 "grant_type=client_credentials&client_id=desk&client_secret="
                                         + URLEncoder.encode("desk-secret", StandardCharsets.UTF_8)))
                         .build(), HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
     }
 
     private static String brief(HttpResponse<String> r) {
@@ -323,13 +319,13 @@ class AHumanHeldAsTwoRecordsIT {
     private String token() throws Exception {
         tenant.authority().ensureClient("emr", "emr-secret",
                 List.of("system/*.read", "system/*.write"));
-        return http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
+        return Extracted.tokenIn(http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(
                                 "grant_type=client_credentials&client_id=emr&client_secret="
                                         + URLEncoder.encode("emr-secret", StandardCharsets.UTF_8)))
                         .build(), HttpResponse.BodyHandlers.ofString())
-                .body().replaceAll(".*\"access_token\":\"([^\"]+)\".*", "$1");
+                .body());
     }
 
     private String base() {
