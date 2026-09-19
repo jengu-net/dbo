@@ -2,15 +2,15 @@ name: guide-world
 
 # The migration's own signal, and nothing else.
 #
-# Tests are being moved out of the harness — where each builds a world of its
-# own — into the guide's single shared world. That work needs one question
-# answered quickly and repeatedly: does the guide suite still pass? Running
-# `build` to find out costs thirty-five minutes and answers ninety other
-# questions nobody asked.
+# Tests are being moved off worlds of their own and onto shared ones — the
+# harness's shared tenants, and where it fits, the guide's world. That work
+# needs one question answered quickly and repeatedly: do the moved tests still
+# pass together? Running `build` to find out costs thirty-five minutes and
+# answers ninety other questions nobody asked.
 #
-# So this branch runs the suite against a world built from ITSELF, in about
-# seven minutes, and the author never waits locally. It is scaffolding: it
-# exists while the migration does, and goes when the branch merges.
+# So this branch runs the moved tests, and only those, in a few minutes — and
+# the author never waits locally. It is scaffolding: it exists while the
+# migration does, and goes when the branch merges.
 #
 # What it deliberately does NOT do is stand in for the suite. A migrated test
 # that passes here has not been run beside the harness tests it left, and the
@@ -25,6 +25,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  shared-world:
+    # The conversions' own signal, and the main one now.
+    #
+    # A converted class is asked the question isolation cannot answer: does it
+    # still pass BESIDE the others sharing its tenant? Two classes claiming the
+    # same identity, declaring the same step, or reading a whole trail only
+    # collide when they run together, and every one of those has happened.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: The tests that share a world
+        run: ./.github/scripts/shared-world-tests.sh
+      - name: The report, when there is something to read
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-world-report
+          path: core/harness/build/reports/tests/**
+          retention-days: 7
+
   guide-on-tree:
     runs-on: ubuntu-latest
     timeout-minutes: 30
