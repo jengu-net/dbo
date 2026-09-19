@@ -231,14 +231,17 @@ class ShapeStampIT {
                  "meta":{"profile":["https://sonavara.example/StructureDefinition/versionless"]}}""")
                 .statusCode());
 
-        var lines = cloud.jengu.dbo.maintenance.TenantInventory.shapes(
-                stockSource());
-        assertTrue(lines.stream().anyMatch(l -> "Observation".equals(l.typeName())
-                        && CANONICAL.equals(l.profile()) && "3.0.0".equals(l.version())
-                        && l.count() == 1), lines.toString());
-        assertTrue(lines.stream().anyMatch(l -> CANONICAL.equals(l.profile())
-                        && "4.0.0".equals(l.version())
-                        && l.count() == 1), lines.toString());
+        // Asked through the tenant's own maintenance door rather than of its
+        // database. It is the surface an operator has before deciding to
+        // migrate, and reading the table instead proved a query rather than
+        // the report anybody can actually run.
+        String lines = inventory();
+        assertTrue(lines.contains("\"name\":\"Observation\",\"profile\":\"" + CANONICAL
+                        + "\",\"version\":\"3.0.0\",\"count\":1"),
+                "stock is not counted per profile and version: " + lines);
+        assertTrue(lines.contains("\"profile\":\"" + CANONICAL
+                        + "\",\"version\":\"4.0.0\",\"count\":1"),
+                "the second version is not its own line: " + lines);
         // The adjacent defect this slice surfaced and fixed: the element
         // face never wrote _profile into the envelope, so a search by
         // profile answered empty — "nobody matches", which was not true.
@@ -247,9 +250,19 @@ class ShapeStampIT {
                         "https://sonavara.example/StructureDefinition/versionless",
                         java.nio.charset.StandardCharsets.UTF_8)).body()
                 .contains("versionless"), "a profile search answers now");
-        assertTrue(lines.stream().anyMatch(l -> l.version() == null
-                        && l.profile().endsWith("versionless") && l.count() == 1),
+        assertTrue(inventory().contains("/versionless\",\"version\":null,\"count\":1"),
                 "declaring without a stampable version is its own counted line: " + lines);
+    }
+
+    /** The tenant's stock, read from the door an operator would use. */
+    private static String inventory() throws Exception {
+        HttpResponse<String> answered = http.send(HttpRequest.newBuilder(
+                        URI.create(tenant.base() + "/admin/inventory"))
+                        .header("Authorization", "Bearer " + bearer)
+                        .POST(HttpRequest.BodyPublishers.noBody()).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, answered.statusCode(), answered.body());
+        return answered.body();
     }
 
     @Test
@@ -270,15 +283,6 @@ class ShapeStampIT {
     }
 
     // ---------------------------------------------------------- plumbing
-
-    /** The tenant's own database, for the inventory this class takes of it. */
-    private static javax.sql.DataSource stockSource() {
-        org.postgresql.ds.PGSimpleDataSource source = new org.postgresql.ds.PGSimpleDataSource();
-        source.setUrl(tenant.databaseUrl());
-        source.setUser(SharedPostgres.username());
-        source.setPassword(SharedPostgres.password());
-        return source;
-    }
 
     private static int count(String haystack, String needle) {
         int n = 0;
