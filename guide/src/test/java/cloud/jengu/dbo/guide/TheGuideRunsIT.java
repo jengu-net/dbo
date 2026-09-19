@@ -1518,6 +1518,7 @@ class TheGuideRunsIT {
         @Test
         @Order(2)
         @DisplayName("handed back as it was given")
+        @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
         void handedBackAsItWasGiven() throws Exception {
             String headers = snippets.run("blob-read").text();
             assertTrue(headers.toLowerCase(java.util.Locale.ROOT).contains("application/pdf"),
