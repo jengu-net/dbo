@@ -1,0 +1,51 @@
+name: guide-world
+
+# The migration's own signal, and nothing else.
+#
+# Tests are being moved out of the harness — where each builds a world of its
+# own — into the guide's single shared world. That work needs one question
+# answered quickly and repeatedly: does the guide suite still pass? Running
+# `build` to find out costs thirty-five minutes and answers ninety other
+# questions nobody asked.
+#
+# So this branch runs the suite against a world built from ITSELF, in about
+# seven minutes, and the author never waits locally. It is scaffolding: it
+# exists while the migration does, and goes when the branch merges.
+#
+# What it deliberately does NOT do is stand in for the suite. A migrated test
+# that passes here has not been run beside the harness tests it left, and the
+# branch is not merged on this job alone — ./verify runs once before it does.
+on:
+  push:
+    branches: ["guide-world-**"]
+  workflow_dispatch:
+
+concurrency:
+  group: guide-world-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guide-on-tree:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: The guide suite, against this tree
+        run: ./docs/guide/examples/guide-on-tree.sh
+      - name: What the world said, if a step failed
+        if: failure()
+        run: docker compose -f docs/guide/examples/compose.yaml logs --tail 200 dbo || true
+      - name: The report, when there is something to read
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guide-test-report
+          path: guide/build/reports/tests/**
+          retention-days: 7

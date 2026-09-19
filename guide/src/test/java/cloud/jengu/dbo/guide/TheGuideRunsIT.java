@@ -71,8 +71,21 @@ class TheGuideRunsIT {
     /** Written into the working directory by the archive chapter, and taken away again. */
     private static final Path ARCHIVE = Path.of("..", "hogwarts.archive");
 
-    private static final Path COMPOSE =
-            Path.of("..", "docs", "guide", "examples", "compose.yaml");
+    /**
+     * The world to run against — the published one, or a tree-built one.
+     *
+     * <p>The published compose file names the PINNED image, which is what
+     * makes this suite a guard against the guide rotting. It also means a step
+     * asserting behaviour newer than the pin fails for a reason that has
+     * nothing to do with the step, which is the whole difficulty of moving a
+     * test here from the harness.
+     *
+     * <p>So the same door check.sh has: {@code DBO_GUIDE_COMPOSE} names a
+     * world built from this tree instead. Unset, nothing changes.
+     */
+    private static final Path COMPOSE = Path.of(
+            System.getenv().getOrDefault("DBO_GUIDE_COMPOSE",
+                    Path.of("..", "docs", "guide", "examples", "compose.yaml").toString()));
 
     private final Snippets snippets = new Snippets();
 

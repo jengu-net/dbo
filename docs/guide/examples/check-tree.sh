@@ -20,30 +20,9 @@
 set -euo pipefail
 cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 
-TAG="${DBO_TREE_TAG:-dbo-server:tree}"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
-
-echo "=== building the server from this tree"
-./gradlew :core:dbo-server:installDist -q
-docker build -q -f core/dbo-server/Dockerfile -t "$TAG" core/dbo-server >/dev/null
-
-# The world the guide describes, on the image just built. Generated rather than
-# committed: a second compose file beside the published one is a second thing
-# to keep in step, and the only difference is the image.
-echo "=== the sample world, on it"
-python3 - "$TAG" "$WORK/compose.yaml" <<'PY'
-import pathlib, re, sys
-tag, out = sys.argv[1], sys.argv[2]
-source = pathlib.Path("docs/guide/examples/compose.yaml")
-text = source.read_text()
-text = re.sub(r'image: ghcr\.io/jengu-net/dbo-server:\S+', f'image: {tag}', text)
-# The published file names its mounts relative to itself, and this one lives
-# somewhere else entirely.
-root = pathlib.Path.cwd()
-text = text.replace('../world', str(root / "docs/guide/world"))
-pathlib.Path(out).write_text(text)
-PY
+COMPOSE="$(docs/guide/examples/tree-world.sh "$WORK/compose.yaml")"
 
 echo "=== the guide, against it"
-DBO_GUIDE_COMPOSE="$WORK/compose.yaml" bash docs/guide/examples/check.sh
+DBO_GUIDE_COMPOSE="$COMPOSE" bash docs/guide/examples/check.sh
