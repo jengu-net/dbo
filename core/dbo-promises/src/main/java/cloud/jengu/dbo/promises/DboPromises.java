@@ -525,6 +525,18 @@ public enum DboPromises implements Promise {
             + "meant to open it and to nobody who merely carries it. A sealed payload is "
             + "a copy in flight and not the record: the store keeps the original, and the "
             + "copy is bounded by the work that caused it."),
+    PROC_IDENTITY_IS_REASSEMBLED_AT_THE_TENANT(
+            "Opening a sealed payload yields the carrier form, so a runner needs no vault "
+            + "to do its work. Putting the person back together is a further act, and it "
+            + "is performed at the tenant on the runner's behalf rather than by handing "
+            + "the vault over — everywhere, and not only where the runner is far away, "
+            + "because a reassembly the store did not perform is one the trail cannot "
+            + "answer for. It is refused without a stated purpose, as every identifying "
+            + "read is, refused for a document the run does not name, as every reach is, "
+            + "and recorded as a disclosure naming the run that occasioned it. The answer "
+            + "comes back sealed to the asker alone, because the plane it may cross holds "
+            + "nothing readable and reassembled identity is the last thing that should be "
+            + "the exception."),
     PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT(
             "A participant generates its keypair before it is enrolled and offers the "
             + "public half as part of enrolling; the private half never crosses. Payload "

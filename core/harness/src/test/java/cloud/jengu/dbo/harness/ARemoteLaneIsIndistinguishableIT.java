@@ -257,6 +257,12 @@ class ARemoteLaneIsIndistinguishableIT {
         }
 
         @Override
+        public cloud.jengu.dbo.work.SealedPayload identified(Run run, String reference,
+                String purpose) {
+            return across("identified", () -> farSide.identified(run, reference, purpose));
+        }
+
+        @Override
         public cloud.jengu.dbo.work.SealedWork sealed(Run run) {
             return across("sealed", () -> farSide.sealed(run));
         }

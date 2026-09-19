@@ -116,6 +116,7 @@ public final class StreamLane extends WireLane implements AutoCloseable {
         private final String tenant;
         private final String participant;
         private final java.security.PrivateKey signing;
+        private final Spill spill;
         private volatile int generation = 0;
 
         Substrate(DataSource substrate, String tenant, String participant,
@@ -123,6 +124,7 @@ public final class StreamLane extends WireLane implements AutoCloseable {
             this.tenant = tenant;
             this.participant = participant;
             this.signing = signing;
+            this.spill = new Spill(substrate);
             // A substrate connection with no workflows of its own: this side
             // sends and waits, and executes nothing the door enqueues.
             this.dbos = new DBOS(DBOSConfig.defaults("dbo-lane-" + tenant + "-" + participant)
@@ -193,6 +195,33 @@ public final class StreamLane extends WireLane implements AutoCloseable {
                 listening.set(false);
                 waiting.interrupt();
             };
+        }
+
+        /**
+         * The answer, fetched if the door only said where it is.
+         *
+         * <p>Put back together here, at the bottom, so nothing above this
+         * knows there was a spill: the verb above is handed the bytes the
+         * door produced either way, and a runner cannot tell a large answer
+         * from a small one except by how long it took. That is the same
+         * contract the wake-up is held to, for the same reason.
+         *
+         * <p>Bytes that are gone are a fault rather than an empty answer. The
+         * spill hands a row over exactly once, so a second collection means
+         * this ask was answered twice or somebody else took it — and
+         * answering the caller with nothing would turn that into a run with
+         * no inputs rather than an ask to make again.
+         */
+        private String collected(String answer) {
+            Object envelope = RecordWire.read(answer);
+            if (!(envelope instanceof Map<?, ?> map)
+                    || !(map.get(StreamDoor.SPILLED) instanceof String key)) {
+                return answer;
+            }
+            return spill.take(key).orElseThrow(() ->
+                    new cloud.jengu.dbo.core.api.StoreUnreachableException(tenant
+                            + ": the door spilled its answer to '" + key
+                            + "' and the bytes were not there to collect"));
         }
 
         /** One ask, signed — built here so telling and asking spell it once. */
@@ -269,10 +298,11 @@ public final class StreamLane extends WireLane implements AutoCloseable {
                 throw new cloud.jengu.dbo.core.api.StoreUnreachableException(
                         tenant + ": the door on the stream did not answer '" + verb.path() + "'");
             }
-            Object envelope = RecordWire.read(answer.get());
+            String answered = collected(answer.get());
+            Object envelope = RecordWire.read(answered);
             int status = envelope instanceof Map<?, ?> map && map.get("status") instanceof Number n
                     ? n.intValue() : 500;
-            return new Reply(status, answer.get());
+            return new Reply(status, answered);
         }
 
         /** What the probe saw, for a refusal that explains itself. */

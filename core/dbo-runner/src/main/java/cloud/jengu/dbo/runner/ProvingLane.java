@@ -71,19 +71,38 @@ public final class ProvingLane implements Lane {
 
     private final String stepId;
     private final Map<String, StoredObject> inputs;
+    /**
+     * Whoever asked to be told to look again. Concurrent because the runner
+     * subscribes on its own thread while a test fires from its own — the rest
+     * of this fixture is deliberately not thread-safe, and this one field has
+     * to be, because there is no moment when only one thread holds it.
+     */
+    private final List<Runnable> woken = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final boolean wakeable;
     private final List<String> milestones = new ArrayList<>();
     private final List<Map<String, Long>> checkpoints = new ArrayList<>();
     private final List<Ended> endings = new ArrayList<>();
 
-    private Run offered;
+    /**
+     * How many times the runner has looked. Concurrent for the reason
+     * {@link #woken} is: a started runner polls from its own thread while the
+     * test watches from another, and a test that has to guess whether the
+     * runner is asleep yet is a test that passes on timing.
+     */
+    private final java.util.concurrent.atomic.AtomicInteger polls =
+            new java.util.concurrent.atomic.AtomicInteger();
+
+    private volatile Run offered;
     private Ended ended = Ended.NOT_YET;
     private String reason;
     private int performed;
 
-    private ProvingLane(String stepId, Map<String, StoredObject> inputs) {
+    private ProvingLane(String stepId, Map<String, StoredObject> inputs, boolean wakeable,
+            boolean quiet) {
         this.stepId = stepId;
         this.inputs = Map.copyOf(inputs);
-        this.offered = runFor(stepId);
+        this.wakeable = wakeable;
+        this.offered = quiet ? null : runFor(stepId);
     }
 
     /**
@@ -101,9 +120,39 @@ public final class ProvingLane implements Lane {
 
         private final String stepId;
         private final Map<String, StoredObject> inputs = new LinkedHashMap<>();
+        private boolean wakeable;
+        private boolean quiet;
 
         private Offer(String stepId) {
             this.stepId = stepId;
+        }
+
+        /**
+         * The lane starts with nothing to take, until
+         * {@link ProvingLane#workAppears()}.
+         *
+         * <p>For proving what a runner does once it is already running: work
+         * offered at construction is taken on the first cycle, before the
+         * runner has waited for anything, so a runner that never looked again
+         * would pass a test that offered it up front.
+         */
+        public Offer notYet() {
+            this.quiet = true;
+            return this;
+        }
+
+        /**
+         * The lane will offer a wake-up, which nothing fires but
+         * {@link ProvingLane#saysItHasWork()}.
+         *
+         * <p>Which makes the interesting case the one where a test never calls
+         * it: a binding that can say it has work and, this time, did not. That
+         * is what a dropped notification looks like from the runner's side,
+         * and it must cost latency and nothing else.
+         */
+        public Offer wakeable() {
+            this.wakeable = true;
+            return this;
         }
 
         /** One input, as the work will carry it: a name, a type and its bytes. */
@@ -115,7 +164,7 @@ public final class ProvingLane implements Lane {
         }
 
         public ProvingLane lane() {
-            return new ProvingLane(stepId, inputs);
+            return new ProvingLane(stepId, inputs, wakeable, quiet);
         }
     }
 
@@ -144,6 +193,25 @@ public final class ProvingLane implements Lane {
     /** How many times the service has performed this work. */
     public int performed() {
         return performed;
+    }
+
+    /**
+     * How many times the runner has looked — its polls, woken or on its tick.
+     *
+     * <p>For the tests that have to know the runner is asleep before they do
+     * something, rather than sleeping and hoping.
+     */
+    public int polls() {
+        return polls.get();
+    }
+
+    /**
+     * Work appears, with nobody told. For a lane built {@link Offer#notYet()},
+     * which starts with nothing to take.
+     */
+    public ProvingLane workAppears() {
+        this.offered = runFor(stepId);
+        return this;
     }
 
     /** How each performance ended, oldest first — one entry per re-offer. */
@@ -182,19 +250,39 @@ public final class ProvingLane implements Lane {
     }
 
     /**
-     * Nothing. A proof drives the runner a cycle at a time and asserts what it
-     * did; a wake-up would make when it looked part of what is being proven,
-     * which is the one thing these fixtures are built not to depend on.
+     * Nothing, unless the offer asked to be {@link Offer#wakeable()}. A proof
+     * drives the runner a cycle at a time and asserts what it did; a wake-up
+     * arriving on its own would make when it looked part of what is being
+     * proven, which is the one thing these fixtures are built not to depend
+     * on. So this lane says it has work only when told to.
      */
     @Override
     public Optional<Wakeups> wakeups() {
-        return Optional.empty();
+        return wakeable ? Optional.of(this::listen) : Optional.empty();
+    }
+
+    private AutoCloseable listen(Runnable toWake) {
+        woken.add(toWake);
+        return () -> woken.remove(toWake);
+    }
+
+    /**
+     * Says there is work, as the store's end of a binding that can reach back
+     * would. Carries nothing, because a wake-up carries nothing.
+     *
+     * <p>Not calling this is the other half of the same property, and the half
+     * worth proving: the runner looks anyway, on its tick.
+     */
+    public ProvingLane saysItHasWork() {
+        woken.forEach(Runnable::run);
+        return this;
     }
 
     @Override
     public List<Run> poll(Set<String> steps, int limit) {
-        return offered != null && steps.contains(offered.step())
-                ? List.of(offered) : List.of();
+        polls.incrementAndGet();
+        Run now = offered;
+        return now != null && steps.contains(now.step()) ? List.of(now) : List.of();
     }
 
     @Override
@@ -283,6 +371,21 @@ public final class ProvingLane implements Lane {
     @Override
     public void routes(List<Trackable> behind) {
         throw new UnsupportedOperationException(notHere("routing for an edge"));
+    }
+
+    /**
+     * Refused, and said rather than returned empty. This lane has no store,
+     * no vault and no trail, so there is no person here to put back together
+     * and nowhere to record having done it — and a fixture that answered
+     * anyway would let a service be proven against an identity nobody
+     * disclosed.
+     */
+    @Override
+    public cloud.jengu.dbo.work.SealedPayload identified(Run run, String reference,
+            String purpose) {
+        throw new UnsupportedOperationException("a proving lane holds no identity to "
+                + "reassemble, and no trail to record a disclosure in: prove a step that "
+                + "needs one against a tenant");
     }
 
     @Override

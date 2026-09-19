@@ -142,6 +142,13 @@ public final class LaneVerbService {
                 yield recipients == null ? lane.sealed(run(body))
                         : lane.sealed(run(body), RecordWire.decodeList(recipients, String.class));
             }
+            case IDENTIFIED -> {
+                String reference = string(body, LaneVerbs.REFERENCE);
+                if (reference == null) {
+                    throw new IllegalArgumentException("an identification names the document");
+                }
+                yield lane.identified(run(body), reference, string(body, LaneVerbs.PURPOSE));
+            }
             case OPENED -> {
                 String reference = string(body, LaneVerbs.REFERENCE);
                 if (reference == null) {
