@@ -35,7 +35,6 @@ nav:
       - the-face.md
       - tenant-types.md
       - lifecycle.md
-      - extending-the-lifecycle.md
       - export-and-import.md
   - Zones:
       - zones.md
