@@ -55,18 +55,41 @@ final class Extracted {
     }
 
     /**
-     * A named string field of a JSON answer.
+     * A named field of a JSON answer, read as JSON.
      *
-     * <p>The FIRST one, which is a change from what several of these did: a
-     * greedy pattern reading to the end of the document took the LAST field of
-     * that name, so a body carrying a nested one answered with the inner
-     * value. Nothing depended on it — the suite says so — and it is the same
-     * flaw a zone had, where the system a tenant resolved subjects in was
-     * whichever the document mentioned last.
+     * <p><b>Parsed, not matched, and that is the whole of it.</b> The patterns
+     * these replaced were greedy, so they took the LAST field of that name in
+     * the document; a reluctant one takes the first. Neither is a rule — they
+     * are two different accidents. A StructureDefinition carries an {@code id}
+     * on every element it defines, so its own is the last one and first-match
+     * reads somebody else's; most other answers have exactly one, so
+     * last-match was right by luck. The suite found this by failing, after
+     * being told in a comment that nothing depended on it.
+     *
+     * <p>So the field is the document's own — top level, where an answer's
+     * identity lives — and a document without one says so rather than offering
+     * whatever else was lying around under that name.
      */
     static String field(String json, String name) {
-        return one(Pattern.compile("\"" + Pattern.quote(name) + "\"\\s*:\\s*\"([^\"]+)\"",
-                Pattern.DOTALL), json, "a '" + name + "' field");
+        if (json == null || json.isBlank()) {
+            return fail("looked for '" + name + "' in nothing at all");
+        }
+        Object parsed;
+        try {
+            parsed = cloud.jengu.dbo.core.wire.RecordWire.read(json);
+        } catch (RuntimeException notJson) {
+            return fail("looked for '" + name + "' in something that is not JSON: "
+                    + shortened(json));
+        }
+        if (!(parsed instanceof java.util.Map<?, ?> fields)) {
+            return fail("looked for '" + name + "' in JSON that is not an object: "
+                    + shortened(json));
+        }
+        Object value = fields.get(name);
+        if (value == null) {
+            return fail("no '" + name + "' of its own in: " + shortened(json));
+        }
+        return String.valueOf(value);
     }
 
     /** One query parameter of a url, by name. */
