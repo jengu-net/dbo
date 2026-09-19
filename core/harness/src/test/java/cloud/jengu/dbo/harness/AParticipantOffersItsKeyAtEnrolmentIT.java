@@ -9,16 +9,12 @@ import cloud.jengu.dbo.core.api.seal.ParticipantKey;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.postgresql.ds.PGSimpleDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -26,8 +22,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.SecureRandom;
@@ -59,42 +53,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AParticipantOffersItsKeyAtEnrolmentIT {
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
-    static final byte[] kek = new byte[32];
+    static SharedTenants.Tenant tenant;
     static final HttpClient http = HttpClient.newHttpClient();
-    static TenantAuthority sideAuthority;
     static PgObjectStore identityStore;
 
     @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        new SecureRandom().nextBytes(kek);
-        dir = Files.createTempDirectory("dbo-enrol");
-        String jdbcUrl = SharedPostgres.urlFor("AParticipantOffersItsKeyAtEnrolmentIT");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                jdbcUrl, postgres.getUsername(), postgres.getPassword());
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve("meristem.json"), """
-                {"code":"meristem","face":"r4","audit":{"level":"writes"},"types":[
-                  {"name":"Patient","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, "meristem");
+    void up() {
+        // A numbered tenant of its own: this class enrols participants and
+        // then reads the client records back, filtering in Java over a page
+        // of them — on a tenant everybody else also mints credentials in,
+        // the one it wants would eventually fall off that page.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL, 2);
         PGSimpleDataSource ds = new PGSimpleDataSource();
-        // The tenant's own database, beside the harness's, as the provisioner names it.
-        ds.setUrl(jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1) + "tenant_meristem");
-        ds.setUser(postgres.getUsername());
-        ds.setPassword(postgres.getPassword());
+        ds.setUrl(tenant.databaseUrl());
+        ds.setUser(SharedPostgres.username());
+        ds.setPassword(SharedPostgres.password());
         identityStore = new PgObjectStore(ds, IdentityModel.registrations());
-        sideAuthority = new TenantAuthority(identityStore,
-                "http://127.0.0.1:" + manager.port() + "/t/meristem/oidc", new KeyProtector(kek));
-    }
-
-    @AfterAll
-    void down() throws Exception {
-        manager.close();
     }
 
     @Test
@@ -113,7 +87,7 @@ class AParticipantOffersItsKeyAtEnrolmentIT {
                         + "thumbprint rather than a counter it minted: " + enrolled.body());
 
         // What the store recorded is the public half and nothing else.
-        Optional<ParticipantKey> recorded = sideAuthority.participantKey("analyser-7");
+        Optional<ParticipantKey> recorded = tenant.authority().participantKey("analyser-7");
         assertEquals(Optional.of(offered), recorded, "the key offered is the key recorded");
         String record = clientRecord("analyser-7");
         assertTrue(record.contains("\"kty\":\"OKP\"") && record.contains("\"crv\":\"X25519\""),
@@ -157,14 +131,14 @@ class AParticipantOffersItsKeyAtEnrolmentIT {
         assertEquals(200, enrol("analyser-8", "s3cr3t",
                 ParticipantKey.of(first.getPublic()).render()).statusCode());
         KeyWrap.Wrapped underFirst = KeyWrap.wrap(new byte[32],
-                sideAuthority.participantKey("analyser-8").orElseThrow());
+                tenant.authority().participantKey("analyser-8").orElseThrow());
 
         // Same credential, new key: the caller's key is authoritative, as its
         // secret is, and re-ensuring is saying what the record should be.
         HttpResponse<String> rotated = enrol("analyser-8", "s3cr3t",
                 ParticipantKey.of(second.getPublic()).render());
         assertEquals(200, rotated.statusCode(), rotated.body());
-        ParticipantKey current = sideAuthority.participantKey("analyser-8").orElseThrow();
+        ParticipantKey current = tenant.authority().participantKey("analyser-8").orElseThrow();
         assertEquals(ParticipantKey.of(second.getPublic()), current);
         assertNotEquals(underFirst.kid(), current.kid(),
                 "the version changed with the key, and the old wrap says which it was made to");
@@ -181,7 +155,7 @@ class AParticipantOffersItsKeyAtEnrolmentIT {
     @Proving(DboPromises.PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT)
     void aParticipantWithoutAKeyHasNothingToBeSealedTo() throws Exception {
         assertEquals(200, enrol("router-1", "s3cr3t", null).statusCode());
-        assertEquals(Optional.empty(), sideAuthority.participantKey("router-1"),
+        assertEquals(Optional.empty(), tenant.authority().participantKey("router-1"),
                 "a credential is not a key; a participant that offered none is sealed to by nobody");
     }
 
@@ -232,12 +206,12 @@ class AParticipantOffersItsKeyAtEnrolmentIT {
     }
 
     private static String base() {
-        return "http://127.0.0.1:" + manager.port() + "/t/meristem";
+        return tenant.base();
     }
 
     private static String serviceToken() throws Exception {
         String form = "grant_type=client_credentials&client_id=tenant-bootstrap&client_secret="
-                + URLEncoder.encode(provisioner.bootstrapClientSecret("meristem"), StandardCharsets.UTF_8);
+                + URLEncoder.encode(tenant.bootstrapSecret(), StandardCharsets.UTF_8);
         String body = http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
