@@ -138,6 +138,20 @@ public final class SharedTenants {
                 .formatted(EID), "r4", ",\"pdi\":true", "none"),
 
         /**
+         * r4 holding profiles of its own, and NOT a face root.
+         *
+         * <p>A tenant that authors StructureDefinitions and keeps ordinary
+         * records beside them. It reads the version's definitions from the
+         * face root already up beside it, which is the expensive half and is
+         * shared — so a class wanting this pair now brings up one tenant
+         * rather than two.
+         */
+        R4_PROFILED("sharedr4profiled", """
+                [{"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                 {"name":"Patient","identity":"internal","handling":"operational"}]""",
+                "r4", "", "none"),
+
+        /**
          * A face root: it holds the version's whole definition set as records,
          * which is the expensive thing in this suite and was being built four
          * times over. Patient declares the database as its verdict because one
