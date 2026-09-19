@@ -2,15 +2,11 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.Timeout;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -18,8 +14,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,49 +37,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ATypeSaysWhereItsEnvelopeIsComputedIT {
 
-    static final String CODE = "where-the-bytes-are";
     static final String URL = "https://bytes.test/vs/declared";
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant tenant;
     static String service;
     static final HttpClient HTTP = HttpClient.newHttpClient();
 
     @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-where-bytes");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ATypeSaysWhereItsEnvelopeIsComputedIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        // NOT a face root. The function reads the compiled parameters this
-        // tenant holds, and an ordinary tenant holds them because it comes up
-        // from the face's image — so this is the shape a real tenant has, and
-        // it carries its own records rather than the whole published corpus.
-        Files.writeString(dir.resolve(CODE + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"none"},"types":[
-                  {"name":"ValueSet","identity":"canonical","handling":"operational",
-                   "extractor":"database"},
-                  {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
-                .formatted(CODE));
-        UntilServed.scan(manager, CODE);
-        service = serviceToken();
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+    void up() {
+        // Shared, and NOT a face root. The function reads the compiled
+        // parameters this tenant holds, and an ordinary tenant holds them
+        // because it comes up from the face's image — so this is the shape a
+        // real tenant has, carrying its own records rather than the whole
+        // published corpus. Everything asked here is asked by the url this
+        // class writes under, so whatever else is in the tenant is not an
+        // answer to any of it.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_DB_ENVELOPE);
+        service = tenant.token("where-the-bytes-are", "system/*.read", "system/*.write");
     }
 
     /**
@@ -166,7 +134,7 @@ class ATypeSaysWhereItsEnvelopeIsComputedIT {
                 {"resourceType":"ValueSet","url":"%s/reindexed","version":"1","status":"active",
                  "name":"Reindexed"}""".formatted(URL)).statusCode());
 
-        var engine = manager.runtime(CODE).orElseThrow().engine();
+        var engine = tenant.engine();
         String id = engine.getByIdentifier("ValueSet",
                         List.of(new cloud.jengu.dbo.core.api.Identifier(
                                 cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM,
@@ -193,15 +161,14 @@ class ATypeSaysWhereItsEnvelopeIsComputedIT {
 
     private static org.postgresql.ds.PGSimpleDataSource tenantSource() {
         org.postgresql.ds.PGSimpleDataSource source = new org.postgresql.ds.PGSimpleDataSource();
-        source.setUrl(SharedPostgres.urlFor("x")
-                .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + CODE.replace('-', '_')));
-        source.setUser(postgres.getUsername());
-        source.setPassword(postgres.getPassword());
+        source.setUrl(tenant.databaseUrl());
+        source.setUser(SharedPostgres.username());
+        source.setPassword(SharedPostgres.password());
         return source;
     }
 
     private static HttpResponse<String> post(String path, String body) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CODE) + path))
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Authorization", "Bearer " + service)
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
@@ -209,20 +176,9 @@ class ATypeSaysWhereItsEnvelopeIsComputedIT {
     }
 
     private static HttpResponse<String> get(String path) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(CODE) + path))
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Authorization", "Bearer " + service).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
-    private static String serviceToken() throws Exception {
-        manager.authority(CODE).ensureClient("seeder", "seeder-secret",
-                List.of("system/*.read", "system/*.write"));
-        String form = "grant_type=client_credentials&client_id=seeder&client_secret="
-                + URLEncoder.encode("seeder-secret", StandardCharsets.UTF_8);
-        return Extracted.tokenIn(HTTP.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(CODE).replace("/fhir", "/oidc/token")))
-                        .header("Content-Type", "application/x-www-form-urlencoded")
-                        .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
-                        HttpResponse.BodyHandlers.ofString()).body());
-    }
 }

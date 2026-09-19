@@ -153,6 +153,48 @@ public final class SharedTenants {
                 "r4", "", "none"),
 
         /**
+         * r4 as a zone: vocabularies it publishes, and a configured type
+         * projected rather than written.
+         *
+         * <p>What makes it a zone is the {@code projected-config} handling on
+         * a type — a declaration applied through the face rather than a record
+         * somebody POSTs — and handling is a type's declaration, so it is a
+         * shape rather than something a class can turn on.
+         */
+        R4_ZONE("sharedr4zone", """
+                [{"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                 {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                 {"name":"Device","identity":"identifier","systems":["%s"],
+                  "handling":"projected-config"}]""".formatted(BENCHES), "r4", "", "none"),
+
+        /**
+         * r6, for what has to be served on the version after the one
+         * everything else here uses.
+         *
+         * <p>A face binds one version, so this cannot be a flag on another
+         * shape: it is a tenant of its own or it is nothing.
+         */
+        R6("sharedr6", """
+                [{"name":"Patient","identity":"identifier","systems":["%s"],
+                  "handling":"operational"},
+                 {"name":"Observation","identity":"internal","handling":"operational"}]"""
+                .formatted(EID), "r6", "", "none"),
+
+        /**
+         * r4 whose ValueSet has its envelope computed in the database.
+         *
+         * <p>A shape rather than a flag a class turns on, because where the
+         * envelope is computed is part of what a type IS: it is read when the
+         * type is mounted, so it cannot be switched on inside a tenant that
+         * has already answered a search without it.
+         */
+        R4_DB_ENVELOPE("sharedr4dbenvelope", """
+                [{"name":"ValueSet","identity":"canonical","handling":"operational",
+                  "extractor":"database"},
+                 {"name":"CodeSystem","identity":"canonical","handling":"operational"}]""",
+                "r4", "", "none"),
+
+        /**
          * r4 holding profiles of its own, and NOT a face root.
          *
          * <p>A tenant that authors StructureDefinitions and keeps ordinary
@@ -163,7 +205,8 @@ public final class SharedTenants {
          */
         R4_PROFILED("sharedr4profiled", """
                 [{"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                 {"name":"Patient","identity":"internal","handling":"operational"}]""",
+                 {"name":"Patient","identity":"internal","handling":"operational"},
+                 {"name":"Observation","identity":"internal","handling":"operational"}]""",
                 "r4", "", "none"),
 
         /**
@@ -231,6 +274,9 @@ public final class SharedTenants {
 
     /** What a person signs in as, for the shapes that key people by login. */
     public static final String LOGINS = "https://shared.test/login";
+
+    /** What the zone shape's projected type is keyed by. */
+    public static final String BENCHES = "https://shared.test/benches";
 
     private static final HttpClient HTTP = HttpClient.newHttpClient();
     /** Keyed by tenant CODE rather than by shape, since a shape can have several. */

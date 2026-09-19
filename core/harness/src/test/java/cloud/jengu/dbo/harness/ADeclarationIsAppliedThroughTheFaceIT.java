@@ -2,9 +2,6 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -12,7 +9,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -20,8 +16,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,53 +42,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ADeclarationIsAppliedThroughTheFaceIT {
 
-    static final String ZONE = "through-the-face";
     static final String SYSTEM = "https://zone.test/cs/declared";
-    static final String BENCH_SYSTEM = "https://zone.test/benches";
     static final String OID_BEARING = "https://zone.test/cs/with-oid";
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant tenant;
     static String bearer;
     static final HttpClient HTTP = HttpClient.newHttpClient();
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-through-the-face");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ADeclarationIsAppliedThroughTheFaceIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(ZONE + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
-                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
-                  {"name":"Device","identity":"identifier","systems":["%s"],
-                   "handling":"projected-config"}]}"""
-                .formatted(ZONE, BENCH_SYSTEM));
-        UntilServed.scan(manager, ZONE);
-        manager.authority(ZONE).ensureClient("a-loader", "loader-secret",
+        // Shared. Every declaration here names a url of this class's own, and
+        // the one count taken is of the rows claiming that url — so a zone
+        // holding somebody else's vocabularies answers none of it.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_ZONE);
+        tenant.authority().ensureClient("through-the-face-loader", "loader-secret",
                 List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
-        manager.authority(ZONE).ensureClient("a-reader", "reader-secret",
+        tenant.authority().ensureClient("through-the-face-reader", "reader-secret",
                 List.of("system/*.read"));
-        bearer = token("a-loader", "loader-secret",
+        bearer = token("through-the-face-loader", "loader-secret",
                 cloud.jengu.dbo.auth.Scopes.CONFIGURATION);
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     /** One vocabulary, declared the way a file in a repository declares it. */
@@ -131,7 +97,7 @@ class ADeclarationIsAppliedThroughTheFaceIT {
     private static String bench(String code) {
         return "{\"type\":\"Device\",\"name\":\"devices/" + code + ".json\",\"payload\":"
                 + "{\"resourceType\":\"Device\",\"status\":\"active\",\"identifier\":[{"
-                + "\"system\":\"" + BENCH_SYSTEM + "\",\"value\":\"" + code + "\"}]}}";
+                + "\"system\":\"" + SharedTenants.BENCHES + "\",\"value\":\"" + code + "\"}]}}";
     }
 
     /**
@@ -422,7 +388,7 @@ class ADeclarationIsAppliedThroughTheFaceIT {
         assertEquals(200, again.statusCode(), again.body());
         assertTrue(again.body().contains("\"applied\":1"), again.body());
 
-        assertEquals(1, manager.runtime(ZONE).orElseThrow().engine()
+        assertEquals(1, tenant.engine()
                         .getByIdentifier("CodeSystem",
                                 List.of(new cloud.jengu.dbo.core.api.Identifier(
                                         cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM,
@@ -543,7 +509,7 @@ class ADeclarationIsAppliedThroughTheFaceIT {
 
     /** What the engine holds for this declaration, by its version. */
     private String versionOf(String type, String url) {
-        return manager.runtime(ZONE).orElseThrow().engine()
+        return tenant.engine()
                 .getByIdentifier(type, List.of(new cloud.jengu.dbo.core.api.Identifier(
                         cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url)))
                 .stream().findFirst()
@@ -554,16 +520,16 @@ class ADeclarationIsAppliedThroughTheFaceIT {
 
     private HttpResponse<String> hand(String body) throws Exception {
         return HTTP.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(ZONE).replace("/fhir", "/configuration")))
+                        URI.create(tenant.base() + "/configuration"))
                         .header("Authorization", "Bearer " + bearer)
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
     private String read(String path) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(ZONE) + path))
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Authorization", "Bearer "
-                                + token("a-reader", "reader-secret", "system/*.read"))
+                                + token("through-the-face-reader", "reader-secret", "system/*.read"))
                         .GET().build(),
                 HttpResponse.BodyHandlers.ofString()).body();
     }
@@ -573,7 +539,7 @@ class ADeclarationIsAppliedThroughTheFaceIT {
                 + "&client_secret=" + secret + "&scope="
                 + URLEncoder.encode(scope, StandardCharsets.UTF_8);
         String body = HTTP.send(HttpRequest.newBuilder(
-                        URI.create(manager.baseUrl(ZONE).replace("/fhir", "/oidc/token")))
+                        URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
