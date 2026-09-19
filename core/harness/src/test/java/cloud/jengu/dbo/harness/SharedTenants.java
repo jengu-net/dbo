@@ -138,6 +138,21 @@ public final class SharedTenants {
                 .formatted(EID), "r4", ",\"pdi\":true", "none"),
 
         /**
+         * r4 for converting stock from one shape to another.
+         *
+         * <p>Two classes wrote this same set out — the profiles a document is
+         * held to, the maps that carry it between them, and something ordinary
+         * to convert. Each of them then reshapes only what it aimed at, which
+         * is what lets them share: a run that converged somebody else's stock
+         * would be the bug either of them is looking for.
+         */
+        R4_RESHAPE("sharedr4reshape", """
+                [{"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                 {"name":"StructureMap","identity":"canonical","handling":"operational"},
+                 {"name":"Basic","identity":"internal","handling":"operational"}]""",
+                "r4", "", "none"),
+
+        /**
          * r4 holding profiles of its own, and NOT a face root.
          *
          * <p>A tenant that authors StructureDefinitions and keeps ordinary
@@ -220,6 +235,16 @@ public final class SharedTenants {
     private static final HttpClient HTTP = HttpClient.newHttpClient();
     /** Keyed by tenant CODE rather than by shape, since a shape can have several. */
     private static final Map<String, Tenant> UP = new ConcurrentHashMap<>();
+    /**
+     * The provisioner the shared runtime was built on.
+     *
+     * <p>Held because a tenant's bootstrap credential is ITS deployment's,
+     * and a class that authenticates as the deployment has to be able to
+     * ask for it. Ten classes were building a runtime of their own for no
+     * other reason than that this was unreachable.
+     */
+    private static LocalDatabasePerTenantProvisioner PROVISIONER;
+
     private static final TenantRuntimeManager MANAGER = start();
     private static Path directory;
 
@@ -229,12 +254,12 @@ public final class SharedTenants {
     private static TenantRuntimeManager start() {
         try {
             directory = Files.createTempDirectory("dbo-shared-tenants");
-            LocalDatabasePerTenantProvisioner provisioner = new LocalDatabasePerTenantProvisioner(
+            PROVISIONER = new LocalDatabasePerTenantProvisioner(
                     SharedPostgres.urlFor("sharedtenants"),
                     SharedPostgres.username(), SharedPostgres.password());
             byte[] kek = new byte[32];
             new java.security.SecureRandom().nextBytes(kek);
-            TenantRuntimeManager manager = new TenantRuntimeManager(directory, provisioner,
+            TenantRuntimeManager manager = new TenantRuntimeManager(directory, PROVISIONER,
                     "127.0.0.1", 0, null, new TenantRuntimeManager.AuthorityConfig(kek, null));
             // Never closed from a class's @AfterAll: the runtime outlives any
             // one of them now, and closing it would pull the floor out from
@@ -328,6 +353,16 @@ public final class SharedTenants {
 
         public ChangeFeed feed() {
             return MANAGER.runtime(code).orElseThrow().feed();
+        }
+
+        /**
+         * The secret this deployment holds for this tenant's bootstrap client.
+         *
+         * <p>The same thing a deployment keeps in its own vault: the credential
+         * that exists before anything the tenant itself could have issued.
+         */
+        public String bootstrapSecret() {
+            return PROVISIONER.bootstrapClientSecret(code);
         }
 
         public TenantAuthority authority() {
