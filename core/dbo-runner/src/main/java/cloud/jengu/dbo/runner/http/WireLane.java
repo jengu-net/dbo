@@ -252,6 +252,17 @@ public class WireLane implements Lane {
     }
 
     @Override
+    public cloud.jengu.dbo.work.SealedPayload identified(Run run, String reference,
+            String purpose) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        body.put(LaneVerbs.REFERENCE, reference);
+        body.put(LaneVerbs.PURPOSE, purpose);
+        return RecordWire.decode(post(LaneVerbs.IDENTIFIED, body),
+                cloud.jengu.dbo.work.SealedPayload.class);
+    }
+
+    @Override
     public cloud.jengu.dbo.work.SealedWork sealed(Run run) {
         return sealed(run, null);
     }
