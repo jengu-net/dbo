@@ -1139,6 +1139,21 @@ class TheGuideRunsIT {
                         said[0] + " should hold the version's definitions, got " + held);
             }
             assertEquals(2, held.lines().count(), "both face roots should answer: " + held);
+
+            // Counted is not found. What the root holds has to be findable by
+            // the canonical url it is known by, which is how a tenant taking
+            // the version asks for one definition rather than all of them.
+            Snippets.Ran byUrl = snippets.sh(
+                    "curl -sf -G -H \"Authorization: Bearer $FACE_R5\""
+                            + " \"http://localhost:8090/t/fhir-r5/fhir/StructureDefinition\""
+                            + " --data-urlencode"
+                            + " 'url=http://hl7.org/fhir/StructureDefinition/Patient'"
+                            + " | python3 -c 'import sys,json;"
+                            + "print(len(json.load(sys.stdin).get(\"entry\",[])))'");
+            assertEquals(0, byUrl.status(), "the root answered nothing: " + byUrl.err());
+            assertEquals("1", byUrl.lastLine(),
+                    "the root holds the version's definitions and does not find one by the "
+                            + "canonical url it is known by: " + byUrl.text());
         }
 
         @Test
