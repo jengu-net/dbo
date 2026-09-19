@@ -2,9 +2,6 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -12,7 +9,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -20,8 +16,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,12 +32,10 @@ class NewerDataRefusedIT {
     private static final String SHAPE = "https://sonavara.example/StructureDefinition/reading";
     private static final String WITHDRAWN = "https://sonavara.example/StructureDefinition/gone";
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant tenant;
     static final HttpClient http = HttpClient.newHttpClient();
     static String base;
+    static String bearer;
     static String tooNew;
     static String unstamped;
     static String underWithdrawn;
@@ -51,18 +43,13 @@ class NewerDataRefusedIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-tenants-toonew");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("NewerDataRefusedIT"),
-                postgres.getUsername(), postgres.getPassword());
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
-        Files.writeString(dir.resolve("uus.json"), """
-                {"code":"uus","face":"r4","types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, "uus");
-        base = manager.baseUrl("uus");
+        // A tenant of this class's own, on the shared runtime. It rolls the
+        // pack BACKWARDS, which makes every stamped record in the tenant
+        // unreadable — so it cannot share one, and numbering is how it takes
+        // a private tenant without paying for a private runtime.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_RESHAPE, 2);
+        base = tenant.fhir();
+        bearer = tenant.token("newer-data-refused", "system/*.read", "system/*.write");
 
         // The pack stands at 3.0.0, and stock is written under it.
         assertEquals(201, post("/StructureDefinition", shape(SHAPE, "3.0.0")).statusCode());
@@ -74,16 +61,6 @@ class NewerDataRefusedIT {
                 {"resourceType":"Basic","code":{"text":"plain"}}"""));
         assertTrue(get("/Basic/" + tooNew).body().contains("\"valueString\":\"3.0.0\""),
                 "the stock starts stamped at what the pack then declared");
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -164,6 +141,7 @@ class NewerDataRefusedIT {
     private static HttpResponse<String> post(String path, String body) throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create(base + path))
                         .header("Content-Type", "application/fhir+json")
+                        .header("Authorization", "Bearer " + bearer)
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
@@ -171,17 +149,20 @@ class NewerDataRefusedIT {
     private static HttpResponse<String> put(String path, String body) throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create(base + path))
                         .header("Content-Type", "application/fhir+json")
+                        .header("Authorization", "Bearer " + bearer)
                         .PUT(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
     private static HttpResponse<String> delete(String path) throws Exception {
-        return http.send(HttpRequest.newBuilder(URI.create(base + path)).DELETE().build(),
+        return http.send(HttpRequest.newBuilder(URI.create(base + path))
+                        .header("Authorization", "Bearer " + bearer).DELETE().build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
     private static HttpResponse<String> get(String path) throws Exception {
-        return http.send(HttpRequest.newBuilder(URI.create(base + path)).GET().build(),
+        return http.send(HttpRequest.newBuilder(URI.create(base + path))
+                        .header("Authorization", "Bearer " + bearer).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 }
