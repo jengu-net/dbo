@@ -785,6 +785,7 @@ class TheGuideRunsIT {
         @Test
         @Order(5)
         @DisplayName("a write lands between the pages, and the next page does not repeat")
+        @Proving(DboPromises.FEED_KEYSET_CURSORS)
         void aWriteLandsBetweenThePages() throws Exception {
             Snippets.Ran between = snippets.sh("""
                     curl -sf -o /dev/null -X POST -H "Authorization: Bearer $HOSPITAL" \
@@ -1473,6 +1474,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("and what is reading them, with how far behind it is")
+        @Proving(DboPromises.FEED_NAMED_CONSUMERS)
         void andWhatIsReadingThem() throws Exception {
             java.util.List<String> reading = snippets.run("feed-consumers").text().lines().toList();
             assertTrue(!reading.isEmpty(), "the tenant does not say what is reading it");
@@ -1545,6 +1547,7 @@ class TheGuideRunsIT {
         @Test
         @Order(1)
         @DisplayName("the archive is sealed under a key the store does not hold")
+        @Proving(DboPromises.PDI_BLIND_OPERATIONS)
         void theArchiveIsSealedUnderAKeyTheStoreDoesNotHold() throws Exception {
             String refused = snippets.run("archive-no-key").text();
             assertTrue(refused.contains("does not hold"),
@@ -1565,6 +1568,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("coming back is a ceremony, and the store cannot perform it alone")
+        @Proving(DboPromises.MNT_IMPORT_REFUSES_UNATTESTED)
         void comingBackIsACeremony() throws Exception {
             String refused = snippets.run("import-needs-signatures").text();
             assertTrue(refused.contains("cannot sign for either of them"),
