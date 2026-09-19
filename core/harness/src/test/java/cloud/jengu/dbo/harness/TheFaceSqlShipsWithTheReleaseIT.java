@@ -46,49 +46,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TheFaceSqlShipsWithTheReleaseIT {
 
-    private static final String CLINIC = "reeglid-kliinik";
+    static SharedTenants.Tenant tenant;
+    static SharedTenants.Tenant root;
+    static String CLINIC;
     private static final String PROFILE = "https://ee.ee/StructureDefinition/uhe-nimega-patsient";
     private static final String PINNED = "https://ee.ee/StructureDefinition/ik-patsient";
     /** A tenant holding its whole version as records, which is where a binding can be judged. */
-    private static final String ROOT = "reeglid-juur";
     private static final String SHAPE = "http://hl7.org/fhir/StructureDefinition/StructureDefinition";
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-face-sql");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("TheFaceSqlShipsWithTheReleaseIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CLINIC + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"none"},
-                 "types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
-                .formatted(CLINIC));
-        Files.writeString(dir.resolve(ROOT + ".json"), """
-                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
-                 "types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
-                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
-                  {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
-                .formatted(ROOT));
-        UntilServed.scan(manager, CLINIC);
-        UntilServed.scan(manager, ROOT);
+        // Shared, and the face root with it. This class needs a tenant that
+        // authors profiles and a face root to read the version from; the
+        // second is the expensive one and four other classes already share it,
+        // so asking for it here costs nothing.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_PROFILED);
+        CLINIC = tenant.code();
+        root = SharedTenants.of(SharedTenants.Shape.R4_FACE_ROOT);
 
         // A rule of this tenant's own: one name, and one name per contact is
         // what Patient already says.
-        manager.runtime(CLINIC).orElseThrow().store().create("""
+        tenant.store().create("""
                 {"resourceType":"StructureDefinition",
                  "url":"%s","name":"UheNimegaPatsient","status":"active","kind":"resource",
                  "abstract":false,"type":"Patient",
@@ -99,7 +78,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
                 .formatted(PROFILE));
         // And one that pins values rather than counts: an identifier system
         // it issues under, and a marital status it exists to record.
-        manager.runtime(CLINIC).orElseThrow().store().create("""
+        tenant.store().create("""
                 {"resourceType":"StructureDefinition",
                  "url":"%s","name":"IkPatsient","status":"active","kind":"resource",
                  "abstract":false,"type":"Patient",
@@ -112,17 +91,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
                     "patternCodeableConcept":{"coding":[{"system":
                       "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus","code":"M"}]}}]}}"""
                 .formatted(PINNED));
-        manager.runtime(CLINIC).orElseThrow().store().shapesChanged();
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        tenant.store().shapesChanged();
     }
 
     @Test
@@ -315,7 +284,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
 
         // A patient the profile is happy with. Accepted, as it would be
         // without any of this.
-        manager.runtime(CLINIC).orElseThrow().store().create("""
+        tenant.store().create("""
                 {"resourceType":"Patient","meta":{"profile":["%s"]},
                  "name":[{"family":"Tamm","given":["Mari"]}]}""".formatted(PROFILE));
 
@@ -324,7 +293,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
         cloud.jengu.dbo.fhir.common.ValidationFailedException refused =
                 org.junit.jupiter.api.Assertions.assertThrows(
                         cloud.jengu.dbo.fhir.common.ValidationFailedException.class,
-                        () -> manager.runtime(CLINIC).orElseThrow().store().create("""
+                        () -> tenant.store().create("""
                                 {"resourceType":"Patient","meta":{"profile":["%s"]},
                                  "name":[{"family":"Tamm"},{"family":"Kask"}]}"""
                                 .formatted(PROFILE)));
@@ -347,7 +316,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
         // it is not on a face — so a patient claiming neither of them has no
         // rows to be judged against. Saying "the database found nothing"
         // about that would read as agreement and mean silence.
-        manager.runtime(CLINIC).orElseThrow().store().create("""
+        tenant.store().create("""
                 {"resourceType":"Patient","name":[{"family":"Saar"}]}""");
 
         assertTrue(countOf("notHeld") > unheldBefore,
@@ -384,11 +353,11 @@ class TheFaceSqlShipsWithTheReleaseIT {
     /** Microseconds per write, warmed. */
     private long timed(int writes, String document) {
         for (int i = 0; i < 5; i++) {
-            manager.runtime(CLINIC).orElseThrow().store().create(document);
+            tenant.store().create(document);
         }
         long from = System.nanoTime();
         for (int i = 0; i < writes; i++) {
-            manager.runtime(CLINIC).orElseThrow().store().create(document);
+            tenant.store().create(document);
         }
         return (System.nanoTime() - from) / writes / 1_000;
     }
@@ -404,7 +373,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
         // "records", every one of these was refused — on exactly the tenants
         // whose design is to hold the specification as records.
         for (String type : List.of("Patient", "Observation", "Task")) {
-            manager.runtime(ROOT).orElseThrow().store().create("""
+            root.store().create("""
                     {"resourceType":"StructureDefinition",
                      "url":"https://ee.ee/sd/oma-%s","name":"Oma%s","status":"active",
                      "kind":"resource","abstract":false,"type":"%s",
@@ -420,7 +389,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
             + "this store cannot speak for is left alone")
     @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
     void aReferenceIsResolvedAgainstTheRecords() throws Exception {
-        String id = manager.runtime(CLINIC).orElseThrow().store().create("""
+        String id = tenant.store().create("""
                 {"resourceType":"Patient","name":[{"family":"Viide"}]}""").id();
 
         assertTrue(issuesAgainst(CLINIC, PINNED, """
@@ -525,7 +494,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
     }
 
     private List<String> findings(String profile, String document) throws Exception {
-        return issuesAgainst(ROOT, profile, document);
+        return issuesAgainst(root.code(), profile, document);
     }
 
     /**
@@ -534,7 +503,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
      * either of them.
      */
     private long timedValidate(int rounds, String profile, String document) throws Exception {
-        try (Connection c = tenantSource(ROOT).getConnection();
+        try (Connection c = tenantSource(root.code()).getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "SELECT count(*) FROM dbo.validate(?::jsonb, ?)")) {
             ps.setString(1, document);
@@ -591,7 +560,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
     }
 
     private List<String> rootQuery(String sql, String... arguments) throws Exception {
-        try (Connection c = tenantSource(ROOT).getConnection();
+        try (Connection c = tenantSource(root.code()).getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             for (int i = 0; i < arguments.length; i++) {
                 ps.setString(i + 1, arguments[i]);
@@ -654,7 +623,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
     /** Microseconds per call of one check, warmed, on one connection. */
     private long timedCheck(int rounds, String check, String document, String profile)
             throws Exception {
-        try (Connection c = tenantSource(ROOT).getConnection();
+        try (Connection c = tenantSource(root.code()).getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "SELECT count(*) FROM dbo." + check + "(?::jsonb, ?)")) {
             ps.setString(1, document);
@@ -674,7 +643,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
 
     private String tally() {
         return ((cloud.jengu.dbo.fhir.element.ElementStore)
-                manager.runtime(CLINIC).orElseThrow().store()).advisoryTally();
+                tenant.store()).advisoryTally();
     }
 
     private long compared() {
@@ -696,7 +665,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
     }
 
     private List<String> rootIssues(String document) throws Exception {
-        return issuesAgainst(ROOT, SHAPE, document);
+        return issuesAgainst(root.code(), SHAPE, document);
     }
 
     private List<String> issuesAgainst(String profile, String document) throws Exception {
@@ -743,10 +712,10 @@ class TheFaceSqlShipsWithTheReleaseIT {
 
     private PGSimpleDataSource tenantSource(String tenant) {
         PGSimpleDataSource source = new PGSimpleDataSource();
-        source.setUrl(SharedPostgres.urlFor("x")
+        source.setUrl(SharedPostgres.urlFor("sharedtenants")
                 .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + tenant.replace('-', '_')));
-        source.setUser(postgres.getUsername());
-        source.setPassword(postgres.getPassword());
+        source.setUser(SharedPostgres.username());
+        source.setPassword(SharedPostgres.password());
         return source;
     }
 }
