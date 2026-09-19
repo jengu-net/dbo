@@ -1195,6 +1195,23 @@ class TheGuideRunsIT {
 
         @Test
         @Order(2)
+        @DisplayName("and the practitioner's own number is not in what comes back")
+        @Proving(DboPromises.PDI_STRUCTURAL_VAULT)
+        void thePractitionersNumberIsNotInThePayload() throws Exception {
+            // The hospital is behind the membrane, and a practitioner is a
+            // person like any other. If their number were in the document a
+            // reader gets back, everything the rest of this story says about
+            // roles resolving behind the membrane would be saying nothing.
+            String read = ask("HOSPITAL", "/Practitioner/" + snippets.recall("matron"));
+            assertTrue(!read.contains("RL-POMFREY"),
+                    "the practitioner's number is in the payload, so this tenant's vault is "
+                            + "not holding it: " + read);
+            assertTrue(read.contains("Pomfrey"),
+                    "the name did not come back at all, so the read proves nothing: " + read);
+        }
+
+        @Test
+        @Order(3)
         @DisplayName("a role is a record, not a column")
         void aRoleIsARecordNotAColumn() throws Exception {
             assertEquals("201", snippets.run("the-role").lastLine());
@@ -1205,7 +1222,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(3)
+        @Order(4)
         @DisplayName("and what that role may do is declared, and readable")
         void whatThatRoleMayDoIsReadable() throws Exception {
             String grants = snippets.run("role-grant").text();
@@ -1213,6 +1230,12 @@ class TheGuideRunsIT {
                     "the tenant does not say what it grants: " + grants);
             assertTrue(grants.contains("user/Patient.read"),
                     "the grant does not say what it carries: " + grants);
+            // And where it reaches. A role scoped to an organisation that came
+            // back reaching the whole tenant would grant more than was asked
+            // for, which is the failure nobody sees until somebody reads a
+            // record they should not have.
+            assertTrue(grants.contains("hogwarts"),
+                    "the grant does not name the organisation it is at: " + grants);
         }
 
     }
@@ -1676,7 +1699,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(71)
+        @Order(9)
         @DisplayName("the read through the run is on the record, naming the run that occasioned it")
         @Proving(DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES)
         void theReadThroughTheRunIsOnTheRecord() throws Exception {
@@ -1701,7 +1724,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(71)
+        @Order(10)
         @DisplayName("the work ends, and the way in closes behind it")
         @Proving(DboPromises.PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN)
         void theWorkEndsAndTheWayInClosesBehindIt() throws Exception {
