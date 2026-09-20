@@ -224,6 +224,18 @@ val reachModules = listOf(
 
 fun reachProperty(module: String) = module.replace(':', '.').replace('-', '.') + ".reach.jar"
 
+val worldsLedger by tasks.registering(JavaExec::class) {
+    group = "documentation"
+    description = "Re-records config/worlds-ledger.txt from the harness classes that build a runtime."
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("cloud.jengu.dbo.harness.WorldsLedger")
+    args(
+        rootProject.file("config/worlds-ledger.txt").absolutePath,
+        layout.projectDirectory.dir("src/test/java/cloud/jengu/dbo/harness").asFile.absolutePath,
+    )
+}
+
 val promiseCitations by tasks.registering(JavaExec::class) {
     group = "documentation"
     description = "Re-records config/promise-citations.txt from the prose in the tree."
@@ -294,6 +306,9 @@ tasks.withType<Test>().configureEach {
     // The same, for the ledger that records what production names.
     systemProperty("dbo.reach.ledger", rootProject.file("config/reach-ledger.txt").absolutePath)
     inputs.file(rootProject.file("config/reach-ledger.txt"))
+    // And for the one that records which classes still build a world of their own.
+    systemProperty("dbo.worlds.ledger", rootProject.file("config/worlds-ledger.txt").absolutePath)
+    inputs.file(rootProject.file("config/worlds-ledger.txt"))
     for (module in reachModules) {
         dependsOn(":$module:jar")
         systemProperty(

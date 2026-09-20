@@ -518,6 +518,54 @@ tasks.register<Zip>("centralBundle") {
     exclude("**/maven-metadata*")
 }
 
+// ─── Where the time goes ──────────────────────────────────────────────
+//
+// Every test task already writes JUnit XML with a wall-clock time per class.
+// Nothing read it, so the classes that build a world of their own and pay
+// thirty seconds of provisioning for two seconds of test were known only by
+// reputation. This ranks them from the XML the last run left behind, and CI
+// appends the table to the run's summary, so the worklist is the top of a
+// list rather than a memory.
+val slowestTests by tasks.registering {
+    group = "verification"
+    description = "Ranks test classes by wall-clock time from the JUnit XML of the last run."
+    val report = layout.buildDirectory.file("reports/slowest-tests.md")
+    outputs.upToDateWhen { false }
+    doLast {
+        val suite = Regex("<testsuite[^>]*\\bname=\"([^\"]+)\"[^>]*\\btime=\"([0-9.]+)\"")
+        val rows = rootDir.walkTopDown()
+            .onEnter { it.name != ".git" && it.name != ".gradle" && it.name != ".claude" }
+            .filter { it.isFile && it.name.startsWith("TEST-") && it.extension == "xml" }
+            .filter { it.parentFile.parentFile?.name == "test-results" }
+            .mapNotNull { f ->
+                suite.find(f.readText())?.let { m ->
+                    Triple(m.groupValues[2].toDouble(), m.groupValues[1], f.parentFile.name)
+                }
+            }
+            .sortedByDescending { it.first }
+            .toList()
+        val total = rows.sumOf { it.first }
+        val lines = mutableListOf(
+            "## Where the test time went",
+            "",
+            "%d classes, %.0f s of class time in total. The top thirty:".format(rows.size, total),
+            "",
+            "| s | class | task |",
+            "|---:|---|---|",
+        )
+        rows.take(30).forEach { (t, name, task) ->
+            lines.add("| %.1f | `%s` | %s |".format(t, name.substringAfterLast('.'), task))
+        }
+        val out = report.get().asFile
+        out.parentFile.mkdirs()
+        out.writeText(lines.joinToString("\n") + "\n")
+        rows.take(10).forEach { (t, name, task) ->
+            logger.lifecycle("%7.1f s  %s  (%s)".format(t, name.substringAfterLast('.'), task))
+        }
+        logger.lifecycle("ranked ${rows.size} classes into ${out.relativeTo(rootDir)}")
+    }
+}
+
 // ─── The site ──────────────────────────────────────────────────────
 //
 // The published site is a BUILD OUTPUT assembled from three sources: the

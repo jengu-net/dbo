@@ -1,0 +1,67 @@
+# Harness classes that build a runtime of their own.
+#
+# GENERATED — do not edit the class list. Re-record with:
+#     ./gradlew :core:harness:worldsLedger
+#
+# The REASON is yours and regeneration keeps it. A new entry arrives
+# as REASON MISSING and the build fails until it says which of these
+# it is:
+#
+#   lifecycle   — the test is about the tenant coming up, going down,
+#                 or being held out of service
+#   container   — it needs the OSGi container or the distribution
+#   tampering   — it alters what the store holds behind its back
+#   first boot  — it needs a runtime nothing has touched
+#   sweep       — it runs a deployment-wide pass (shapesRound,
+#                 syncRound, scanOnce), which would visit every
+#                 tenant a shared runtime holds
+#   UNDECIDED   — predates the ledger, and is the migration's worklist
+#
+# The number of UNDECIDED entries may only fall. Regeneration lowers the
+# allowance to the actual count; the build fails above it.
+#
+# undecided-allowed: 44
+ABlobIsTenantDataIT                                      UNDECIDED
+AChangeCanBeAskedAboutBeforeItIsMadeIT                   UNDECIDED
+ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
+ADefinitionMovesOnItsOwnFeedIT                           UNDECIDED
+ADeploymentPresentsItsOwnCredentialIT                    UNDECIDED
+ADeploymentRecordsWhatItWasToldToServeIT                 UNDECIDED
+AFaceIsCutOnceAndBroughtUpFromIT                         UNDECIDED
+AFaceRootHoldsItsVersionAsRecordsIT                      UNDECIDED
+AHostHoldsALaneByInstallingABundleIT                     UNDECIDED
+ALaneOverTheStreamIsIndistinguishableIT                  UNDECIDED
+ALargePayloadTravelsByReferenceIT                        UNDECIDED
+APartnerFollowsWorkIT                                    UNDECIDED
+AReplicatedProfileCanBeValidatedAgainstIT                UNDECIDED
+AShutdownIsQuietIT                                       UNDECIDED
+AStoreWithoutSuperuserStillMountsIT                      UNDECIDED
+AStreamKeepsMovingWhileATenantComesUpIT                  UNDECIDED
+AStreamLaneIsToldItHasWorkIT                             UNDECIDED
+ATenantAuthorsItsOwnSearchParameterIT                    UNDECIDED
+ATenantComesUpFromTheFaceImageIT                         UNDECIDED
+ATenantDeclaredDifferentlyIsNoticedIT                    UNDECIDED
+ATenantGoingAwayIsNotOneThatFailedIT                     UNDECIDED
+ATenantOpensAndItsPeopleGetInIT                          UNDECIDED
+ATenantSubscribesToItsVersionIT                          UNDECIDED
+ATenantThatIsNotUpSaysWhyIT                              UNDECIDED
+AZoneReachesAnotherFaceThroughOneProjectionIT            UNDECIDED
+AnOperatorReadsAndSteersTheFleetIT                       UNDECIDED
+EachTypeStreamsAtItsOwnGrainIT                           UNDECIDED
+EngineVocabularyDoesNotCollideWithItselfIT               UNDECIDED
+FaceRefusalIT                                            UNDECIDED
+FederatedAuthIT                                          UNDECIDED
+HumanAuthIT                                              UNDECIDED
+MandatoryStepsClassifyIncidentsIT                        UNDECIDED
+MetaSaysTheEnginesFactsIT                                UNDECIDED
+NothingReadableLandsInTheSubstrateIT                     UNDECIDED
+OneTenantInTwoPlacesIT                                   UNDECIDED
+OperatorIT                                               UNDECIDED
+ProfilesArrivingOutOfBandTakeEffectIT                    UNDECIDED
+ScimProvisioningIT                                       UNDECIDED
+SeveralTenantsDeclaredAtOnceComeUpTogetherIT             UNDECIDED
+SpecDeclaredSyncIT                                       UNDECIDED
+TenantRuntimeIT                                          UNDECIDED
+ThePlaintextInFlightLeavesNoTraceIT                      UNDECIDED
+WhatTheLoadedSpecificationCostsIT                        UNDECIDED
+ZoneIT                                                   UNDECIDED

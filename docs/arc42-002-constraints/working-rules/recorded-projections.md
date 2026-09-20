@@ -1,6 +1,6 @@
 # Recorded projections
 
-Four artefacts are generated from something else and committed beside it.
+Five artefacts are generated from something else and committed beside it.
 Each has a ratchet that fails the build when what is committed disagrees
 with its source.
 
@@ -10,6 +10,7 @@ with its source.
 | The exported-API ledger | public and protected signatures in exported packages | `./gradlew :core:harness:apiLedger` |
 | The skills and the trap section of `CLAUDE.md` | skill-blocks and the marked region in the constraints documents | `./gradlew generateSkills` |
 | The diagram SVGs | `.lini` sources and `.desc` descriptions | `./gradlew siteDiagrams` |
+| The worlds ledger | harness classes that construct a runtime | `./gradlew :core:harness:worldsLedger` |
 
 A ratchet runs after the push, and its failure lands one commit late: the
 change compiles, the tests that cover the behaviour pass, and the build goes
@@ -30,15 +31,15 @@ name: dbo-recorded-projections
 applies-when: >-
   Changing a promise constant or citation, a public or protected signature
   in an exported package, a skill-block or marked region in a constraints
-  document, or a diagram source; or when a build says a projection disagrees
-  with its source.
+  document, a diagram source, or a harness class that builds a runtime; or
+  when a build says a projection disagrees with its source.
 reference: docs/arc42-002-constraints/working-rules/recorded-projections.md
 ```
 **Rules**
 - MUST re-record every generated artefact a change makes stale, in the same
   change: `promiseProjection` for the catalogue, `apiLedger` for the ledger,
   `generateSkills` for the skills and trap section, `siteDiagrams` for the
-  SVGs.
+  SVGs, `worldsLedger` for the worlds ledger.
 - MUST treat adding a constant to an exported enum, or a component to an
   exported record, as an API change.
 - MUST read the ledger's report. What is GONE stops anything compiled
