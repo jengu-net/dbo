@@ -65,5 +65,5 @@ fhir-r4=r4-secret,hogwarts=hogwarts-secret,gringotts=gringotts-secret"
 
       DBO_LOG_FORMAT: text
     volumes:
-      - ../world/tenants:/etc/dbo/tenants:ro
-      - ../world:/etc/dbo/management:ro
+      - ../../../sample/world/tenants:/etc/dbo/tenants:ro
+      - ../../../sample/world:/etc/dbo/management:ro

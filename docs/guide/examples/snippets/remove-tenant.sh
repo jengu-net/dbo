@@ -1,1 +1,1 @@
-rm docs/guide/world/tenants/stmungos.json
+rm sample/world/tenants/stmungos.json

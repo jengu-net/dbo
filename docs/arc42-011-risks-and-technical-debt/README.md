@@ -26,7 +26,7 @@ is deliberately not being done, and the commands that prove it.
 | Item | State |
 |---|---|
 | [001 The documentation tree is moved to match its map](001-documentation-shape/README.md) | Open. Next: write the runtime chapter's scenarios and create the quality-requirements chapter. |
-| [002 The sample application](002-sample-application/README.md) | Open. Waits for nothing; starts when item 001 has reached its last step. |
+| [002 The sample application](002-sample-application/README.md) | Open. The module owns its sources and the world's specs, and its runner performs a run end to end. Next: the external participant, from its own process. |
 | [003 Own-world tests move down the ladder](003-tests-move-down-the-ladder/README.md) | Open. 44 harness classes build a runtime of their own and are undecided. Next: classify them into rungs. |
 | [004 The guide runs three times in CI](004-the-guide-runs-three-times/README.md) | Open. Next: port the one step the shell harness still covers. |
 | [005 Re-recording runs before the commit](005-re-recording-before-the-commit/README.md) | Open. Five projections are re-recorded by hand. Next: one task that runs all five. |

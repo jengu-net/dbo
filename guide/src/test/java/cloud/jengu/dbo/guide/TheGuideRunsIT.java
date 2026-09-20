@@ -114,7 +114,7 @@ class TheGuideRunsIT {
         // away whatever happened, rather than leaving the repository dirty for
         // whoever runs next.
         java.nio.file.Files.deleteIfExists(
-                Path.of("..", "docs", "guide", "world", "tenants", "stmungos.json"));
+                Path.of("..", "sample", "world", "tenants", "stmungos.json"));
         java.nio.file.Files.deleteIfExists(ARCHIVE);
     }
 
@@ -1870,6 +1870,62 @@ class TheGuideRunsIT {
     }
 
     /**
+     * The other side of the lane: code somebody wrote, performing the work.
+     *
+     * <p>Every story before this one drives the store the way a reader drives
+     * it while learning — a command, an answer, a look at what changed. This
+     * one runs the integrator's own class instead, the one
+     * [performing work](../../docs/guide/performing-work.md) shows and the
+     * sample module compiles, against the run the chapters just authored.
+     *
+     * <p>It holds no store and no way to get one. What it holds is a lane, so
+     * the same class runs beside the store, in another process, or on an
+     * appliance behind a firewall.
+     */
+    @Nested
+    @Order(18)
+    @DisplayName("a runner somebody wrote, performing the work")
+    @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+    class ARunnerSomebodyWrote {
+
+        @Test
+        @Order(1)
+        @DisplayName("the step service takes the run the hospital authored, and closes it")
+        void theStepServiceTakesTheRun() throws Exception {
+            // A run of its own, authored through the same door the chapter
+            // uses. A participant's poll reads a feed from where that
+            // participant left off, and the story above already polled this
+            // one — so the run the chapters authored sits behind its cursor,
+            // and work that arrives after it is what a runner is offered.
+            assertTrue(snippets.run("start-a-run").text().contains("\"run\""),
+                    "no run was authored for the runner to take");
+
+            int performed = 0;
+            try (cloud.jengu.dbo.sample.Admissions admissions =
+                    new cloud.jengu.dbo.sample.Admissions(
+                            java.net.URI.create("http://localhost:8090/t/hogwarts/"),
+                            "hogwarts", () -> snippets.recall("PORTER"))) {
+                // A cycle takes what is offered now, and the offer is a read
+                // of a feed, so this asks a few times rather than assuming
+                // the first pass sees the event just written.
+                for (int attempt = 0; attempt < 15 && performed == 0; attempt++) {
+                    performed = admissions.cycle();
+                    if (performed == 0) {
+                        TimeUnit.SECONDS.sleep(1);
+                    }
+                }
+            }
+            assertTrue(performed > 0, "the runner was offered nothing it could perform");
+
+            // Done means done: the store closed the run on what perform
+            // returned, and the record says so on the face a reader uses.
+            String task = ask("HOSPITAL", "/Task/" + snippets.recall("run"));
+            assertTrue(task.contains("\"status\":\"completed\""),
+                    "the run the runner performed is not closed: " + task);
+        }
+    }
+
+    /**
      * What an operator holding the database sees where the identifying
      * elements would be, and the two refusals that keep it that way: a name
      * search, and an identifying lookup with no stated reason.
@@ -1879,7 +1935,7 @@ class TheGuideRunsIT {
      * different and false statement.
      */
     @Nested
-    @Order(18)
+    @Order(19)
     @DisplayName("the membrane")
     @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
     class TheMembrane {
@@ -1964,7 +2020,7 @@ class TheGuideRunsIT {
      * here.
      */
     @Nested
-    @Order(19)
+    @Order(20)
     @DisplayName("the directory at the door")
     @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
     class TheDirectoryAtTheDoor {
@@ -2127,7 +2183,7 @@ class TheGuideRunsIT {
      * still available to a later story, because there is no later story.
      */
     @Nested
-    @Order(20)
+    @Order(21)
     @DisplayName("being forgotten")
     @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
     class BeingForgotten {

@@ -1,2 +1,2 @@
 sed 's/"hogwarts"/"stmungos"/' \
-    docs/guide/world/tenants/hogwarts.json > docs/guide/world/tenants/stmungos.json
+    sample/world/tenants/hogwarts.json > sample/world/tenants/stmungos.json

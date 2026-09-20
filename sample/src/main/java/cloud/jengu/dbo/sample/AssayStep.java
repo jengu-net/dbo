@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.guide.examples;
+package cloud.jengu.dbo.sample;
 
 import cloud.jengu.dbo.runner.Outcome;
 import cloud.jengu.dbo.runner.StepService;

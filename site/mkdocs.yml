@@ -85,6 +85,10 @@ markdown_extensions:
   - pymdownx.snippets:
       base_path:
         - ../build/site-src
+        # The sample application's sources and its world, included by the
+        # chapters that are documentation about them. The repository root,
+        # because a module is not inside the assembled site tree.
+        - ..
       check_paths: true
   - pymdownx.details
 

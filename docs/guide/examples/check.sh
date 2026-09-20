@@ -291,7 +291,7 @@ undeclared=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: B
 
 step "a tenant appears when its spec does"
 source docs/guide/examples/snippets/add-tenant.sh
-trap 'rm -f "$PWD/docs/guide/world/tenants/stmungos.json"; cleanup' EXIT
+trap 'rm -f "$PWD/sample/world/tenants/stmungos.json"; cleanup' EXIT
 for _ in $(seq 1 60); do
     if curl -sf -o /dev/null "http://localhost:8090/t/stmungos/fhir/metadata"; then break; fi
     sleep 5
