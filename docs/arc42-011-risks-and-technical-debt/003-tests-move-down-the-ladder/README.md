@@ -45,10 +45,17 @@ other class's work. That is a sixth reason, added to the ledger by finding
 it rather than by imagining it.
 
 All eight stories have now been read this way, and not one has produced a
-test to move. What the reading produced instead is two reasons the ledger
-did not have, four stories whose private worlds are correct, one defect in
-the report, and one defect in the store. The three authentication classes
-person rights named remain the only genuine candidates.
+test to move. What the reading produced instead is three reasons the ledger
+did not have, stories whose private worlds are correct, one defect in the
+report, and one defect in the store.
+
+The three classes named here as candidates were read last and are not
+candidates either. One configures redirect uris on its provisioner, one
+stands up a zone hub with a broker and counts its ceremonies, and one
+deliberately leaves a database unpinned to prove an isolated tenant refuses
+it. Each needs a runtime built differently from the shared one, which is
+the third reason: what a tenant cannot share is its configuration, and nor
+can a deployment.
 
 ## How it is run
 
