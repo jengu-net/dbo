@@ -1,0 +1,8 @@
+A hop crosses a boundary, and is recorded three times
+A process running in the platform plane asks the sending tenant to perform
+its half. The tenant does the work and sends the content directly to the
+receiving tenant's ingress, which takes it; only a reference goes back to the
+platform. The platform then records the hop itself: the participants, the
+process it belongs to and the hashes of what moved, never the content. Three
+records are written in three stores: the sender's egress and the receiver's
+ingress in each tenant's own trail, and the coordination in the platform's.

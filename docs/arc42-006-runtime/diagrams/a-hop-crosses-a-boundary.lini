@@ -1,0 +1,35 @@
+{
+  // Work that leaves one tenant for another. Drawn as a sequence because the
+  // ORDER is the isolation claim: the platform coordinates and holds no
+  // content, the content goes tenant to tenant, and three records are
+  // written rather than one.
+
+  layout: sequence;
+  gap: 22 46;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |outside::box| { fill: --bg; stroke: --faint; }
+  |face::box|    { fill: --accent-soft; stroke: --accent; }
+  |engine::box|  { fill: --seal-soft; stroke: --seal; }
+}
+
+|engine#platform| "The platform plane"
+|face#sender| "The sending tenant"
+|face#receiver| "The receiving tenant"
+
+platform -> sender "perform your half"
+sender -> sender "do the work"
+sender -> receiver "the content, to its ingress"
+receiver --> sender "taken"
+sender --> platform "a reference, never the content"
+platform -> platform "record the hop: who, which process, the hashes"
+|note| "Three records, in three stores: the sender's egress, the receiver's ingress, the platform's coordination." { place: over sender receiver; }

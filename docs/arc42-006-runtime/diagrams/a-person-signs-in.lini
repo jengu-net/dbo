@@ -1,0 +1,37 @@
+{
+  // Who somebody is, and what they may do, are two answers from two places.
+  // Drawn as a sequence because the second depends on the first and is read
+  // from the tenant's own records rather than from the credential.
+
+  layout: sequence;
+  gap: 22 46;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |outside::box| { fill: --bg; stroke: --faint; }
+  |face::box|    { fill: --accent-soft; stroke: --accent; }
+  |engine::box|  { fill: --seal-soft; stroke: --seal; }
+}
+
+|outside#person| "A clinician"
+|face#authority| "The tenant's own authority"
+|engine#records| "The tenant's records"
+|face#face| "The tenant's face"
+
+person -> authority "sign in"
+authority -> records "which person is this, and what role is active?"
+records --> authority "the person, and a role that has not ended"
+authority --> person "a token naming the capacity it resolved"
+person -> face "a read, presenting the token"
+face -> records "what the capacity allows"
+records --> face "this and no more"
+face --> person "the answer"
+|note| "Revoking is ending a period on the role record. Nothing else changes." { place: over authority records; }

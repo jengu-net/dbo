@@ -1,0 +1,8 @@
+A person signs in, and the store works out what they may do
+A clinician signs in at the tenant's own authority. The authority reads the
+tenant's records to find the person and a role whose period has not ended,
+and issues a token naming the capacity it resolved. The clinician then
+presents that token to the face, which checks what the capacity allows
+against the same records and answers with that and no more. Revoking access
+is ending a period on the role record; there is no second user directory to
+change.

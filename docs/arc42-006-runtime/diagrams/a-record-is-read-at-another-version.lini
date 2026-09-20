@@ -1,0 +1,41 @@
+{
+  // One record, two versions, and the two answers a reader can get. Drawn as
+  // a sequence because the claim is about WHEN: the bytes are stored as they
+  // arrived, and the version is a lens applied on the way out — or a refusal
+  // that names what did not fit, before anything is written.
+
+  layout: sequence;
+  gap: 22 46;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |outside::box| { fill: --bg; stroke: --faint; }
+  |face::box|    { fill: --accent-soft; stroke: --accent; }
+  |engine::box|  { fill: --seal-soft; stroke: --seal; }
+}
+
+|outside#caller| "A client of the older version"
+|face#face| "That tenant's face"
+|engine#converter| "The converter chain"
+|cyl#db| "The tenant's database" { fill: --seal-soft; stroke: --seal; }
+
+caller -> face "read the record"
+face -> db "the bytes as they were written"
+db --> face "the payload, and the version it was written under"
+face -> converter "convert to the version this face speaks"
+|alt| "every element has a place in the older version" [
+  converter --> face "the record, as this version says it"
+  face --> caller "200"
+  |else| "one does not"
+  converter --> face "refused, naming the element"
+  face --> caller "the refusal, naming what did not fit"
+]
+|note| "Stored bytes never change. A version is a lens, and a refusal is honest about its limits." { place: over converter db; }
