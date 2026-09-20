@@ -52,6 +52,15 @@ is deliberately not being done, and the commands that prove it.
   hand, and a guide step asserting behaviour newer than the pin fails for a
   reason unrelated to the step. Item 004 carries the question of who moves
   it.
+- **The suite fails non-deterministically in two known places, so a red
+  build is not by itself a regression.**
+  `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` brings four tenants up at
+  once and has died as Java heap exhaustion inside one of them, on a change
+  that touched documentation only. The guide's terminology step, which
+  asserts which vocabularies the insurer declared, has failed against the
+  pinned image on a commit that had already passed it. Neither has an item
+  because neither has been reproduced deliberately, and a failure that
+  repeats on the same commit is a defect rather than a flake.
 - What is built, as against what is promised, is read from the
   [requirement catalogue](../arc42-006-runtime/req-catalogue.md) and the
   tests it cites. The page that used to answer that in prose was typed by
