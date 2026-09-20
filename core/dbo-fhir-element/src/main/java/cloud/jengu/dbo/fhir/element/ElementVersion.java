@@ -181,6 +181,36 @@ public final class ElementVersion {
         return context != null;
     }
 
+    /**
+     * Whether this face has a definition for a resource type.
+     *
+     * <p>Read from the definitions the face carries rather than from the
+     * toolchain's context. Both would answer; only one is free. A bring-up is
+     * not allowed to cost a context build — there is a test that says so by
+     * name — and the carried packages are already extracted and indexed, so
+     * this is a set lookup after the first ask.
+     *
+     * <p>Held per face for the process, because the answer is the face's and
+     * does not vary by tenant, and every tenant on a face would otherwise
+     * walk the same several hundred definitions again.
+     */
+    public boolean defines(String typeName) {
+        return DEFINED.computeIfAbsent(code, face -> {
+            java.util.Set<String> resources = new java.util.HashSet<>();
+            for (FaceRootPackages.Definition definition
+                    : FaceRootPackages.definitionsFor(face,
+                            java.util.Set.of("StructureDefinition"))) {
+                String url = definition.url();
+                resources.add(url.substring(url.lastIndexOf('/') + 1));
+            }
+            return resources;
+        }).contains(typeName);
+    }
+
+    /** What each face defines, worked out once and kept. */
+    private static final java.util.Map<String, java.util.Set<String>> DEFINED =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     /** What the engine requires from this version. */
     public DomainFace face() {
         return face;
