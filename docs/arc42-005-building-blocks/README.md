@@ -163,5 +163,5 @@ an argument silently, and the failure would be toward permissive.
   what the distribution installs.
 
 These are stated as rules, with the failures behind them, in
-[working rules](../arc42-002-constraints/working-rules.md) and in the
+[working rules](../arc42-002-constraints/working-rules/README.md) and in the
 repository's `CLAUDE.md`.

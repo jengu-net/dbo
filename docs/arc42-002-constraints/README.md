@@ -30,4 +30,4 @@
 - **The rules a green build cannot enforce are stated once and projected**,
   into installable skills and into the guidance read at the start of a
   session, rather than kept as prose in several places —
-  [working rules](working-rules.md).
+  [working rules](working-rules/README.md).

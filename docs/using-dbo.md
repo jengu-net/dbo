@@ -396,13 +396,10 @@ reads PROVEN only when a test cites it.
 ```yaml
 name: dbo-using
 applies-when: >-
-  Building an application on top of the DBO store, or reviewing one that is.
-  Triggers when work would add persistence, a user or role model, an audit
-  log, a job queue, encryption of personal data, an export or import path,
-  terminology lookup, validation of a payload, a change-notification
-  mechanism, or anything answering a data-protection obligation such as the
-  GDPR's — any of which the store may already provide, and providing it
-  twice is two answers that drift.
+  Building or reviewing an application on the DBO store, when work would add
+  persistence, users or roles, an audit log, a job queue, encryption, export
+  or import, terminology, validation, change notification, or a
+  data-protection answer the store may already provide.
 reference: docs/using-dbo.md
 ```
 **Reference**

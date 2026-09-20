@@ -1,6 +1,6 @@
 ---
 name: dbo-promise
-description: Adding or changing any behaviour of the store, fixing a defect, or editing the promise catalogue, a promise constant, a Proving citation, or the requirement catalogue document. Triggers on any work that would add a requirement or make an existing one true.
+description: Adding or changing behaviour of the store, fixing a defect, or editing a promise constant, a Proving citation, or the requirement catalogue.
 ---
 
 # dbo-promise
@@ -8,24 +8,19 @@ description: Adding or changing any behaviour of the store, fixing a defect, or 
 > **Generated from its source document — do not edit.** Change the
 > skill-block in the source document and run `./gradlew generateSkills`.
 
-**Apply when:** Adding or changing any behaviour of the store, fixing a defect, or editing the promise catalogue, a promise constant, a Proving citation, or the requirement catalogue document. Triggers on any work that would add a requirement or make an existing one true.
+**Apply when:** Adding or changing behaviour of the store, fixing a defect, or editing a promise constant, a Proving citation, or the requirement catalogue.
 
 ## Rules
 
 - MUST declare new behaviour as a promise constant and cite it from the test
-  that proves it. Adding behaviour means claiming or adding a promise; fixing
-  a defect means adding the test that would have caught it.
-- MUST run the catalogue projection after changing any promise constant or
-  citation, in the same change. Declaring without projecting compiles cleanly
-  and reddens the build in a test about the projection rather than about the
-  work.
-- MUST never hand-edit the generated block of the requirement catalogue; it is
-  a projection, and the projection is refused when it disagrees with the
-  model.
-- MUST name a test after the behaviour it proves, as a sentence.
-- MUST believe the implementation status page over any impression the code
-  gives about what is built.
+  that proves it.
+- MUST run the catalogue projection in the same change as any change to a
+  constant or a citation.
+- MUST NOT hand-edit the generated block of the requirement catalogue.
+- MUST read what is proven from the requirement catalogue, and what is built
+  from the implementation status page. The status page is believed over the
+  impression the code gives; its test counts are typed by hand.
 
 ---
 
-Where this is stated and argued: [`docs/arc42-002-constraints/working-rules.md#claiming-a-behaviour`](../../../../docs/arc42-002-constraints/working-rules.md#claiming-a-behaviour)
+Where this is stated and argued: [`docs/arc42-002-constraints/promise.md#claiming-a-behaviour`](../../../../docs/arc42-002-constraints/promise.md#claiming-a-behaviour)

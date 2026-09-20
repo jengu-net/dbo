@@ -1,6 +1,6 @@
 ---
 name: dbo-shared-world-tests
-description: Writing a new integration test, deciding where one belongs, moving a promise onto a shared-world step, or considering deleting an integration test that builds a world of its own. Triggers on adding a test that needs a tenant, a credential or a record, and on any change that would add a world to the build.
+description: Writing an integration test, deciding where one belongs, moving a promise onto a shared-world step, or deleting a test that builds a world of its own.
 ---
 
 # dbo-shared-world-tests
@@ -8,28 +8,24 @@ description: Writing a new integration test, deciding where one belongs, moving 
 > **Generated from its source document — do not edit.** Change the
 > skill-block in the source document and run `./gradlew generateSkills`.
 
-**Apply when:** Writing a new integration test, deciding where one belongs, moving a promise onto a shared-world step, or considering deleting an integration test that builds a world of its own. Triggers on adding a test that needs a tenant, a credential or a record, and on any change that would add a world to the build.
+**Apply when:** Writing an integration test, deciding where one belongs, moving a promise onto a shared-world step, or deleting a test that builds a world of its own.
 
 ## Rules
 
 - MUST put a test in the shared world when what it proves is reachable over
-  HTTP, and keep it in a world of its own when it reaches for the store's own
-  API, the database, the server log or the container.
-- MUST arrange every precondition with the tools a reader would use — a spec
-  file, the tenant's token endpoint, a write through the face — and never by
-  inserting state behind the surface.
-- MUST assert everything one action settles beside that action, including the
-  audit entry it emits, rather than in a later pass that goes looking.
-- MUST read the state a step depends on rather than counting the writes above
-  it, and put a step in the story that creates what it reads.
-- MUST assert that a shelled-out request actually ran before reading anything
-  into its answer.
-- MUST NOT grow the shared world to fit one test; that cost is paid by every
-  run of every test in it.
-- MUST prove a promise where the assertion is made, run the catalogue
-  projection, and confirm the new site is listed before deleting the test the
-  promise came from.
+  HTTP, and in a world of its own when it reaches for the store's API, the
+  database, the server log or the container.
+- MUST arrange every precondition with the tools a reader would use: a spec
+  file, the tenant's token endpoint, a write through the face.
+- MUST assert everything one action settles beside that action, including
+  its audit entry.
+- MUST read the state a step depends on, put a step in the story that
+  creates what it reads, and assert that a shelled-out request ran before
+  reading its answer.
+- MUST NOT grow the shared world to fit one test.
+- MUST claim a promise where it is proven, re-record the catalogue, and
+  confirm the new site is listed before deleting the test it came from.
 
 ---
 
-Where this is stated and argued: [`docs/arc42-002-constraints/working-rules.md#testing-against-the-shared-world`](../../../../docs/arc42-002-constraints/working-rules.md#testing-against-the-shared-world)
+Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/shared-world-tests.md`](../../../../docs/arc42-002-constraints/working-rules/shared-world-tests.md)

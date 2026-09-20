@@ -26,7 +26,7 @@ Structured per [arc42](https://arc42.org/).
 - [arc42-002-constraints](arc42-002-constraints/README.md) — including
   [promise](arc42-002-constraints/promise.md) (requirements as code — how this
   repository states and proves what it promises) and
-  [working rules](arc42-002-constraints/working-rules.md) (the traps, and the
+  [working rules](arc42-002-constraints/working-rules/README.md) (the traps, and the
   rules a green build cannot enforce — projected into installable skills)
 - [arc42-003-context](arc42-003-context/README.md)
 - [arc42-004-solution-strategy](arc42-004-solution-strategy/README.md) — the bets,

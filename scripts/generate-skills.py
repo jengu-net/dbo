@@ -21,7 +21,7 @@ A skill-block looks like this, anywhere in a constraints document:
     applies-when: >-
       When this skill should fire. This becomes the skill's description,
       which is the field that decides whether it is ever read at all.
-    reference: docs/arc42-002-constraints/working-rules.md#an-anchor
+    reference: docs/arc42-002-constraints/working-rules/example.md
     ```
     **Rules**
     - MUST do this.
@@ -56,8 +56,8 @@ CLAUDE_MD = ROOT / "CLAUDE.md"
 
 PLUGIN = "dbo-conventions"
 
-# 0.2.0 adds dbo-shared-world-tests.
-PLUGIN_VERSION = "0.2.0"
+# 0.3.0 adds dbo-tests, dbo-docs and dbo-diagrams.
+PLUGIN_VERSION = "0.3.0"
 
 SKILL_BLOCK = re.compile(
     r"<!--\s*skill:\s*(?P<name>[\w-]+)\s*-->(?P<body>.*?)<!--\s*/skill\s*-->",
