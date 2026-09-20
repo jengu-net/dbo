@@ -28,13 +28,13 @@
 # The number of UNDECIDED entries may only fall. Regeneration lowers the
 # allowance to the actual count; the build fails above it.
 #
-# undecided-allowed: 22
+# undecided-allowed: 20
 ABlobIsTenantDataIT                                      lifecycle
-AChangeCanBeAskedAboutBeforeItIsMadeIT                   UNDECIDED
+AChangeCanBeAskedAboutBeforeItIsMadeIT                   deployment
 ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
 ADefinitionMovesOnItsOwnFeedIT                           UNDECIDED
 ADeploymentPresentsItsOwnCredentialIT                    UNDECIDED
-ADeploymentRecordsWhatItWasToldToServeIT                 UNDECIDED
+ADeploymentRecordsWhatItWasToldToServeIT                 sweep
 AFaceIsCutOnceAndBroughtUpFromIT                         UNDECIDED
 AFaceRootHoldsItsVersionAsRecordsIT                      UNDECIDED
 AHostHoldsALaneByInstallingABundleIT                     UNDECIDED

@@ -47,6 +47,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Which matters more than it reads, because the door is mounted on a
  * context and a context matches by prefix — so before this, every spelling of
  * every sub-path reached the applying handler and applied.
+ *
+ * <p><b>A world of its own, and the management tenant is why.</b> Nothing
+ * here changes a tenant — a preview is the whole subject — so the tenant
+ * could be shared. What cannot is the runtime: this asks the control plane,
+ * and a runtime has a management tenant because it was told to manage one.
+ * Registering one on the shared runtime would mount a control plane over
+ * every other class's tenants, which is a deployment somebody else is
+ * running.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

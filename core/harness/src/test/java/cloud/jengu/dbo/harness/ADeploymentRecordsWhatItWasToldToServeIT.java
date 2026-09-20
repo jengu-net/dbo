@@ -34,6 +34,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * What this deployment was told to serve, asked of the store rather than of
  * somebody with a shell on the node.
+ *
+ * <p><b>A world of its own, and the scan is why.</b> Every claim here is
+ * about what a pass over the declarations decided, so it runs one and reads
+ * the troubles it left. Both are the runtime's and not a tenant's: on a
+ * shared runtime the pass would visit every other class's tenants, and the
+ * trouble ledger it judges would be one they all write to. It also manages a
+ * tenant, which is a deployment's own configuration rather than a tenant's.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
