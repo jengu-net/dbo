@@ -1,4 +1,4 @@
-**Open. Next: write the runtime chapter's scenarios and create the quality-requirements chapter.**
+**Open. Next: write the runtime chapter's scenarios, one sequence each.**
 
 # The documentation tree is moved to match its map
 
@@ -11,8 +11,6 @@ building. This item is deleted when the list is empty.
 ## Where the tree disagrees
 
 - `arc42-006-runtime` holds the requirement catalogue and no scenarios.
-- `arc42-010-quality-requirements` does not exist; the conformance reports
-  and the evidence sit under `docs/conformance` and `docs/evidence`.
 - `arc42-003-context` has a README and user stories, and no three-level
   landscape; the stories do not cite Story constants.
 - `arc42-005-building-blocks` describes the modules in prose, with no
@@ -30,10 +28,8 @@ building. This item is deleted when the list is empty.
 
 ## The steps, in order
 
-1. Write the runtime chapter's scenarios, one Lini sequence each, and
-   create the quality-requirements chapter with the quality tree, the
-   conformance reports and the evidence. Give the C4 diagrams one shared
-   Lini stylesheet head.
+1. Write the runtime chapter's scenarios, one Lini sequence each, and give
+   the C4 diagrams one shared Lini stylesheet head.
 2. Redo the context chapter with the three-level landscape, and make each user story cite
    its Story constant.
 3. Draw the building-block chapter's container and component diagrams, and

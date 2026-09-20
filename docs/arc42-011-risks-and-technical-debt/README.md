@@ -41,6 +41,7 @@ is deliberately not being done, and the commands that prove it.
 | [014 The Karaf console](014-the-karaf-console/README.md) | Not scheduled. A proposal for seeing inside a running node: development and operator tooling, never production. |
 | [015 The comparative load test](015-the-comparative-load-test/README.md) | Not scheduled. The bench runner carries the discipline; a second and third target, an ingest workload and resource sampling are missing. |
 | [016 Where a neutral store earns its keep](016-where-a-neutral-store-earns-its-keep/README.md) | Not scheduled. A test for recognising the domains this engine's shape fits. |
+| [017 The quality goals are not declared](017-quality-goals-are-not-declared/README.md) | Open. The eleven quality goals are matched to requirement areas by reading. Next: declare them as Quality classifications. |
 
 ## Risks
 

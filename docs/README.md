@@ -59,6 +59,8 @@ Structured per [arc42](https://arc42.org/).
   tenant, person from everyone, and what is declared to cross),
   [declared rules](arc42-008-crosscutting/declared-rules/README.md) (§15, §17 — what a
   tenant must do, what its jurisdiction says, and how the two layer)
+- [arc42-010-quality-requirements](arc42-010-quality-requirements/README.md) —
+  how each quality goal is judged, and where the answer is read
 - [arc42-009-architecture-decisions](arc42-009-architecture-decisions/README.md) —
   the numbered records: how each decision was arrived at, and the page that
   states its result (§7, §9)
