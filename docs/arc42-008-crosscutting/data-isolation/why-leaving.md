@@ -6,7 +6,6 @@ standfirst: >-
   An archive carries two detached signatures over its root, and objects enter a
   store by one path only: the root recomputes and both verify, or nothing is
   written. So leaving does not require the goodwill of the party you leave.
-why: 5
 template: essay.html
 ---
 

@@ -6,7 +6,6 @@ standfirst: >-
   A jurisdiction's facts are held as a tenant whose content is declarations —
   versioned, audited, and streamed to the tenants below it by the same
   machinery that carries everything else.
-why: 12
 template: essay.html
 ---
 

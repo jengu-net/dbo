@@ -6,7 +6,6 @@ standfirst: >-
   The second wall is not separation but encryption. The party running the
   deployment can provision, monitor, back up, restore and upgrade the system
   without being able to read a person's data in it.
-why: 6
 template: essay.html
 ---
 

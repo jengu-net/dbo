@@ -17,8 +17,7 @@ description: Adding, moving or editing a page under docs/, guide/ or site/pages/
   it collects.
 - MUST NOT link relatively from a page under `docs/` to a file outside it;
   use the absolute repository URL.
-- MUST give a `why-*.md` a `why:` rank and a pattern page a `pattern:` rank
-  in its front matter.
+- MUST give a pattern page a `pattern:` rank in its front matter.
 - MUST reference behaviour by REQ code or by document, never by a `§`
   number.
 - MUST write a thing where the map in this document says, and record a

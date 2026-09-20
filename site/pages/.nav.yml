@@ -1,6 +1,6 @@
 # The header menu.
 #
-# Five of these are sections that drill down — Why, Faces, Patterns, Guide and
+# Four of these are sections that drill down — Faces, Patterns, Guide and
 # Technical — and the plugin expands each from its directory, so adding a page
 # to one is a file rather than an edit here. Guide names a path inside the
 # specification tree because its chapters live there: they are markdown that
@@ -13,9 +13,8 @@
 # deciding whether to care expects a reason.
 nav:
   - Home: index.md
-  - Why: why
   - Faces: faces
-  - Patterns: patterns
+  - Patterns: docs/arc42-008-crosscutting/patterns
   - Guide: docs/guide
   - Technical: technical
   - Documentation: docs

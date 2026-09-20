@@ -698,43 +698,6 @@ val siteTools by tasks.registering(Exec::class) {
 //
 // Set `-Plini=/path/to/lini` if the binary is not on PATH.
 val liniBin = (findProperty("lini") as String?) ?: "lini"
-// A page collected into a section of its own is written to be read WHERE IT IS
-// STORED — beside its concept, linking to `README.md` as the sibling it is —
-// and then published somewhere else. So the reference frame it was moved into
-// is repaired here rather than by asking the author to write links that are
-// wrong in the repository and right on the site.
-//
-// Three destinations, because three things can be linked to. A `why-` essay
-// and a pattern are themselves collected, so a link to one becomes the name it
-// is published under. Anything else inside docs/ is published under /docs/ and
-// is reached from a collected page by going up one level. Everything else —
-// absolute, anchored, or outside the tree — is already correct.
-fun reframeCollected(page: File, text: String, docsRoot: File, patternsDir: File): String {
-    if (!page.canonicalPath.startsWith(docsRoot.path)) return text
-    return Regex("]\\((?!https?:|/|#)([^)#]+)(#[^)]*)?\\)").replace(text) { m ->
-        val target = File(page.parentFile, m.groupValues[1]).canonicalFile
-        val anchor = m.groupValues[2]
-        when {
-            target.name.startsWith("why-") && target.extension == "md" ->
-                "](" + target.name.removePrefix("why-") + anchor + ")"
-            // A pattern is collected too, so a link to one is a link between two
-            // collected sections. From inside /patterns/ that is the bare name;
-            // from anywhere else — an essay, say — it has to cross into the
-            // section, or it would resolve against the section the page landed
-            // in and 404 there.
-            target.path.startsWith(patternsDir.path) && target.extension == "md" -> {
-                val name = if (target.name == "README.md") "index.md" else target.name
-                val here = page.canonicalPath.startsWith(patternsDir.path)
-                "](" + (if (here) name else "../patterns/" + name) + anchor + ")"
-            }
-            target.path.startsWith(docsRoot.path) ->
-                "](../docs/" + target.relativeTo(docsRoot).path.replace(File.separatorChar, '/') +
-                    anchor + ")"
-            else -> m.value
-        }
-    }
-}
-
 val diagramOut = siteDir.dir("assets/diagrams")
 
 // A diagram's source lives with what it draws — in the `diagrams/` directory
@@ -892,7 +855,7 @@ val siteAssemble by tasks.registering(Sync::class) {
     description = "Assembles the site's source tree from docs/ and site/."
     into(siteSrc)
 
-    // The hand-written pages sit at the root: the landing page, the essays,
+    // The hand-written pages sit at the root: the landing page,
     // and the nav files that order them.
     from(siteDir.dir("pages"))
     from(siteDir.dir("assets")) { into("assets") }
@@ -901,142 +864,53 @@ val siteAssemble by tasks.registering(Sync::class) {
     // pages own the root and the reference owns /docs/.
     from(layout.projectDirectory.dir("docs")) {
         into("docs")
-        // A `why-` page is an essay that lives with the concept it argues, and
-        // it is collected to /why/ below rather than rendered twice here. A
-        // concept's diagrams are compiler sources, not pages.
-        // The patterns are the same arrangement as an essay, one level up: the
-        // pages live with the concepts they name and are collected to
-        // /patterns/ below, so the header can offer them beside Faces rather
-        // than burying a cross-domain vocabulary six directories into the
-        // reference.
+        // A concept's diagrams are compiler sources, not pages.
         // The guide's sample world is a device for keeping the examples in the
         // chapters consistent with each other. Its tenant specs are injected
         // into pages and must be copied; the page describing the arrangement
         // is about how this documentation is kept rather than about the store,
         // so it stays in the tree, readable on GitHub, and is not published.
         exclude(
-            "**/why-*.md", "**/diagrams/**",
-            "arc42-008-crosscutting/patterns/**",
+            "**/diagrams/**",
             "guide/world/README.md",
         )
     }
     from(layout.projectDirectory.file("docs/favicon.ico")) { into("assets") }
 
-    // The essays are excluded from the copy above and collected in doLast, so
-    // Gradle cannot see them as inputs — and an up-to-date Sync skips the
-    // collector entirely. Naming them makes an edited essay rebuild the site.
-    inputs.files(
-        layout.projectDirectory.dir("docs").asFile.walkTopDown()
-            .filter { it.isFile && it.name.startsWith("why-") && it.extension == "md" }
-            .toList(),
-    )
-    inputs.files(
-        layout.projectDirectory.dir("docs/arc42-008-crosscutting/patterns").asFile.walkTopDown()
-            .filter { it.isFile && it.extension == "md" }
-            .toList(),
-    )
 
-    // The essays, gathered from wherever they live.
-    //
-    // An essay belongs beside the concept it argues — whoever edits
-    // `data-isolation` should find its drawings and its prose in one place —
-    // but a reader arriving at the site wants /why/, not a path through the
-    // specification. So the front matter carries `why: <rank>`, the page is
-    // collected here under the name it had, and the reading order is computed
-    // from the ranks rather than kept in a second list that can disagree.
-    //
-    // The order is not alphabetical and never was: what the thing IS comes
-    // first, because every page after it says "the engine" and means
-    // something particular; then work, which is what people are most
-    // surprised a store does at all; then the three properties a deployment
-    // is judged on — who is separated from whom, what a record is held to,
-    // and how anybody gets in; then the two pages about the gap between what
-    // was declared and what is true, which is where operating it actually
-    // lives; last, the two mechanisms that keep copies and jurisdictions
-    // honest.
-    doLast {
-        val fromConcepts = layout.projectDirectory.dir("docs").asFile.walkTopDown()
-            .filter { it.isFile && it.name.startsWith("why-") && it.extension == "md" }
-        val fromPages = siteDir.dir("pages/why").asFile.walkTopDown()
-            .filter { it.isFile && it.extension == "md" && it.name != "index.md" }
-        val essays = (fromConcepts + fromPages).map { f ->
-            val rank = Regex("^why:\\s*(\\d+)\\s*$", RegexOption.MULTILINE)
-                .find(f.readText())?.groupValues?.get(1)?.toInt()
-                ?: throw GradleException(f.name + " sits in a why position and states no `why:` rank")
-            rank to f
-        }.sortedBy { it.first }.toList()
 
-        val docsRoot = layout.projectDirectory.dir("docs").asFile.canonicalFile
-        val patternsDir =
-            layout.projectDirectory.dir("docs/arc42-008-crosscutting/patterns").asFile.canonicalFile
-        val out = siteSrc.get().dir("why").asFile
-        out.mkdirs()
-        essays.forEach { (_, f) ->
-            File(out, f.name.removePrefix("why-"))
-                .writeText(reframeCollected(f, f.readText(), docsRoot, patternsDir))
-        }
-
-        val lines = mutableListOf(
-            "# Generated by siteAssemble from each essay's `why:` rank. The order,",
-            "# and the reason it is not alphabetical, are stated in build.gradle.kts.",
-            "nav:",
-            "  - index.md",
-        )
-        essays.forEach { (_, f) -> lines.add("  - " + f.name.removePrefix("why-")) }
-        File(out, ".nav.yml").writeText(lines.joinToString("\n") + "\n")
-        logger.lifecycle("collected " + essays.size + " essays into /why/")
-    }
-
-    // The patterns, gathered the same way and for the same reason.
-    //
-    // A pattern page names one idea for a reader who is not an engineer, and
-    // it belongs beside the concept whose mechanics it points at — but a
-    // reader arriving at the site wants /patterns/, not a path through the
-    // reference. So the front matter carries `pattern: <rank>` and the
-    // reading order is computed from the ranks: the root first, then the
-    // families in the order the argument builds them, which is not
-    // alphabetical and cannot be, because a pattern is only legible after the
-    // ones it rests on.
-    //
-    // The directory's README becomes the section index, since that is what it
-    // already is.
+    // The patterns are published where they live, and their reading order is
+    // not alphabetical and cannot be: a pattern is legible only after the ones
+    // it rests on. So the order is computed from each page's `pattern:` rank
+    // into a nav file beside them, which is the one thing collecting them used
+    // to buy.
     doLast {
         val dir = layout.projectDirectory.dir("docs/arc42-008-crosscutting/patterns").asFile
-        val pages = dir.walkTopDown().filter { it.isFile && it.extension == "md" }.toList()
-        val index = pages.firstOrNull { it.name == "README.md" }
-            ?: throw GradleException("the patterns have no README.md to serve as their index")
-        val ranked = pages.filter { it != index }.map { f ->
-            val rank = Regex("^pattern:\\s*(\\d+)\\s*$", RegexOption.MULTILINE)
-                .find(f.readText())?.groupValues?.get(1)?.toInt()
-                ?: throw GradleException(f.name + " is a pattern and states no `pattern:` rank")
-            rank to f
-        }.sortedBy { it.first }
+        val ranked = dir.walkTopDown()
+            .filter { it.isFile && it.extension == "md" && it.name != "README.md" }
+            .map { f ->
+                val rank = Regex("^pattern:\\s*(\\d+)\\s*$", RegexOption.MULTILINE)
+                    .find(f.readText())?.groupValues?.get(1)?.toInt()
+                    ?: throw GradleException(f.name + " is a pattern and states no `pattern:` rank")
+                rank to f
+            }.sortedBy { it.first }.toList()
         ranked.groupBy { it.first }.filterValues { it.size > 1 }.forEach { (rank, dupes) ->
             throw GradleException(
                 "two patterns claim rank " + rank + ": " + dupes.joinToString(", ") { it.second.name },
             )
         }
-
-        val docsRoot = layout.projectDirectory.dir("docs").asFile.canonicalFile
-        val patternsDir = dir.canonicalFile
-        val out = siteSrc.get().dir("patterns").asFile
-        out.mkdirs()
-        File(out, "index.md")
-            .writeText(reframeCollected(index, index.readText(), docsRoot, patternsDir))
-        ranked.forEach { (_, f) ->
-            File(out, f.name).writeText(reframeCollected(f, f.readText(), docsRoot, patternsDir))
-        }
-
-        val navLines = mutableListOf(
+        val out = siteSrc.get().dir("docs/arc42-008-crosscutting/patterns").asFile
+        val lines = mutableListOf(
             "# Generated by siteAssemble from each pattern's `pattern:` rank. The",
             "# order, and the reason it is not alphabetical, are stated in",
             "# build.gradle.kts.",
+            "title: Patterns",
             "nav:",
-            "  - index.md",
+            "  - README.md",
         )
-        ranked.forEach { (_, f) -> navLines.add("  - " + f.name) }
-        File(out, ".nav.yml").writeText(navLines.joinToString("\n") + "\n")
-        logger.lifecycle("collected " + ranked.size + " patterns into /patterns/")
+        ranked.forEach { (_, f) -> lines.add("  - " + f.name) }
+        File(out, ".nav.yml").writeText(lines.joinToString("\n") + "\n")
+        logger.lifecycle("ordered " + ranked.size + " patterns where they live")
     }
 
     // Sync deletes what is no longer produced, so a page renamed in docs/

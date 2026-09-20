@@ -14,9 +14,6 @@ building. This item is deleted when the list is empty.
   landscape; the stories do not cite Story constants.
 - `arc42-007-deployment` has its diagrams; the worked deployment is a
   hand-written site page rather than the guide world's compose file.
-- Thirteen `why-*.md` essays under `arc42-008-crosscutting` paraphrase the
-  guide and are collected into a Why menu the map does not have. The build
-  carries an essay collector, rank front matter and link reframing for it.
 - `docs/guide/` is written as shell commands a reader runs against the
   world. The map says it is the sample application's story, and there is no
   sample application.
@@ -25,15 +22,12 @@ building. This item is deleted when the list is empty.
 
 ## The steps, in order
 
-1. Write the pitch on the landing page, remove the Why menu, delete the
-   essays, folding what survives into the concept READMEs, and remove the
-   collector from the build.
-2. Rewrite the guide one chapter at a time as the sample application's
+1. Rewrite the guide one chapter at a time as the sample application's
    story, each chapter including the sample's source and replacing one
    shell chapter when it lands. The sample itself is
    [item 002](../002-sample-application/README.md); this step waits for it.
 
-Step 2 is the largest and depends on nothing above it; it is last so that
+Step 1 is the largest and depends on nothing above it; it is last so that
 the sample is written against a tree that holds still.
 
 ## How a step lands

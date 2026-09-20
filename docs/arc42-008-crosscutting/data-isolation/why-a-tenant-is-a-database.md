@@ -6,7 +6,6 @@ standfirst: >-
   The party running the deployment provisions tenants and never holds their
   credentials. There is no cross-tenant surface for anybody, including it, and
   the bill for that arrives in databases rather than in discipline.
-why: 2
 template: essay.html
 ---
 

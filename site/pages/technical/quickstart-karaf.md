@@ -127,7 +127,7 @@ JSON
 
 `face` is which standard is mapped onto the engine, and `r5` is a different
 answer from the `r4` the example tenant gives — [the engine has no FHIR in
-it](../why/index.md), so both faces sit over the same store. Give it a
+it](../docs/guide/how-it-fits.md), so both faces sit over the same store. Give it a
 minute; a face and a vocabulary are being built from nothing.
 
 ```bash
@@ -223,7 +223,7 @@ cd dev/observability && docker compose stop
 tomorrow, holding what it saw today.
 
 <div class="further" markdown>
-Next: [why any of this is shaped the way it is](../why/index.md), or
+Next: [why any of this is shaped the way it is](../index.md), or
 [what operating it actually involves](../docs/arc42-008-crosscutting/running-it/README.md)
 in the specification.
 </div>

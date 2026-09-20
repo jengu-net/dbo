@@ -6,7 +6,6 @@ standfirst: >-
   Two organisations that compete will use a shared store only if they can rely
   on what it holds. That reliance is five properties, each of which can fail on
   its own while the others look fine.
-why: 10
 template: essay.html
 ---
 

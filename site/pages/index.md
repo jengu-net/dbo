@@ -19,8 +19,13 @@ version is kept and cannot be quietly changed. Erasing a person is an operation
 that answers with a receipt. None of that is a policy somebody promises to
 honour. It is a set of things the operator cannot do.</p>
 
+<p class="lede">What is left to think about is the work. You declare it — a
+process, its steps, who may perform them — and the store carries everything
+under it: the regulation, the durable machinery that runs the work, and the
+proof that it ran.</p>
+
 <div class="cta" markdown>
-[Why it is shaped this way](why/){ .btn .primary }
+[Read the guide](docs/guide/){ .btn .primary }
 [Run it in a minute](technical/quickstart-docker/){ .btn }
 [Source on GitHub](https://github.com/jengu-net/dbo){ .btn }
 </div>
@@ -54,7 +59,7 @@ access is granted to, and performing it is what leaves the proof.
 one piece of work. There is no way to reach the data, or to change it, without
 doing the work that needed it.</p>
 
-[Access granted to the work →](why/work/)
+[How work is declared, and performed →](docs/guide/work/)
 </div>
 </section>
 
@@ -74,8 +79,8 @@ which a deletion never could. The trail is append-only against every party
 including the operator, so it is evidence rather than a log somebody could have
 tidied.
 
-<p class="start">Start with <a href="why/personal-data/">personal data</a>, then
-<a href="why/erasure/">erasure</a>.</p>
+<p class="start">Start with <a href="docs/guide/personal-data/">personal data</a>, then
+<a href="docs/guide/erasure/">erasure</a>.</p>
 </div>
 
 <div class="col" markdown>
@@ -86,8 +91,8 @@ data never means being able to read it. Backup is export and restore is import,
 so every backup is restore-tested by daily use. One PostgreSQL database per
 tenant and nothing else to operate — no broker, no cache, no search cluster.
 
-<p class="start">Start with <a href="why/tenant-status/">a tenant's whole
-life</a>, then <a href="why/leaving/">leaving</a>.</p>
+<p class="start">Start with <a href="docs/guide/lifecycle/">a tenant's whole
+life</a>, then <a href="docs/guide/export-and-import/">leaving</a>.</p>
 </div>
 
 <div class="col" markdown>
@@ -98,8 +103,8 @@ declaration is where the domain lives. Work is a record in the same store as the
 data, which is what lets two organisations that do not trust each other share a
 process rather than a file drop.
 
-<p class="start">Start with <a href="why/engine-and-faces/">the engine and its
-faces</a>, then <a href="why/work/">work</a>.</p>
+<p class="start">Start with <a href="docs/guide/how-it-fits/">the engine and its
+faces</a>, then <a href="docs/guide/work/">work</a>.</p>
 </div>
 </div>
 </div>

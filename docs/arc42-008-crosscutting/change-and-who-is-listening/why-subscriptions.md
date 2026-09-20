@@ -6,7 +6,6 @@ standfirst: >-
   Four consumers that look unrelated — a client paging, a subscriber, a
   dependent tenant, an appliance that was off since Friday — turn out to be one
   kind of thing, observed the same way and asked the same question.
-why: 13
 template: essay.html
 ---
 

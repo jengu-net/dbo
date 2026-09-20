@@ -6,7 +6,6 @@ standfirst: >-
   One surface, and each tenant its own authority. A token minted by another
   tenant fails at signature verification before any claim is read, and a token
   issued for a person carries no name.
-why: 9
 template: essay.html
 ---
 
