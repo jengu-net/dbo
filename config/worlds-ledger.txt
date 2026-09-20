@@ -20,7 +20,7 @@
 # The number of UNDECIDED entries may only fall. Regeneration lowers the
 # allowance to the actual count; the build fails above it.
 #
-# undecided-allowed: 41
+# undecided-allowed: 37
 ABlobIsTenantDataIT                                      UNDECIDED
 AChangeCanBeAskedAboutBeforeItIsMadeIT                   UNDECIDED
 ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
@@ -35,7 +35,7 @@ ALargePayloadTravelsByReferenceIT                        UNDECIDED
 APartnerFollowsWorkIT                                    UNDECIDED
 AReplicatedProfileCanBeValidatedAgainstIT                UNDECIDED
 AShutdownIsQuietIT                                       UNDECIDED
-AStoreWithoutSuperuserStillMountsIT                      UNDECIDED
+AStoreWithoutSuperuserStillMountsIT                      sweep
 AStreamKeepsMovingWhileATenantComesUpIT                  UNDECIDED
 AStreamLaneIsToldItHasWorkIT                             UNDECIDED
 ATenantAuthorsItsOwnSearchParameterIT                    UNDECIDED
@@ -56,12 +56,12 @@ MandatoryStepsClassifyIncidentsIT                        UNDECIDED
 MetaSaysTheEnginesFactsIT                                UNDECIDED
 NothingReadableLandsInTheSubstrateIT                     UNDECIDED
 OneTenantInTwoPlacesIT                                   UNDECIDED
-OperatorIT                                               UNDECIDED
+OperatorIT                                               sweep
 ProfilesArrivingOutOfBandTakeEffectIT                    UNDECIDED
 ScimProvisioningIT                                       UNDECIDED
 SeveralTenantsDeclaredAtOnceComeUpTogetherIT             UNDECIDED
 SpecDeclaredSyncIT                                       UNDECIDED
-TenantRuntimeIT                                          UNDECIDED
+TenantRuntimeIT                                          sweep
 ThePlaintextInFlightLeavesNoTraceIT                      UNDECIDED
 WhatTheLoadedSpecificationCostsIT                        UNDECIDED
-ZoneIT                                                   UNDECIDED
+ZoneIT                                                   sweep
