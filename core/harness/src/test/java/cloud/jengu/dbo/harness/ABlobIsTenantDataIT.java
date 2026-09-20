@@ -8,12 +8,9 @@ import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.nio.file.Files;
@@ -23,11 +20,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -39,12 +33,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * same reason the records go: not because a sweep remembered a second system,
  * which is the kind of step that fails quietly and leaves somebody's recording
  * behind after they asked for it to be gone.
+ *
+ * <p><b>One test, and it takes its tenant away.</b> What content does on the
+ * way in and out is proven over the door a consumer actually has, on a shared
+ * tenant, by {@link ContentHeldWholeIsReachableOverTheWireIT}. What is left
+ * here is the claim that needs a world of its own: this one deprovisions the
+ * tenant it wrote to, which no shared world survives.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-// The erasure case takes the tenant away, so it goes last rather than
-// leaving the others with no tenant to write to.
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ABlobIsTenantDataIT {
 
     private static final String CLINIC = "blob-klinik";
@@ -87,55 +84,12 @@ class ABlobIsTenantDataIT {
         return manager.runtime(CLINIC).orElseThrow().blobs();
     }
 
-    @Test
-    @Order(1)
-    @DisplayName("a blob comes back as the bytes that were written, and a scan of one is not "
-            + "re-encoded on the way")
-    @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
-    void whatGoesInComesBack() {
-        // Bytes that are not text and are not valid UTF-8: anything that
-        // decoded and re-encoded them would corrupt this, silently.
-        byte[] content = new byte[4096];
-        new SecureRandom().nextBytes(content);
-        content[0] = (byte) 0xFF;
-        content[1] = (byte) 0xFE;
-        content[2] = 0x00;
-
-        String key = blobs().put(content, "application/pdf");
-        Optional<BlobStore.Blob> read = blobs().get(key);
-
-        assertTrue(read.isPresent(), "a blob written to this tenant cannot be read back");
-        assertArrayEquals(content, read.get().content(),
-                "the bytes came back changed, so what is stored is not the document that "
-                        + "was signed");
-        assertEquals("application/pdf", read.get().media(),
-                "the media type is the writer's statement about their own content, and was "
-                        + "not kept");
-        assertEquals(4096, read.get().size());
-    }
-
-    @Test
-    @Order(2)
-    @DisplayName("a key this store did not issue names nothing, and a dropped blob is gone")
-    @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
-    void nothingIsFoundUnderSomebodyElsesKey() {
-        assertTrue(blobs().get("not-a-key").isEmpty());
-        assertTrue(blobs().get("01920000-0000-7000-8000-000000000000").isEmpty(),
-                "a well-formed key this store never issued found something");
-
-        String key = blobs().put(new byte[] {1, 2, 3}, "application/octet-stream");
-        assertTrue(blobs().drop(key), "dropping a blob that was here said it was not");
-        assertTrue(blobs().get(key).isEmpty(), "a dropped blob is still readable");
-        assertFalse(blobs().drop(key), "dropping the same blob twice said it was there twice");
-    }
-
     /**
      * The one that matters. Not that the reference is gone — that is the
      * weaker thing a test proves by accident — but that the content itself
      * went with the tenant.
      */
     @Test
-    @Order(3)
     @DisplayName("erasure-by-drop reaches the blobs, because they were in what was dropped")
     @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
     void erasureByDropTakesTheContent() throws Exception {

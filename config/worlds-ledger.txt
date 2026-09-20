@@ -28,8 +28,8 @@
 # The number of UNDECIDED entries may only fall. Regeneration lowers the
 # allowance to the actual count; the build fails above it.
 #
-# undecided-allowed: 26
-ABlobIsTenantDataIT                                      UNDECIDED
+# undecided-allowed: 25
+ABlobIsTenantDataIT                                      lifecycle
 AChangeCanBeAskedAboutBeforeItIsMadeIT                   UNDECIDED
 ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
 ADefinitionMovesOnItsOwnFeedIT                           UNDECIDED

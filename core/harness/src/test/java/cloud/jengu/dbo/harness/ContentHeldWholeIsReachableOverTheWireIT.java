@@ -13,7 +13,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -73,11 +72,16 @@ class ContentHeldWholeIsReachableOverTheWireIT {
         assertEquals(201, put.statusCode(), put.body());
         String location = put.headers().firstValue("Location").orElseThrow();
         assertTrue(put.body().contains("\"key\""), put.body());
+        assertTrue(put.body().contains("\"size\":5000"),
+                "the door did not say how much it took, so a writer cannot tell a truncated "
+                        + "upload from a whole one: " + put.body());
 
         HttpResponse<byte[]> got = HTTP.send(HttpRequest.newBuilder(URI.create(base() + location))
                         .header("Authorization", "Bearer " + reader).GET().build(),
                 HttpResponse.BodyHandlers.ofByteArray());
         assertEquals(200, got.statusCode());
+        assertEquals("5000", got.headers().firstValue("Content-Length").orElse(""),
+                "the length the reader was promised is not the length it was sent");
         assertArrayEquals(scan, got.body(),
                 "the bytes changed between the door and the store, so what comes back is not "
                         + "the document that was sent");
@@ -107,6 +111,18 @@ class ContentHeldWholeIsReachableOverTheWireIT {
             + "is not found")
     @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
     void droppingTellsYouWhetherThereWasAnything() throws Exception {
+        // A key this store never issued names nothing, whether or not it is
+        // even shaped like one. Telling those two apart would answer whether
+        // somebody else's key is well formed, which is a question about
+        // another store that this one has no business answering.
+        for (String stranger : List.of("01920000-0000-7000-8000-000000000000", "not-a-key")) {
+            assertEquals(404, HTTP.send(HttpRequest.newBuilder(
+                            URI.create(base() + "/t/" + CLINIC + "/blob/" + stranger))
+                            .header("Authorization", "Bearer " + reader).GET().build(),
+                    HttpResponse.BodyHandlers.ofString()).statusCode(),
+                    "a key this store never issued found something: " + stranger);
+        }
+
         String location = put("gone shortly".getBytes(StandardCharsets.UTF_8),
                 "text/plain", writer).headers().firstValue("Location").orElseThrow();
 
@@ -180,19 +196,5 @@ class ContentHeldWholeIsReachableOverTheWireIT {
         return HTTP.send(HttpRequest.newBuilder(URI.create(base() + location))
                         .header("Authorization", "Bearer " + bearer).DELETE().build(),
                 HttpResponse.BodyHandlers.ofString());
-    }
-
-    private static String token(String client, String secret, String scope) throws Exception {
-        String form = "grant_type=client_credentials&client_id=" + client
-                + "&client_secret=" + secret + "&scope="
-                + URLEncoder.encode(scope, StandardCharsets.UTF_8);
-        String body = HTTP.send(HttpRequest.newBuilder(
-                        URI.create(tenant.base() + "/oidc/token"))
-                        .header("Content-Type", "application/x-www-form-urlencoded")
-                        .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
-                HttpResponse.BodyHandlers.ofString()).body();
-        int at = body.indexOf("\"access_token\"");
-        int start = body.indexOf('"', body.indexOf(':', at)) + 1;
-        return body.substring(start, body.indexOf('"', start));
     }
 }
