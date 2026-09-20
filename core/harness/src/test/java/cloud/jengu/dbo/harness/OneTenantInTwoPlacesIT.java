@@ -159,7 +159,7 @@ class OneTenantInTwoPlacesIT {
         upstream.put(PutRequest.create("ValueSet", ("""
                 {"resourceType":"ValueSet","url":"%s/vs","status":"active"}"""
                 .formatted(SEVERITY)).getBytes(StandardCharsets.UTF_8)));
-        SharedTenants.manager().syncRound();
+        clinic.syncOnce();
 
         // The clinic declared CodeSystem and nothing else. A ValueSet in the
         // zone is not a thing it is missing; it is a thing it did not ask for.

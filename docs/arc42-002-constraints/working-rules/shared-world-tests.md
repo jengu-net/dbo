@@ -124,6 +124,11 @@ reference: docs/arc42-002-constraints/working-rules/shared-world-tests.md
   calls `syncRound`, `shapesRound` and `scanOnce` continuously anyway, and a
   class that needs the effect on its own tenant runs one on the shared
   runtime. What cannot be shared is a claim about the round itself.
+- MUST drive its OWN tenant's streams rather than the runtime's when it waits
+  for a copy to arrive: `tenant.syncOnce()`, never `manager().syncRound()` in
+  a loop. A round sweeps every tenant the runtime holds, so a poll that drives
+  one pays for the whole world on every pass — which is how a suite that got
+  faster by sharing tenants got slower again, by seventeen minutes.
 - MUST give a class that builds its own runtime one of those five reasons in
   `config/worlds-ledger.txt`, re-recorded with `./gradlew
   :core:harness:worldsLedger`.

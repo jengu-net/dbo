@@ -527,6 +527,29 @@ public final class SharedTenants {
             return MANAGER.runtime(code).orElseThrow().feed();
         }
 
+        /**
+         * One sync round over THIS tenant's streams, drained.
+         *
+         * <p>The manager's own round sweeps every tenant the runtime holds,
+         * which on a shared runtime is every other class's as well. A class
+         * waiting for its own copy to arrive calls it in a loop, so the cost
+         * is the whole world once per poll — which is how a suite that got
+         * faster by sharing tenants got slower again. This drains only what
+         * this tenant subscribes to.
+         */
+        public int syncOnce() {
+            int carried = 0;
+            for (cloud.jengu.dbo.sync.ContentSyncEngine stream : MANAGER.streamsOf(code)) {
+                int events;
+                do {
+                    events = stream.syncOnce(500);
+                    carried += events;
+                } while (events > 0);
+                stream.pass(500);
+            }
+            return carried;
+        }
+
         /** The other feed: what the face gave this tenant, apart from its records. */
         public ChangeFeed definitionsFeed() {
             return MANAGER.runtime(code).orElseThrow().definitionsFeed();

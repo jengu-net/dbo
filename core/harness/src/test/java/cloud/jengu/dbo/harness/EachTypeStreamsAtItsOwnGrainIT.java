@@ -125,7 +125,7 @@ class EachTypeStreamsAtItsOwnGrainIT {
         // The suite's one number for a wait on the feed (see Eventually).
         long deadline = System.currentTimeMillis() + Eventually.PATIENCE.toMillis();
         while (System.currentTimeMillis() < deadline) {
-            SharedTenants.manager().syncRound();
+            dependant.syncOnce();
             String answer = probe.get();
             if (answer != null) {
                 return answer;

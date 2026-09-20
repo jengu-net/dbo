@@ -108,7 +108,7 @@ class AReplicatedProfileCanBeValidatedAgainstIT {
         long deadline = System.currentTimeMillis() + Eventually.PATIENCE.toMillis();
         boolean here = false;
         while (!here && System.currentTimeMillis() < deadline) {
-            SharedTenants.manager().syncRound();
+            reader.syncOnce();
             here = get(reader, "/StructureDefinition?url="
                     + URLEncoder.encode(CANONICAL, StandardCharsets.UTF_8)
                     + "&_summary=count").body().contains("\"total\":1");

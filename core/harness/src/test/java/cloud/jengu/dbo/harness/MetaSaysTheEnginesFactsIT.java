@@ -45,7 +45,7 @@ class MetaSaysTheEnginesFactsIT {
         saaja = SharedTenants.of(SharedTenants.Shape.R4_MIRROR_RECEIVER);
         onSource = allikas.token("meta-source", "system/*.write", "system/*.read");
         onReceiver = saaja.token("meta-receiver", "system/*.write", "system/*.read");
-        SharedTenants.manager().syncRound();
+        saaja.syncOnce();
     }
 
     private String base(SharedTenants.Tenant tenant) {
@@ -98,7 +98,7 @@ class MetaSaysTheEnginesFactsIT {
                 .body();
         assertFalse(atSource.contains("urn:dbo:upstream:"),
                 "the tenant's own record has no upstream: " + atSource);
-        SharedTenants.manager().syncRound();
+        saaja.syncOnce();
 
         String copied = get(base(saaja)
                 + "/CodeSystem?url=https://allikas.test/cs/varvid").body();
@@ -157,7 +157,7 @@ class MetaSaysTheEnginesFactsIT {
                 {"resourceType":"CodeSystem","status":"active","content":"complete",
                  "url":"https://allikas.test/cs/vaidlus",
                  "concept":[{"code":"ylemvoim"}]}""").statusCode());
-        SharedTenants.manager().syncRound();
+        saaja.syncOnce();
 
         // The document is a shell -- concepts live natively -- so ownership is
         // proven where concepts answer: the LOCAL code resolves, upstream's
