@@ -25,6 +25,12 @@ written to rather than a runtime of its own, and `HumanAuthIT` and
 `FederatedAuthIT`, which want an authority and clients of their own and can
 have both on a shared runtime.
 
+**Two places is all sweeps.** Every leg it proves privately is proven by a
+class that calls a deployment pass, and the four not already recorded are
+now. Read the report's rows carefully here: it lists every place a leg is
+proven, so a row naming a private world may still have a cheaper proof
+beside it. What is owed is the rows naming a private world and nothing else.
+
 ## How it is run
 
 The migration has a branch that outlives its merges, a worktree of its own,

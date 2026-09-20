@@ -34,12 +34,10 @@ product would.
    run through the same door a chapter uses, takes it and closes it, proven
    against a world built from the tree.
 3. The external participant, joining with a capability of its own. Written
-   once and taken out again, because the run was authored at the wrong door:
-   the step door offers the tenant's spec steps, and an introduced step is
-   authored by posting the run document to the face, which is checked
-   against the composed catalogue. The next attempt posts a `Task` carrying
-   the step under `urn:dbo:step`, its own name under an `urn:dbo:run`
-   identifier, and a reference per declared slot.
+   twice and taken out twice. It introduces the step, the run is authored on
+   the face and the lane offers it, and the claim answers five hundred:
+   [item 018](../018-a-claim-that-answers-five-hundred/README.md). This
+   waits on that.
 4. Each further chapter of the guide, in the order item 001 gives.
 
 The include needs no ratchet of its own. A chapter naming a file the sample
