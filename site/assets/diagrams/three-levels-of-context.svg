@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-484.7941 -285.5 976.1874 551.5" width="976.1874" height="551.5" class="lini lini-scope-a76fc9d7" role="img" aria-labelledby="three-levels-of-context-title three-levels-of-context-desc">
+  <title id="three-levels-of-context-title">The three levels of the store's context</title>
+  <desc id="three-levels-of-context-desc">Four levels stacked. The world the system serves holds another system's FHIR client, a jurisdiction's authority, a clinician and a person. The system built on the store holds its screens and clinical logic and its process and step definitions, and reaches the store embedded in the same JVM or over HTTP. The store holds a face per FHIR version, the engine and a runtime per tenant, and a client or a jurisdiction may reach a face directly without passing through the system above. What the store needs is a spec per tenant, an operator for databases and credentials, and PostgreSQL with a database per tenant.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-a76fc9d7 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-caption-color: light-dark(rgba(0, 0, 0, 0.5), rgba(255, 255, 255, 0.55)); --lini-caption-font-weight: 400; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-group-fill: light-dark(rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.05)); --lini-group-stroke: light-dark(rgba(0, 0, 0, 0.4), rgba(255, 255, 255, 0.4)); --lini-line: #e3e0da; --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-a76fc9d7[data-theme="dark"], [data-theme="dark"] .lini-scope-a76fc9d7 { color-scheme: dark; }
+      .lini-scope-a76fc9d7[data-theme="light"], [data-theme="light"] .lini-scope-a76fc9d7 { color-scheme: light; }
+    }
+    .lini-scope-a76fc9d7 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-a76fc9d7 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-a76fc9d7 .lini-cyl { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-a76fc9d7 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-a76fc9d7 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-a76fc9d7 .lini-group { fill: var(--lini-group-fill); stroke: var(--lini-group-stroke); stroke-width: 1; stroke-dasharray: 5,4; }
+    .lini-scope-a76fc9d7 .lini-caption { color: var(--lini-caption-color); font-size: 10.4px; font-weight: var(--lini-caption-font-weight); }
+    .lini-scope-a76fc9d7 .lini-actor { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-a76fc9d7 .lini-app { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-a76fc9d7 .lini-store { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-a76fc9d7 .lini-infra { fill: var(--lini-bg); stroke: var(--lini-line); }
+    .lini-scope-a76fc9d7 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-a76fc9d7 .lini-link-label { fill: currentColor; stroke: none; text-anchor: middle; font-size: 9.5333px; font-weight: var(--lini-link-font-weight); }
+    .lini-scope-a76fc9d7 .lini-cut-bg { fill: white; stroke: none; }
+    .lini-scope-a76fc9d7 .lini-cut { fill: black; stroke: none; }
+    .lini-scope-a76fc9d7 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-group lini-block" data-id="world" transform="translate(0,-192)">
+      <rect x="-344.7555" y="-47.5" width="689.511" height="95" rx="8" ry="8"/>
+      <g class="lini-node lini-actor lini-box lini-block" data-id="client" transform="translate(-217.494,0)">
+        <rect x="-106.2615" y="-26.5" width="212.523" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Another system&apos;s FHIR client</text>
+      </g>
+      <g class="lini-node lini-actor lini-box lini-block" data-id="authority" transform="translate(-0.2375,0)">
+        <rect x="-92.995" y="-26.5" width="185.99" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A jurisdiction&apos;s authority</text>
+      </g>
+      <g class="lini-node lini-actor lini-box lini-block" data-id="clinician" transform="translate(161.0995,0)">
+        <rect x="-50.342" y="-26.5" width="100.684" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A clinician</text>
+      </g>
+      <g class="lini-node lini-actor lini-box lini-block" data-id="person" transform="translate(276.5985,0)">
+        <rect x="-47.157" y="-26.5" width="94.314" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A person</text>
+      </g>
+      <g class="lini-node lini-caption lini-block" transform="translate(-276.4275,-62.3)">
+        <rect x="-68.328" y="-5.2" width="136.656" height="10.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The world that system serves</text>
+      </g>
+    </g>
+    <g class="lini-node lini-group lini-block" data-id="app" transform="translate(0,-64)">
+      <rect x="-231.8175" y="-47.5" width="463.635" height="95" rx="8" ry="8"/>
+      <g class="lini-node lini-app lini-box lini-block" data-id="screens" transform="translate(-114.0395,0)">
+        <rect x="-96.778" y="-26.5" width="193.556" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Screens, and clinical logic</text>
+      </g>
+      <g class="lini-node lini-app lini-box lini-block" data-id="processes" transform="translate(105.778,0)">
+        <rect x="-105.0395" y="-26.5" width="210.079" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Process and step definitions</text>
+      </g>
+      <g class="lini-node lini-caption lini-block" transform="translate(-164.2071,-62.3)">
+        <rect x="-67.6104" y="-5.2" width="135.2208" height="10.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The system built on the store</text>
+      </g>
+    </g>
+    <g class="lini-node lini-group lini-block" data-id="dbo" transform="translate(0,64)">
+      <rect x="-335.743" y="-47.5" width="671.486" height="95" rx="8" ry="8"/>
+      <g class="lini-node lini-store lini-box lini-block" data-id="faces" transform="translate(-239.9415,0)">
+        <rect x="-74.8015" y="-26.5" width="149.603" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A face per version</text>
+      </g>
+      <g class="lini-node lini-store lini-box lini-block" data-id="engine" transform="translate(-8.0015,0)">
+        <rect x="-139.1385" y="-26.5" width="278.277" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The engine: objects, envelopes, identity</text>
+      </g>
+      <g class="lini-node lini-store lini-box lini-block" data-id="runtime" transform="translate(231.94,0)">
+        <rect x="-82.803" y="-26.5" width="165.606" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A runtime per tenant</text>
+      </g>
+      <g class="lini-node lini-caption lini-block" transform="translate(-313.669,-62.3)">
+        <rect x="-22.074" y="-5.2" width="44.148" height="10.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The store</text>
+      </g>
+    </g>
+    <g class="lini-node lini-group lini-block" data-id="needs" transform="translate(0,192)">
+      <rect x="-385.897" y="-47.5" width="771.794" height="95" rx="8" ry="8"/>
+      <g class="lini-node lini-infra lini-box lini-block" data-id="specs" transform="translate(-291.2525,0)">
+        <rect x="-73.6445" y="-26.5" width="147.289" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A spec per tenant</text>
+      </g>
+      <g class="lini-node lini-infra lini-box lini-block" data-id="operator" transform="translate(-51.974,0)">
+        <rect x="-147.634" y="-26.5" width="295.268" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">An operator for databases and credentials</text>
+      </g>
+      <g class="lini-node lini-cyl" data-id="pg" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(239.2785,0)">
+        <path d="M -125.6185 -21.2 L -125.6185 21.2 A 125.6185 5.3 0 0 0 125.6185 21.2 L 125.6185 -21.2 A 125.6185 5.3 0 0 0 -125.6185 -21.2 Z"/>
+        <ellipse cx="0" cy="-21.2" rx="125.6185" ry="5.3"/>
+        <text class="lini-text" x="0" y="1.65" dy="0.358em">PostgreSQL, a database per tenant</text>
+      </g>
+      <g class="lini-node lini-caption lini-block" transform="translate(-335.4778,-62.3)">
+        <rect x="-50.4192" y="-5.2" width="100.8384" height="10.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">What the store needs</text>
+      </g>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="world" data-to="app">
+      <mask id="lini-label-cut-d9896f82" maskUnits="userSpaceOnUse" x="-363.2555" y="-186" width="132.938" height="124"><rect class="lini-cut-bg" x="-363.2555" y="-186" width="132.938" height="124"/><rect class="lini-cut" x="-402.8161" y="-73.7277" width="83.1211" height="12.3933"/></mask>
+      <path d="M -345.2555 -184 L -345.2555 -184 A 16 16 0 0 0 -361.2555 -168 L -361.2555 -80 A 16 16 0 0 0 -345.2555 -64 L -235.8175 -64" mask="url(#lini-label-cut-d9896f82)"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-231.8175,-64 -240.8175,-59.5 -240.8175,-68.5"/>
+      <text class="lini-link-label" x="-361.2555" y="-67.531" dy="0.358em" style="font-family: &quot;Google Sans&quot;">the people it is for</text>
+    </g>
+    <g class="lini-link" data-from="app" data-to="dbo">
+      <mask id="lini-label-cut-018cf61c" maskUnits="userSpaceOnUse" x="230.3175" y="-66" width="123.9255" height="124"><rect class="lini-cut-bg" x="230.3175" y="-66" width="123.9255" height="124"/><rect class="lini-cut" x="259.4789" y="-62.1594" width="185.5282" height="12.3933"/></mask>
+      <path d="M 232.3175 -64 L 336.243 -64 A 16 16 0 0 1 352.243 -48 L 352.243 43.5 A 12.5 12.5 0 0 1 339.743 56 L 339.743 56" mask="url(#lini-label-cut-018cf61c)"/>
+      <polygon class="lini-marker lini-marker-arrow" points="335.743,56 344.743,51.5 344.743,60.5"/>
+      <text class="lini-link-label" x="352.243" y="-55.9627" dy="0.358em" style="font-family: &quot;Google Sans&quot;">embedded in the same JVM, or over HTTP</text>
+    </g>
+    <g class="lini-link" data-from="world" data-to="dbo">
+      <mask id="lini-label-cut-354c5521" maskUnits="userSpaceOnUse" x="-379.2555" y="-202" width="45.0125" height="268"><rect class="lini-cut-bg" x="-379.2555" y="-202" width="45.0125" height="268"/><rect class="lini-cut" x="-402.8161" y="-73.7277" width="83.1211" height="12.3933"/><rect class="lini-cut" x="-461.6541" y="-61.6904" width="168.7972" height="12.3933"/></mask>
+      <path d="M -345.2555 -200 L -345.2555 -200 A 32 32 0 0 0 -377.2555 -168 L -377.2555 48 A 16 16 0 0 0 -361.2555 64 L -339.743 64" mask="url(#lini-label-cut-354c5521)"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-335.743,64 -344.743,68.5 -344.743,59.5"/>
+      <text class="lini-link-label" x="-377.2555" y="-55.4938" dy="0.358em" style="font-family: &quot;Google Sans&quot;">a client or a jurisdiction reaches a face</text>
+    </g>
+    <g class="lini-link" data-from="needs" data-to="dbo">
+      <mask id="lini-label-cut-df2acdb8" maskUnits="userSpaceOnUse" x="334.243" y="70" width="70.154" height="124"><rect class="lini-cut-bg" x="334.243" y="70" width="70.154" height="124"/><rect class="lini-cut" x="336.5407" y="100.7263" width="131.7125" height="12.3933"/></mask>
+      <path d="M 386.397 192 L 386.397 192 A 16 16 0 0 0 402.397 176 L 402.397 88 A 16 16 0 0 0 386.397 72 L 339.743 72" mask="url(#lini-label-cut-df2acdb8)"/>
+      <polygon class="lini-marker lini-marker-arrow" points="335.743,72 344.743,67.5 344.743,76.5"/>
+      <text class="lini-link-label" x="402.397" y="106.923" dy="0.358em" style="font-family: &quot;Google Sans&quot;">a database each, and its spec</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,9 @@
+The three levels of the store's context
+Four levels stacked. The world the system serves holds another system's FHIR
+client, a jurisdiction's authority, a clinician and a person. The system built
+on the store holds its screens and clinical logic and its process and step
+definitions, and reaches the store embedded in the same JVM or over HTTP. The
+store holds a face per FHIR version, the engine and a runtime per tenant, and
+a client or a jurisdiction may reach a face directly without passing through
+the system above. What the store needs is a spec per tenant, an operator for
+databases and credentials, and PostgreSQL with a database per tenant.

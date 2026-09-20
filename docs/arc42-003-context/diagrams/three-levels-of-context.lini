@@ -1,0 +1,58 @@
+{
+  // The store is a component, so its context has three levels rather than
+  // one: what the store needs, what is built on it, and the world that
+  // system serves. Drawn stacked so a reader can see which arrows cross
+  // which level — the only ones that matter are the two that reach the
+  // store's faces from outside the application.
+
+  layout: flow; direction: column; gap: 32; padding: 26;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |actor::box| { fill: --bg; stroke: --faint; }
+  |app::box|   { fill: --accent-soft; stroke: --accent; }
+  |store::box| { fill: --seal-soft; stroke: --seal; }
+  |infra::box| { fill: --bg; stroke: --line; }
+  |group|      { gap: 16; }
+}
+
+|group#world| "The world that system serves" [
+  |actor#client| "Another system's FHIR client"
+  |actor#authority| "A jurisdiction's authority"
+  |actor#clinician| "A clinician"
+  |actor#person| "A person"
+]
+
+|group#app| "The system built on the store" [
+  |app#screens| "Screens, and clinical logic"
+  |app#processes| "Process and step definitions"
+]
+
+|group#dbo| "The store" [
+  |store#faces| "A face per version"
+  |store#engine| "The engine: objects, envelopes, identity"
+  |store#runtime| "A runtime per tenant"
+]
+
+|group#needs| "What the store needs" [
+  |infra#specs| "A spec per tenant"
+  |infra#operator| "An operator for databases and credentials"
+  |cyl#pg| "PostgreSQL, a database per tenant" { fill: --seal-soft; stroke: --seal; }
+]
+
+// The levels are linked, not their contents. A link written between two
+// children of different groups detours around the outside of both, which
+// draws the router rather than the context; and what a reader needs here is
+// which level reaches which, with the contents as the answer to "of what".
+world -> app "the people it is for"
+app -> dbo "embedded in the same JVM, or over HTTP"
+world:left -> dbo:left "a client or a jurisdiction reaches a face"
+needs -> dbo "a database each, and its spec"
