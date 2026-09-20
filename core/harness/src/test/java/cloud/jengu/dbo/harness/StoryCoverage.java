@@ -34,12 +34,19 @@ import java.util.TreeSet;
  */
 final class StoryCoverage {
 
-    /** Where a proof runs, ordered by what it costs to run it. */
+    /**
+     * Where a proof runs, ordered by what it costs to run it.
+     *
+     * <p>A module's own test is first because it needs no world at all. The
+     * first version of this ranked it last, under a name that said nothing —
+     * so four legs proven by a unit test and again by an integration test
+     * read as owing a private world, which is the opposite of the truth.
+     */
     private enum Where {
+        MODULE("a module's own test"),
         GUIDE("the guide's world"),
         SHARED("a shared tenant"),
         OWN_WORLD("a world of its own"),
-        ELSEWHERE("somewhere else"),
         NOWHERE("nowhere");
 
         private final String said;
@@ -94,7 +101,9 @@ final class StoryCoverage {
             }
             text.append("## ").append(story.code()).append("\n\n")
                     .append(story.promises().size()).append(" legs: ")
-                    .append(tally.getOrDefault(Where.GUIDE, 0)).append(" proven at the guide's ")
+                    .append(tally.getOrDefault(Where.MODULE, 0)).append(" proven by a module's ")
+                    .append("own test, ")
+                    .append(tally.getOrDefault(Where.GUIDE, 0)).append(" at the guide's ")
                     .append("world, ").append(tally.getOrDefault(Where.SHARED, 0))
                     .append(" at a shared tenant, ").append(tally.getOrDefault(Where.OWN_WORLD, 0))
                     .append(" only in a world built for one class, ")
@@ -129,6 +138,6 @@ final class StoryCoverage {
         if (type.startsWith("cloud.jengu.dbo.harness.")) {
             return ownWorlds.contains(outer) ? Where.OWN_WORLD : Where.SHARED;
         }
-        return Where.ELSEWHERE;
+        return Where.MODULE;
     }
 }

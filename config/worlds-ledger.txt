@@ -20,7 +20,7 @@
 # The number of UNDECIDED entries may only fall. Regeneration lowers the
 # allowance to the actual count; the build fails above it.
 #
-# undecided-allowed: 37
+# undecided-allowed: 33
 ABlobIsTenantDataIT                                      UNDECIDED
 AChangeCanBeAskedAboutBeforeItIsMadeIT                   UNDECIDED
 ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
@@ -45,7 +45,7 @@ ATenantGoingAwayIsNotOneThatFailedIT                     UNDECIDED
 ATenantOpensAndItsPeopleGetInIT                          UNDECIDED
 ATenantSubscribesToItsVersionIT                          UNDECIDED
 ATenantThatIsNotUpSaysWhyIT                              sweep
-AZoneReachesAnotherFaceThroughOneProjectionIT            UNDECIDED
+AZoneReachesAnotherFaceThroughOneProjectionIT            sweep
 AnOperatorReadsAndSteersTheFleetIT                       sweep
 EachTypeStreamsAtItsOwnGrainIT                           UNDECIDED
 EngineVocabularyDoesNotCollideWithItselfIT               UNDECIDED
@@ -53,14 +53,14 @@ FaceRefusalIT                                            UNDECIDED
 FederatedAuthIT                                          UNDECIDED
 HumanAuthIT                                              UNDECIDED
 MandatoryStepsClassifyIncidentsIT                        UNDECIDED
-MetaSaysTheEnginesFactsIT                                UNDECIDED
+MetaSaysTheEnginesFactsIT                                sweep
 NothingReadableLandsInTheSubstrateIT                     UNDECIDED
-OneTenantInTwoPlacesIT                                   UNDECIDED
+OneTenantInTwoPlacesIT                                   sweep
 OperatorIT                                               sweep
 ProfilesArrivingOutOfBandTakeEffectIT                    UNDECIDED
 ScimProvisioningIT                                       UNDECIDED
 SeveralTenantsDeclaredAtOnceComeUpTogetherIT             UNDECIDED
-SpecDeclaredSyncIT                                       UNDECIDED
+SpecDeclaredSyncIT                                       sweep
 TenantRuntimeIT                                          sweep
 ThePlaintextInFlightLeavesNoTraceIT                      UNDECIDED
 WhatTheLoadedSpecificationCostsIT                        UNDECIDED
