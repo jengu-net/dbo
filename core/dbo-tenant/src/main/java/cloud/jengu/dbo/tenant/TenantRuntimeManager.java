@@ -1924,7 +1924,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         cloud.jengu.dbo.sync.Lanes replication = new cloud.jengu.dbo.sync.Lanes(
                 runStores.get(spec.code()), laneFeed, laneRuns, spec.code(),
                 // The trail replicates through the audit refusal's one
-                // admission (§7.8); the engine below the policy wrapper is
+                // admission; the engine below the policy wrapper is
                 // what everything else on this lane writes through.
                 engine instanceof cloud.jengu.dbo.core.api.AuditReplay admitted ? admitted : null,
                 // The second bound: declarations by type, from the tenant's

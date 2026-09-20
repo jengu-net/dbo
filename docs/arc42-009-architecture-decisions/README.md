@@ -21,8 +21,8 @@ overturned, the new record says so and the old one's status changes.
 | [003 One bundle owns the FHIR stack](003-one-bundle-owns-the-fhir-stack.md) | Adopted | the payload seam |
 | [004 Durable work sits in two planes](004-durable-work-sits-in-two-planes.md) | Resolved | running it |
 | [005 Search is tiered on measured usage](005-search-is-tiered-on-measured-usage.md) | Resolved | finding things |
-| [006 Adoption is identity first, storage second](006-adoption-is-identity-first.md) | Resolved | nothing yet |
-| [007 A face parses into the HL7 core model](007-a-face-parses-into-the-hl7-core-model.md) | Open | nothing yet |
+| [006 Adoption is identity first, storage second](006-adoption-is-identity-first.md) | Resolved | running it |
+| [007 A face parses into the HL7 core model](007-a-face-parses-into-the-hl7-core-model.md) | Open | nothing: an open record has no result to state |
 | [008 Only a named port may write the trail](008-only-a-named-port-writes-the-trail.md) | Resolved | records you can rely on |
 | [009 A refusal and an unanswered store are different](009-a-refusal-and-an-unanswered-store.md) | Resolved | processes and work |
 | [010 Why the engine is shaped this way](010-why-the-engine-is-shaped-this-way.md) | Context | the solution strategy |
@@ -30,6 +30,7 @@ overturned, the new record says so and the old one's status changes.
 
 ## The numbers a comment may still carry
 
-Comments in the code cite `§7.N` and `§9`: `§7.N` is record `00N`, and
-`§9` is record 010. A new reference names the record, a REQ, or the page
-that states the result.
+Comments in the code cite `§9`, which is record 010. The former `§7.N` is
+record `00N`; nothing in the tree cites it any more, and the mapping is kept
+for references made outside this repository. A new reference names the
+record, a REQ, or the page that states the result.

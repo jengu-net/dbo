@@ -1,4 +1,4 @@
-**Status: Resolved.** Reflected in nothing yet.
+**Status: Resolved.** Reflected in [running it](../arc42-008-crosscutting/running-it/README.md).
 
 # Adoption is identity first, storage second
 

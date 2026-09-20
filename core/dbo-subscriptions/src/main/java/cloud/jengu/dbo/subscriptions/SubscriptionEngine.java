@@ -44,7 +44,7 @@ import java.util.function.Function;
  * exactly-once delivery. Retry/backoff lives in the step policy; exhaustion
  * writes a queryable dead-letter row — visible, never silent.
  *
- * <p>Tenant-plane per §7.4: the DBOS system schema lives in the tenant's own
+ * <p>Tenant-plane: the DBOS system schema lives in the tenant's own
  * database ({@code dbos} schema), so erasure-by-drop covers delivery state.
  */
 public final class SubscriptionEngine implements AutoCloseable {

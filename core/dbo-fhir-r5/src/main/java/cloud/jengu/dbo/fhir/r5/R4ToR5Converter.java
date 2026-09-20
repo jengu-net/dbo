@@ -7,7 +7,7 @@ import cloud.jengu.dbo.core.api.PayloadConverter;
  * stored bytes stay R4 (payload-is-truth); identity fields survive because the
  * HL7 convertor maps `url` and `identifier` structurally
  * (REQ-DBO-CORE-IDENTITY-SURVIVES-CONVERSION — asserted in the harness).
- * Public surface is HAPI/hl7-free per the §7.3 boundary ratchet.
+ * Public surface is HAPI/hl7-free, which the boundary ratchet enforces.
  */
 public final class R4ToR5Converter implements PayloadConverter {
 

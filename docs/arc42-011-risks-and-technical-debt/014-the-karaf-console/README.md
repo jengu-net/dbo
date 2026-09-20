@@ -129,7 +129,7 @@ the wrong reading.
 
 ## The plane split
 
-§7.4 already draws the line the console needs, so use it rather than inventing
+The platform and tenant planes already draw the line the console needs, so use it rather than inventing
 a second one.
 
 - **Platform-plane commands bind registry services directly.** Tenant lifecycle

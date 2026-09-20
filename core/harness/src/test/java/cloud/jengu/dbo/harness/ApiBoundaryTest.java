@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The §7.3 boundary rule as a ratchet: no PUBLIC api of the R4 personality
+ * The boundary rule as a ratchet: no PUBLIC api of the R4 personality
  * may mention a HAPI type. HAPI stays private to the personality; JSON and
  * core api types are the only things that cross.
  */

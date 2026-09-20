@@ -6,7 +6,7 @@ plugins {
 // carries, carried instead over the durable substrate the constraints name
 // (R4) — a door per tenant on the substrate, messages in and answers out,
 // so one shared service needs no callback into every tenant. DBOS rides
-// private in this bundle exactly as it does in dbo-subscriptions (§7.1).
+// private in this bundle exactly as it does in dbo-subscriptions.
 
 val embedded: Configuration by configurations.creating
 configurations.implementation.get().extendsFrom(embedded)

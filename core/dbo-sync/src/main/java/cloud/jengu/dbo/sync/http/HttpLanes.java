@@ -141,8 +141,7 @@ public final class HttpLanes {
             response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
         } catch (java.io.IOException unreachable) {
             // Not a decision about the caller: the far side never said
-            // anything, so this is retryable and must not read as a refusal
-            // (§7.9).
+            // anything, so this is retryable and must not read as a refusal.
             throw new cloud.jengu.dbo.core.api.StoreUnreachableException(
                     tenant + ": the replication surface did not answer '" + verb.path() + "'", unreachable);
         } catch (InterruptedException interrupted) {

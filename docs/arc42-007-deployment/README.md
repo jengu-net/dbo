@@ -75,7 +75,7 @@ problem and is deliberately absent, because it is a second copy of the truth.
   serving pods and a remote proxy everywhere else, so callers do a plain registry
   lookup and the topology is invisible. This is application-level, tenant-smart
   routing; Kubernetes only runs instances and enforces the security layer.
-- The layer is **our own**, purpose-built (see §7.2): registry programming model
+- The layer is **our own**, purpose-built: registry programming model
   and remote proxies as in OSGi Remote Services, but discovery driven by the
   durable tenant→pod assignment and a single controlled transport — not a full
   RSA implementation (Aries RSA / ECF serve as prior art only).

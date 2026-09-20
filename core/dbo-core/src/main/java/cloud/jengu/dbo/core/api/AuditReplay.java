@@ -3,8 +3,7 @@ package cloud.jengu.dbo.core.api;
 import java.time.Instant;
 
 /**
- * The one admitted path for an audit entry recorded on another appliance
- * (§7.8).
+ * The one admitted path for an audit entry recorded on another appliance.
  *
  * <p>Direct writes to the audit type are refused, absolutely and for
  * everybody: the trail is written by the machinery, and a caller that could

@@ -24,7 +24,7 @@ import java.util.function.Function;
  * R4 wiring for the subscription engine: active rest-hook Subscription
  * resources become {@link SubscriptionSpec}s, and R4 criteria strings
  * ({@code Observation?code=…}) compile through the personality's strict
- * search compiler. Public surface stays HAPI-free (§7.3).
+ * search compiler. Public surface stays HAPI-free.
  */
 public final class R4Subscriptions {
 

@@ -30,7 +30,7 @@ import java.util.function.BiFunction;
  * SubscriptionTopic resources; subscriptions are R5 Subscription resources
  * (topic canonical + filterBy + rest-hook channel); notifications are
  * subscription-notification Bundles with SubscriptionStatus. Public surface
- * stays HAPI-free (§7.3).
+ * stays HAPI-free.
  */
 public final class R5Subscriptions {
 

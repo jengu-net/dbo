@@ -41,8 +41,8 @@ public interface Payloads<D> {                  // D is the face's own model
 }
 ```
 
-The engine holds `Payloads<?>` and never names `D`. The public API stays bytes, so §7.3
-holds — no model type crosses it — while one request parses once. Byte-in, byte-out
+The engine holds `Payloads<?>` and never names `D`. The public API stays bytes, so no model type
+crosses it, while one request parses once. Byte-in, byte-out
 convenience sits on top for callers that genuinely have only bytes, the converter chain
 on read being the obvious one.
 
@@ -160,8 +160,8 @@ to a blocking output, so the pipeline pulls no faster than the reader drains.
 **And the outward facade has to admit it.** `FhirStoreFacade.search` and `historyBundle`
 return a `String` today, so a page is assembled whole before a reader sees a byte of it.
 Streaming behind a facade that materialises would buy nothing: the streaming form writes
-into an output rather than returning a document, which keeps bytes at the edge as §7.3
-requires and makes a search page, a portable archive and a stream between tenants one
+into an output rather than returning a document, which keeps bytes at the edge
+and makes a search page, a portable archive and a stream between tenants one
 path rather than three.
 
 **Converters stay per object for the same reason.** A converter is a pure function from
@@ -277,9 +277,9 @@ normaliser has to come from something that reads the definitions.
 HL7's own **element model** (`org.hl7.fhir.rX.elementmodel`) is that something: it parses
 against StructureDefinitions rather than against a hand-written grammar, so it knows what
 a version defines rather than what a document happens to contain. It is also free of any
-server framework's shape, which makes it a second and independent argument for the
-direction in §7.7 — the model behind a face coming from the reference implementation
-rather than from a wrapper over it.
+server framework's shape, which makes it a second and independent argument for a
+model behind a face that comes from the reference implementation rather than
+from a wrapper over it.
 
 Not the generic JSON utilities from the same project. `org.hl7.fhir.utilities.json` is a
 capable general parser and model — it even preserves comments — but it has no FHIR

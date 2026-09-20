@@ -32,7 +32,7 @@ import java.util.Set;
  * not belong here.
  *
  * <p><b>A refusal and a store that did not answer are different, and the
- * difference is on the exception</b> (§7.9). Everything a verb throws is
+ * difference is on the exception</b>. Everything a verb throws is
  * settled — the identity did not claim that run, the step was not granted,
  * the action was never declared — <em>except</em>
  * {@link cloud.jengu.dbo.core.api.StoreUnreachableException}, which says the

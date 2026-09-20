@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.core.api;
 
 /**
- * The store did not answer (§7.9). Not a decision about the caller.
+ * The store did not answer. Not a decision about the caller.
  *
  * <p><b>Refused and unanswered need opposite recoveries, and they used to be
  * one exception.</b> A refusal is settled — this identity did not claim that
