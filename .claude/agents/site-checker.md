@@ -31,7 +31,7 @@ install it. Never run `siteDiagrams` yourself; that rewrites committed files.
 
 Then, for each changed page in `git diff main...HEAD --name-only`:
 
-- a relative link into `docs/tasks/` or `docs/plans/` from a published page;
+- a relative link from a page under `docs/` to a file outside it;
 - a `why-*.md` without a `why:` rank, or a pattern page without a `pattern:`
   rank;
 - a new `§` reference;

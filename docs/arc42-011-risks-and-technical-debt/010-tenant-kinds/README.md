@@ -1,6 +1,8 @@
+**Open. A tenant's kind is re-derived at every call site instead of being declared.**
+
 # Tenant kinds
 
-Issue: jengu-net/dbo#280
+Issue: [280](https://github.com/jengu-net/dbo/issues/280)
 
 ## What this is
 
@@ -142,7 +144,7 @@ appointment into the thing being appointed.
 
 The mechanism that consumes this is built, and is described where a reader
 will need it rather than in a task document: the guide's
-[Lifecycle](../guide/lifecycle.md) chapter, and the facts a tenant publishes in
+[Lifecycle](../../guide/lifecycle.md) chapter, and the facts a tenant publishes in
 `TenantFacts`. A kind would be one more of those facts, and a provisioning
 activity would select on it.
 

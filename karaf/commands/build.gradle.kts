@@ -1,4 +1,4 @@
-// The console's own commands (docs/plans/karaf-console.md). These may talk to
+// The console's own commands (docs/arc42-011-risks-and-technical-debt/014-the-karaf-console/README.md). These may talk to
 // the OSGi service registry and to Karaf's shell API; nothing under core/ may
 // depend on them, which is why they live here and not there.
 //

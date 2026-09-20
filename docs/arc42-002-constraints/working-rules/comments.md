@@ -10,10 +10,11 @@ An issue and a decision record are moments. Both are superseded, both die
 when a tracker moves, and a reader here often cannot open either. A sentence
 that needs one to make sense has not yet said what it means.
 `.github/scripts/check-branding.sh` refuses both anywhere in the source or
-the specification tree, with two exceptions: `docs/tasks/`, whose documents
-carry a topic between its issues and are deleted when they close; and a
-`TODO` or `FIXME`, which is a statement about outstanding work and may name
-the issue holding it.
+the specification tree. A `TODO` or `FIXME` is the exception: it is a
+statement about outstanding work, so it may name the issue holding it. An
+item in [risks and technical debt](../../arc42-011-risks-and-technical-debt/README.md)
+is about outstanding work too, and names its issue by address rather than by
+number.
 
 A consumer of the store, or a sibling repository, is never named. The store
 is neutral; a domain is a face over it.
@@ -37,7 +38,8 @@ reference: docs/arc42-002-constraints/working-rules/comments.md
 - MUST explain the constraint and only the constraint.
 - MUST NOT cite an issue number or a decision record in the source or the
   specification tree. A `TODO` or `FIXME` MAY name the issue holding the
-  work, and `docs/tasks/` is exempt.
+  work, and an item in risks and technical debt MAY name its issue by
+  address.
 - MUST write documentation as the current state. The journey belongs in the
   commit message.
 - MUST NOT name a consumer of this store or a sibling repository.

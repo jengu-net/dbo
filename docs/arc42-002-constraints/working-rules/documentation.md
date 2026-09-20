@@ -8,9 +8,7 @@ the assembly repairs the frame for pages it moves.
 
 ## What the assembly does
 
-- The tree is mounted under `/docs/`. `docs/tasks/` and `docs/plans/` are not
-  published, so a published page reaches either only by an absolute
-  repository URL.
+- The tree is mounted under `/docs/`. Every page in it is published.
 - A `why-*.md` essay lives beside the concept it argues and is collected to
   `/why/`. Its front matter carries `why: <rank>`, which orders the section.
 - A `pattern-*.md` under `arc42-008-crosscutting/patterns/` is collected to
@@ -50,9 +48,6 @@ map is the rule and the disagreement is an item in
 | `using-dbo.md` | The sample application's README: what the store provided and the sample did not write. |
 | The site's landing page | The pitch. There is no Why menu. |
 
-`docs/tasks/` and `docs/plans/` are being folded into 011 and are not
-written to.
-
 ## What a page says
 
 The current state, in the words the store uses. The `§` numbers are decoded
@@ -76,8 +71,8 @@ reference: docs/arc42-002-constraints/working-rules/documentation.md
 - MUST write a page for where it is stored: relative links to siblings,
   `README.md` as a section index. The assembly repairs the frame for pages
   it collects.
-- MUST NOT link relatively from a published page into `docs/tasks/` or
-  `docs/plans/`; use the absolute repository URL.
+- MUST NOT link relatively from a page under `docs/` to a file outside it;
+  use the absolute repository URL.
 - MUST give a `why-*.md` a `why:` rank and a pattern page a `pattern:` rank
   in its front matter.
 - MUST reference behaviour by REQ code or by document, never by a `§`

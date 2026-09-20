@@ -3,7 +3,7 @@
 A stock Apache Karaf installing the same bundle set as the serving
 distribution, so an edit becomes a running container without a restart. It
 exists to make the inside of the OSGi container visible while work is
-happening — see [the plan](../docs/plans/karaf-console.md) for what it is and
+happening — see [the proposal](../docs/arc42-011-risks-and-technical-debt/014-the-karaf-console/README.md) for what it is and
 where it stops.
 
 Not a deployment artifact. Production runs the standard Felix launcher.

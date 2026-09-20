@@ -1,7 +1,9 @@
+**Status: Resolved.** Reflected in [the patterns](https://github.com/jengu-net/dbo/blob/main/docs/arc42-008-crosscutting/patterns/README.md).
+
 # A pattern language for the store
 
 The proposal this language came from. All twenty-four patterns are now written
-under [crosscutting concepts](../arc42-008-crosscutting/patterns/README.md);
+under [crosscutting concepts](https://github.com/jengu-net/dbo/blob/main/docs/arc42-008-crosscutting/patterns/README.md);
 what this document keeps is the reasoning behind the set, the page shape, the
 icon rules and the reading list.
 

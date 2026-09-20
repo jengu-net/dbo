@@ -15,8 +15,8 @@ description: Adding, moving or editing a page under docs/, guide/ or site/pages/
 - MUST write a page for where it is stored: relative links to siblings,
   `README.md` as a section index. The assembly repairs the frame for pages
   it collects.
-- MUST NOT link relatively from a published page into `docs/tasks/` or
-  `docs/plans/`; use the absolute repository URL.
+- MUST NOT link relatively from a page under `docs/` to a file outside it;
+  use the absolute repository URL.
 - MUST give a `why-*.md` a `why:` rank and a pattern page a `pattern:` rank
   in its front matter.
 - MUST reference behaviour by REQ code or by document, never by a `§`

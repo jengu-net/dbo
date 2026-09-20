@@ -130,6 +130,6 @@ a pipeline over today.
 ## Version numbering
 
 `0.x` while requirement areas remain specified-but-unbuilt (see the
-[status page](docs/plans/implementation-status.md)). The wire contracts that
+[requirement catalogue](docs/arc42-006-runtime/req-catalogue.md)). The wire contracts that
 `1.0` would freeze are the FHIR surface, the tenant authority's endpoints, the
 `TenantRegistration` CRD group and the archive format.

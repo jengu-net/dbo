@@ -1,6 +1,8 @@
+**Open. The third binding the issue asks for exists; what remains is what the issue was really about.**
+
 # Work that arrives without a poll
 
-Issue: jengu-net/dbo#288
+Issue: [288](https://github.com/jengu-net/dbo/issues/288)
 
 ## The premise the issue was written on, corrected
 

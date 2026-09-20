@@ -1,3 +1,5 @@
+**Not scheduled. A proposal for seeing inside a running node: development and operator tooling, never production.**
+
 # The Karaf console — a proposal
 
 `kubectl` for the OSGi container: a way to see what is actually happening
@@ -55,7 +57,7 @@ generated, so hand-writing a command per process would be the wrong shape.
 Built and proven. `./gradlew dev` publishes the bundle set to the local Maven
 repository; Karaf's `bundle:watch` re-reads a changed bundle from there and
 refreshes it in place, about a second behind the publish. `:karaf:console`
-assembles the whole thing. [karaf/README.md](../../karaf/README.md) is the
+assembles the whole thing. [karaf/README.md](https://github.com/jengu-net/dbo/blob/main/karaf/README.md) is the
 working instruction; what follows is what the assembly had to settle, because
 each item is a way the two containers differ.
 

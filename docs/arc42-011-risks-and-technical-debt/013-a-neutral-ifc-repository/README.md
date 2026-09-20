@@ -1,3 +1,5 @@
+**Not scheduled. Recorded so the reasoning exists before somebody needs it.**
+
 # A neutral IFC repository, and what it would take
 
 **Status: not scheduled.** Recorded because the reasoning is worth having on paper before

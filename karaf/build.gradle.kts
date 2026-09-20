@@ -2,7 +2,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.Properties
 
-// The development console (docs/plans/karaf-console.md).
+// The development console (docs/arc42-011-risks-and-technical-debt/014-the-karaf-console/README.md).
 //
 // A stock Apache Karaf installing the SAME bundle set as the serving
 // distribution, from the local Maven repository, so `./gradlew dev` and

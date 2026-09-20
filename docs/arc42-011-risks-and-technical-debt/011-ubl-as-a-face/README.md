@@ -1,3 +1,5 @@
+**Open. Three spikes are green and in the tree; nothing is built.**
+
 # UBL is a face, described in FHIR's own tools
 
 **Status** — three spikes, all green, all in the tree as tests. Nothing is
@@ -7,9 +9,9 @@ one that remains is a policy call rather than a technical one.
 
 **Issues** — none filed.
 
-**Concepts** — [engine and faces](../arc42-008-crosscutting/engine-and-faces/README.md) ·
-[the payload seam](../arc42-008-crosscutting/the-payload-seam/README.md) ·
-[records you can rely on](../arc42-008-crosscutting/records-you-can-rely-on/README.md)
+**Concepts** — [engine and faces](../../arc42-008-crosscutting/engine-and-faces/README.md) ·
+[the payload seam](../../arc42-008-crosscutting/the-payload-seam/README.md) ·
+[records you can rely on](../../arc42-008-crosscutting/records-you-can-rely-on/README.md)
 
 ## What this is
 
@@ -183,7 +185,7 @@ reserialisation breaks the digest. The store's usual answer is that the payload
 is the truth held as received, and here the truth is a transformed form. Two ways
 out, both real: keep a signed document's received bytes beside the parsed form as
 declared opaque extras, exactly as the
-[neutral IFC repository](../plans/ifc-repository.md) proposes for a vendor's
+[neutral IFC repository](../013-a-neutral-ifc-repository/README.md) proposes for a vendor's
 unexpressible data; or state plainly that this face holds invoices and does not
 attest to their signatures. The choice belongs to whoever first has a tenant that
 needs one, and it is written here so that it is made rather than discovered.

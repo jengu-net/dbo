@@ -5,7 +5,7 @@ dbo against [fhirest](https://github.com/fhirest/fhirest) and
 ingesting the same real patient population on the same Raspberry Pi 5.
 
 The design and its reasoning are in
-[`docs/plans/load-comparison.md`](../../docs/plans/load-comparison.md). This
+[the comparative load test](../../docs/arc42-011-risks-and-technical-debt/015-the-comparative-load-test/README.md). This
 file is what the pieces are and how to run them.
 
 ## What is where

@@ -1,6 +1,8 @@
+**Open. The store promises that reaching data means performing a step, and a plain read still bypasses it.**
+
 # The step-scoped API
 
-Issue: jengu-net/dbo#278
+Issue: [278](https://github.com/jengu-net/dbo/issues/278)
 
 ## What this is
 
@@ -12,7 +14,7 @@ any record with no step anywhere in the picture, which is how all nine written
 guide chapters work.
 
 The rule is written up as a crosscutting concept
-([reaching the data](../arc42-008-crosscutting/reaching-the-data/README.md)).
+([reaching the data](../../arc42-008-crosscutting/reaching-the-data/README.md)).
 This is the smallest implementation of it that can be proven by tests and
 demonstrated by executed examples in the guide — so the claim stops being
 aspirational, and so the guide has something to teach besides the deployment's

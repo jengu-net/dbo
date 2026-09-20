@@ -1,3 +1,5 @@
+**Not scheduled. The bench runner carries the discipline; a second and third target, an ingest workload and resource sampling are missing.**
+
 # Comparative load test: dbo vs fhirest vs HAPI FHIR
 
 Ingest a real patient population into three FHIR servers on the same

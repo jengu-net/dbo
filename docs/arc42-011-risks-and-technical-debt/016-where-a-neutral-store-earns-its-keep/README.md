@@ -1,3 +1,5 @@
+**Not scheduled. A test for recognising the domains this engine's shape fits.**
+
 # Where a neutral store earns its keep
 
 **Status: not scheduled.** A test for recognising domains this engine's shape fits, and the

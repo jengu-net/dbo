@@ -1,4 +1,4 @@
-**Open. Next: fold `docs/tasks/` and `docs/plans/` into this chapter and retire the implementation status page.**
+**Open. Next: replace the citations of a decision record by its section number.**
 
 # The documentation tree is moved to match its map
 
@@ -28,9 +28,6 @@ building. This item is deleted when the list is empty.
 - Thirteen `why-*.md` essays under `arc42-008-crosscutting` paraphrase the
   guide and are collected into a Why menu the map does not have. The build
   carries an essay collector, rank front matter and link reframing for it.
-- `docs/tasks/` and `docs/plans/` hold outstanding work outside this
-  chapter, and `docs/plans/implementation-status.md` carries hand-typed
-  counts the index already distrusts.
 - `docs/guide/` is written as shell commands a reader runs against the
   world. The map says it is the sample application's story, and there is no
   sample application.
@@ -39,28 +36,25 @@ building. This item is deleted when the list is empty.
 
 ## The steps, in order
 
-1. Fold `docs/tasks/` and `docs/plans/` into this chapter as items, and
-   delete the implementation status page in favour of the catalogue. The
-   migration document has already moved, into item 003.
-2. Replace every citation of a decision record by its section number with
+1. Replace every citation of a decision record by its section number with
    the page or the REQ that states the result, and state the results of
    records 006 and 007 where they belong.
-3. Write the 006 scenarios, one Lini sequence each, and create 010 with the
+2. Write the 006 scenarios, one Lini sequence each, and create 010 with the
    quality tree, the conformance reports and the evidence. Give the C4
    diagrams one shared Lini stylesheet head.
-4. Redo 003 with the three-level landscape, and make each user story cite
+3. Redo 003 with the three-level landscape, and make each user story cite
    its Story constant.
-5. Draw the 005 container and component diagrams, and generate the module
+4. Draw the 005 container and component diagrams, and generate the module
    map from the build with a ratchet like the other projections.
-6. Write the pitch on the landing page, remove the Why menu, delete the
+5. Write the pitch on the landing page, remove the Why menu, delete the
    essays, folding what survives into the concept READMEs, and remove the
    collector from the build.
-7. Rewrite the guide one chapter at a time as the sample application's
+6. Rewrite the guide one chapter at a time as the sample application's
    story, each chapter including the sample's source and replacing one
    shell chapter when it lands. The sample itself is
    [item 002](../002-sample-application/README.md); this step waits for it.
 
-Step 7 is the largest and depends on nothing above it; it is last so that
+Step 6 is the largest and depends on nothing above it; it is last so that
 the sample is written against a tree that holds still.
 
 ## How a step lands

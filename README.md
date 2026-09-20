@@ -77,8 +77,10 @@ Kubernetes provisioning operator are built and proven by 267 behaviour-named
 tests. Durable work planes, routing, the process catalogue and operations are
 specified and not built.
 
-The living status page is
-[docs/plans/implementation-status.md](docs/plans/implementation-status.md).
+What is built is read from the
+[requirement catalogue](docs/arc42-006-runtime/req-catalogue.md) and the tests
+it cites; what is outstanding is
+[risks and technical debt](docs/arc42-011-risks-and-technical-debt/README.md).
 
 ## Documentation
 

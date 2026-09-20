@@ -332,7 +332,7 @@ tasks.withType<Test>().configureEach {
         // dependency, and Gradle fails the build rather than let the order
         // decide the answer — which is the right call and cost a red CI to
         // learn, because nothing in a single-task run reaches that check.
-        exclude("**/build/**", ".git/**", "docs/tasks/**",
+        exclude("**/build/**", ".git/**", "docs/arc42-011-risks-and-technical-debt/**",
                 "tools/dbo-conventions/**", "CLAUDE.md",
                 "docs/arc42-006-runtime/req-catalogue.md")
     }).withPathSensitivity(PathSensitivity.RELATIVE)
