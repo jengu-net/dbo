@@ -20,7 +20,7 @@
 # The number of UNDECIDED entries may only fall. Regeneration lowers the
 # allowance to the actual count; the build fails above it.
 #
-# undecided-allowed: 44
+# undecided-allowed: 41
 ABlobIsTenantDataIT                                      UNDECIDED
 AChangeCanBeAskedAboutBeforeItIsMadeIT                   UNDECIDED
 ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
@@ -40,13 +40,13 @@ AStreamKeepsMovingWhileATenantComesUpIT                  UNDECIDED
 AStreamLaneIsToldItHasWorkIT                             UNDECIDED
 ATenantAuthorsItsOwnSearchParameterIT                    UNDECIDED
 ATenantComesUpFromTheFaceImageIT                         UNDECIDED
-ATenantDeclaredDifferentlyIsNoticedIT                    UNDECIDED
+ATenantDeclaredDifferentlyIsNoticedIT                    sweep
 ATenantGoingAwayIsNotOneThatFailedIT                     UNDECIDED
 ATenantOpensAndItsPeopleGetInIT                          UNDECIDED
 ATenantSubscribesToItsVersionIT                          UNDECIDED
-ATenantThatIsNotUpSaysWhyIT                              UNDECIDED
+ATenantThatIsNotUpSaysWhyIT                              sweep
 AZoneReachesAnotherFaceThroughOneProjectionIT            UNDECIDED
-AnOperatorReadsAndSteersTheFleetIT                       UNDECIDED
+AnOperatorReadsAndSteersTheFleetIT                       sweep
 EachTypeStreamsAtItsOwnGrainIT                           UNDECIDED
 EngineVocabularyDoesNotCollideWithItselfIT               UNDECIDED
 FaceRefusalIT                                            UNDECIDED
