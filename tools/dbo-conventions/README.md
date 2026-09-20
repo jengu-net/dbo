@@ -16,12 +16,15 @@ it says, and a link to the document that argues it.
 
 ## Skills
 
-- **dbo-runtime-proof** ← `docs/arc42-002-constraints/working-rules.md`
-- **dbo-reachability** ← `docs/arc42-002-constraints/working-rules.md`
-- **dbo-comments** ← `docs/arc42-002-constraints/working-rules.md`
-- **dbo-recorded-projections** ← `docs/arc42-002-constraints/working-rules.md`
-- **dbo-shared-world-tests** ← `docs/arc42-002-constraints/working-rules.md`
-- **dbo-promise** ← `docs/arc42-002-constraints/working-rules.md`
+- **dbo-promise** ← `docs/arc42-002-constraints/promise.md`
+- **dbo-comments** ← `docs/arc42-002-constraints/working-rules/comments.md`
+- **dbo-diagrams** ← `docs/arc42-002-constraints/working-rules/diagrams.md`
+- **dbo-docs** ← `docs/arc42-002-constraints/working-rules/documentation.md`
+- **dbo-reachability** ← `docs/arc42-002-constraints/working-rules/reachability.md`
+- **dbo-recorded-projections** ← `docs/arc42-002-constraints/working-rules/recorded-projections.md`
+- **dbo-runtime-proof** ← `docs/arc42-002-constraints/working-rules/runtime-proof.md`
+- **dbo-shared-world-tests** ← `docs/arc42-002-constraints/working-rules/shared-world-tests.md`
+- **dbo-tests** ← `docs/arc42-002-constraints/working-rules/tests.md`
 - **dbo-using** ← `docs/using-dbo.md`
 
 ## Installing

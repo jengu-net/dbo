@@ -15,6 +15,8 @@ bin/.gitignore
 
 # Per-machine assistant settings; they name paths outside this repository.
 .claude/settings.local.json
+# Worktrees an assistant session checks out for itself.
+.claude/worktrees/
 
 # The local observability instance's root credential.
 dev/observability/.env

@@ -103,6 +103,14 @@ jobs:
         run: |
           ./gradlew :core:harness:promiseReport -q
           cat core/harness/build/reports/promise/report.md >> "$GITHUB_STEP_SUMMARY"
+      # The classes that cost the most, from the XML the run just wrote. It
+      # runs on failure too: a run that timed out is the one whose slowest
+      # classes somebody most wants to see.
+      - name: Where the test time went
+        if: always()
+        run: |
+          ./gradlew slowestTests -q
+          cat build/reports/slowest-tests.md >> "$GITHUB_STEP_SUMMARY"
       # Gradle already writes JUnit XML; this step makes failures readable
       # WITHOUT scrolling the log (the CI-parity rule: verdicts, not logs).
       # It runs on failure too — that is the case worth reading. The method

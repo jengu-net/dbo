@@ -112,3 +112,30 @@ build and fails on any difference, naming the regeneration command. The full
 report renders on every CI run's results page via the job summary, so the
 build's meaning — promises proven, by which tests, and what is still a gap —
 leads, and the method inventory does not.
+
+## Claiming a behaviour
+
+Adding behaviour means claiming or adding a promise; fixing a defect means
+adding the test that would have caught it. Generating the catalogue is a
+separate step from declaring a promise, and a promise declared and not
+projected compiles cleanly and reddens the build in a test about the
+projection.
+
+<!-- skill: dbo-promise -->
+```yaml
+name: dbo-promise
+applies-when: >-
+  Adding or changing behaviour of the store, fixing a defect, or editing a
+  promise constant, a Proving citation, or the requirement catalogue.
+reference: docs/arc42-002-constraints/promise.md#claiming-a-behaviour
+```
+**Rules**
+- MUST declare new behaviour as a promise constant and cite it from the test
+  that proves it.
+- MUST run the catalogue projection in the same change as any change to a
+  constant or a citation.
+- MUST NOT hand-edit the generated block of the requirement catalogue.
+- MUST read what is proven from the requirement catalogue, and what is built
+  from the implementation status page. The status page is believed over the
+  impression the code gives; its test counts are typed by hand.
+<!-- /skill -->

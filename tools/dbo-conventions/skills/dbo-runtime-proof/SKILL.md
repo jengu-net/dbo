@@ -1,6 +1,6 @@
 ---
 name: dbo-runtime-proof
-description: Changing anything that has to survive being loaded in the OSGi container: a bundle's dependencies or its hand-written Import-Package, a new reference to a sibling package, a module added to the runtime module list, a service registration, the logging provider, or anything reached only on first use. Also whenever a change is about to be reported as working on the strength of a successful build.
+description: Changing a bundle's dependencies or Import-Package policy, adding a module to the runtime, registering a service, touching the logging provider, or reporting a change as working.
 ---
 
 # dbo-runtime-proof
@@ -8,40 +8,24 @@ description: Changing anything that has to survive being loaded in the OSGi cont
 > **Generated from its source document — do not edit.** Change the
 > skill-block in the source document and run `./gradlew generateSkills`.
 
-**Apply when:** Changing anything that has to survive being loaded in the OSGi container: a bundle's dependencies or its hand-written Import-Package, a new reference to a sibling package, a module added to the runtime module list, a service registration, the logging provider, or anything reached only on first use. Also whenever a change is about to be reported as working on the strength of a successful build.
+**Apply when:** Changing a bundle's dependencies or Import-Package policy, adding a module to the runtime, registering a service, touching the logging provider, or reporting a change as working.
 
 ## Rules
 
-- MUST prove a change by exercising it — validate a resource, convert one,
-  ingest a CodeSystem, boot the container — and MUST NOT report a change as
-  working on the strength of compilation, resolution or a green unit test.
-- MUST let bnd compute a bundle's `Import-Package` and write only policy by
-  hand — which JDK surfaces may be absent, and the `!*` that drops a private
-  stack's reach — and MUST NOT write a package inventory: `dbo-fhir-stack` is
-  the one closed list, because it has no source, and it is checked by a test
-  that walks what it embeds.
-- MUST keep both in-JVM containers installing what the distribution installs.
-  When one of them fails after a change, it is reporting the truth about the
-  distribution; MUST NOT adjust the container test to make it pass.
-- MUST give any test that loads the validator a 2g heap. It loads the core
-  package eagerly and dies as an error with a null message, several frames
-  above an `OutOfMemoryError` that is never printed.
-- MUST NOT add a dependency to the dependency-free core module, or anything
-  beyond the JDBC driver to the storage module, without a reason that
-  survives being read aloud.
-- MUST add a new module to the OSGi bundle set in the same commit that makes
-  another module import it, in all three places that carry it — the root
-  build's runtime module list, the harness's jar properties, and the
-  container test's own ordered install list, which is hand-written rather
-  than derived from the others. bnd computes the import from bytecode, so
-  the bundle resolves on the classpath and dies in the framework.
-- MUST run the negative for a test written to prove a fix: break the thing
-  deliberately and watch the test go red. A test that has never failed for
-  the reason it was written has not been shown to test that reason, and two
-  ways it passes anyway are common — a wait that outlives the condition it
-  was racing, and an assertion on text the answer contains regardless, such
-  as a search echoing its own query in a bundle with no results.
+- MUST prove a change by exercising it: validate a resource, convert one,
+  ingest a CodeSystem, boot the container. A build, a resolution or a green
+  unit test is not proof.
+- MUST let bnd compute `Import-Package` and hand-write only policy.
+  `dbo-fhir-stack` is the one closed list.
+- MUST add a new module to all three hand-written lists in the commit that
+  first imports it: the runtime module list, the harness jar properties, and
+  the container test's install list.
+- MUST NOT adjust a container test to make it pass. When one fails after a
+  change it is reporting the distribution.
+- MUST give any new test task that loads the validator a 2g heap.
+- MUST NOT add a dependency to `dbo-core`, or anything beyond the JDBC driver
+  to `dbo-postgres`, without a reason that survives being read aloud.
 
 ---
 
-Where this is stated and argued: [`docs/arc42-002-constraints/working-rules.md#proving-a-change-which-compiling-does-not-do`](../../../../docs/arc42-002-constraints/working-rules.md#proving-a-change-which-compiling-does-not-do)
+Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/runtime-proof.md`](../../../../docs/arc42-002-constraints/working-rules/runtime-proof.md)
