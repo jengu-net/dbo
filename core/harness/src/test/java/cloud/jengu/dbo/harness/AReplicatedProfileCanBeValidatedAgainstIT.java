@@ -41,6 +41,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * therefore a resource claiming it is accepted — rather than any particular
  * mechanism reaching it, so a fix that moves the signal from the feed to the
  * sync engine keeps it passing.
+ *
+ * <p><b>A world of its own, and two rounds are why.</b> The copy arrives on a
+ * sync round and the view is rebuilt on a shapes round, and each is a pass
+ * over every tenant the runtime holds. On a shared one they would carry the
+ * other classes' tenants through a sync and a rebuild nobody asked for, and
+ * what this class proves is precisely what those passes left behind.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AReplicatedProfileCanBeValidatedAgainstIT {

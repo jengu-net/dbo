@@ -44,6 +44,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * resource has no such split and must NOT be put through that — it travels as
  * itself. One dependency declaring both is what shows the engine choosing per
  * type rather than per stream.
+ *
+ * <p><b>A world of its own, and the round is why.</b> What it asserts is what
+ * one sync round delivered and in what shape, and a round is a pass over
+ * every tenant the runtime holds — so a shared one would stream somebody
+ * else's dependencies on this class's beat.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

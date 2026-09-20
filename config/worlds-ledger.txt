@@ -28,7 +28,7 @@
 # The number of UNDECIDED entries may only fall. Regeneration lowers the
 # allowance to the actual count; the build fails above it.
 #
-# undecided-allowed: 20
+# undecided-allowed: 17
 ABlobIsTenantDataIT                                      lifecycle
 AChangeCanBeAskedAboutBeforeItIsMadeIT                   deployment
 ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
@@ -41,7 +41,7 @@ AHostHoldsALaneByInstallingABundleIT                     UNDECIDED
 ALaneOverTheStreamIsIndistinguishableIT                  UNDECIDED
 ALargePayloadTravelsByReferenceIT                        whole plane
 APartnerFollowsWorkIT                                    UNDECIDED
-AReplicatedProfileCanBeValidatedAgainstIT                UNDECIDED
+AReplicatedProfileCanBeValidatedAgainstIT                sweep
 AShutdownIsQuietIT                                       UNDECIDED
 AStoreWithoutSuperuserStillMountsIT                      sweep
 AStreamKeepsMovingWhileATenantComesUpIT                  UNDECIDED
@@ -55,7 +55,7 @@ ATenantSubscribesToItsVersionIT                          UNDECIDED
 ATenantThatIsNotUpSaysWhyIT                              sweep
 AZoneReachesAnotherFaceThroughOneProjectionIT            sweep
 AnOperatorReadsAndSteersTheFleetIT                       sweep
-EachTypeStreamsAtItsOwnGrainIT                           UNDECIDED
+EachTypeStreamsAtItsOwnGrainIT                           sweep
 EngineVocabularyDoesNotCollideWithItselfIT               sweep
 FaceRefusalIT                                            deployment
 FederatedAuthIT                                          deployment
@@ -65,7 +65,7 @@ MetaSaysTheEnginesFactsIT                                sweep
 NothingReadableLandsInTheSubstrateIT                     whole plane
 OneTenantInTwoPlacesIT                                   sweep
 OperatorIT                                               sweep
-ProfilesArrivingOutOfBandTakeEffectIT                    UNDECIDED
+ProfilesArrivingOutOfBandTakeEffectIT                    sweep
 ScimNeedsTheMembraneIT                                   sweep
 SeveralTenantsDeclaredAtOnceComeUpTogetherIT             UNDECIDED
 SpecDeclaredSyncIT                                       sweep
