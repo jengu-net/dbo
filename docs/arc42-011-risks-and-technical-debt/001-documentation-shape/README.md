@@ -48,7 +48,10 @@ the sample is written against a tree that holds still.
 
 ## How a step lands
 
-One pull request per step. The site builds strictly at every step, the
-docs index lists what moved, and the map in the documentation rule is not
-edited to match the tree; when the map is wrong, that is a change to the
-rule and its skill, made deliberately.
+A step is one commit, and the site builds strictly at every one of them. A
+pull request may carry several steps while they are all documentation,
+because the suite behind a merge takes forty minutes and spending four of
+those on four markdown changes buys nothing. The docs index lists what
+moved. The map in the documentation rule is not edited to match the tree;
+when the map is wrong, that is a change to the rule and its skill, made
+deliberately.
