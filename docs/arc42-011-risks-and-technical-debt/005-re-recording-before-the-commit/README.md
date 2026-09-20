@@ -1,4 +1,4 @@
-**Open. Five projections are re-recorded by hand. Next: one task that runs all five.**
+**Done bar the rule's own history. `reRecord` runs all nine and the build installs the hook. This item can be deleted.**
 
 # Re-recording runs before the commit
 
@@ -11,11 +11,14 @@ pass, and the build goes red on a file nobody was thinking about.
 The [recorded projections rule](../../arc42-002-constraints/working-rules/recorded-projections.md)
 asks for the re-record in the same change. Nothing runs it.
 
-## Steps
+## What it found
 
-1. One Gradle task, `reRecord`, that runs all five in order, so the rule is
-   one command.
-2. A pre-commit hook that runs it when a source of any of the five is
-   staged, and stages the result. The hook is installed by the build, not
-   by a person remembering to.
-3. The rule's re-record bullet names the one task.
+The rule listed five artefacts and the tree had nine. The module map, the
+reach ledger, the promise citations and each user story's table of legs were
+added over time and never joined the list, which is the same drift the
+ratchets exist to catch, one level up.
+
+## Delete this item
+
+Nothing is left in it. `./gradlew reRecord` is the one command, the hook is
+installed by the build, and the rule names both.
