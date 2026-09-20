@@ -61,7 +61,9 @@ class AWorldOfItsOwnIsADecisionTest {
         }
         assertTrue(unexplained.isEmpty(),
                 "these build a runtime of their own and the ledger does not say why. Write "
-                        + "lifecycle, container, tampering, first boot or sweep, or take a shared "
+                        + "lifecycle, container, tampering, first boot, sweep, whole plane or "
+                        + "deployment, or "
+                        + "take a shared "
                         + "tenant instead:\n  " + String.join("\n  ", unexplained));
     }
 

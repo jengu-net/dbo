@@ -28,8 +28,13 @@ proves, and the choice is made deliberately, down a ladder.
    about the tenant coming up, going down or being held out of service;
    when it needs the OSGi container or the distribution; when it tampers
    with what the store holds behind its back; when it needs a runtime
-   nothing has touched; or when it runs a deployment-wide sweep, which on a
-   shared runtime would visit every tenant and count them all.
+   nothing has touched; when it runs a deployment-wide sweep, which on a
+   shared runtime would visit every tenant and count them all; or when its
+   assertion is about a whole plane rather than about its own tenant, which
+   on a shared runtime would be a claim about every other class's work; or
+   when it needs a deployment configured differently from the shared one,
+   because what a tenant cannot share is its configuration and nor can a
+   runtime.
 
 `config/worlds-ledger.txt` records every harness class on the fourth rung
 with its reason. [How the move down the ladder is run](../../arc42-011-risks-and-technical-debt/003-tests-move-down-the-ladder/how-it-is-run.md)

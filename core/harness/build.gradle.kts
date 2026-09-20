@@ -268,6 +268,20 @@ val apiLedger by tasks.registering(JavaExec::class) {
     args(rootProject.file("config/api-ledger.txt").absolutePath)
 }
 
+// Where each story's legs are proven, which the catalogue does not say.
+//
+// A report rather than a recorded artefact: it moves whenever a test moves,
+// which is what makes it worth reading and would make it noise to ratchet.
+val storyCoverage by tasks.registering(JavaExec::class) {
+    group = "documentation"
+    description = "Reports where each story's promises are proven."
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("cloud.jengu.dbo.harness.StoryCoverage")
+    args(layout.buildDirectory.file("reports/story-coverage.md").get().asFile.absolutePath,
+        rootProject.file("config/worlds-ledger.txt").absolutePath)
+}
+
 val promiseProjection by tasks.registering(JavaExec::class) {
     group = "documentation"
     description = "Rewrites the generated block in docs/arc42-006-runtime/req-catalogue.md."

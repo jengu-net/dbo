@@ -17,7 +17,9 @@ import java.util.stream.Stream;
  * suite. {@link SharedTenants} exists so that a class which only needs
  * somewhere to write does not, and the shared-world rule says which tests may
  * still take a world of their own: those about the tenant itself, the
- * container, a tampered row, a first boot, or a deployment-wide sweep.
+ * container, a tampered row, a first boot, a deployment-wide sweep, or
+ * an assertion about a whole plane, or a deployment configured
+ * differently from the shared one.
  *
  * <p>Nothing enforced the rule, so the count grew. This records it in the
  * shape of {@link ReachLedger}: computed from the sources, reviewed in a diff,
@@ -148,6 +150,14 @@ final class WorldsLedger {
                 #   sweep       — it runs a deployment-wide pass (shapesRound,
                 #                 syncRound, scanOnce), which would visit every
                 #                 tenant a shared runtime holds
+                #   whole plane — it asserts about an entire substrate, not about
+                #                 its own tenant, so a shared one would make the
+                #                 claim about every other class's work too
+                #   deployment  — it needs a runtime built with configuration the
+                #                 shared one does not have: redirect uris, a zone
+                #                 hub and its broker, a database left unpinned on
+                #                 purpose. What a tenant cannot share is its
+                #                 configuration, and nor can a deployment
                 #   UNDECIDED   — predates the ledger, and is the migration's worklist
                 #
                 # The number of UNDECIDED entries may only fall. Regeneration lowers the

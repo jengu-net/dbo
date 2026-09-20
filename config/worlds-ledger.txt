@@ -15,12 +15,20 @@
 #   sweep       — it runs a deployment-wide pass (shapesRound,
 #                 syncRound, scanOnce), which would visit every
 #                 tenant a shared runtime holds
+#   whole plane — it asserts about an entire substrate, not about
+#                 its own tenant, so a shared one would make the
+#                 claim about every other class's work too
+#   deployment  — it needs a runtime built with configuration the
+#                 shared one does not have: redirect uris, a zone
+#                 hub and its broker, a database left unpinned on
+#                 purpose. What a tenant cannot share is its
+#                 configuration, and nor can a deployment
 #   UNDECIDED   — predates the ledger, and is the migration's worklist
 #
 # The number of UNDECIDED entries may only fall. Regeneration lowers the
 # allowance to the actual count; the build fails above it.
 #
-# undecided-allowed: 44
+# undecided-allowed: 26
 ABlobIsTenantDataIT                                      UNDECIDED
 AChangeCanBeAskedAboutBeforeItIsMadeIT                   UNDECIDED
 ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
@@ -31,37 +39,37 @@ AFaceIsCutOnceAndBroughtUpFromIT                         UNDECIDED
 AFaceRootHoldsItsVersionAsRecordsIT                      UNDECIDED
 AHostHoldsALaneByInstallingABundleIT                     UNDECIDED
 ALaneOverTheStreamIsIndistinguishableIT                  UNDECIDED
-ALargePayloadTravelsByReferenceIT                        UNDECIDED
+ALargePayloadTravelsByReferenceIT                        whole plane
 APartnerFollowsWorkIT                                    UNDECIDED
 AReplicatedProfileCanBeValidatedAgainstIT                UNDECIDED
 AShutdownIsQuietIT                                       UNDECIDED
-AStoreWithoutSuperuserStillMountsIT                      UNDECIDED
+AStoreWithoutSuperuserStillMountsIT                      sweep
 AStreamKeepsMovingWhileATenantComesUpIT                  UNDECIDED
 AStreamLaneIsToldItHasWorkIT                             UNDECIDED
-ATenantAuthorsItsOwnSearchParameterIT                    UNDECIDED
+ATenantAuthorsItsOwnSearchParameterIT                    sweep
 ATenantComesUpFromTheFaceImageIT                         UNDECIDED
-ATenantDeclaredDifferentlyIsNoticedIT                    UNDECIDED
+ATenantDeclaredDifferentlyIsNoticedIT                    sweep
 ATenantGoingAwayIsNotOneThatFailedIT                     UNDECIDED
 ATenantOpensAndItsPeopleGetInIT                          UNDECIDED
 ATenantSubscribesToItsVersionIT                          UNDECIDED
-ATenantThatIsNotUpSaysWhyIT                              UNDECIDED
-AZoneReachesAnotherFaceThroughOneProjectionIT            UNDECIDED
-AnOperatorReadsAndSteersTheFleetIT                       UNDECIDED
+ATenantThatIsNotUpSaysWhyIT                              sweep
+AZoneReachesAnotherFaceThroughOneProjectionIT            sweep
+AnOperatorReadsAndSteersTheFleetIT                       sweep
 EachTypeStreamsAtItsOwnGrainIT                           UNDECIDED
 EngineVocabularyDoesNotCollideWithItselfIT               UNDECIDED
 FaceRefusalIT                                            UNDECIDED
-FederatedAuthIT                                          UNDECIDED
-HumanAuthIT                                              UNDECIDED
-MandatoryStepsClassifyIncidentsIT                        UNDECIDED
-MetaSaysTheEnginesFactsIT                                UNDECIDED
-NothingReadableLandsInTheSubstrateIT                     UNDECIDED
-OneTenantInTwoPlacesIT                                   UNDECIDED
-OperatorIT                                               UNDECIDED
+FederatedAuthIT                                          deployment
+HumanAuthIT                                              deployment
+MandatoryStepsClassifyIncidentsIT                        sweep
+MetaSaysTheEnginesFactsIT                                sweep
+NothingReadableLandsInTheSubstrateIT                     whole plane
+OneTenantInTwoPlacesIT                                   sweep
+OperatorIT                                               sweep
 ProfilesArrivingOutOfBandTakeEffectIT                    UNDECIDED
 ScimProvisioningIT                                       UNDECIDED
 SeveralTenantsDeclaredAtOnceComeUpTogetherIT             UNDECIDED
-SpecDeclaredSyncIT                                       UNDECIDED
-TenantRuntimeIT                                          UNDECIDED
-ThePlaintextInFlightLeavesNoTraceIT                      UNDECIDED
+SpecDeclaredSyncIT                                       sweep
+TenantRuntimeIT                                          sweep
+ThePlaintextInFlightLeavesNoTraceIT                      deployment
 WhatTheLoadedSpecificationCostsIT                        UNDECIDED
-ZoneIT                                                   UNDECIDED
+ZoneIT                                                   sweep
