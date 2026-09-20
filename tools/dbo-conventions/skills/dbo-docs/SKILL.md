@@ -23,6 +23,10 @@ description: Adding, moving or editing a page under docs/, guide/ or site/pages/
 - MUST write a thing where the map in this document says, and record a
   disagreement between the map and the tree as an item in 011 rather than
   following the tree.
+- MUST show a whole file with `--8<--` rather than retyping it, and MUST
+  name the source on the fence — ```` ```json title="sample/world/..." ````
+  — when quoting a few of its lines. A titled fence is checked against the
+  file it names; an untyped copy drifts silently.
 - MUST update the docs index when a document is added, moved or removed.
 - MUST run `./gradlew site` after editing and fix what `--strict` reports.
 

@@ -20,7 +20,7 @@ This is that door.
 A step is declared beside the types, in the same file, because it is the same
 kind of statement — what this tenant does, and over what:
 
-```json
+```json title="sample/world/tenants/hogwarts.json"
 "steps": [
   { "code": "hogwarts.admission.admit", "slots": { "patient": "Patient" } }
 ]
@@ -197,9 +197,10 @@ rather than guessing now.
 deciding what happens to a write that references something out of reach, and
 that question needs traversal before it means anything.
 
-**Synchronous only.** The caller here starts the run, does the work and says it
-is done. Queued steps, with runners claiming work off a lane, are the larger
-half of the work model — and the half you cannot show with a curl.
+**The caller here does the work itself.** It starts the run, reads inside it
+and says it is done. Work claimed off a lane by a runner that joins the tenant
+is the larger half of the model, and it is [Runners](runners.md) rather than
+this door.
 
 **The direct door is still open.** Every other chapter still works, and the
 deployment's own credential still reads any record. Closing it is a separate

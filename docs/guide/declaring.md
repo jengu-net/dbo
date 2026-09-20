@@ -12,7 +12,7 @@ template: essay.html
 showed what `identity` does. This is the other half of a type declaration, the one that is
 easy to read past:
 
-```json
+```json title="sample/world/tenants/hogwarts.json"
 { "name": "Patient", "identity": "identifier",
   "systems": ["urn:rl:nid"], "handling": "operational" }
 ```
@@ -37,7 +37,7 @@ organisation creates in the course of doing its work.
 
 The hospital declares `CodeSystem` too, but not as `operational`:
 
-```json
+```json title="sample/world/tenants/hogwarts.json"
 { "name": "CodeSystem", "identity": "canonical", "handling": "replicated" }
 ```
 

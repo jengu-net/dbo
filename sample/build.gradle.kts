@@ -18,7 +18,13 @@ dependencies {
     api(project(":core:dbo-runner"))
     api(project(":core:dbo-work"))
     implementation(project(":core:dbo-tenant"))
+    // The chapters are documentation about this module, and one test here
+    // holds them to it. It reads files and needs no world.
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
+
+tasks.test { useJUnitPlatform() }
 
 // Javadoc on example code would demand the ceremony the examples exist to be
 // free of: these are read as prose in a chapter, not as an API.

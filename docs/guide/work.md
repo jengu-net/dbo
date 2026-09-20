@@ -91,7 +91,7 @@ of what it is allowed to be:
 The hospital's is deliberately the smallest one that can exist — one slot, one
 type:
 
-```json
+```json title="sample/world/tenants/hogwarts.json"
 "steps": [
   { "code": "hogwarts.admission.admit", "slots": { "patient": "Patient" } }
 ]
