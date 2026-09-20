@@ -1,4 +1,4 @@
-**Open. 44 harness classes build a runtime of their own and are undecided. Next: classify them into rungs.**
+**Open. Nothing is undecided: 40 classes build a runtime of their own and each says why. Next: re-read the 13 whose reason is `sweep` from before that reason was narrowed.**
 
 # Own-world tests move down the ladder
 
@@ -71,5 +71,13 @@ in [how the migration is run](how-it-is-run.md), which moved here from
    reasons to keep a runtime. Record the result as the worklist here.
 2. Move them, one or a few per change, re-recording the ledger each time so
    the allowance falls.
-3. Give the classes that keep a runtime their reason in the ledger, so
-   undecided reaches zero and this item is deleted.
+3. ~~Give the classes that keep a runtime their reason in the ledger, so
+   undecided reaches zero.~~ Done: every entry carries one.
+4. Re-read the entries whose reason is `sweep`. That reason used to say a
+   class needs its own runtime when it RUNS a deployment-wide pass, which is
+   wrong — the scan loop runs them continuously, and a class that needs the
+   effect on its own tenant can run one on the shared runtime. It now says a
+   class needs one when its CLAIM is about the pass: the number it returned,
+   or the troubles it left. Thirteen entries were recorded under the old
+   wording and some of them will move. This item is deleted when they have
+   been read.

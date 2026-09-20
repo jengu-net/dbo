@@ -32,14 +32,14 @@
 # The number of UNDECIDED entries may only fall. Regeneration lowers the
 # allowance to the actual count; the build fails above it.
 #
-# undecided-allowed: 7
+# undecided-allowed: 0
 ABlobIsTenantDataIT                                      lifecycle
 AChangeCanBeAskedAboutBeforeItIsMadeIT                   deployment
-ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
-ADeploymentPresentsItsOwnCredentialIT                    UNDECIDED
+ADefinitionIsExpandedWhenItArrivesIT                     first boot
+ADeploymentPresentsItsOwnCredentialIT                    deployment
 ADeploymentRecordsWhatItWasToldToServeIT                 sweep
-AFaceIsCutOnceAndBroughtUpFromIT                         UNDECIDED
-AFaceRootHoldsItsVersionAsRecordsIT                      UNDECIDED
+AFaceIsCutOnceAndBroughtUpFromIT                         deployment
+AFaceRootHoldsItsVersionAsRecordsIT                      lifecycle
 AHostHoldsALaneByInstallingABundleIT                     container
 ALaneOverTheStreamIsIndistinguishableIT                  deployment
 ALargePayloadTravelsByReferenceIT                        whole plane
@@ -48,11 +48,11 @@ AStoreWithoutSuperuserStillMountsIT                      sweep
 AStreamKeepsMovingWhileATenantComesUpIT                  lifecycle
 AStreamLaneIsToldItHasWorkIT                             deployment
 ATenantAuthorsItsOwnSearchParameterIT                    sweep
-ATenantComesUpFromTheFaceImageIT                         UNDECIDED
+ATenantComesUpFromTheFaceImageIT                         deployment
 ATenantDeclaredDifferentlyIsNoticedIT                    sweep
 ATenantGoingAwayIsNotOneThatFailedIT                     lifecycle
-ATenantOpensAndItsPeopleGetInIT                          UNDECIDED
-ATenantSubscribesToItsVersionIT                          UNDECIDED
+ATenantOpensAndItsPeopleGetInIT                          lifecycle
+ATenantSubscribesToItsVersionIT                          lifecycle
 ATenantThatIsNotUpSaysWhyIT                              sweep
 AZoneReachesAnotherFaceThroughOneProjectionIT            sweep
 AnOperatorReadsAndSteersTheFleetIT                       sweep

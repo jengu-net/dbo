@@ -34,6 +34,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <i>subscribe</i> to a version instead: the definitions are records in one
  * tenant's store, findable by canonical url like anything else, and flowing to
  * dependents through the same chain a zone's terminology takes.
+ *
+ * <p><b>A world of its own, and the change is why.</b> The second claim is
+ * that a tenant already serving can be declared a root and will load the
+ * version where it stands, which it proves by rewriting that tenant's
+ * declaration and scanning again. Rewriting a declaration is a change to a
+ * tenant's life, and on the shared runtime the tenant it changed would be one
+ * other classes are using.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

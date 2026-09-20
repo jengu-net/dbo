@@ -48,6 +48,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p><b>Per tenant, not per deployment.</b> One secret opening every tenant
  * would undo the isolation the store is otherwise built around, so the second
  * test presents one tenant's credential to another and expects to be refused.
+ *
+ * <p><b>A world of its own, and the credential is why.</b> The subject is the
+ * secret a deployment chose before any tenant came up, and whether the
+ * tenant's own authority accepts it. That secret is handed to the runtime
+ * when it is built, so a runtime somebody else built is one whose answer
+ * this class did not decide.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
