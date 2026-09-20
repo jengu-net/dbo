@@ -139,6 +139,50 @@ public class ElementFhirVersion implements FhirVersion {
         }
 
         /**
+         * Refuses a type declared as one this face defines, which it does not.
+         *
+         * <p>Saying a face has no definition for a type is the declaration's
+         * job — {@code none} means it is held as itself, stored verbatim and
+         * validated against nothing — and the face never infers it, because a
+         * face that noticed it had no definition for a name and quietly
+         * switched would turn every typo into an opaque type.
+         *
+         * <p>What nothing answered was the case in between. A name this face
+         * does not know, declared as though it did, came up serving: the
+         * capability statement advertised it, a search of it answered an empty
+         * bundle, and only a write refused — blaming the caller's body for
+         * being unparseable rather than the declaration for naming a type that
+         * does not exist. Three answers that each read reasonably alone.
+         *
+         * <p><b>Asked of the definitions this face carries, not of the
+         * toolchain.</b> Building the toolchain's context would answer as
+         * well and a bring-up is not allowed to cost one — there is a test
+         * that says so by name. The carried definitions are already on disk
+         * and already indexed, so this is a set lookup.
+         *
+         * <p>Not asked of a type's search parameters, which was the first
+         * idea and is wrong: {@code Binary} is a resource this face defines
+         * and declares no search parameters, so it is indistinguishable that
+         * way from a name nobody has ever heard of.
+         */
+        private void refuseWhatThisFaceHasNoDefinitionFor() {
+            List<String> unknown = new ArrayList<>();
+            for (FhirTypeConfig type : types) {
+                if (type.definition() != FhirTypeConfig.Definition.NONE
+                        && !version.defines(type.typeName())) {
+                    unknown.add(type.typeName());
+                }
+            }
+            if (!unknown.isEmpty()) {
+                throw new IllegalArgumentException("face " + version.code()
+                        + " has no definition for " + unknown + ", and they are declared as "
+                        + "types it defines. Correct the name, or declare the definition as "
+                        + "'none' to have the type held as itself: stored verbatim, indexed "
+                        + "by the identity it declares, and validated against nothing");
+            }
+        }
+
+        /**
          * The extractor a type asked for.
          *
          * <p>A type may say its envelope is computed where the bytes are; the
@@ -171,6 +215,7 @@ public class ElementFhirVersion implements FhirVersion {
 
         @Override
         public List<TypeRegistration> registrations(String domain) {
+            refuseWhatThisFaceHasNoDefinitionFor();
             List<TypeRegistration> out = new ArrayList<>();
             for (FhirTypeConfig type : types) {
                 // A type the face has no definition for never reaches the
