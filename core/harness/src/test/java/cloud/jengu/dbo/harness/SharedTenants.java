@@ -58,7 +58,9 @@ public final class SharedTenants {
                 [{"name":"Patient","identity":"internal","handling":"operational"},
                  {"name":"Observation","identity":"internal","handling":"operational"},
                  {"name":"Encounter","identity":"internal","handling":"operational"},
-                 {"name":"Basic","identity":"internal","handling":"operational"}]""", "r4", "", "full"),
+                 {"name":"Subscription","identity":"internal","handling":"operational"},
+                 {"name":"Basic","identity":"internal","handling":"operational"}]""",
+                "r4", "", "full"),
 
         /** r4 with patients keyed by the national identifier, plus canonical content. */
         R4_IDENTIFIER("sharedr4identifier", """
@@ -82,7 +84,9 @@ public final class SharedTenants {
         /** r5, for anything that has to be served beside r4 rather than instead of it. */
         R5("sharedr5", """
                 [{"name":"Patient","identity":"internal","handling":"operational"},
-                 {"name":"Observation","identity":"internal","handling":"operational"}]""",
+                 {"name":"Observation","identity":"internal","handling":"operational"},
+                 {"name":"Subscription","identity":"internal","handling":"operational"},
+                 {"name":"SubscriptionTopic","identity":"canonical","handling":"operational"}]""",
                 "r5", "", "full"),
 
         /**

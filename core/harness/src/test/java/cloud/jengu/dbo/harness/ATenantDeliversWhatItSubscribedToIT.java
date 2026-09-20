@@ -2,8 +2,6 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -14,7 +12,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -23,8 +20,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -61,15 +56,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ATenantDeliversWhatItSubscribedToIT {
 
-    private static final String CLINIC = "teavitus";
-    private static final String R5_CLINIC = "teavitus-r5";
     private static final String TOPIC = "https://teavitus.example/SubscriptionTopic/final-results";
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant clinic;
+    static SharedTenants.Tenant r5Clinic;
     static HttpServer subscriber;
     static final List<String> delivered = new CopyOnWriteArrayList<>();
     static final List<String> onTopic = new CopyOnWriteArrayList<>();
@@ -78,12 +69,6 @@ class ATenantDeliversWhatItSubscribedToIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-notify");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ATenantDeliversWhatItSubscribedToIT"),
-                postgres.getUsername(), postgres.getPassword());
-
         // Somebody else's endpoint: not this store, and reachable from it only
         // as a socket. A notification that never crossed it was not delivered.
         subscriber = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -103,36 +88,21 @@ class ATenantDeliversWhatItSubscribedToIT {
         endpoint = "http://127.0.0.1:" + subscriber.getAddress().getPort() + "/notify";
         topicEndpoint = "http://127.0.0.1:" + subscriber.getAddress().getPort() + "/on-topic";
 
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(CLINIC + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"Observation","identity":"internal","handling":"operational"},
-                  {"name":"Subscription","identity":"internal","handling":"operational"}]}"""
-                .formatted(CLINIC));
-        // An R5 tenant beside it: topics are records there, which is what
-        // makes the topic half reachable at all.
-        Files.writeString(dir.resolve(R5_CLINIC + ".json"), """
-                {"code":"%s","face":"r5","types":[
-                  {"name":"Observation","identity":"internal","handling":"operational"},
-                  {"name":"Subscription","identity":"internal","handling":"operational"},
-                  {"name":"SubscriptionTopic","identity":"canonical","handling":"operational"}]}"""
-                .formatted(R5_CLINIC));
-        UntilServed.scan(manager, CLINIC, R5_CLINIC);
+        // The tenants that are already there, with Subscription declared on
+        // them rather than a pair invented for this class. Nothing else on
+        // either shape writes an Observation, so the only notification this
+        // endpoint can be sent is one this class caused. The topic half needs
+        // r5, where a SubscriptionTopic is a record.
+        clinic = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
+        r5Clinic = SharedTenants.of(SharedTenants.Shape.R5);
     }
 
     @AfterAll
     void down() {
-        if (manager != null) {
-            manager.close();
-        }
+        // The endpoint is this class's own socket; the tenants are not its
+        // to close.
         if (subscriber != null) {
             subscriber.stop(0);
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
         }
     }
 
@@ -195,20 +165,20 @@ class ATenantDeliversWhatItSubscribedToIT {
             + "that was written where no request could reach it")
     @Proving(DboPromises.EVT_FHIR_SUBSCRIPTIONS)
     void aTopicSubscriptionDelivers() throws Exception {
-        assertEquals(201, post(R5_CLINIC, "/SubscriptionTopic", """
+        assertEquals(201, post(r5Clinic, "/SubscriptionTopic", """
                 {"resourceType":"SubscriptionTopic","url":"%s","status":"active",
                  "resourceTrigger":[{"resource":"Observation",
                                      "supportedInteraction":["create","update"]}],
                  "canFilterBy":[{"filterParameter":"status"}]}"""
                 .formatted(TOPIC)).statusCode());
 
-        assertEquals(201, post(R5_CLINIC, "/Subscription", """
+        assertEquals(201, post(r5Clinic, "/Subscription", """
                 {"resourceType":"Subscription","status":"active","topic":"%s",
                  "channelType":{"code":"rest-hook"},"endpoint":"%s","content":"id-only",
                  "filterBy":[{"filterParameter":"status","value":"final"}]}"""
                 .formatted(TOPIC, topicEndpoint)).statusCode());
 
-        assertEquals(201, post(R5_CLINIC, "/Observation", """
+        assertEquals(201, post(r5Clinic, "/Observation", """
                 {"resourceType":"Observation","status":"final",
                  "code":{"coding":[{"system":"http://loinc.org","code":"9999-1"}]}}""")
                 .statusCode());
@@ -234,24 +204,25 @@ class ATenantDeliversWhatItSubscribedToIT {
     }
 
     private static HttpResponse<String> post(String path, String body) throws Exception {
-        return post(CLINIC, path, body);
+        return post(clinic, path, body);
     }
 
-    private static HttpResponse<String> post(String tenant, String path, String body)
+    private static HttpResponse<String> post(SharedTenants.Tenant tenant, String path,
+            String body)
             throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(tenant) + path))
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Authorization", "Bearer " + token(tenant))
                         .header("Content-Type", "application/fhir+json")
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
-    private static String token(String tenant) throws Exception {
+    private static String token(SharedTenants.Tenant tenant) throws Exception {
         String form = "grant_type=client_credentials&client_id=tenant-bootstrap&client_secret="
-                + URLEncoder.encode(provisioner.bootstrapClientSecret(tenant),
+                + URLEncoder.encode(tenant.bootstrapSecret(),
                         StandardCharsets.UTF_8);
         return Extracted.tokenIn(HTTP.send(HttpRequest.newBuilder(URI.create(
-                        manager.baseUrl(tenant).replace("/fhir", "/oidc/token")))
+                        tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString())
