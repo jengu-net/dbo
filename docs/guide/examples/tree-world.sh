@@ -30,7 +30,7 @@ text = pathlib.Path("docs/guide/examples/compose.yaml").read_text()
 text = re.sub(r'image: ghcr\.io/jengu-net/dbo-server:\S+', f'image: {tag}', text)
 # The published file names its mounts relative to itself, and this one lives
 # somewhere else entirely.
-text = text.replace('../world', str(pathlib.Path.cwd() / "docs/guide/world"))
+text = text.replace('../../../sample/world', str(pathlib.Path.cwd() / "sample/world"))
 pathlib.Path(out).write_text(text)
 PY
 echo "$OUT"

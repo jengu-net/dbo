@@ -85,7 +85,7 @@ things you are told.
 A tenant is declared as one file. This is the hospital, complete:
 
 ```json
---8<-- "docs/guide/world/tenants/hogwarts.json"
+--8<-- "sample/world/tenants/hogwarts.json"
 ```
 
 It says which standard it speaks, which zone it is in, which face root it takes

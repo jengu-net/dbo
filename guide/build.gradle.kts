@@ -24,6 +24,9 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     // @Proving citations, for when promises start moving here.
     testImplementation(project(":core:dbo-promises"))
+    // The integrator's own code, compiled from the files the chapters include.
+    // The suite runs it rather than describing it.
+    testImplementation(project(":sample"))
     testAnnotationProcessor(project(":promise"))
 }
 

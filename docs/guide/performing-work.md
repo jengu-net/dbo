@@ -21,7 +21,7 @@ once.
 You implement `StepService`.
 
 ```java
---8<-- "docs/guide/examples/java/cloud/jengu/dbo/guide/examples/AssayStep.java"
+--8<-- "sample/src/main/java/cloud/jengu/dbo/sample/AssayStep.java"
 ```
 
 Two methods matter, and a third is optional.

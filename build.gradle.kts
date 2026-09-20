@@ -309,7 +309,10 @@ subprojects {
         ":core:harness", ":core:dbo-server", ":core:conformance", ":bench:runner",
         // the development console: a stock Karaf pointed at the bundle set,
         // not an artifact anyone consumes
-        ":karaf", ":karaf:commands", ":karaf:slf4j-compat")
+        ":karaf", ":karaf:commands", ":karaf:slf4j-compat",
+        // the guide's examples, compiled so a chapter cannot show a call that
+        // no longer exists; nobody depends on them
+        ":sample")
     if (project.path !in notALibrary) {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")
@@ -865,14 +868,8 @@ val siteAssemble by tasks.registering(Sync::class) {
     from(layout.projectDirectory.dir("docs")) {
         into("docs")
         // A concept's diagrams are compiler sources, not pages.
-        // The guide's sample world is a device for keeping the examples in the
-        // chapters consistent with each other. Its tenant specs are injected
-        // into pages and must be copied; the page describing the arrangement
-        // is about how this documentation is kept rather than about the store,
-        // so it stays in the tree, readable on GitHub, and is not published.
         exclude(
             "**/diagrams/**",
-            "guide/world/README.md",
         )
     }
     from(layout.projectDirectory.file("docs/favicon.ico")) { into("assets") }

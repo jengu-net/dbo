@@ -22,7 +22,7 @@ dropped.
 A tenant is one file. This is the insurer, complete:
 
 ```json
---8<-- "docs/guide/world/tenants/gringotts.json"
+--8<-- "sample/world/tenants/gringotts.json"
 ```
 
 Four things are being said, and the engine enforces all of them.

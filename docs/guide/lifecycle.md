@@ -90,7 +90,7 @@ decision.**
 A `TenantLifecycleListener` is told when a tenant reaches a point.
 
 ```java
---8<-- "docs/guide/examples/java/cloud/jengu/dbo/guide/examples/NoticingATenant.java"
+--8<-- "sample/src/main/java/cloud/jengu/dbo/sample/NoticingATenant.java"
 ```
 
 Registered against the point it wants, and optionally a filter saying which
@@ -116,7 +116,7 @@ missing it would matter, it is not this.
 A `TenantObserver` watches one of a tenant's streams.
 
 ```java
---8<-- "docs/guide/examples/java/cloud/jengu/dbo/guide/examples/WatchingTheWork.java"
+--8<-- "sample/src/main/java/cloud/jengu/dbo/sample/WatchingTheWork.java"
 ```
 
 Registered with the stream, the consumer name it reads as, and the same
