@@ -21,16 +21,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.testcontainers.containers.PostgreSQLContainer;
-
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -58,57 +54,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class APartnerFollowsWorkIT {
 
-    private static final String PARTNER = "kaskad";
-    private static final String MANAGED = "praxis";
-    private static final String OTHER = "kambium";
     private static final String STEP = "dbo.lab.assay";
     private static final StepDeclaration ASSAY = StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
             .taking("specimen", "https://meristem.example/shape/specimen");
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient http = HttpClient.newHttpClient();
 
-    @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-partner");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("APartnerFollowsWorkIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(PARTNER + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(PARTNER));
-        // The relation, declared at creation: praxis is managed by kaskad.
-        Files.writeString(dir.resolve(MANAGED + ".json"), """
-                {"code":"%s","face":"r4","managedBy":"%s","audit":{"level":"writes"},"types":[
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(MANAGED, PARTNER));
-        Files.writeString(dir.resolve(OTHER + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"writes"},"types":[
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(OTHER));
-        UntilServed.scan(manager, PARTNER, MANAGED, OTHER);
-        manager.authority(PARTNER).ensureClient("kaskad-support", "support-secret",
-                List.of("system/*.read"));
-        manager.authority(MANAGED).ensureClient("bench", "bench-secret", List.of("work/" + STEP));
-    }
+    static SharedTenants.Tenant partner;
+    static SharedTenants.Tenant managed;
 
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+    /** A tenant that declared no partner, which is any other shared one. */
+    static SharedTenants.Tenant other;
+
+    static String partnerToken;
+    static String benchToken;
+
+    @BeforeAll
+    void up() {
+        // The relation is declared when the managed tenant is created, so the
+        // partner has to be serving before it.
+        partner = SharedTenants.of(SharedTenants.Shape.R4_PARTNER);
+        managed = SharedTenants.of(SharedTenants.Shape.R4_MANAGED);
+        other = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
+        partnerToken = partner.token("kaskad-support", "system/*.read");
+        benchToken = managed.token("bench", "work/" + STEP);
     }
 
     @Test
@@ -117,15 +86,16 @@ class APartnerFollowsWorkIT {
     @Proving(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS)
     void thePartnerFollowsTheJourneyAndNothingElse() throws Exception {
         // Work in the managed tenant: a document, a run naming it, a hop.
-        ObjectStore praxis = manager.runtime(MANAGED).orElseThrow().engine();
+        ObjectStore praxis = managed.engine();
         String specimen = praxis.put(PutRequest.create("Basic",
                 "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"specimen-3f9a\"}}"
                         .getBytes(StandardCharsets.UTF_8))).id();
         Runs runs = new Runs(praxis);
         Run run = runs.of(ASSAY, RunKind.PIPELINE, "followed",
                 Map.of("specimen", "Basic/" + specimen));
-        HttpLane bench = HttpLane.to(laneUri(MANAGED), () -> token(MANAGED, "bench", "bench-secret"),
-                MANAGED, "bench", new Executor("bench", "1.0", "cloud.jengu.test", Scope.BASELINE));
+        HttpLane bench = HttpLane.to(URI.create(managed.base() + "/work"), () -> benchToken,
+                managed.code(), "bench",
+                new Executor("bench", "1.0", "cloud.jengu.test", Scope.BASELINE));
         bench.introduce(ASSAY);
         Run held = bench.claim(run, Duration.ofMinutes(5)).orElseThrow();
         bench.inputs(held);
@@ -140,8 +110,7 @@ class APartnerFollowsWorkIT {
 
         // The partner, with its own tenant's credential, asks the managed
         // tenant for the run's journey.
-        String partnerToken = token(PARTNER, "kaskad-support", "support-secret");
-        HttpResponse<String> journey = get(MANAGED, "/AuditEvent?run="
+        HttpResponse<String> journey = get(managed, "/AuditEvent?run="
                 + URLEncoder.encode(held.key(), StandardCharsets.UTF_8), partnerToken);
         assertEquals(200, journey.statusCode(), journey.body());
         assertTrue(journey.body().contains("travel"),
@@ -156,56 +125,34 @@ class APartnerFollowsWorkIT {
 
         // The document itself: not the partner's to read, and answered as
         // absent rather than forbidden.
-        HttpResponse<String> document = get(MANAGED, "/Basic/" + specimen, partnerToken);
+        HttpResponse<String> document = get(managed, "/Basic/" + specimen, partnerToken);
         assertTrue(document.statusCode() == 404 || document.statusCode() == 403,
                 "a partner never receives a document: " + document.statusCode() + " "
                         + document.body());
         assertFalse(document.body().contains("specimen-3f9a"), document.body());
 
         // A tenant that declared no partner does not know this credential.
-        HttpResponse<String> refused = get(OTHER, "/AuditEvent?run="
+        HttpResponse<String> refused = get(other, "/AuditEvent?run="
                 + URLEncoder.encode(held.key(), StandardCharsets.UTF_8), partnerToken);
         assertEquals(401, refused.statusCode(),
                 "the relation says which tenants a partner may read at all: " + refused.body());
 
         // And the practice's own credential still sees its purpose: the
         // omission is the audience's, not the trail's.
-        HttpResponse<String> own = get(MANAGED, "/AuditEvent?entity=" + specimen,
-                token(MANAGED, "tenant-bootstrap", provisioner.bootstrapClientSecret(MANAGED)));
+        HttpResponse<String> own = get(managed, "/AuditEvent?entity=" + specimen,
+                managed.token("partner-test-owner", "system/*.read"));
         assertEquals(200, own.statusCode(), own.body());
         assertTrue(own.body().contains("TREAT"), "the tenant reads its own trail whole: " + own.body());
     }
 
     // ------------------------------------------------------------ fixtures
 
-    private static URI laneUri(String tenant) {
-        return URI.create("http://127.0.0.1:" + manager.port() + "/t/" + tenant + "/work");
-    }
-
-    private static HttpResponse<String> get(String tenant, String path, String token)
-            throws Exception {
-        return http.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(tenant) + path))
+    private static HttpResponse<String> get(SharedTenants.Tenant tenant, String path,
+            String token) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Authorization", "Bearer " + token)
                         .header("Accept", "application/fhir+json").GET().build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
-    private static String token(String tenant, String clientId, String secret) {
-        try {
-            String form = "grant_type=client_credentials&client_id="
-                    + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
-                    + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
-            String body = http.send(HttpRequest.newBuilder(
-                                    URI.create("http://127.0.0.1:" + manager.port()
-                                            + "/t/" + tenant + "/oidc/token"))
-                            .header("Content-Type", "application/x-www-form-urlencoded")
-                            .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
-                    HttpResponse.BodyHandlers.ofString()).body();
-            Matcher m = Pattern.compile("\"access_token\":\"([^\"]+)\"").matcher(body);
-            assertTrue(m.find(), body);
-            return m.group(1);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-    }
 }

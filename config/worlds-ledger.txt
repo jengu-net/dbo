@@ -32,7 +32,7 @@
 # The number of UNDECIDED entries may only fall. Regeneration lowers the
 # allowance to the actual count; the build fails above it.
 #
-# undecided-allowed: 17
+# undecided-allowed: 14
 ABlobIsTenantDataIT                                      lifecycle
 AChangeCanBeAskedAboutBeforeItIsMadeIT                   deployment
 ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
@@ -41,11 +41,10 @@ ADeploymentPresentsItsOwnCredentialIT                    UNDECIDED
 ADeploymentRecordsWhatItWasToldToServeIT                 sweep
 AFaceIsCutOnceAndBroughtUpFromIT                         UNDECIDED
 AFaceRootHoldsItsVersionAsRecordsIT                      UNDECIDED
-AHostHoldsALaneByInstallingABundleIT                     UNDECIDED
+AHostHoldsALaneByInstallingABundleIT                     container
 ALaneOverTheStreamIsIndistinguishableIT                  UNDECIDED
 ALargePayloadTravelsByReferenceIT                        whole plane
-APartnerFollowsWorkIT                                    UNDECIDED
-AShutdownIsQuietIT                                       UNDECIDED
+AShutdownIsQuietIT                                       lifecycle
 AStoreWithoutSuperuserStillMountsIT                      sweep
 AStreamKeepsMovingWhileATenantComesUpIT                  UNDECIDED
 AStreamLaneIsToldItHasWorkIT                             UNDECIDED

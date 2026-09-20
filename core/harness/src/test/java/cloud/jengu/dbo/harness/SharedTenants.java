@@ -206,6 +206,22 @@ public final class SharedTenants {
                 .formatted(STAFF_IDS), "r4",
                 ",\"pdi\":true,\"scim\":{\"system\":\"" + STAFF_IDS + "\"}", "full"),
 
+        /** r4 that manages other tenants: a partner, for the one below. */
+        R4_PARTNER("sharedr4partner", """
+                [{"name":"Basic","identity":"internal","handling":"operational"}]""",
+                "r4", "", "none"),
+
+        /**
+         * r4 managed by the partner above, with its trail on.
+         *
+         * <p>The relation is declared when the tenant is created and is the
+         * only thing that makes its work visible outside it, so it cannot be
+         * something a class turns on afterwards — it is the shape.
+         */
+        R4_MANAGED("sharedr4managed", """
+                [{"name":"Basic","identity":"internal","handling":"operational"}]""",
+                "r4", ",\"managedBy\":\"sharedr4partner\"", "writes"),
+
         /** r4 publishing shapes, for the reader below to take them from. */
         R4_SHAPE_ZONE("sharedr4shapezone", """
                 [{"name":"StructureDefinition","identity":"canonical","handling":"operational"},

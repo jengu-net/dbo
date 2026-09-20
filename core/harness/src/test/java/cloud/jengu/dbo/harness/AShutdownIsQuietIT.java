@@ -30,6 +30,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  * <p>The cause was ordering. Ending the loops meant interrupting them, which
  * ends the sleep between rounds and does nothing to a round already reading
  * through a pool — and the pools were closed immediately afterwards.
+ *
+ * <p><b>A world of its own, and the shutdown is why.</b> What it asserts is
+ * what a node says while it is being closed, so it has to close one. The
+ * shared runtime is the thing every other class is still using.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
