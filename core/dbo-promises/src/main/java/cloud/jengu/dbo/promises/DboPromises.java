@@ -515,7 +515,7 @@ public enum DboPromises implements Promise {
             + "It stands there for every tenant: a lane needs no authority, because the "
             + "registry never asks who is calling."),
 
-    // ── sealed work — decided in review, nothing built; see docs/tasks ──
+    // ── sealed work — decided in review, nothing built ──
 
     PROC_WORK_TRAVELS_SEALED(
             "Work travels in two parts. The manifest — tenant, step, the task, and "

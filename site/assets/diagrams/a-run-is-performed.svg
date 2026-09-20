@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-497.3235 -269 994.647 538" width="994.647" height="538" class="lini lini-scope-8e3eeb16" role="img" aria-labelledby="a-run-is-performed-title a-run-is-performed-desc">
+  <title id="a-run-is-performed-title">A run is claimed, performed and reported</title>
+  <desc id="a-run-is-performed-desc">A participant asks the lane what work is available to it, and the lane offers only runs of steps the participant's identity may take. The participant claims one, which is a conditional write, and the claim is recorded with its link in the trail. The participant does the work behind its own firewall and reports what the step declared; the lane closes the run only if closing is what that act means. Nothing is ever pushed to the participant, and a claim held past its deadline is released for somebody else.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-8e3eeb16 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-8e3eeb16[data-theme="dark"], [data-theme="dark"] .lini-scope-8e3eeb16 { color-scheme: dark; }
+      .lini-scope-8e3eeb16[data-theme="light"], [data-theme="light"] .lini-scope-8e3eeb16 { color-scheme: light; }
+    }
+    .lini-scope-8e3eeb16 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-8e3eeb16 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-cyl { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-path { stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-8e3eeb16 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-8e3eeb16 .lini-note { fill: var(--lini-fill); stroke: var(--lini-stroke); }
+    .lini-scope-8e3eeb16 .lini-outside { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-8e3eeb16 .lini-face { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-8e3eeb16 .lini-engine { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-8e3eeb16 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-link-dashed { stroke-dasharray: 7,5.5; }
+    .lini-scope-8e3eeb16 .lini-sequence-message { fill: currentColor; stroke: none; text-anchor: middle; font-size: 13px; font-weight: normal; }
+    .lini-scope-8e3eeb16 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-line" style="stroke: var(--lini-faint)" transform="translate(0,0)">
+      <line x1="-300.036" y1="-194" x2="-300.036" y2="249"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="-91.1415" y1="-194" x2="-91.1415" y2="249"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="113.2675" y1="-194" x2="113.2675" y2="249"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="343.3455" y1="-194" x2="343.3455" y2="249"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-91.1415,-114)">
+      <rect x="-5" y="-47" width="10" height="94" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(113.2675,-114)">
+      <rect x="-5" y="-15" width="10" height="30" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-91.1415,107.5)">
+      <rect x="-5" y="-140.5" width="10" height="281" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(113.2675,123.5)">
+      <rect x="-5" y="-124.5" width="10" height="249" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(343.3455,139.5)">
+      <rect x="-5" y="-108.5" width="10" height="217" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-87.1415,179.5)">
+      <rect x="-5" y="-68.5" width="10" height="137" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(117.2675,195.5)">
+      <rect x="-5" y="-52.5" width="10" height="105" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(347.3455,211.5)">
+      <rect x="-5" y="-36.5" width="10" height="73" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-outside lini-box lini-block" data-id="participant" transform="translate(-300.036,-221.5)">
+      <rect x="-129.7525" y="-26.5" width="259.505" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A participant, behind its own firewall</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="lane" transform="translate(-91.1415,-221.5)">
+      <rect x="-45.142" y="-26.5" width="90.284" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The lane</text>
+    </g>
+    <g class="lini-node lini-engine lini-box lini-block" data-id="runs" transform="translate(113.2675,-221.5)">
+      <rect x="-109.635" y="-26.5" width="219.27" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Runs, over the step catalogue</text>
+    </g>
+    <g class="lini-node lini-cyl" data-id="db" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(343.3455,-221.5)">
+      <path d="M -86.443 -21.2 L -86.443 21.2 A 86.443 5.3 0 0 0 86.443 21.2 L 86.443 -21.2 A 86.443 5.3 0 0 0 -86.443 -21.2 Z"/>
+      <ellipse cx="0" cy="-21.2" rx="86.443" ry="5.3"/>
+      <text class="lini-text" x="0" y="1.65" dy="0.358em">The tenant&apos;s database</text>
+    </g>
+    <g class="lini-node lini-note lini-path" style="stroke-width: 2; font-size: 13px" transform="translate(228.3065,203.5)">
+      <path d="M -249.01700000000002 -13.5 L 239.83700000000002 -13.5 L 249.01700000000002 -4.3199999999999985 L 249.01700000000002 13.5 L -249.01700000000002 13.5 Z"/>
+      <g class="lini-node lini-path" style="fill: var(--lini-stroke); stroke: none; stroke-width: 0" transform="translate(0,0)">
+        <path d="M 239.83700000000002 -13.5 L 249.01700000000002 -4.3199999999999985 L 239.83700000000002 -4.3199999999999985 Z"/>
+      </g>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A claim held past its deadline is released, and another participant takes the run.</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="participant" data-to="lane">
+      <path d="M -300.036 -162 L -100.6415 -162"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-96.6415,-162 -105.6415,-157.5 -105.6415,-166.5"/>
+      <text class="lini-sequence-message" x="-195.5887" y="-173.5" dy="0.358em">what work is there for me?</text>
+    </g>
+    <g class="lini-link" data-from="lane" data-to="runs">
+      <path d="M -85.1415 -130 L 103.7675 -130"/>
+      <polygon class="lini-marker lini-marker-arrow" points="107.7675,-130 98.7675,-125.5 98.7675,-134.5"/>
+      <text class="lini-sequence-message" x="11.063" y="-141.5" dy="0.358em">offer what this identity may take</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="runs" data-to="lane">
+      <path d="M 107.2675 -98 L -81.6415 -98"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-85.6415,-98 -76.6415,-102.5 -76.6415,-93.5"/>
+      <text class="lini-sequence-message" x="11.063" y="-109.5" dy="0.358em">a run of a declared step</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="lane" data-to="participant">
+      <path d="M -97.1415 -66 L -296.536 -66"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-300.536,-66 -291.536,-70.5 -291.536,-61.5"/>
+      <text class="lini-sequence-message" x="-195.5887" y="-77.5" dy="0.358em">this one, until the deadline</text>
+    </g>
+    <g class="lini-link" data-from="participant" data-to="lane">
+      <path d="M -300.036 -34 L -100.6415 -34"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-96.6415,-34 -105.6415,-29.5 -105.6415,-38.5"/>
+      <text class="lini-sequence-message" x="-195.5887" y="-45.5" dy="0.358em">I claim it</text>
+    </g>
+    <g class="lini-link" data-from="lane" data-to="runs">
+      <path d="M -85.1415 -2 L 103.7675 -2"/>
+      <polygon class="lini-marker lini-marker-arrow" points="107.7675,-2 98.7675,2.5 98.7675,-6.5"/>
+      <text class="lini-sequence-message" x="11.063" y="-13.5" dy="0.358em">claim, conditionally</text>
+    </g>
+    <g class="lini-link" data-from="runs" data-to="db">
+      <path d="M 119.2675 30 L 333.8455 30"/>
+      <polygon class="lini-marker lini-marker-arrow" points="337.8455,30 328.8455,34.5 328.8455,25.5"/>
+      <text class="lini-sequence-message" x="228.3065" y="18.5" dy="0.358em">the claim, and the trail link for it</text>
+    </g>
+    <g class="lini-link" data-from="participant" data-to="participant">
+      <path d="M -300.036 62 L -292.036 62 A 8 8 0 0 1 -284.036 70 L -284.036 70 A 8 8 0 0 1 -292.036 78 L -296.536 78"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-300.536,78 -291.536,73.5 -291.536,82.5"/>
+      <text class="lini-sequence-message" x="-257.014" y="50.5" dy="0.358em">do the work</text>
+    </g>
+    <g class="lini-link" data-from="participant" data-to="lane">
+      <path d="M -300.036 110 L -96.6415 110"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-92.6415,110 -101.6415,114.5 -101.6415,105.5"/>
+      <text class="lini-sequence-message" x="-195.5887" y="98.5" dy="0.358em">report what the step declared</text>
+    </g>
+    <g class="lini-link" data-from="lane" data-to="runs">
+      <path d="M -81.1415 142 L 107.7675 142"/>
+      <polygon class="lini-marker lini-marker-arrow" points="111.7675,142 102.7675,146.5 102.7675,137.5"/>
+      <text class="lini-sequence-message" x="11.063" y="130.5" dy="0.358em">close it, if its closure is this act</text>
+    </g>
+    <g class="lini-link" data-from="runs" data-to="db">
+      <path d="M 123.2675 174 L 337.8455 174"/>
+      <polygon class="lini-marker lini-marker-arrow" points="341.8455,174 332.8455,178.5 332.8455,169.5"/>
+      <text class="lini-sequence-message" x="228.3065" y="162.5" dy="0.358em">the report, and the trail link</text>
+    </g>
+  </g>
+</svg>

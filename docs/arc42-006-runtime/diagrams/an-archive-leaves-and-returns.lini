@@ -1,0 +1,39 @@
+{
+  // Backup, restore, migration and export are one act with one artifact.
+  // Drawn as a sequence because the operator appears twice and reads
+  // nothing either time, which is the claim the picture has to carry.
+
+  layout: sequence;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |outside::box| { fill: --bg; stroke: --faint; }
+  |face::box|    { fill: --accent-soft; stroke: --accent; }
+  |engine::box|  { fill: --seal-soft; stroke: --seal; }
+}
+
+|outside#operator| "The operator"
+|face#face| "The tenant's face"
+|engine#archive| "The archive"
+|cyl#db| "The tenant's database" { fill: --seal-soft; stroke: --seal; }
+
+operator -> face "export this tenant"
+face -> archive "seal to the owner's key"
+archive -> db "read every version, and the in-flight work"
+db --> archive "rows, feeds, checkpoints"
+archive --> face "one sealed, attested file"
+face --> operator "a file it cannot open"
+operator -> face "import it, somewhere else"
+face -> archive "open with the owner's key, verify the attestation"
+archive -> db "write what it carried"
+db --> archive "restored"
+archive --> operator "the same tenant, on another deployment"
+|note| "A tampered archive fails verification before anything is written." { place: over archive db; }

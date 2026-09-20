@@ -53,7 +53,7 @@ import java.util.function.Supplier;
  * extraction driven by HAPI's built-in R5 search-parameter definitions,
  * strict search compilation to engine {@link Criteria}, validation on write,
  * and Bundle framing over the feed primitive. The public surface speaks JSON
- * strings and core api types only — no HAPI type crosses (§7.3).
+ * strings and core api types only — no HAPI type crosses.
  */
 public final class R5Personality {
 

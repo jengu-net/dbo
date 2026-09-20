@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-453.375 -261 906.75 522" width="906.75" height="522" class="lini lini-scope-8e3eeb16" role="img" aria-labelledby="an-archive-leaves-and-returns-title an-archive-leaves-and-returns-desc">
+  <title id="an-archive-leaves-and-returns-title">An archive is backup, restore, migration and export</title>
+  <desc id="an-archive-leaves-and-returns-desc">The operator asks a tenant to export itself. The archive reads every version and the work still in flight, and seals the result to the owner's key, so the file the operator receives is one it cannot open. Importing reverses it: the archive is opened with the owner's key, its attestation is verified before anything is written, and the same tenant comes up on another deployment.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-8e3eeb16 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-8e3eeb16[data-theme="dark"], [data-theme="dark"] .lini-scope-8e3eeb16 { color-scheme: dark; }
+      .lini-scope-8e3eeb16[data-theme="light"], [data-theme="light"] .lini-scope-8e3eeb16 { color-scheme: light; }
+    }
+    .lini-scope-8e3eeb16 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-8e3eeb16 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-cyl { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-path { stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-8e3eeb16 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-8e3eeb16 .lini-note { fill: var(--lini-fill); stroke: var(--lini-stroke); }
+    .lini-scope-8e3eeb16 .lini-outside { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-8e3eeb16 .lini-face { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-8e3eeb16 .lini-engine { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-8e3eeb16 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-link-dashed { stroke-dasharray: 7,5.5; }
+    .lini-scope-8e3eeb16 .lini-sequence-message { fill: currentColor; stroke: none; text-anchor: middle; font-size: 13px; font-weight: normal; }
+    .lini-scope-8e3eeb16 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-line" style="stroke: var(--lini-faint)" transform="translate(0,0)">
+      <line x1="-373.011" y1="-186" x2="-373.011" y2="241"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="-205.626" y1="-186" x2="-205.626" y2="241"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="90.758" y1="-186" x2="90.758" y2="241"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="345.932" y1="-186" x2="345.932" y2="241"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-205.626,-74)">
+      <rect x="-5" y="-79" width="10" height="158" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(90.758,-74)">
+      <rect x="-5" y="-47" width="10" height="94" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(345.932,-74)">
+      <rect x="-5" y="-15" width="10" height="30" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-205.626,139.5)">
+      <rect x="-5" y="-100.5" width="10" height="201" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(90.758,118)">
+      <rect x="-5" y="-47" width="10" height="94" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(345.932,118)">
+      <rect x="-5" y="-15" width="10" height="30" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-outside lini-box lini-block" data-id="operator" transform="translate(-373.011,-213.5)">
+      <rect x="-59.364" y="-26.5" width="118.728" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The operator</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="face" transform="translate(-205.626,-213.5)">
+      <rect x="-71.727" y="-26.5" width="143.454" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The tenant&apos;s face</text>
+    </g>
+    <g class="lini-node lini-engine lini-box lini-block" data-id="archive" transform="translate(90.758,-213.5)">
+      <rect x="-54.8335" y="-26.5" width="109.667" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The archive</text>
+    </g>
+    <g class="lini-node lini-cyl" data-id="db" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(345.932,-213.5)">
+      <path d="M -86.443 -21.2 L -86.443 21.2 A 86.443 5.3 0 0 0 86.443 21.2 L 86.443 -21.2 A 86.443 5.3 0 0 0 -86.443 -21.2 Z"/>
+      <ellipse cx="0" cy="-21.2" rx="86.443" ry="5.3"/>
+      <text class="lini-text" x="0" y="1.65" dy="0.358em">The tenant&apos;s database</text>
+    </g>
+    <g class="lini-node lini-note lini-path" style="stroke-width: 2; font-size: 13px" transform="translate(218.345,195.5)">
+      <path d="M -200.9235 -13.5 L 191.74349999999998 -13.5 L 200.9235 -4.3199999999999985 L 200.9235 13.5 L -200.9235 13.5 Z"/>
+      <g class="lini-node lini-path" style="fill: var(--lini-stroke); stroke: none; stroke-width: 0" transform="translate(0,0)">
+        <path d="M 191.74349999999998 -13.5 L 200.9235 -4.3199999999999985 L 191.74349999999998 -4.3199999999999985 Z"/>
+      </g>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A tampered archive fails verification before anything is written.</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="operator" data-to="face">
+      <path d="M -373.011 -154 L -215.126 -154"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-211.126,-154 -220.126,-149.5 -220.126,-158.5"/>
+      <text class="lini-sequence-message" x="-289.3185" y="-165.5" dy="0.358em">export this tenant</text>
+    </g>
+    <g class="lini-link" data-from="face" data-to="archive">
+      <path d="M -199.626 -122 L 81.258 -122"/>
+      <polygon class="lini-marker lini-marker-arrow" points="85.258,-122 76.258,-117.5 76.258,-126.5"/>
+      <text class="lini-sequence-message" x="-57.434" y="-133.5" dy="0.358em">seal to the owner&apos;s key</text>
+    </g>
+    <g class="lini-link" data-from="archive" data-to="db">
+      <path d="M 96.758 -90 L 336.432 -90"/>
+      <polygon class="lini-marker lini-marker-arrow" points="340.432,-90 331.432,-85.5 331.432,-94.5"/>
+      <text class="lini-sequence-message" x="218.345" y="-101.5" dy="0.358em">read every version, and the in-flight work</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="db" data-to="archive">
+      <path d="M 339.932 -58 L 100.258 -58"/>
+      <polygon class="lini-marker lini-marker-arrow" points="96.258,-58 105.258,-62.5 105.258,-53.5"/>
+      <text class="lini-sequence-message" x="218.345" y="-69.5" dy="0.358em">rows, feeds, checkpoints</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="archive" data-to="face">
+      <path d="M 84.758 -26 L -196.126 -26"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-200.126,-26 -191.126,-30.5 -191.126,-21.5"/>
+      <text class="lini-sequence-message" x="-57.434" y="-37.5" dy="0.358em">one sealed, attested file</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="face" data-to="operator">
+      <path d="M -211.626 6 L -369.511 6"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-373.511,6 -364.511,1.5 -364.511,10.5"/>
+      <text class="lini-sequence-message" x="-289.3185" y="-5.5" dy="0.358em">a file it cannot open</text>
+    </g>
+    <g class="lini-link" data-from="operator" data-to="face">
+      <path d="M -373.011 38 L -215.126 38"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-211.126,38 -220.126,42.5 -220.126,33.5"/>
+      <text class="lini-sequence-message" x="-289.3185" y="26.5" dy="0.358em">import it, somewhere else</text>
+    </g>
+    <g class="lini-link" data-from="face" data-to="archive">
+      <path d="M -199.626 70 L 81.258 70"/>
+      <polygon class="lini-marker lini-marker-arrow" points="85.258,70 76.258,74.5 76.258,65.5"/>
+      <text class="lini-sequence-message" x="-57.434" y="58.5" dy="0.358em">open with the owner&apos;s key, verify the attestation</text>
+    </g>
+    <g class="lini-link" data-from="archive" data-to="db">
+      <path d="M 96.758 102 L 336.432 102"/>
+      <polygon class="lini-marker lini-marker-arrow" points="340.432,102 331.432,106.5 331.432,97.5"/>
+      <text class="lini-sequence-message" x="218.345" y="90.5" dy="0.358em">write what it carried</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="db" data-to="archive">
+      <path d="M 339.932 134 L 100.258 134"/>
+      <polygon class="lini-marker lini-marker-arrow" points="96.258,134 105.258,129.5 105.258,138.5"/>
+      <text class="lini-sequence-message" x="218.345" y="122.5" dy="0.358em">restored</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="archive" data-to="operator">
+      <path d="M 84.758 166 L -369.511 166"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-373.511,166 -364.511,161.5 -364.511,170.5"/>
+      <text class="lini-sequence-message" x="-141.1265" y="154.5" dy="0.358em">the same tenant, on another deployment</text>
+    </g>
+  </g>
+</svg>

@@ -15,7 +15,8 @@ description: Writing or reviewing a comment, a Javadoc block, a test display nam
 - MUST explain the constraint and only the constraint.
 - MUST NOT cite an issue number or a decision record in the source or the
   specification tree. A `TODO` or `FIXME` MAY name the issue holding the
-  work, and `docs/tasks/` is exempt.
+  work, and an item in risks and technical debt MAY name its issue by
+  address.
 - MUST write documentation as the current state. The journey belongs in the
   commit message.
 - MUST NOT name a consumer of this store or a sibling repository.

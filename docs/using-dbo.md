@@ -9,7 +9,7 @@ application re-implements is not only duplicated work — it is a second answer
 to a question the store answers structurally, and the two drift.
 
 Read [docs/README.md](README.md) for the specification tree, and
-[docs/plans/implementation-status.md](https://github.com/jengu-net/dbo/blob/main/docs/plans/implementation-status.md)
+[the requirement catalogue](arc42-006-runtime/req-catalogue.md)
 for what is built versus specified. **Where this document and the requirement
 catalogue disagree, the catalogue is right**: it is generated from the
 promises and their proofs, and this is prose.

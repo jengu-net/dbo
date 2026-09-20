@@ -1,0 +1,7 @@
+A consumer catches up on the feed
+A consumer is a name and a position. It asks the feed for the events after
+its position, the feed reads a page from the tenant's database by keyset
+cursor, and the page comes back with the position that follows it. The
+consumer handles every event and only then records where it has reached, so a
+consumer restored from its name alone resumes where it left off. Paging,
+subscription, replication and catch-up are this one exchange.

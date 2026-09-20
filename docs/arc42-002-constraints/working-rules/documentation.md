@@ -8,14 +8,16 @@ the assembly repairs the frame for pages it moves.
 
 ## What the assembly does
 
-- The tree is mounted under `/docs/`. `docs/tasks/` and `docs/plans/` are not
-  published, so a published page reaches either only by an absolute
-  repository URL.
-- A `why-*.md` essay lives beside the concept it argues and is collected to
-  `/why/`. Its front matter carries `why: <rank>`, which orders the section.
-- A `pattern-*.md` under `arc42-008-crosscutting/patterns/` is collected to
-  `/patterns/` by `pattern: <rank>`. The directory's README is the section
-  index.
+- The tree is mounted under `/docs/`. Every page in it is published.
+- A `why-*.md` essay lives beside the concept it argues and is published
+  there. It is a long-form argument for one idea, where the concept's README
+  is the reference.
+- A `pattern-*.md` under `arc42-008-crosscutting/patterns/` is published
+  where it lives, and its `pattern: <rank>` orders the section rather than
+  the alphabet. The directory's README is the section index.
+- Nothing is published anywhere other than where it is stored. A page is
+  written for its own location, and every relative link in it resolves both
+  on GitHub and on the site.
 - A directory with a `README.md` and no `.nav.yml` takes the README's
   heading as its section title. A `.nav.yml` orders a section by hand; the
   guide has one.
@@ -42,16 +44,13 @@ map is the rule and the disagreement is an item in
 | `arc42-005-building-blocks` | Containers and components, drawn as C4, with the module map generated from the build. |
 | `arc42-006-runtime` | Scenarios: how the blocks interact for the cases that matter, one sequence each. The requirement catalogue keeps its address here. |
 | `arc42-007-deployment` | A deployment diagram per shape the store runs in. The worked deployment is the guide world's compose file, included. |
-| `arc42-008-crosscutting` | One README per concept, and the patterns as vocabulary. No essays. |
+| `arc42-008-crosscutting` | One README per concept, a `why-` essay beside it where one idea earns a long argument, and the patterns as vocabulary. |
 | `arc42-009-architecture-decisions` | Numbered records with a status and a "reflected in" line naming the page that states the result. History only; cited from nowhere. |
 | `arc42-010-quality-requirements` | The quality tree as Quality classifications, the conformance reports, the evidence. |
 | `arc42-011-risks-and-technical-debt` | Numbered items, each a directory with a README whose first line is its state. The chapter README lists every item with that line. A resolved item is deleted; the commit or the decision record is its record. |
 | `guide/` | The sample application's story, chapter by chapter: declaring a tenant, writing a step service, a participant joining from outside, and on. A chapter includes the sample's source. HTTP appears only in the external participant's chapter. |
 | `using-dbo.md` | The sample application's README: what the store provided and the sample did not write. |
-| The site's landing page | The pitch. There is no Why menu. |
-
-`docs/tasks/` and `docs/plans/` are being folded into 011 and are not
-written to.
+| The site's landing page | The pitch, in full. There is no Why section. |
 
 ## What a page says
 
@@ -76,10 +75,9 @@ reference: docs/arc42-002-constraints/working-rules/documentation.md
 - MUST write a page for where it is stored: relative links to siblings,
   `README.md` as a section index. The assembly repairs the frame for pages
   it collects.
-- MUST NOT link relatively from a published page into `docs/tasks/` or
-  `docs/plans/`; use the absolute repository URL.
-- MUST give a `why-*.md` a `why:` rank and a pattern page a `pattern:` rank
-  in its front matter.
+- MUST NOT link relatively from a page under `docs/` to a file outside it;
+  use the absolute repository URL.
+- MUST give a pattern page a `pattern:` rank in its front matter.
 - MUST reference behaviour by REQ code or by document, never by a `§`
   number.
 - MUST write a thing where the map in this document says, and record a

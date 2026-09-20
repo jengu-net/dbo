@@ -52,7 +52,7 @@ The same twenty-four ideas are also written as a **pattern language**, in
 security officer, an administrator and the business, with what each one rests
 on. Those pages are collected to their own section of the site rather than
 published here, which is why this paragraph names the directory instead of
-linking to it — the same arrangement the `why-` essays use.
+linking to it.
 
 ## All of the above, in one spelling
 

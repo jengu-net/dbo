@@ -6,7 +6,6 @@ standfirst: >-
   A destroyed key reaches the backup on tape in somebody else's building, the
   archive handed to a departing tenant, and the replica in another
   jurisdiction — by not travelling to any of them.
-why: 7
 template: essay.html
 ---
 

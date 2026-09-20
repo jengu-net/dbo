@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-475.1582 -253 950.3165 506" width="950.3165" height="506" class="lini lini-scope-dad65e75" role="img" aria-labelledby="a-search-is-answered-title a-search-is-answered-desc">
+  <title id="a-search-is-answered-title">A search is compiled, then answered or refused</title>
+  <desc id="a-search-is-answered-desc">A client asks the tenant's face for a search. The compiler checks every parameter against what the tenant declared. If all are declared it produces an envelope predicate, which the database answers as one indexed query with a page cursor, and the client gets a bundle and a link to the next page. If any parameter is not declared the search is refused by name and the database is never asked, because a silently dropped filter would answer a narrower question while looking like an answer.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-dad65e75 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-group-stroke: light-dark(rgba(0, 0, 0, 0.4), rgba(255, 255, 255, 0.4)); --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-dad65e75[data-theme="dark"], [data-theme="dark"] .lini-scope-dad65e75 { color-scheme: dark; }
+      .lini-scope-dad65e75[data-theme="light"], [data-theme="light"] .lini-scope-dad65e75 { color-scheme: light; }
+    }
+    .lini-scope-dad65e75 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-dad65e75 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-dad65e75 .lini-cyl { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-dad65e75 .lini-path { stroke-dasharray: none; }
+    .lini-scope-dad65e75 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-dad65e75 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-dad65e75 .lini-sequence-tab { font-size: 12px; font-weight: 600; }
+    .lini-scope-dad65e75 .lini-sequence-guard { font-size: 11px; font-weight: normal; }
+    .lini-scope-dad65e75 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-dad65e75 .lini-note { fill: var(--lini-fill); stroke: var(--lini-stroke); }
+    .lini-scope-dad65e75 .lini-outside { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-dad65e75 .lini-face { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-dad65e75 .lini-engine { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-dad65e75 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-dad65e75 .lini-link-dashed { stroke-dasharray: 7,5.5; }
+    .lini-scope-dad65e75 .lini-sequence-message { fill: currentColor; stroke: none; text-anchor: middle; font-size: 13px; font-weight: normal; }
+    .lini-scope-dad65e75 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-block" style="stroke: var(--lini-group-stroke); stroke-width: 1; stroke-dasharray: 5,4" transform="translate(-21.8887,38)">
+      <rect x="-364.9537" y="-119.5" width="729.9075" height="239" rx="4" ry="4"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-group-stroke); stroke-width: 1; stroke-dasharray: 5,4" transform="translate(0,0)">
+      <line x1="-387.3425" y1="70" x2="343.565" y2="70"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-faint)" transform="translate(0,0)">
+      <line x1="-363.3425" y1="-178" x2="-363.3425" y2="233"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="-138.0165" y1="-178" x2="-138.0165" y2="233"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="118.0285" y1="-178" x2="118.0285" y2="233"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="319.565" y1="-178" x2="319.565" y2="233"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-138.0165,-50)">
+      <rect x="-5" y="-95" width="10" height="190" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(118.0285,-82)">
+      <rect x="-5" y="-31" width="10" height="62" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(319.565,-2)">
+      <rect x="-5" y="-15" width="10" height="30" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-outside lini-box lini-block" data-id="caller" transform="translate(-363.3425,-205.5)">
+      <rect x="-42.6655" y="-26.5" width="85.331" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A client</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="face" transform="translate(-138.0165,-205.5)">
+      <rect x="-71.727" y="-26.5" width="143.454" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The tenant&apos;s face</text>
+    </g>
+    <g class="lini-node lini-engine lini-box lini-block" data-id="compiler" transform="translate(118.0285,-205.5)">
+      <rect x="-81.0935" y="-26.5" width="162.187" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The search compiler</text>
+    </g>
+    <g class="lini-node lini-cyl" data-id="db" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(319.565,-205.5)">
+      <path d="M -86.443 -21.2 L -86.443 21.2 A 86.443 5.3 0 0 0 86.443 21.2 L 86.443 -21.2 A 86.443 5.3 0 0 0 -86.443 -21.2 Z"/>
+      <ellipse cx="0" cy="-21.2" rx="86.443" ry="5.3"/>
+      <text class="lini-text" x="0" y="1.65" dy="0.358em">The tenant&apos;s database</text>
+    </g>
+    <g class="lini-node lini-path" style="fill: var(--lini-fill); stroke: var(--lini-group-stroke); stroke-width: 1" transform="translate(0,0)">
+      <path d="M -382.8424999999999 -81.5 L -358.0584999999999 -81.5 L -358.0584999999999 -72.22 L -364.77849999999995 -65.5 L -386.8424999999999 -65.5 L -386.8424999999999 -77.5 A 4 4 0 0 1 -382.8424999999999 -81.5 Z"/>
+    </g>
+    <text class="lini-text lini-sequence-tab" x="-374.1305" y="-73.5" dy="0.358em">alt</text>
+    <text class="lini-text lini-sequence-guard" x="-275.0645" y="-73" dy="0.358em">[every parameter is declared]</text>
+    <text class="lini-text lini-sequence-guard" x="-357.3005" y="82" dy="0.358em">[one is not]</text>
+    <g class="lini-node lini-note lini-path" style="stroke-width: 2; font-size: 13px" transform="translate(218.7967,187.5)">
+      <path d="M -236.36149999999998 -13.5 L 227.18149999999997 -13.5 L 236.36149999999998 -4.3199999999999985 L 236.36149999999998 13.5 L -236.36149999999998 13.5 Z"/>
+      <g class="lini-node lini-path" style="fill: var(--lini-stroke); stroke: none; stroke-width: 0" transform="translate(0,0)">
+        <path d="M 227.18149999999997 -13.5 L 236.36149999999998 -4.3199999999999985 L 227.18149999999997 -4.3199999999999985 Z"/>
+      </g>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A dropped filter would answer a different question and look like an answer.</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="caller" data-to="face">
+      <path d="M -363.3425 -146 L -147.5165 -146"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-143.5165,-146 -152.5165,-141.5 -152.5165,-150.5"/>
+      <text class="lini-sequence-message" x="-250.6795" y="-157.5" dy="0.358em">GET /Patient?identifier=sys|value</text>
+    </g>
+    <g class="lini-link" data-from="face" data-to="compiler">
+      <path d="M -132.0165 -114 L 108.5285 -114"/>
+      <polygon class="lini-marker lini-marker-arrow" points="112.5285,-114 103.5285,-109.5 103.5285,-118.5"/>
+      <text class="lini-sequence-message" x="-9.994" y="-125.5" dy="0.358em">compile against the declared parameters</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="compiler" data-to="face">
+      <path d="M 112.0285 -50 L -128.5165 -50"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-132.5165,-50 -123.5165,-54.5 -123.5165,-45.5"/>
+      <text class="lini-sequence-message" x="-9.994" y="-61.5" dy="0.358em">an envelope predicate</text>
+    </g>
+    <g class="lini-link" data-from="face" data-to="db">
+      <path d="M -132.0165 -18 L 310.065 -18"/>
+      <polygon class="lini-marker lini-marker-arrow" points="314.065,-18 305.065,-13.5 305.065,-22.5"/>
+      <text class="lini-sequence-message" x="90.7742" y="-29.5" dy="0.358em">one indexed query, with its page cursor</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="db" data-to="face">
+      <path d="M 313.565 14 L -128.5165 14"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-132.5165,14 -123.5165,9.5 -123.5165,18.5"/>
+      <text class="lini-sequence-message" x="90.7742" y="2.5" dy="0.358em">the matching rows</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="face" data-to="caller">
+      <path d="M -144.0165 46 L -359.8425 46"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-363.8425,46 -354.8425,41.5 -354.8425,50.5"/>
+      <text class="lini-sequence-message" x="-250.6795" y="34.5" dy="0.358em">a bundle, and a link to the next page</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="compiler" data-to="face">
+      <path d="M 118.0285 102 L -134.5165 102"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-138.5165,102 -129.5165,97.5 -129.5165,106.5"/>
+      <text class="lini-sequence-message" x="-9.994" y="90.5" dy="0.358em">refused, naming the parameter</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="face" data-to="caller">
+      <path d="M -138.0165 134 L -359.8425 134"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-363.8425,134 -354.8425,129.5 -354.8425,138.5"/>
+      <text class="lini-sequence-message" x="-250.6795" y="122.5" dy="0.358em">400, and nothing was read</text>
+    </g>
+  </g>
+</svg>

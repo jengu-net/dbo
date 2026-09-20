@@ -26,7 +26,7 @@ import java.util.Optional;
  * SHELLS go through the object engine (identity, history, feed), concepts go
  * native; the resource form is a projection reassembled on demand — the
  * declared truth-form inversion (REQ-DBO-CORE-DECLARED-TRUTH-FORM).
- * Public surface: JSON in, JSON out (§7.3).
+ * Public surface: JSON in, JSON out.
  */
 public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerminology {
 

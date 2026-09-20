@@ -469,7 +469,7 @@ public final class PolicyObjectStore implements ObjectStore,
     }
 
     /**
-     * §7.8: replays an entry another appliance recorded, and audits nothing
+     * Replays an entry another appliance recorded, and audits nothing
      * for having done so.
      *
      * <p>The admitted path the refusal names. It goes to {@code inner} the
@@ -508,7 +508,7 @@ public final class PolicyObjectStore implements ObjectStore,
             throw new PolicyViolationException(
                     "the audit trail is written by the machinery — contribute via the audit "
                             + "recorder, or replay another appliance's entry through "
-                            + "AuditReplay.replayAuditEntry (§7.8)");
+                            + "AuditReplay.replayAuditEntry");
         }
     }
 }

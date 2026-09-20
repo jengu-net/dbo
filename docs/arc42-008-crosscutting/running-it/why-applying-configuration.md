@@ -6,7 +6,6 @@ standfirst: >-
   A bad declaration does not take the rest with it, a card closes by
   re-evaluation rather than by a button, and a source that cannot be read says
   so instead of answering with an empty set.
-why: 3
 template: essay.html
 ---
 

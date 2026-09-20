@@ -39,4 +39,4 @@ than a list of changes from something earlier.
 
 Durable work planes (WF), routing (SCAL) and operations (OPS). The process
 catalogue and distributed work (PROC) are largely built; see
-[the status page](docs/plans/implementation-status.md).
+[the requirement catalogue](docs/arc42-006-runtime/req-catalogue.md).

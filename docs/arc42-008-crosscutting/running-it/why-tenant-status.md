@@ -6,7 +6,6 @@ standfirst: >-
   Taking a customer on and letting one go are the two operations a multi-tenant
   store is judged by, and in most of them both are projects. Here they are
   moves in a sequence the runtime already performs.
-why: 1
 template: essay.html
 ---
 

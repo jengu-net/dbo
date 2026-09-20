@@ -1,0 +1,8 @@
+A run is claimed, performed and reported
+A participant asks the lane what work is available to it, and the lane offers
+only runs of steps the participant's identity may take. The participant
+claims one, which is a conditional write, and the claim is recorded with its
+link in the trail. The participant does the work behind its own firewall and
+reports what the step declared; the lane closes the run only if closing is
+what that act means. Nothing is ever pushed to the participant, and a claim
+held past its deadline is released for somebody else.

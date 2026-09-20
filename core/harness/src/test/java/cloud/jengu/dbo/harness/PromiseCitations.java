@@ -108,7 +108,8 @@ final class PromiseCitations {
                 // output, which Gradle refuses as an undeclared dependency.
                 if (nested.stream().anyMatch(file::startsWith)
                         || rel.contains("build/") || rel.startsWith(".git")
-                        || rel.startsWith("docs/tasks/") || rel.startsWith("config/")
+                        || rel.startsWith("docs/arc42-011-risks-and-technical-debt/")
+                        || rel.startsWith("config/")
                         || rel.startsWith("tools/dbo-conventions/")
                         || rel.equals("CLAUDE.md")
                         || rel.equals("docs/arc42-006-runtime/req-catalogue.md")

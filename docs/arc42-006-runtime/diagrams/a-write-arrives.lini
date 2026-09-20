@@ -1,0 +1,42 @@
+{
+  // One write, from the wire to the row, and what commits with it.
+  //
+  // Drawn as a sequence because the claim is about ORDER: the bytes are
+  // parsed once, the envelope is derived from them rather than sent beside
+  // them, and the change event is committed in the transaction that writes
+  // the row. A box-and-arrow figure of the same participants says none of
+  // those three things.
+
+  layout: sequence;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  // A face is the tenant's own, an engine is shared, a database is the
+  // tenant's alone. One hue per kind, stated once here.
+  |outside::box| { fill: --bg; stroke: --faint; }
+  |face::box|    { fill: --accent-soft; stroke: --accent; }
+  |engine::box|  { fill: --seal-soft; stroke: --seal; }
+}
+
+|outside#caller| "A client"
+|face#face| "The tenant's FHIR face"
+|engine#engine| "The object engine"
+|cyl#db| "The tenant's database" { fill: --seal-soft; stroke: --seal; }
+
+caller -> face "PUT /Patient/anna"
+face -> face "parse the bytes, once"
+face -> engine "put: bytes, declared type"
+engine -> engine "derive the envelope, resolve identity"
+engine -> db "payload, envelope, trail entry and change event"
+|note| "One transaction. A reader that sees the row sees its change event." { place: over engine db; }
+db --> engine "the new version"
+engine --> face "stored"
+face --> caller "200, ETag, Location"

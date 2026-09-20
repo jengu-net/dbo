@@ -6,7 +6,6 @@ standfirst: >-
   Applications may contribute to the trail and cannot lie about two fields. A
   hop that carried leaves a different entry from a participant that opened. And
   the whole thing is served as AuditEvent, with no separate console to secure.
-why: 11
 template: essay.html
 ---
 

@@ -1,0 +1,42 @@
+{
+  // Nobody is pushed. A participant pulls, claims, performs and reports, and
+  // the trail is written by the machinery rather than by the participant.
+  //
+  // Drawn as a sequence because the claim is about who initiates: every
+  // arrow that carries work starts at the participant, including the one
+  // that looks like delivery.
+
+  layout: sequence;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |outside::box| { fill: --bg; stroke: --faint; }
+  |face::box|    { fill: --accent-soft; stroke: --accent; }
+  |engine::box|  { fill: --seal-soft; stroke: --seal; }
+}
+
+|outside#participant| "A participant, behind its own firewall"
+|face#lane| "The lane"
+|engine#runs| "Runs, over the step catalogue"
+|cyl#db| "The tenant's database" { fill: --seal-soft; stroke: --seal; }
+
+participant -> lane "what work is there for me?"
+lane -> runs "offer what this identity may take"
+runs --> lane "a run of a declared step"
+lane --> participant "this one, until the deadline"
+participant -> lane "I claim it"
+lane -> runs "claim, conditionally"
+runs -> db "the claim, and the trail link for it"
+participant -> participant "do the work"
+participant -> lane "report what the step declared"
+lane -> runs "close it, if its closure is this act"
+runs -> db "the report, and the trail link"
+|note| "A claim held past its deadline is released, and another participant takes the run." { place: over runs db; }

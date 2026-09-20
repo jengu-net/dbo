@@ -6,7 +6,6 @@ standfirst: >-
   Three words carry it: a process, a step, and a run. A run is an ordinary
   record in the tenant's own store, which is where its history, its audit
   trail, its owner and its survival of a restart all come from.
-why: 8
 template: essay.html
 ---
 

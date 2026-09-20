@@ -89,7 +89,7 @@ public final class Lanes {
     }
 
     /**
-     * A lane that replicates the trail as well as the work (§7.8).
+     * A lane that replicates the trail as well as the work.
      *
      * <p>Audit is the one thing here that cannot be written the way everything
      * else is: direct writes to the type are refused for every caller, and
@@ -396,7 +396,7 @@ public final class Lanes {
     }
 
     /**
-     * The entries recorded here for the runs that are travelling (§7.8).
+     * The entries recorded here for the runs that are travelling.
      *
      * <p><b>Bounded by the work, like everything else on this lane.</b> An
      * entry joins to the run it was part of, so "the trail of what travelled"
@@ -489,7 +489,7 @@ public final class Lanes {
             try {
                 boolean written;
                 if (AUDIT.equals(item.typeName())) {
-                    // The trail goes through the one admitted path (§7.8), and
+                    // The trail goes through the one admitted path, and
                     // is never placed: what arrived for a piece of work leaves
                     // when that work closes, and an account of what happened
                     // is the one thing that must not. A bench's history is not
@@ -533,7 +533,7 @@ public final class Lanes {
     private boolean admit(String from, Item item) {
         if (auditReplay == null) {
             throw new IllegalStateException("this lane replicates no trail, and "
-                    + from + " sent an audit entry — wire it with the AuditReplay port (§7.8)");
+                    + from + " sent an audit entry — wire it with the AuditReplay port");
         }
         return auditReplay.replayAuditEntry(from, item.id(), item.version(), item.payload(),
                 item.recordedAt());

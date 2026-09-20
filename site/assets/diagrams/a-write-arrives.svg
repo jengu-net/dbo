@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-410.9695 -229 821.939 458" width="821.939" height="458" class="lini lini-scope-8e3eeb16" role="img" aria-labelledby="a-write-arrives-title a-write-arrives-desc">
+  <title id="a-write-arrives-title">A write, from the wire to the row</title>
+  <desc id="a-write-arrives-desc">A client sends a resource to the tenant's own FHIR face. The face parses the bytes once and hands them to the object engine with the type the tenant declared. The engine derives the searchable envelope from the payload and resolves the record's identity, then writes the payload, the envelope, the trail entry and the change event to the tenant's database in one transaction. The version comes back and the face answers the client with a status, an ETag and a Location.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-8e3eeb16 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-8e3eeb16[data-theme="dark"], [data-theme="dark"] .lini-scope-8e3eeb16 { color-scheme: dark; }
+      .lini-scope-8e3eeb16[data-theme="light"], [data-theme="light"] .lini-scope-8e3eeb16 { color-scheme: light; }
+    }
+    .lini-scope-8e3eeb16 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-8e3eeb16 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-cyl { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-path { stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-8e3eeb16 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-8e3eeb16 .lini-note { fill: var(--lini-fill); stroke: var(--lini-stroke); }
+    .lini-scope-8e3eeb16 .lini-outside { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-8e3eeb16 .lini-face { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-8e3eeb16 .lini-engine { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-8e3eeb16 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-link-dashed { stroke-dasharray: 7,5.5; }
+    .lini-scope-8e3eeb16 .lini-sequence-message { fill: currentColor; stroke: none; text-anchor: middle; font-size: 13px; font-weight: normal; }
+    .lini-scope-8e3eeb16 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-line" style="stroke: var(--lini-faint)" transform="translate(0,0)">
+      <line x1="-347.304" y1="-154" x2="-347.304" y2="209"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="-183.4285" y1="-154" x2="-183.4285" y2="209"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="11.5885" y1="-154" x2="11.5885" y2="209"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="303.5265" y1="-154" x2="303.5265" y2="209"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-183.4285,27.5)">
+      <rect x="-5" y="-148.5" width="10" height="297" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(11.5885,51.5)">
+      <rect x="-5" y="-92.5" width="10" height="185" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(303.5265,75.5)">
+      <rect x="-5" y="-36.5" width="10" height="73" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-outside lini-box lini-block" data-id="caller" transform="translate(-347.304,-181.5)">
+      <rect x="-42.6655" y="-26.5" width="85.331" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A client</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="face" transform="translate(-183.4285,-181.5)">
+      <rect x="-87.21" y="-26.5" width="174.42" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The tenant&apos;s FHIR face</text>
+    </g>
+    <g class="lini-node lini-engine lini-box lini-block" data-id="engine" transform="translate(11.5885,-181.5)">
+      <rect x="-73.807" y="-26.5" width="147.614" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The object engine</text>
+    </g>
+    <g class="lini-node lini-cyl" data-id="db" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(303.5265,-181.5)">
+      <path d="M -86.443 -21.2 L -86.443 21.2 A 86.443 5.3 0 0 0 86.443 21.2 L 86.443 -21.2 A 86.443 5.3 0 0 0 -86.443 -21.2 Z"/>
+      <ellipse cx="0" cy="-21.2" rx="86.443" ry="5.3"/>
+      <text class="lini-text" x="0" y="1.65" dy="0.358em">The tenant&apos;s database</text>
+    </g>
+    <g class="lini-node lini-note lini-path" style="stroke-width: 2; font-size: 13px" transform="translate(157.5575,67.5)">
+      <path d="M -211.37549999999996 -13.5 L 202.19549999999995 -13.5 L 211.37549999999996 -4.3199999999999985 L 211.37549999999996 13.5 L -211.37549999999996 13.5 Z"/>
+      <g class="lini-node lini-path" style="fill: var(--lini-stroke); stroke: none; stroke-width: 0" transform="translate(0,0)">
+        <path d="M 202.19549999999995 -13.5 L 211.37549999999996 -4.3199999999999985 L 202.19549999999995 -4.3199999999999985 Z"/>
+      </g>
+      <text class="lini-text" x="0" y="0" dy="0.358em">One transaction. A reader that sees the row sees its change event.</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="caller" data-to="face">
+      <path d="M -347.304 -122 L -192.9285 -122"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-188.9285,-122 -197.9285,-117.5 -197.9285,-126.5"/>
+      <text class="lini-sequence-message" x="-265.3663" y="-133.5" dy="0.358em">PUT /Patient/anna</text>
+    </g>
+    <g class="lini-link" data-from="face" data-to="face">
+      <path d="M -177.4285 -90 L -169.4285 -90 A 8 8 0 0 1 -161.4285 -82 L -161.4285 -82 A 8 8 0 0 1 -169.4285 -74 L -173.9285 -74"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-177.9285,-74 -168.9285,-78.5 -168.9285,-69.5"/>
+      <text class="lini-sequence-message" x="-106.3135" y="-101.5" dy="0.358em">parse the bytes, once</text>
+    </g>
+    <g class="lini-link" data-from="face" data-to="engine">
+      <path d="M -177.4285 -42 L 2.0885 -42"/>
+      <polygon class="lini-marker lini-marker-arrow" points="6.0885,-42 -2.9115,-37.5 -2.9115,-46.5"/>
+      <text class="lini-sequence-message" x="-85.92" y="-53.5" dy="0.358em">put: bytes, declared type</text>
+    </g>
+    <g class="lini-link" data-from="engine" data-to="engine">
+      <path d="M 17.5885 -10 L 25.5885 -10 A 8 8 0 0 1 33.5885 -2 L 33.5885 -2 A 8 8 0 0 1 25.5885 6 L 21.0885 6"/>
+      <polygon class="lini-marker lini-marker-arrow" points="17.0885,6 26.0885,1.5 26.0885,10.5"/>
+      <text class="lini-sequence-message" x="131.285" y="-21.5" dy="0.358em">derive the envelope, resolve identity</text>
+    </g>
+    <g class="lini-link" data-from="engine" data-to="db">
+      <path d="M 17.5885 38 L 294.0265 38"/>
+      <polygon class="lini-marker lini-marker-arrow" points="298.0265,38 289.0265,42.5 289.0265,33.5"/>
+      <text class="lini-sequence-message" x="157.5575" y="26.5" dy="0.358em">payload, envelope, trail entry and change event</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="db" data-to="engine">
+      <path d="M 297.5265 113 L 21.0885 113"/>
+      <polygon class="lini-marker lini-marker-arrow" points="17.0885,113 26.0885,108.5 26.0885,117.5"/>
+      <text class="lini-sequence-message" x="157.5575" y="101.5" dy="0.358em">the new version</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="engine" data-to="face">
+      <path d="M 5.5885 145 L -173.9285 145"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-177.9285,145 -168.9285,140.5 -168.9285,149.5"/>
+      <text class="lini-sequence-message" x="-85.92" y="133.5" dy="0.358em">stored</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="face" data-to="caller">
+      <path d="M -189.4285 177 L -343.804 177"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-347.804,177 -338.804,172.5 -338.804,181.5"/>
+      <text class="lini-sequence-message" x="-265.3663" y="165.5" dy="0.358em">200, ETag, Location</text>
+    </g>
+  </g>
+</svg>

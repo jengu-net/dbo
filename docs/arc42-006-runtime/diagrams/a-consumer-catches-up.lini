@@ -1,0 +1,36 @@
+{
+  // A consumer is a name and a position, and that is the whole mechanism.
+  // Drawn as a sequence because the loop is the point: a page is asked for
+  // from a position, and the position moves only after the page is handled.
+
+  layout: sequence;
+  gap: 22 48;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |outside::box| { fill: --bg; stroke: --faint; }
+  |face::box|    { fill: --accent-soft; stroke: --accent; }
+  |engine::box|  { fill: --seal-soft; stroke: --seal; }
+}
+
+|outside#consumer| "A consumer: a name and a position"
+|face#feed| "The feed"
+|cyl#db| "The tenant's database" { fill: --seal-soft; stroke: --seal; }
+
+|loop| "until the page comes back short" [
+  consumer -> feed "events after my position"
+  feed -> db "keyset read from the cursor"
+  db --> feed "a page"
+  feed --> consumer "the page, and the position after it"
+  consumer -> consumer "handle every event"
+  consumer -> feed "I am now at that position"
+]
+|note| "Restored from its name alone, a consumer stands where it left off." { place: over consumer feed; }

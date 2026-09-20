@@ -6,7 +6,7 @@ plugins {
 }
 
 // The FHIR R4 personality: everything that knows what an R4 payload MEANS.
-// HAPI rides as ordinary dependencies here; the §7.3 boundary (no HAPI type
+// HAPI rides as ordinary dependencies here; the boundary rule (no HAPI type
 // crosses the public API) is enforced by ApiBoundaryTest in the harness.
 //
 // The engine itself is NOT embedded: it is one shared bundle

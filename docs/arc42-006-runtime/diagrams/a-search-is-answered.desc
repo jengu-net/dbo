@@ -1,0 +1,8 @@
+A search is compiled, then answered or refused
+A client asks the tenant's face for a search. The compiler checks every
+parameter against what the tenant declared. If all are declared it produces
+an envelope predicate, which the database answers as one indexed query with a
+page cursor, and the client gets a bundle and a link to the next page. If any
+parameter is not declared the search is refused by name and the database is
+never asked, because a silently dropped filter would answer a narrower
+question while looking like an answer.

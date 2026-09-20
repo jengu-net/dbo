@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-347 -284.5 710 569" width="710" height="569" class="lini lini-scope-45e218e1" role="img" aria-labelledby="the-layers-title the-layers-desc">
+  <title id="the-layers-title">The layers, and the one direction they point</title>
+  <desc id="the-layers-desc">Seven bands, stacked. Outside the container sit the operator, the fleet reader and the verifier. Below them the composition layer brings a tenant up and mounts every door; then doors and guards, which are the tenant's authority, the personal-data membrane and the audit and write discipline; then work and participation, which is runs, lanes, streams, sync and subscriptions; then the faces, each a version personality over one shared implementation; then the engine, which knows objects, envelopes, identity and the outbox and nothing about FHIR or any framework. A last band holds what is installed everywhere and may be named by anything: the promises, telemetry and logging. Every arrow points down.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-45e218e1 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-45e218e1[data-theme="dark"], [data-theme="dark"] .lini-scope-45e218e1 { color-scheme: dark; }
+      .lini-scope-45e218e1[data-theme="light"], [data-theme="light"] .lini-scope-45e218e1 { color-scheme: light; }
+    }
+    .lini-scope-45e218e1 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-45e218e1 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-45e218e1 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-45e218e1 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-45e218e1 .lini-tier { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-45e218e1 .lini-outer { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-45e218e1 .lini-leaf { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-45e218e1 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-45e218e1 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-outer lini-box lini-block" data-id="outside" transform="translate(0,-231)">
+      <rect x="-320" y="-26.5" width="640" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Outside the container: the operator, the fleet reader, the verifier</text>
+    </g>
+    <g class="lini-node lini-tier lini-box lini-block" data-id="composition" transform="translate(0,-154)">
+      <rect x="-320" y="-26.5" width="640" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Composition: bring-up, every door, the service set</text>
+    </g>
+    <g class="lini-node lini-tier lini-box lini-block" data-id="doors" transform="translate(0,-77)">
+      <rect x="-320" y="-26.5" width="640" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Doors and guards: the authority, the membrane, audit and write discipline</text>
+    </g>
+    <g class="lini-node lini-tier lini-box lini-block" data-id="work" transform="translate(0,0)">
+      <rect x="-320" y="-26.5" width="640" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Work and participation: runs, lanes, streams, sync, subscriptions</text>
+    </g>
+    <g class="lini-node lini-tier lini-box lini-block" data-id="faces" transform="translate(0,77)">
+      <rect x="-320" y="-26.5" width="640" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Faces: a version personality over one shared implementation</text>
+    </g>
+    <g class="lini-node lini-tier lini-box lini-block" data-id="engine" transform="translate(0,154)">
+      <rect x="-320" y="-26.5" width="640" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The engine: objects, envelopes, identity, the outbox — no FHIR, no framework</text>
+    </g>
+    <g class="lini-node lini-leaf lini-box lini-block" data-id="leaves" transform="translate(0,231)">
+      <rect x="-320" y="-26.5" width="640" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Installed everywhere and named by anything: promises, telemetry, logging</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="outside" data-to="composition">
+      <path d="M 321 -231 L 321 -231 A 16 16 0 0 1 337 -215 L 337 -174.5 A 12.5 12.5 0 0 1 324.5 -162 L 324.5 -162"/>
+      <polygon class="lini-marker lini-marker-arrow" points="320.5,-162 329.5,-166.5 329.5,-157.5"/>
+    </g>
+    <g class="lini-link" data-from="composition" data-to="doors">
+      <path d="M 321 -146 L 321 -146 A 16 16 0 0 1 337 -130 L 337 -97.5 A 12.5 12.5 0 0 1 324.5 -85 L 324.5 -85"/>
+      <polygon class="lini-marker lini-marker-arrow" points="320.5,-85 329.5,-89.5 329.5,-80.5"/>
+    </g>
+    <g class="lini-link" data-from="doors" data-to="work">
+      <path d="M 321 -69 L 321 -69 A 16 16 0 0 1 337 -53 L 337 -20.5 A 12.5 12.5 0 0 1 324.5 -8 L 324.5 -8"/>
+      <polygon class="lini-marker lini-marker-arrow" points="320.5,-8 329.5,-12.5 329.5,-3.5"/>
+    </g>
+    <g class="lini-link" data-from="work" data-to="faces">
+      <path d="M 321 8 L 321 8 A 16 16 0 0 1 337 24 L 337 56.5 A 12.5 12.5 0 0 1 324.5 69 L 324.5 69"/>
+      <polygon class="lini-marker lini-marker-arrow" points="320.5,69 329.5,64.5 329.5,73.5"/>
+    </g>
+    <g class="lini-link" data-from="faces" data-to="engine">
+      <path d="M 321 85 L 321 85 A 16 16 0 0 1 337 101 L 337 141.5 A 12.5 12.5 0 0 1 324.5 154 L 324.5 154"/>
+      <polygon class="lini-marker lini-marker-arrow" points="320.5,154 329.5,149.5 329.5,158.5"/>
+    </g>
+  </g>
+</svg>

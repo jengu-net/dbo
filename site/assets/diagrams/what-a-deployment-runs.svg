@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-552.6345 -262 1213.3944 504.5" width="1213.3944" height="504.5" class="lini lini-scope-57e57582" role="img" aria-labelledby="what-a-deployment-runs-title what-a-deployment-runs-desc">
+  <title id="what-a-deployment-runs-title">What a deployment runs, and what it deliberately does not</title>
+  <desc id="what-a-deployment-runs-desc">One OSGi container holds the shipped distribution: every bundle that touches tenant data, a face per FHIR version and a runtime per tenant, over PostgreSQL with a database per tenant. Beside it run plain jars, each its own process with its own credentials: the operator that provisions against Kubernetes, the fleet reader that reads a deployment from outside, and the verifier that checks a sealed archive with no network. A development console is drawn apart and dashed because it binds tenant-plane services and is kept out of the serving distribution for that reason.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-57e57582 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-caption-color: light-dark(rgba(0, 0, 0, 0.5), rgba(255, 255, 255, 0.55)); --lini-caption-font-weight: 400; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-group-fill: light-dark(rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.05)); --lini-group-stroke: light-dark(rgba(0, 0, 0, 0.4), rgba(255, 255, 255, 0.4)); --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-57e57582[data-theme="dark"], [data-theme="dark"] .lini-scope-57e57582 { color-scheme: dark; }
+      .lini-scope-57e57582[data-theme="light"], [data-theme="light"] .lini-scope-57e57582 { color-scheme: light; }
+    }
+    .lini-scope-57e57582 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-57e57582 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-57e57582 .lini-cyl { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-57e57582 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-57e57582 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-57e57582 .lini-group { fill: var(--lini-group-fill); stroke: var(--lini-group-stroke); stroke-width: 1; stroke-dasharray: 5,4; }
+    .lini-scope-57e57582 .lini-caption { color: var(--lini-caption-color); font-size: 10.4px; font-weight: var(--lini-caption-font-weight); }
+    .lini-scope-57e57582 .lini-served { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-57e57582 .lini-beside { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-57e57582 .lini-unshipped { fill: var(--lini-bg); stroke: var(--lini-faint); stroke-dasharray: 3,2.5; }
+    .lini-scope-57e57582 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-57e57582 .lini-link-label { fill: currentColor; stroke: none; text-anchor: middle; font-size: 9.5333px; font-weight: var(--lini-link-font-weight); }
+    .lini-scope-57e57582 .lini-cut-bg { fill: white; stroke: none; }
+    .lini-scope-57e57582 .lini-cut { fill: black; stroke: none; }
+    .lini-scope-57e57582 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-group lini-block" data-id="beside" transform="translate(0,-168.5)">
+      <rect x="-526.1345" y="-47.5" width="1052.269" height="95" rx="8" ry="8"/>
+      <g class="lini-node lini-beside lini-box lini-block" data-id="operator" transform="translate(-351.3255,0)">
+        <rect x="-153.809" y="-26.5" width="307.618" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The operator: provisions against Kubernetes</text>
+      </g>
+      <g class="lini-node lini-beside lini-box lini-block" data-id="fleet" transform="translate(-7.826,0)">
+        <rect x="-171.6905" y="-26.5" width="343.381" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The fleet reader: reads a deployment from outside</text>
+      </g>
+      <g class="lini-node lini-beside lini-box lini-block" data-id="verify" transform="translate(343.4995,0)">
+        <rect x="-161.635" y="-26.5" width="323.27" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">The verifier: checks an archive with no network</text>
+      </g>
+      <g class="lini-node lini-caption lini-block" transform="translate(-417.1373,-62.3)">
+        <rect x="-108.9972" y="-5.2" width="217.9944" height="10.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Plain jars, each its own process and credentials</text>
+      </g>
+    </g>
+    <g class="lini-node lini-group lini-block" data-id="dev" transform="translate(0,-42.5)">
+      <rect x="-218.58" y="-47.5" width="437.16" height="95" rx="8" ry="8"/>
+      <g class="lini-node lini-unshipped lini-box lini-block" data-id="karaf" style="stroke-dasharray: 7,5.5" transform="translate(0,0)">
+        <rect x="-197.58" y="-26.5" width="395.16" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A development console, which binds tenant-plane services</text>
+      </g>
+      <g class="lini-node lini-caption lini-block" transform="translate(-189.9852,-62.3)">
+        <rect x="-28.5948" y="-5.2" width="57.1896" height="10.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Not shipped</text>
+      </g>
+    </g>
+    <g class="lini-node lini-group lini-block" data-id="runtime" transform="translate(0,83.5)">
+      <rect x="-347.6315" y="-47.5" width="695.263" height="95" rx="8" ry="8"/>
+      <g class="lini-node lini-served lini-box lini-block" data-id="bundles" transform="translate(-191.0875,0)">
+        <rect x="-135.544" y="-26.5" width="271.088" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">Every bundle that touches tenant data</text>
+      </g>
+      <g class="lini-node lini-served lini-box lini-block" data-id="faces" transform="translate(52.741,0)">
+        <rect x="-90.2845" y="-26.5" width="180.569" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A face per FHIR version</text>
+      </g>
+      <g class="lini-node lini-served lini-box lini-block" data-id="tenants" transform="translate(243.8285,0)">
+        <rect x="-82.803" y="-26.5" width="165.606" height="53" rx="8" ry="8"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">A runtime per tenant</text>
+      </g>
+      <g class="lini-node lini-caption lini-block" transform="translate(-242.5135,-62.3)">
+        <rect x="-105.118" y="-5.2" width="210.236" height="10.4" rx="0" ry="0"/>
+        <text class="lini-text" x="0" y="0" dy="0.358em">One OSGi container, the shipped distribution</text>
+      </g>
+    </g>
+    <g class="lini-node lini-cyl" data-id="pg" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(0,189)">
+      <path d="M -125.6185 -21.2 L -125.6185 21.2 A 125.6185 5.3 0 0 0 125.6185 21.2 L 125.6185 -21.2 A 125.6185 5.3 0 0 0 -125.6185 -21.2 Z"/>
+      <ellipse cx="0" cy="-21.2" rx="125.6185" ry="5.3"/>
+      <text class="lini-text" x="0" y="1.65" dy="0.358em">PostgreSQL, a database per tenant</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="beside" data-to="runtime">
+      <mask id="lini-label-cut-a06dc8b6" maskUnits="userSpaceOnUse" x="346.1315" y="-170.5" width="198.503" height="256"><rect class="lini-cut-bg" x="346.1315" y="-170.5" width="198.503" height="256"/><rect class="lini-cut" x="447.6491" y="40.5548" width="189.9707" height="12.3933"/><rect class="lini-cut" x="268.2862" y="-48.6967" width="172.6391" height="12.3933"/></mask>
+      <path d="M 526.6345 -168.5 L 526.6345 -168.5 A 16 16 0 0 1 542.6345 -152.5 L 542.6345 67.5 A 16 16 0 0 1 526.6345 83.5 L 351.6315 83.5" mask="url(#lini-label-cut-a06dc8b6)"/>
+      <polygon class="lini-marker lini-marker-arrow" points="347.6315,83.5 356.6315,79 356.6315,88"/>
+      <text class="lini-link-label" x="542.6345" y="46.7515" dy="0.358em" style="font-family: &quot;Google Sans&quot;">provisions it, reads it, holds none of its data</text>
+    </g>
+    <g class="lini-link" data-from="dev" data-to="runtime">
+      <mask id="lini-label-cut-9f983747" maskUnits="userSpaceOnUse" x="217.08" y="-44.5" width="149.0515" height="114"><rect class="lini-cut-bg" x="217.08" y="-44.5" width="149.0515" height="114"/><rect class="lini-cut" x="268.2862" y="-48.6967" width="172.6391" height="12.3933"/></mask>
+      <path d="M 219.08 -42.5 L 348.1315 -42.5 A 16 16 0 0 1 364.1315 -26.5 L 364.1315 55 A 12.5 12.5 0 0 1 351.6315 67.5 L 351.6315 67.5" mask="url(#lini-label-cut-9f983747)"/>
+      <polygon class="lini-marker lini-marker-arrow" points="347.6315,67.5 356.6315,63 356.6315,72"/>
+      <text class="lini-link-label" x="354.6058" y="-42.5" dy="0.358em" style="font-family: &quot;Google Sans&quot;">binds what a shipped console must not</text>
+    </g>
+    <g class="lini-link" data-from="runtime" data-to="pg">
+      <mask id="lini-label-cut-3ecd4e4e" maskUnits="userSpaceOnUse" x="124.6185" y="97.5" width="241.513" height="93.5"><rect class="lini-cut-bg" x="124.6185" y="97.5" width="241.513" height="93.5"/><rect class="lini-cut" x="255.0391" y="182.8033" width="86.1718" height="12.3933"/></mask>
+      <path d="M 348.1315 99.5 L 348.1315 99.5 A 16 16 0 0 1 364.1315 115.5 L 364.1315 173 A 16 16 0 0 1 348.1315 189 L 130.1185 189" mask="url(#lini-label-cut-3ecd4e4e)"/>
+      <polygon class="lini-marker lini-marker-arrow" points="126.1185,189 135.1185,184.5 135.1185,193.5"/>
+      <text class="lini-link-label" x="298.125" y="189" dy="0.358em" style="font-family: &quot;Google Sans&quot;">the only data store</text>
+    </g>
+  </g>
+</svg>

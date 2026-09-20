@@ -33,7 +33,13 @@ versions, so the pinned version's copy is the one to read.
   schemes, so the values in a source are only what the figure looks like
   opened away from the site. Copy the stylesheet head of an existing source.
 - Every hex colour is written at six digits. A three-digit hex is
-  indistinguishable from an issue reference to the branding ratchet.
+  indistinguishable from an issue reference to the branding ratchet, which
+  is what enforces this: the check reads a three-digit pair as an issue
+  number and refuses it in any file, this sentence included, which is why
+  the shape is described rather than shown.
+- Each source carries its own stylesheet head, copied. Lini has no include,
+  and a file is one stylesheet block, so a shared head cannot be prepended
+  without splicing the source.
 - Text is `"Google Sans"` and code is `"Google Sans Code"`, served once by
   `lini-font.css`. `--embed-font` is never used; it writes the faces into
   every figure.

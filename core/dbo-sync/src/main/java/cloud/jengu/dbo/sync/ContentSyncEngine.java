@@ -39,7 +39,7 @@ import java.util.regex.Pattern;
  * kept) and {@link #reconcile()} re-attempts, so deleting the override falls
  * back to the live upstream version.
  *
- * <p>In production the platform plane instantiates these engines (§7.4 — no
+ * <p>In production the platform plane instantiates these engines (no
  * direct tenant-to-tenant connection); this component is the stream mechanic.
  */
 public final class ContentSyncEngine {

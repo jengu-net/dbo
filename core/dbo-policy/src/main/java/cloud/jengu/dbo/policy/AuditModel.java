@@ -75,7 +75,7 @@ public final class AuditModel {
     }
 
     /**
-     * One appliance's entry, as it arrives at another (§7.8).
+     * One appliance's entry, as it arrives at another.
      *
      * <p>Provenance is added and nothing else is touched: what the source
      * recorded travels as the source's bytes, and the two fields put on it

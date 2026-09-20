@@ -16,10 +16,10 @@ Behaviour is promised in [the REQ catalogue](docs/arc42-006-runtime/req-catalogu
 and proven by a test. Adding behaviour means claiming or adding a REQ; fixing
 a defect means adding the test that would have caught it.
 
-[docs/plans/implementation-status.md](docs/plans/implementation-status.md)
-says what is built and what is only specified. Believe it over the impression
-the code gives. Its test counts are typed by hand; the catalogue is the
-checked answer to what is proven.
+What is built is read from the catalogue and the tests it cites, never from
+the impression the code gives. Outstanding work is
+[risks and technical debt](docs/arc42-011-risks-and-technical-debt/README.md),
+one numbered item each, opening with its state.
 
 The rules a green build cannot enforce are in
 [working rules](docs/arc42-002-constraints/working-rules/README.md), one

@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-328.9835 -179.5 657.967 359" width="657.967" height="359" class="lini lini-scope-6681f674" role="img" aria-labelledby="a-consumer-catches-up-title a-consumer-catches-up-desc">
+  <title id="a-consumer-catches-up-title">A consumer catches up on the feed</title>
+  <desc id="a-consumer-catches-up-desc">A consumer is a name and a position. It asks the feed for the events after its position, the feed reads a page from the tenant's database by keyset cursor, and the page comes back with the position that follows it. The consumer handles every event and only then records where it has reached, so a consumer restored from its name alone resumes where it left off. Paging, subscription, replication and catch-up are this one exchange.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-6681f674 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-group-stroke: light-dark(rgba(0, 0, 0, 0.4), rgba(255, 255, 255, 0.4)); --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-6681f674[data-theme="dark"], [data-theme="dark"] .lini-scope-6681f674 { color-scheme: dark; }
+      .lini-scope-6681f674[data-theme="light"], [data-theme="light"] .lini-scope-6681f674 { color-scheme: light; }
+    }
+    .lini-scope-6681f674 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-6681f674 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-6681f674 .lini-cyl { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-6681f674 .lini-path { stroke-dasharray: none; }
+    .lini-scope-6681f674 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-6681f674 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-6681f674 .lini-sequence-tab { font-size: 12px; font-weight: 600; }
+    .lini-scope-6681f674 .lini-sequence-guard { font-size: 11px; font-weight: normal; }
+    .lini-scope-6681f674 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-6681f674 .lini-note { fill: var(--lini-fill); stroke: var(--lini-stroke); }
+    .lini-scope-6681f674 .lini-outside { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-6681f674 .lini-face { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-6681f674 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-6681f674 .lini-link-dashed { stroke-dasharray: 7,5.5; }
+    .lini-scope-6681f674 .lini-sequence-message { fill: currentColor; stroke: none; text-anchor: middle; font-size: 13px; font-weight: normal; }
+    .lini-scope-6681f674 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-block" style="stroke: var(--lini-group-stroke); stroke-width: 1; stroke-dasharray: 5,4" transform="translate(19.305,8.5)">
+      <rect x="-225.7355" y="-90.5" width="451.471" height="181" rx="4" ry="4"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-faint)" transform="translate(0,0)">
+      <line x1="-182.9305" y1="-104.5" x2="-182.9305" y2="159.5"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="38.61" y1="-104.5" x2="38.61" y2="159.5"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="221.5405" y1="-104.5" x2="221.5405" y2="159.5"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(38.61,-17.5)">
+      <rect x="-5" y="-32" width="10" height="64" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(221.5405,-17.5)">
+      <rect x="-5" y="-10" width="10" height="20" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(38.61,117.5)">
+      <rect x="-5" y="-41" width="10" height="82" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-outside lini-box lini-block" data-id="consumer" transform="translate(-182.9305,-132)">
+      <rect x="-125.053" y="-26.5" width="250.106" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A consumer: a name and a position</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="feed" transform="translate(38.61,-132)">
+      <rect x="-46.4875" y="-26.5" width="92.975" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The feed</text>
+    </g>
+    <g class="lini-node lini-cyl" data-id="db" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(221.5405,-132)">
+      <path d="M -86.443 -21.2 L -86.443 21.2 A 86.443 5.3 0 0 0 86.443 21.2 L 86.443 -21.2 A 86.443 5.3 0 0 0 -86.443 -21.2 Z"/>
+      <ellipse cx="0" cy="-21.2" rx="86.443" ry="5.3"/>
+      <text class="lini-text" x="0" y="1.65" dy="0.358em">The tenant&apos;s database</text>
+    </g>
+    <g class="lini-node lini-path" style="fill: var(--lini-fill); stroke: var(--lini-group-stroke); stroke-width: 1" transform="translate(0,0)">
+      <path d="M -202.43050000000002 -82 L -167.09850000000003 -82 L -167.09850000000003 -72.72 L -173.81850000000003 -66 L -206.43050000000002 -66 L -206.43050000000002 -78 A 4 4 0 0 1 -202.43050000000002 -82 Z"/>
+    </g>
+    <text class="lini-text lini-sequence-tab" x="-188.4445" y="-74" dy="0.358em">loop</text>
+    <text class="lini-text lini-sequence-guard" x="-73.3525" y="-73.5" dy="0.358em">[until the page comes back short]</text>
+    <g class="lini-node lini-note lini-path" style="stroke-width: 2; font-size: 13px" transform="translate(-72.1603,124)">
+      <path d="M -209.86100000000002 -13.5 L 200.681 -13.5 L 209.86100000000002 -4.3199999999999985 L 209.86100000000002 13.5 L -209.86100000000002 13.5 Z"/>
+      <g class="lini-node lini-path" style="fill: var(--lini-stroke); stroke: none; stroke-width: 0" transform="translate(0,0)">
+        <path d="M 200.681 -13.5 L 209.86100000000002 -4.3199999999999985 L 200.681 -4.3199999999999985 Z"/>
+      </g>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Restored from its name alone, a consumer stands where it left off.</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="consumer" data-to="feed">
+      <path d="M -182.9305 -50.5 L 29.11 -50.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="33.11,-50.5 24.11,-46 24.11,-55"/>
+      <text class="lini-sequence-message" x="-72.1603" y="-62" dy="0.358em">events after my position</text>
+    </g>
+    <g class="lini-link" data-from="feed" data-to="db">
+      <path d="M 44.61 -28.5 L 212.0405 -28.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="216.0405,-28.5 207.0405,-24 207.0405,-33"/>
+      <text class="lini-sequence-message" x="130.0752" y="-40" dy="0.358em">keyset read from the cursor</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="db" data-to="feed">
+      <path d="M 215.5405 -6.5 L 48.11 -6.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="44.11,-6.5 53.11,-11 53.11,-2"/>
+      <text class="lini-sequence-message" x="130.0752" y="-18" dy="0.358em">a page</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="feed" data-to="consumer">
+      <path d="M 32.61 15.5 L -179.4305 15.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-183.4305,15.5 -174.4305,11 -174.4305,20"/>
+      <text class="lini-sequence-message" x="-72.1603" y="4" dy="0.358em">the page, and the position after it</text>
+    </g>
+    <g class="lini-link" data-from="consumer" data-to="consumer">
+      <path d="M -182.9305 37.5 L -174.9305 37.5 A 8 8 0 0 1 -166.9305 45.5 L -166.9305 45.5 A 8 8 0 0 1 -174.9305 53.5 L -179.4305 53.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-183.4305,53.5 -174.4305,49 -174.4305,58"/>
+      <text class="lini-sequence-message" x="-119.375" y="26" dy="0.358em">handle every event</text>
+    </g>
+    <g class="lini-link" data-from="consumer" data-to="feed">
+      <path d="M -182.9305 75.5 L 29.11 75.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="33.11,75.5 24.11,80 24.11,71"/>
+      <text class="lini-sequence-message" x="-72.1603" y="64" dy="0.358em">I am now at that position</text>
+    </g>
+  </g>
+</svg>

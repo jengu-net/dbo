@@ -84,7 +84,7 @@ public final class HttpLane extends WireLane {
             } catch (java.io.IOException unreachable) {
                 // Not a decision about the caller: the far side never said
                 // anything, so this is retryable and must not read as a
-                // refusal (§7.9).
+                // refusal.
                 throw new cloud.jengu.dbo.core.api.StoreUnreachableException(
                         tenant + ": the lane surface did not answer '" + verb.path() + "'",
                         unreachable);

@@ -256,6 +256,31 @@ erasure by dropping the tenant's store extends there too. A small deployment
 falls back to keeping the bytes in the database behind the same interface, so
 the choice is a deployment decision rather than a different product.
 
+## Arriving from another server
+
+A deployment already running on another FHIR server moves in a fixed order,
+and identity comes first because the hard coupling is never storage. Reads,
+writes and conditional writes sit behind a client seam such a deployment
+already has. What does not port is identity and tenancy expressed in the
+incumbent's own vocabulary: a project resource standing in for a tenant,
+roles hung off a membership resource, credentials in a settings array.
+
+1. **Extract identity while still on the incumbent.** A tenant here is its
+   own authority, which is what turns the rest into a storage question.
+2. **Reach parity behind the existing seam.** The embedded store replaces
+   the incumbent's test container first, so the gaps surface in development
+   rather than in production.
+3. **Flip tenant by tenant.** Configuration is recreated from its source of
+   truth, clinical data that must survive moves as NDJSON, and everything
+   derivable is re-derived.
+4. **Move the edge**, where an edge runtime hosting the bundles drops the
+   incumbent and its cache tier together.
+5. **Decommission.**
+
+There is no dual write, no live synchronisation and no compatibility layer
+beyond the FHIR surface, because a compatibility layer for somebody else's
+vocabulary outlives the migration it was built for.
+
 ## What this costs
 
 **Single-writer per tenant means a tenant's write throughput is one pod's.**

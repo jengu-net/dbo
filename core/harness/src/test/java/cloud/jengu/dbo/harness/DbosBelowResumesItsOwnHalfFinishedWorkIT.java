@@ -139,8 +139,8 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
         try (Connection c = DriverManager.getConnection(url,
                 SharedPostgres.get().getUsername(), SharedPostgres.get().getPassword());
              var st = c.createStatement()) {
-            // The local executor's own state lives in the TENANT's database
-            // (§7.4), so erasure-by-drop covers half-finished work too.
+            // The local executor's own state lives in the TENANT's database,
+            // so erasure-by-drop covers half-finished work too.
             st.execute("CREATE SCHEMA IF NOT EXISTS dbos");
         }
         store = new PgObjectStore(ds, WorkModel.registrations());
@@ -210,8 +210,8 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
      * {@code PgChangeFeed} withholds an event while any transaction in the same
      * database still holds an xid — otherwise a writer committing between a
      * reader's snapshot and its liveness scan would have its event skipped for
-     * ever. DBOS keeps its own connections in this same database, by design
-     * (§7.4: the local executor's state lives in the tenant's database). So the
+     * ever. DBOS keeps its own connections in this same database, by design:
+     * the local executor's state lives in the tenant's database. So the
      * run is written, correct, and not yet offered.
      *
      * <p>The consequence was a test that failed on commits which could not have

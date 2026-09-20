@@ -3,7 +3,7 @@
 DBO is MIT-licensed. Some of its modules are **fat bundles**: they carry their
 dependencies inside the published jar, as whole nested jars under `lib/`,
 because an OSGi bundle that keeps a heavy stack private is the only way two
-FHIR versions coexist in one JVM (§7.3).
+FHIR versions coexist in one JVM.
 
 That means a jar published from this repository can contain code this
 repository did not write. This page says whose, and under what terms. It is

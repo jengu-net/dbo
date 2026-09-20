@@ -1,0 +1,38 @@
+{
+  // Erasure destroys a key rather than walking the rows. Drawn as a sequence
+  // because the ORDER is what makes it verifiable: the key goes first, and
+  // every later read of every version fails to open the same way.
+
+  layout: sequence;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |outside::box| { fill: --bg; stroke: --faint; }
+  |face::box|    { fill: --accent-soft; stroke: --accent; }
+  |engine::box|  { fill: --seal-soft; stroke: --seal; }
+}
+
+|outside#owner| "The tenant, acting on a request"
+|face#face| "The tenant's face"
+|engine#seal| "The seal"
+|cyl#db| "The tenant's database" { fill: --seal-soft; stroke: --seal; }
+
+owner -> face "erase this person"
+face -> seal "destroy the person's key"
+seal -> db "the key is gone, and the act is recorded"
+db --> seal "recorded"
+seal --> face "done"
+face --> owner "done, and the trail says so"
+owner -> face "read a record about them"
+face -> db "the rows are still there"
+db --> face "sealed bytes"
+face --> owner "the identifying elements cannot be opened, in any version"
+|note| "Nothing is rewritten, so history stays verifiable and says nothing." { place: over seal db; }

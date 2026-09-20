@@ -1,0 +1,6 @@
+An archive is backup, restore, migration and export
+The operator asks a tenant to export itself. The archive reads every version
+and the work still in flight, and seals the result to the owner's key, so the
+file the operator receives is one it cannot open. Importing reverses it: the
+archive is opened with the owner's key, its attestation is verified before
+anything is written, and the same tenant comes up on another deployment.

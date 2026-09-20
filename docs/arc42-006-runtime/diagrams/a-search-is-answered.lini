@@ -1,0 +1,40 @@
+{
+  // A search is compiled against what the tenant declared, and refused when
+  // it names something undeclared. Drawn as a sequence because the refusal
+  // happens BEFORE the database is asked, which is the safety claim: a
+  // parameter that was not understood never becomes a narrower result set.
+
+  layout: sequence;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |outside::box| { fill: --bg; stroke: --faint; }
+  |face::box|    { fill: --accent-soft; stroke: --accent; }
+  |engine::box|  { fill: --seal-soft; stroke: --seal; }
+}
+
+|outside#caller| "A client"
+|face#face| "The tenant's face"
+|engine#compiler| "The search compiler"
+|cyl#db| "The tenant's database" { fill: --seal-soft; stroke: --seal; }
+
+caller -> face "GET /Patient?identifier=sys|value"
+face -> compiler "compile against the declared parameters"
+|alt| "every parameter is declared" [
+  compiler --> face "an envelope predicate"
+  face -> db "one indexed query, with its page cursor"
+  db --> face "the matching rows"
+  face --> caller "a bundle, and a link to the next page"
+  |else| "one is not"
+  compiler --> face "refused, naming the parameter"
+  face --> caller "400, and nothing was read"
+]
+|note| "A dropped filter would answer a different question and look like an answer." { place: over compiler db; }

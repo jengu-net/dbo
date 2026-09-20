@@ -4,7 +4,7 @@ Snapshot 2026-08-14: every FHIR search interaction a production healthcare
 platform — a clinical cloud, a laboratory system and a visit assistant —
 actually issues against its FHIR server, across ~206 call sites in production
 code. This is the empirical basis for the tier structure in
-[§7.5](../arc42-009-architecture-decisions/README.md). All searches go through
+[record 005](../arc42-009-architecture-decisions/005-search-is-tiered-on-measured-usage.md). All searches go through
 hand-rolled REST clients taking raw query strings: no server SDK, no GraphQL,
 and no batch search-entry usage.
 
