@@ -33,7 +33,12 @@ product would.
    — a lane to one tenant, a runner, the step registered on it — authors a
    run through the same door a chapter uses, takes it and closes it, proven
    against a world built from the tree.
-3. The external participant, joining that step from its own process.
+3. The external participant, joining with a capability of its own. Written
+   once and taken out again: the introduction is accepted and the authoring
+   door refuses the step until the tenant is rebuilt, which is
+   [item 018](../018-an-introduced-step-is-not-authorable/README.md). This
+   waits on it, because a participant that brings nothing is a second copy
+   of the runner above rather than the case worth showing.
 4. Each further chapter of the guide, in the order item 001 gives.
 
 The include needs no ratchet of its own. A chapter naming a file the sample
