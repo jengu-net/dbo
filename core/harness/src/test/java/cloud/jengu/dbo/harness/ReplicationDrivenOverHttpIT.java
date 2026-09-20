@@ -4,19 +4,15 @@ import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.sync.Lanes;
 import cloud.jengu.dbo.sync.http.HttpLanes;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.work.Failure;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.WorkModel;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.postgresql.ds.PGSimpleDataSource;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -24,8 +20,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -54,52 +48,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ReplicationDrivenOverHttpIT {
 
-    private static final String TENANT = "replhost";
     private static final String PROCESS = "dbo.lab.result";
     private static final String STEP = "validate";
     private static final Set<String> TRAVELS = Set.of(PROCESS);
 
-    static PGSimpleDataSource ds;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant tenant;
     static final HttpClient http = HttpClient.newHttpClient();
     static HttpLanes replication;
     static Runs runs;
 
     @BeforeAll
     void up() throws Exception {
-        dir = Files.createTempDirectory("dbo-tenants-replication");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ReplicationDrivenOverHttpIT"),
-                SharedPostgres.get().getUsername(), SharedPostgres.get().getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(TENANT));
-        UntilServed.scan(manager, TENANT);
-
-        String token = token("tenant-bootstrap", provisioner.bootstrapClientSecret(TENANT));
-        replication = HttpLanes.to(base(), () -> token, TENANT);
-        runs = new Runs(manager.runtime(TENANT).orElseThrow().engine());
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        // Its own numbered tenant: replication here drives the tenant's own
+        // cursors, which are not a thing to move under somebody else.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL, 7);
+        String token = token("tenant-bootstrap", tenant.bootstrapSecret());
+        replication = HttpLanes.to(base(), () -> token, tenant.code());
+        runs = new Runs(tenant.engine());
     }
 
     private static URI base() {
-        return URI.create("http://127.0.0.1:" + manager.port() + "/t/" + TENANT + "/replication");
+        return URI.create(tenant.base() + "/replication");
     }
 
     @Test
@@ -128,7 +97,7 @@ class ReplicationDrivenOverHttpIT {
     @Proving(DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY)
     void aBatchIsBuiltFromTheTenantsStore() {
         cloud.jengu.dbo.core.api.PutResult subject =
-                manager.runtime(TENANT).orElseThrow().engine().put(
+                tenant.engine().put(
                         cloud.jengu.dbo.core.api.PutRequest.create("Basic",
                                 "{\"resourceType\":\"Basic\"}".getBytes(StandardCharsets.UTF_8)));
         Run work = runs.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/over-http",
@@ -196,9 +165,9 @@ class ReplicationDrivenOverHttpIT {
 
     private static HttpLanes lanesAs(String clientId, String... scopes) throws Exception {
         String secret = clientId + "-secret";
-        manager.authority(TENANT).ensureClient(clientId, secret, List.of(scopes));
+        tenant.authority().ensureClient(clientId, secret, List.of(scopes));
         String token = token(clientId, secret);
-        return HttpLanes.to(base(), () -> token, TENANT);
+        return HttpLanes.to(base(), () -> token, tenant.code());
     }
 
     private static String token(String clientId, String secret) throws Exception {
@@ -206,8 +175,7 @@ class ReplicationDrivenOverHttpIT {
                 + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
                 + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
         String body = http.send(HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + manager.port()
-                                        + "/t/" + TENANT + "/oidc/token"))
+                                URI.create(tenant.base() + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
