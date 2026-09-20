@@ -30,7 +30,7 @@ the assembly repairs the frame for pages it moves.
 ## What a page says
 
 The current state, in the words the store uses. The `§` numbers are decoded
-in the docs index; a new reference names a REQ or a document. The docs index
+in the docs index; a reference names a REQ or a document. The docs index
 lists every section and is edited when one is added, moved or removed.
 
 ## Checking a page
