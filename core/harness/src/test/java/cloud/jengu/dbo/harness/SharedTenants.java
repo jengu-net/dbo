@@ -191,6 +191,22 @@ public final class SharedTenants {
                   "handling":"projected-config"}]""".formatted(BENCHES), "r4", "", "none"),
 
         /**
+         * r4 with a staff directory over it: behind the membrane, its people
+         * keyed by what the provider calls them, and its trail on.
+         *
+         * <p>The directory block is a tenant's declaration and cannot be a
+         * flag a class sets, which is what kept this family in a world of its
+         * own. The trail is on because every provisioning operation is a
+         * disclosure and has to be answerable later as one.
+         */
+        R4_SCIM("sharedr4scim", """
+                [{"name":"Person","identity":"identifier","systems":["%s"],
+                  "handling":"operational"},
+                 {"name":"Practitioner","identity":"internal","handling":"operational"}]"""
+                .formatted(STAFF_IDS), "r4",
+                ",\"pdi\":true,\"scim\":{\"system\":\"" + STAFF_IDS + "\"}", "full"),
+
+        /**
          * r6, for what has to be served on the version after the one
          * everything else here uses.
          *
@@ -300,6 +316,9 @@ public final class SharedTenants {
 
     /** What the zone shape's projected type is keyed by. */
     public static final String BENCHES = "https://shared.test/benches";
+
+    /** What an identity provider keys the people it provisions by. */
+    public static final String STAFF_IDS = "urn:shared.test:idp:external-id";
 
     private static final HttpClient HTTP = HttpClient.newHttpClient();
     /** Keyed by tenant CODE rather than by shape, since a shape can have several. */
