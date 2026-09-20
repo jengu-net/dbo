@@ -9,6 +9,12 @@ territory.
 
 Three, and the difference between them is not packaging taste.
 
+--8<-- "assets/diagrams/what-a-deployment-runs.svg"
+
+<p class="diagram-caption">Three shapes, and a fourth that is deliberately
+not shipped. What separates them is privilege: everything beside the runtime
+holds less than the runtime does.</p>
+
 **One OSGi container** (Felix) holds the serving runtime. Everything that
 touches a tenant's data is a bundle in it, because a tenant arrives and leaves
 at runtime and its services are registered and retracted with it — a
@@ -27,7 +33,7 @@ the verifier must run where nothing else of ours does.
 `karaf/commands` reads runs and the step catalogue from inside a running
 node. It binds tenant-plane services from the registry, which a shipped
 console must not do, and it is kept out of the serving distribution for
-exactly that reason. See [the console plan](https://github.com/jengu-net/dbo/blob/main/docs/plans/karaf-console.md).
+exactly that reason. See [the console proposal](../arc42-011-risks-and-technical-debt/014-the-karaf-console/README.md).
 
 ## The layering, as the build enforces it
 
@@ -36,40 +42,17 @@ Dependencies point one way. `dbo-core` names nothing else, and
 constraints, not observations, and adding a library to either needs a reason
 that survives being read aloud.
 
-```
-processes            dbo-operator     dbo-fleet      dbo-verify
-outside the             │                │               │
-container               ▼                ▼               ▼
-                 ┌──────────────────────────────────────────────┐
-composition      │ dbo-tenant  ·  dbo-tenant-k8s                │
-                 │ bring-up, every HTTP door, the service sets   │
-                 └──────────────────────────────────────────────┘
-                        │            │             │
-doors and        ┌──────▼─────┐ ┌────▼──────┐ ┌────▼─────────────┐
-guards           │ dbo-auth   │ │ dbo-pdi   │ │ dbo-policy       │
-                 │ dbo-scim   │ │ the §14   │ │ audit and write  │
-                 │ authority  │ │ membrane  │ │ discipline       │
-                 └────────────┘ └───────────┘ └──────────────────┘
-                        │            │             │
-work and         ┌──────▼────────────▼─────────────▼─────────────┐
-participation    │ dbo-work · dbo-runner · dbo-stream · dbo-sync │
-                 │ dbo-subscriptions                             │
-                 └───────────────────────────────────────────────┘
-                        │
-faces            ┌──────▼────────────────────────────────────────┐
-                 │ dbo-fhir-r4 · dbo-fhir-r5   (thin)            │
-                 │ dbo-fhir-element  (shared FHIR implementation)│
-                 │ dbo-fhir-common · dbo-fhir-stack             │
-                 └───────────────────────────────────────────────┘
-                        │
-engine           ┌──────▼────────────────────────────────────────┐
-                 │ dbo-core   (no FHIR, no framework, no deps)   │
-                 │ dbo-postgres (JDBC only) · dbo-terminology    │
-                 └───────────────────────────────────────────────┘
+--8<-- "assets/diagrams/the-layers.svg"
 
-leaves installed everywhere: promise · dbo-promises · dbo-telemetry
-                             dbo-telemetry-otlp · dbo-logging
-```
+<p class="diagram-caption">Dependencies point down and never up. The engine
+at the bottom names nothing above it, so a face, a door or a composition
+root can be replaced without it learning anything.</p>
+
+The edges themselves are [`config/module-map.txt`](https://github.com/jengu-net/dbo/blob/main/config/module-map.txt),
+generated from the build by `./gradlew moduleMap` and refused by the build
+when the committed file disagrees with the project. A picture of forty edges
+would be a second source of truth and a worse one; this one draws the bands,
+and the map answers which module names which.
 
 - **`dbo-core`** — the version-agnostic object engine: envelope model,
   identifiers, references, the outbox, the search-criteria SPI, the
@@ -78,7 +61,8 @@ leaves installed everywhere: promise · dbo-promises · dbo-telemetry
   Liquibase behind advisory session locks. The JDBC driver is its only
   dependency.
 - **`dbo-terminology`** — concept-per-row terminology and its operations. It
-  names no other module at all.
+  names the engine and nothing else, which the module map is what to believe
+  about.
 - **`dbo-fhir-stack`** — the HL7 core and HAPI, embedded once and exported, so
   a container pays for the engine once rather than once per version. It has
   **no source**: it is a repackaging, and the one bundle whose imports are a

@@ -1,0 +1,9 @@
+What a deployment runs, and what it deliberately does not
+One OSGi container holds the shipped distribution: every bundle that touches
+tenant data, a face per FHIR version and a runtime per tenant, over
+PostgreSQL with a database per tenant. Beside it run plain jars, each its own
+process with its own credentials: the operator that provisions against
+Kubernetes, the fleet reader that reads a deployment from outside, and the
+verifier that checks a sealed archive with no network. A development console
+is drawn apart and dashed because it binds tenant-plane services and is kept
+out of the serving distribution for that reason.

@@ -1,0 +1,42 @@
+# Which module names which, from the build's own project model.
+#
+# GENERATED — do not edit. Re-record with:
+#     ./gradlew moduleMap
+#
+# Read down: a module is followed by the modules it depends on, in
+# every configuration that compiles against them. A module with no
+# line names nothing, which for the engine and the storage module
+# is a load-bearing constraint rather than an observation.
+#
+bench:runner                 core:dbo-core core:dbo-fhir-common core:dbo-fhir-r4 core:dbo-postgres core:dbo-rest
+core:conformance             core:dbo-core core:dbo-fhir-common core:dbo-fhir-r4 core:dbo-fhir-r5 core:dbo-postgres core:dbo-rest core:dbo-terminology
+core:dbo-auth                core:dbo-core core:dbo-rest
+core:dbo-definitions         core:dbo-core
+core:dbo-fhir-common         core:dbo-core
+core:dbo-fhir-element        core:dbo-core core:dbo-definitions core:dbo-fhir-common core:dbo-fhir-stack core:dbo-promises core:dbo-subscriptions core:dbo-terminology promise
+core:dbo-fhir-r4             core:dbo-core core:dbo-fhir-common core:dbo-fhir-element core:dbo-fhir-stack core:dbo-subscriptions core:dbo-terminology
+core:dbo-fhir-r5             core:dbo-core core:dbo-fhir-common core:dbo-fhir-element core:dbo-fhir-stack core:dbo-subscriptions core:dbo-terminology
+core:dbo-fleet               core:dbo-core core:dbo-runner
+core:dbo-maintenance         core:dbo-core
+core:dbo-operator            core:dbo-tenant core:dbo-tenant-k8s
+core:dbo-pdi                 core:dbo-core core:dbo-promises
+core:dbo-policy              core:dbo-core core:dbo-rest core:dbo-work
+core:dbo-postgres            core:dbo-core
+core:dbo-promises            promise
+core:dbo-rest                core:dbo-core core:dbo-fhir-common
+core:dbo-runner              core:dbo-core core:dbo-telemetry core:dbo-work
+core:dbo-scim                core:dbo-auth core:dbo-core core:dbo-pdi
+core:dbo-step-probe          core:dbo-runner
+core:dbo-stream              core:dbo-core core:dbo-runner core:dbo-work
+core:dbo-subscriptions       core:dbo-core core:dbo-work
+core:dbo-sync                core:dbo-core core:dbo-work
+core:dbo-telemetry-otlp      core:dbo-telemetry
+core:dbo-tenant              core:dbo-auth core:dbo-core core:dbo-fhir-common core:dbo-fhir-r4 core:dbo-fhir-r5 core:dbo-maintenance core:dbo-pdi core:dbo-policy core:dbo-postgres core:dbo-promises core:dbo-rest core:dbo-runner core:dbo-scim core:dbo-stream core:dbo-sync core:dbo-work promise
+core:dbo-tenant-k8s          core:dbo-tenant
+core:dbo-terminology         core:dbo-core
+core:dbo-test-model          core:dbo-core
+core:dbo-verify              core:dbo-maintenance
+core:dbo-work                core:dbo-core core:dbo-promises promise
+core:harness                 core:dbo-auth core:dbo-core core:dbo-definitions core:dbo-fhir-element core:dbo-fhir-r4 core:dbo-fhir-r5 core:dbo-fleet core:dbo-maintenance core:dbo-operator core:dbo-pdi core:dbo-policy core:dbo-postgres core:dbo-promises core:dbo-rest core:dbo-runner core:dbo-stream core:dbo-subscriptions core:dbo-sync core:dbo-telemetry-otlp core:dbo-tenant core:dbo-tenant-k8s core:dbo-terminology core:dbo-test-model core:dbo-work karaf:commands promise
+guide                        core:dbo-promises promise
+karaf:commands               core:dbo-core core:dbo-promises core:dbo-work promise

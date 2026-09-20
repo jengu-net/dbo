@@ -1,0 +1,40 @@
+{
+  // The layering, as one picture. Dependencies point DOWN and never up,
+  // which is the whole claim: the engine at the bottom names nothing above
+  // it, so a face, a door or a composition root can be replaced without it
+  // learning anything.
+  //
+  // Drawn as bands rather than as a graph of modules. The graph is
+  // config/module-map.txt, generated from the build; a hand-drawn graph of
+  // forty edges would be a second source of truth and a worse one.
+
+  layout: flow; direction: column; gap: 22; padding: 26;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |tier::box|    { fill: --seal-soft; stroke: --seal; width: 640; }
+  |outer::box|   { fill: --accent-soft; stroke: --accent; width: 640; }
+  |leaf::box|    { fill: --bg; stroke: --faint; width: 640; }
+}
+
+|outer#outside| "Outside the container: the operator, the fleet reader, the verifier"
+|tier#composition| "Composition: bring-up, every door, the service set"
+|tier#doors| "Doors and guards: the authority, the membrane, audit and write discipline"
+|tier#work| "Work and participation: runs, lanes, streams, sync, subscriptions"
+|tier#faces| "Faces: a version personality over one shared implementation"
+|tier#engine| "The engine: objects, envelopes, identity, the outbox — no FHIR, no framework"
+|leaf#leaves| "Installed everywhere and named by anything: promises, telemetry, logging"
+
+outside -> composition
+composition -> doors
+doors -> work
+work -> faces
+faces -> engine

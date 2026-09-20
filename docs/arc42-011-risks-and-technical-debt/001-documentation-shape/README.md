@@ -12,8 +12,6 @@ building. This item is deleted when the list is empty.
 
 - `arc42-003-context` has a README and user stories, and no three-level
   landscape; the stories do not cite Story constants.
-- `arc42-005-building-blocks` describes the modules in prose, with no
-  container or component diagram and no generated module map.
 - `arc42-007-deployment` has its diagrams; the worked deployment is a
   hand-written site page rather than the guide world's compose file.
 - Thirteen `why-*.md` essays under `arc42-008-crosscutting` paraphrase the
@@ -27,20 +25,15 @@ building. This item is deleted when the list is empty.
 
 ## The steps, in order
 
-1. Draw the building-block chapter's container and component diagrams, and
-   generate the module map from the build with a ratchet like the other
-   projections. Give the C4 diagrams one shared stylesheet head: Lini has no
-   include, so that means the build prepends a file before compiling, where
-   today every source carries its own copy.
-2. Write the pitch on the landing page, remove the Why menu, delete the
+1. Write the pitch on the landing page, remove the Why menu, delete the
    essays, folding what survives into the concept READMEs, and remove the
    collector from the build.
-3. Rewrite the guide one chapter at a time as the sample application's
+2. Rewrite the guide one chapter at a time as the sample application's
    story, each chapter including the sample's source and replacing one
    shell chapter when it lands. The sample itself is
    [item 002](../002-sample-application/README.md); this step waits for it.
 
-Step 3 is the largest and depends on nothing above it; it is last so that
+Step 2 is the largest and depends on nothing above it; it is last so that
 the sample is written against a tree that holds still.
 
 ## How a step lands

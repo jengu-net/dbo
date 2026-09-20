@@ -518,6 +518,68 @@ tasks.register<Zip>("centralBundle") {
     exclude("**/maven-metadata*")
 }
 
+// ─── The module map ───────────────────────────────────────────────────
+//
+// Which module names which, read off the project model rather than off a
+// picture. The building-block chapter draws the BANDS and this file carries
+// the edges, because forty edges in a hand-drawn figure is a second source
+// of truth that nothing checks.
+//
+// Recorded and ratcheted the way the skills are: `moduleMap` writes the
+// file, `verifyModuleMap` refuses a committed one that disagrees with the
+// build. A new edge is a line in a diff, which is where a layering
+// violation is cheapest to notice.
+val moduleMap by tasks.registering {
+    group = "documentation"
+    description = "Records config/module-map.txt from the project dependencies."
+    val out = rootProject.file("config/module-map.txt")
+    outputs.file(out)
+    // The project model is read at configuration time: a task action may not
+    // reach across projects, and this is a description of the build rather
+    // than of anything it produces.
+    val edges = subprojects.sortedBy { it.path }.associate { sub ->
+        sub.path.removePrefix(":") to sub.configurations
+            .filter { it.name.endsWith("implementation", true) || it.name.endsWith("api", true) ||
+                      it.name.endsWith("compileOnly", true) || it.name.endsWith("annotationProcessor", true) }
+            .flatMap { conf -> conf.dependencies.withType(ProjectDependency::class.java) }
+            .map { it.path.removePrefix(":") }
+            .distinct()
+            .sorted()
+    }
+    doLast {
+        val text = StringBuilder(
+            """
+            # Which module names which, from the build's own project model.
+            #
+            # GENERATED — do not edit. Re-record with:
+            #     ./gradlew moduleMap
+            #
+            # Read down: a module is followed by the modules it depends on, in
+            # every configuration that compiles against them. A module with no
+            # line names nothing, which for the engine and the storage module
+            # is a load-bearing constraint rather than an observation.
+            #
+            """.trimIndent() + "\n",
+        )
+        for ((module, named) in edges) {
+            if (named.isEmpty()) continue
+            text.append("%-28s %s%n".format(module, named.joinToString(" ")))
+        }
+        out.writeText(text.toString())
+        logger.lifecycle("module map recorded: " + out.relativeTo(rootDir))
+    }
+}
+
+val verifyModuleMap by tasks.registering(Exec::class) {
+    group = "verification"
+    description = "Fails when the committed module map disagrees with the build."
+    dependsOn(moduleMap)
+    workingDir = rootDir
+    commandLine("git", "diff", "--exit-code", "--stat", "config/module-map.txt")
+}
+
+project(":core:harness").tasks.named("check") { dependsOn(verifyModuleMap) }
+
 // ─── Where the time goes ──────────────────────────────────────────────
 //
 // Every test task already writes JUnit XML with a wall-clock time per class.
