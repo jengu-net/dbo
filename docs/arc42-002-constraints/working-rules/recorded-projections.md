@@ -1,16 +1,32 @@
 # Recorded projections
 
-Five artefacts are generated from something else and committed beside it.
+Nine artefacts are generated from something else and committed beside it.
 Each has a ratchet that fails the build when what is committed disagrees
 with its source.
 
 | Artefact | Source | Re-record |
 |---|---|---|
-| The requirement catalogue | promise constants and `@Proving` citations | `./gradlew :core:harness:promiseProjection` |
-| The exported-API ledger | public and protected signatures in exported packages | `./gradlew :core:harness:apiLedger` |
-| The skills and the trap section of `CLAUDE.md` | skill-blocks and the marked region in the constraints documents | `./gradlew generateSkills` |
-| The diagram SVGs | `.lini` sources and `.desc` descriptions | `./gradlew siteDiagrams` |
-| The worlds ledger | harness classes that construct a runtime | `./gradlew :core:harness:worldsLedger` |
+| The requirement catalogue | promise constants and `@Proving` citations | `:core:harness:promiseProjection` |
+| Each user story's table of legs | the Story constant that story declares | `:core:harness:promiseProjection` |
+| The exported-API ledger | public and protected signatures in exported packages | `:core:harness:apiLedger` |
+| The reach ledger | production classes nothing else in production names | `:core:harness:reachLedger` |
+| The promise citations | promise codes spelled out in the tree's prose | `:core:harness:promiseCitations` |
+| The worlds ledger | harness classes that construct a runtime | `:core:harness:worldsLedger` |
+| The module map | the build's own project dependencies | `moduleMap` |
+| The skills and the trap section of `CLAUDE.md` | skill-blocks and the marked region in the constraints documents | `generateSkills` |
+| The diagram SVGs | `.lini` sources and `.desc` descriptions | `siteDiagrams` |
+
+**`./gradlew reRecord` runs all of them**, which is the command to reach for,
+and the one the rule below means. The diagrams join it only when their
+compiler is installed, and it says so when it is not.
+
+**A pre-commit hook runs what your staged files make stale**, and stages the
+result. The build installs it, so a fresh checkout has it without anybody
+remembering. A staged document pays a python script; a staged source pays a
+build; `DBO_SKIP_RERECORD=1` skips it.
+
+Four baselines under `config/` are not on this list. A test writes them as it
+runs, so they are re-recorded by running that test rather than by a task.
 
 A ratchet runs after the push, and its failure lands one commit late: the
 change compiles, the tests that cover the behaviour pass, and the build goes
@@ -37,9 +53,8 @@ reference: docs/arc42-002-constraints/working-rules/recorded-projections.md
 ```
 **Rules**
 - MUST re-record every generated artefact a change makes stale, in the same
-  change: `promiseProjection` for the catalogue, `apiLedger` for the ledger,
-  `generateSkills` for the skills and trap section, `siteDiagrams` for the
-  SVGs, `worldsLedger` for the worlds ledger.
+  change. `./gradlew reRecord` does all of them, and the pre-commit hook the
+  build installs does the ones your staged files touch.
 - MUST treat adding a constant to an exported enum, or a component to an
   exported record, as an API change.
 - MUST read the ledger's report. What is GONE stops anything compiled
