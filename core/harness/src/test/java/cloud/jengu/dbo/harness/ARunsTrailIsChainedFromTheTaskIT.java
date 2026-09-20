@@ -17,8 +17,6 @@ import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.runner.http.HttpLane;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Holder;
@@ -29,14 +27,12 @@ import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
 import cloud.jengu.dbo.work.SealedWork;
 import cloud.jengu.dbo.work.WorkModel;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.postgresql.ds.PGSimpleDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -44,8 +40,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.KeyPair;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -80,16 +74,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ARunsTrailIsChainedFromTheTaskIT {
 
-    private static final String TENANT = "chainhost";
     private static final String STEP = "dbo.lab.assay";
     private static final StepDeclaration ASSAY = StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
             .taking("specimen", "https://meristem.example/shape/specimen")
             .taking("order", "https://meristem.example/shape/order");
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant tenant;
     static final HttpClient http = HttpClient.newHttpClient();
     static URI laneUri;
     static ObjectStore engine;
@@ -99,39 +89,19 @@ class ARunsTrailIsChainedFromTheTaskIT {
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-chained-trail");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ARunsTrailIsChainedFromTheTaskIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"writes"},"types":[
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(TENANT));
-        UntilServed.scan(manager, TENANT);
-        laneUri = URI.create("http://127.0.0.1:" + manager.port() + "/t/" + TENANT + "/work");
-        engine = manager.runtime(TENANT).orElseThrow().engine();
+        // Its own numbered tenant: it introduces a step, and a step name is
+        // claimed once per tenant — two classes introducing one name into a
+        // shared tenant is the collision this numbering exists for.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL, 3);
+        laneUri = URI.create(tenant.base() + "/work");
+        engine = tenant.engine();
         runs = new Runs(engine);
         sealing = KeyWrap.newParticipantKeyPair();
         signing = SigningKey.newKeyPair();
-        manager.authority(TENANT).ensureClient("analyser", "analyser-secret",
+        tenant.authority().ensureClient("analyser", "analyser-secret",
                 List.of("work/" + STEP), ParticipantKey.of(sealing.getPublic()),
                 SigningKey.of(signing.getPublic()));
-        HttpLane.to(laneUri, () -> token(), TENANT, "analyser", executor()).introduce(ASSAY);
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        HttpLane.to(laneUri, () -> token(), tenant.code(), "analyser", executor()).introduce(ASSAY);
     }
 
     @Test
@@ -140,7 +110,7 @@ class ARunsTrailIsChainedFromTheTaskIT {
     @Proving(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)
     void aCleanRunClosesOnItsChain() throws Exception {
         Run run = twoInputRun("clean");
-        HttpLane lane = HttpLane.holding(laneUri, () -> token(), TENANT, "analyser",
+        HttpLane lane = HttpLane.holding(laneUri, () -> token(), tenant.code(), "analyser",
                 executor(), sealing.getPrivate(), signing.getPrivate());
         Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
         assertEquals(2, lane.inputs(held).size(), "both documents opened");
@@ -174,7 +144,7 @@ class ARunsTrailIsChainedFromTheTaskIT {
     @Proving(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)
     void aSuppressedLinkIsExposedByTheNext() throws Exception {
         Run run = twoInputRun("suppressed");
-        HttpLane lane = HttpLane.holding(laneUri, () -> token(), TENANT, "analyser",
+        HttpLane lane = HttpLane.holding(laneUri, () -> token(), tenant.code(), "analyser",
                 executor(), sealing.getPrivate(), signing.getPrivate());
         Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
         SealedWork work = lane.sealed(held);
@@ -205,7 +175,7 @@ class ARunsTrailIsChainedFromTheTaskIT {
     @Proving(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)
     void aMismatchedHeadIsRefusedAndAStoppedChainStaysOwed() throws Exception {
         Run run = twoInputRun("mismatch");
-        HttpLane lane = HttpLane.holding(laneUri, () -> token(), TENANT, "analyser",
+        HttpLane lane = HttpLane.holding(laneUri, () -> token(), tenant.code(), "analyser",
                 executor(), sealing.getPrivate(), signing.getPrivate());
         Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
         lane.inputs(held);
@@ -239,8 +209,8 @@ class ARunsTrailIsChainedFromTheTaskIT {
         // played by hand: the links are a list, and pruning removes the first.
         PGSimpleDataSource ds = new PGSimpleDataSource();
         ds.setUrl(SharedPostgres.urlFor("ARunsTrailIsChainedFromTheTaskIT_pruned"));
-        ds.setUser(postgres.getUsername());
-        ds.setPassword(postgres.getPassword());
+        ds.setUser(SharedPostgres.username());
+        ds.setPassword(SharedPostgres.password());
         List<TypeRegistration> types = new ArrayList<>(WorkModel.registrations());
         types.add(new TypeRegistration("Basic", WorkModel.DOMAIN, IdentityClass.INTERNAL,
                 Set.of(), Handling.operational(), (type, payload) -> new Envelope(), List.of()));
@@ -363,8 +333,7 @@ class ARunsTrailIsChainedFromTheTaskIT {
             String form = "grant_type=client_credentials&client_id=analyser&client_secret="
                     + URLEncoder.encode("analyser-secret", StandardCharsets.UTF_8);
             String body = http.send(HttpRequest.newBuilder(
-                                    URI.create("http://127.0.0.1:" + manager.port()
-                                            + "/t/" + TENANT + "/oidc/token"))
+                                    URI.create(tenant.base() + "/oidc/token"))
                             .header("Content-Type", "application/x-www-form-urlencoded")
                             .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                     HttpResponse.BodyHandlers.ofString()).body();

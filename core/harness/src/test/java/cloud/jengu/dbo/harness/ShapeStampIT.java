@@ -3,9 +3,6 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -13,14 +10,11 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -60,39 +54,21 @@ class ShapeStampIT {
     private static final String PLAIN = """
             {"resourceType":"Observation","status":"final","code":{"text":"pulse"}}""";
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant tenant;
     static final HttpClient http = HttpClient.newHttpClient();
     static String base;
+    static String bearer;
     static String observationId;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-tenants-shape");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ShapeStampIT"),
-                postgres.getUsername(), postgres.getPassword());
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
-        Files.writeString(dir.resolve("kujud.json"), """
-                {"code":"kujud","face":"r4","types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"Observation","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, "kujud");
-        base = manager.baseUrl("kujud");
+        // Shared, beside the other class that walks a profile moving under
+        // its stock. Each names its own canonical, and every count taken here
+        // is of a line that carries it.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_PROFILED);
+        base = tenant.fhir();
+        bearer = tenant.token("shape-stamp", "system/*.read", "system/*.write");
         assertEquals(201, post("/StructureDefinition", profile("2.0.0")).statusCode());
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
     }
 
     @Test
@@ -167,9 +143,8 @@ class ShapeStampIT {
     @DisplayName("a reindex rebuilds the shape dimension from the row, losing nothing")
     @Proving({DboPromises.SHAPE_STAMP_IS_DERIVED})
     void reindexKeepsTheStamp() throws Exception {
-        var runtime = manager.runtime("kujud").orElseThrow();
         // the engine rebuild every personality supports: envelope from row
-        int rebuilt = runtime.engine().rebuildEnvelopes("Observation");
+        int rebuilt = tenant.engine().rebuildEnvelopes("Observation");
         assertTrue(rebuilt >= 2, "the rebuild touched the observations: " + rebuilt);
         assertTrue(get("/Observation/" + observationId).body()
                 .contains("\"valueString\":\"3.0.0\""), "the stamp survived the reindex");
@@ -181,7 +156,7 @@ class ShapeStampIT {
             + "keeps the stamp of the store that validated it")
     @Proving({DboPromises.SHAPE_MIRRORED_KEEPS_ITS_STAMP})
     void stampRidesTheWire() throws Exception {
-        var feed = manager.runtime("kujud").orElseThrow().feed();
+        var feed = tenant.feed();
         String cursor = null;
         java.util.List<String> stamped = null;
         for (var chunk = feed.read(null, 200); !chunk.items().isEmpty();
@@ -256,14 +231,17 @@ class ShapeStampIT {
                  "meta":{"profile":["https://sonavara.example/StructureDefinition/versionless"]}}""")
                 .statusCode());
 
-        var lines = cloud.jengu.dbo.maintenance.TenantInventory.shapes(
-                provisioner.provision(cloud.jengu.dbo.tenant.TenantSpec.parse(
-                        Files.readString(dir.resolve("kujud.json")))).dataSource());
-        assertTrue(lines.stream().anyMatch(l -> "Observation".equals(l.typeName())
-                        && CANONICAL.equals(l.profile()) && "3.0.0".equals(l.version())
-                        && l.count() == 1), lines.toString());
-        assertTrue(lines.stream().anyMatch(l -> "4.0.0".equals(l.version())
-                        && l.count() == 1), lines.toString());
+        // Asked through the tenant's own maintenance door rather than of its
+        // database. It is the surface an operator has before deciding to
+        // migrate, and reading the table instead proved a query rather than
+        // the report anybody can actually run.
+        String lines = inventory();
+        assertTrue(lines.contains("\"name\":\"Observation\",\"profile\":\"" + CANONICAL
+                        + "\",\"version\":\"3.0.0\",\"count\":1"),
+                "stock is not counted per profile and version: " + lines);
+        assertTrue(lines.contains("\"profile\":\"" + CANONICAL
+                        + "\",\"version\":\"4.0.0\",\"count\":1"),
+                "the second version is not its own line: " + lines);
         // The adjacent defect this slice surfaced and fixed: the element
         // face never wrote _profile into the envelope, so a search by
         // profile answered empty — "nobody matches", which was not true.
@@ -272,9 +250,19 @@ class ShapeStampIT {
                         "https://sonavara.example/StructureDefinition/versionless",
                         java.nio.charset.StandardCharsets.UTF_8)).body()
                 .contains("versionless"), "a profile search answers now");
-        assertTrue(lines.stream().anyMatch(l -> l.version() == null
-                        && l.profile().endsWith("versionless") && l.count() == 1),
+        assertTrue(inventory().contains("/versionless\",\"version\":null,\"count\":1"),
                 "declaring without a stampable version is its own counted line: " + lines);
+    }
+
+    /** The tenant's stock, read from the door an operator would use. */
+    private static String inventory() throws Exception {
+        HttpResponse<String> answered = http.send(HttpRequest.newBuilder(
+                        URI.create(tenant.base() + "/admin/inventory"))
+                        .header("Authorization", "Bearer " + bearer)
+                        .POST(HttpRequest.BodyPublishers.noBody()).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, answered.statusCode(), answered.body());
+        return answered.body();
     }
 
     @Test
@@ -308,6 +296,7 @@ class ShapeStampIT {
     private static HttpResponse<String> post(String path, String body) throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create(base + path))
                         .header("Content-Type", "application/fhir+json")
+                        .header("Authorization", "Bearer " + bearer)
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
@@ -315,12 +304,14 @@ class ShapeStampIT {
     private static HttpResponse<String> put(String path, String body) throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create(base + path))
                         .header("Content-Type", "application/fhir+json")
+                        .header("Authorization", "Bearer " + bearer)
                         .PUT(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
     private static HttpResponse<String> get(String path) throws Exception {
-        return http.send(HttpRequest.newBuilder(URI.create(base + path)).GET().build(),
+        return http.send(HttpRequest.newBuilder(URI.create(base + path))
+                        .header("Authorization", "Bearer " + bearer).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 }

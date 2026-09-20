@@ -71,8 +71,21 @@ class TheGuideRunsIT {
     /** Written into the working directory by the archive chapter, and taken away again. */
     private static final Path ARCHIVE = Path.of("..", "hogwarts.archive");
 
-    private static final Path COMPOSE =
-            Path.of("..", "docs", "guide", "examples", "compose.yaml");
+    /**
+     * The world to run against — the published one, or a tree-built one.
+     *
+     * <p>The published compose file names the PINNED image, which is what
+     * makes this suite a guard against the guide rotting. It also means a step
+     * asserting behaviour newer than the pin fails for a reason that has
+     * nothing to do with the step, which is the whole difficulty of moving a
+     * test here from the harness.
+     *
+     * <p>So the same door check.sh has: {@code DBO_GUIDE_COMPOSE} names a
+     * world built from this tree instead. Unset, nothing changes.
+     */
+    private static final Path COMPOSE = Path.of(
+            System.getenv().getOrDefault("DBO_GUIDE_COMPOSE",
+                    Path.of("..", "docs", "guide", "examples", "compose.yaml").toString()));
 
     private final Snippets snippets = new Snippets();
 
@@ -305,6 +318,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("the zone publishes terminology of its own, and answers about it")
+        @Proving(DboPromises.TERM_EVERY_TENANT_ANSWERS)
         void theZonePublishesTerminology() throws Exception {
             assertEquals(0, snippets.run("zone-publishes").status());
             assertTrue(snippets.run("zone-lookup").text().contains("Dai Llewellyn"),
@@ -525,6 +539,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("a type declared replicated is not writable here, and the refusal names the rule")
+        @Proving(DboPromises.SYNC_PROVENANCE_COPIES)
         void aReplicatedTypeIsNotWritableHere() throws Exception {
             String refused = snippets.run("replicated-refused").text();
             assertTrue(refused.contains("read-only-here"),
@@ -650,6 +665,7 @@ class TheGuideRunsIT {
         @Test
         @Order(2)
         @DisplayName("changing the declaration rebuilds the tenant where it stands")
+        @Proving(DboPromises.TEN_A_CHANGE_IS_NOT_A_RETRACTION)
         void changingTheDeclarationRebuildsInPlace() throws Exception {
             assertEquals(0, snippets.run("change-in-place").status(), "the spec was not narrowed");
             // A rebuild is not instant and it is not a restart either: the tenant
@@ -771,6 +787,7 @@ class TheGuideRunsIT {
         @Test
         @Order(5)
         @DisplayName("a write lands between the pages, and the next page does not repeat")
+        @Proving(DboPromises.FEED_KEYSET_CURSORS)
         void aWriteLandsBetweenThePages() throws Exception {
             Snippets.Ran between = snippets.sh("""
                     curl -sf -o /dev/null -X POST -H "Authorization: Bearer $HOSPITAL" \
@@ -1036,6 +1053,7 @@ class TheGuideRunsIT {
         @Test
         @Order(1)
         @DisplayName("the hospital declared the zone, so it answers the zone's codes as its own")
+        @Proving({DboPromises.SYNC_TERMINOLOGY_GRAIN_SURVIVES, DboPromises.SYNC_ANY_TYPE})
         void theZonesCodesReachTheHospital() throws Exception {
             // The first sync from a zone runs some minutes after a tenant comes up;
             // once the stream is running a change propagates in a second or two.
@@ -1046,11 +1064,21 @@ class TheGuideRunsIT {
                     "the zone's terminology never reached the hospital");
             assertTrue(snippets.run("zone-reaches-hospital").text().contains("Spell Damage"),
                     "the hospital cannot answer a code it holds from its zone");
+
+            // The hospital declared two types from this zone, and terminology's
+            // grain is both — the code system and the value sets standing on
+            // it. The insurer below declared only the first and has only the
+            // first, which is what makes this an arrival rather than
+            // everything arriving regardless.
+            assertTrue(waitFor(120, () ->
+                            entries(ask("HOSPITAL", "/ValueSet?url=urn:rl:wards:vs")) == 1),
+                    "the hospital declared the zone's value sets and did not get them");
         }
 
         @Test
         @Order(2)
         @DisplayName("the insurer declared the code systems and not the value sets, and that is what it has")
+        @Proving(DboPromises.SYNC_DECLARED_ONLY)
         void theInsurerTookOnlyWhatItDeclared() throws Exception {
             // The insurer's copy travels further than the hospital's: the zone
             // speaks R5 and the insurer R4, so it arrives through the projection.
@@ -1073,6 +1101,26 @@ class TheGuideRunsIT {
                     "the core code system is not answerable");
         }
 
+        @Test
+        @Order(4)
+        @DisplayName("a copy names the upstream it came from and says it is not this "
+                + "tenant's to change, while the tenant's own records say neither")
+        @Proving(DboPromises.SYNC_PROVENANCE_COPIES)
+        void aCopySaysWhoseItIs() throws Exception {
+            // Both read with the hospital's own credential, so the only thing
+            // that differs between them is where the record came from.
+            String copied = ask("HOSPITAL", "/CodeSystem?url=urn:rl:wards");
+            assertTrue(copied.contains("\"source\":\"urn:dbo:upstream:rl\"")
+                            && copied.contains("\"code\":\"replicated\""),
+                    "a copy must name its upstream and the class governing it: " + copied);
+
+            String own = ask("HOSPITAL", "/Patient?identifier=urn:rl:nid|RL-0001");
+            assertTrue(!own.contains("urn:dbo:upstream:")
+                            && own.contains("\"code\":\"operational\""),
+                    "a record this tenant authored claims an upstream, or does not say it "
+                            + "is the tenant's own to change: " + own);
+        }
+
     }
 
     /**
@@ -1089,6 +1137,7 @@ class TheGuideRunsIT {
         @Test
         @Order(1)
         @DisplayName("a face root is a tenant, and its definitions are records")
+        @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
         void aFaceRootIsATenant() throws Exception {
             snippets.remember("FACE_R5", credentialFor("fhir-r5", "r5-secret"));
             snippets.remember("FACE_R4", credentialFor("fhir-r4", "r4-secret"));
@@ -1099,6 +1148,21 @@ class TheGuideRunsIT {
                         said[0] + " should hold the version's definitions, got " + held);
             }
             assertEquals(2, held.lines().count(), "both face roots should answer: " + held);
+
+            // Counted is not found. What the root holds has to be findable by
+            // the canonical url it is known by, which is how a tenant taking
+            // the version asks for one definition rather than all of them.
+            Snippets.Ran byUrl = snippets.sh(
+                    "curl -sf -G -H \"Authorization: Bearer $FACE_R5\""
+                            + " \"http://localhost:8090/t/fhir-r5/fhir/StructureDefinition\""
+                            + " --data-urlencode"
+                            + " 'url=http://hl7.org/fhir/StructureDefinition/Patient'"
+                            + " | python3 -c 'import sys,json;"
+                            + "print(len(json.load(sys.stdin).get(\"entry\",[])))'");
+            assertEquals(0, byUrl.status(), "the root answered nothing: " + byUrl.err());
+            assertEquals("1", byUrl.lastLine(),
+                    "the root holds the version's definitions and does not find one by the "
+                            + "canonical url it is known by: " + byUrl.text());
         }
 
         @Test
@@ -1126,6 +1190,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("a projection converts the zone once, for the face that needs it")
+        @Proving(DboPromises.ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION)
         void aProjectionConvertsTheZoneOnce() throws Exception {
             assertTrue(waitUntilServed("rl-on-r4", 90), "the projection never came up");
             assertEquals("4.0.1\n5.0.0", snippets.run("projection").text(),
@@ -1183,6 +1248,7 @@ class TheGuideRunsIT {
         @Test
         @Order(2)
         @DisplayName("a role is a record, not a column")
+        @Proving(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL)
         void aRoleIsARecordNotAColumn() throws Exception {
             assertEquals("201", snippets.run("the-role").lastLine());
             // Counted from the entries rather than read from a total: a searchset
@@ -1194,12 +1260,19 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("and what that role may do is declared, and readable")
+        @Proving(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE)
         void whatThatRoleMayDoIsReadable() throws Exception {
             String grants = snippets.run("role-grant").text();
             assertTrue(grants.contains("matron"),
                     "the tenant does not say what it grants: " + grants);
             assertTrue(grants.contains("user/Patient.read"),
                     "the grant does not say what it carries: " + grants);
+            // And where it reaches. A role scoped to an organisation that came
+            // back reaching the whole tenant would grant more than was asked
+            // for, which is the failure nobody sees until somebody reads a
+            // record they should not have.
+            assertTrue(grants.contains("hogwarts"),
+                    "the grant does not name the organisation it is at: " + grants);
         }
 
     }
@@ -1247,6 +1320,7 @@ class TheGuideRunsIT {
         @Test
         @Order(2)
         @DisplayName("a process acts in her name, and carries both names")
+        @Proving(DboPromises.AUTH_ON_BEHALF_OF)
         void aProcessActsInHerName() throws Exception {
             String acting = snippets.run("acting-for-her", "token-exchange", "who-she-is").text();
             assertTrue(acting.contains("night-ledger"),
@@ -1258,6 +1332,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("and cannot acquire authority she never had")
+        @Proving(DboPromises.AUTH_ON_BEHALF_OF)
         void andCannotAcquireAuthoritySheNeverHad() throws Exception {
             assertTrue(snippets.run("attenuation").text().contains("access_denied"),
                     "a delegated token widened past its subject");
@@ -1266,6 +1341,7 @@ class TheGuideRunsIT {
         @Test
         @Order(4)
         @DisplayName("work that outlives the token holds a delegation")
+        @Proving(DboPromises.AUTH_ON_BEHALF_OF)
         void workThatOutlivesTheTokenHoldsADelegation() throws Exception {
             String granted = snippets.run("a-delegation").text();
             assertTrue(granted.contains("delegation_id"), "no delegation was recorded: " + granted);
@@ -1430,6 +1506,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("and what is reading them, with how far behind it is")
+        @Proving(DboPromises.FEED_NAMED_CONSUMERS)
         void andWhatIsReadingThem() throws Exception {
             java.util.List<String> reading = snippets.run("feed-consumers").text().lines().toList();
             assertTrue(!reading.isEmpty(), "the tenant does not say what is reading it");
@@ -1465,6 +1542,7 @@ class TheGuideRunsIT {
         @Test
         @Order(2)
         @DisplayName("handed back as it was given")
+        @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
         void handedBackAsItWasGiven() throws Exception {
             String headers = snippets.run("blob-read").text();
             assertTrue(headers.toLowerCase(java.util.Locale.ROOT).contains("application/pdf"),
@@ -1502,6 +1580,7 @@ class TheGuideRunsIT {
         @Test
         @Order(1)
         @DisplayName("the archive is sealed under a key the store does not hold")
+        @Proving(DboPromises.PDI_BLIND_OPERATIONS)
         void theArchiveIsSealedUnderAKeyTheStoreDoesNotHold() throws Exception {
             String refused = snippets.run("archive-no-key").text();
             assertTrue(refused.contains("does not hold"),
@@ -1522,6 +1601,7 @@ class TheGuideRunsIT {
         @Test
         @Order(3)
         @DisplayName("coming back is a ceremony, and the store cannot perform it alone")
+        @Proving(DboPromises.MNT_IMPORT_REFUSES_UNATTESTED)
         void comingBackIsACeremony() throws Exception {
             String refused = snippets.run("import-needs-signatures").text();
             assertTrue(refused.contains("cannot sign for either of them"),
@@ -1567,7 +1647,9 @@ class TheGuideRunsIT {
 
         @Test
         @Order(3)
-        @DisplayName("a run of the step the hospital offers, over one patient")
+        @DisplayName("a run of the step the hospital offers, over one patient — and a "
+                + "document that breaks the step's rules refused by name on the same door")
+        @Proving(DboPromises.PROC_WORK_IS_AUTHORED_ON_THE_SURFACE)
         void aRunOfTheStepTheHospitalOffers() throws Exception {
             String started = snippets.run("start-a-run").text();
             assertTrue(started.contains("\"context\""), "the run returned no context: " + started);
@@ -1583,6 +1665,28 @@ class TheGuideRunsIT {
             assertTrue(snippets.recall("key").startsWith("hogwarts.admission.admit/"),
                     "the run came back without the name the rest of the work model knows it "
                             + "by: " + snippets.recall("key"));
+
+            // Becoming a run is half of it. The other half is the same door
+            // refusing a document that does not meet the step's rules, and
+            // saying which rule — an author told only "no" has to guess
+            // between a step nobody offers and a slot nobody declared.
+            for (String[] wrong : java.util.List.of(
+                    new String[] {"hogwarts.admission.nosuchstep",
+                        "\\\"patient\\\":\\\"Patient/$id\\\"", "offers no step"},
+                    new String[] {"hogwarts.admission.admit",
+                        "\\\"patient\\\":\\\"Patient/$id\\\",\\\"ward\\\":\\\"Location/x\\\"",
+                        "declares no slot"},
+                    new String[] {"hogwarts.admission.admit", "", "is unfilled"})) {
+                Snippets.Ran refused = snippets.sh(
+                        "curl -s -X POST -H \"Authorization: Bearer $PORTER\""
+                                + " -H 'Content-Type: application/json'"
+                                + " http://localhost:8090/t/hogwarts/step/" + wrong[0]
+                                + " -d \"{\\\"inputs\\\":{" + wrong[1] + "}}\"");
+                assertEquals(0, refused.status(), "the request was never made: " + refused.err());
+                assertTrue(refused.text().contains(wrong[2]),
+                        "a document breaking '" + wrong[2] + "' was not refused by name: "
+                                + refused.text());
+            }
         }
 
         @Test
@@ -1636,6 +1740,7 @@ class TheGuideRunsIT {
         @Test
         @Order(7)
         @DisplayName("the run is a record, and it says what it is over and who holds it")
+        @Proving(DboPromises.PROC_RUN_HAS_A_RECORD)
         void theRunIsARecord() throws Exception {
             String record = snippets.run("run-as-a-record").text();
             // The process and the step are separate codings on the record, not the
@@ -1651,6 +1756,7 @@ class TheGuideRunsIT {
         @Test
         @Order(8)
         @DisplayName("and the run envelope displays its subject rather than resolving it")
+        @Proving(DboPromises.PROC_TASK_CARRIES_THE_INPUTS)
         void theRunEnvelopeDisplaysItsSubject() throws Exception {
             // The whole point of the envelope: a run says what state it is in
             // without disclosing its subject to whoever may read runs.
@@ -1663,7 +1769,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(71)
+        @Order(9)
         @DisplayName("the read through the run is on the record, naming the run that occasioned it")
         @Proving(DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES)
         void theReadThroughTheRunIsOnTheRecord() throws Exception {
@@ -1688,7 +1794,7 @@ class TheGuideRunsIT {
         }
 
         @Test
-        @Order(71)
+        @Order(10)
         @DisplayName("the work ends, and the way in closes behind it")
         @Proving(DboPromises.PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN)
         void theWorkEndsAndTheWayInClosesBehindIt() throws Exception {
@@ -1783,7 +1889,20 @@ class TheGuideRunsIT {
         @DisplayName("and what an operator with the database sees instead")
         @Proving(DboPromises.PDI_STRUCTURAL_VAULT)
         void whatAnOperatorWithTheDatabaseSees() throws Exception {
-            java.util.List<String> stored = snippets.run("pdi-ciphertext").text().lines().toList();
+            // The published snippet names the guide's own compose file, because
+            // that is what a reader types. Against a tree-built world the
+            // project is somewhere else entirely, and the snippet answers
+            // nothing — which reads as a tenant storing no ciphertext at all.
+            // check.sh has the same branch for the same reason.
+            java.util.List<String> stored = (COMPOSE.toString().endsWith("examples/compose.yaml")
+                    ? snippets.run("pdi-ciphertext")
+                    : snippets.sh("docker compose -f " + COMPOSE + " exec -T db"
+                            + " psql -U postgres -d tenant_hogwarts -tAc"
+                            + " \"SELECT convert_from(payload,'UTF8') FROM state.r5_data"
+                            + " WHERE type='Patient' LIMIT 1\""
+                            + " | python3 -c \"import sys,json;"
+                            + "print(*sorted(json.loads(sys.stdin.read())), sep='\\n')\""))
+                    .text().lines().toList();
             assertTrue(!stored.contains("name") && !stored.contains("identifier"),
                     "the stored payload carries identifying elements: " + stored);
             assertTrue(stored.contains("__pdiEnc"),
@@ -1810,6 +1929,31 @@ class TheGuideRunsIT {
             String refused = snippets.run("pdi-no-purpose", "token").text();
             assertTrue(refused.contains("purpose"),
                     "a person was resolved without a stated purpose: " + refused);
+        }
+
+        @Test
+        @Order(4)
+        @DisplayName("but reading the record is answered, with the person taken out of it")
+        @Proving(DboPromises.IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED)
+        void aReadWithoutAReasonIsAnsweredWithoutThePerson() throws Exception {
+            // The credential the step above minted: it may write every type
+            // here and states no reason. Refusing would be the safe-looking
+            // answer and the wrong one — what a recipient sees follows the
+            // declaration rather than how much they could write, and work
+            // that never needed the person still runs.
+            //
+            // The answer is established before anything is said to be missing.
+            // The first version of this called a shell function an earlier
+            // snippet defined, which is not in scope here: curl never ran, and
+            // the absence of her name was the absence of an answer.
+            Snippets.Ran read = snippets.sh("curl -sf -H \"Authorization: Bearer $NO_REASON\""
+                    + " \"$HOGWARTS/Patient/" + snippets.recall("id") + "\"");
+            assertEquals(0, read.status(), "the read never happened: " + read.err());
+            String seen = read.text();
+            assertTrue(seen.contains("\"resourceType\":\"Patient\""),
+                    "the record was refused rather than answered: " + seen);
+            assertTrue(!seen.contains("Potter") && !seen.contains("RL-0001"),
+                    "a broad write grant read the person back: " + seen);
         }
 
     }
@@ -2023,6 +2167,25 @@ class TheGuideRunsIT {
                 assertTrue(!remains.contains("\"" + element + "\""),
                         "the erased record still carries the person's " + element + ": " + remains);
             }
+        }
+
+        @Test
+        @Order(4)
+        @DisplayName("while the trail still says something happened to her record, and can "
+                + "no longer say to whom")
+        @Proving(DboPromises.POL_ERASURE_COMPATIBLE)
+        void theTrailOutlivesThePerson() throws Exception {
+            // Scoped to her record. A page of the tenant's trail would be an
+            // answer about whatever it did lately, not about whether the
+            // account of HER request survived — and erasure is the one place
+            // that distinction has to hold.
+            String trail = ask("HOSPITAL",
+                    "/AuditEvent?entity=Patient/" + snippets.recall("forgettable"));
+            assertTrue(entries(trail) > 0,
+                    "the account went with the person, so the clinic cannot show it handled "
+                            + "her request at all: " + trail);
+            assertTrue(!trail.contains("Riddle"),
+                    "the trail still names her, so erasure stopped at the record: " + trail);
         }
 
     }

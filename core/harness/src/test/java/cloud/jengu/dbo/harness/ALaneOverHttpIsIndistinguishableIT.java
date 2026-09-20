@@ -10,20 +10,16 @@ import cloud.jengu.dbo.runner.StepRunner;
 import cloud.jengu.dbo.runner.StepService;
 import cloud.jengu.dbo.runner.Work;
 import cloud.jengu.dbo.runner.http.HttpLane;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
 import cloud.jengu.dbo.work.WorkModel;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -31,8 +27,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -70,44 +64,19 @@ class ALaneOverHttpIsIndistinguishableIT {
     // module.process, so that process + "." + step is a whole StepId.
     private static final String PROCESS = "dbo.lab";
     private static final String STEP = "validate-over-http";
-    private static final String TENANT = "lanehost";
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant tenant;
     static final HttpClient http = HttpClient.newHttpClient();
     static URI laneUri;
     static Runs runs;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-tenants-lane-http");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ALaneOverHttpIsIndistinguishableIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(TENANT));
-        UntilServed.scan(manager, TENANT);
-        laneUri = URI.create("http://127.0.0.1:" + manager.port() + "/t/" + TENANT + "/work");
-        runs = new Runs(manager.runtime(TENANT).orElseThrow().engine());
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        // Its own numbered tenant: this class introduces steps over the lane,
+        // and a step name is claimed once per tenant.
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL, 6);
+        laneUri = URI.create(tenant.base() + "/work");
+        runs = new Runs(tenant.engine());
     }
 
     @Test
@@ -192,7 +161,7 @@ class ALaneOverHttpIsIndistinguishableIT {
         // The executor identity is what a claim is recorded under and what
         // `inputs` checks against, so a bounded credential free to spell any
         // name could read the inputs of runs it never claimed.
-        Lane impersonating = HttpLane.to(laneUri, () -> token, TENANT, "bench-itself",
+        Lane impersonating = HttpLane.to(laneUri, () -> token, tenant.code(), "bench-itself",
                 new Executor("someone-else", "1.0", "cloud.jengu.test", Scope.BASELINE));
 
         IllegalStateException refused = assertThrows(IllegalStateException.class,
@@ -231,7 +200,7 @@ class ALaneOverHttpIsIndistinguishableIT {
         // that was granted some OTHER step at enrolment. The reach that
         // belongs on the lane is the bench's, not the host's.
         String host = bootstrapToken();
-        Lane narrowed = HttpLane.boundedTo(laneUri, () -> host, TENANT, "bench-narrowed",
+        Lane narrowed = HttpLane.boundedTo(laneUri, () -> host, tenant.code(), "bench-narrowed",
                 new Executor("bench-narrowed", "1.0", "cloud.jengu.test", Scope.BASELINE),
                 java.util.Set.of("dbo.lab.a-different-step"));
         assertTrue(narrowed.poll(java.util.Set.of(STEP), 10).isEmpty(),
@@ -244,7 +213,7 @@ class ALaneOverHttpIsIndistinguishableIT {
         // itself into another. What is asked for is intersected with what the
         // credential covers, never substituted for it.
         String token = participant("bench-asking-for-more", "work/dbo.lab.something-else");
-        Lane widened = HttpLane.boundedTo(laneUri, () -> token, TENANT, "bench-asking-for-more",
+        Lane widened = HttpLane.boundedTo(laneUri, () -> token, tenant.code(), "bench-asking-for-more",
                 new Executor("bench-asking-for-more", "1.0", "cloud.jengu.test", Scope.BASELINE),
                 java.util.Set.of(PROCESS + "." + STEP));
         IllegalStateException refused = assertThrows(IllegalStateException.class,
@@ -276,8 +245,8 @@ class ALaneOverHttpIsIndistinguishableIT {
             dead = free.getLocalPort();
         }
         Lane unreachable = HttpLane.to(
-                URI.create("http://127.0.0.1:" + dead + "/t/" + TENANT + "/work"),
-                () -> token, TENANT, "bench-offline",
+                URI.create("http://127.0.0.1:" + dead + "/t/" + tenant.code() + "/work"),
+                () -> token, tenant.code(), "bench-offline",
                 new Executor("bench-offline", "1.0", "cloud.jengu.test", Scope.BASELINE));
         assertThrows(StoreUnreachableException.class,
                 () -> unreachable.poll(java.util.Set.of(STEP), 10),
@@ -285,19 +254,19 @@ class ALaneOverHttpIsIndistinguishableIT {
     }
 
     private static Lane hostLane(String participant, String token) {
-        return HttpLane.to(laneUri, () -> token, TENANT, participant,
+        return HttpLane.to(laneUri, () -> token, tenant.code(), participant,
                 new Executor(participant, "1.0", "cloud.jengu.test", Scope.BASELINE));
     }
 
     /** A participation credential minted for one bench, bounded at issue. */
     private static String participant(String clientId, String... scopes) throws Exception {
         String secret = clientId + "-secret";
-        manager.authority(TENANT).ensureClient(clientId, secret, List.of(scopes));
+        tenant.authority().ensureClient(clientId, secret, List.of(scopes));
         return token(clientId, secret);
     }
 
     private static String bootstrapToken() throws Exception {
-        return token("tenant-bootstrap", provisioner.bootstrapClientSecret(TENANT));
+        return token("tenant-bootstrap", tenant.bootstrapSecret());
     }
 
     private static String token(String clientId, String secret) throws Exception {
@@ -305,8 +274,8 @@ class ALaneOverHttpIsIndistinguishableIT {
                 + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
                 + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
         String body = http.send(HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + manager.port()
-                                        + "/t/" + TENANT + "/oidc/token"))
+                                URI.create(tenant.base()
+                                        + "/oidc/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
