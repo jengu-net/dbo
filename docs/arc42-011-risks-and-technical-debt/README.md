@@ -26,7 +26,7 @@ is deliberately not being done, and the commands that prove it.
 | Item | State |
 |---|---|
 | [001 The documentation tree is moved to match its map](001-documentation-shape/README.md) | Open. Next: write the runtime chapter's scenarios and create the quality-requirements chapter. |
-| [002 The sample application](002-sample-application/README.md) | Open. The module owns its sources and the world's specs, and its runner performs a run end to end. Next: the external participant, from its own process. |
+| [002 The sample application](002-sample-application/README.md) | Open. The module owns its sources and the world's specs, its runner performs a run, and a second module joins from outside. Next: the guide chapters. |
 | [003 Own-world tests move down the ladder](003-tests-move-down-the-ladder/README.md) | Open. 44 harness classes build a runtime of their own and are undecided. Next: classify them into rungs. |
 | [004 The guide runs three times in CI](004-the-guide-runs-three-times/README.md) | Open. Next: port the one step the shell harness still covers. |
 | [006 The specification is cut to the house style](006-the-specification-in-house-style/README.md) | Open. Next: run the prose reviewer over the user stories, the highest count. |
@@ -40,7 +40,6 @@ is deliberately not being done, and the commands that prove it.
 | [014 The Karaf console](014-the-karaf-console/README.md) | Not scheduled. A proposal for seeing inside a running node: development and operator tooling, never production. |
 | [015 The comparative load test](015-the-comparative-load-test/README.md) | Not scheduled. The bench runner carries the discipline; a second and third target, an ingest workload and resource sampling are missing. |
 | [016 Where a neutral store earns its keep](016-where-a-neutral-store-earns-its-keep/README.md) | Not scheduled. A test for recognising the domains this engine's shape fits. |
-| [018 A claim that answers five hundred](018-a-claim-that-answers-five-hundred/README.md) | Open. An outside participant is offered a run of the step it introduced and cannot take it; three layers say nothing about why. |
 | [017 The quality goals are not declared](017-quality-goals-are-not-declared/README.md) | Open. The eleven quality goals are matched to requirement areas by reading. Next: declare them as Quality classifications. |
 
 ## Risks

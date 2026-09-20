@@ -33,6 +33,15 @@ val dboTenantTestOutput = project(":core:dbo-tenant")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
+// The runner module's own: what a lane answers and what it records when a
+// verb could not complete is decided without a store, so it is proven there.
+// Same trap as the ones above — the index lives in that module's test output,
+// and a testImplementation on the main jar never pulls it in.
+evaluationDependsOn(":core:dbo-runner")
+val dboRunnerTestOutput = project(":core:dbo-runner")
+        .extensions.getByType(SourceSetContainer::class.java)
+        .getByName("test").output
+
 // The guide suite's citation index.
 //
 // It is compiled elsewhere and never RUN from here — a Test task scans its own
@@ -53,6 +62,7 @@ val karafCommandsTestOutput = project(":karaf:commands")
 
 dependencies {
     testRuntimeOnly(guideTestOutput)
+    testRuntimeOnly(dboRunnerTestOutput)
     testImplementation(karafCommandsTestOutput)
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))

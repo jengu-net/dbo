@@ -34,6 +34,10 @@ dependencies {
     api("org.slf4j:slf4j-api:2.0.18")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // @Proving citations only — dbo-promises depends on :promise alone, so
+    // this does not create a cycle back into dbo-runner.
+    testImplementation(project(":core:dbo-promises"))
+    testAnnotationProcessor(project(":promise"))
 }
 
 tasks.test {

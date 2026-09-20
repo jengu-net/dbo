@@ -312,7 +312,7 @@ subprojects {
         ":karaf", ":karaf:commands", ":karaf:slf4j-compat",
         // the guide's examples, compiled so a chapter cannot show a call that
         // no longer exists; nobody depends on them
-        ":sample")
+        ":sample", ":sample:participant")
     if (project.path !in notALibrary) {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")
@@ -549,6 +549,11 @@ val moduleMap by tasks.registering {
             .distinct()
             .sorted()
     }
+    // The edges ARE the input. Without this the task has an output and
+    // nothing to compare, so it reads UP-TO-DATE after a dependency is added
+    // and the committed map stays behind the build it describes — which the
+    // ratchet then finds on a fresh checkout rather than here.
+    inputs.property("edges", edges.toString())
     doLast {
         val text = StringBuilder(
             """

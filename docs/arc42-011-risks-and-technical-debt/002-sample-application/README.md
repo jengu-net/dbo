@@ -1,4 +1,4 @@
-**Open. The module owns its sources and the world's specs, and its runner performs a run end to end. Next: the external participant, joining from its own process.**
+**Open. The module owns its sources and the world's specs, its runner performs a run end to end, and a second module joins from outside with a step of its own. Next: the guide chapters, in the order item 001 gives.**
 
 # The sample application
 
@@ -33,11 +33,14 @@ product would.
    — a lane to one tenant, a runner, the step registered on it — authors a
    run through the same door a chapter uses, takes it and closes it, proven
    against a world built from the tree.
-3. The external participant, joining with a capability of its own. Written
-   twice and taken out twice. It introduces the step, the run is authored on
-   the face and the lane offers it, and the claim answers five hundred:
-   [item 018](../018-a-claim-that-answers-five-hundred/README.md). This
-   waits on that.
+3. ~~The external participant, joining with a capability of its own.~~
+   `sample/participant/` is another organisation's process: a lane, a runner
+   and a step service carrying its own declaration, with no store on its
+   compile path. It introduces the step beside its candidacy, the hospital
+   authors a run of it by posting a `Task` to the face, and the laboratory
+   performs it. The same document from the laboratory's own credential is
+   refused, which is what an introduction granting nothing looks like from
+   the outside.
 4. Each further chapter of the guide, in the order item 001 gives.
 
 The include needs no ratchet of its own. A chapter naming a file the sample

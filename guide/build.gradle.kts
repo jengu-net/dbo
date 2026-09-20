@@ -27,6 +27,9 @@ dependencies {
     // The integrator's own code, compiled from the files the chapters include.
     // The suite runs it rather than describing it.
     testImplementation(project(":sample"))
+    // The external participant, which is another organisation's process and
+    // is compiled as one: it depends on the lane and nothing of the store.
+    testImplementation(project(":sample:participant"))
     testAnnotationProcessor(project(":promise"))
 }
 

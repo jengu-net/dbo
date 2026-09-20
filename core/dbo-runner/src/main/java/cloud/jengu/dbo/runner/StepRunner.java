@@ -225,7 +225,19 @@ public final class StepRunner implements AutoCloseable {
             if (service == null) {
                 continue; // withdrawn between poll and here
             }
-            Optional<Run> claimed = lane.claim(seen, holdFor);
+            Optional<Run> claimed;
+            try {
+                claimed = lane.claim(seen, holdFor);
+            } catch (RuntimeException notARace) {
+                // An empty claim and a claim that failed are opposite facts
+                // and used to be one outcome here: the throw took the whole
+                // cycle with it, and what the caller saw was a runner that
+                // performed nothing — which reads as a quiet tenant. So the
+                // reason is said, and the next run is still tried.
+                LOG.warn("claim failed: tenant={} step={} {}",
+                        lane.tenant(), seen.step(), notARace.getMessage());
+                continue;
+            }
             if (claimed.isEmpty()) {
                 continue; // raced; somebody else holds it — the claim is the scheduler
             }

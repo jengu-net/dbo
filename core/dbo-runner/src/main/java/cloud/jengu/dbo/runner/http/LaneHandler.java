@@ -109,6 +109,20 @@ public final class LaneHandler implements HttpHandler {
         Lane laneFor(String participant, Executor identity, Lane.Entitlement entitlement);
     }
 
+    /**
+     * A verb that could not complete answers 500, and until this line existed
+     * that was the whole of what anybody learned: the far side swallowed the
+     * exception, the runner logged its own cycle failure at WARN with the
+     * reason "the verb did not complete", and the cause was nowhere. This is
+     * the one place that holds it.
+     *
+     * <p>It is an error and not a request log. What it carries is the verb
+     * and the tenant, which are configuration, and the throwable — never the
+     * body, which names runs and the documents they are over.
+     */
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(LaneHandler.class);
+
     private final String basePath;
     private final LaneVerbService service;
 
@@ -160,6 +174,7 @@ public final class LaneHandler implements HttpHandler {
         } catch (IllegalArgumentException malformed) {
             fail(exchange, 400, String.valueOf(malformed.getMessage()));
         } catch (RuntimeException failed) {
+            LOG.error("lane verb failed: path={}", exchange.getRequestURI().getPath(), failed);
             fail(exchange, 500, "the verb did not complete");
         } finally {
             exchange.close();
