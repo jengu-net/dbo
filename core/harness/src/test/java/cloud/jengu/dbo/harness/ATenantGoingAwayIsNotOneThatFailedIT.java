@@ -30,6 +30,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Nothing is wrong when this happens, so it is no state at all: not
  * COMING_UP, which says the next round fixes it, and not FAILED, which says
  * somebody must.
+ *
+ * <p><b>A world of its own, and the teardown is why.</b> The subject is a
+ * tenant being taken away while a scan is reading it, so it takes one away
+ * and then reads the states and the troubles the runtime is left holding.
+ * A shared runtime is one whose tenants other classes are still using, and
+ * its troubles are a ledger they all write to.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ATenantGoingAwayIsNotOneThatFailedIT {

@@ -44,6 +44,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * and a threshold that fights the collector fails on Tuesdays; what is caught
  * here is a step change, which is what a regression in this actually looks
  * like.
+ *
+ * <p><b>A world of its own, and the number is why.</b> What it reports is
+ * what a tenant costs to hold, read off the heap before and after bringing
+ * one up. On a runtime other classes have used, that number is what the
+ * whole suite is holding — so the measurement means nothing unless the
+ * runtime holds only what this class put in it.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

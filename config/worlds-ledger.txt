@@ -32,7 +32,7 @@
 # The number of UNDECIDED entries may only fall. Regeneration lowers the
 # allowance to the actual count; the build fails above it.
 #
-# undecided-allowed: 12
+# undecided-allowed: 7
 ABlobIsTenantDataIT                                      lifecycle
 AChangeCanBeAskedAboutBeforeItIsMadeIT                   deployment
 ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
@@ -45,12 +45,12 @@ ALaneOverTheStreamIsIndistinguishableIT                  deployment
 ALargePayloadTravelsByReferenceIT                        whole plane
 AShutdownIsQuietIT                                       lifecycle
 AStoreWithoutSuperuserStillMountsIT                      sweep
-AStreamKeepsMovingWhileATenantComesUpIT                  UNDECIDED
-AStreamLaneIsToldItHasWorkIT                             UNDECIDED
+AStreamKeepsMovingWhileATenantComesUpIT                  lifecycle
+AStreamLaneIsToldItHasWorkIT                             deployment
 ATenantAuthorsItsOwnSearchParameterIT                    sweep
 ATenantComesUpFromTheFaceImageIT                         UNDECIDED
 ATenantDeclaredDifferentlyIsNoticedIT                    sweep
-ATenantGoingAwayIsNotOneThatFailedIT                     UNDECIDED
+ATenantGoingAwayIsNotOneThatFailedIT                     lifecycle
 ATenantOpensAndItsPeopleGetInIT                          UNDECIDED
 ATenantSubscribesToItsVersionIT                          UNDECIDED
 ATenantThatIsNotUpSaysWhyIT                              sweep
@@ -67,9 +67,9 @@ OneTenantInTwoPlacesIT                                   sweep
 OperatorIT                                               sweep
 ProfilesArrivingOutOfBandTakeEffectIT                    sweep
 ScimNeedsTheMembraneIT                                   sweep
-SeveralTenantsDeclaredAtOnceComeUpTogetherIT             UNDECIDED
+SeveralTenantsDeclaredAtOnceComeUpTogetherIT             lifecycle
 SpecDeclaredSyncIT                                       sweep
 TenantRuntimeIT                                          sweep
 ThePlaintextInFlightLeavesNoTraceIT                      deployment
-WhatTheLoadedSpecificationCostsIT                        UNDECIDED
+WhatTheLoadedSpecificationCostsIT                        first boot
 ZoneIT                                                   sweep

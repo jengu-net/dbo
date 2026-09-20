@@ -34,6 +34,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * time per tenant got the first few and a refusal for the rest. The refusal
  * was indistinguishable from "this tenant cannot be provisioned", which is
  * what made it expensive.
+ *
+ * <p><b>A world of its own, and the bring-up is why.</b> What it asserts is
+ * that several tenants declared at once all come up, which is a claim about
+ * what one scan did across the runtime. On a shared one the tenants already
+ * serving would be in the answer.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SeveralTenantsDeclaredAtOnceComeUpTogetherIT {
