@@ -12,8 +12,6 @@ import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.sync.LaneModel;
 import cloud.jengu.dbo.sync.Lanes;
 import cloud.jengu.dbo.sync.PlacementModel;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
@@ -63,6 +61,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * one is why an appliance does not slowly become a copy of the whole clinic.
  *
  * <p><b>One clinic, one zone, two appliances, in dependency order.</b>
+ *
+ * <p>The zone half runs on the shared runtime, as a zone shape and a clinic
+ * shape that declares one of its types. The appliance half needs no runtime
+ * at all: it is two databases and a lane between them.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -70,18 +72,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class OneTenantInTwoPlacesIT {
 
     // ── the zone half ──
-    private static final String ZONE = "eesti";
-    private static final String CLINIC = "kevadsoltuv";
-    private static final String SEVERITY = "https://eesti.example/fs/severity";
+    static SharedTenants.Tenant zone;
+    static SharedTenants.Tenant clinic;
+    private static final String SEVERITY = "https://shared.test/fs/two-places-severity";
 
     // ── the appliance half ──
     private static final String PROCESS = "dbo.lab.assay";
     private static final Set<String> TRAVELS = Set.of(PROCESS);
 
     static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
 
     static PGSimpleDataSource cloudDs;
     static PGSimpleDataSource edgeDs;
@@ -97,17 +96,10 @@ class OneTenantInTwoPlacesIT {
         postgres = SharedPostgres.get();
         String jdbcUrl = SharedPostgres.urlFor("OneTenantInTwoPlacesIT");
 
-        // The zone half: two tenants of one runtime, one depending on the other.
-        dir = Files.createTempDirectory("dbo-two-places");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                jdbcUrl, postgres.getUsername(), postgres.getPassword());
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
-        Files.writeString(dir.resolve(ZONE + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
-                  {"name":"ValueSet","identity":"canonical","handling":"operational"}]}"""
-                .formatted(ZONE));
-        UntilServed.scan(manager, ZONE);
+        // The zone half: two shared tenants, one depending on the other. The
+        // zone is here and the clinic is not, because the story's first step
+        // is that declaring one is the whole of opening it.
+        zone = SharedTenants.of(SharedTenants.Shape.R4_TWO_PLACES_ZONE);
 
         // The appliance half: one tenant, two databases, one lane between them.
         try (Connection c = DriverManager.getConnection(jdbcUrl,
@@ -133,15 +125,6 @@ class OneTenantInTwoPlacesIT {
         edge = new Lanes(edgeStore, new PgChangeFeed(edgeDs, WorkModel.DOMAIN), edgeRuns, "edge");
     }
 
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
-    }
 
     // ── canonical content arrives because somebody declared it should ──
 
@@ -154,21 +137,16 @@ class OneTenantInTwoPlacesIT {
     void theClinicDeclaresWhatItTakes() throws Exception {
         // The zone publishes before the clinic exists, which is the ordinary
         // case: canonical content is older than the practices that use it.
-        var zone = manager.runtime(ZONE).orElseThrow().engine();
-        zone.put(PutRequest.create("CodeSystem", ("""
+        var upstream = zone.engine();
+        upstream.put(PutRequest.create("CodeSystem", ("""
                 {"resourceType":"CodeSystem","url":"%s","status":"active",
                  "content":"complete","version":"1.0",
                  "concept":[{"code":"mild","display":"Mild"}]}""".formatted(SEVERITY))
                 .getBytes(StandardCharsets.UTF_8)));
 
-        Files.writeString(dir.resolve(CLINIC + ".json"), """
-                {"code":"%s","face":"r4",
-                 "dependencies":[{"name":"%s","types":["CodeSystem"]}],
-                 "types":[
-                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
-                  {"name":"ValueSet","identity":"canonical","handling":"operational"}]}"""
-                .formatted(CLINIC, ZONE));
-        UntilServed.scan(manager, ZONE, CLINIC);
+        // Declared now, after the zone already holds content: the clinic is
+        // opened by saying it exists and what it takes.
+        clinic = SharedTenants.of(SharedTenants.Shape.R4_TWO_PLACES_CLINIC);
     }
 
     @Test
@@ -177,16 +155,15 @@ class OneTenantInTwoPlacesIT {
             + "much of it the zone holds")
     @Proving({DboPromises.SYNC_DECLARED_ONLY, DboPromises.SYNC_DIRECT_UPSTREAM_ONLY})
     void nothingUndeclaredArrives() {
-        var zone = manager.runtime(ZONE).orElseThrow().engine();
-        zone.put(PutRequest.create("ValueSet", ("""
+        var upstream = zone.engine();
+        upstream.put(PutRequest.create("ValueSet", ("""
                 {"resourceType":"ValueSet","url":"%s/vs","status":"active"}"""
                 .formatted(SEVERITY)).getBytes(StandardCharsets.UTF_8)));
-        manager.scanOnce();
+        SharedTenants.manager().syncRound();
 
         // The clinic declared CodeSystem and nothing else. A ValueSet in the
         // zone is not a thing it is missing; it is a thing it did not ask for.
-        assertTrue(manager.runtime(CLINIC).orElseThrow().engine()
-                        .select(Criteria.of("ValueSet")).isEmpty(),
+        assertTrue(clinic.engine().select(Criteria.of("ValueSet")).isEmpty(),
                 "an undeclared type arrived, so a dependency is a hint rather than a bound "
                         + "and a clinic ends up holding whatever its upstream happens to have");
     }

@@ -62,7 +62,6 @@ FederatedAuthIT                                          deployment
 HumanAuthIT                                              deployment
 MandatoryStepsClassifyIncidentsIT                        sweep
 NothingReadableLandsInTheSubstrateIT                     whole plane
-OneTenantInTwoPlacesIT                                   sweep
 OperatorIT                                               sweep
 ProfilesArrivingOutOfBandTakeEffectIT                    sweep
 ScimNeedsTheMembraneIT                                   sweep
@@ -71,4 +70,4 @@ SpecDeclaredSyncIT                                       sweep
 TenantRuntimeIT                                          sweep
 ThePlaintextInFlightLeavesNoTraceIT                      deployment
 WhatTheLoadedSpecificationCostsIT                        first boot
-ZoneIT                                                   sweep
+ZoneIT                                                   deployment

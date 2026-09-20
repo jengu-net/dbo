@@ -1,4 +1,4 @@
-**Open. Nothing is undecided: 39 classes build a runtime of their own and each says why. Next: the 12 reading `sweep` from before that reason was narrowed — read, one moved so far.**
+**Resolved, pending deletion. Nothing is undecided, all thirteen `sweep` entries are re-read, and the 38 classes that keep a runtime each say why. What is left is a decision, not work: this item is deleted once [how it is run](how-it-is-run.md) has somewhere else to live, because the shared-world rule links it.**
 
 # Own-world tests move down the ladder
 
@@ -82,8 +82,11 @@ in [how the migration is run](how-it-is-run.md), which moved here from
    wording and some of them will move. This item is deleted when they have
    been read.
 
-   Read so far: five of the thirteen make a real claim about a pass and
-   stay — two assert the set a scan returned, one reads the troubles it
-   left, one drives a fleet of runtimes rather than a runtime, and one takes
-   a tenant away. `MetaSaysTheEnginesFactsIT` only called a round and has
-   moved.
+   All thirteen are read. Eleven make a claim the old wording did not
+   capture and stay: two assert the set a scan returned, six read the
+   troubles or the states a scan left, one asserts the count a shapes round
+   returned, one drives a fleet of runtimes rather than a runtime, and one
+   takes a tenant away. One was recorded under the wrong reason
+   altogether — `ZoneIT` holds two brokers' secrets, which is a deployment's
+   custody and not a sweep. Two only called a round and have moved:
+   `MetaSaysTheEnginesFactsIT` and `OneTenantInTwoPlacesIT`.

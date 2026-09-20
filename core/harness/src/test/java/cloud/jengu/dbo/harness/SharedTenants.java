@@ -206,6 +206,23 @@ public final class SharedTenants {
                 .formatted(STAFF_IDS), "r4",
                 ",\"pdi\":true,\"scim\":{\"system\":\"" + STAFF_IDS + "\"}", "full"),
 
+        /** r4 as a national zone publishing canonical content, for the clinic below. */
+        R4_TWO_PLACES_ZONE("sharedr4twoplaceszone", """
+                [{"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                 {"name":"ValueSet","identity":"canonical","handling":"operational"}]""",
+                "r4", "", "none"),
+
+        /**
+         * r4 taking ONE type from that zone, which is the point: it declares
+         * CodeSystem and not ValueSet, so what does not arrive is what it did
+         * not ask for.
+         */
+        R4_TWO_PLACES_CLINIC("sharedr4twoplacesclinic", """
+                [{"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                 {"name":"ValueSet","identity":"canonical","handling":"operational"}]""",
+                "r4", ",\"dependencies\":[{\"name\":\"sharedr4twoplaceszone\","
+                        + "\"types\":[\"CodeSystem\"]}]", "none"),
+
         /** r4 publishing a mirrored vocabulary, for the receiver below. */
         R4_MIRROR_SOURCE("sharedr4mirrorsource", """
                 [{"name":"Patient","identity":"internal","handling":"operational"},

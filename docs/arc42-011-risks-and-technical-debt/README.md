@@ -27,7 +27,7 @@ is deliberately not being done, and the commands that prove it.
 |---|---|
 | [001 The documentation tree is moved to match its map](001-documentation-shape/README.md) | Open. Next: write the runtime chapter's scenarios and create the quality-requirements chapter. |
 | [002 The sample application](002-sample-application/README.md) | Open. The module owns its sources and the world's specs, its runner performs a run, and a second module joins from outside. Next: the guide chapters. |
-| [003 Own-world tests move down the ladder](003-tests-move-down-the-ladder/README.md) | Open. Nothing is undecided: 39 classes keep a runtime and each says why. Next: the 12 reading `sweep`. |
+| [003 Own-world tests move down the ladder](003-tests-move-down-the-ladder/README.md) | Resolved, pending deletion. All thirteen `sweep` entries are re-read and the 38 classes that keep a runtime each say why. |
 | [004 The guide runs three times in CI](004-the-guide-runs-three-times/README.md) | Open. Next: port the one step the shell harness still covers. |
 | [006 The specification is cut to the house style](006-the-specification-in-house-style/README.md) | Open. Next: run the prose reviewer over the user stories, the highest count. |
 | [007 The face contract](007-the-face-contract/README.md) | Open. The epic closed and a second face exists; one slice remains. |
