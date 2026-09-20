@@ -1,4 +1,4 @@
-**Open. Next: turn the architecture decisions into numbered records and cut the solution strategy to current state.**
+**Open. Next: fold `docs/tasks/` and `docs/plans/` into this chapter and retire the implementation status page.**
 
 # The documentation tree is moved to match its map
 
@@ -10,10 +10,12 @@ building. This item is deleted when the list is empty.
 
 ## Where the tree disagrees
 
-- `arc42-004-solution-strategy` holds the design rationale, 4,500 words of
-  reasoning that belongs in 009.
-- `arc42-009-architecture-decisions` is one page of resolved questions, not
-  numbered records with a status and a "reflected in" line.
+- Forty-two Java files and several documents cite a decision record by its
+  dissolved section number. The map says a record is cited from nowhere, so
+  each of those names the concept page or the REQ that states the result
+  instead.
+- Records 006 and 007 are reflected in no page: the adoption path and the
+  model behind a face were decided and never stated as current fact.
 - `arc42-006-runtime` holds the requirement catalogue and no scenarios.
 - `arc42-010-quality-requirements` does not exist; the conformance reports
   and the evidence sit under `docs/conformance` and `docs/evidence`.
@@ -37,12 +39,12 @@ building. This item is deleted when the list is empty.
 
 ## The steps, in order
 
-1. Turn 009 into numbered records with a status and a "reflected in" line,
-   move the rationale there, and cut 004 to decisions stated as current
-   fact.
-2. Fold `docs/tasks/` and `docs/plans/` into this chapter as items, and
+1. Fold `docs/tasks/` and `docs/plans/` into this chapter as items, and
    delete the implementation status page in favour of the catalogue. The
    migration document has already moved, into item 003.
+2. Replace every citation of a decision record by its section number with
+   the page or the REQ that states the result, and state the results of
+   records 006 and 007 where they belong.
 3. Write the 006 scenarios, one Lini sequence each, and create 010 with the
    quality tree, the conformance reports and the evidence. Give the C4
    diagrams one shared Lini stylesheet head.

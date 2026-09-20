@@ -1,4 +1,6 @@
-# Design rationale
+**Status: Context.** Reflected in [the solution strategy](../arc42-004-solution-strategy/README.md).
+
+# Why the engine is shaped this way
 
 Why the engine is shaped the way it is. Two bodies of experience stand behind
 these choices: a mature open-source FHIR server that this design was measured
@@ -25,7 +27,7 @@ tenant, and every one of those jobs dissolves into a local one:
 | Job | Where it goes |
 |---|---|
 | Read cache | In-JVM, and trivially correct — there is no other writer to invalidate against |
-| Queues and scheduled work | DBOS, in the planes of §7.4 |
+| Queues and scheduled work | DBOS, in the planes of [record 004](004-durable-work-sits-in-two-planes.md) |
 | Change fan-out | The transactional outbox plus `pg_notify`/DBOS streams |
 | WebSocket subscription state | Local to the serving pod that owns the tenant |
 | Rate-limit counters | Local too — entry nodes route, serving pods count |

@@ -29,9 +29,8 @@ Structured per [arc42](https://arc42.org/).
   [working rules](arc42-002-constraints/working-rules/README.md) (the traps, and the
   rules a green build cannot enforce — projected into installable skills)
 - [arc42-003-context](arc42-003-context/README.md)
-- [arc42-004-solution-strategy](arc42-004-solution-strategy/README.md) — the bets,
-  and the [design rationale](arc42-004-solution-strategy/design-rationale.md) (§9)
-  behind them
+- [arc42-004-solution-strategy](arc42-004-solution-strategy/README.md) — the
+  decisions the store is built on, as they stand
 - [arc42-005-building-blocks](arc42-005-building-blocks/README.md) — layering (§1):
   the module map, what the build enforces about it, and the store chain a
   tenant's bring-up assembles
@@ -61,7 +60,8 @@ Structured per [arc42](https://arc42.org/).
   [declared rules](arc42-008-crosscutting/declared-rules/README.md) (§15, §17 — what a
   tenant must do, what its jurisdiction says, and how the two layer)
 - [arc42-009-architecture-decisions](arc42-009-architecture-decisions/README.md) —
-  resolved questions & risks (§7)
+  the numbered records: how each decision was arrived at, and the page that
+  states its result (§7, §9)
 - [arc42-011-risks-and-technical-debt](arc42-011-risks-and-technical-debt/README.md) —
   the numbered items of outstanding work, each with its state
 - [conformance/](conformance/) — what each FHIR face does about its
@@ -96,9 +96,9 @@ name a REQ, or name the document.
 | §4 | [tenant lifecycle — credential-blind provisioning](arc42-007-deployment/tenant-provisioning.md) |
 | §5 | [scaling — tenant-aware routing](arc42-007-deployment/README.md) |
 | §6, §10 | [change, and who is listening](arc42-008-crosscutting/change-and-who-is-listening/README.md) |
-| §7 | [resolved questions and known risks](arc42-009-architecture-decisions/README.md) |
+| §7 | [architecture decisions](arc42-009-architecture-decisions/README.md) — §7.N is record 00N |
 | §8 | [processes and work](arc42-008-crosscutting/processes-and-work/README.md) |
-| §9 | [design rationale](arc42-004-solution-strategy/design-rationale.md) |
+| §9 | [why the engine is shaped this way](arc42-009-architecture-decisions/010-why-the-engine-is-shaped-this-way.md) |
 | §11 | [running it](arc42-008-crosscutting/running-it/README.md) |
 | §13, §16 | [who may act](arc42-008-crosscutting/who-may-act/README.md) |
 | §14 | [data isolation](arc42-008-crosscutting/data-isolation/README.md) |
@@ -106,4 +106,6 @@ name a REQ, or name the document.
 
 §1 is claimed by two documents, which is what a numbering nobody checks looks
 like after a few splits. A subsection — "(§7.4)", "(§16.2)" — is a heading
-inside the document its top-level number names; search the page for it.
+inside the document its top-level number names; search the page for it. The
+one exception is §7, whose subsections became the numbered records the table
+above points at.

@@ -87,11 +87,12 @@ The specification is an [arc42](https://arc42.org/) tree:
 - [docs/README.md](docs/README.md) — the documentation index
 - [docs/arc42-001-introduction](docs/arc42-001-introduction/README.md) — goals
   and the founding requirements
+- [docs/arc42-004-solution-strategy](docs/arc42-004-solution-strategy/README.md)
+  — the decisions the store is built on, as they stand
 - [docs/arc42-009-architecture-decisions](docs/arc42-009-architecture-decisions/README.md)
-  — the resolved questions, including the
-  [adoption path from an existing FHIR server](docs/arc42-009-architecture-decisions/README.md)
-- [docs/arc42-004-solution-strategy/design-rationale.md](docs/arc42-004-solution-strategy/design-rationale.md)
-  — why the engine is shaped this way
+  — how each was arrived at, including the
+  [adoption path from an existing FHIR server](docs/arc42-009-architecture-decisions/006-adoption-is-identity-first.md)
+  and [why the engine is shaped this way](docs/arc42-009-architecture-decisions/010-why-the-engine-is-shaped-this-way.md)
 
 ## Modules
 

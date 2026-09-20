@@ -13,7 +13,7 @@ sentence, until it either becomes one or stops being a risk.
 
 | Item | State |
 |---|---|
-| [001 The documentation tree is moved to match its map](001-documentation-shape/README.md) | Open. Next: turn the architecture decisions into numbered records and cut the solution strategy to current state. |
+| [001 The documentation tree is moved to match its map](001-documentation-shape/README.md) | Open. Next: fold `docs/tasks/` and `docs/plans/` into this chapter and retire the implementation status page. |
 | [002 The sample application](002-sample-application/README.md) | Open. Waits for nothing; starts when item 001 has reached its last step. |
 | [003 Own-world tests move down the ladder](003-tests-move-down-the-ladder/README.md) | Open. 44 harness classes build a runtime of their own and are undecided. Next: classify them into rungs. |
 | [004 The guide runs three times in CI](004-the-guide-runs-three-times/README.md) | Open. Next: port the one step the shell harness still covers. |
