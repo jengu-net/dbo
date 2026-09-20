@@ -1,4 +1,4 @@
-**Open. Nothing is undecided: 40 classes build a runtime of their own and each says why. Next: re-read the 13 whose reason is `sweep` from before that reason was narrowed.**
+**Open. Nothing is undecided: 39 classes build a runtime of their own and each says why. Next: the 12 reading `sweep` from before that reason was narrowed — read, one moved so far.**
 
 # Own-world tests move down the ladder
 
@@ -81,3 +81,9 @@ in [how the migration is run](how-it-is-run.md), which moved here from
    or the troubles it left. Thirteen entries were recorded under the old
    wording and some of them will move. This item is deleted when they have
    been read.
+
+   Read so far: five of the thirteen make a real claim about a pass and
+   stay — two assert the set a scan returned, one reads the troubles it
+   left, one drives a fleet of runtimes rather than a runtime, and one takes
+   a tenant away. `MetaSaysTheEnginesFactsIT` only called a round and has
+   moved.

@@ -61,7 +61,6 @@ FaceRefusalIT                                            deployment
 FederatedAuthIT                                          deployment
 HumanAuthIT                                              deployment
 MandatoryStepsClassifyIncidentsIT                        sweep
-MetaSaysTheEnginesFactsIT                                sweep
 NothingReadableLandsInTheSubstrateIT                     whole plane
 OneTenantInTwoPlacesIT                                   sweep
 OperatorIT                                               sweep

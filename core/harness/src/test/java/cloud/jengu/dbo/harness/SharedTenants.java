@@ -206,6 +206,19 @@ public final class SharedTenants {
                 .formatted(STAFF_IDS), "r4",
                 ",\"pdi\":true,\"scim\":{\"system\":\"" + STAFF_IDS + "\"}", "full"),
 
+        /** r4 publishing a mirrored vocabulary, for the receiver below. */
+        R4_MIRROR_SOURCE("sharedr4mirrorsource", """
+                [{"name":"Patient","identity":"internal","handling":"operational"},
+                 {"name":"CodeSystem","identity":"canonical","handling":"mirrored"}]""",
+                "r4", "", "none"),
+
+        /** r4 taking that vocabulary from the source above. */
+        R4_MIRROR_RECEIVER("sharedr4mirrorreceiver", """
+                [{"name":"Patient","identity":"internal","handling":"operational"},
+                 {"name":"CodeSystem","identity":"canonical","handling":"mirrored"}]""",
+                "r4", ",\"dependencies\":[{\"name\":\"sharedr4mirrorsource\","
+                        + "\"types\":[\"CodeSystem\"]}]", "none"),
+
         /** r4 that manages other tenants: a partner, for the one below. */
         R4_PARTNER("sharedr4partner", """
                 [{"name":"Basic","identity":"internal","handling":"operational"}]""",
