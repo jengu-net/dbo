@@ -13,9 +13,8 @@ description: Changing a promise constant or citation, a public or protected sign
 ## Rules
 
 - MUST re-record every generated artefact a change makes stale, in the same
-  change: `promiseProjection` for the catalogue, `apiLedger` for the ledger,
-  `generateSkills` for the skills and trap section, `siteDiagrams` for the
-  SVGs, `worldsLedger` for the worlds ledger.
+  change. `./gradlew reRecord` does all of them, and the pre-commit hook the
+  build installs does the ones your staged files touch.
 - MUST treat adding a constant to an exported enum, or a component to an
   exported record, as an API change.
 - MUST read the ledger's report. What is GONE stops anything compiled
