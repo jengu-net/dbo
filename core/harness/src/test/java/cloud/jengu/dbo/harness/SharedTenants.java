@@ -206,6 +206,44 @@ public final class SharedTenants {
                 .formatted(STAFF_IDS), "r4",
                 ",\"pdi\":true,\"scim\":{\"system\":\"" + STAFF_IDS + "\"}", "full"),
 
+        /** r4 publishing shapes, for the reader below to take them from. */
+        R4_SHAPE_ZONE("sharedr4shapezone", """
+                [{"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                 {"name":"Observation","identity":"internal","handling":"operational"}]""",
+                "r4", "", "none"),
+
+        /**
+         * r4 taking its shapes from the zone above rather than authoring
+         * them, which is what replicated says.
+         */
+        R4_SHAPE_READER("sharedr4shapereader", """
+                [{"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
+                 {"name":"Observation","identity":"internal","handling":"operational"}]""",
+                "r4", ",\"dependencies\":[{\"name\":\"sharedr4shapezone\","
+                        + "\"types\":[\"StructureDefinition\"]}]", "none"),
+
+        /**
+         * r4 publishing a vocabulary and a clinical record side by side, for
+         * the dependant below to take both from.
+         */
+        R4_GRAIN_UPSTREAM("sharedr4grainupstream", """
+                [{"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                 {"name":"Encounter","identity":"internal","handling":"operational"}]""",
+                "r4", "", "none"),
+
+        /**
+         * r4 taking both of those types from the upstream above.
+         *
+         * <p>A dependency names the tenant it is on, so this shape names that
+         * one — which is why the two are declared together and why asking for
+         * this one means asking for that one first.
+         */
+        R4_GRAIN_DEPENDANT("sharedr4graindependant", """
+                [{"name":"CodeSystem","identity":"canonical","handling":"replicated"},
+                 {"name":"Encounter","identity":"internal","handling":"replicated"}]""",
+                "r4", ",\"dependencies\":[{\"name\":\"sharedr4grainupstream\","
+                        + "\"types\":[\"CodeSystem\",\"Encounter\"]}]", "none"),
+
         /**
          * r6, for what has to be served on the version after the one
          * everything else here uses.

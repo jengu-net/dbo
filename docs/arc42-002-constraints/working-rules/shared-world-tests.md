@@ -28,8 +28,9 @@ proves, and the choice is made deliberately, down a ladder.
    about the tenant coming up, going down or being held out of service;
    when it needs the OSGi container or the distribution; when it tampers
    with what the store holds behind its back; when it needs a runtime
-   nothing has touched; when it runs a deployment-wide sweep, which on a
-   shared runtime would visit every tenant and count them all; or when its
+   nothing has touched; when its claim is ABOUT a deployment-wide sweep —
+   the number it returned, or the troubles it left — rather than about what
+   the sweep did to its own tenant; or when its
    assertion is about a whole plane rather than about its own tenant, which
    on a shared runtime would be a claim about every other class's work; or
    when it needs a deployment configured differently from the shared one,
@@ -116,8 +117,13 @@ reference: docs/arc42-002-constraints/working-rules/shared-world-tests.md
   step when a reader could do it with curl; a `SharedTenants` shape when the
   test needs the store's API, facade, feed or database; a private tenant on
   the shared runtime when no shape fits; a runtime of its own only for
-  lifecycle, the container, tampering, a first boot or a deployment-wide
-  sweep.
+  lifecycle, the container, tampering, a first boot, a claim about a
+  deployment-wide sweep, a whole plane, or a deployment configured
+  differently.
+- MUST NOT take a world of its own merely to CALL a round. The scan loop
+  calls `syncRound`, `shapesRound` and `scanOnce` continuously anyway, and a
+  class that needs the effect on its own tenant runs one on the shared
+  runtime. What cannot be shared is a claim about the round itself.
 - MUST give a class that builds its own runtime one of those five reasons in
   `config/worlds-ledger.txt`, re-recorded with `./gradlew
   :core:harness:worldsLedger`.

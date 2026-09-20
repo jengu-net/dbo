@@ -147,9 +147,13 @@ final class WorldsLedger {
                 #   container   — it needs the OSGi container or the distribution
                 #   tampering   — it alters what the store holds behind its back
                 #   first boot  — it needs a runtime nothing has touched
-                #   sweep       — it runs a deployment-wide pass (shapesRound,
-                #                 syncRound, scanOnce), which would visit every
-                #                 tenant a shared runtime holds
+                #   sweep       — it makes a CLAIM about a deployment-wide pass
+                #                 (shapesRound, syncRound, scanOnce): the number
+                #                 it returned, or the troubles it left. Merely
+                #                 CALLING one is not a reason — the scan loop
+                #                 calls them continuously anyway, and a class
+                #                 that only needs the effect on its own tenant
+                #                 can run one on the shared runtime
                 #   whole plane — it asserts about an entire substrate, not about
                 #                 its own tenant, so a shared one would make the
                 #                 claim about every other class's work too

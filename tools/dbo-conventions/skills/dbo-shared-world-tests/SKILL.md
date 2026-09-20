@@ -16,8 +16,13 @@ description: Writing an integration test, deciding which world it runs in, movin
   step when a reader could do it with curl; a `SharedTenants` shape when the
   test needs the store's API, facade, feed or database; a private tenant on
   the shared runtime when no shape fits; a runtime of its own only for
-  lifecycle, the container, tampering, a first boot or a deployment-wide
-  sweep.
+  lifecycle, the container, tampering, a first boot, a claim about a
+  deployment-wide sweep, a whole plane, or a deployment configured
+  differently.
+- MUST NOT take a world of its own merely to CALL a round. The scan loop
+  calls `syncRound`, `shapesRound` and `scanOnce` continuously anyway, and a
+  class that needs the effect on its own tenant runs one on the shared
+  runtime. What cannot be shared is a claim about the round itself.
 - MUST give a class that builds its own runtime one of those five reasons in
   `config/worlds-ledger.txt`, re-recorded with `./gradlew
   :core:harness:worldsLedger`.
