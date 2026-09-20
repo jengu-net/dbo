@@ -67,6 +67,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * accepts a callback. Driven here through a real tenant runtime with a real
  * token, because a carrier that was built and never mounted is this
  * repository's characteristic failure.
+ *
+ * <p><b>A world of its own, and the substrate is why.</b> The stream door is
+ * opened by giving the runtime a substrate, and it has to be given before a
+ * tenant is served or the tenant comes up without the door. That is the
+ * runtime's configuration and not a tenant's: handing one to the shared
+ * runtime would open a stream door on every tenant already serving there, and
+ * could not open it on the ones that came up before.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

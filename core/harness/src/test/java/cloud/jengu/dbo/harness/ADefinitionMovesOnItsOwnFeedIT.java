@@ -9,9 +9,6 @@ import cloud.jengu.dbo.core.api.feed.FeedItem;
 import cloud.jengu.dbo.fhir.common.FaceDefinitions;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -19,10 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.Timeout;
 import org.postgresql.ds.PGSimpleDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -49,50 +42,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>So they are a domain: their own schema, their own feed, their own cursor.
  * The cursor is the part the rest of this work stands on — an image can only
  * be cut at a definitions cursor if records are not moving past it.
+ *
+ * <p>On the shared runtime, as the face-root shape. Every count here is over
+ * this tenant's own two schemas and every drain is under a consumer name of
+ * this class's own, so what it reads is what it wrote.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ADefinitionMovesOnItsOwnFeedIT {
 
-    private static final String ROOT = "eristus-juur";
-
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant root;
 
     @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-definitions-feed");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ADefinitionMovesOnItsOwnFeedIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-        Files.writeString(dir.resolve(ROOT + ".json"), """
-                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
-                 "types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
-                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
-                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
-                  {"name":"Patient","identity":"identifier","systems":["urn:test:mrn"],
-                   "handling":"operational"}]}"""
-                .formatted(ROOT));
-        UntilServed.scan(manager, ROOT);
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+    void up() {
+        root = SharedTenants.of(SharedTenants.Shape.R4_FACE_ROOT);
     }
 
     @Test
@@ -114,7 +77,10 @@ class ADefinitionMovesOnItsOwnFeedIT {
         assertEquals(0, count("state.r4_data", "type = 'StructureDefinition'"),
                 "a profile is still among the tenant's records, so a dump of the definitions "
                         + "schema would be short of what the face gave");
-        assertEquals(1, count("state.r4_data", "type = 'Patient' AND NOT deleted"),
+        // At least one, not exactly one: the root is shared, and what this
+        // asserts is that a patient stays among the records rather than how
+        // many patients this tenant happens to hold.
+        assertTrue(count("state.r4_data", "type = 'Patient' AND NOT deleted") >= 1,
                 "the patient did not stay among the records");
         assertEquals(0, count(Domains.tables(Domains.DEFINITIONS) + "_data", "type = 'Patient'"),
                 "a patient is in the schema cut into an image and handed to every other "
@@ -127,10 +93,10 @@ class ADefinitionMovesOnItsOwnFeedIT {
     @Proving(DboPromises.FEED_DEFINITIONS_MOVE_ON_A_FEED_OF_THEIR_OWN)
     void eachFeedCarriesItsOwn() throws Exception {
         writeAProfileAndAPatient();
-        TenantRuntimeManager.TenantRuntime runtime = manager.runtime(ROOT).orElseThrow();
-
-        List<String> onDefinitions = typesOn(drain(runtime.definitionsFeed(), "test.definitions"));
-        List<String> onRecords = typesOn(drain(runtime.feed(), "test.records"));
+        List<String> onDefinitions = typesOn(drain(root.definitionsFeed(),
+                "definitions-feed-test.definitions"));
+        List<String> onRecords = typesOn(drain(root.feed(),
+                "definitions-feed-test.records"));
 
         assertTrue(onDefinitions.contains("StructureDefinition"),
                 "the definitions feed did not carry the profile: " + onDefinitions);
@@ -179,7 +145,7 @@ class ADefinitionMovesOnItsOwnFeedIT {
         if (written) {
             return; // one write, whichever test runs first
         }
-        var store = manager.runtime(ROOT).orElseThrow().store();
+        var store = root.store();
         store.create("""
                 {"resourceType":"StructureDefinition","url":"urn:test:profile:one",
                  "name":"OnlyAName","status":"draft","kind":"resource","abstract":false,
@@ -227,10 +193,9 @@ class ADefinitionMovesOnItsOwnFeedIT {
 
     private static PGSimpleDataSource source() {
         PGSimpleDataSource source = new PGSimpleDataSource();
-        source.setUrl(SharedPostgres.urlFor("x")
-                .replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + ROOT.replace('-', '_')));
-        source.setUser(postgres.getUsername());
-        source.setPassword(postgres.getPassword());
+        source.setUrl(root.databaseUrl());
+        source.setUser(SharedPostgres.get().getUsername());
+        source.setPassword(SharedPostgres.get().getPassword());
         return source;
     }
 }

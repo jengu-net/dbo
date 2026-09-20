@@ -497,6 +497,11 @@ public final class SharedTenants {
             return MANAGER.runtime(code).orElseThrow().feed();
         }
 
+        /** The other feed: what the face gave this tenant, apart from its records. */
+        public ChangeFeed definitionsFeed() {
+            return MANAGER.runtime(code).orElseThrow().definitionsFeed();
+        }
+
         /**
          * The secret this deployment holds for this tenant's bootstrap client.
          *
