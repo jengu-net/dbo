@@ -37,6 +37,19 @@ outstanding legs are proven nowhere because nothing cites them yet: both are
 PLANNED in the catalogue, which is a gap in what is built rather than a test
 in the wrong world, and moving tests will never close it.
 
+**Edge roundtrip is one sweep and two whole-plane assertions.** The sweep is
+the usual case. The other two read every table of a substrate to say nothing
+readable landed there, which is a claim about the entire plane rather than
+about their own tenant — on a shared runtime it would be a claim about every
+other class's work. That is a sixth reason, added to the ledger by finding
+it rather than by imagining it.
+
+All eight stories have now been read this way, and not one has produced a
+test to move. What the reading produced instead is two reasons the ledger
+did not have, four stories whose private worlds are correct, one defect in
+the report, and one defect in the store. The three authentication classes
+person rights named remain the only genuine candidates.
+
 ## How it is run
 
 The migration has a branch that outlives its merges, a worktree of its own,
