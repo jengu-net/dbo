@@ -45,6 +45,18 @@ Two skills live elsewhere. [Claiming a behaviour](../promise.md#claiming-a-behav
 [Using DBO](../../using-dbo.md) — `dbo-using` — is a reference for building
 on the store.
 
+## Agents
+
+Four subagents in `.claude/agents/` each preload one or two of these skills
+and nothing else, so a check runs in a context that holds only the rule it
+applies. All four are read-only and return a verdict, never a log.
+
+- `reachability-reviewer` asks the three reachability questions of a diff.
+- `runtime-prover` runs the container tests and reports the first cause.
+- `site-checker` runs the site build, the diagram ratchet and the branding
+  check over a documentation change.
+- `prose-reviewer` returns the cuts the prose rule asks for.
+
 ## The traps
 
 <!-- claude:begin -->
