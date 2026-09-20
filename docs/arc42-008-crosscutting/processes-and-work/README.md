@@ -152,7 +152,15 @@ run as — becomes a run, minted through the door every run is minted at, and
 refused by name where its rules are not met: an unknown step, an undeclared
 slot, an unfilled declared slot, a name already used. The run is what is
 stored, it reads back as the same document as it advances, and a participation
-credential cannot post one. A router built against this store then has real
+credential cannot post one.
+
+**Two doors mint a run, and they offer different steps.** The tenant's step
+door offers what the tenant's own spec declares — the work this tenant says
+it does. The face's run document is checked against the composed catalogue,
+which is the installed steps and the ones linked participants introduced, so
+a capability somebody brought over a link is authored there and not at the
+step door. Both mint through the same primitive and refuse by the same
+rules; what differs is which catalogue answers "is that a step". A router built against this store then has real
 work to claim in a real deployment, authored by the side that originates it.
 
 **A participant does not say done before the work is done.** A run closes on

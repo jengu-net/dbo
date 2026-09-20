@@ -34,11 +34,12 @@ product would.
    run through the same door a chapter uses, takes it and closes it, proven
    against a world built from the tree.
 3. The external participant, joining with a capability of its own. Written
-   once and taken out again: the introduction is accepted and the authoring
-   door refuses the step until the tenant is rebuilt, which is
-   [item 018](../018-an-introduced-step-is-not-authorable/README.md). This
-   waits on it, because a participant that brings nothing is a second copy
-   of the runner above rather than the case worth showing.
+   once and taken out again, because the run was authored at the wrong door:
+   the step door offers the tenant's spec steps, and an introduced step is
+   authored by posting the run document to the face, which is checked
+   against the composed catalogue. The next attempt posts a `Task` carrying
+   the step under `urn:dbo:step`, its own name under an `urn:dbo:run`
+   identifier, and a reference per declared slot.
 4. Each further chapter of the guide, in the order item 001 gives.
 
 The include needs no ratchet of its own. A chapter naming a file the sample
