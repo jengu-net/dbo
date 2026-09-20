@@ -32,8 +32,8 @@ proves, and the choice is made deliberately, down a ladder.
    shared runtime would visit every tenant and count them all.
 
 `config/worlds-ledger.txt` records every harness class on the fourth rung
-with its reason. `docs/tasks/guide-world-migration.md` is how the move down
-the ladder is run while it lasts. A new class without a reason fails the build, and the
+with its reason. [How the move down the ladder is run](../../arc42-011-risks-and-technical-debt/003-tests-move-down-the-ladder/how-it-is-run.md)
+sits with the item that tracks it. A new class without a reason fails the build, and the
 number that predate the ledger only falls.
 
 ## The guide runs against the tree

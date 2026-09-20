@@ -6,7 +6,7 @@ the guide's running world. This document is how that work is *run* — the loop,
 the gate, and the rules that were paid for rather than reasoned out.
 
 It is not the case for doing it. That is in the commit messages and in
-[the requirement catalogue](../arc42-006-runtime/req-catalogue.md), which says
+[the requirement catalogue](../../arc42-006-runtime/req-catalogue.md), which says
 where each promise is proven.
 
 ## The shape of it
@@ -22,7 +22,7 @@ how an uncommitted fix gets committed by somebody else. The worktree makes that
 impossible rather than unlikely.
 
 **A trimmed signal, and never the suite.**
-[`guide-world.yml`](../../.github/workflows/guide-world.yml) runs the moved
+[`guide-world.yml`](https://github.com/jengu-net/dbo/blob/main/.github/workflows/guide-world.yml) runs the moved
 tests and only those, on every push to `guide-world-**`, in a few minutes. It
 answers one question — do the moved tests still pass *together* — and the
 author never waits locally for it.

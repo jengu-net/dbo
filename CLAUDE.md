@@ -26,6 +26,11 @@ The rules a green build cannot enforce are in
 document per rule, each projected into a skill in `tools/dbo-conventions/`.
 A skill fires when the work that trips it begins; the document argues it.
 
+Where each kind of documentation is written is a map in the
+[documentation rule](docs/arc42-002-constraints/working-rules/documentation.md).
+The tree is being moved to match it; the move is
+[the first item in risks and technical debt](docs/arc42-011-risks-and-technical-debt/001-documentation-shape/README.md).
+
 ## The traps
 
 <!-- rules:begin — generated from docs/arc42-002-constraints/working-rules/README.md; do not edit. Regenerate: ./gradlew generateSkills -->
