@@ -38,6 +38,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * the capability was published all along. This proves the failure now
  * arrives at bring-up, named, and — just as load-bearing — that a tenant
  * requiring nothing unusual still comes up on the same face.
+ *
+ * <p><b>A world of its own, and the face is why.</b> The runtime is built
+ * over a version registry holding one face with a capability taken out of it.
+ * A face registry belongs to the runtime rather than to a tenant, so this
+ * cannot be a shape or a flag: asking for it on the shared runtime would
+ * serve every other class a face short of a capability, which is the same
+ * silent degradation this class exists to prove is refused.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
