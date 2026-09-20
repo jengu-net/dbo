@@ -1880,9 +1880,14 @@ class TheGuideRunsIT {
     }
 
     /**
-     * A runner asking for work and being told what it may have, and a lane
-     * refusing out loud rather than answering an unusable request with an empty
-     * list.
+     * A lane refusing out loud rather than answering an unusable request with
+     * an empty list.
+     *
+     * <p>Asking it for work is no longer a step here. The chapter shows the
+     * runner that does the asking, and a published command that spelt the poll
+     * out by hand was a second way to say what the class beside it already
+     * says. What has no other spelling is what a refusal looks like on the
+     * wire.
      */
     @Nested
     @Order(17)
@@ -1892,15 +1897,7 @@ class TheGuideRunsIT {
 
         @Test
         @Order(1)
-        @DisplayName("a runner asks the lane for work, and is told what it may have")
-        void aRunnerAsksTheLaneForWork() throws Exception {
-            assertTrue(snippets.run("lane-poll").text().contains("result"),
-                    "the lane did not answer a poll");
-        }
-
-        @Test
-        @Order(2)
-        @DisplayName("and a refusal on the lane says why, rather than going quiet")
+        @DisplayName("a refusal on the lane says why, rather than going quiet")
         void aRefusalOnTheLaneSaysWhy() throws Exception {
             // A lane that answered an unusable request with an empty list would be
             // indistinguishable from one with no work, which is the failure mode
