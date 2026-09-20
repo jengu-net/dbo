@@ -21,16 +21,18 @@ once.
 You implement `StepService`.
 
 ```java
---8<-- "sample/src/main/java/cloud/jengu/dbo/sample/AssayStep.java"
+--8<-- "sample/src/main/java/cloud/jengu/dbo/sample/AdmitStep.java"
 ```
 
 Two methods matter, and a third is optional.
 
 `step()` names what this performs — `<module>.<process>.<step>`, opaque and
 stable. `perform(Work)` does it. And `declaration()`, which a service
-overrides only when it performs a step the catalogue has not got: a linked
-participant that brings its own capability. A service performing an installed
-step brings nothing, because the module already contributed it.
+overrides only when it performs a step the catalogue has not got: the
+laboratory in [Runners](runners.md#joining-with-a-step-of-its-own) is one,
+and it is the only difference between joining a process and bringing a
+capability to it. A service performing an installed step brings nothing,
+because the module already contributed it.
 
 ## The work arrives whole
 
@@ -77,7 +79,7 @@ Register it as a service in the container the store runs in, and that is all
 of it:
 
 ```java
-context.registerService(StepService.class, new AssayStep(), null);
+context.registerService(StepService.class, new AdmitStep(), null);
 ```
 
 **Nothing is configured.** The service *is* the configuration: the runner
@@ -97,9 +99,10 @@ facade exists to keep.
 | on a separate machine, or a pod scaled per step | the HTTP lane |
 | wherever the store's own substrate reaches | the stream lane, over the tenant's door |
 
-What changes is which lane is registered beside it. [Runs](runs.md) drives the
-HTTP one, because a chapter can show a reader a `curl`; it is not the common
-case, and it is not a different service.
+What changes is which lane is registered beside it, and nothing above it
+moves. The laboratory in [Runners](runners.md) holds the HTTP one because it
+runs in another organisation's process; the hospital's own runner holds the
+same lane against the same tenant. Neither service can tell.
 
 ## What a lane deliberately is not
 

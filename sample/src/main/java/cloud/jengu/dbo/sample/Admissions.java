@@ -31,7 +31,7 @@ public final class Admissions implements AutoCloseable {
         // reproduced cannot be held to what it did.
         Executor identity = new Executor("ward-runner", "1", tenant, Scope.organisation(tenant));
         this.runner = new StepRunner(Duration.ofMinutes(1), Duration.ofSeconds(2))
-                .register(new AssayStep())
+                .register(new AdmitStep())
                 .attach(HttpLane.to(tenantBase.resolve("work"), bearer, tenant,
                         "ward-runner", identity));
     }
