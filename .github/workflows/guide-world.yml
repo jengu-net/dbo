@@ -10,7 +10,10 @@ name: guide-world
 #
 # So this branch runs the moved tests, and only those, in a few minutes — and
 # the author never waits locally. It is scaffolding: it exists while the
-# migration does, and goes when the branch merges.
+# migration does. The branch outlives its merges, so this file does too — it
+# is inert anywhere else, because nothing but a guide-world-** push starts it.
+#
+# How the whole thing is run: docs/tasks/guide-world-migration.md.
 #
 # What it deliberately does NOT do is stand in for the suite. A migrated test
 # that passes here has not been run beside the harness tests it left, and the
