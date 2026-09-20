@@ -140,12 +140,24 @@ appointment into the thing being appointed.
 
 ### Kinds are visible to the container
 
-The mechanism that consumes this is
-[tenant lifecycle extension points](tenant-lifecycle-points.md), where a kind is
-one of the facts a provisioning activity selects on. That document supersedes
-the trait-profile sketch below: rather than call sites asking a profile, each
-activity declares which tenants it applies to, and the composition root runs
-what matches. The kind is what makes the coarse case expressible.
+The mechanism that consumes this is built, and is described where a reader
+will need it rather than in a task document: the guide's
+[Lifecycle](../guide/lifecycle.md) chapter, and the facts a tenant publishes in
+`TenantFacts`. A kind would be one more of those facts, and a provisioning
+activity would select on it.
+
+That mechanism supersedes the trait-profile sketch below: rather than call
+sites asking a profile, each activity declares which tenants it applies to, and
+the composition root runs what matches.
+
+**What building it since has established.** The kind is not needed for what the
+points already do. Every selector in the runtime asks about a resolved fact —
+whether a tenant has an authority, a vault, identities, steps, records in its
+face's domain — and the one activity that first looked like it wanted a kind
+turned out to want *where a tenant keeps its records*, which follows from the
+types it declares rather than from what kind of tenant it is. So the coarse
+fact is still worth having for what an outside bundle would select on, and it
+is no longer the thing holding anything up.
 
 
 The reason to build it rather than to fix the dispatcher and move on: a kind is
