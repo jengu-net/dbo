@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-464.3587 -165 928.7175 330" width="928.7175" height="330" class="lini lini-scope-69365ed8" role="img" aria-labelledby="a-declaration-is-applied-title a-declaration-is-applied-desc">
+  <title id="a-declaration-is-applied-title">A zone declares, and a tenant narrows</title>
+  <desc id="a-declaration-is-applied-desc">A jurisdiction's authority publishes its vocabularies and rules to the zone tenant's face, where they are recorded as ordinary records rather than as code. A tenant under that zone asks what applies to it and receives the zone's rules alongside its own. Configuration travels one direction, and a tenant may make a declared rule stricter but never looser.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-69365ed8 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-69365ed8[data-theme="dark"], [data-theme="dark"] .lini-scope-69365ed8 { color-scheme: dark; }
+      .lini-scope-69365ed8[data-theme="light"], [data-theme="light"] .lini-scope-69365ed8 { color-scheme: light; }
+    }
+    .lini-scope-69365ed8 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-69365ed8 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-69365ed8 .lini-path { stroke-dasharray: none; }
+    .lini-scope-69365ed8 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-69365ed8 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-69365ed8 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-69365ed8 .lini-note { fill: var(--lini-fill); stroke: var(--lini-stroke); }
+    .lini-scope-69365ed8 .lini-outside { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-69365ed8 .lini-face { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-69365ed8 .lini-engine { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-69365ed8 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-69365ed8 .lini-link-dashed { stroke-dasharray: 7,5.5; }
+    .lini-scope-69365ed8 .lini-sequence-message { fill: currentColor; stroke: none; text-anchor: middle; font-size: 13px; font-weight: normal; }
+    .lini-scope-69365ed8 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-line" style="stroke: var(--lini-faint)" transform="translate(0,0)">
+      <line x1="-332.9972" y1="-90" x2="-332.9972" y2="145"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="-97.4662" y1="-90" x2="-97.4662" y2="145"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="119.0008" y1="-90" x2="119.0008" y2="145"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="355.2597" y1="-90" x2="355.2597" y2="145"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-97.4662,43.5)">
+      <rect x="-5" y="-100.5" width="10" height="201" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(119.0008,-10)">
+      <rect x="-5" y="-15" width="10" height="30" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(119.0008,54)">
+      <rect x="-5" y="-15" width="10" height="30" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-outside lini-box lini-block" data-id="authority" transform="translate(-332.9972,-117.5)">
+      <rect x="-92.995" y="-26.5" width="185.99" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A jurisdiction&apos;s authority</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="zoneface" transform="translate(-97.4662,-117.5)">
+      <rect x="-87.8665" y="-26.5" width="175.733" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The zone tenant&apos;s face</text>
+    </g>
+    <g class="lini-node lini-engine lini-box lini-block" data-id="chain" transform="translate(119.0008,-117.5)">
+      <rect x="-94.6005" y="-26.5" width="189.201" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The declared-rules chain</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="tenantface" transform="translate(355.2597,-117.5)">
+      <rect x="-70.7325" y="-26.5" width="141.465" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A tenant under it</text>
+    </g>
+    <g class="lini-node lini-note lini-path" style="stroke-width: 2; font-size: 13px" transform="translate(237.1302,99.5)">
+      <path d="M -207.22850000000003 -13.5 L 198.04850000000002 -13.5 L 207.22850000000003 -4.3199999999999985 L 207.22850000000003 13.5 L -207.22850000000003 13.5 Z"/>
+      <g class="lini-node lini-path" style="fill: var(--lini-stroke); stroke: none; stroke-width: 0" transform="translate(0,0)">
+        <path d="M 198.04850000000002 -13.5 L 207.22850000000003 -4.3199999999999985 L 198.04850000000002 -4.3199999999999985 Z"/>
+      </g>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A tenant may narrow what the zone declared. It may not widen it.</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="authority" data-to="zoneface">
+      <path d="M -332.9972 -58 L -106.9662 -58"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-102.9662,-58 -111.9662,-53.5 -111.9662,-62.5"/>
+      <text class="lini-sequence-message" x="-215.2317" y="-69.5" dy="0.358em">publish the vocabularies and the rules</text>
+    </g>
+    <g class="lini-link" data-from="zoneface" data-to="chain">
+      <path d="M -91.4662 -26 L 109.5008 -26"/>
+      <polygon class="lini-marker lini-marker-arrow" points="113.5008,-26 104.5008,-21.5 104.5008,-30.5"/>
+      <text class="lini-sequence-message" x="10.7673" y="-37.5" dy="0.358em">record them as ordinary records</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="chain" data-to="zoneface">
+      <path d="M 113.0008 6 L -87.9662 6"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-91.9662,6 -82.9662,1.5 -82.9662,10.5"/>
+      <text class="lini-sequence-message" x="10.7673" y="-5.5" dy="0.358em">declared</text>
+    </g>
+    <g class="lini-link" data-from="tenantface" data-to="chain">
+      <path d="M 355.2597 38 L 128.5008 38"/>
+      <polygon class="lini-marker lini-marker-arrow" points="124.5008,38 133.5008,33.5 133.5008,42.5"/>
+      <text class="lini-sequence-message" x="237.1302" y="26.5" dy="0.358em">what applies to me?</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="chain" data-to="tenantface">
+      <path d="M 125.0008 70 L 351.7597 70"/>
+      <polygon class="lini-marker lini-marker-arrow" points="355.7597,70 346.7597,74.5 346.7597,65.5"/>
+      <text class="lini-sequence-message" x="237.1302" y="58.5" dy="0.358em">the zone&apos;s rules, and this tenant&apos;s own</text>
+    </g>
+  </g>
+</svg>

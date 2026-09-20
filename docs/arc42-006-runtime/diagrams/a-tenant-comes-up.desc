@@ -1,0 +1,6 @@
+A tenant is built in order
+A spec file appears where the deployment reads specs, and the scan asks the
+runtime to bring that code up. The runtime creates the tenant's own database,
+migrates it and seeds its terminology baseline, which is nearly all of the
+cost. The tenant then reaches dispatch, where its store and feeds exist, and
+its surfaces are mounted before it is announced as serving.

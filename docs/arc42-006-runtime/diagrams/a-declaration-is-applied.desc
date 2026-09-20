@@ -1,0 +1,6 @@
+A zone declares, and a tenant narrows
+A jurisdiction's authority publishes its vocabularies and rules to the zone
+tenant's face, where they are recorded as ordinary records rather than as
+code. A tenant under that zone asks what applies to it and receives the
+zone's rules alongside its own. Configuration travels one direction, and a
+tenant may make a declared rule stricter but never looser.

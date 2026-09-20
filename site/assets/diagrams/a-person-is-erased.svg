@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-499.668 -245 999.336 490" width="999.336" height="490" class="lini lini-scope-8e3eeb16" role="img" aria-labelledby="a-person-is-erased-title a-person-is-erased-desc">
+  <title id="a-person-is-erased-title">A person is erased by destroying a key</title>
+  <desc id="a-person-is-erased-desc">The tenant asks for a person to be erased. The seal destroys that person's key and records the act. Nothing is rewritten and no row is walked, so the history a record already had stays verifiable. Afterwards the rows are still present and every version of them reads the same way: the identifying elements are sealed bytes that cannot be opened by anybody, the store included.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-8e3eeb16 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-8e3eeb16[data-theme="dark"], [data-theme="dark"] .lini-scope-8e3eeb16 { color-scheme: dark; }
+      .lini-scope-8e3eeb16[data-theme="light"], [data-theme="light"] .lini-scope-8e3eeb16 { color-scheme: light; }
+    }
+    .lini-scope-8e3eeb16 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-8e3eeb16 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-cyl { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-path { stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-8e3eeb16 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-8e3eeb16 .lini-note { fill: var(--lini-fill); stroke: var(--lini-stroke); }
+    .lini-scope-8e3eeb16 .lini-outside { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-8e3eeb16 .lini-face { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-8e3eeb16 .lini-engine { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-8e3eeb16 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-link-dashed { stroke-dasharray: 7,5.5; }
+    .lini-scope-8e3eeb16 .lini-sequence-message { fill: currentColor; stroke: none; text-anchor: middle; font-size: 13px; font-weight: normal; }
+    .lini-scope-8e3eeb16 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-line" style="stroke: var(--lini-faint)" transform="translate(0,0)">
+      <line x1="-364.925" y1="-170" x2="-364.925" y2="225"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="-12.303" y1="-170" x2="-12.303" y2="225"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="147.048" y1="-170" x2="147.048" y2="225"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="392.225" y1="-170" x2="392.225" y2="225"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-12.303,-58)">
+      <rect x="-5" y="-79" width="10" height="158" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(147.048,-58)">
+      <rect x="-5" y="-47" width="10" height="94" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(392.225,-58)">
+      <rect x="-5" y="-15" width="10" height="30" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-12.303,102)">
+      <rect x="-5" y="-47" width="10" height="94" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(392.225,102)">
+      <rect x="-5" y="-15" width="10" height="30" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-outside lini-box lini-block" data-id="owner" transform="translate(-364.925,-197.5)">
+      <rect x="-113.743" y="-26.5" width="227.486" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The tenant, acting on a request</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="face" transform="translate(-12.303,-197.5)">
+      <rect x="-71.727" y="-26.5" width="143.454" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The tenant&apos;s face</text>
+    </g>
+    <g class="lini-node lini-engine lini-box lini-block" data-id="seal" transform="translate(147.048,-197.5)">
+      <rect x="-44.5505" y="-26.5" width="89.101" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The seal</text>
+    </g>
+    <g class="lini-node lini-cyl" data-id="db" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(392.225,-197.5)">
+      <path d="M -86.443 -21.2 L -86.443 21.2 A 86.443 5.3 0 0 0 86.443 21.2 L 86.443 -21.2 A 86.443 5.3 0 0 0 -86.443 -21.2 Z"/>
+      <ellipse cx="0" cy="-21.2" rx="86.443" ry="5.3"/>
+      <text class="lini-text" x="0" y="1.65" dy="0.358em">The tenant&apos;s database</text>
+    </g>
+    <g class="lini-node lini-note lini-path" style="stroke-width: 2; font-size: 13px" transform="translate(269.6365,179.5)">
+      <path d="M -204.8365 -13.5 L 195.6565 -13.5 L 204.8365 -4.3199999999999985 L 204.8365 13.5 L -204.8365 13.5 Z"/>
+      <g class="lini-node lini-path" style="fill: var(--lini-stroke); stroke: none; stroke-width: 0" transform="translate(0,0)">
+        <path d="M 195.6565 -13.5 L 204.8365 -4.3199999999999985 L 195.6565 -4.3199999999999985 Z"/>
+      </g>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Nothing is rewritten, so history stays verifiable and says nothing.</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="owner" data-to="face">
+      <path d="M -364.925 -138 L -21.803 -138"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-17.803,-138 -26.803,-133.5 -26.803,-142.5"/>
+      <text class="lini-sequence-message" x="-188.614" y="-149.5" dy="0.358em">erase this person</text>
+    </g>
+    <g class="lini-link" data-from="face" data-to="seal">
+      <path d="M -6.303 -106 L 137.548 -106"/>
+      <polygon class="lini-marker lini-marker-arrow" points="141.548,-106 132.548,-101.5 132.548,-110.5"/>
+      <text class="lini-sequence-message" x="67.3725" y="-117.5" dy="0.358em">destroy the person&apos;s key</text>
+    </g>
+    <g class="lini-link" data-from="seal" data-to="db">
+      <path d="M 153.048 -74 L 382.725 -74"/>
+      <polygon class="lini-marker lini-marker-arrow" points="386.725,-74 377.725,-69.5 377.725,-78.5"/>
+      <text class="lini-sequence-message" x="269.6365" y="-85.5" dy="0.358em">the key is gone, and the act is recorded</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="db" data-to="seal">
+      <path d="M 386.225 -42 L 156.548 -42"/>
+      <polygon class="lini-marker lini-marker-arrow" points="152.548,-42 161.548,-46.5 161.548,-37.5"/>
+      <text class="lini-sequence-message" x="269.6365" y="-53.5" dy="0.358em">recorded</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="seal" data-to="face">
+      <path d="M 141.048 -10 L -2.803 -10"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-6.803,-10 2.197,-14.5 2.197,-5.5"/>
+      <text class="lini-sequence-message" x="67.3725" y="-21.5" dy="0.358em">done</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="face" data-to="owner">
+      <path d="M -18.303 22 L -361.425 22"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-365.425,22 -356.425,17.5 -356.425,26.5"/>
+      <text class="lini-sequence-message" x="-188.614" y="10.5" dy="0.358em">done, and the trail says so</text>
+    </g>
+    <g class="lini-link" data-from="owner" data-to="face">
+      <path d="M -364.925 54 L -21.803 54"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-17.803,54 -26.803,58.5 -26.803,49.5"/>
+      <text class="lini-sequence-message" x="-188.614" y="42.5" dy="0.358em">read a record about them</text>
+    </g>
+    <g class="lini-link" data-from="face" data-to="db">
+      <path d="M -6.303 86 L 382.725 86"/>
+      <polygon class="lini-marker lini-marker-arrow" points="386.725,86 377.725,90.5 377.725,81.5"/>
+      <text class="lini-sequence-message" x="189.961" y="74.5" dy="0.358em">the rows are still there</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="db" data-to="face">
+      <path d="M 386.225 118 L -2.803 118"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-6.803,118 2.197,113.5 2.197,122.5"/>
+      <text class="lini-sequence-message" x="189.961" y="106.5" dy="0.358em">sealed bytes</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="face" data-to="owner">
+      <path d="M -18.303 150 L -361.425 150"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-365.425,150 -356.425,145.5 -356.425,154.5"/>
+      <text class="lini-sequence-message" x="-188.614" y="138.5" dy="0.358em">the identifying elements cannot be opened, in any version</text>
+    </g>
+  </g>
+</svg>

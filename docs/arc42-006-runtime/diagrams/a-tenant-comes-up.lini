@@ -1,0 +1,36 @@
+{
+  // A declaration appears and the tenant is built in order, and the order is
+  // the claim: nothing is reachable before the thing it needs exists. The
+  // guide draws the same life as stages; this draws who does the building.
+
+  layout: sequence;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |outside::box| { fill: --bg; stroke: --faint; }
+  |face::box|    { fill: --accent-soft; stroke: --accent; }
+  |engine::box|  { fill: --seal-soft; stroke: --seal; }
+}
+
+|outside#spec| "A tenant spec, written where specs are read"
+|engine#scan| "The deployment's scan"
+|engine#runtime| "The tenant runtime"
+|cyl#db| "A database of its own" { fill: --seal-soft; stroke: --seal; }
+|face#face| "Its face and its authority"
+
+spec ~> scan "a file appears"
+scan -> runtime "bring this code up"
+runtime -> db "create, migrate, seed terminology"
+db --> runtime "provisioned"
+runtime -> runtime "dispatch: store and feeds exist"
+runtime -> face "mount the surfaces"
+face --> runtime "serving"
+|note| "Minutes on a cold start, almost all of it terminology. Paid once." { place: over runtime db; }

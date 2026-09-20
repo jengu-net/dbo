@@ -1,0 +1,34 @@
+{
+  // A zone declares and the tenants under it narrow. Drawn as a sequence
+  // because the direction is the point: configuration arrives through the
+  // face like anything else and flows one way, and a tenant may make a rule
+  // stricter but never looser.
+
+  layout: sequence;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet.
+  // Stating the colour at full length keeps the check honest rather than
+  // loosened; dbo.css maps --lini-* onto the site palette either way.
+  --stroke: #444444;
+  --accent: #a8641b; --accent-soft: #f6efe4;
+  --seal: #14532d;   --seal-soft: #e7f0e9;
+  --faint: #8695a3;  --line: #e3e0da;      --bg: #fbfaf8;
+  font-family: "Google Sans"; font-size: 13;
+
+  |outside::box| { fill: --bg; stroke: --faint; }
+  |face::box|    { fill: --accent-soft; stroke: --accent; }
+  |engine::box|  { fill: --seal-soft; stroke: --seal; }
+}
+
+|outside#authority| "A jurisdiction's authority"
+|face#zoneface| "The zone tenant's face"
+|engine#chain| "The declared-rules chain"
+|face#tenantface| "A tenant under it"
+
+authority -> zoneface "publish the vocabularies and the rules"
+zoneface -> chain "record them as ordinary records"
+chain --> zoneface "declared"
+tenantface -> chain "what applies to me?"
+chain --> tenantface "the zone's rules, and this tenant's own"
+|note| "A tenant may narrow what the zone declared. It may not widen it." { place: over chain tenantface; }

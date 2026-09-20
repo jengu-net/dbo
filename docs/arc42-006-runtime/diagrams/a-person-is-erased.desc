@@ -1,0 +1,7 @@
+A person is erased by destroying a key
+The tenant asks for a person to be erased. The seal destroys that person's
+key and records the act. Nothing is rewritten and no row is walked, so the
+history a record already had stays verifiable. Afterwards the rows are still
+present and every version of them reads the same way: the identifying
+elements are sealed bytes that cannot be opened by anybody, the store
+included.

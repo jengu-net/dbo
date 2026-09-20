@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-595.5617 -205 1191.1235 410" width="1191.1235" height="410" class="lini lini-scope-8e3eeb16" role="img" aria-labelledby="a-tenant-comes-up-title a-tenant-comes-up-desc">
+  <title id="a-tenant-comes-up-title">A tenant is built in order</title>
+  <desc id="a-tenant-comes-up-desc">A spec file appears where the deployment reads specs, and the scan asks the runtime to bring that code up. The runtime creates the tenant's own database, migrates it and seeds its terminology baseline, which is nearly all of the cost. The tenant then reaches dispatch, where its store and feeds exist, and its surfaces are mounted before it is announced as serving.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-8e3eeb16 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-8e3eeb16[data-theme="dark"], [data-theme="dark"] .lini-scope-8e3eeb16 { color-scheme: dark; }
+      .lini-scope-8e3eeb16[data-theme="light"], [data-theme="light"] .lini-scope-8e3eeb16 { color-scheme: light; }
+    }
+    .lini-scope-8e3eeb16 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-8e3eeb16 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-cyl { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-path { stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-8e3eeb16 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-8e3eeb16 .lini-note { fill: var(--lini-fill); stroke: var(--lini-stroke); }
+    .lini-scope-8e3eeb16 .lini-outside { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-8e3eeb16 .lini-face { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-8e3eeb16 .lini-engine { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-8e3eeb16 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-8e3eeb16 .lini-link-dashed { stroke-dasharray: 7,5.5; }
+    .lini-scope-8e3eeb16 .lini-sequence-message { fill: currentColor; stroke: none; text-anchor: middle; font-size: 13px; font-weight: normal; }
+    .lini-scope-8e3eeb16 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-line" style="stroke: var(--lini-faint)" transform="translate(0,0)">
+      <line x1="-421.3312" y1="-130" x2="-421.3312" y2="185"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="-145.0252" y1="-130" x2="-145.0252" y2="185"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="55.6338" y1="-130" x2="55.6338" y2="185"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="269.5848" y1="-130" x2="269.5848" y2="185"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="481.6123" y1="-130" x2="481.6123" y2="185"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(55.6338,59.5)">
+      <rect x="-5" y="-124.5" width="10" height="249" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(269.5848,-18)">
+      <rect x="-5" y="-15" width="10" height="30" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(481.6123,94)">
+      <rect x="-5" y="-15" width="10" height="30" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-outside lini-box lini-block" data-id="spec" transform="translate(-421.3312,-157.5)">
+      <rect x="-153.2305" y="-26.5" width="306.461" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A tenant spec, written where specs are read</text>
+    </g>
+    <g class="lini-node lini-engine lini-box lini-block" data-id="scan" transform="translate(-145.0252,-157.5)">
+      <rect x="-89.0755" y="-26.5" width="178.151" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The deployment&apos;s scan</text>
+    </g>
+    <g class="lini-node lini-engine lini-box lini-block" data-id="runtime" transform="translate(55.6338,-157.5)">
+      <rect x="-77.5835" y="-26.5" width="155.167" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The tenant runtime</text>
+    </g>
+    <g class="lini-node lini-cyl" data-id="db" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(269.5848,-157.5)">
+      <path d="M -85.078 -21.2 L -85.078 21.2 A 85.078 5.3 0 0 0 85.078 21.2 L 85.078 -21.2 A 85.078 5.3 0 0 0 -85.078 -21.2 Z"/>
+      <ellipse cx="0" cy="-21.2" rx="85.078" ry="5.3"/>
+      <text class="lini-text" x="0" y="1.65" dy="0.358em">A database of its own</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="face" transform="translate(481.6123,-157.5)">
+      <rect x="-92.9495" y="-26.5" width="185.899" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Its face and its authority</text>
+    </g>
+    <g class="lini-node lini-note lini-path" style="stroke-width: 2; font-size: 13px" transform="translate(162.6093,139.5)">
+      <path d="M -197.46549999999996 -13.5 L 188.28549999999996 -13.5 L 197.46549999999996 -4.3199999999999985 L 197.46549999999996 13.5 L -197.46549999999996 13.5 Z"/>
+      <g class="lini-node lini-path" style="fill: var(--lini-stroke); stroke: none; stroke-width: 0" transform="translate(0,0)">
+        <path d="M 188.28549999999996 -13.5 L 197.46549999999996 -4.3199999999999985 L 188.28549999999996 -4.3199999999999985 Z"/>
+      </g>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Minutes on a cold start, almost all of it terminology. Paid once.</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="spec" data-to="scan">
+      <path d="M -421.3312 -98 C -420.3051 -98 -419.3018 -97.6401 -418.3334 -97.3007 C -417.3652 -96.9615 -416.1629 -97.3904 -415.3355 -97.9969 C -414.4457 -98.6492 -413.441 -99.3973 -412.3376 -99.4 C -411.2356 -99.4027 -410.2286 -98.6578 -409.3398 -98.0063 C -408.4496 -97.3537 -407.4457 -96.6045 -406.3419 -96.6 C -405.2404 -96.5955 -404.2325 -97.3394 -403.344 -97.9906 C -402.4535 -98.6434 -401.4504 -99.3936 -400.3462 -99.4 C -399.2451 -99.4063 -398.2364 -98.6635 -397.3483 -98.0125 C -396.4574 -97.3594 -395.4551 -96.6082 -394.3504 -96.6001 C -393.2498 -96.592 -392.2403 -97.3337 -391.3526 -97.9844 C -390.4613 -98.6377 -389.4597 -99.3899 -388.3547 -99.3999 C -387.2545 -99.4098 -386.2442 -98.6692 -385.3568 -98.0188 C -384.4652 -97.3652 -383.4644 -96.6119 -382.359 -96.6001 C -381.2592 -96.5884 -380.2481 -97.328 -379.3611 -97.9781 C -378.4691 -98.6319 -377.4691 -99.3862 -376.3632 -99.3998 C -375.264 -99.4133 -374.2521 -98.6749 -373.3654 -98.025 C -372.473 -97.371 -371.4738 -96.6156 -370.3675 -96.6003 C -369.2687 -96.585 -368.256 -97.3223 -367.3696 -97.9719 C -366.4769 -98.6262 -365.4785 -99.3825 -364.3718 -99.3997 C -363.2734 -99.4168 -362.2599 -98.6806 -361.3739 -98.0313 C -360.4808 -97.3767 -359.4831 -96.6194 -358.376 -96.6004 C -357.2781 -96.5815 -356.2638 -97.3166 -355.3782 -97.9656 C -354.4847 -98.6204 -353.4878 -99.3787 -352.3803 -99.3995 C -351.2829 -99.4202 -350.2678 -98.6863 -349.3824 -98.0375 C -348.4886 -97.3825 -347.4925 -96.6232 -346.3845 -96.6005 C -345.2876 -96.5781 -344.2717 -97.3109 -343.3867 -97.9594 C -342.4924 -98.6146 -341.4971 -99.3749 -340.3888 -99.3994 C -339.2924 -99.4236 -338.2756 -98.6919 -337.3909 -98.0437 C -336.4963 -97.3883 -335.5018 -96.627 -334.3931 -96.6007 C -333.2971 -96.5747 -332.2795 -97.3052 -331.3952 -97.9531 C -330.5002 -98.6088 -329.5064 -99.371 -328.3973 -99.3992 C -327.3019 -99.4269 -326.2835 -98.6976 -325.3995 -98.05 C -324.5041 -97.3941 -323.5111 -96.6309 -322.4016 -96.6009 C -321.3066 -96.5714 -320.2874 -97.2996 -319.4037 -97.9469 C -318.508 -98.603 -317.5157 -99.3672 -316.4059 -99.3989 C -315.3114 -99.4303 -314.2913 -98.7032 -313.408 -98.0562 C -312.5119 -97.3999 -311.5204 -96.6348 -310.4101 -96.6012 C -309.3161 -96.5681 -308.2953 -97.2939 -307.4123 -97.9406 C -306.5158 -98.5972 -305.525 -99.3632 -304.4144 -99.3987 C -303.3209 -99.4336 -302.2992 -98.7089 -301.4165 -98.0625 C -300.5196 -97.4057 -299.5297 -96.6387 -298.4187 -96.6015 C -297.3257 -96.5648 -296.3031 -97.2883 -295.4208 -97.9344 C -294.5235 -98.5914 -293.5343 -99.3593 -292.4229 -99.3984 C -291.3304 -99.4368 -290.3071 -98.7145 -289.4251 -98.0687 C -288.5274 -97.4115 -287.5389 -96.6427 -286.4272 -96.6018 C -285.3352 -96.5616 -284.311 -97.2827 -283.4293 -97.9281 C -282.5313 -98.5856 -281.5436 -99.3553 -280.4314 -99.3981 C -279.34 -99.44 -278.315 -98.7201 -277.4336 -98.075 C -276.5352 -97.4173 -275.5482 -96.6467 -274.4357 -96.6021 C -273.3447 -96.5584 -272.3189 -97.277 -271.4378 -97.9219 C -270.539 -98.5797 -269.5528 -99.3513 -268.44 -99.3977 C -267.3495 -99.4432 -266.3229 -98.7258 -265.4421 -98.0812 C -264.5429 -97.4232 -263.5574 -96.6507 -262.4442 -96.6024 C -261.3543 -96.5552 -260.3268 -97.2714 -259.4464 -97.9157 C -258.5468 -98.5739 -257.5621 -99.3473 -256.4485 -99.3974 C -255.3591 -99.4464 -254.3308 -98.7314 -253.4506 -98.0875 C -252.5507 -97.429 -251.5667 -96.6548 -250.4528 -96.6028 C -249.3639 -96.5521 -248.3347 -97.2658 -247.4549 -97.9094 C -246.5545 -98.568 -245.5713 -99.3432 -244.457 -99.397 C -243.3687 -99.4495 -242.3387 -98.737 -241.4592 -98.0937 C -240.5584 -97.4349 -239.5759 -96.6588 -238.4613 -96.6032 C -237.3735 -96.549 -236.3426 -97.2603 -235.4634 -97.9032 C -234.5623 -98.5622 -233.5805 -99.3391 -232.4656 -99.3965 C -231.3782 -99.4525 -230.3466 -98.7425 -229.4677 -98.0999 C -228.5661 -97.4407 -227.5851 -96.6629 -226.4698 -96.6037 C -225.383 -96.5459 -224.3505 -97.2547 -223.472 -97.897 C -222.57 -98.5563 -221.5897 -99.335 -220.4741 -99.3961 C -219.3878 -99.4556 -218.3545 -98.7481 -217.4762 -98.1062 C -216.5739 -97.4466 -215.5943 -96.6671 -214.4783 -96.6042 C -213.3926 -96.5429 -212.3584 -97.2491 -211.4805 -97.8907 C -210.5777 -98.5505 -209.5989 -99.3308 -208.4826 -99.3956 C -207.3975 -99.4586 -206.3624 -98.7537 -205.4847 -98.1124 C -204.5816 -97.4525 -203.6034 -96.6713 -202.4869 -96.6046 C -201.4023 -96.5399 -200.3664 -97.2435 -199.489 -97.8845 C -198.5855 -98.5446 -197.608 -99.3266 -196.4911 -99.3951 C -195.4071 -99.4615 -194.3703 -98.7592 -193.4933 -98.1186 C -192.5893 -97.4584 -191.6126 -96.6755 -190.4954 -96.6052 C -189.4119 -96.537 -188.3743 -97.238 -187.4975 -97.8783 C -186.5932 -98.5387 -185.6172 -99.3224 -184.4997 -99.3946 C -183.4167 -99.4645 -182.3783 -98.7648 -181.5018 -98.1249 C -180.597 -97.4643 -179.6218 -96.6797 -178.5039 -96.6057 C -177.4215 -96.5341 -176.3822 -97.2325 -175.5061 -97.872 C -174.6009 -98.5328 -173.6263 -99.3182 -172.5082 -99.394 C -171.4263 -99.4674 -170.3862 -98.7703 -169.5103 -98.1311 C -168.6047 -97.4702 -167.6309 -96.684 -166.5125 -96.6063 C -165.4312 -96.5312 -164.3902 -97.2269 -163.5146 -97.8658 C -162.6086 -98.5269 -161.6354 -99.3139 -160.5167 -99.3934 C -159.436 -99.4702 -158.3942 -98.7758 -157.5189 -98.1373 C -156.6124 -97.4761 -155.6401 -96.6872 -154.521 -96.6069 C -153.4315 -96.5288 -152.5375 -97.5247 -151.5231 -97.9299 C -150.5949 -98.3006 -149.5248 -98 -148.5252 -98"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-144.5252,-98 -153.5252,-93.5 -153.5252,-102.5"/>
+      <text class="lini-sequence-message" x="-283.1782" y="-109.5" dy="0.358em">a file appears</text>
+    </g>
+    <g class="lini-link" data-from="scan" data-to="runtime">
+      <path d="M -145.0252 -66 L 46.1338 -66"/>
+      <polygon class="lini-marker lini-marker-arrow" points="50.1338,-66 41.1338,-61.5 41.1338,-70.5"/>
+      <text class="lini-sequence-message" x="-44.6957" y="-77.5" dy="0.358em">bring this code up</text>
+    </g>
+    <g class="lini-link" data-from="runtime" data-to="db">
+      <path d="M 61.6338 -34 L 260.0848 -34"/>
+      <polygon class="lini-marker lini-marker-arrow" points="264.0848,-34 255.0848,-29.5 255.0848,-38.5"/>
+      <text class="lini-sequence-message" x="162.6093" y="-45.5" dy="0.358em">create, migrate, seed terminology</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="db" data-to="runtime">
+      <path d="M 263.5848 -2 L 65.1338 -2"/>
+      <polygon class="lini-marker lini-marker-arrow" points="61.1338,-2 70.1338,-6.5 70.1338,2.5"/>
+      <text class="lini-sequence-message" x="162.6093" y="-13.5" dy="0.358em">provisioned</text>
+    </g>
+    <g class="lini-link" data-from="runtime" data-to="runtime">
+      <path d="M 61.6338 30 L 69.6338 30 A 8 8 0 0 1 77.6338 38 L 77.6338 38 A 8 8 0 0 1 69.6338 46 L 65.1338 46"/>
+      <polygon class="lini-marker lini-marker-arrow" points="61.1338,46 70.1338,41.5 70.1338,50.5"/>
+      <text class="lini-sequence-message" x="158.8398" y="18.5" dy="0.358em">dispatch: store and feeds exist</text>
+    </g>
+    <g class="lini-link" data-from="runtime" data-to="face">
+      <path d="M 61.6338 78 L 472.1123 78"/>
+      <polygon class="lini-marker lini-marker-arrow" points="476.1123,78 467.1123,82.5 467.1123,73.5"/>
+      <text class="lini-sequence-message" x="268.623" y="66.5" dy="0.358em">mount the surfaces</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="face" data-to="runtime">
+      <path d="M 475.6123 110 L 65.1338 110"/>
+      <polygon class="lini-marker lini-marker-arrow" points="61.1338,110 70.1338,105.5 70.1338,114.5"/>
+      <text class="lini-sequence-message" x="268.623" y="98.5" dy="0.358em">serving</text>
+    </g>
+  </g>
+</svg>

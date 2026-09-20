@@ -1,0 +1,8 @@
+A write, from the wire to the row
+A client sends a resource to the tenant's own FHIR face. The face parses the
+bytes once and hands them to the object engine with the type the tenant
+declared. The engine derives the searchable envelope from the payload and
+resolves the record's identity, then writes the payload, the envelope, the
+trail entry and the change event to the tenant's database in one transaction.
+The version comes back and the face answers the client with a status, an ETag
+and a Location.
