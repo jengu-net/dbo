@@ -41,7 +41,8 @@ building. This item is deleted when the list is empty.
    move the rationale there, and cut 004 to decisions stated as current
    fact.
 2. Fold `docs/tasks/` and `docs/plans/` into this chapter as items, and
-   delete the implementation status page in favour of the catalogue.
+   delete the implementation status page in favour of the catalogue. The
+   migration document has already moved, into item 003.
 3. Write the 006 scenarios, one Lini sequence each, and create 010 with the
    quality tree, the conformance reports and the evidence. Give the C4
    diagrams one shared Lini stylesheet head.
@@ -52,12 +53,10 @@ building. This item is deleted when the list is empty.
 6. Write the pitch on the landing page, remove the Why menu, delete the
    essays, folding what survives into the concept READMEs, and remove the
    collector from the build.
-7. Build the sample application as a root-level module on the guide world,
-   and rewrite the guide one chapter at a time as the sample's story, each
-   chapter including the sample's source and replacing one shell chapter
-   when it lands. The guide's tests become the sample's, run against the
-   tree world by the third verify phase. `using-dbo.md` becomes the sample's
-   README and the `dbo-using` skill projects from there.
+7. Rewrite the guide one chapter at a time as the sample application's
+   story, each chapter including the sample's source and replacing one
+   shell chapter when it lands. The sample itself is
+   [item 002](../002-sample-application/README.md); this step waits for it.
 
 Step 7 is the largest and depends on nothing above it; it is last so that
 the sample is written against a tree that holds still.

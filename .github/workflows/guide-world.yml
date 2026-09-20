@@ -13,7 +13,7 @@ name: guide-world
 # migration does. The branch outlives its merges, so this file does too — it
 # is inert anywhere else, because nothing but a guide-world-** push starts it.
 #
-# How the whole thing is run: docs/tasks/guide-world-migration.md.
+# How the whole thing is run: docs/arc42-011-risks-and-technical-debt/003-tests-move-down-the-ladder/how-it-is-run.md.
 #
 # What it deliberately does NOT do is stand in for the suite. A migrated test
 # that passes here has not been run beside the harness tests it left, and the
