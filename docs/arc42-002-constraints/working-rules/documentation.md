@@ -27,6 +27,32 @@ the assembly repairs the frame for pages it moves.
 - `docs/README.md` carries front matter with a permalink; the assembly
   strips it.
 
+## Where a thing is written
+
+One place per kind of thing. Where the tree disagrees with this map, the
+map is the rule and the disagreement is an item in
+[risks and technical debt](../../arc42-011-risks-and-technical-debt/README.md).
+
+| Place | Holds |
+|---|---|
+| `arc42-001-introduction` | What the store is, its goals, the founding requirements. |
+| `arc42-002-constraints` | The rules the store and the work must meet: constraints, the promise model, the working rules. |
+| `arc42-003-context` | The landscape at three levels, drawn as a C4 landscape: the store and what it depends on, the system built on it, and that system's actors. User stories, each citing its Story constant and playing on the guide world. |
+| `arc42-004-solution-strategy` | The decisions as current fact, without reasoning. Edited whenever a decision, a constraint or the context changes. |
+| `arc42-005-building-blocks` | Containers and components, drawn as C4, with the module map generated from the build. |
+| `arc42-006-runtime` | Scenarios: how the blocks interact for the cases that matter, one sequence each. The requirement catalogue keeps its address here. |
+| `arc42-007-deployment` | A deployment diagram per shape the store runs in. The worked deployment is the guide world's compose file, included. |
+| `arc42-008-crosscutting` | One README per concept, and the patterns as vocabulary. No essays. |
+| `arc42-009-architecture-decisions` | Numbered records with a status and a "reflected in" line naming the page that states the result. History only; cited from nowhere. |
+| `arc42-010-quality-requirements` | The quality tree as Quality classifications, the conformance reports, the evidence. |
+| `arc42-011-risks-and-technical-debt` | Numbered items, each a directory with a README whose first line is its state. The chapter README lists every item with that line. A resolved item is deleted; the commit or the decision record is its record. |
+| `guide/` | The sample application's story, chapter by chapter: declaring a tenant, writing a step service, a participant joining from outside, and on. A chapter includes the sample's source. HTTP appears only in the external participant's chapter. |
+| `using-dbo.md` | The sample application's README: what the store provided and the sample did not write. |
+| The site's landing page | The pitch. There is no Why menu. |
+
+`docs/tasks/` and `docs/plans/` are being folded into 011 and are not
+written to.
+
 ## What a page says
 
 The current state, in the words the store uses. The `§` numbers are decoded
@@ -42,8 +68,8 @@ lists every section and is edited when one is added, moved or removed.
 ```yaml
 name: dbo-docs
 applies-when: >-
-  Adding, moving or editing a page under docs/ or site/pages/, or a link
-  into either.
+  Adding, moving or editing a page under docs/, guide/ or site/pages/, a
+  link into any of them, or deciding where a piece of documentation goes.
 reference: docs/arc42-002-constraints/working-rules/documentation.md
 ```
 **Rules**
@@ -56,6 +82,9 @@ reference: docs/arc42-002-constraints/working-rules/documentation.md
   in its front matter.
 - MUST reference behaviour by REQ code or by document, never by a `§`
   number.
+- MUST write a thing where the map in this document says, and record a
+  disagreement between the map and the tree as an item in 011 rather than
+  following the tree.
 - MUST update the docs index when a document is added, moved or removed.
 - MUST run `./gradlew site` after editing and fix what `--strict` reports.
 <!-- /skill -->

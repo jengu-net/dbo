@@ -1,6 +1,6 @@
 ---
 name: dbo-docs
-description: Adding, moving or editing a page under docs/ or site/pages/, or a link into either.
+description: Adding, moving or editing a page under docs/, guide/ or site/pages/, a link into any of them, or deciding where a piece of documentation goes.
 ---
 
 # dbo-docs
@@ -8,7 +8,7 @@ description: Adding, moving or editing a page under docs/ or site/pages/, or a l
 > **Generated from its source document — do not edit.** Change the
 > skill-block in the source document and run `./gradlew generateSkills`.
 
-**Apply when:** Adding, moving or editing a page under docs/ or site/pages/, or a link into either.
+**Apply when:** Adding, moving or editing a page under docs/, guide/ or site/pages/, a link into any of them, or deciding where a piece of documentation goes.
 
 ## Rules
 
@@ -21,6 +21,9 @@ description: Adding, moving or editing a page under docs/ or site/pages/, or a l
   in its front matter.
 - MUST reference behaviour by REQ code or by document, never by a `§`
   number.
+- MUST write a thing where the map in this document says, and record a
+  disagreement between the map and the tree as an item in 011 rather than
+  following the tree.
 - MUST update the docs index when a document is added, moved or removed.
 - MUST run `./gradlew site` after editing and fix what `--strict` reports.
 
