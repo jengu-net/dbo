@@ -41,6 +41,7 @@ is deliberately not being done, and the commands that prove it.
 | [015 The comparative load test](015-the-comparative-load-test/README.md) | Not scheduled. The bench runner carries the discipline; a second and third target, an ingest workload and resource sampling are missing. |
 | [016 Where a neutral store earns its keep](016-where-a-neutral-store-earns-its-keep/README.md) | Not scheduled. A test for recognising the domains this engine's shape fits. |
 | [017 The quality goals are not declared](017-quality-goals-are-not-declared/README.md) | Open. The eleven quality goals are matched to requirement areas by reading. Next: declare them as Quality classifications. |
+| [018 The insurer's copy does not arrive](018-the-insurers-copy-does-not-arrive/README.md) | Open. The guide's insurer terminology step fails in the job that also runs the suite, and passes in the job that runs nothing else. Next: find out whether the projection is slow or stopped. |
 
 ## Risks
 
@@ -52,15 +53,13 @@ is deliberately not being done, and the commands that prove it.
   hand, and a guide step asserting behaviour newer than the pin fails for a
   reason unrelated to the step. Item 004 carries the question of who moves
   it.
-- **The suite fails non-deterministically in two known places, so a red
-  build is not by itself a regression.**
+- **The suite fails non-deterministically in one known place, so a red build
+  is not by itself a regression.**
   `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` brings four tenants up at
   once and has died as Java heap exhaustion inside one of them, on a change
-  that touched documentation only. The guide's terminology step, which
-  asserts which vocabularies the insurer declared, has failed against the
-  pinned image on a commit that had already passed it. Neither has an item
-  because neither has been reproduced deliberately, and a failure that
-  repeats on the same commit is a defect rather than a flake.
+  that touched documentation only. It has no item because it has not been
+  reproduced deliberately. The guide's terminology step has now failed twice
+  on one commit and is [item 018](018-the-insurers-copy-does-not-arrive/README.md).
 - What is built, as against what is promised, is read from the
   [requirement catalogue](../arc42-006-runtime/req-catalogue.md) and the
   tests it cites. The page that used to answer that in prose was typed by
