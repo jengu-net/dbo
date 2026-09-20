@@ -31,6 +31,12 @@ now. Read the report's rows carefully here: it lists every place a leg is
 proven, so a row naming a private world may still have a cheaper proof
 beside it. What is owed is the rows naming a private world and nothing else.
 
+**Clinical record is one sweep and two unproven legs.** Its single private
+world belongs to a class that runs a shapes pass, so it stays. Its other two
+outstanding legs are proven nowhere because nothing cites them yet: both are
+PLANNED in the catalogue, which is a gap in what is built rather than a test
+in the wrong world, and moving tests will never close it.
+
 ## How it is run
 
 The migration has a branch that outlives its merges, a worktree of its own,
