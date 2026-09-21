@@ -56,6 +56,14 @@ st-jerome=jerome-secret"
 
       DBO_TENANT_DIR: /etc/dbo/tenants
 
+      # Where this node keeps face images. A face is the same answer for every
+      # tenant on it — the whole of what a version publishes, expanded — so
+      # the first tenant on one cuts it and the rest load it. Unset, every
+      # tenant expands the version again, correctly and for half a minute
+      # each. It is an operator's disk, which is why the store does not take
+      # one without being asked.
+      DBO_FACE_IMAGES: /var/lib/dbo/faces
+
       # The managing tenant sits outside the scanned directory deliberately:
       # the loop that retracts undeclared tenants must not be able to retract
       # the thing that records retractions.
@@ -66,6 +74,11 @@ st-jerome=jerome-secret"
       DBO_ADMIN_PASSWORD: guide
 
       DBO_LOG_FORMAT: text
+    tmpfs:
+      # The images are a cache with a release stamp on them, so a world that
+      # is thrown away between runs keeps them exactly as long as it keeps
+      # its database.
+      - /var/lib/dbo/faces
     volumes:
       - ../../../sample/world/tenants:/etc/dbo/tenants:ro
       - ../../../sample/world:/etc/dbo/management:ro
