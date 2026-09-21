@@ -219,6 +219,13 @@ jobs:
     # the pin moves. That is how a chapter's 404 and a membrane's 500s came to
     # wait for a pin bump to be found.
     #
+    # As JUnit now, not as the shell harness. The shell run existed because one
+    # step was not ported; it is, so what is left of the harness here was a
+    # second way of running the same chapters — one that ends a script at line
+    # nine hundred instead of naming the step, and that cannot cite the promise
+    # a step demonstrates. `DBO_GUIDE_COMPOSE` is the same door the harness
+    # used: it names a world built from this tree instead of the pinned one.
+    #
     # It does NOT need the build: what it needs is the server distribution and
     # a docker daemon, so it runs beside the suite rather than behind it. That
     # is also the point — a documented behaviour that broke is named here in
@@ -235,7 +242,10 @@ jobs:
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v4
       - name: Run the guide against the tree
-        run: ./docs/guide/examples/check-tree.sh
+        run: |
+          WORK="$(mktemp -d)"
+          COMPOSE="$(docs/guide/examples/tree-world.sh "$WORK/compose.yaml")"
+          DBO_GUIDE_COMPOSE="$COMPOSE" ./gradlew :guide:test
 
   guide-as-tests:
     # The same chapters, as JUnit, against the pinned image.
