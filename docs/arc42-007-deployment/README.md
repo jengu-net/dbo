@@ -1,5 +1,10 @@
 # Deployment
 
+The worked deployment is [the guide world's](a-worked-deployment.md): seven
+tenants of three kinds on one node, declared by a compose file three CI jobs
+bring up. Read it for what each party can reach; this page is about the shapes
+a deployment takes and how it is routed.
+
 ## The shapes a deployment takes
 
 Three, and the engine behind them is the same build in all three.

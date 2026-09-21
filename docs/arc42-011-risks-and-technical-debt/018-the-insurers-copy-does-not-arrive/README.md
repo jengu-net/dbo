@@ -1,4 +1,4 @@
-**Open. It is SLOW, not stopped, and most of the wait is a tenant the runtime makes for itself reading a whole face through the chain. The fix for that is already on main and the pinned image predates it. Next: move the pin, then see whether the wait is still marginal.**
+**Open. It is SLOW, not stopped, and most of the wait is a tenant the runtime makes for itself reading a whole face through the chain. The pin now carries the launcher that reads the images setting, so that twenty-eight seconds should be four and a half. Next: find out, which needs the wait to say how close it came even when it passes — it does now.**
 
 # The insurer's copy does not arrive, in one job only
 
@@ -76,25 +76,36 @@ That is the same twenty-eight seconds this step is waiting behind.
 
 ## What is not yet known
 
-**Whether it is slow or stopped.** Ten minutes is long enough that "the
-runner was busy" is a claim rather than an explanation, and nothing in the
-suite reads the insurer after the wait expires — the two steps that follow
-read the hospital. So there is no evidence either way about whether the copy
-arrived a minute later or never.
+~~**Whether it is slow or stopped.**~~ Answered above: slow.
 
-**Whether the hospital's wait is near its limit too.** It passes, and how
-close it came is not recorded.
+**Whether the hospital's wait is near its limit too**, and whether either
+wait is still near it now the pin can read the images setting. It passes, and
+until now how close it came was not recorded — a wait that passes says
+nothing about whether it nearly did not, which is why this failed twice
+before anybody could see it coming.
+
+That is closed as far as a test can close it: every one of the three
+terminology waits now prints the attempt it was met at, out of the hundred
+and twenty it is allowed, on the way past. A run that is at ninety says so
+before it is at a hundred and twenty. What is not known is the number, and
+the next CI run is where it comes from.
 
 ## What to do
 
 1. ~~Make the failure say what it knows.~~ Done, and it answered: slow.
-2. If it is slow, the number to change is not this wait. The step's own
-   comment says a first sync runs some minutes after a tenant comes up; the
-   projection adds a second hop, and a ten-minute wait that is marginal on a
-   loaded runner is a schedule worth reading rather than a constant worth
-   raising.
-3. If it is stopped, the subject is the projection path under load, and the
-   test has been right twice.
+2. ~~Move the pin to an image whose launcher passes the images setting
+   through.~~ Done: the pin carries it, in both compose files.
+3. ~~Make the wait say how close it came even when it passes.~~ Done. Three
+   waits, each printing the attempt it was met at.
+4. Read those numbers off a `build` run — the job where this expired, and the
+   one that has the whole suite beside it. If the insurer is met in the first
+   handful of attempts, the pin did what the measurement said it would and
+   this item is finished. If it is still in the high tens, the subject is the
+   schedule the step's own comment describes, not the constant.
+5. The number to change is not this wait. A first sync runs some minutes
+   after a tenant comes up, the projection adds a second hop, and a ten-minute
+   wait that is marginal on a loaded runner is a schedule worth reading rather
+   than a constant worth raising.
 
 ## Why it matters now
 

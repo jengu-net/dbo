@@ -58,6 +58,26 @@ The current state, in the words the store uses. The `§` numbers are decoded
 in the docs index; a reference names a REQ or a document. The docs index
 lists every section and is edited when one is added, moved or removed.
 
+## The guide's pinned image
+
+The guide's compose files name an exact image — `main-<sha>` on the public
+registry, never a floating tag, so that somebody who types no tag does not
+receive an arbitrary commit. The consequence is that a guide step asserting
+behaviour newer than the pin fails against it, for a reason that has nothing
+to do with the step.
+
+**Whoever writes that step moves the pin, in the same change.** Not a later
+tidy-up: the run that proves the step against the pinned image is the one
+that would catch the mismatch, and a step landing ahead of its pin turns into
+somebody else's confusing failure days afterwards. That is not hypothetical —
+a chapter's 404 and a membrane's 500s both waited for a pin bump to be found.
+
+**The tag is checked against the registry, not inferred from the commit
+log.** An image exists only if the publish that makes it succeeded, and a
+listing of commits is not a listing of images. Pinning a tag that was never
+published fails as `manifest unknown`, which names the symptom and not the
+mistake.
+
 ## Checking a page
 
 `./gradlew site` renders the tree and fails on what `--strict` reports.
@@ -89,4 +109,8 @@ reference: docs/arc42-002-constraints/working-rules/documentation.md
   file it names; an untyped copy drifts silently.
 - MUST update the docs index when a document is added, moved or removed.
 - MUST run `./gradlew site` after editing and fix what `--strict` reports.
+- MUST move the guide's pinned image, in the same change, when adding or
+  changing a guide step that asserts behaviour the pinned image does not
+  have — and MUST check the tag exists on the registry rather than reading
+  it off the commit log.
 <!-- /skill -->

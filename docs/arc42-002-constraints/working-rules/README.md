@@ -77,6 +77,25 @@ first use. When one fails after a change, it is right. (`dbo-runtime-proof`)
 **`dbo-core` has no dependencies**, and `dbo-postgres` only the JDBC driver.
 Adding a library to either needs a reason that survives being read aloud.
 
+**TEMPORARY, until the suite is fast enough: a bring-up is not proven on the
+shared runtime.** A test whose claim IS that a tenant comes up takes a world
+of its own, even when the shared world already has that tenant. The shared
+runtime carries about two dozen on one machine, and what this machine cannot
+carry is tenants alive at once — so a class that adds an expensive member and
+waits for it to serve is measuring how loaded the runner was. The insurer,
+whose bring-up makes a projection that reads a whole face, did not arrive
+inside four minutes on CI and comes up in two and a half beside three tenants.
+Assert what a tenant DOES on the shared runtime, and do not re-prove that it
+comes up at all: a world that already brings it up runs in CI three times a
+run. The guide's container serves all seven of the sample world's tenants on
+every change, so a tenant that stopped coming up would fail there — which is
+the same duplication item 004 has been removing, arriving from the test side.
+Where a bring-up genuinely needs proving and nothing already proves it, the
+world is sized for that question and its reason goes in the ledger. This
+narrows the shared-world rule while the build is slow and does not widen it:
+the allowance may still only fall. Delete it when item 019's conclusion is
+answered by items 002 and 003.
+
 **The R5 validator needs a 2g heap.** Test tasks set it; a new test task that
 loads the validator must too.
 <!-- claude:end -->

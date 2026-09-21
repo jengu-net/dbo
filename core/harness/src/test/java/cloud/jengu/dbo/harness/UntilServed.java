@@ -26,6 +26,28 @@ final class UntilServed {
     private static final int PASSES = 20;
 
     /**
+     * And how long to keep going while the runtime says a tenant is still on
+     * its way.
+     *
+     * <p>Passes are not a wait. A pass is one reconciliation, and what it
+     * costs depends on how many tenants the runtime is carrying and what else
+     * the machine is doing — so twenty of them is a generous wait on an idle
+     * laptop and a short one on a CI runner bringing up two dozen tenants at
+     * once. The projection a tenant a release behind needs takes about half a
+     * minute to come up on its own, and everything declaring that zone waits
+     * behind it.
+     *
+     * <p>So the count is a floor and this is the ceiling, and what decides
+     * between them is the runtime's own ledger: a tenant with nothing
+     * recorded against it has not failed, it has not finished, and the
+     * promise is that the wait ends rather than that a pass ends it. A
+     * tenant whose trouble IS recorded fails immediately, however much time
+     * is left — that failure is the whole reason this class exists and
+     * waiting on it would only make it arrive later.
+     */
+    private static final java.time.Duration WHILE_COMING_UP = java.time.Duration.ofMinutes(4);
+
+    /**
      * Which class brought up which tenant, for this JVM.
      *
      * <p>The Postgres container is shared by the whole suite and a tenant's
@@ -95,18 +117,42 @@ final class UntilServed {
         }
         Set<String> wanted = Set.of(codes);
         Set<String> up = Set.of();
-        for (int pass = 0; pass < PASSES; pass++) {
+        long deadline = System.currentTimeMillis() + WHILE_COMING_UP.toMillis();
+        for (int pass = 0; ; pass++) {
             up = manager.scanOnce();
             if (up.containsAll(wanted)) {
                 return up;
             }
+            // The runtime's own word on it, not the trouble ledger. A tenant
+            // waiting for its upstream has a trouble recorded — "not up yet,
+            // waiting for the next scan" — and is COMING_UP, which is the
+            // ordinary way a chain of dependents resolves. Reading the ledger
+            // as failure fails every dependent that was merely early.
+            Set<String> failed = new java.util.TreeSet<>();
+            for (cloud.jengu.dbo.tenant.TenantState state : manager.tenantStates()) {
+                if (wanted.contains(state.code())
+                        && state.state() == cloud.jengu.dbo.tenant.TenantState.State.FAILED) {
+                    failed.add(state.code());
+                }
+            }
+            if (!failed.isEmpty()) {
+                throw new AssertionError("bring-up FAILED for: " + failed + " — so anything "
+                        + "asked of them answers 404, which is also what a tenant nobody "
+                        + "declared answers. What the runtime recorded about it: "
+                        + manager.troubles() + "; serving=" + up);
+            }
+            if (pass + 1 >= PASSES && System.currentTimeMillis() >= deadline) {
+                break;
+            }
         }
         Set<String> missing = new java.util.TreeSet<>(wanted);
         missing.removeAll(up);
-        throw new AssertionError("declared but not serving after " + PASSES + " passes: "
-                + missing + " — so anything asked of them answers 404, which is also what a "
-                + "tenant nobody declared answers. What the runtime recorded about the "
-                + "bring-up: " + manager.troubles() + "; serving=" + up);
+        throw new AssertionError("declared and still not serving after " + PASSES
+                + " passes and " + WHILE_COMING_UP.toMinutes() + " minutes: " + missing
+                + " — and the runtime recorded no trouble for them, so they were coming up "
+                + "the whole time and did not arrive. Nothing here is a failed bring-up; "
+                + "something is slower than this is willing to wait. troubles="
+                + manager.troubles() + "; serving=" + up);
     }
 
     /** Refuses a tenant code a different class already brought up. */

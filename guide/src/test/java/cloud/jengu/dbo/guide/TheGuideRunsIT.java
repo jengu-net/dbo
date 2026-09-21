@@ -285,11 +285,24 @@ class TheGuideRunsIT {
         return got.lastLine();
     }
 
-    /** Polls a condition the guide waits on, rather than sleeping a guessed amount. */
-    private boolean waitFor(int attempts, Waiting condition) throws Exception {
+    /**
+     * Polls a condition the guide waits on, rather than sleeping a guessed
+     * amount, and says afterwards how close it came.
+     *
+     * <p>The line it prints is the point. A wait that passes tells you
+     * nothing about whether it nearly did not, and one of these waits expired
+     * twice on a loaded runner while the same wait on an idle one passed —
+     * which was a surprise only because no run had ever recorded that it was
+     * at ninety of its hundred and twenty attempts. Now every run does, on
+     * the way past, and a wait drifting toward its limit is visible before it
+     * crosses it rather than afterwards.
+     */
+    private boolean waitFor(int attempts, String what, Waiting condition) throws Exception {
         for (int attempt = 0; attempt < attempts; attempt++) {
             try {
                 if (condition.met()) {
+                    System.out.println("waited for " + what + ": met at attempt "
+                            + (attempt + 1) + " of " + attempts + " (~" + (attempt * 5) + "s)");
                     return true;
                 }
             } catch (RuntimeException notYet) {
@@ -297,6 +310,8 @@ class TheGuideRunsIT {
             }
             TimeUnit.SECONDS.sleep(5);
         }
+        System.out.println("waited for " + what + ": expired after all " + attempts
+                + " attempts (~" + (attempts * 5) + "s)");
         return false;
     }
 
@@ -528,22 +543,71 @@ class TheGuideRunsIT {
                     "a version that is not a number was not answered as not found");
         }
 
-        // NOT PORTED: "a write made against a version that has moved is refused".
-        //
-        // check.sh still covers it, so nothing is uncovered — but it does not
-        // belong here until it is understood. Run by hand, the sequence behaves
-        // exactly as the chapter says: create gives W/"1", an update gives W/"2",
-        // and a PUT carrying If-Match W/"1" is refused with 412. Run through this
-        // class, with the record verifiably at W/"2" first, the same snippet
-        // answers 200 twice.
-        //
-        // Six attempts went into that gap and three of them were spent on my own
-        // mistakes rather than on the difference: an unchecked setup that PUT to
-        // an empty id, an assertion written from a guess about the snippet's
-        // output, and a guard I added and then deleted in a later edit of the same
-        // block. The step is left out deliberately rather than papered over with
-        // an assertion loose enough to pass, which is the failure this whole port
-        // is most able to cause.
+        /**
+         * A write made against a version that has moved is refused.
+         *
+         * <p>This was the one step the shell harness still covered alone, and
+         * what kept it there was a failure that looked like the store
+         * answering wrongly: the snippet printed 200 twice where the chapter
+         * says 412 then 200.
+         *
+         * <p>It was the harness, not the store. {@link Snippets#sh} hands the
+         * known values TO a script and does not read back what the script
+         * sets, so a setup that captured the new record's id into a shell
+         * variable captured it into a process that then exited. The snippet
+         * ran next with {@code $stale} unset and put to {@code /Patient/} —
+         * the collection, not a record — which the store answers as an upsert
+         * by identifier, twice, with the precondition never consulted because
+         * a collection has no version to precondition on.
+         *
+         * <p>So the id crosses back through Java, which is the only thing here
+         * that outlives a snippet.
+         */
+        @Test
+        @Order(8)
+        @DisplayName("a write made against a version that has moved is refused")
+        @Proving(DboPromises.CORE_VERSIONED_HISTORY)
+        void aWriteAgainstAMovedVersionIsRefused() throws Exception {
+            String stale = snippets.sh("""
+                    curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
+                        -H 'Content-Type: application/fhir+json' \
+                        -d '{"resourceType":"Patient",
+                             "identifier":[{"system":"urn:rl:nid","value":"RL-0008"}],
+                             "name":[{"family":"Prewett"}]}' \
+                      | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])'
+                    """).text();
+            assertTrue(stale.matches("[0-9a-f-]{36}"),
+                    "the setup did not capture a record id, so the snippet below would "
+                            + "address the collection instead: " + stale);
+            snippets.remember("stale", stale);
+
+            // Somebody else gets there first, which is the case this exists for.
+            //
+            // Its answer is READ, not discarded. `sh` does not check the exit
+            // status of what it runs, so a curl that met a refusal would leave
+            // the record where it was and say nothing — which is the shape of
+            // the mistake that kept this step unported, arriving one assertion
+            // later as something else.
+            String moved = snippets.sh("""
+                    curl -s -w '\\n%{http_code}' -X PUT -H "Authorization: Bearer $HOSPITAL" \\
+                        "$HOGWARTS/Patient/$stale" -H 'Content-Type: application/fhir+json' \\
+                        -d "{\\"resourceType\\":\\"Patient\\",\\"id\\":\\"$stale\\",
+                             \\"identifier\\":[{\\"system\\":\\"urn:rl:nid\\",\\"value\\":\\"RL-0008\\"}],
+                             \\"name\\":[{\\"family\\":\\"Prewett\\",\\"given\\":[\\"Molly\\"]}]}"
+                    """).text();
+            assertTrue(moved.endsWith("200"),
+                    "the update that is supposed to move the record on was not taken: " + moved);
+            // Checked, not assumed: the whole step is about which version the
+            // record is at.
+            assertTrue(header("HOSPITAL", "/Patient/" + stale, "etag").contains("W/\"2\""),
+                    "the record did not move on: "
+                            + header("HOSPITAL", "/Patient/" + stale, "etag"));
+
+            assertEquals(java.util.List.of("412", "200"),
+                    java.util.List.of(snippets.run("stale-write").text().split("\n")),
+                    "the chapter says a write against the version that has moved is refused "
+                            + "and one against the version it is at is taken");
+        }
 
     }
 
@@ -1105,7 +1169,7 @@ class TheGuideRunsIT {
             // once the stream is running a change propagates in a second or two.
             // The wait is for the first one, and it is the reason this step sits
             // where it does rather than beside the zone's own chapter.
-            assertTrue(waitFor(120, () ->
+            assertTrue(waitFor(120, "the zone's code system at the hospital", () ->
                             entries(ask("HOSPITAL", "/CodeSystem?url=urn:rl:wards")) == 1),
                     "the zone's terminology never reached the hospital");
             assertTrue(snippets.run("zone-reaches-hospital").text().contains("Spell Damage"),
@@ -1116,7 +1180,7 @@ class TheGuideRunsIT {
             // it. The insurer below declared only the first and has only the
             // first, which is what makes this an arrival rather than
             // everything arriving regardless.
-            assertTrue(waitFor(120, () ->
+            assertTrue(waitFor(120, "the zone's value set at the hospital", () ->
                             entries(ask("HOSPITAL", "/ValueSet?url=urn:rl:wards:vs")) == 1),
                     "the hospital declared the zone's value sets and did not get them");
         }
@@ -1129,8 +1193,8 @@ class TheGuideRunsIT {
             // The insurer's copy travels further than the hospital's: the zone
             // speaks R5 and the insurer R4, so it arrives through the projection.
             // Waiting for the hospital was not waiting for this.
-            if (!waitFor(120, () ->
-                    entries(ask("INSURER", "/CodeSystem?url=urn:rl:wards")) == 1)) {
+            if (!waitFor(120, "the zone's code system at the insurer, through the projection",
+                    () -> entries(ask("INSURER", "/CodeSystem?url=urn:rl:wards")) == 1)) {
                 throw new AssertionError("the zone's terminology never reached the insurer.\n"
                         + whatThoseTenMinutesLeft());
             }
@@ -2396,6 +2460,138 @@ class TheGuideRunsIT {
      * that reason. A promise proven here cannot assume anything it erases is
      * still available to a later story, because there is no later story.
      */
+    /**
+     * The same store, reached the way a product reaches it: through the
+     * sample's own surface rather than through a published command.
+     *
+     * <p>Every scene above runs the chapters' curl, which is what proves the
+     * chapters. This one runs the module those chapters are about — the
+     * code an integrator writes — and it exists to show the shape the rest
+     * of the stories are moving to: what an actor DOES is a call, and what
+     * the store did about it is read afterwards.
+     *
+     * <p>Nothing here invokes a consequence. Nobody asks for a version to be
+     * kept or a trail entry to be written. Somebody admits a patient, and
+     * those are true or they are not.
+     */
+    @Nested
+    @Order(21)
+    @DisplayName("the surface an integrator writes against")
+    @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+    class TheSurfaceAnIntegratorWritesAgainst {
+
+        @Test
+        @Order(1)
+        @DisplayName("somebody is admitted through the sample's own surface, and the store's "
+                + "answer carries what nobody asked for")
+        @Proving({DboPromises.CORE_VERSIONED_HISTORY, DboPromises.CORE_READ_YOUR_WRITES,
+                DboPromises.PDI_STRUCTURAL_VAULT})
+        void admittingSomebodyThroughTheSurface() {
+            cloud.jengu.dbo.sample.TheWorld world =
+                    new cloud.jengu.dbo.sample.TheWorld(java.net.URI.create("http://localhost:8090"));
+
+            // What an actor does: sign in, write a record. Two sentences.
+            cloud.jengu.dbo.sample.Surface hospital = world.hospital()
+                    .signIn("tenant-bootstrap", "hogwarts-secret");
+            cloud.jengu.dbo.sample.Answer admitted = hospital.write("Patient", """
+                    {"resourceType":"Patient",
+                     "identifier":[{"system":"urn:rl:nid","value":"RL-0042"}],
+                     "name":[{"family":"Bagshot","given":["Bathilda"]}]}""");
+
+            assertTrue(admitted.ok(), "the hospital would not admit her: "
+                    + admitted.status() + " " + admitted.body());
+
+            // And what nobody asked for, read from what the store did. A
+            // version it was never told to keep, and an address it assigned.
+            assertEquals("W/\"1\"", admitted.etag(),
+                    "the store did not say which version this is");
+            String id = admitted.id();
+
+            // Read your writes: the record answers immediately, at the
+            // version the write said it was at.
+            cloud.jengu.dbo.sample.Answer held = hospital.read("Patient", id);
+            assertTrue(held.ok(), "the record the store just made did not answer: "
+                    + held.status());
+            assertTrue(held.body().contains("\"versionId\":\"1\""),
+                    "the record answered without saying which version it is: " + held.body());
+
+            // And what comes back does NOT carry her name, which is the other
+            // half of the same idea and the half that surprises.
+            //
+            // The hospital holds its people behind the membrane. This scene
+            // signed in as the tenant's own service credential, which is
+            // entitled to write a record and not entitled to unseal the person
+            // in it — so the read answers the record without the identifying
+            // elements rather than refusing, and nobody had to ask for that
+            // either.
+            //
+            // The first version of this scene asserted her family name came
+            // back and failed, which is the store keeping a promise and a test
+            // assuming a read returns what a write sent.
+            assertFalse(held.body().contains("Bagshot"),
+                    "her name came back to a credential not entitled to it: " + held.body());
+        }
+
+        /**
+         * The second half of the vocabulary: starting work.
+         *
+         * <p>It carries the porter's credential rather than minting one,
+         * because that is what an integrator's process does — somebody signed
+         * in elsewhere and handed it the result — and because the scenes above
+         * have already proven that this credential is the one a worker holds.
+         * Guessing at a grant here is exactly how the last step to be ported
+         * went wrong six times.
+         */
+        @Test
+        @Order(2)
+        @DisplayName("a run is started through the surface, and it comes back named twice "
+                + "and placed somewhere the caller did not choose")
+        @Proving({DboPromises.PROC_RUN_HAS_A_RECORD,
+                DboPromises.PROC_WORK_IS_AUTHORED_ON_THE_SURFACE,
+                DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS})
+        void startingWorkThroughTheSurface() {
+            cloud.jengu.dbo.sample.Surface hospital =
+                    new cloud.jengu.dbo.sample.TheWorld(java.net.URI.create("http://localhost:8090"))
+                            .hospital()
+                            .carrying(snippets.recall("PORTER"));
+
+            cloud.jengu.dbo.sample.Answer started = hospital.startRun(
+                    "hogwarts.admission.admit",
+                    "{\"patient\":\"Patient/" + snippets.recall("id") + "\"}");
+
+            assertTrue(started.ok(), "the porter could not start the admission: "
+                    + started.status() + " " + started.body());
+
+            // Named twice, and the two names answer different questions: one
+            // addresses the context, the other is what the rest of the work
+            // model is asked by. Neither was supplied.
+            assertFalse(started.field("run").isBlank(), "the run came back without an id");
+            assertFalse(started.field("key").isBlank(), "the run came back without a key");
+
+            // And placed. The context is a path, so a caller resolves it
+            // against the host it is already talking to rather than being told
+            // where the store keeps things.
+            assertTrue(started.field("context").startsWith("/"),
+                    "the context was not a path to resolve: " + started.field("context"));
+
+            // And the same credential cannot turn round and browse the record
+            // it just made. A worker holds work and not `system/*`, so the
+            // run is a record without this being a way to read records.
+            //
+            // The scene first asserted the opposite — that the run reads back
+            // as a Task through the ordinary door — and met a 403 saying
+            // insufficient scope. The run IS a record; this actor is not
+            // entitled to it as one, which is the step-scoped API doing its
+            // job and a test assuming that starting work confers a reader.
+            cloud.jengu.dbo.sample.Answer asATask =
+                    hospital.read("Task", started.field("run"));
+            assertEquals(403, asATask.status(),
+                    "the porter's credential read a record directly: " + asATask.body());
+            assertTrue(asATask.body().contains("insufficient scope"),
+                    "the refusal did not say what was insufficient: " + asATask.body());
+        }
+    }
+
     @Nested
     @Order(22)
     @DisplayName("being forgotten")

@@ -375,12 +375,13 @@ public final class ContentSyncEngine {
             recordOrigin(item, version);
             return null;
         } catch (IdentityConflictException conflict) {
-            if (isStreamedOrigin(conflict.existingId())) {
-                // stale claim from an earlier copy of ours — surface loudly
-                throw conflict;
-            }
             if (alreadyHeldVerbatim(item.typeName(), conflict.existingId(), payload)) {
-                // Not an override: the same publication, held here already.
+                // Not an override, and not a stale claim either: the same
+                // publication, held here already. Asked FIRST, before
+                // anything about where the existing claim came from,
+                // because identical content is the same publication whatever
+                // route it took — every question below is about a DIFFERENCE,
+                // and there is none.
                 //
                 // Shadowing exists to protect a local DIFFERENCE — somebody
                 // here decided something other than what upstream says, and
@@ -396,7 +397,22 @@ public final class ContentSyncEngine {
                 // tenant that served them; a tenant that also inherits
                 // CodeSystem is given the identical publication twice, once by
                 // each route.
+                //
+                // Asked second, it was unreachable for the worst case of all.
+                // An upstream that reissues a publication under a new object
+                // id — which is what a projection tenant does every time it is
+                // cut — delivers two ids for one canonical down ONE
+                // dependency. The first applied; the second met its own
+                // earlier copy, was read as a stale claim of ours, and threw.
+                // The stream stopped at the head of its queue and the tenant
+                // never came up at all, over two byte-identical copies of a
+                // code system nobody had edited.
                 return null;
+            }
+            if (isStreamedOrigin(conflict.existingId())) {
+                // A stale claim from an earlier copy of ours, holding content
+                // that DIFFERS from what has now arrived — surface loudly.
+                throw conflict;
             }
             return conflict.existingId(); // local override wins: REQ-DBO-SYNC-LOCAL-SHADOWING
         }

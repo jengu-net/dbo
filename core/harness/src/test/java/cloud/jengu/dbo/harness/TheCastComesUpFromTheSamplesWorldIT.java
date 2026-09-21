@@ -43,4 +43,5 @@ class TheCastComesUpFromTheSamplesWorldIT {
         assertTrue(clinic.engine().select(Criteria.of("Patient")).size() >= 1,
                 "the patient this test wrote is not in the clinic's own store");
     }
+
 }

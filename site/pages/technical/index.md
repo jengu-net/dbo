@@ -27,10 +27,12 @@ host's own process, on one node serving many tenants, or across a fleet — what
 scales, what one more of it buys, and which parts of that are designed rather
 than written.
 
-**[A deployment, drawn](a-worked-deployment.md).** The smallest deployment
-that still shows every boundary: two organisations, the three tenants behind
-them, the applications in front, and two participants somewhere else — with
-what each party can actually reach.
+**[A worked deployment](../docs/arc42-007-deployment/a-worked-deployment.md).**
+Every boundary, on a deployment you can run: the seven tenants of the guide's
+world, the applications in front, the laboratory somewhere else — and what each
+party can actually reach. It is built on that world's compose file rather than
+on a deployment invented for the argument, so the claims are checkable by
+bringing it up.
 
 **[How performance is measured](performance.md).** Not a benchmark page. A
 description of the method — the hardware, the two profiles, what makes a run

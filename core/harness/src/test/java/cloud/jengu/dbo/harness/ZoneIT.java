@@ -97,7 +97,10 @@ class ZoneIT {
         // the ZONE tenant first — its declarations are records
         Files.writeString(dir.resolve("ee.json"), """
                 {"code":"ee","face":"r4","types":[{"name":"Basic","identity":"internal","handling":"operational"}]}""");
-        manager.scanOnce();
+        // Waited for, not scanned once. A pass is one reconciliation, not a
+        // promise that it finished: on a loaded runner the store below was
+        // opened against a tenant still coming up.
+        UntilServed.scan(manager, "ee");
         String stubBase = "http://127.0.0.1:" + stubBrokers.getAddress().getPort();
         PgObjectStore zoneStore = new PgObjectStore(tenantDs("ee"), ZoneModel.registrations());
         // As the lane, because that is what this stands in for: a zone's
@@ -129,7 +132,11 @@ class ZoneIT {
                   {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
                   {"name":"PractitionerRole","identity":"internal","handling":"operational"}]}"""
                 .formatted(SUBJECT_SYSTEM, SUBJECT_SYSTEM));
-        manager.scanOnce();
+        // The same, and this is the one that was failing: one pass, then a
+        // token asked of a tenant that was not serving yet, answered 404 by
+        // the surface — which is also what a tenant nobody declared answers,
+        // so the class died in its setup naming neither.
+        UntilServed.scan(manager, "haigla", "kliinik");
 
         for (String code : List.of("haigla", "kliinik")) {
             String service = serviceToken(code);
