@@ -23,7 +23,12 @@ proves, and the choice is made deliberately, down a ladder.
    each other.
 3. **A private tenant on the shared runtime.** When a test needs a shape no
    other test shares, or a tenant nothing else has written to, it declares a
-   tenant of its own on the shared runtime under a code only it uses.
+   tenant of its own on the shared runtime under a code only it uses — and
+   gives it back when the class is done. **What this suite cannot carry is
+   tenants alive at once**, not worlds: a tenant is a database on one
+   server, and a shared runtime holding forty-six of them is slower than the
+   worlds it replaced. The saving on this rung is the runtime, never the
+   tenant.
 4. **A world of its own.** A test builds its own runtime only when it is
    about the tenant coming up, going down or being held out of service;
    when it needs the OSGi container or the distribution; when it tampers
@@ -124,6 +129,13 @@ reference: docs/arc42-002-constraints/working-rules/shared-world-tests.md
   calls `syncRound`, `shapesRound` and `scanOnce` continuously anyway, and a
   class that needs the effect on its own tenant runs one on the shared
   runtime. What cannot be shared is a claim about the round itself.
+- MUST look for a shape that already exists before declaring one. Fifteen of
+  the first twenty-three were used by a single class, because each was named
+  after its mechanism rather than the part it plays. A shape named for a role
+  — a hospital, an insurer, a zone — is one the next test can take.
+- MUST call `SharedTenants.retire` in an `@AfterAll` for a shape only this
+  class uses, and MUST NOT retire one several classes take: giving that back
+  makes the next class rebuild what it came to reuse.
 - MUST drive its OWN tenant's streams rather than the runtime's when it waits
   for a copy to arrive: `tenant.syncOnce()`, never `manager().syncRound()` in
   a loop. A round sweeps every tenant the runtime holds, so a poll that drives

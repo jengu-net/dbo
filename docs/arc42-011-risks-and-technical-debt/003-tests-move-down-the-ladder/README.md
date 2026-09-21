@@ -1,4 +1,5 @@
-**Resolved, pending deletion. Nothing is undecided, all thirteen `sweep` entries are re-read, and the 38 classes that keep a runtime each say why. What is left is a decision, not work: this item is deleted once [how it is run](how-it-is-run.md) has somewhere else to live, because the shared-world rule links it.**
+**Open again, with a different question. The worklist is empty and the ledger is honest, but moving classes onto one runtime made the suite slower before it made it faster: what this machine cannot carry is tenants alive at once. Next: name the shared tenants after the parts they play, so a story's worth of steps runs on a cast several stories share.**
+
 
 # Own-world tests move down the ladder
 
@@ -73,7 +74,21 @@ in [how the migration is run](how-it-is-run.md), which moved here from
    the allowance falls.
 3. ~~Give the classes that keep a runtime their reason in the ledger, so
    undecided reaches zero.~~ Done: every entry carries one.
-4. Re-read the entries whose reason is `sweep`. That reason used to say a
+4. ~~Re-read the entries whose reason is `sweep`.~~ Done; see below.
+5. Name the tenants after their parts. Fifteen of the first twenty-three
+   shapes were used by one class, because each was named for its mechanism
+   and so could not be recognised by the next test that wanted the same
+   thing. Eighteen of the twenty-three declare nothing but `operational`
+   types, which is to say they are one kind of tenant under different names.
+   A cast — a hospital, an insurer, a zone, a face root — is what the guide
+   world already has and what lets a story's worth of steps share tenants
+   with the story beside it. What genuinely resists a cast is small and
+   known: a type declares one handling per tenant, so replication needs its
+   own upstream and downstream; a relation is declared at creation; and some
+   tenants prove something by being poor.
+
+6. The old fourth step, kept because it is what was actually done:
+   re-read the entries whose reason is `sweep`. That reason used to say a
    class needs its own runtime when it RUNS a deployment-wide pass, which is
    wrong — the scan loop runs them continuously, and a class that needs the
    effect on its own tenant can run one on the shared runtime. It now says a

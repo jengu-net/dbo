@@ -23,6 +23,13 @@ description: Writing an integration test, deciding which world it runs in, movin
   calls `syncRound`, `shapesRound` and `scanOnce` continuously anyway, and a
   class that needs the effect on its own tenant runs one on the shared
   runtime. What cannot be shared is a claim about the round itself.
+- MUST look for a shape that already exists before declaring one. Fifteen of
+  the first twenty-three were used by a single class, because each was named
+  after its mechanism rather than the part it plays. A shape named for a role
+  — a hospital, an insurer, a zone — is one the next test can take.
+- MUST call `SharedTenants.retire` in an `@AfterAll` for a shape only this
+  class uses, and MUST NOT retire one several classes take: giving that back
+  makes the next class rebuild what it came to reuse.
 - MUST drive its OWN tenant's streams rather than the runtime's when it waits
   for a copy to arrive: `tenant.syncOnce()`, never `manager().syncRound()` in
   a loop. A round sweeps every tenant the runtime holds, so a poll that drives
