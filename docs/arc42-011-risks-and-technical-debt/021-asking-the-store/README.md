@@ -123,6 +123,106 @@ convenience and never evidence — the party being audited controls it. The
 store's own trail is on the other side of the boundary and cannot be declined
 by a client that would rather not write anything down.
 
+## What it looks like from the consumer's side
+
+Sketches, not a specification: the point of writing them now is that a
+vocabulary is easy to argue about in the abstract and stops being arguable the
+moment somebody reads a screen's worth of it. Names will move.
+
+**One tenant, one way in, and the binding is not the caller's business.**
+
+```java
+// Inside the framework, or in a host that embedded the store: off the
+// whiteboard, where the tenant already put it.
+Asking hogwarts = Asking.at(store);           // an ObjectStore from the registry
+
+// Across a network: the same vocabulary over the tenant's surface.
+Asking hogwarts = Asking.over(surface);       // a Surface, holding a token
+```
+
+Nothing below changes between those two lines, which is the whole claim. A
+lifecycle callback and a product in another building write the same code.
+
+**A screen of work.** These are questions somebody actually asks, so they are
+methods rather than searches anybody composes.
+
+```java
+Page<Run> waiting   = hogwarts.work().open().page(20);
+Page<Run> mine      = hogwarts.work().open().heldBy(me).page(20);
+Page<Run> stuck     = hogwarts.work().lapsed().page(20);
+Page<Run> refused   = hogwarts.work().fellThrough().since(yesterday).page(20);
+
+Journey journey     = hogwarts.work().journeyOf(runKey);   // milestones, in order
+List<Run> covered   = hogwarts.work().correlated(correlation);
+```
+
+**A screen of records**, which is the half that made this item wider than its
+first draft. A ward list is `Observation` and `Device`, and it is still asking.
+
+```java
+Page<Stored> ward = hogwarts.records("Observation")
+        .where("subject", "Patient/" + id)
+        .newestFirst()
+        .page(50);
+
+long active = hogwarts.records("Device").where("status", "active").count();
+```
+
+What comes back carries no identifying elements, because asking is not
+unsealing. A list screen shows what it is entitled to and no name appears in it
+unless somebody asks for one:
+
+```java
+// A different act, and it says why. It leaves a disclosure behind, and it
+// cannot be done by a credential holding only the right to ask.
+Person person = hogwarts.identify(pseudonym, Purpose.of("treatment"), run);
+```
+
+**Paging is the store's cursor, not an offset the caller keeps**, so a record
+written between two fetches cannot be handed over twice:
+
+```java
+Page<Stored> first  = hogwarts.records("Patient").page(50);
+Page<Stored> second = first.next();     // empty when there is no next
+```
+
+**The trail**, which today is `AuditEvent` over FHIR:
+
+```java
+Page<Entry> whoRead = hogwarts.trail().about(recordId).since(march).page(100);
+Page<Entry> byRun   = hogwarts.trail().underRun(runKey).page(100);
+```
+
+**The observer seam**, off unless the integrator asks:
+
+```java
+Asking watched = hogwarts.watching(call ->
+        metrics.timed(call.what(), call.took()));
+```
+
+Deliberately not `log.info(call)`. A call carries what was asked, and a search
+carries `identifier=system|value`; the rule this store keeps is that logging is
+never per-request and never carries identifying data. What an integrator does
+inside their own observer is theirs, and the chapter should say that what they
+record is a convenience rather than evidence — the store's trail is on the
+other side of the boundary and cannot be declined.
+
+**And from a host that never entered the framework:**
+
+```java
+// Felix and the OSGi API are the only shared dependencies, so this is all a
+// host has — and every type above has to be reachable from here or the
+// vocabulary is unusable exactly where embedding was supposed to help.
+Collection<ServiceReference<Asking>> found =
+        context.getServiceReferences(Asking.class, "(tenant=hogwarts)");
+```
+
+**What is absent on purpose.** There is no `Asking.everything()` and no tenant
+argument anywhere above: one instance is one tenant, so a fleet-wide view holds
+several and asks each, which is the walk the deployment chapter describes. And
+there is no `where(Criteria)` — the vocabulary is the point, and a door that
+took the engine's own criteria would be `ObjectStore` with a longer name.
+
 ## Three things a query vocabulary must not become
 
 **A cross-tenant read.** The registry keys these services by tenant and the
