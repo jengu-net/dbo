@@ -2,6 +2,7 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -98,6 +99,17 @@ class AReplicatedProfileCanBeValidatedAgainstIT {
 
         // The zone publishes the profile, exactly as a platform zone does.
         assertEquals(201, post(zone, onZone, "/StructureDefinition", PROFILE).statusCode());
+    }
+
+    /**
+     * Given back. A tenant one class uses is a database the whole
+     * suite carries until the run ends, and the saving on this rung is
+     * the runtime rather than the tenant.
+     */
+    @AfterAll
+    void down() {
+        SharedTenants.retire(reader);
+        SharedTenants.retire(zone);
     }
 
     @Test

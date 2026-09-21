@@ -488,6 +488,38 @@ public final class SharedTenants {
         });
     }
 
+    /**
+     * Gives a tenant back: the declaration is withdrawn, the runtime takes it
+     * down on the next scan, and the database is dropped in the background.
+     *
+     * <p><b>For a shape one class uses.</b> The saving on this rung of the
+     * ladder is the RUNTIME — thirty-four seconds of it — and never the
+     * tenant, which is a database on a server the whole suite shares. A class
+     * that takes one and does not give it back leaves the world one bigger
+     * for every class that follows it, and a suite that shares a runtime ends
+     * up holding forty-six databases at once. That is sharing a world and
+     * hoarding a tenant.
+     *
+     * <p>A shape several classes take is NOT retired: giving that one back
+     * would make the next class rebuild what it came here to reuse.
+     */
+    public static synchronized void retire(Tenant tenant) {
+        if (tenant == null || UP.remove(tenant.code()) == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(directory.resolve(tenant.code() + ".json"));
+            // The runtime retracts what nobody declares any more, so the scan
+            // is what takes the surfaces down. Dropping the database under a
+            // serving tenant would be the other order.
+            MANAGER.scanOnce();
+        } catch (Exception couldNotWithdraw) {
+            throw new IllegalStateException(
+                    "could not withdraw " + tenant.code(), couldNotWithdraw);
+        }
+        SuiteDatabases.drop(PROVISIONER, tenant.code());
+    }
+
     /** One shared tenant, and everything a test needs to reach it. */
     public record Tenant(String code) {
 

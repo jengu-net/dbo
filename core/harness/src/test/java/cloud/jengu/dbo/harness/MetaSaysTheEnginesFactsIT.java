@@ -2,6 +2,7 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,17 @@ class MetaSaysTheEnginesFactsIT {
         onSource = allikas.token("meta-source", "system/*.write", "system/*.read");
         onReceiver = saaja.token("meta-receiver", "system/*.write", "system/*.read");
         saaja.syncOnce();
+    }
+
+    /**
+     * Given back. A tenant one class uses is a database the whole
+     * suite carries until the run ends, and the saving on this rung is
+     * the runtime rather than the tenant.
+     */
+    @AfterAll
+    void down() {
+        SharedTenants.retire(saaja);
+        SharedTenants.retire(allikas);
     }
 
     private String base(SharedTenants.Tenant tenant) {

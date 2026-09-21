@@ -3,6 +3,7 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -88,6 +89,15 @@ class DelegationIT {
         authority.ensureClient("engine", ENGINE_SECRET, List.of());
 
         humanToken = loginForToken();
+    }
+
+    /**
+     * Given back. This shape is one class's, so holding it to the end of
+     * the run would be a database the whole suite carries for nobody.
+     */
+    @AfterAll
+    void down() {
+        SharedTenants.retire(tenant);
     }
 
     private String base() {

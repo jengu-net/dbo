@@ -80,6 +80,17 @@ class APartnerFollowsWorkIT {
         benchToken = managed.token("bench", "work/" + STEP);
     }
 
+    /**
+     * Given back. A tenant one class uses is a database the whole
+     * suite carries until the run ends, and the saving on this rung is
+     * the runtime rather than the tenant.
+     */
+    @AfterAll
+    void down() {
+        SharedTenants.retire(managed);
+        SharedTenants.retire(partner);
+    }
+
     @Test
     @DisplayName("a partner credential reads a managed tenant's journey by run, is refused by a "
             + "tenant it does not manage, and never receives a document or a purpose from either")

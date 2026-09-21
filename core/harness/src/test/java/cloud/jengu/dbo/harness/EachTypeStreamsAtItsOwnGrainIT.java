@@ -2,6 +2,7 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -68,6 +69,17 @@ class EachTypeStreamsAtItsOwnGrainIT {
         dependant = SharedTenants.of(SharedTenants.Shape.R4_GRAIN_DEPENDANT);
         onUpstream = upstream.token("grain-writer", "system/*.write", "system/*.read");
         onDependant = dependant.token("grain-reader", "system/*.read");
+    }
+
+    /**
+     * Given back. A tenant one class uses is a database the whole
+     * suite carries until the run ends, and the saving on this rung is
+     * the runtime rather than the tenant.
+     */
+    @AfterAll
+    void down() {
+        SharedTenants.retire(dependant);
+        SharedTenants.retire(upstream);
     }
 
     @Test

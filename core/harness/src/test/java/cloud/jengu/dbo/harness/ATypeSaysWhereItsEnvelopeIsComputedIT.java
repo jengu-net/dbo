@@ -2,6 +2,7 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,15 @@ class ATypeSaysWhereItsEnvelopeIsComputedIT {
         // answer to any of it.
         tenant = SharedTenants.of(SharedTenants.Shape.R4_DB_ENVELOPE);
         service = tenant.token("where-the-bytes-are", "system/*.read", "system/*.write");
+    }
+
+    /**
+     * Given back. This shape is one class's, so holding it to the end of
+     * the run would be a database the whole suite carries for nobody.
+     */
+    @AfterAll
+    void down() {
+        SharedTenants.retire(tenant);
     }
 
     /**

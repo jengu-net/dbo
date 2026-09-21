@@ -125,6 +125,17 @@ class OneTenantInTwoPlacesIT {
         edge = new Lanes(edgeStore, new PgChangeFeed(edgeDs, WorkModel.DOMAIN), edgeRuns, "edge");
     }
 
+    /**
+     * Given back. A tenant one class uses is a database the whole
+     * suite carries until the run ends, and the saving on this rung is
+     * the runtime rather than the tenant.
+     */
+    @AfterAll
+    void down() {
+        SharedTenants.retire(clinic);
+        SharedTenants.retire(zone);
+    }
+
 
     // ── canonical content arrives because somebody declared it should ──
 

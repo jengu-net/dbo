@@ -2,6 +2,7 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -61,6 +62,15 @@ class ADeclarationIsAppliedThroughTheFaceIT {
                 List.of("system/*.read"));
         bearer = token("through-the-face-loader", "loader-secret",
                 cloud.jengu.dbo.auth.Scopes.CONFIGURATION);
+    }
+
+    /**
+     * Given back. This shape is one class's, so holding it to the end of
+     * the run would be a database the whole suite carries for nobody.
+     */
+    @AfterAll
+    void down() {
+        SharedTenants.retire(tenant);
     }
 
     /** One vocabulary, declared the way a file in a repository declares it. */

@@ -2,6 +2,7 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -52,6 +53,17 @@ class ScimProvisioningIT {
         unstaffed = SharedTenants.of(SharedTenants.Shape.R4_ISOLATED);
         staffed.authority().ensureRoleGrant("clinician", List.of("system/*.read"));
         scimToken = staffed.token("okta-scim", "scim");
+    }
+
+    /**
+     * Given back. A tenant one class uses is a database the whole
+     * suite carries until the run ends, and the saving on this rung is
+     * the runtime rather than the tenant.
+     */
+    @AfterAll
+    void down() {
+        SharedTenants.retire(staffed);
+        SharedTenants.retire(unstaffed);
     }
 
     @Test
