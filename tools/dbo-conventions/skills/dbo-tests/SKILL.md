@@ -17,6 +17,13 @@ description: Writing or naming a test, or writing one to prove a fix.
   and watch the test go red.
 - MUST NOT accept a pass from a wait that outlives its condition, or from an
   assertion on text the answer contains regardless.
+- MUST check that an assertion CAN fail, by breaking what it is about. Three
+  shapes that cannot, each found by mutation rather than by reading: an
+  assertion that sealed bytes are absent, when sealed bytes carry no marker
+  wherever they sit and the question is size; an assertion that something did
+  not travel readable, when every byte array renders the same on the wire; and
+  a guard so strict that a red test is failing on the guard rather than on the
+  property.
 
 ---
 
