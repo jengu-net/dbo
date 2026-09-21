@@ -143,6 +143,10 @@ dependencies {
 // distribution does the remembering.
 val distTest = tasks.register<Test>("distTest") {
     description = "The tests that boot the shipped distribution as a subprocess."
+    // Never from the cache. What a container held is an input this cannot
+    // declare, so a restored pass would say a suite succeeded against a world
+    // nobody can describe. The cache is for work whose inputs are on disk.
+    outputs.cacheIf { false }
     group = "verification"
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
@@ -157,6 +161,10 @@ val distTest = tasks.register<Test>("distTest") {
 // JVM and false about this store, which is worse than recording nothing.
 val memoryTest = tasks.register<Test>("memoryTest") {
     description = "What a tenant costs to hold, measured in a JVM that holds nothing else."
+    // Never from the cache. What a container held is an input this cannot
+    // declare, so a restored pass would say a suite succeeded against a world
+    // nobody can describe. The cache is for work whose inputs are on disk.
+    outputs.cacheIf { false }
     group = "verification"
     // Images on, because a tenant that comes up any other way is not the
     // tenant a deployment holds: it expands the whole of a version instead of
@@ -179,6 +187,10 @@ val memoryTest = tasks.register<Test>("memoryTest") {
     maxHeapSize = "2g"
 }
 tasks.test {
+    // Never from the cache. What a container held is an input this cannot
+    // declare, so a restored pass would say a suite succeeded against a world
+    // nobody can describe. The cache is for work whose inputs are on disk.
+    outputs.cacheIf { false }
     filter.excludeTestsMatching("*ServerDistIT")
     filter.excludeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
     shouldRunAfter(distTest)

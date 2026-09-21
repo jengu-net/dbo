@@ -24,7 +24,16 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-tasks.test { useJUnitPlatform() }
+tasks.test {
+    useJUnitPlatform()
+    // What this test reads, said so the cache can tell whether the answer
+    // still holds. It opens the chapters and the world by path rather than
+    // through the classpath, and a cached pass over a chapter that has since
+    // changed is exactly the failure a cache introduces to a build whose
+    // tasks do not declare what they read.
+    inputs.dir(rootProject.file("docs/guide")).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(rootProject.file("sample/world")).withPathSensitivity(PathSensitivity.RELATIVE)
+}
 
 // Javadoc on example code would demand the ceremony the examples exist to be
 // free of: these are read as prose in a chapter, not as an API.
