@@ -41,6 +41,14 @@ building. This item is deleted when the list is empty.
    shell chapter when it lands. The sample itself is
    [item 002](../002-sample-application/README.md); this step waits for it.
 
+   **Which chapters there should be is
+   [item 021](../021-the-platforms-own-entities/README.md).** The Core group is
+   organised by store feature and the map says the guide is a story, and those
+   are different things — the first chapter where they part company is
+   `search.md`, which walks a query surface FHIR documents. Converting a
+   chapter that should not exist is the one way this step can waste work, so
+   the list is settled there first.
+
 Step 2 is the largest and is now the only one. It waits on
 [item 002](../002-sample-application/README.md) rather than on anything here,
 so this item is finished when that one is.
