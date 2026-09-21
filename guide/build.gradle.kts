@@ -45,4 +45,19 @@ tasks.test {
     // A cold world provisions six databases with a terminology baseline each.
     timeout.set(Duration.ofMinutes(30))
     testLogging { events("passed", "failed") }
+    // The lines the terminology waits print, and only those.
+    //
+    // A test's standard output goes nowhere by default, so the waits added to
+    // say how close they came said it into a stream no CI log carries — the
+    // measurement existed, was merged, and could not be read, which is this
+    // repository's characteristic defect wearing documentation's clothes.
+    //
+    // Forwarding everything instead would bury them: the guide's own commands
+    // print freely, and a number nobody can find in nine hundred lines is not
+    // much better than a number nobody printed.
+    addTestOutputListener { _, event ->
+        if (event.message.contains("waited for ")) {
+            logger.lifecycle(event.message.trim())
+        }
+    }
 }

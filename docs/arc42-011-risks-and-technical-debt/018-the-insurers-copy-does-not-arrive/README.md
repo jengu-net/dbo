@@ -1,4 +1,4 @@
-**Open. It is SLOW, not stopped, and most of the wait is a tenant the runtime makes for itself reading a whole face through the chain. The pin now carries the launcher that reads the images setting, so that twenty-eight seconds should be four and a half. Next: find out, which needs the wait to say how close it came even when it passes — it does now.**
+**Open. The waits now say how close they came, which needed a second fix: they were printing into a stream no CI log carries. Read locally, the insurer is met at attempt 2 of 120. It is SLOW, not stopped, and most of the wait is a tenant the runtime makes for itself reading a whole face through the chain. The pin now carries the launcher that reads the images setting, so that twenty-eight seconds should be four and a half. Next: find out, which needs the wait to say how close it came even when it passes — it does now.**
 
 # The insurer's copy does not arrive, in one job only
 
@@ -98,7 +98,29 @@ the next CI run is where it comes from.
 3. ~~Make the wait say how close it came even when it passes.~~ Done. Three
    waits, each printing the attempt it was met at.
 4. Read those numbers off a `build` run — the job where this expired, and the
-   one that has the whole suite beside it. If the insurer is met in the first
+   one that has the whole suite beside it.
+
+   **They were not in any run**, and that took reading three of them to
+   notice. A test's standard output goes nowhere by default and the guide's
+   task forwards none of it, so three waits said how close they came into a
+   stream no CI log carries: merged, running, and unreadable. Only those lines
+   are forwarded now, because forwarding the stream would bury them among the
+   guide's own published commands.
+
+   Read locally, with images on and nothing else competing:
+
+   ```
+   the zone's code system at the hospital: met at attempt 13 of 120 (~60s)
+   the zone's value set at the hospital:   met at attempt 1 of 120 (~0s)
+   the zone's code system at the insurer,
+                   through the projection: met at attempt 2 of 120 (~5s)
+   ```
+
+   The insurer — the wait that expired at a hundred and twenty attempts on a
+   loaded runner — is met at the second. The hospital's first wait absorbs the
+   world's start-up, which is why it is the long one and why the two after it
+   are nearly free. So there is no headroom problem here, and what is left is
+   entirely a question about a runner carrying the whole suite beside it. If the insurer is met in the first
    handful of attempts, the pin did what the measurement said it would and
    this item is finished. If it is still in the high tens, the subject is the
    schedule the step's own comment describes, not the constant.
